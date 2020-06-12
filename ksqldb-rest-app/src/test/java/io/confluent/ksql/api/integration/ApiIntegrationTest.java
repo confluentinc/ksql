@@ -80,6 +80,16 @@ public class ApiIntegrationTest {
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final String AN_AGG_KEY = "FOO";
 
+  private static final JsonObject COMPLEX_FIELD_VALUE = new JsonObject()
+      .put("DECIMAL", 1.1) // JsonObject does not accept BigDecimal
+      .put("STRUCT", new JsonObject().put("F1", "foo").put("F2", 3))
+      .put("ARRAY_ARRAY", new JsonArray().add(new JsonArray().add("bar")))
+      .put("ARRAY_STRUCT", new JsonArray().add(new JsonObject().put("F1", "x")))
+      .put("ARRAY_MAP", new JsonArray().add(new JsonObject().put("k", 10)))
+      .put("MAP_ARRAY", new JsonObject().put("k", new JsonArray().add("e1").add("e2")))
+      .put("MAP_MAP", new JsonObject().put("k1", new JsonObject().put("k2", 5)))
+      .put("MAP_STRUCT", new JsonObject().put("k", new JsonObject().put("F1", "baz")));
+
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(
           EmbeddedSingleNodeKafkaCluster.newBuilder()
@@ -152,9 +162,13 @@ public class ApiIntegrationTest {
     // Then:
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
-        new JsonArray().add("STR").add("LONG").add("DEC").add("ARRAY").add("MAP").add("STRUCT")));
+        new JsonArray().add("STR").add("LONG").add("DEC").add("ARRAY").add("MAP").add("STRUCT").add("COMPLEX")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
-        new JsonArray().add("STRING").add("BIGINT").add("DECIMAL(4, 2)").add("ARRAY<STRING>").add("MAP<STRING, STRING>").add("STRUCT<`F1` INTEGER>")));
+        new JsonArray().add("STRING").add("BIGINT").add("DECIMAL(4, 2)").add("ARRAY<STRING>").add("MAP<STRING, STRING>").add("STRUCT<`F1` INTEGER>")
+            .add("STRUCT<`DECIMAL` DECIMAL(2, 1), `STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, "
+                + "`ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, `ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, "
+                + "`ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, `MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, "
+                + "`MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 
@@ -334,7 +348,8 @@ public class ApiIntegrationTest {
           .put("DEC", i + 0.11) // JsonObject does not accept BigDecimal
           .put("ARRAY", new JsonArray().add("a_" + i).add("b_" + i))
           .put("MAP", new JsonObject().put("k1", "v1_" + i).put("k2", "v2_" + i))
-          .put("STRUCT", new JsonObject().put("F1", i));
+          .put("STRUCT", new JsonObject().put("F1", i))
+          .put("COMPLEX", COMPLEX_FIELD_VALUE);
       bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
     }
 
@@ -367,7 +382,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
@@ -384,7 +400,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
@@ -401,7 +418,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then:
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST,
@@ -417,7 +435,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then:
     shouldInsert(row);
@@ -433,7 +452,8 @@ public class ApiIntegrationTest {
         .put("dec", 12.21) // JsonObject does not accept BigDecimal
         .put("array", new JsonArray().add("a").add("b"))
         .put("map", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("struct", new JsonObject().put("f1", 3));
+        .put("struct", new JsonObject().put("f1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then:
     shouldInsert(target, row);
@@ -449,7 +469,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because stream name is invalid
     shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: " + target);
@@ -465,7 +486,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because stream name is invalid
     shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: `" + TEST_STREAM.toLowerCase() + "`");
@@ -480,7 +502,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because column name is incorrect
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: STR");
@@ -495,7 +518,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.21) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a").add("b"))
         .put("MAP", new JsonObject().put("k1", "v1").put("k2", "v2"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because column name is incorrect
     shouldFailToInsert(row, ERROR_CODE_BAD_REQUEST, "Key field must be specified: STR");
@@ -532,7 +556,8 @@ public class ApiIntegrationTest {
         .put("DEC", 12.34) // JsonObject does not accept BigDecimal
         .put("ARRAY", new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset"))
         .put("MAP", new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset"))
-        .put("STRUCT", new JsonObject().put("F1", 3));
+        .put("STRUCT", new JsonObject().put("F1", 3))
+        .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Insert a new row and wait for it to arrive
     assertThatEventually(() -> {
@@ -555,6 +580,7 @@ public class ApiIntegrationTest {
     assertThat(queryResponse.rows.get(0).getJsonArray(3), is(new JsonArray().add("a_shouldExecutePushQueryFromLatestOffset")));
     assertThat(queryResponse.rows.get(0).getJsonObject(4), is(new JsonObject().put("k1", "v1_shouldExecutePushQueryFromLatestOffset")));
     assertThat(queryResponse.rows.get(0).getJsonObject(5), is(new JsonObject().put("F1", 3)));
+    assertThat(queryResponse.rows.get(0).getJsonObject(6), is(COMPLEX_FIELD_VALUE));
 
     // Check that query is cleaned up on the server
     assertThatEventually(engine::numberOfLiveQueries, is(1));

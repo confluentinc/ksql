@@ -759,7 +759,7 @@ public class ClientIntegrationTest {
         if (value instanceof Struct) {
           expectedRow.add(StructuredTypesDataProvider.structToMap((Struct) value));
         } else if (value instanceof BigDecimal) {
-          // can't use expectedRow.add((BigDecimal) value) directly since client serializes BigDecimal as string,
+          // Can't use expectedRow.add((BigDecimal) value) directly since client serializes BigDecimal as string,
           // whereas this method builds up the expected result (unrelated to serialization)
           expectedRow.addAll(new KsqlArray(Collections.singletonList(value)));
         } else {

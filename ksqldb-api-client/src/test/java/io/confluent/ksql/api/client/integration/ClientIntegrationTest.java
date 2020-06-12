@@ -65,6 +65,7 @@ import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -720,8 +721,16 @@ public class ClientIntegrationTest {
     final List<KsqlArray> expectedRows = new ArrayList<>();
     for (final Map.Entry<String, GenericRow> entry : data.entries()) {
       final KsqlArray expectedRow = new KsqlArray()
-          .add(entry.getKey())
-          .addAll(new KsqlArray(entry.getValue().values()));
+          .add(entry.getKey());
+      for (final Object value : entry.getValue().values()) {
+        if (value instanceof BigDecimal) {
+          // can't use expectedRow.add((BigDecimal) value) directly since client serializes BigDecimal as string,
+          // whereas this method builds up the expected result (unrelated to serialization)
+          expectedRow.addAll(new KsqlArray(Collections.singletonList(value)));
+        } else {
+          expectedRow.add(value);
+        }
+      }
       expectedRows.add(expectedRow);
     }
     return expectedRows;

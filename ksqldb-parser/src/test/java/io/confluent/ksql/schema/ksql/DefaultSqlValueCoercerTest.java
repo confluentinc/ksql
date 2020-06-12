@@ -41,9 +41,12 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class DefaultSqlValueCoercerTest {
 
   private static final Set<SqlBaseType> UNSUPPORTED = ImmutableSet.of(
@@ -78,9 +81,15 @@ public class DefaultSqlValueCoercerTest {
 
   private DefaultSqlValueCoercer coercer;
 
-  @Before
-  public void setUp() {
-    coercer = DefaultSqlValueCoercer.INSTANCE;
+  @Parameters(name = "{0}")
+  public static Iterable<Object[]> data() {
+    return Arrays.stream(DefaultSqlValueCoercer.values())
+        .map(coercer -> new Object[]{coercer})
+        .collect(Collectors.toList());
+  }
+
+  public DefaultSqlValueCoercerTest(final DefaultSqlValueCoercer coercer) {
+    this.coercer = coercer;
   }
 
   @Test
@@ -138,15 +147,21 @@ public class DefaultSqlValueCoercerTest {
     assertThat(coercer.coerce(1L, decimalType), is(Result.of(new BigDecimal("1.0"))));
     assertThat(coercer.coerce(new BigDecimal("1.0"), decimalType),
         is(Result.of(new BigDecimal("1.0"))));
+    if (coercer.isAllowCastStringAndDoubleToDecimal()) {
+      assertThat(coercer.coerce("1.0", decimalType), is(Result.of(new BigDecimal("1.0"))));
+      assertThat(coercer.coerce(1.0d, decimalType), is(Result.of(new BigDecimal("1.0"))));
+    }
   }
 
   @Test
   public void shouldNotCoerceToDecimal() {
     final SqlType decimalType = SqlTypes.decimal(2, 1);
     assertThat(coercer.coerce(true, decimalType), is(Result.failure()));
-    assertThat(coercer.coerce("1.0", decimalType), is(Result.failure()));
-    assertThat(coercer.coerce(1.0d, decimalType), is(Result.failure()));
     assertThat(coercer.coerce(1234L, decimalType), is(Result.failure()));
+    if (!coercer.isAllowCastStringAndDoubleToDecimal()) {
+      assertThat(coercer.coerce("1.0", decimalType), is(Result.failure()));
+      assertThat(coercer.coerce(1.0d, decimalType), is(Result.failure()));
+    }
   }
 
   @Test
@@ -295,6 +310,12 @@ public class DefaultSqlValueCoercerTest {
 
       final List<SqlBaseType> shouldUpCast = partitioned.getOrDefault(true, ImmutableList.of());
       final List<SqlBaseType> shouldNotUpCast = partitioned.getOrDefault(false, ImmutableList.of());
+
+      if (coercer.isAllowCastStringAndDoubleToDecimal()
+          && (fromBaseType == SqlBaseType.STRING || fromBaseType == SqlBaseType.DOUBLE)) {
+        shouldNotUpCast.remove(SqlBaseType.DECIMAL);
+        shouldUpCast.add(SqlBaseType.DECIMAL);
+      }
 
       // Then:
       shouldUpCast.forEach(toBaseType -> assertThat(

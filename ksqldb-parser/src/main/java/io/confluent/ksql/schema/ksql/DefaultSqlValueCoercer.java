@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -61,8 +62,13 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
   private final boolean allowCastStringAndDoubleToDecimal;
 
-  private DefaultSqlValueCoercer(final boolean allowCastStringAndDoubleToDecimal) {
+  DefaultSqlValueCoercer(final boolean allowCastStringAndDoubleToDecimal) {
     this.allowCastStringAndDoubleToDecimal = allowCastStringAndDoubleToDecimal;
+  }
+
+  @VisibleForTesting
+  boolean isAllowCastStringAndDoubleToDecimal() {
+    return allowCastStringAndDoubleToDecimal;
   }
 
   @Override

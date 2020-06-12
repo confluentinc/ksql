@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import java.net.URI;
 import java.util.HashMap;
@@ -39,17 +40,19 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class DefaultKsqlClient implements SimpleKsqlClient {
+public final class DefaultKsqlClient implements SimpleKsqlClient {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultKsqlClient.class);
 
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
 
-  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
+  public DefaultKsqlClient(final Vertx vertx, final Optional<String> authHeader,
+      final Map<String, Object> clientProps) {
     this(
         authHeader,
         new KsqlClient(
+            vertx,
             toClientProps(clientProps),
             Optional.empty(),
             new LocalProperties(ImmutableMap.of()),

@@ -20,6 +20,7 @@ import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import io.vertx.core.Vertx;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -33,6 +34,7 @@ public final class RestServiceContextFactory {
   public interface DefaultServiceContextFactory {
 
     ServiceContext create(
+        Vertx vertx,
         KsqlConfig config,
         Optional<String> authHeader,
         Supplier<SchemaRegistryClient> srClientFactory
@@ -42,6 +44,7 @@ public final class RestServiceContextFactory {
   public interface UserServiceContextFactory {
 
     ServiceContext create(
+        Vertx vertx,
         KsqlConfig ksqlConfig,
         Optional<String> authHeader,
         KafkaClientSupplier kafkaClientSupplier,
@@ -50,11 +53,13 @@ public final class RestServiceContextFactory {
   }
 
   public static ServiceContext create(
+      final Vertx vertx,
       final KsqlConfig ksqlConfig,
       final Optional<String> authHeader,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
     return create(
+        vertx,
         ksqlConfig,
         authHeader,
         new DefaultKafkaClientSupplier(),
@@ -63,6 +68,7 @@ public final class RestServiceContextFactory {
   }
 
   public static ServiceContext create(
+      final Vertx vertx,
       final KsqlConfig ksqlConfig,
       final Optional<String> authHeader,
       final KafkaClientSupplier kafkaClientSupplier,
@@ -74,7 +80,7 @@ public final class RestServiceContextFactory {
         srClientFactory,
         () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
             authHeader),
-        () -> new DefaultKsqlClient(authHeader, ksqlConfig.originals())
+        () -> new DefaultKsqlClient(vertx, authHeader, ksqlConfig.originals())
     );
   }
 

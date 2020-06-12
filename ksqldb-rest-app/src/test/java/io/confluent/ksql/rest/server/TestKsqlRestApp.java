@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.vertx.core.Vertx;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -80,6 +81,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
   protected static final AtomicInteger COUNTER = new AtomicInteger();
 
+  protected final Vertx vertx;
   protected final String metricsPrefix = "app-" + COUNTER.getAndIncrement() + "-";
   protected final Map<String, ?> baseConfig;
   protected final Supplier<String> bootstrapServers;
@@ -96,11 +98,13 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   protected TestKsqlRestApp(
+      final Vertx vertx,
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
       final Optional<BasicCredentials> credentials
   ) {
+    this.vertx = vertx;
     this.baseConfig = buildBaseConfig(additionalProps);
     this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -271,10 +275,11 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
+    final KsqlConfig ksqlConfig = new KsqlConfig(config.getKsqlConfigProperties());
 
     try {
-
       ksqlRestApplication = KsqlRestApplication.buildApplication(
+          vertx,
           metricsPrefix,
           config,
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
@@ -442,6 +447,8 @@ public class TestKsqlRestApp extends ExternalResource {
 
   public static final class Builder {
 
+    private final Vertx vertx;
+
     private final Supplier<String> bootstrapServers;
 
     private final Map<String, Object> additionalProps = new HashMap<>();
@@ -451,6 +458,7 @@ public class TestKsqlRestApp extends ExternalResource {
     private Optional<BasicCredentials> credentials = Optional.empty();
 
     private Builder(final Supplier<String> bootstrapServers) {
+      this.vertx = KsqlRestApplication.createVertx(new KsqlConfig(new HashMap<>()));
       this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
@@ -474,7 +482,7 @@ public class TestKsqlRestApp extends ExternalResource {
     public Builder withEnabledKsqlClient() {
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
-              () -> TestDefaultKsqlClientFactory.instance(additionalProps));
+              () -> TestDefaultKsqlClientFactory.instance(vertx, additionalProps));
       return this;
     }
 
@@ -501,6 +509,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public TestKsqlRestApp build() {
       return new TestKsqlRestApp(
+          vertx,
           bootstrapServers,
           additionalProps,
           serviceContext,
@@ -510,6 +519,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public TestKsqlRestAppWaitingOnPrecondition buildWaitingOnPrecondition(final CountDownLatch latch) {
       return new TestKsqlRestAppWaitingOnPrecondition(
+          vertx,
           bootstrapServers,
           additionalProps,
           serviceContext,

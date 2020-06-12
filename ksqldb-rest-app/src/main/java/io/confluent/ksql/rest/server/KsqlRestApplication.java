@@ -190,6 +190,7 @@ public final class KsqlRestApplication implements Executable {
   @VisibleForTesting
   KsqlRestApplication(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+      final Vertx vertx,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
@@ -236,12 +237,7 @@ public final class KsqlRestApplication implements Executable {
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
-    this.vertx = Vertx.vertx(
-        new VertxOptions()
-            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
-            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
-            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
-    this.vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+    this.vertx = vertx;
 
     this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
     if (heartbeatAgent.isPresent()) {
@@ -548,15 +544,29 @@ public final class KsqlRestApplication implements Executable {
     });
   }
 
+  public static Vertx createVertx(final KsqlConfig ksqlConfig) {
+    final Vertx vertx = Vertx.vertx(
+        new VertxOptions()
+            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
+            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
+    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+    return vertx;
+  }
+
   public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
+
+    final Vertx vertx = createVertx(ksqlConfig);
+
     final ServiceContext serviceContext = new LazyServiceContext(() ->
-        RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
+        RestServiceContextFactory.create(vertx, ksqlConfig, Optional.empty(),
             schemaRegistryClientFactory));
 
     return buildApplication(
+        vertx,
         "",
         restConfig,
         KsqlVersionCheckerAgent::new,
@@ -568,6 +578,7 @@ public final class KsqlRestApplication implements Executable {
 
   @SuppressWarnings("checkstyle:MethodLength")
   static KsqlRestApplication buildApplication(
+      final Vertx vertx,
       final String metricsPrefix,
       final KsqlRestConfig restConfig,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
@@ -631,6 +642,7 @@ public final class KsqlRestApplication implements Executable {
 
     final KsqlSecurityContextProvider ksqlSecurityContextProvider =
         new DefaultKsqlSecurityContextProvider(
+            vertx,
             securityExtension,
             RestServiceContextFactory::create,
             RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory);
@@ -710,6 +722,7 @@ public final class KsqlRestApplication implements Executable {
         RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
 
     return new KsqlRestApplication(
+        vertx,
         serviceContext,
         ksqlEngine,
         ksqlConfig,

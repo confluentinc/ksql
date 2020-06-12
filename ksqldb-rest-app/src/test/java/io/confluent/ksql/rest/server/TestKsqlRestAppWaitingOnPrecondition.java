@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.services.ServiceContext;
+import io.vertx.core.Vertx;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -35,13 +36,14 @@ public class TestKsqlRestAppWaitingOnPrecondition extends TestKsqlRestApp {
   private CountDownLatch latch;
 
   TestKsqlRestAppWaitingOnPrecondition(
+      final Vertx vertx,
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
       final Optional<BasicCredentials> credentials,
       final CountDownLatch latch
   ) {
-    super(bootstrapServers, additionalProps, serviceContext, credentials);
+    super(vertx, bootstrapServers, additionalProps, serviceContext, credentials);
     this.latch = latch;
   }
 

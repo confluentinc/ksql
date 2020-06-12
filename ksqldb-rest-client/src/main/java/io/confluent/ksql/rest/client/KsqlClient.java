@@ -40,10 +40,21 @@ public final class KsqlClient implements AutoCloseable {
   }
 
   private final Vertx vertx;
+  private final boolean ownedVertx;
   private final HttpClient httpNonTlsClient;
   private final HttpClient httpTlsClient;
   private final LocalProperties localProperties;
   private final Optional<String> basicAuthHeader;
+
+  public KsqlClient(
+      final Vertx vertx,
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> credentials,
+      final LocalProperties localProperties,
+      final HttpClientOptions httpClientOptions
+  ) {
+    this(vertx, false, clientProps, credentials, localProperties, httpClientOptions);
+  }
 
   public KsqlClient(
       final Map<String, String> clientProps,
@@ -51,7 +62,19 @@ public final class KsqlClient implements AutoCloseable {
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions
   ) {
-    this.vertx = Vertx.vertx();
+    this(Vertx.vertx(), true, clientProps, credentials, localProperties, httpClientOptions);
+  }
+
+  private KsqlClient(
+      final Vertx vertx,
+      final boolean ownedVertx,
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> credentials,
+      final LocalProperties localProperties,
+      final HttpClientOptions httpClientOptions
+  ) {
+    this.vertx = vertx;
+    this.ownedVertx = ownedVertx;
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
@@ -78,7 +101,7 @@ public final class KsqlClient implements AutoCloseable {
     } catch (Exception ignore) {
       // Ignore
     }
-    if (vertx != null) {
+    if (ownedVertx && vertx != null) {
       vertx.close();
     }
   }

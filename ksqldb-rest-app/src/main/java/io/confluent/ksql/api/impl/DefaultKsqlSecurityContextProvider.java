@@ -22,12 +22,14 @@ import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServ
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlConfig;
+import io.vertx.core.Vertx;
 import java.security.Principal;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextProvider {
 
+  private final Vertx vertx;
   private final KsqlSecurityExtension securityExtension;
   private final DefaultServiceContextFactory defaultServiceContextFactory;
   private final UserServiceContextFactory userServiceContextFactory;
@@ -35,11 +37,13 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
 
   public DefaultKsqlSecurityContextProvider(
+      final Vertx vertx,
       final KsqlSecurityExtension securityExtension,
       final DefaultServiceContextFactory defaultServiceContextFactory,
       final UserServiceContextFactory userServiceContextFactory,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+    this.vertx = vertx;
     this.securityExtension = securityExtension;
     this.defaultServiceContextFactory = defaultServiceContextFactory;
     this.userServiceContextFactory = userServiceContextFactory;
@@ -56,7 +60,8 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
     if (securityExtension == null || !securityExtension.getUserContextProvider().isPresent()) {
       return new KsqlSecurityContext(
           principal,
-          defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory)
+          defaultServiceContextFactory
+              .create(vertx, ksqlConfig, authHeader, schemaRegistryClientFactory)
       );
     }
 
@@ -64,6 +69,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
         .map(provider -> new KsqlSecurityContext(
             principal,
             userServiceContextFactory.create(
+                vertx,
                 ksqlConfig,
                 authHeader,
                 provider.getKafkaClientSupplier(principal.orElse(null)),

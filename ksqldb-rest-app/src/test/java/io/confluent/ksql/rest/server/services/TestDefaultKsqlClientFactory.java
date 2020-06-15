@@ -13,6 +13,11 @@ import java.util.function.BiFunction;
 public class TestDefaultKsqlClientFactory {
 
   // Creates an instance with no auth
+  public static SimpleKsqlClient instance(Map<String, Object> clientProps) {
+    return new DefaultKsqlClient(Optional.empty(), clientProps, SocketAddress::inetSocketAddress);
+  }
+
+  // Creates an instance with no auth
   public static SimpleKsqlClient instance(Map<String, Object> clientProps,
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
     return new DefaultKsqlClient(Optional.empty(), clientProps, socketAddressFactory);

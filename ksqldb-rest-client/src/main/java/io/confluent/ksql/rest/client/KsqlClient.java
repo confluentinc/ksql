@@ -48,6 +48,13 @@ public final class KsqlClient implements AutoCloseable {
   private final Optional<String> basicAuthHeader;
   private final BiFunction<Integer, String, SocketAddress> socketAddressFactory;
 
+  /**
+   * Creates a new KsqlClient.
+   * @param clientProps Client properties from which to read TLS setup configs
+   * @param credentials Optional credentials to pass along with requests if auth is enabled
+   * @param localProperties The set of local properties to pass along to /ksql requests
+   * @param httpClientOptions Default HttpClientOptions to be used when creating the client
+   */
   public KsqlClient(
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> credentials,
@@ -63,6 +70,16 @@ public final class KsqlClient implements AutoCloseable {
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
   }
 
+  /**
+   * Creates a new KsqlClient.
+   * @param credentials Optional credentials to pass along with requests if auth is enabled
+   * @param localProperties The set of local properties to pass along to /ksql requests
+   * @param httpClientOptionsFactory A factory for creating HttpClientOptions which take a parameter
+   *                                 isTls, indicating whether the factory should prepare the
+   *                                 options for a TLS connection
+   * @param socketAddressFactory A factoring for creating a SocketAddress, given the port and host
+   *                             it's meant to represent
+   */
   public KsqlClient(
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,

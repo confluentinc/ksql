@@ -287,16 +287,15 @@ public class Server {
         .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
-      if (isInternalListener) {
-        final String internalAlias = ksqlRestConfig
-            .getString(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG);
-        setTlsOptions(ksqlRestConfig, options, internalAlias,
-            ksqlRestConfig.getClientAuthInternal());
-      } else {
-        final String externalAlias = ksqlRestConfig
-            .getString(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG);
-        setTlsOptions(ksqlRestConfig, options, externalAlias, ksqlRestConfig.getClientAuth());
-      }
+      final String ksConfigName = isInternalListener
+           ? KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG
+           : KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG;
+      final ClientAuth clientAuth = isInternalListener
+          ? ksqlRestConfig.getClientAuthInternal()
+          : ksqlRestConfig.getClientAuth();
+
+      final String alias = ksqlRestConfig.getString(ksConfigName);
+      setTlsOptions(ksqlRestConfig, options, alias, clientAuth);
     }
     return options;
   }

@@ -52,11 +52,6 @@ public class CreateStreamAsSelect extends CreateAsSelect {
   }
 
   @Override
-  public Sink getSink() {
-    return Sink.of(getName(), true, getProperties());
-  }
-
-  @Override
   public CreateAsSelect copyWith(final CreateSourceAsProperties properties) {
     return new CreateStreamAsSelect(this, properties);
   }

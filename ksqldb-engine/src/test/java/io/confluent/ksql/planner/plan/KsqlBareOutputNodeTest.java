@@ -23,8 +23,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -36,8 +34,6 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -46,9 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -131,24 +125,6 @@ public class KsqlBareOutputNodeTest {
         valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT),
         valueColumn(ColumnName.of("COL2"), SqlTypes.STRING),
         valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)));
-  }
-
-  @Test
-  public void shouldComputeQueryIdCorrectly() {
-    // Given:
-    final KsqlBareOutputNode node
-        = (KsqlBareOutputNode) AnalysisTestUtil
-        .buildLogicalPlan(ksqlConfig, "select col0 from test1 EMIT CHANGES;", metaStore);
-    final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
-
-    // When:
-    final Set<QueryId> ids = IntStream.range(0, 100)
-        .mapToObj(i -> node.getQueryId(queryIdGenerator))
-        .collect(Collectors.toSet());
-
-    // Then:
-    assertThat(ids.size(), equalTo(100));
-    verifyNoMoreInteractions(queryIdGenerator);
   }
 
   private TopologyDescription.Node getNodeByName(final String nodeName) {

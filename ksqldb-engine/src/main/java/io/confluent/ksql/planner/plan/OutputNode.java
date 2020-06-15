@@ -18,8 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -59,5 +58,5 @@ public abstract class OutputNode extends SingleSourcePlanNode {
     return timestampColumn;
   }
 
-  public abstract QueryId getQueryId(QueryIdGenerator queryIdGenerator);
+  public abstract Optional<SourceName> getSinkName();
 }

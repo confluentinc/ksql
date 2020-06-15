@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,8 +33,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -74,8 +71,6 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
 
   @Mock
-  private QueryIdGenerator queryIdGenerator;
-  @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private FinalProjectNode sourceNode;
@@ -95,8 +90,6 @@ public class KsqlStructuredDataOutputNodeTest {
   @Before
   public void before() {
     createInto = true;
-
-    when(queryIdGenerator.getNext()).thenReturn(QUERY_ID_VALUE);
 
     when(sourceNode.getSchema()).thenReturn(LogicalSchema.builder().build());
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
@@ -143,43 +136,6 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(sourceNode).buildStream(ksqlStreamBuilder);
-  }
-
-  @Test
-  public void shouldComputeQueryIdCorrectlyForStream() {
-    // When:
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
-
-    // Then:
-    verify(queryIdGenerator, times(1)).getNext();
-    assertThat(queryId, equalTo(new QueryId("CSAS_0_" + QUERY_ID_VALUE)));
-  }
-
-  @Test
-  public void shouldComputeQueryIdCorrectlyForTable() {
-    // Given:
-    when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
-    buildNode();
-
-    // When:
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
-
-    // Then:
-    verify(queryIdGenerator, times(1)).getNext();
-    assertThat(queryId, equalTo(new QueryId("CTAS_0_" + QUERY_ID_VALUE)));
-  }
-
-  @Test
-  public void shouldComputeQueryIdCorrectlyForInsertInto() {
-    // Given:
-    givenInsertIntoNode();
-
-    // When:
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
-
-    // Then:
-    verify(queryIdGenerator, times(1)).getNext();
-    assertThat(queryId, equalTo(new QueryId("INSERTQUERY_" + QUERY_ID_VALUE)));
   }
 
   @Test
@@ -234,7 +190,8 @@ public class KsqlStructuredDataOutputNodeTest {
         OptionalInt.empty(),
         createInto,
         SerdeOption.none(),
-        SourceName.of(PLAN_NODE_ID.toString()));
+        SourceName.of(PLAN_NODE_ID.toString())
+    );
   }
 
   private void givenSourceSchema(final LogicalSchema schema) {

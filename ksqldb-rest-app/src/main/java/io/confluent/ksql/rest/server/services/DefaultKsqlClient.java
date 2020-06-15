@@ -202,6 +202,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
               .setPassword(Strings.nullToEmpty(suppliedKeyStorePassword));
           if (!Strings.isNullOrEmpty(internalAlias)) {
             keyStoreOptions.setValue(KeystoreUtil.getKeyStore(
+                KsqlRestConfig.SSL_STORE_TYPE_JKS,
                 keyStoreLocation,
                 Optional.ofNullable(Strings.emptyToNull(suppliedKeyStorePassword)),
                 Optional.ofNullable(Strings.emptyToNull(suppliedKeyStorePassword)),

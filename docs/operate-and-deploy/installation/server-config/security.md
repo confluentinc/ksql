@@ -446,12 +446,12 @@ below examples, depending on the source of the keys.
 
 ```bash
 # Generated key pairs with aliases 'client' and 'internal_node1'
-keytool -genkey -alias client -keyalg RSA -keypass password -storepass password -keystore ksql.server.keystore.jks -storetype PKCS12
-keytool -genkey -alias internal_node1 -keyalg RSA -keypass password -storepass password -keystore ksql.server.keystore.jks -storetype PKCS12
+keytool -genkey -alias client -keyalg RSA -keypass password -storepass password -keystore ksql.server.keystore.p12 -storetype PKCS12
+keytool -genkey -alias internal_node1 -keyalg RSA -keypass password -storepass password -keystore ksql.server.keystore.p12 -storetype PKCS12
 
 # Imported key pairs, with aliases 'client' and 'internal_node1'
-keytool -importkeystore -deststorepass password -destkeystore ksql.server.keystore.jks -deststoretype PKCS12 -destalias client -srckeystore client_api.p12 -srcstoretype PKCS12 -srcalias client
-keytool -importkeystore -deststorepass password -destkeystore ksql.server.keystore.jks -deststoretype PKCS12 -destalias internal_node1 -srckeystore internal_node1.p12 -srcstoretype PKCS12 -srcalias internal_node1
+keytool -importkeystore -deststorepass password -destkeystore ksql.server.keystore.p12 -deststoretype PKCS12 -destalias client -srckeystore client_api.p12 -srcstoretype PKCS12 -srcalias client
+keytool -importkeystore -deststorepass password -destkeystore ksql.server.keystore.p12 -deststoretype PKCS12 -destalias internal_node1 -srckeystore internal_node1.p12 -srcstoretype PKCS12 -srcalias internal_node1
 ```
 
 Also, extracting certificates to add to a trust store can be done with the following

@@ -313,18 +313,23 @@ public class Server {
     final Password keyStorePassword = ksqlRestConfig
         .getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
     if (keyStorePath != null && !keyStorePath.isEmpty()) {
-      final JksOptions keyStoreOptions = new JksOptions()
-          .setPassword(keyStorePassword.value());
+      final String keyStoreType =
+          ksqlRestConfig.getString(KsqlRestConfig.SSL_KEYSTORE_TYPE_CONFIG);
       if (keyStoreAlias != null && !keyStoreAlias.isEmpty()) {
-        keyStoreOptions.setValue(KeystoreUtil.getKeyStore(
+        options.setKeyStoreOptions(new JksOptions().setValue(KeystoreUtil.getKeyStore(
+            keyStoreType,
             keyStorePath,
             Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
             Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
-            keyStoreAlias));
-      } else {
-        keyStoreOptions.setPath(keyStorePath);
+            keyStoreAlias))
+            .setPassword(keyStorePassword.value()));
+      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+        options.setKeyStoreOptions(
+            new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
+      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+        options.setPfxKeyCertOptions(
+            new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
       }
-      options.setKeyStoreOptions(keyStoreOptions);
     }
 
     final String trustStorePath = ksqlRestConfig

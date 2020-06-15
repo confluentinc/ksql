@@ -42,6 +42,7 @@ public final class KeystoreUtil {
    * @return The Buffer containing the keystore
    */
   public static Buffer getKeyStore(
+      final String keyStoreType,
       final String keyStorePath,
       final Optional<String> keyStorePassword,
       final Optional<String> keyPassword,
@@ -49,7 +50,7 @@ public final class KeystoreUtil {
   ) {
     final char[] pw = keyStorePassword.map(String::toCharArray).orElse(null);
     final char[] keyPw = keyPassword.map(String::toCharArray).orElse(null);
-    final KeyStore keyStore = loadExistingKeyStore(keyStorePath, pw);
+    final KeyStore keyStore = loadExistingKeyStore(keyStoreType, keyStorePath, pw);
 
     final PrivateKey key;
     final Certificate[] chain;
@@ -68,9 +69,12 @@ public final class KeystoreUtil {
     return Buffer.buffer(singleValueKeyStore);
   }
 
-  private static KeyStore loadExistingKeyStore(final String keyStorePath, final char[] pw) {
+  private static KeyStore loadExistingKeyStore(
+      final String keyStoreType,
+      final String keyStorePath,
+      final char[] pw) {
     try (FileInputStream input = new FileInputStream(keyStorePath)) {
-      final KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
+      final KeyStore keyStore = KeyStore.getInstance(keyStoreType);
       keyStore.load(input, pw);
       return keyStore;
     } catch (Exception e) {

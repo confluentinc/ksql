@@ -118,9 +118,7 @@ public class SystemAuthenticationFunctionalTest {
       .build();
 
   private static Map<String, String> internalKeyStoreProps(boolean node1) {
-    Map<String, String> keyStoreProps = node1
-        ? MultiNodeKeyStore.keyStoreNode1Props()
-        : MultiNodeKeyStore.keyStoreNode2Props();
+    Map<String, String> keyStoreProps = MultiNodeKeyStore.keyStoreProps();
     Map<String, String> trustStoreProps = MultiNodeTrustStore.trustStoreNode1Node2Props();
     return ImmutableMap.of(
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,

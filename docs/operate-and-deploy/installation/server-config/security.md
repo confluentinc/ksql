@@ -34,6 +34,12 @@ features of the other services it communicates with, like {{ site.aktm }} and
         - [Confluent Platform v5.0 (Apache Kafka v2.0) and above](#confluent-platform-v5.0-(apache-kafka-v2.0)-and-above)
         - [Confluent Platform versions below v5.0 (Apache Kafka < v2.0)](#confluent-platform-versions-below-v.5.0-(apache-kafka-<-v2.0))
 
+Securing ksqlDB on premise
+--------------------------
+
+This section covers how to secure installations of ksqlDB outside of Confluent Cloud,
+e.g. on-premise installations or manual installations on other cloud platforms.
+
 To configure security for ksqlDB, add your configuration settings to the
 `<path-to-confluent>/etc/ksqldb/ksql-server.properties` file and then
 [start the ksqlDB Server](../installing.md#start-the-ksqldb-server) with your
@@ -48,10 +54,6 @@ configuration file specified.
     or TAR archives. For more information, see
     [On-Premises Deployments](https://docs.confluent.io/current/installation/installing_cp/index.html).
 
-Securing ksqlDB on premise
---------------------------
-
-This section covers how to secure installations of ksqlDB outside of Confluent Cloud, e.g. on-premise installations or manual installations on other cloud platforms.
 
 The section is split into:
 

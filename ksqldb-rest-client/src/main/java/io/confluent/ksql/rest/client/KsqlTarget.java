@@ -35,6 +35,7 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -43,6 +44,7 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -171,7 +173,7 @@ public final class KsqlTarget {
     );
   }
 
-  public RestResponse<List<StreamedRow>> postQueryRequest(
+  public RestResponse<Pair<URI, List<StreamedRow>>> postQueryRequest(
       final String ksql,
       final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
@@ -323,7 +325,7 @@ public final class KsqlTarget {
     return vcf;
   }
 
-  private static List<StreamedRow> toRows(final ResponseWithBody resp) {
+  private static Pair<URI, List<StreamedRow>> toRows(final ResponseWithBody resp) {
 
     final List<StreamedRow> rows = new ArrayList<>();
     final Buffer buff = resp.getBody();
@@ -342,7 +344,7 @@ public final class KsqlTarget {
       }
     }
 
-    return rows;
+    return Pair.of(URI.create(resp.getResponse().headers().get("X-KSQL-Node")), rows);
   }
 
 }

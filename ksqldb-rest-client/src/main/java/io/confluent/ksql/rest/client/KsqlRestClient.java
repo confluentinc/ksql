@@ -33,6 +33,7 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.Pair;
 import io.vertx.core.http.HttpClientOptions;
 import java.io.Closeable;
 import java.net.URI;
@@ -183,6 +184,19 @@ public final class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
+      final Long commandSeqNum, final Map<String, ?> properties) {
+    final RestResponse<Pair<URI, List<StreamedRow>>> resp =
+        makeQueryRequestWithRespondingHost(ksql, commandSeqNum, properties);
+
+    if (resp.isErroneous()) {
+      return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
+    }
+
+    return RestResponse.successful(resp.getStatusCode(), resp.getResponse().getRight());
+  }
+
+  public RestResponse<Pair<URI, List<StreamedRow>>> makeQueryRequestWithRespondingHost(
+      final String ksql,
       final Long commandSeqNum, final Map<String, ?> properties) {
     KsqlTarget target = target();
     if (properties != null) {

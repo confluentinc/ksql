@@ -162,7 +162,7 @@ public final class PullQueryExecutor {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
-  public TableRows execute(
+  public PullQueryResult execute(
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
@@ -248,7 +248,7 @@ public final class PullQueryExecutor {
     }
   }
 
-  private TableRows handlePullQuery(
+  private PullQueryResult handlePullQuery(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
@@ -275,7 +275,9 @@ public final class PullQueryExecutor {
     // increasing order of lag.
     for (KsqlNode node : filteredAndOrderedNodes) {
       try {
-        return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
+        return new PullQueryResult(
+            routeQuery(node, statement, executionContext, serviceContext, pullQueryContext),
+            node);
       } catch (Exception t) {
         LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
                   statement.getStatementText(), node, System.currentTimeMillis(), t);

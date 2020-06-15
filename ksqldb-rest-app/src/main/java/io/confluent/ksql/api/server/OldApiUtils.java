@@ -34,6 +34,7 @@ import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -85,6 +86,9 @@ public final class OldApiUtils {
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
     response.setStatusCode(endpointResponse.getStatus());
+    endpointResponse.getHeaders().entrySet()
+        .forEach(entry -> response.putHeader(entry.getKey(), entry.getValue()));
+
 
     // What the old API returns in it's response is something of a mishmash - sometimes it's
     // a plain String, other times it's an object that needs to be JSON encoded, other times

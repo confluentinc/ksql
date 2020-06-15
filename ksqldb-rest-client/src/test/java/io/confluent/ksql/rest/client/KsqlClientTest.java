@@ -44,6 +44,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -299,7 +300,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<List<StreamedRow>> response = target.postQueryRequest(
+    RestResponse<Pair<URI, List<StreamedRow>>> response = target.postQueryRequest(
         sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
@@ -308,7 +309,7 @@ public class KsqlClientTest {
     assertThat(server.getPath(), is("/query"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
-    assertThat(response.get(), is(expectedResponse));
+    assertThat(response.getResponse().getRight(), is(expectedResponse));
   }
 
   @Test
@@ -322,11 +323,11 @@ public class KsqlClientTest {
 
     // When:
     final KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<List<StreamedRow>> response = target.postQueryRequest(
+    RestResponse<Pair<URI, List<StreamedRow>>> response = target.postQueryRequest(
         "some sql", Collections.emptyMap(), Optional.of(321L));
 
     // Then:
-    assertThat(response.get(), is(ImmutableList.of(
+    assertThat(response.getResponse().getRight(), is(ImmutableList.of(
         StreamedRow.row(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
     )));
   }

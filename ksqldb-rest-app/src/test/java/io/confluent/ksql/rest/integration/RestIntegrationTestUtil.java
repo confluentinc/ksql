@@ -39,6 +39,7 @@ import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
@@ -174,6 +175,23 @@ public final class RestIntegrationTestUtil {
 
       final RestResponse<List<StreamedRow>> res =
           restClient.makeQueryRequest(sql, null, properties);
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static Pair<URI, List<StreamedRow>> makeQueryRequestWithRespondingHost(
+      final TestKsqlRestApp restApp,
+      final String sql,
+      final Optional<BasicCredentials> userCreds,
+      final Map<String, ?> properties
+  ) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
+
+      final RestResponse<Pair<URI, List<StreamedRow>>> res =
+          restClient.makeQueryRequestWithRespondingHost(sql, null, properties);
 
       throwOnError(res);
 

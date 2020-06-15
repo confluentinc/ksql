@@ -20,6 +20,7 @@ import static java.util.Optional.empty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -35,6 +36,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
+import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -256,6 +258,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return errorHandler.generateResponse(e, Errors.badRequest(e));
+    } catch (final Throwable t) {
+      log.info("ERROR ", t);
+      return errorHandler.generateResponse(new KsqlException(t), Errors.badRequest(t));
     }
   }
 
@@ -269,8 +274,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
-    final TableRows entity = pullQueryExecutor
+    final PullQueryResult result = pullQueryExecutor
         .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
+    TableRowsEntity entity = result.getTableRowsEntity();
 
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
 
@@ -285,7 +291,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .map(this::writeValueAsString)
         .collect(Collectors.joining("," + System.lineSeparator(), "[", "]"));
 
-    return EndpointResponse.ok(data);
+    Map<String, String> headers = ImmutableMap.of("X-KSQL-Node",
+        result.getNode().location().toString());
+    return EndpointResponse.ok(headers, data);
   }
 
   private EndpointResponse handlePushQuery(

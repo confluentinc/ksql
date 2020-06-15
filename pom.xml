@@ -422,14 +422,6 @@
                 <version>${javax-validation.version}</version>
             </dependency>
 
-            <!-- Required to run integration tests on macOS 10.16.3 -->
-            <dependency>
-                <groupId>org.rocksdb</groupId>
-                <artifactId>rocksdbjni</artifactId>
-                <version>5.18.3</version>
-            </dependency>
-            <!-- This is in a random place in an effort to avoid merge conflicts -->
-
             <dependency>
                 <groupId>com.clearspring.analytics</groupId>
                 <artifactId>stream</artifactId>

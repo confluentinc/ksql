@@ -1,0 +1,68 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893903140,
+  "path" : "query-validation-tests/cast.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BOOLEAN, KSQL_COL_1 INT, KSQL_COL_2 BIGINT, KSQL_COL_3 DOUBLE, KSQL_COL_4 VARCHAR, KSQL_COL_5 ARRAY<INT>, KSQL_COL_6 MAP<VARCHAR, INT>, KSQL_COL_7 STRUCT<F0 INT>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "of nulls",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : { }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "KQL_COL_0" : null,
+        "KQL_COL_1" : null,
+        "KQL_COL_2" : null,
+        "KQL_COL_3" : null,
+        "KQL_COL_4" : null,
+        "KQL_COL_5" : null,
+        "KQL_COL_6" : null,
+        "KQL_COL_7" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, cast(null as BOOLEAN), cast(null as INT), cast(null as BIGINT), cast(null as DOUBLE), cast(null as STRING), cast(null AS ARRAY<INT>), cast(null AS MAP<STRING, INT>), cast(null AS STRUCT<F0 INT>) FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

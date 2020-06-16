@@ -1,0 +1,159 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584639499317,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT, KSQL_INTERNAL_COL_2 INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT, KSQL_AGG_VARIABLE_1 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<DATA VARCHAR, KSQL_COL_0 BIGINT, KSQL_COL_1 BIGINT, COPY VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "duplicate fields (stream->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "DATA" : "d1"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "DATA" : "d2"
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "DATA" : "d1"
+      },
+      "timestamp" : 3
+    } ],
+    "outputs" : [ {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "d1",
+      "value" : {
+        "KSQL_INTERNAL_COL_0" : "d1",
+        "KSQL_INTERNAL_COL_1" : 1,
+        "KSQL_AGG_VARIABLE_0" : 1,
+        "KSQL_AGG_VARIABLE_1" : 1
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "d2",
+      "value" : {
+        "KSQL_INTERNAL_COL_0" : "d2",
+        "KSQL_INTERNAL_COL_1" : 2,
+        "KSQL_AGG_VARIABLE_0" : 1,
+        "KSQL_AGG_VARIABLE_1" : 1
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "key" : "d1",
+      "value" : {
+        "KSQL_INTERNAL_COL_0" : "d1",
+        "KSQL_INTERNAL_COL_1" : 3,
+        "KSQL_AGG_VARIABLE_0" : 2,
+        "KSQL_AGG_VARIABLE_1" : 2
+      },
+      "timestamp" : 3
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "d1",
+      "value" : {
+        "DATA" : "d1",
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_1" : 1,
+        "COPY" : "d1"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "d2",
+      "value" : {
+        "DATA" : "d2",
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_1" : 1,
+        "COPY" : "d2"
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "d1",
+      "value" : {
+        "DATA" : "d1",
+        "KSQL_COL_0" : 2,
+        "KSQL_COL_1" : 2,
+        "COPY" : "d1"
+      },
+      "timestamp" : 3
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (DATA STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  TEST.DATA DATA,\n  COUNT(1) KSQL_COL_0,\n  COUNT(*) KSQL_COL_1,\n  TEST.DATA COPY\nFROM TEST TEST\nGROUP BY TEST.DATA\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

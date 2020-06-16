@@ -1,0 +1,123 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572101216,
+  "path" : "query-validation-tests/multiple-avro-maps.json",
+  "schemas" : {
+    "CSAS_SINK_0.KsqlTopic.Source" : "STRUCT<M1 MAP<VARCHAR, INT>, M2 MAP<VARCHAR, VARCHAR>> NOT NULL",
+    "CSAS_SINK_0.SINK" : "STRUCT<M1 MAP<VARCHAR, INT>, M2 MAP<VARCHAR, VARCHAR>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "project multiple avro maps",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "M1" : {
+          "K1" : 123
+        },
+        "M2" : {
+          "K2" : "FOO"
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "SINK",
+      "key" : "0",
+      "value" : {
+        "M1" : {
+          "K1" : 123
+        },
+        "M2" : {
+          "K2" : "FOO"
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "SINK",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "M1",
+          "type" : [ "null", {
+            "type" : "array",
+            "items" : {
+              "type" : "record",
+              "name" : "KsqlDataSourceSchema_M1",
+              "fields" : [ {
+                "name" : "key",
+                "type" : [ "null", "string" ],
+                "default" : null
+              }, {
+                "name" : "value",
+                "type" : [ "null", "int" ],
+                "default" : null
+              } ],
+              "connect.internal.type" : "MapEntry"
+            },
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_M1"
+          } ],
+          "default" : null
+        }, {
+          "name" : "M2",
+          "type" : [ "null", {
+            "type" : "array",
+            "items" : {
+              "type" : "record",
+              "name" : "KsqlDataSourceSchema_M2",
+              "fields" : [ {
+                "name" : "key",
+                "type" : [ "null", "string" ],
+                "default" : null
+              }, {
+                "name" : "value",
+                "type" : [ "null", "string" ],
+                "default" : null
+              } ],
+              "connect.internal.type" : "MapEntry"
+            },
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_M2"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (M1 MAP<STRING, INTEGER>, M2 MAP<STRING, STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM SINK AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "SINK",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

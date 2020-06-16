@@ -1,8 +1,0 @@
-{
-  "outputs": [
-    {"topic": "S1", "key": "abc", "value": {"NAME": "abc", "VALUE": 13.54}},
-    {"topic": "S1", "key": "bar", "value": {"NAME": "bar", "VALUE": null}},
-    {"topic": "S1", "key": "far", "value": {"NAME": "far", "VALUE": 43.0}},
-    {"topic": "S1", "key": "near", "value": {"NAME": "near", "VALUE": null}, "timestamp": 100000}
-  ]
-}

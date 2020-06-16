@@ -1,0 +1,166 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910890301,
+  "path" : "query-validation-tests/session-windows.json",
+  "schemas" : {
+    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_S2_0.S2" : "STRUCT<WINDOWSTART BIGINT, WINDOWEND BIGINT, ID BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "import session stream",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "1",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "2",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 0,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "3",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 10000,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "4",
+      "timestamp" : 40000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "SESSION"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "0,0,1",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "0,10000,2",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 0,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "10000,10000,3",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 10000,
+        "end" : 10000,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "10000,40000,4",
+      "timestamp" : 40000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "SESSION"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K INT KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='SESSION');", "CREATE STREAM S2 as SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "stream",
+        "schema" : "`K` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

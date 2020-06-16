@@ -1,0 +1,79 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1583509764141,
+  "path" : "query-validation-tests/array.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ARRAY_ARRAY ARRAY<ARRAY<BOOLEAN>>, MAP_ARRAY ARRAY<MAP<VARCHAR, INT>>, STRUCT_ARRAY ARRAY<STRUCT<V BIGINT>>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ARRAY_LEN INT, MAP_LEN INT, STRUCT_LEN INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "array_length - structured",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "array_array" : [ [ ] ],
+        "map_array" : [ { }, { } ],
+        "struct_array" : [ { }, { }, { } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : { }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ARRAY_LEN" : 1,
+        "MAP_LEN" : 2,
+        "STRUCT_LEN" : 3
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ARRAY_LEN" : null,
+        "MAP_LEN" : null,
+        "STRUCT_LEN" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ARRAY_ARRAY ARRAY<ARRAY<BOOLEAN>>, MAP_ARRAY ARRAY<MAP<STRING, INTEGER>>, STRUCT_ARRAY ARRAY<STRUCT<V BIGINT>>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  ARRAY_LENGTH(INPUT.ARRAY_ARRAY) ARRAY_LEN,\n  ARRAY_LENGTH(INPUT.MAP_ARRAY) MAP_LEN,\n  ARRAY_LENGTH(INPUT.STRUCT_ARRAY) STRUCT_LEN\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

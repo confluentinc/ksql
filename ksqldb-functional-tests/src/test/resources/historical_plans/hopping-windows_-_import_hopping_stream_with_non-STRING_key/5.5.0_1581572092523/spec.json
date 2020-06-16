@@ -1,0 +1,189 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572092523,
+  "path" : "query-validation-tests/hopping-windows.json",
+  "schemas" : {
+    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
+    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE BIGINT, WSTART BIGINT, WEND BIGINT, KEY BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "import hopping stream with non-STRING key",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "1,0",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "2,0",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "3,5",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : "4,100",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : "5,100",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 20000,
+        "end" : 50000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : "6,100",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "1,0,0,30000,0",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "2,0,0,30000,0",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "3,5,10000,40000,0",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : "4,100,10000,40000,100",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 10000,
+        "end" : 40000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : "5,100,20000,50000,100",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 20000,
+        "end" : 50000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : "6,100,30000,60000,100",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_SIZE='30 seconds', WINDOW_TYPE='HoPping');", "CREATE STREAM S2 AS SELECT\n  *,\n  TEST.WINDOWSTART WSTART,\n  TEST.WINDOWEND WEND,\n  TEST.ROWKEY KEY\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "stream",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 30000
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

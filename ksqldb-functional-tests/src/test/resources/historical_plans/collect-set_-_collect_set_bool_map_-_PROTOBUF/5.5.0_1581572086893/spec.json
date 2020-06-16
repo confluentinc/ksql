@@ -1,0 +1,119 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572086893,
+  "path" : "query-validation-tests/collect-set.json",
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE MAP<VARCHAR, BOOLEAN>> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 MAP<VARCHAR, BOOLEAN>, KSQL_INTERNAL_COL_2 BOOLEAN> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 MAP<VARCHAR, BOOLEAN>, KSQL_AGG_VARIABLE_0 ARRAY<BOOLEAN>> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, COLLECTED ARRAY<BOOLEAN>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "collect_set bool map - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "name" : "zero",
+        "value" : {
+          "key1" : true,
+          "key2" : false
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "name" : "zero",
+        "value" : {
+          "key1" : false,
+          "key2" : true
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "id" : 0,
+        "name" : "zero",
+        "value" : {
+          "key1" : true,
+          "key2" : true
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "COLLECTED" : [ true ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "COLLECTED" : [ true, false ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "COLLECTED" : [ true, false ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string NAME = 2;\n  repeated ConnectDefault2Entry VALUE = 3;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    bool value = 2;\n  }\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE MAP<STRING, BOOLEAN>) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  COLLECT_SET(TEST.VALUE['key1']) COLLECTED\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "plan" : [ {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM IMPRESSIONS (USER STRING KEY, IMPRESSION_ID BIGINT, URL STRING) WITH (KAFKA_TOPIC='impressions', VALUE_FORMAT='JSON');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "IMPRESSIONS",
+      "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+      "topicName" : "impressions",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM CLICKS (USER STRING KEY, URL STRING) WITH (KAFKA_TOPIC='clicks', VALUE_FORMAT='JSON');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "CLICKS",
+      "schema" : "`USER` STRING KEY, `URL` STRING",
+      "topicName" : "clicks",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  I.USER I_USER,\n  I.IMPRESSION_ID IMPRESSION_ID,\n  I.URL URL\nFROM IMPRESSIONS I\nINNER JOIN CLICKS C WITHIN 1 MINUTES ON ((I.USER = C.USER))\nWHERE (I.URL = C.URL)\nEMIT CHANGES",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "OUTPUT",
+      "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+      "topicName" : "OUTPUT",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "JSON"
+        }
+      }
+    },
+    "queryPlan" : {
+      "sources" : [ "CLICKS", "IMPRESSIONS" ],
+      "sink" : "OUTPUT",
+      "physicalPlan" : {
+        "@type" : "streamSinkV1",
+        "properties" : {
+          "queryContext" : "OUTPUT"
+        },
+        "source" : {
+          "@type" : "streamSelectV1",
+          "properties" : {
+            "queryContext" : "Project"
+          },
+          "source" : {
+            "@type" : "streamFilterV1",
+            "properties" : {
+              "queryContext" : "WhereFilter"
+            },
+            "source" : {
+              "@type" : "streamStreamJoinV1",
+              "properties" : {
+                "queryContext" : "Join"
+              },
+              "joinType" : "INNER",
+              "leftInternalFormats" : {
+                "keyFormat" : {
+                  "format" : "KAFKA"
+                },
+                "valueFormat" : {
+                  "format" : "JSON"
+                }
+              },
+              "rightInternalFormats" : {
+                "keyFormat" : {
+                  "format" : "KAFKA"
+                },
+                "valueFormat" : {
+                  "format" : "JSON"
+                }
+              },
+              "leftSource" : {
+                "@type" : "streamSelectV1",
+                "properties" : {
+                  "queryContext" : "PrependAliasLeft"
+                },
+                "source" : {
+                  "@type" : "streamSourceV1",
+                  "properties" : {
+                    "queryContext" : "KafkaTopic_Left/Source"
+                  },
+                  "topicName" : "impressions",
+                  "formats" : {
+                    "keyFormat" : {
+                      "format" : "KAFKA"
+                    },
+                    "valueFormat" : {
+                      "format" : "JSON"
+                    }
+                  },
+                  "sourceSchema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING"
+                },
+                "selectExpressions" : [ "IMPRESSION_ID AS I_IMPRESSION_ID", "URL AS I_URL", "ROWTIME AS I_ROWTIME", "USER AS I_USER" ]
+              },
+              "rightSource" : {
+                "@type" : "streamSelectV1",
+                "properties" : {
+                  "queryContext" : "PrependAliasRight"
+                },
+                "source" : {
+                  "@type" : "streamSourceV1",
+                  "properties" : {
+                    "queryContext" : "KafkaTopic_Right/Source"
+                  },
+                  "topicName" : "clicks",
+                  "formats" : {
+                    "keyFormat" : {
+                      "format" : "KAFKA"
+                    },
+                    "valueFormat" : {
+                      "format" : "JSON"
+                    }
+                  },
+                  "sourceSchema" : "`USER` STRING KEY, `URL` STRING"
+                },
+                "selectExpressions" : [ "URL AS C_URL", "ROWTIME AS C_ROWTIME", "USER AS C_USER" ]
+              },
+              "beforeMillis" : 60.000000000,
+              "afterMillis" : 60.000000000,
+              "keyColName" : "I_USER"
+            },
+            "filterExpression" : "(I_URL = C_URL)"
+          },
+          "selectExpressions" : [ "I_IMPRESSION_ID AS IMPRESSION_ID", "I_URL AS URL" ]
+        },
+        "formats" : {
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        },
+        "topicName" : "OUTPUT"
+      },
+      "queryId" : "CSAS_OUTPUT_0"
+    }
+  } ],
+  "configs" : {
+    "ksql.extension.dir" : "ext",
+    "ksql.streams.cache.max.bytes.buffering" : "0",
+    "ksql.security.extension.class" : null,
+    "ksql.transient.prefix" : "transient_",
+    "ksql.persistence.wrap.single.values" : "true",
+    "ksql.authorization.cache.expiry.time.secs" : "30",
+    "ksql.schema.registry.url" : "",
+    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+    "ksql.output.topic.name.prefix" : "",
+    "ksql.streams.auto.offset.reset" : "earliest",
+    "ksql.query.pull.enable.standby.reads" : "false",
+    "ksql.connect.url" : "http://localhost:8083",
+    "ksql.service.id" : "some.ksql.service.id",
+    "ksql.internal.topic.min.insync.replicas" : "1",
+    "ksql.streams.shutdown.timeout.ms" : "300000",
+    "ksql.internal.topic.replicas" : "1",
+    "ksql.insert.into.values.enabled" : "true",
+    "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
+    "ksql.query.pull.max.qps" : "2147483647",
+    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+    "ksql.access.validator.enable" : "auto",
+    "ksql.streams.bootstrap.servers" : "localhost:0",
+    "ksql.streams.commit.interval.ms" : "2000",
+    "ksql.metric.reporters" : "",
+    "ksql.query.pull.metrics.enabled" : "false",
+    "ksql.streams.auto.commit.interval.ms" : "0",
+    "ksql.metrics.extension" : null,
+    "ksql.streams.topology.optimization" : "all",
+    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.streams.num.stream.threads" : "4",
+    "ksql.timestamp.throw.on.invalid" : "false",
+    "ksql.authorization.cache.max.entries" : "10000",
+    "ksql.metrics.tags.custom" : "",
+    "ksql.pull.queries.enable" : "true",
+    "ksql.udfs.enabled" : "true",
+    "ksql.udf.enable.security.manager" : "true",
+    "ksql.connect.worker.config" : "",
+    "ksql.sink.window.change.log.additional.retention" : "1000000",
+    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.udf.collect.metrics" : "false",
+    "ksql.persistent.prefix" : "query_",
+    "ksql.query.persistent.active.limit" : "2147483647"
+  }
+}

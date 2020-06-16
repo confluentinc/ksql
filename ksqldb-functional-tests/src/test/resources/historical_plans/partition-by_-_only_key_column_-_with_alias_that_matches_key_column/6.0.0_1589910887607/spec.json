@@ -1,0 +1,96 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910887607,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR, OTHER INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<NAME VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "only key column - with alias that matches key column",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 11,
+      "value" : {
+        "name" : "a"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 10,
+      "value" : {
+        "name" : "b"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 11,
+      "value" : {
+        "name" : "c"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 11,
+      "value" : {
+        "NAME" : "a"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : {
+        "NAME" : "b"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 11,
+      "value" : {
+        "NAME" : "c"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID INT KEY, NAME STRING, OTHER INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID AS ID, NAME FROM INPUT PARTITION BY ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ID INT KEY, NAME STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ],
+        "blackList" : ".*-repartition"
+      }
+    }
+  }
+}

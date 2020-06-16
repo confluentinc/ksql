@@ -1,0 +1,165 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572096374,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.Join.Left" : "STRUCT<T_ID BIGINT, T_NAME VARCHAR, T_VALUE BIGINT, T_ROWTIME BIGINT, T_ROWKEY BIGINT> NOT NULL",
+    "CSAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "stream table inner join - join key not in projection",
+    "inputs" : [ {
+      "topic" : "test_table",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "F1" : "zero",
+        "F2" : 0
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_table",
+      "key" : 10,
+      "value" : {
+        "ID" : 10,
+        "F1" : "100",
+        "F2" : 5
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "blah",
+        "VALUE" : 50
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "foo",
+        "VALUE" : 100
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "test_table",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "F1" : "a",
+        "F2" : 10
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "ID" : 0,
+        "NAME" : "bar",
+        "VALUE" : 99
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "test_topic",
+      "key" : 90,
+      "value" : {
+        "ID" : 90,
+        "NAME" : "ninety",
+        "VALUE" : 90
+      },
+      "timestamp" : 15000
+    } ],
+    "outputs" : [ {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "NAME" : "blah",
+        "VALUE" : 50,
+        "F1" : "zero",
+        "F2" : 0
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "NAME" : "foo",
+        "VALUE" : 100,
+        "F1" : "zero",
+        "F2" : 0
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "NAME" : "bar",
+        "VALUE" : 99,
+        "F1" : "a",
+        "F2" : 10
+      },
+      "timestamp" : 15000
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_table",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "INNER_JOIN",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING, F2 BIGINT) WITH (KAFKA_TOPIC='test_table', KEY='ID', VALUE_FORMAT='JSON');", "CREATE STREAM INNER_JOIN AS SELECT\n  T.NAME NAME,\n  T.VALUE VALUE,\n  TT.F1 F1,\n  TT.F2 F2\nFROM TEST T\nINNER JOIN TEST_TABLE TT ON ((T.ID = TT.ID))\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INNER_JOIN",
+        "type" : "stream"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "INNER_JOIN",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_table",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

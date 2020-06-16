@@ -1,0 +1,53 @@
+{
+  "comments": [
+    "Tests covering LIKE predicates. For more extensive tests of hte implementation,",
+    "see test coverage in LikeEvaluatorTest"
+  ],
+  "tests": [
+    {
+      "name": "literal",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, id INT, val VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, id FROM INPUT WHERE val LIKE '%foo%';"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"id": 1, "val": "barfoobaz"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID": 1}}
+      ]
+    },
+    {
+      "name": "exp",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, id INT, val VARCHAR, pattern VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, id FROM INPUT WHERE val LIKE pattern;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"id": 1, "val": "foo", "pattern": "foo"}},
+        {"topic": "input", "value": {"id": -1, "val": "bar", "pattern": "foo"}},
+        {"topic": "input", "value": {"id": 2, "val": "foo", "pattern": "f_o"}},
+        {"topic": "input", "value": {"id": 3, "val": "foobar", "pattern": "%oba%"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID": 1}},
+        {"topic": "OUTPUT", "value": {"ID": 2}},
+        {"topic": "OUTPUT", "value": {"ID": 3}}
+      ]
+    },
+    {
+      "name": "escape",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, id INT, val VARCHAR, pattern VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, id FROM INPUT WHERE val LIKE pattern ESCAPE '!';"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"id": 1, "val": "%", "pattern": "!%"}},
+        {"topic": "input", "value": {"id": -1, "val": "x", "pattern": "!%"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID": 1}}
+      ]
+    }
+  ]
+}

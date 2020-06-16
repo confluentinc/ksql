@@ -1,0 +1,127 @@
+{
+  "comments": [
+    "Tests covering the use of quoted identifiers."
+  ],
+  "tests": [
+    {
+      "name": "source fields that require quotes",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, `with.dot` VARCHAR, `*bad!chars*` VARCHAR, `SELECT` VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"with.dot": "popcorn", "*bad!chars*": "cheetos", "SELECT":  "reserved"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"with.dot": "popcorn", "*bad!chars*": "cheetos", "SELECT": "reserved"}}
+      ]
+    },
+    {
+      "name": "sink fields that require quotes",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, a VARCHAR, b VARCHAR, c VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, A as `with.dot`, B as `*bad!chars*`, C as `SELECT` FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"A": "popcorn", "B": "cheetos", "C":  "reserved"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"with.dot": "popcorn", "*bad!chars*": "cheetos", "SELECT": "reserved"}}
+      ]
+    },
+    {
+      "name": "udf using fields that require quotes",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, `SELECT` INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, ABS(`SELECT`) FOO FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"SELECT":  -2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": { "FOO": 2}}
+      ]
+    },
+    {
+      "name": "math using fields that require quotes",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, `SELECT` INT, `with.dot` INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, `SELECT` * `with.dot` AS FOO FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"with.dot": 1, "SELECT":  2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": { "FOO": 2}}
+      ]
+    },
+    {
+      "name": "create table with key that is quoted",
+      "statements": [
+        "CREATE TABLE TEST (`some.key` STRING PRIMARY KEY, v VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "a", "value": {"v": "key"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": {"V": "key"}}
+      ]
+    },
+    {
+      "name": "partition by quoted field",
+      "statements": [
+        "CREATE STREAM TEST (`old.key` VARCHAR KEY, `some.key` VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM TEST PARTITION BY `some.key`;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "old-key", "value": {"some.key": "key"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "key", "value": {"old.key": "old-key"}}
+      ]
+    },
+    {
+      "name": "joins using fields that require quotes",
+      "statements": [
+        "CREATE STREAM L (`the key` STRING KEY, `SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE R (`with.dot` STRING PRIMARY KEY, `field 0` VARCHAR) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM JOINED as SELECT * FROM L LEFT JOIN R ON L.`SELECT` = R.`with.dot`;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": "1", "value": {"field 0": "3"}},
+        {"topic": "right_topic", "key": "2", "value": {"field 0": "4"}},
+        {"topic": "left_topic", "key": "diff", "value": {"SELECT": "1", "field!": "A"}}
+      ],
+      "outputs": [
+        {"topic": "JOINED", "key": "1", "value": {"L_the key": "diff", "L_field!": "A", "R_with.dot": "1", "R_field 0": "3"}}
+      ]
+    },
+    {
+      "name": "source names requiring quotes",
+      "statements": [
+        "CREATE STREAM `foo-source` (K STRING KEY, id VARCHAR) WITH (kafka_topic='foo-source', value_format='JSON');",
+        "CREATE STREAM `foo-too` AS SELECT K, `foo-source`.id FROM `foo-source`;"
+      ],
+      "inputs": [
+        {"topic": "foo-source", "value": {"id": "1"}}
+      ],
+      "outputs": [
+        {"topic": "foo-too", "value": {"ID": "1"}}
+      ]
+    },
+    {
+      "name": "literals with quotes galore",
+      "statements": [
+        "CREATE STREAM input (K STRING KEY, id VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM output AS SELECT K, 'foo', '''foo''' FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"id": "1"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": "foo", "KSQL_COL_1": "'foo'"}}
+      ]
+    }
+  ]
+}

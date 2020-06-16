@@ -1,0 +1,463 @@
+{
+  "tests": [
+    {
+      "name": "stream implicit KAFKA STRING KEY",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "1", "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 2}},
+        {"topic": "input", "key": "", "value": {"id": 3}},
+        {"topic": "input", "key": null, "value": {"id": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": null}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K STRING KEY, ID BIGINT, KEY STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "table implicit KAFKA STRING KEY",
+      "statements": [
+        "CREATE TABLE INPUT (K STRING PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "1", "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 2}},
+        {"topic": "input", "key": "", "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K STRING KEY, ID BIGINT, KEY STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream explicit KAFKA STRING KEY",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "1", "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 2}},
+        {"topic": "input", "key": "", "value": {"id": 3}},
+        {"topic": "input", "key": null, "value": {"id": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": null}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K STRING KEY, ID BIGINT, KEY STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "table explicit KAFKA STRING KEY",
+      "statements": [
+        "CREATE TABLE INPUT (K STRING PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "1", "value": {"id": 1}},
+        {"topic": "input", "key": "1", "value": {"id": 2}},
+        {"topic": "input", "key": "", "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K STRING KEY, ID BIGINT, KEY STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream explicit KAFKA INT KEY",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 3, "value": {"id": 1}},
+        {"topic": "input", "key": 2, "value": {"id": 2}},
+        {"topic": "input", "key": null, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": {"ID": 1, "KEY": 3}},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KEY": 2}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 3, "KEY": null}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K INT KEY, ID BIGINT, KEY INT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "table explicit KAFKA INT KEY",
+      "statements": [
+        "CREATE TABLE INPUT (K INT PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 3, "value": {"id": 1}},
+        {"topic": "input", "key": 2, "value": {"id": 2}},
+        {"topic": "input", "key": 1, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": {"ID": 1, "KEY": 3}},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KEY": 2}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 3, "KEY": 1}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K INT KEY, ID BIGINT, KEY INT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream explicit KAFKA BIGINT KEY",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT K, ID, AS_VALUE(K) AS KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 3, "value": {"id": 1}},
+        {"topic": "input", "key": 2, "value": {"id": 2}},
+        {"topic": "input", "key": null, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": {"ID": 1, "KEY": 3}},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KEY": 2}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 3, "KEY": null}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K BIGINT KEY, ID BIGINT, KEY BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "table explicit KAFKA BIGINT KEY",
+      "statements": [
+        "CREATE TABLE INPUT (K BIGINT PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 3, "value": {"id": 1}},
+        {"topic": "input", "key": 2, "value": {"id": 2}},
+        {"topic": "input", "key": 1, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3, "value": {"ID": 1, "KEY": 3}},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 2, "KEY": 2}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 3, "KEY": 1}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K BIGINT KEY, ID BIGINT, KEY BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream explicit KAFKA DOUBLE KEY",
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 3.0, "value": {"id": 1}},
+        {"topic": "input", "key": 2.0, "value": {"id": 2}},
+        {"topic": "input", "key": null, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3.0, "value": {"ID": 1, "KEY": 3.0}},
+        {"topic": "OUTPUT", "key": 2.0, "value": {"ID": 2, "KEY": 2.0}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 3, "KEY": null}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K DOUBLE KEY, ID BIGINT, KEY DOUBLE"
+          }
+        ]
+      }
+    },
+    {
+      "name": "table explicit KAFKA DOUBLE KEY",
+      "statements": [
+        "CREATE TABLE INPUT (K DOUBLE PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 3.0, "value": {"id": 1}},
+        {"topic": "input", "key": 2.0, "value": {"id": 2}},
+        {"topic": "input", "key": 1.0, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3.0, "value": {"ID": 1, "KEY": 3.0}},
+        {"topic": "OUTPUT", "key": 2.0, "value": {"ID": 2, "KEY": 2.0}},
+        {"topic": "OUTPUT", "key": 1.0, "value": {"ID": 3, "KEY": 1.0}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "K DOUBLE KEY, ID BIGINT, KEY DOUBLE"
+          }
+        ]
+      }
+    },
+    {
+      "name": "create stream explicit unsupported KEY type",
+      "statements": [
+        "CREATE STREAM INPUT (K BOOLEAN KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<K BOOLEAN> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'BOOLEAN'"
+      }
+    },
+    {
+      "name": "create table explicit unsupported KEY type",
+      "statements": [
+        "CREATE TABLE INPUT (K DECIMAL(21,19) PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<K DECIMAL(21, 19)> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'DECIMAL'"
+      }
+    },
+    {
+      "name": "create stream as explicit unsupported KEY type",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID ARRAY<INT>) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ID ARRAY<INT>> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'ARRAY'"
+      }
+    },
+    {
+      "name": "create table as explicit unsupported KEY type",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID MAP<STRING, INT>) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, COUNT() FROM INPUT GROUP BY ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Key format does not support key schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ID MAP<VARCHAR, INT>> NOT NULL, unwrapped=false}\nreason: The 'KAFKA' format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "explicit key field named other than KEY",
+      "statements": [
+        "CREATE STREAM INPUT (OTHER DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT OTHER, ID, AS_VALUE(OTHER) as KEY FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 3.0, "value": {"id": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 3.0, "value": {"ID": 1, "KEY": 3.0}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "OTHER DOUBLE KEY, ID BIGINT, KEY DOUBLE"
+          }
+        ]
+      }
+    },
+    {
+      "name": "KEY key field name",
+      "comment": "tests that `KEY` is allowed as a KEY column name",
+      "statements": [
+        "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT KEY, ID, AS_VALUE(KEY) as KEY2 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "a", "value": {"id": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": {"ID": 1, "KEY2": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA"},
+            "schema": "KEY STRING KEY, ID BIGINT, KEY2 STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "KEY value field name",
+      "comment": "tests that `KEY` is allowed as a column name",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, KEY STRING, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "1", "value": {"key": "a", "id": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "a"}}
+      ]
+    },
+    {
+      "name": "windowed table explicit non-STRING KEY",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, VALUE BIGINT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT K AS ID, max(value) AS MAX FROM INPUT WINDOW TUMBLING (SIZE 30 SECONDS) group by K;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 10, "value": {"value": 1}},
+        {"topic": "input", "key": 10, "value": {"value": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"MAX": 1}, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "OUTPUT", "key": 10, "value": {"MAX": 2}, "window": {"start": 0, "end": 30000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000},
+            "schema": "`ID` BIGINT KEY, `MAX` BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "windowed table explicit non-STRING KEY udf",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, VALUE BIGINT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT K, EXP(K) AS EXP, COUNT(1) FROM INPUT WINDOW TUMBLING (SIZE 30 SECONDS) GROUP BY K;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 10, "value": {"value": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"EXP": 22026.465794806718, "KSQL_COL_0": 1}, "window": {"start": 0, "end": 30000, "type":  "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "TUMBLING", "windowSize": 30000},
+            "schema": "`K` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_0` BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "filter by non-STRING KEY",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM INPUT WHERE K > 10;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 9, "value": {"id": 0}},
+        {"topic": "input", "key": 10, "value": {"id": 1}},
+        {"topic": "input", "key": 11, "value": {"id": 2}},
+        {"topic": "input", "key": 12, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": 12, "value": {"ID": 3}}
+      ]
+    },
+    {
+      "name": "filter by non-STRING KEY in UDF",
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM INPUT WHERE EXP(K) >= 1;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": -0.2, "value": {"id": 0}},
+        {"topic": "input", "key": -0.1, "value": {"id": 1}},
+        {"topic": "input", "key": 0.0, "value": {"id": 2}},
+        {"topic": "input", "key": 0.1, "value": {"id": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0.0, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": 0.1, "value": {"ID": 3}}
+      ]
+    }
+  ]
+}

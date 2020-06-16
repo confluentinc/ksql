@@ -1,0 +1,47 @@
+{
+  "comments": [
+    "Tests covering the use of the REPLACE function."
+  ],
+  "tests": [
+    {
+      "name": "replace",
+      "format": ["JSON", "PROTOBUF"],
+      "properties": {
+        "ksql.functions.substring.legacy.args": false
+      },
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, REPLACE(source, 'a', 'o') AS REPLACE, REPLACE(source, null, 'o') AS REPLACE_NULL, REPLACE(source, 'a', null) AS REPLACE_W_NULL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "anaconda"}},
+        {"topic": "test_topic", "value": {"source": null}},
+        {"topic": "test_topic", "value": {"source": "popcorn"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"REPLACE":"onocondo", "REPLACE_NULL":null, "REPLACE_W_NULL":null}},
+        {"topic": "OUTPUT", "value": {"REPLACE":null, "REPLACE_NULL":null, "REPLACE_W_NULL":null}},
+        {"topic": "OUTPUT", "value": {"REPLACE":"popcorn", "REPLACE_NULL":null, "REPLACE_W_NULL":null}}
+      ]
+    },
+    {
+      "name": "regexp_replace",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR, pattern VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, REGEXP_REPLACE(input_string, pattern, 'cat') AS EXTRACTED FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"input_string": "baababaa", "pattern": "(ab)+"}},
+        {"topic": "test_topic", "value": {"input_string": "baabbabaa", "pattern": "(ab)+"}},
+        {"topic": "test_topic", "value": {"input_string": null, "pattern": "(ab)+"}},
+        {"topic": "test_topic", "value": {"input_string": "baababaa", "pattern": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"EXTRACTED": "bacataa"}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": "bacatbcataa"}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": null}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED": null}}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572087540,
+  "path" : "query-validation-tests/decimal.json",
+  "schemas" : {
+    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(7, 5)> NOT NULL",
+    "CSAS_TEST2_0.TEST2" : "STRUCT<NEGATED DECIMAL(7, 5)> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "negation",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : "0",
+      "value" : {
+        "DEC" : "10.12345"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TEST2",
+      "key" : "0",
+      "value" : {
+        "NEGATED" : "-10.12345"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "TEST2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "DEC",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 5,
+            "precision" : 7,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "5",
+              "connect.decimal.precision" : "7"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (DEC DECIMAL(7, 5)) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='AVRO');", "CREATE STREAM TEST2 AS SELECT -TEST.DEC NEGATED\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "TEST2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "comments": [
+    "Tests covering SQL MAP"
+  ],
+  "tests": [
+    {
+      "name": "string map",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, A_MAP MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, A_MAP['expected'], A_MAP['missing'] FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"A_MAP": {"expected": 10}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": 10, "KSQL_COL_1": null}}
+      ]
+    },
+    {
+      "name": "map value as UDF param",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, col11 MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, EXTRACTJSONFIELD(col11['address'], '$.city') FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"col11": {"address": "{\"city\": \"London\"}"}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": "London"}}
+      ]
+    },
+    {
+      "name": "map_keys",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, a_map MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_sort(map_keys(a_map)) as keys FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"A_MAP": {"foo": 10, "bar": 20, "baz": 30} } },
+        {"topic": "test_topic", "key": "r2", "value": {"A_MAP": {"foo": 10, "bar": null} } },
+        {"topic": "test_topic", "key": "r3", "value": {"A_MAP": { } } },
+        {"topic": "test_topic", "key": "r4", "value": {"A_MAP": null } }
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"KEYS": ["bar", "baz", "foo"]} },
+        {"topic": "OUTPUT", "key": "r2", "value": {"KEYS": ["bar", "foo"]} },
+        {"topic": "OUTPUT", "key": "r3", "value": {"KEYS": [] } },
+        {"topic": "OUTPUT", "key": "r4", "value": {"KEYS": null } }
+      ]
+    },
+    {
+      "name": "map_keys with non-primitive values",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, a_map MAP<STRING, ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_sort(map_keys(a_map)) as keys FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"A_MAP": {"foo": [1, 2, 3], "bar": [10, 20, 30], "baz": [100, 200, 300] } } },
+        {"topic": "test_topic", "key": "r2", "value": {"A_MAP": {"foo": [1, 2, 3], "bar": null} } },
+        {"topic": "test_topic", "key": "r3", "value": {"A_MAP": { } } },
+        {"topic": "test_topic", "key": "r4", "value": {"A_MAP": null } }
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"KEYS": ["bar", "baz", "foo"]} },
+        {"topic": "OUTPUT", "key": "r2", "value": {"KEYS": ["bar", "foo"]} },
+        {"topic": "OUTPUT", "key": "r3", "value": {"KEYS": [] } },
+        {"topic": "OUTPUT", "key": "r4", "value": {"KEYS": null } }
+      ]
+    },
+    {
+      "name": "map_values",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, a_map MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_sort(map_values(a_map)) as vals FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"A_MAP": {"foo": 10, "bar": 20, "baz": 30} } },
+        {"topic": "test_topic", "key": "r2", "value": {"A_MAP": {"foo": 10, "bar": null} } },
+        {"topic": "test_topic", "key": "r3", "value": {"A_MAP": { } } },
+        {"topic": "test_topic", "key": "r4", "value": {"A_MAP": null } }
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"VALS": [10, 20, 30]} },
+        {"topic": "OUTPUT", "key": "r2", "value": {"VALS": [10, null]} },
+        {"topic": "OUTPUT", "key": "r3", "value": {"VALS": [] } },
+        {"topic": "OUTPUT", "key": "r4", "value": {"VALS": null } }
+      ]
+    },
+    {
+      "name": "map_values with non-primitive values",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, a_map MAP<STRING, ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, map_values(a_map) as vals FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"A_MAP": {"foo": [1, 2, 3] } } },
+        {"topic": "test_topic", "key": "r2", "value": {"A_MAP": {"foo": null, "bar": null} } },
+        {"topic": "test_topic", "key": "r3", "value": {"A_MAP": { } } },
+        {"topic": "test_topic", "key": "r4", "value": {"A_MAP": null } },
+        {"topic": "test_topic", "key": "r5", "value": {"A_MAP": {"foo": [null], "bar": [null] } } }
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"VALS": [[1, 2, 3]]} },
+        {"topic": "OUTPUT", "key": "r2", "value": {"VALS": [null, null]} },
+        {"topic": "OUTPUT", "key": "r3", "value": {"VALS": [] } },
+        {"topic": "OUTPUT", "key": "r4", "value": {"VALS": null } },
+        {"topic": "OUTPUT", "key": "r5", "value": {"VALS": [[null], [null]]} }
+      ]
+    },
+    {
+      "name": "map_union",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, map_1 MAP<STRING, INT>, map_2 MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, map_union(map_1, map_2) as combined FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"MAP_1": {"foo": 10, "bar": 20, "baz": 30},
+                                                       "MAP_2": {"foo": 99, "apple": -1} } },
+        {"topic": "test_topic", "key": "r2", "value": {"MAP_1": {"foo": 10, "bar": 20},
+                                                       "MAP_2": {"foo": null} } },
+        {"topic": "test_topic", "key": "r3", "value": {"MAP_1": {"foo": 10, "bar": 20},
+                                                       "MAP_2": { } } },
+        {"topic": "test_topic", "key": "r4", "value": {"MAP_1": { },
+                                                       "MAP_2": { } } },
+        {"topic": "test_topic", "key": "r5", "value": {"MAP_1": null,
+                                                       "MAP_2": {"foo": null} } }
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"COMBINED": {"foo": 99, "bar": 20, "baz": 30, "apple": -1} } },
+        {"topic": "OUTPUT", "key": "r2", "value": {"COMBINED": {"foo": null, "bar":20} } },
+        {"topic": "OUTPUT", "key": "r3", "value": {"COMBINED": {"foo": 10, "bar":20} } },
+        {"topic": "OUTPUT", "key": "r4", "value": {"COMBINED": { } } },
+        {"topic": "OUTPUT", "key": "r5", "value": {"COMBINED": {"foo": null } } }
+      ]
+    }
+  ]
+}

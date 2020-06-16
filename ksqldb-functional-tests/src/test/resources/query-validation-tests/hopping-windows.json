@@ -1,0 +1,201 @@
+{
+  "comments": [
+    "Tests around hopping windows."
+  ],
+  "tests": [
+    {
+      "name": "out of order - no grace period",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE S2 as SELECT ID, max(value) FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 15 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0,"value": "1", "timestamp": 89999},
+        {"topic": "test_topic", "key": 0,"value": "5", "timestamp": 10009},
+        {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 90000},
+        {"topic": "test_topic", "key": 0,"value": "6", "timestamp": 10010},
+        {"topic": "test_topic", "key": 1,"value": "100", "timestamp": 10009},
+        {"topic": "test_topic", "key": 1,"value": "101", "timestamp": 30000},
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 86412022},
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 60000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 89999, "window": {"start": 60000, "end": 90000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 89999, "window": {"start": 75000, "end": 105000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "5", "timestamp": 10009, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 90000, "window": {"start": 75000, "end": 105000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 90000, "window": {"start": 90000, "end": 120000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "6", "timestamp": 10010, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "100", "timestamp": 10009, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "101", "timestamp": 30000, "window": {"start": 15000, "end": 45000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "101", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 86412022, "window": {"start": 86385000, "end": 86415000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 86412022, "window": {"start": 86400000, "end": 86430000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 60000, "window": {"start": 45000, "end": 75000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 60000, "window": {"start": 60000, "end": 90000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "table",
+            "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 30000}
+          }
+        ]
+      }
+    },
+    {
+      "name": "out of order - explicit grace period",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE S2 as SELECT ID, max(value) FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 15 SECONDS, GRACE PERIOD 1 MINUTE) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0,"value": "1", "timestamp": 89999, "comment": "not quite enough to close 0-30s window"},
+        {"topic": "test_topic", "key": 0,"value": "5", "timestamp": 10009},
+        {"topic": "test_topic", "key": 0,"value": "0", "timestamp": 90000, "comment": "closes 0-30s window"},
+        {"topic": "test_topic", "key": 0,"value": "6", "timestamp": 10010, "comment": "ignored as window it belongs to is closed"},
+        {"topic": "test_topic", "key": 1,"value": "100", "timestamp": 10009, "comment": "ignored as window it belongs to is closed"},
+        {"topic": "test_topic", "key": 1,"value": "101", "timestamp": 30000},
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 86412022},
+        {"topic": "test_topic", "key": 1,"value": "200", "timestamp": 60000, "comment": "ignored as window it belongs to is closed"}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 89999, "window": {"start": 60000, "end": 90000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 89999, "window": {"start": 75000, "end": 105000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "5", "timestamp": 10009, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "1", "timestamp": 90000, "window": {"start": 75000, "end": 105000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 90000, "window": {"start": 90000, "end": 120000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "101", "timestamp": 30000, "window": {"start": 15000, "end": 45000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "101", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 86412022, "window": {"start": 86385000, "end": 86415000, "type": "time"}},
+        {"topic": "S2", "key": 1,"value": "200", "timestamp": 86412022, "window": {"start": 86400000, "end": 86430000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "min hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE S2 as SELECT ID, min(value) FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": "zero,0", "timestamp": 0},
+        {"topic": "test_topic", "key": 0,"value": "100,5", "timestamp": 10000},
+        {"topic": "test_topic", "key": 100,"value": "100,100", "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "0", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": "5", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": 100,"value": "100", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": 100,"value": "100", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
+        {"topic": "S2", "key": 100,"value": "100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "topk hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE S2 as SELECT ID, topk(value, 2) as topk FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"name": "zero", "value": 0}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0,"value": {"name": "zero", "value": 100}, "timestamp": 10000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": {"TOPK":[0.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"TOPK":[100.0,0.0]}, "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"TOPK":[100.0]}, "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "topkdistinct hopping",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE S2 as SELECT ID, topkdistinct(value, 2) as topk FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"name": "zero", "value": 0}, "timestamp": 0},
+        {"topic": "test_topic", "key": 0,"value": {"name": "zero", "value": 100}, "timestamp": 10000},
+        {"topic": "test_topic", "key": 0,"value": {"name": "zero", "value": 100}, "timestamp": 10000}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": {"TOPK":[0.0]}, "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"TOPK":[100.0,0.0]}, "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"TOPK":[100.0]}, "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"TOPK":[100.0,0.0]}, "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"TOPK":[100.0]}, "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "count",
+      "statements": [
+        "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE S2 as SELECT ID, count(1) as count FROM test WINDOW HOPPING (SIZE 5 SECOND, ADVANCE BY 1 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 0}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0}, "timestamp": 13251}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 6000, "end": 11000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 7000, "end": 12000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 8000, "end": 13000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 9000, "end": 14000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 10000, "end": 15000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":2}, "timestamp": 13251, "window": {"start": 9000, "end": 14000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":2}, "timestamp": 13251, "window": {"start": 10000, "end": 15000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":1}, "timestamp": 13251, "window": {"start": 11000, "end": 16000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":1}, "timestamp": 13251, "window": {"start": 12000, "end": 17000, "type": "time"}},
+        {"topic": "S2", "key": 0,"value": {"COUNT":1}, "timestamp": 13251, "window": {"start": 13000, "end": 18000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "import table with invalid window size",
+      "statements": [
+        "CREATE TABLE TEST (K STRING PRIMARY KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='Hopping', WINDOW_SIZE='30 bobs');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Configuration WINDOW_SIZE is invalid: Invalid duration: '30 bobs'. Unknown time unit: 'BOBS'"
+      }
+    },
+    {
+      "name": "import hopping stream",
+      "statements": [
+        "CREATE STREAM TEST (K BIGINT KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='HoPping', WINDOW_SIZE='30 seconds');",
+        "CREATE STREAM S2 as SELECT * FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "1,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "test_topic", "key": 0, "value": "2,0", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "test_topic", "key": 0, "value": "3,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "test_topic", "key": 100, "value": "4,100", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "test_topic", "key": 100, "value": "5,100", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
+        {"topic": "test_topic", "key": 100, "value": "6,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": "1,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "2,0", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": "3,5", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "4,100", "timestamp": 30000, "window": {"start": 10000, "end": 40000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "5,100", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
+        {"topic": "S2", "key": 100, "value": "6,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "S2",
+            "type": "stream",
+            "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 30000},
+            "schema": "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
+          }
+        ]
+      }
+    }
+  ]
+}

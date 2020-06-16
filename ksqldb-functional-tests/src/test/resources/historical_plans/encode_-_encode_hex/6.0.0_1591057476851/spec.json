@@ -1,0 +1,107 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1591057476851,
+  "path" : "query-validation-tests/encode.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT_STRING VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ASCII VARCHAR, UTF8 VARCHAR, BASE64 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "encode hex",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "input_string" : "4578616d706C6521"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "input_string" : "ce95cebbcebbceacceb4ceb1"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "input_string" : "c39c6265726d656e736368"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "input_string" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ASCII" : "Example!",
+        "UTF8" : "Example!",
+        "BASE64" : "RXhhbXBsZSE="
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ASCII" : "������������",
+        "UTF8" : "Ελλάδα",
+        "BASE64" : "zpXOu867zqzOtM6x"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "ASCII" : "��bermensch",
+        "UTF8" : "Übermensch",
+        "BASE64" : "w5xiZXJtZW5zY2g="
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "HEX" : null,
+        "UTF8" : null,
+        "BASE64" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, encode(input_string, 'hex', 'ascii') AS ASCII, encode(input_string, 'hex', 'utf8') as UTF8, encode(input_string, 'hex', 'base64') as BASE64 FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

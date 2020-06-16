@@ -1,0 +1,73 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1583429899248,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<I INT, L BIGINT, D DOUBLE, B BOOLEAN, S VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I INT, L BIGINT, D DOUBLE, B BOOLEAN, S VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "protobuf primitives",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "i" : 1,
+        "l" : 1,
+        "d" : 1.2,
+        "b" : true,
+        "s" : "foo"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "I" : 1,
+        "L" : 1,
+        "D" : 1.2,
+        "B" : true,
+        "S" : "foo"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 I = 1;\n  int64 L = 2;\n  double D = 3;\n  bool B = 4;\n  string S = 5;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (I INTEGER, L BIGINT, D DOUBLE, B BOOLEAN, S STRING) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

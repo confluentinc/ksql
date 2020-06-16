@@ -1,0 +1,98 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1589910882073,
+  "path" : "query-validation-tests/key-schemas.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, KEY BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "stream explicit KAFKA BIGINT KEY",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : 3,
+      "value" : {
+        "id" : 1
+      }
+    }, {
+      "topic" : "input",
+      "key" : 2,
+      "value" : {
+        "id" : 2
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "id" : 3
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 3,
+      "value" : {
+        "ID" : 1,
+        "KEY" : 3
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "ID" : 2,
+        "KEY" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "ID" : 3,
+        "KEY" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K BIGINT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');", "CREATE STREAM OUTPUT as SELECT K, ID, AS_VALUE(K) AS KEY FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "K BIGINT KEY, ID BIGINT, KEY BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        }
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

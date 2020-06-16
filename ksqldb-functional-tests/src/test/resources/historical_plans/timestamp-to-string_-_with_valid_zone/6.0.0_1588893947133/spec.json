@@ -1,0 +1,63 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893947133,
+  "path" : "query-validation-tests/timestamp-to-string.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED INT> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "with valid zone",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : { },
+      "timestamp" : 1526075913000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "KSQL_COL_0" : "2018-05-11 14:58:33 PDT"
+      },
+      "timestamp" : 1526075913000
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, IGNORED INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss zzz','America/Los_Angeles') FROM input;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

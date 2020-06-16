@@ -1,0 +1,83 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572103551,
+  "path" : "query-validation-tests/stringdate.json",
+  "schemas" : {
+    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, DATE VARCHAR, FORMAT VARCHAR> NOT NULL",
+    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT, TS INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "string to date",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0,zero,2018-05-11Lit,yyyy-MM-dd'Lit'"
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,zero,11/05/2019,dd/MM/yyyy"
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : "2,zero,01-Jan-2022,dd-MMM-yyyy"
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : "3,yyy,01-01-1970,dd-MM-yyyy"
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : "0",
+      "value" : "0,17662"
+    }, {
+      "topic" : "TS",
+      "key" : "1",
+      "value" : "1,18027"
+    }, {
+      "topic" : "TS",
+      "key" : "2",
+      "value" : "2,18993"
+    }, {
+      "topic" : "TS",
+      "key" : "3",
+      "value" : "3,0"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, NAME STRING, DATE STRING, FORMAT STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM TS AS SELECT\n  TEST.ID ID,\n  STRINGTODATE(TEST.DATE, TEST.FORMAT) TS\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "TS",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1583429899389,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 STRUCT<F1 INT>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 STRUCT<F1 INT>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "should convert nested types to STRUCT",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "",
+      "value" : {
+        "c1" : {
+          "f1" : 1
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "C1" : {
+          "F1" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  Something c1 = 1;\n\n  message Something {\n    int32 f1 = 1;\n  }\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (C1 STRUCT<F1 INTEGER>) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, C1 STRUCT<F1 INT>"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 1
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "comments": [
+    "This is testing that we can load and execute custom udafs"
+  ],
+  "tests": [
+    {
+      "name": "test_udaf group by",
+      "statements": [
+      "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic',value_format='DELIMITED');",
+      "CREATE TABLE S2 as SELECT id, AS_VALUE(ID) AS ID2, test_udaf(value) FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": "zero,-2147483647"},
+        {"topic": "test_topic", "key": 0,"value": "100,5"},
+        {"topic": "test_topic", "key": 100,"value": "100,100"},
+        {"topic": "test_topic", "key": 100,"value": "100,6"},
+        {"topic": "test_topic", "key": 100,"value": "100,300"},
+        {"topic": "test_topic", "key": 0,"value": "zero,2000"},
+        {"topic": "test_topic", "key": 0,"value": "100,100"}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": "0,-2147483647"},
+        {"topic": "S2", "key": 0,"value": "0,-2147483642"},
+        {"topic": "S2", "key": 100,"value": "100,100"},
+        {"topic": "S2", "key": 100,"value": "100,106"},
+        {"topic": "S2", "key": 100,"value": "100,406"},
+        {"topic": "S2", "key": 0,"value": "0,-2147481642"},
+        {"topic": "S2", "key": 0,"value": "0,-2147481542"}
+      ]
+    },
+    {
+      "name": "test_udaf on a table",
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE SUM_ID_BY_REGION AS SELECT REGION, test_udaf(id) FROM TEST GROUP BY REGION;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": "alice,east"},
+        {"topic": "test_topic", "key": 1,"value": "bob,east"},
+        {"topic": "test_topic", "key": 2,"value": "carol,west"},
+        {"topic": "test_topic", "key": 3,"value": "dave,west"},
+        {"topic": "test_topic", "key": 1,"value": "bob,west"},
+        {"topic": "test_topic", "key": 1,"value": null}
+      ],
+      "outputs": [
+        {"topic": "SUM_ID_BY_REGION", "key": "east", "value": "0"},
+        {"topic": "SUM_ID_BY_REGION", "key": "east", "value": "1"},
+        {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "2"},
+        {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "5"},
+        {"topic": "SUM_ID_BY_REGION", "key": "east", "value": "0"},
+        {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "6"},
+        {"topic": "SUM_ID_BY_REGION", "key": "west", "value": "5"}
+      ]
+    },
+    {
+      "name": "test_udaf with struct",
+      "statements": [
+        "CREATE STREAM TEST (K BIGINT KEY, id VARCHAR, val STRUCT<A INT, B INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE RESULT AS SELECT ID, test_udaf(val) as result FROM TEST GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 0,"value": {"id":  "0", "val":  {"A":  1, "B":  2}}},
+        {"topic":  "test_topic", "key": 0,"value": {"id":  "0", "val":  {"A":  2, "B":  3}}},
+        {"topic":  "test_topic", "key": 1,"value": {"id":  "1", "val":  {"A":  1, "B":  0}}}
+      ],
+      "outputs": [
+        {"topic": "RESULT", "key":  "0", "value":  {"RESULT":  {"A":  1, "B":  2}}},
+        {"topic": "RESULT", "key":  "0", "value":  {"RESULT":  {"A":  3, "B":  5}}},
+        {"topic": "RESULT", "key":  "1", "value":  {"RESULT":  {"A":  1, "B":  0}}}
+      ]
+    }
+  ]
+}

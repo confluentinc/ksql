@@ -1,0 +1,121 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1585182023708,
+  "path" : "query-validation-tests/substring.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<SOURCE VARCHAR, ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<SOURCE VARCHAR, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<THING VARCHAR, SUBSTRING BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "in group by",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "some string"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "another string"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "some string again"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "another string again"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "some other string"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "the final string"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "so",
+      "value" : "so,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "an",
+      "value" : "an,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "so",
+      "value" : "so,2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "an",
+      "value" : "an,2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "so",
+      "value" : "so,3"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "th",
+      "value" : "th,1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (SOURCE STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT\n  SUBSTRING(TEST.SOURCE, 0, 2) THING,\n  COUNT(*) SUBSTRING\nFROM TEST TEST\nGROUP BY SUBSTRING(TEST.SOURCE, 0, 2)\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -21,15 +21,15 @@
 
     <parent>
         <groupId>io.confluent</groupId>
-        <artifactId>rest-utils-parent</artifactId>
-        <version>6.0.0-SNAPSHOT</version>
+        <artifactId>common</artifactId>
+        <version>6.1.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
-    <artifactId>ksql-parent</artifactId>
+    <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
-    <name>ksql-parent</name>
-    <version>6.0.0-SNAPSHOT</version>
+    <name>ksqldb-parent</name>
+    <version>6.1.0-SNAPSHOT</version>
     <licenses>
         <license>
             <name>Confluent Community License</name>
@@ -39,31 +39,32 @@
     </licenses>
 
     <modules>
-        <module>ksql-udf</module>
-        <module>ksql-common</module>
-        <module>ksql-udf-quickstart</module>
-        <module>ksql-serde</module>
-        <module>ksql-metastore</module>
-        <module>ksql-execution</module>
-        <module>ksql-parser</module>
-        <module>ksql-streams</module>
-        <module>ksql-engine</module>
-        <module>ksql-tools</module>
-        <module>ksql-cli</module>
-        <module>ksql-examples</module>
-        <module>ksql-rest-model</module>
-        <module>ksql-rest-client</module>
-        <module>ksql-rest-app</module>
-        <module>ksql-version-metrics-client</module>
-        <module>ksql-console-scripts</module>
-        <module>ksql-etc</module>
-        <module>ksql-package</module>
-        <module>ksql-test-util</module>
-        <module>ksql-benchmark</module>
-        <module>ksql-functional-tests</module>
-        <module>ksql-rocksdb-config-setter</module>
-        <module>ksql-docker</module>
-        <module>ksql-api-reactive-streams-tck</module>
+        <module>ksqldb-udf</module>
+        <module>ksqldb-common</module>
+        <module>ksqldb-udf-quickstart</module>
+        <module>ksqldb-serde</module>
+        <module>ksqldb-metastore</module>
+        <module>ksqldb-execution</module>
+        <module>ksqldb-parser</module>
+        <module>ksqldb-streams</module>
+        <module>ksqldb-engine</module>
+        <module>ksqldb-tools</module>
+        <module>ksqldb-cli</module>
+        <module>ksqldb-examples</module>
+        <module>ksqldb-rest-model</module>
+        <module>ksqldb-rest-client</module>
+        <module>ksqldb-rest-app</module>
+        <module>ksqldb-version-metrics-client</module>
+        <module>ksqldb-console-scripts</module>
+        <module>ksqldb-etc</module>
+        <module>ksqldb-package</module>
+        <module>ksqldb-test-util</module>
+        <module>ksqldb-benchmark</module>
+        <module>ksqldb-functional-tests</module>
+        <module>ksqldb-rocksdb-config-setter</module>
+        <module>ksqldb-docker</module>
+        <module>ksqldb-api-reactive-streams-tck</module>
+        <module>ksqldb-api-client</module>
     </modules>
 
     <repositories>
@@ -119,14 +120,16 @@
         <apache.curator.version>2.9.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
-        <icu.version>65.1</icu.version>
-        <vertx.version>3.8.5</vertx.version>
+        <icu.version>67.1</icu.version>
+        <vertx.version>3.9.0</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <kafka.version>5.5.0-ccs-SNAPSHOT</kafka.version>
-        <ce.kafka.version>5.5.0-ce-SNAPSHOT</ce.kafka.version>
-        <confluent.version>5.5.0-SNAPSHOT</confluent.version>
+        <compile.warnings-flag>-Werror</compile.warnings-flag>
+        <!-- Only used to provide login module implementation for tests -->
+        <jetty.version>9.4.28.v20200408</jetty.version>
+        <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
+        <scala.version>2.13.2</scala.version>
     </properties>
 
     <dependencyManagement>
@@ -147,91 +150,91 @@
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-common</artifactId>
+                <artifactId>ksqldb-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-udf</artifactId>
+                <artifactId>ksqldb-udf</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-serde</artifactId>
+                <artifactId>ksqldb-serde</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-metastore</artifactId>
+                <artifactId>ksqldb-metastore</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-cli</artifactId>
+                <artifactId>ksqldb-cli</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-engine</artifactId>
+                <artifactId>ksqldb-engine</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-execution</artifactId>
+                <artifactId>ksqldb-execution</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-parser</artifactId>
+                <artifactId>ksqldb-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-streams</artifactId>
+                <artifactId>ksqldb-streams</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-examples</artifactId>
+                <artifactId>ksqldb-examples</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-rest-model</artifactId>
+                <artifactId>ksqldb-rest-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-rest-client</artifactId>
+                <artifactId>ksqldb-rest-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-rest-app</artifactId>
+                <artifactId>ksqldb-rest-app</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-functional-tests</artifactId>
+                <artifactId>ksqldb-functional-tests</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-version-metrics-client</artifactId>
+                <artifactId>ksqldb-version-metrics-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -243,7 +246,7 @@
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
-                <artifactId>ksql-api-reactive-streams-tck</artifactId>
+                <artifactId>ksqldb-api-reactive-streams-tck</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- End cross-submodule dependencies -->
@@ -258,12 +261,6 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>${confluent.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>rest-utils</artifactId>
                 <version>${confluent.version}</version>
             </dependency>
 
@@ -437,10 +434,19 @@
                 <version>${icu.version}</version>
             </dependency>
 
+            <!-- We need to fix our Scala versions as otherwise our depdendencies bring in
+            different versions via different routes
+            https://github.com/confluentinc/common/pull/260 -->
             <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-client</artifactId>
-                <version>${jetty.version}</version>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-library</artifactId>
+                <version>${scala.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-reflect</artifactId>
+                <version>${scala.version}</version>
             </dependency>
 
             <!-- Required for running tests -->
@@ -511,15 +517,16 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <compilerArgs>
-                        <arg>-Xlint:all,-serial</arg>
-                        <arg>-Werror</arg>
-                    </compilerArgs>
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>
                     <compilerVersion>1.8</compilerVersion>
                     <source>1.8</source>
                     <target>1.8</target>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-serial,-options,-path</arg>
+                        <arg>-parameters</arg>
+                        <arg>${compile.warnings-flag}</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
@@ -537,7 +544,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <log4j.configuration>file:${project.basedir}/../ksql-test-util/src/main/resources/log4j.properties</log4j.configuration>
+                        <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                 </configuration>
@@ -579,6 +586,24 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>${git-commit-id-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                </configuration>
             </plugin>
         </plugins>
     </build>

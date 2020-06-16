@@ -1,0 +1,185 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572092324,
+  "path" : "query-validation-tests/histogram.json",
+  "schemas" : {
+    "CTAS_COUNT_BY_REGION_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, REGION VARCHAR> NOT NULL",
+    "CTAS_COUNT_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
+    "CTAS_COUNT_BY_REGION_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 MAP<VARCHAR, BIGINT>> NOT NULL",
+    "CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION" : "STRUCT<REGION VARCHAR, COUNTS MAP<VARCHAR, BIGINT>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "histogram on a table - JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "ID" : 0,
+        "NAME" : "alice",
+        "REGION" : "east"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "NAME" : "bob",
+        "REGION" : "east"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "ID" : 2,
+        "NAME" : "carol",
+        "REGION" : "west"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "ID" : 3,
+        "NAME" : "dave",
+        "REGION" : "west"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "NAME" : "bob",
+        "REGION" : "west"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "east",
+      "value" : {
+        "REGION" : "east",
+        "COUNTS" : {
+          "alice" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "east",
+      "value" : {
+        "REGION" : "east",
+        "COUNTS" : {
+          "alice" : 1,
+          "bob" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "west",
+      "value" : {
+        "REGION" : "west",
+        "COUNTS" : {
+          "carol" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "west",
+      "value" : {
+        "REGION" : "west",
+        "COUNTS" : {
+          "carol" : 1,
+          "dave" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "east",
+      "value" : {
+        "REGION" : "east",
+        "COUNTS" : {
+          "alice" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "west",
+      "value" : {
+        "REGION" : "west",
+        "COUNTS" : {
+          "carol" : 1,
+          "dave" : 1,
+          "bob" : 1
+        }
+      }
+    }, {
+      "topic" : "COUNT_BY_REGION",
+      "key" : "west",
+      "value" : {
+        "REGION" : "west",
+        "COUNTS" : {
+          "carol" : 1,
+          "dave" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "COUNT_BY_REGION",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ID BIGINT, NAME STRING, REGION STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE COUNT_BY_REGION AS SELECT\n  TEST.REGION REGION,\n  HISTOGRAM(TEST.NAME) COUNTS\nFROM TEST TEST\nGROUP BY TEST.REGION\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "COUNT_BY_REGION",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

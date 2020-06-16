@@ -1,0 +1,61 @@
+{
+  "comments": [
+    "Tests covering DROP statements"
+  ],
+  "tests": [
+    {
+      "name": "drop an existing stream should succeed",
+      "statements": [
+        "CREATE STREAM input2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "DROP STREAM input2;",
+        "CREATE STREAM input (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM output AS SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "k1", "value": "v1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "v1"}
+      ]
+    },
+    {
+      "name": "drop a non-existing stream should fail",
+      "statements": [
+        "DROP STREAM test;"
+      ],
+      "expectedException" : {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Source TEST does not exist"
+      }
+    },
+    {
+      "name": "drop if exists a non-existing stream should succeed",
+      "statements": [
+        "DROP STREAM IF EXISTS test;",
+        "CREATE STREAM input (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM output AS SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "k1", "value": "v1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "v1"}
+      ]
+    },
+    {
+      "name": "drop if exists an existing stream should succeed",
+      "statements": [
+        "CREATE STREAM input2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "DROP STREAM IF EXISTS input2;",
+        "CREATE STREAM input (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM output AS SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "k1", "value": "v1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "v1"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572103539,
+  "path" : "query-validation-tests/string.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<TEXT VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<TEXT VARCHAR, KSQL_COL_1 BOOLEAN> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "< operator",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "a1"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "b1"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "B2"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "b2"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "b3"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "b10"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "b01"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "a1,true"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "b1,true"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "B2,true"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "b2,false"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "b3,false"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "b10,true"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : "b01,true"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (TEXT STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.TEXT TEXT,\n  (INPUT.TEXT < 'b2') KSQL_COL_1\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "stream",
+        "schema" : "ROWKEY STRING KEY, TEXT STRING, KSQL_COL_1 BOOLEAN"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

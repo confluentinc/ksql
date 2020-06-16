@@ -1,0 +1,70 @@
+{
+  "tests": [
+    {
+      "name": "< operator",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select K, text, text < 'b2' from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "a1"},
+        {"topic": "test_topic", "value": "b1"},
+        {"topic": "test_topic", "value": "B2"},
+        {"topic": "test_topic", "value": "b2"},
+        {"topic": "test_topic", "value": "b3"},
+        {"topic": "test_topic", "value": "b10"},
+        {"topic": "test_topic", "value": "b01"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "a1,true"},
+        {"topic": "OUTPUT", "value": "b1,true"},
+        {"topic": "OUTPUT", "value": "B2,true"},
+        {"topic": "OUTPUT", "value": "b2,false"},
+        {"topic": "OUTPUT", "value": "b3,false"},
+        {"topic": "OUTPUT", "value": "b10,true"},
+        {"topic": "OUTPUT", "value": "b01,true"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "K STRING KEY, TEXT STRING, KSQL_COL_0 BOOLEAN"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LCASE, UCASE, TRIM SUBSTRING",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select K, LCASE(text), UCASE(text), TRIM(text), SUBSTRING(text, 2, 5) from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "lower"},
+        {"topic": "test_topic", "value": "UPPER"},
+        {"topic": "test_topic", "value": "MiXeD"},
+        {"topic": "test_topic", "value": " \t with white space \t"},
+        {"topic": "test_topic", "value": "s"},
+        {"topic": "test_topic", "value": "long enough"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "lower,LOWER,lower,ower"},
+        {"topic": "OUTPUT", "value": "upper,UPPER,UPPER,PPER"},
+        {"topic": "OUTPUT", "value": "mixed,MIXED,MiXeD,iXeD"},
+        {"topic": "OUTPUT", "value": "\" \t with white space \t\",\" \t WITH WHITE SPACE \t\",with white space,\"\t wit\""},
+        {"topic": "OUTPUT", "value": "s,S,s,"},
+        {"topic": "OUTPUT", "value": "long enough,LONG ENOUGH,long enough,ong e"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "K STRING KEY, KSQL_COL_0 STRING, KSQL_COL_1 STRING, KSQL_COL_2 STRING, KSQL_COL_3 STRING"
+          }
+        ]
+      }
+    }
+  ]
+}

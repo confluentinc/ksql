@@ -1,0 +1,71 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572101867,
+  "path" : "query-validation-tests/project-filter.json",
+  "schemas" : {
+    "CSAS_S3_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, THING MAP<VARCHAR, VARCHAR>> NOT NULL",
+    "CSAS_S3_0.S3" : "STRUCT<ID BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "Null row filter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 1,
+        "thing" : {
+          "other" : 11,
+          "status" : false
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "S3",
+      "key" : "0",
+      "value" : {
+        "ID" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "S3",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT, THING MAP<STRING, STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S3 AS SELECT TEST.ID ID\nFROM TEST TEST\nWHERE (TEST.THING['status'] = 'false')\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "S3",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

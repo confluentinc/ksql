@@ -1,0 +1,75 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1588893903196,
+  "path" : "query-validation-tests/cast.json",
+  "schemas" : {
+    "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<FOO DECIMAL(4, 2)> NOT NULL",
+    "CSAS_OUT_0.OUT" : "STRUCT<KSQL_COL_0 DECIMAL(5, 3)> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "decimal to decimal",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "10.12"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "01.00"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "00.00"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : "10.120"
+    }, {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : "1.000"
+    }, {
+      "topic" : "OUT",
+      "key" : "",
+      "value" : "0.000"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, foo DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(5,3)) FROM TEST;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

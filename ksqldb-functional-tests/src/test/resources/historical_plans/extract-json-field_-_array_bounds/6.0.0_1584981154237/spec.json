@@ -1,0 +1,75 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1584981154237,
+  "path" : "query-validation-tests/extract-json-field.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<JSON VARCHAR> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COL1 VARCHAR, COL2 VARCHAR, COL3 VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "array bounds",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "{\"array\": [1, 2, 3]}"
+    }, {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : "{\"array\": [1.23450]}"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "COL1" : null,
+        "COL2" : "1",
+        "COL3" : "2"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "COL1" : null,
+        "COL2" : "1.23450",
+        "COL3" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (JSON STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='KAFKA');", "CREATE STREAM OUTPUT WITH (VALUE_FORMAT='JSON') AS SELECT\n  EXTRACTJSONFIELD(INPUT.JSON, '$.array[-1]') COL1,\n  EXTRACTJSONFIELD(INPUT.JSON, '$.array[0]') COL2,\n  EXTRACTJSONFIELD(INPUT.JSON, '$.array[1]') COL3\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "KAFKA"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

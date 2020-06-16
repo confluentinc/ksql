@@ -1,0 +1,115 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572092870,
+  "path" : "query-validation-tests/insert-into.json",
+  "schemas" : {
+    "InsertQuery_0.KsqlTopic.Source" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL",
+    "InsertQuery_0.SINK" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "convert formats: JSON to AVRO",
+    "inputs" : [ {
+      "topic" : "source",
+      "key" : "0",
+      "value" : {
+        "A" : 123,
+        "B" : "falcon"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : "0",
+      "value" : {
+        "A" : 456,
+        "B" : "giraffe"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : "0",
+      "value" : {
+        "A" : 789,
+        "B" : "turtle"
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "sink",
+      "key" : "0",
+      "value" : {
+        "A" : 123,
+        "B" : "falcon"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "sink",
+      "key" : "0",
+      "value" : {
+        "A" : 456,
+        "B" : "giraffe"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "sink",
+      "key" : "0",
+      "value" : {
+        "A" : 789,
+        "B" : "turtle"
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "sink",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "A",
+          "type" : [ "null", "long" ],
+          "default" : null
+        }, {
+          "name" : "B",
+          "type" : [ "null", "string" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE (A BIGINT, B STRING) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');", "CREATE STREAM SINK (A BIGINT, B STRING) WITH (KAFKA_TOPIC='sink', VALUE_FORMAT='AVRO');", "INSERT INTO SINK SELECT *\nFROM SOURCE SOURCE\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "sink",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "source",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

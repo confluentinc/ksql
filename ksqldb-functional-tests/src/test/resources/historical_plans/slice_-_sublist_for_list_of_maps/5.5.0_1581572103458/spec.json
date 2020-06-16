@@ -1,0 +1,75 @@
+{
+  "version" : "5.5.0",
+  "timestamp" : 1581572103458,
+  "path" : "query-validation-tests/slice.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<L ARRAY<MAP<VARCHAR, VARCHAR>>> NOT NULL",
+    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SUB ARRAY<MAP<VARCHAR, VARCHAR>>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "sublist for list of maps",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "",
+      "value" : {
+        "l" : [ {
+          "a" : "1"
+        }, {
+          "b" : "2"
+        }, {
+          "c" : "3"
+        }, {
+          "d" : "4"
+        } ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "",
+      "value" : {
+        "SUB" : [ {
+          "b" : "2"
+        }, {
+          "c" : "3"
+        } ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (L ARRAY<MAP<STRING, STRING>>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT SLICE(TEST.L, 2, 3) SUB\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

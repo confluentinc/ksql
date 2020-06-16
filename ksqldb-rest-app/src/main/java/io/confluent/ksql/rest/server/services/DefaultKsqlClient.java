@@ -92,10 +92,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {
-
-    System.out.println("**** MAKING QUERY REQUEST WITH KSQL CLIENT " + sharedClient + " : " + System
-        .identityHashCode(sharedClient));
-
+    
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
         .properties(configOverrides);

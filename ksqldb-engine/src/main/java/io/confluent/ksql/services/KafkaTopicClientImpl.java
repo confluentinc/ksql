@@ -30,7 +30,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -342,7 +342,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final OffsetSpec offsetSpec
   ) {
     final TopicDescription topicDescription = describeTopic(topicName);
-    final Map<TopicPartition, OffsetSpec> offsetsRequest = new LinkedHashMap<>();
+    final Map<TopicPartition, OffsetSpec> offsetsRequest = new HashMap<>();
     for (TopicPartitionInfo tpInfo : topicDescription.partitions()) {
       final TopicPartition tp = new TopicPartition(topicName, tpInfo.partition());
       offsetsRequest.put(tp, offsetSpec);

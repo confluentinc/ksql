@@ -46,15 +46,19 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
 
+  public static KsqlClient createKsqlClient(final Map<String, Object> clientProps) {
+    return new KsqlClient(
+        toClientProps(clientProps),
+        Optional.empty(),
+        new LocalProperties(ImmutableMap.of()),
+        createClientOptions()
+    );
+  }
+
   DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
     this(
         authHeader,
-        new KsqlClient(
-            toClientProps(clientProps),
-            Optional.empty(),
-            new LocalProperties(ImmutableMap.of()),
-            createClientOptions()
-        )
+        createKsqlClient(clientProps)
     );
   }
 
@@ -86,6 +90,10 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {
+
+    System.out.println("**** MAKING QUERY REQUEST WITH KSQL CLIENT " + sharedClient + " : " + System
+        .identityHashCode(sharedClient));
+
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
         .properties(configOverrides);

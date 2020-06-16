@@ -48,9 +48,11 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -101,6 +103,7 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
 import java.io.Console;
@@ -112,6 +115,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -210,7 +214,8 @@ public final class KsqlRestApplication implements Executable {
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
       final PullQueryExecutor pullQueryExecutor,
       final Optional<HeartbeatAgent> heartbeatAgent,
-      final Optional<LagReportingAgent> lagReportingAgent
+      final Optional<LagReportingAgent> lagReportingAgent,
+      final Optional<Supplier<Vertx>> vertxSupplier
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -236,12 +241,11 @@ public final class KsqlRestApplication implements Executable {
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
-    this.vertx = Vertx.vertx(
-        new VertxOptions()
-            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
-            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
-            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
-    this.vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+    if (vertxSupplier.isPresent()) {
+      this.vertx = vertxSupplier.get().get();
+    } else {
+      this.vertx = createVertx(ksqlConfig);
+    }
 
     this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
     if (heartbeatAgent.isPresent()) {
@@ -264,6 +268,16 @@ public final class KsqlRestApplication implements Executable {
         this.ksqlConfigNoPort);
     MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     log.debug("ksqlDB API server instance created");
+  }
+
+  static Vertx createVertx(final KsqlConfig ksqlConfig) {
+    final Vertx vertx = Vertx.vertx(
+        new VertxOptions()
+            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
+            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
+    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+    return vertx;
   }
 
   @Override
@@ -554,7 +568,7 @@ public final class KsqlRestApplication implements Executable {
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ServiceContext serviceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
-            schemaRegistryClientFactory));
+            schemaRegistryClientFactory, Optional.empty()));
 
     return buildApplication(
         "",
@@ -629,11 +643,22 @@ public final class KsqlRestApplication implements Executable {
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
+    final CachedVertxSupplier vertxSupplier = new CachedVertxSupplier(ksqlConfig);
+
+    final KsqlClient sharedClient = new KsqlClient(
+        toClientProps(ksqlConfig.originals()),
+        Optional.empty(),
+        new LocalProperties(ImmutableMap.of()),
+        createClientOptions(),
+        vertxSupplier
+    );
+
     final KsqlSecurityContextProvider ksqlSecurityContextProvider =
         new DefaultKsqlSecurityContextProvider(
             securityExtension,
             RestServiceContextFactory::create,
-            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory);
+            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory,
+            sharedClient);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
         restConfig);
@@ -730,8 +755,39 @@ public final class KsqlRestApplication implements Executable {
         rocksDBConfigSetterHandler,
         pullQueryExecutor,
         heartbeatAgent,
-        lagReportingAgent
+        lagReportingAgent,
+        Optional.of(vertxSupplier)
     );
+  }
+
+  private static class CachedVertxSupplier implements Supplier<Vertx> {
+
+    private final KsqlConfig ksqlConfig;
+    private Vertx vertx;
+
+    CachedVertxSupplier(final KsqlConfig ksqlConfig) {
+      this.ksqlConfig = ksqlConfig;
+    }
+
+    @Override
+    public synchronized Vertx get() {
+      if (vertx == null) {
+        vertx = createVertx(ksqlConfig);
+      }
+      return vertx;
+    }
+  }
+
+  private static Map<String, String> toClientProps(final Map<String, Object> config) {
+    final Map<String, String> clientProps = new HashMap<>();
+    for (Map.Entry<String, Object> entry : config.entrySet()) {
+      clientProps.put(entry.getKey(), entry.getValue().toString());
+    }
+    return clientProps;
+  }
+
+  private static HttpClientOptions createClientOptions() {
+    return new HttpClientOptions().setMaxPoolSize(100);
   }
 
   private static Optional<HeartbeatAgent> initializeHeartbeatAgent(

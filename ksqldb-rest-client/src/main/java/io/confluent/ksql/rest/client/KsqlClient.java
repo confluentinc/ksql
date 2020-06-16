@@ -30,6 +30,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -44,6 +45,7 @@ public final class KsqlClient implements AutoCloseable {
   private final HttpClient httpTlsClient;
   private final LocalProperties localProperties;
   private final Optional<String> basicAuthHeader;
+  private final boolean ownedVertx;
 
   public KsqlClient(
       final Map<String, String> clientProps,
@@ -51,12 +53,34 @@ public final class KsqlClient implements AutoCloseable {
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions
   ) {
-    this.vertx = Vertx.vertx();
+    this(clientProps, credentials, localProperties, httpClientOptions, Vertx.vertx(), true);
+  }
+
+  public KsqlClient(
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> credentials,
+      final LocalProperties localProperties,
+      final HttpClientOptions httpClientOptions,
+      final Supplier<Vertx> vertxSupplier
+  ) {
+    this(clientProps, credentials, localProperties, httpClientOptions, vertxSupplier.get(), false);
+  }
+
+  private KsqlClient(
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> credentials,
+      final LocalProperties localProperties,
+      final HttpClientOptions httpClientOptions,
+      final Vertx vertx,
+      final boolean ownedVertx
+  ) {
+    this.vertx = vertx;
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
+    this.ownedVertx = ownedVertx;
   }
 
   public KsqlTarget target(final URI server) {
@@ -78,7 +102,7 @@ public final class KsqlClient implements AutoCloseable {
     } catch (Exception ignore) {
       // Ignore
     }
-    if (vertx != null) {
+    if (vertx != null && ownedVertx) {
       vertx.close();
     }
   }

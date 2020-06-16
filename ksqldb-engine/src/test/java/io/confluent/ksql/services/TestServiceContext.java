@@ -100,7 +100,8 @@ public final class TestServiceContext {
         topicClient,
         srClientFactory,
         () -> connectClient,
-        DisabledKsqlClient::instance
+        DisabledKsqlClient::instance,
+        false
     );
 
     // Ensure admin client is closed on serviceContext.close():

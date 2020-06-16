@@ -197,14 +197,18 @@ public class PullQueryFunctionalTest {
 
     // When:
 
-    final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
-    final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
+    for (int i = 0; i < 10; i++) {
 
-    // Then:
-    assertThat(rows_0, hasSize(HEADER + 1));
-    assertThat(rows_1, is(matchersRows(rows_0)));
-    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, 1)));
+      final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+      final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
+
+      // Then:
+      assertThat(rows_0, hasSize(HEADER + 1));
+      assertThat(rows_1, is(matchersRows(rows_0)));
+      assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+      assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, 1)));
+    }
+    System.out.println("done");
   }
 
   @Test

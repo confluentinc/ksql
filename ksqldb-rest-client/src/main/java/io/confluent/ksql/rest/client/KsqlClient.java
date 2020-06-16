@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -47,6 +48,7 @@ public final class KsqlClient implements AutoCloseable {
   private final LocalProperties localProperties;
   private final Optional<String> basicAuthHeader;
   private final BiFunction<Integer, String, SocketAddress> socketAddressFactory;
+  private final boolean ownedVertx;
 
   /**
    * Creates a new KsqlClient.
@@ -61,13 +63,35 @@ public final class KsqlClient implements AutoCloseable {
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions
   ) {
-    this.vertx = Vertx.vertx();
+    this(clientProps, credentials, localProperties, httpClientOptions, Vertx.vertx(), true);
+  }
+
+  public KsqlClient(
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> credentials,
+      final LocalProperties localProperties,
+      final HttpClientOptions httpClientOptions,
+      final Supplier<Vertx> vertxSupplier
+  ) {
+    this(clientProps, credentials, localProperties, httpClientOptions, vertxSupplier.get(), false);
+  }
+
+  private KsqlClient(
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> credentials,
+      final LocalProperties localProperties,
+      final HttpClientOptions httpClientOptions,
+      final Vertx vertx,
+      final boolean ownedVertx
+  ) {
+    this.vertx = vertx;
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.socketAddressFactory = SocketAddress::inetSocketAddress;
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
+    this.ownedVertx = ownedVertx;
   }
 
   /**
@@ -84,9 +108,10 @@ public final class KsqlClient implements AutoCloseable {
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
       final Function<Boolean, HttpClientOptions> httpClientOptionsFactory,
-      final BiFunction<Integer, String, SocketAddress> socketAddressFactory
+      final BiFunction<Integer, String, SocketAddress> socketAddressFactory,
+      final Supplier<Vertx> vertxSupplier
   ) {
-    this.vertx = Vertx.vertx();
+    this.vertx = vertxSupplier.get();
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
@@ -94,6 +119,7 @@ public final class KsqlClient implements AutoCloseable {
         socketAddressFactory, "socketAddressFactory");
     this.httpNonTlsClient = createHttpClient(vertx, httpClientOptionsFactory, false);
     this.httpTlsClient = createHttpClient(vertx, httpClientOptionsFactory, true);
+    this.ownedVertx = false;
   }
 
   public KsqlTarget target(final URI server) {
@@ -115,7 +141,7 @@ public final class KsqlClient implements AutoCloseable {
     } catch (Exception ignore) {
       // Ignore
     }
-    if (vertx != null) {
+    if (vertx != null && ownedVertx) {
       vertx.close();
     }
   }

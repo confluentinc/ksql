@@ -65,10 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -471,7 +468,8 @@ public class KsqlRestApplicationTest {
         rocksDBConfigSetterHandler,
         pullQueryExecutor,
         Optional.of(heartbeatAgent),
-        Optional.of(lagReportingAgent)
+        Optional.of(lagReportingAgent),
+        Optional.empty()
     );
   }
 

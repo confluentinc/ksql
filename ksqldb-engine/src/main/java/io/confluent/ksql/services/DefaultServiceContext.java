@@ -38,13 +38,15 @@ public class DefaultServiceContext implements ServiceContext {
   private final MemoizedSupplier<SchemaRegistryClient> srClient;
   private final MemoizedSupplier<ConnectClient> connectClientSupplier;
   private final MemoizedSupplier<SimpleKsqlClient> ksqlClientSupplier;
+  private final boolean sharedClient;
 
   public DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<Admin> adminClientSupplier,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
-      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier,
+      final boolean sharedClient
   ) {
     this(
         kafkaClientSupplier,
@@ -52,7 +54,8 @@ public class DefaultServiceContext implements ServiceContext {
         KafkaTopicClientImpl::new,
         srClientSupplier,
         connectClientSupplier,
-        ksqlClientSupplier
+        ksqlClientSupplier,
+        sharedClient
     );
   }
 
@@ -63,7 +66,8 @@ public class DefaultServiceContext implements ServiceContext {
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
-      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier,
+      final boolean sharedClient
   ) {
     this(
         kafkaClientSupplier,
@@ -71,7 +75,8 @@ public class DefaultServiceContext implements ServiceContext {
         adminSupplier -> topicClient,
         srClientSupplier,
         connectClientSupplier,
-        ksqlClientSupplier
+        ksqlClientSupplier,
+        sharedClient
     );
   }
 
@@ -81,7 +86,8 @@ public class DefaultServiceContext implements ServiceContext {
       final Function<Supplier<Admin>, KafkaTopicClient> topicClientProvider,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
-      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier,
+      final boolean sharedClient
   ) {
     requireNonNull(adminClientSupplier, "adminClientSupplier");
     this.adminClientSupplier = new MemoizedSupplier<>(adminClientSupplier);
@@ -101,6 +107,8 @@ public class DefaultServiceContext implements ServiceContext {
 
     this.topicClientSupplier = new MemoizedSupplier<>(
         () -> topicClientProvider.apply(this.adminClientSupplier));
+
+    this.sharedClient = sharedClient;
   }
 
   @Override
@@ -143,11 +151,10 @@ public class DefaultServiceContext implements ServiceContext {
     if (adminClientSupplier.isInitialized()) {
       adminClientSupplier.get().close();
     }
-    if (ksqlClientSupplier.isInitialized()) {
+    if (ksqlClientSupplier.isInitialized() && !sharedClient) {
       ksqlClientSupplier.get().close();
     }
   }
-
 
   static final class MemoizedSupplier<T> implements Supplier<T> {
 

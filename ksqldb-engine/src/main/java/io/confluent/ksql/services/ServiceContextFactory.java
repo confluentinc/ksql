@@ -39,8 +39,9 @@ public final class ServiceContextFactory {
             ksqlConfig,
             Collections.emptyMap())::get,
         () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-                                       Optional.empty()),
-        ksqlClientSupplier
+            Optional.empty()),
+        ksqlClientSupplier,
+        false
     );
   }
 
@@ -49,7 +50,8 @@ public final class ServiceContextFactory {
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory,
       final Supplier<ConnectClient> connectClientSupplier,
-      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier,
+      final boolean sharedClient
   ) {
 
     return new DefaultServiceContext(
@@ -58,7 +60,8 @@ public final class ServiceContextFactory {
             .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps()),
         srClientFactory,
         connectClientSupplier,
-        ksqlClientSupplier
+        ksqlClientSupplier,
+        sharedClient
     );
   }
 }

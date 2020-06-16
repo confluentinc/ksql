@@ -118,7 +118,7 @@ public class ServerVerticle extends AbstractVerticle {
     isInternalListener.ifPresent(isInternal ->
         router.route().handler(new InternalEndpointHandler(isInternal)));
 
-    AuthHandlers.setupAuthHandlers(server, router);
+    AuthHandlers.setupAuthHandlers(server, router, isInternalListener.orElse(false));
 
     router.route().handler(new ServerStateHandler(server.getServerState()));
 

@@ -273,11 +273,20 @@ public final class RestIntegrationTestUtil {
 
   public static void createStream(final TestKsqlRestApp restApp,
       final TestDataProvider<?> dataProvider) {
+    createStream(restApp, dataProvider, Optional.empty());
+  }
+
+  public static void createStream(
+      final TestKsqlRestApp restApp,
+      final TestDataProvider<?> dataProvider,
+      final Optional<BasicCredentials> userCreds
+  ) {
     makeKsqlRequest(
         restApp,
         "CREATE STREAM " + dataProvider.kstreamName()
             + " (" + dataProvider.ksqlSchemaString(false) + ") "
-            + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');"
+            + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
+        userCreds
     );
   }
 

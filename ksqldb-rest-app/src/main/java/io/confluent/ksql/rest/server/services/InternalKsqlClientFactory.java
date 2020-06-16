@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.apache.kafka.common.config.SslConfigs;
 
 public class InternalKsqlClientFactory {
@@ -22,7 +21,7 @@ public class InternalKsqlClientFactory {
   public static KsqlClient createInternalClient(
       final Map<String, String> clientProps,
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory,
-      final Supplier<Vertx> vertxSupplier) {
+      final Vertx vertx) {
     final String internalClientAuth = clientProps.get(
         KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG);
     final boolean verifyHost = !Strings.isNullOrEmpty(internalClientAuth)
@@ -33,7 +32,7 @@ public class InternalKsqlClientFactory {
         new LocalProperties(ImmutableMap.of()),
         httpOptionsFactory(clientProps, verifyHost),
         socketAddressFactory,
-        vertxSupplier
+        vertx
     );
   }
 

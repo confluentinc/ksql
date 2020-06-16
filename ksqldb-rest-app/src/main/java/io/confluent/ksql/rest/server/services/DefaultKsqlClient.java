@@ -51,7 +51,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     this(
         authHeader,
         createInternalClient(toClientProps(clientProps), SocketAddress::inetSocketAddress,
-            Vertx::vertx)
+            Vertx.vertx())
     );
   }
 
@@ -60,7 +60,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
     this(
         authHeader,
-        createInternalClient(toClientProps(clientProps), socketAddressFactory, Vertx::vertx)
+        createInternalClient(toClientProps(clientProps), socketAddressFactory, Vertx.vertx())
     );
   }
 
@@ -92,7 +92,6 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {
-    
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
         .properties(configOverrides);

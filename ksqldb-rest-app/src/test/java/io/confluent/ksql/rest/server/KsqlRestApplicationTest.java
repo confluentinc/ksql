@@ -59,6 +59,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.vertx.core.Vertx;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -134,6 +135,9 @@ public class KsqlRestApplicationTest {
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+
+  @Mock
+  private Vertx vertx;
 
   private String logCreateStatement;
   private KsqlRestApplication app;
@@ -469,7 +473,7 @@ public class KsqlRestApplicationTest {
         pullQueryExecutor,
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),
-        Optional.empty()
+        vertx
     );
   }
 

@@ -7,7 +7,7 @@ keywords: ksqldb, confguration, security, acl, ssl, sasl, keystore, truststore
 ---
 
 ksqlDB supports several combinations of encryption and authentication on its
-client-facing and internal endpoints, and also supports many of the security
+client-facing and internal endpoints. ksqlDB also supports many of the security
 features of the other services it communicates with, like {{ site.aktm }} and
 {{ site.sr }}.
 
@@ -38,7 +38,7 @@ Securing ksqlDB on premise
 --------------------------
 
 This section covers how to secure installations of ksqlDB outside of Confluent Cloud,
-e.g. on-premise installations or manual installations on other cloud platforms.
+like on-premises installations or manual installations on other cloud platforms.
 
 To configure security for ksqlDB, add your configuration settings to the
 `<path-to-confluent>/etc/ksqldb/ksql-server.properties` file and then
@@ -79,7 +79,7 @@ They read the SQL statements they should run from a file on-disk.
 Securing interactive deployments
 --------------------------------
 
-Securing the interactive ksqlDB installation involves securing the HTTP endpoints the ksqlDB server is listening on.
+Securing the interactive ksqlDB installation involves securing the HTTP endpoints that the ksqlDB server is listening on.
 
 As well as accepting connections and requests from clients, a multi-node ksqlDB
 cluster also requires inter-node communications. You can choose to configure
@@ -104,7 +104,7 @@ is greatly simplified.
 You may still have to [secure communication](#securing-communication-with-other-services) with other services.
 
 
-Securing single listener setup
+Securing single-listener setup
 ------------------------------
 
 Securing a single listener for ksqlDB is appropriate when both client and
@@ -304,12 +304,12 @@ credentials when starting the CLI by using the `--user` and
 <ksql-install>bin/ksql --user fred --password letmein http://localhost:8088
 ```
 
-Securing dual listener setup
+Securing dual-listener setup
 ----------------------------
 
 Using dual listeners for ksqlDB is appropriate when the client and
 inter-node communication utilize different authentication and security
-configurations.  This is most likely the case when ksqlDB is deployed as an
+configurations. This is most likely the case when ksqlDB is deployed as an
 IaaS service.
 
 The supported setups are SSL-mutual auth for the internal communication
@@ -362,10 +362,10 @@ ksql.internal.listener=https://node-1.internal.example.com:8099
 ksql.internal.ssl.client.authentication=REQUIRED
 ```
 
-Configuring internal for SSL-mutual authentication + external for HTTP-BASIC authentication
---------------------------------------------------------------------------------
+Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication
+---------------------------------------------------------------------------------------------
 
-Client facing basic HTTP authentication can be used alongside authentication for the
+Client-facing basic HTTP authentication can be used alongside authentication for the
 internal listener. This ensures that neither the client or internal
 APIs can be accessed by unauthorized users.
 
@@ -398,19 +398,19 @@ authentication.realm=KsqlServer-Props
 For more detail on basic authentication,
 [see above](#configure-ksqldb-for-basic-http-authentication).
 
-Configuring internal for SSL-mutual authentication + external for SSL encryption
+Configuring internal for SSL-mutual authentication and external for SSL encryption
 --------------------------------------------------------------------------------
 
 If you want to use HTTPS on `listeners` as well as use SSL mutual
 auth for internal communication on `ksql.internal.listener`, you will likely
 require two different key pairs, since your host's identity to clients may be
-different from its internal identity.  In order to create such a key store,
+different from its internal identity. To create such a key store,
 refer [below](#setting-up-a-key-store-and-trust-store).
 
 In such a configuration, you must specify which key pair is used for a given
-listener by providing a key store alias.  For example,
+listener by providing a key store alias. For example,
 if set, `ksql.ssl.keystore.alias.internal` will be used to find the key store entry
-with the given alias when setting up the internal listener.  Similarly,
+with the given alias when setting up the internal listener. Similarly,
 `ksql.ssl.keystore.alias.external` is used for the client listener `listeners`.
 Below is an example configuration:
 

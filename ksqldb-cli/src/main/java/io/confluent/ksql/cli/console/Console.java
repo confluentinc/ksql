@@ -626,12 +626,9 @@ public class Console implements Closeable {
         "Statistics of the local KSQL server interaction with the Kafka topic "
             + source.getTopic()
     ));
-    final Optional<SourceConsumerGroupOffsets> consumerGroupOffsetsOptional = source
-        .getConsumerGroupOffsets();
-    if (consumerGroupOffsetsOptional.isPresent()) {
+    for (SourceConsumerGroupOffsets sourceConsumerGroupOffsets :
+            source.getConsumerGroupsOffsets()) {
       writer().println();
-      final SourceConsumerGroupOffsets sourceConsumerGroupOffsets =
-          consumerGroupOffsetsOptional.get();
       writer().println(String.format("%-20s : %s",
           "Consumer Group", sourceConsumerGroupOffsets.getGroupId()));
       writer().println(String.format("%-20s : %s",

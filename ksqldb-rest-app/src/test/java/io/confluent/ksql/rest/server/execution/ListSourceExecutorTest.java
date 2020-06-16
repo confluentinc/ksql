@@ -146,14 +146,14 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
-            Optional.empty()),
+            Collections.emptyList()),
         SourceDescriptionFactory.create(
             stream2,
             true,
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
-            Optional.empty())
+            Collections.emptyList())
     ));
   }
 
@@ -215,7 +215,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
-            Optional.empty()
+            Collections.emptyList()
         ),
         SourceDescriptionFactory.create(
             table2,
@@ -223,7 +223,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
-            Optional.empty()
+            Collections.emptyList()
         )
     ));
   }
@@ -271,7 +271,7 @@ public class ListSourceExecutorTest {
                 metadata.getQueryId(),
                 queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)),
             Optional.empty(),
-            Optional.empty())));
+            Collections.emptyList())));
   }
 
   @Test
@@ -334,7 +334,7 @@ public class ListSourceExecutorTest {
                             ImmutableList.of(),
                             ImmutableList.of(),
                             Optional.empty(),
-                            Optional.empty()
+                            Collections.emptyList()
                         )
                     )
                 )
@@ -421,7 +421,7 @@ public class ListSourceExecutorTest {
                 ImmutableList.of(),
                 ImmutableList.of(),
                 Optional.empty(),
-                Optional.empty()
+                Collections.emptyList()
             )
         )
     );

@@ -47,7 +47,7 @@ public class SourceDescription {
   private final int partitions;
   private final int replication;
   private final String statement;
-  private final Optional<SourceConsumerGroupOffsets> consumerGroupOffsets;
+  private final List<SourceConsumerGroupOffsets> consumerGroupsOffsets;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -69,7 +69,7 @@ public class SourceDescription {
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
       @JsonProperty("consumerOffsets")
-      final Optional<SourceConsumerGroupOffsets> consumerGroupOffsets) {
+      final List<SourceConsumerGroupOffsets> consumerGroupsOffsets) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
@@ -90,7 +90,8 @@ public class SourceDescription {
     this.partitions = partitions;
     this.replication = replication;
     this.statement = Objects.requireNonNull(statement, "statement");
-    this.consumerGroupOffsets = Objects.requireNonNull(consumerGroupOffsets, "consumerOffsets");
+    this.consumerGroupsOffsets = Collections.unmodifiableList(
+            Objects.requireNonNull(consumerGroupsOffsets, "consumerOffsets"));
   }
 
   public String getStatement() {
@@ -157,8 +158,8 @@ public class SourceDescription {
     return errorStats;
   }
 
-  public Optional<SourceConsumerGroupOffsets> getConsumerGroupOffsets() {
-    return consumerGroupOffsets;
+  public List<SourceConsumerGroupOffsets> getConsumerGroupsOffsets() {
+    return consumerGroupsOffsets;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -188,7 +189,7 @@ public class SourceDescription {
         && Objects.equals(valueFormat, that.valueFormat)
         && Objects.equals(topic, that.topic)
         && Objects.equals(statement, that.statement)
-        && Objects.equals(consumerGroupOffsets, that.consumerGroupOffsets);
+        && Objects.equals(consumerGroupsOffsets, that.consumerGroupsOffsets);
   }
 
   @Override
@@ -210,7 +211,7 @@ public class SourceDescription {
         partitions,
         replication,
         statement,
-        consumerGroupOffsets
+        consumerGroupsOffsets
     );
   }
 }

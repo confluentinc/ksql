@@ -135,7 +135,7 @@ public final class DescribeConnectorExecutor {
               ImmutableList.of(),
               ImmutableList.of(),
               Optional.empty(),
-              Optional.empty()))
+              ImmutableList.of()))
           .collect(Collectors.toList());
     } else {
       sources = ImmutableList.of();

@@ -42,7 +42,6 @@ import io.confluent.ksql.rest.entity.SourceInfo.Table;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerGroupSummary;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -217,16 +216,16 @@ public final class ListSourceExecutor {
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescriptionOptional = Optional
         .empty();
-    Optional<SourceConsumerGroupOffsets> sourceConsumerOffsets = Optional.empty();
+    final List<SourceConsumerGroupOffsets> sourceConsumerOffsets = new ArrayList<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
-        final String kafkaTopicName = dataSource.getKafkaTopicName();
-        final TopicDescription topicDescription = serviceContext.getTopicClient()
-            .describeTopic(kafkaTopicName);
-        topicDescriptionOptional = Optional.of(topicDescription);
-        if (!sourceQueries.isEmpty()) {
-          final QueryId queryId = sourceQueries.get(0).getId();
+        for (RunningQuery sourceQuery : sourceQueries) {
+          final String kafkaTopicName = dataSource.getKafkaTopicName();
+          final TopicDescription topicDescription = serviceContext.getTopicClient()
+                  .describeTopic(kafkaTopicName);
+          topicDescriptionOptional = Optional.of(topicDescription);
+          final QueryId queryId = sourceQuery.getId();
           final String persistenceQueryPrefix =
               ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
           final String applicationId = getQueryApplicationId(
@@ -234,16 +233,13 @@ public final class ListSourceExecutor {
               persistenceQueryPrefix,
               queryId
           );
-          final Optional<ConsumerGroupSummary> consumerGroupDescription = Optional.of(
-              serviceContext.getConsumerGroupClient().describeConsumerGroup(applicationId)
-          );
           final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets =
               serviceContext.getConsumerGroupClient().listConsumerGroupOffsets(applicationId);
           final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
               serviceContext.getTopicClient().listTopicStartOffsets(kafkaTopicName);
           final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
               serviceContext.getTopicClient().listTopicEndOffsets(kafkaTopicName);
-          sourceConsumerOffsets = consumerGroupDescription.map(cg ->
+          sourceConsumerOffsets.add(
               new SourceConsumerGroupOffsets(
                   applicationId,
                   topicDescription.name(),

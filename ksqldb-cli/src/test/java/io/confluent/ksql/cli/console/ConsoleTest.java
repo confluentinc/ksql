@@ -146,7 +146,7 @@ public class ConsoleTest {
       2,
       1,
       "statement",
-      Optional.empty());
+      Collections.emptyList());
 
   @Mock
   private QueryStatusCount queryStatusCount;
@@ -528,7 +528,7 @@ public class ConsoleTest {
                 1,
                 1,
                 "sql statement",
-                Optional.empty()),
+                Collections.emptyList()),
             Collections.emptyList()
         )
     ));
@@ -660,7 +660,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement\"," + NEWLINE
-          + "    \"consumerGroupOffsets\" : null" + NEWLINE
+          + "    \"consumerGroupsOffsets\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -799,7 +799,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"statement\"," + NEWLINE
-          + "    \"consumerGroupOffsets\" : null" + NEWLINE
+          + "    \"consumerGroupsOffsets\" : [ ]" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -1179,7 +1179,7 @@ public class ConsoleTest {
                 "kadka-topic",
                 2, 1,
                 "sql statement text",
-                Optional.of(
+                ImmutableList.of(
                     new SourceConsumerGroupOffsets(
                         "consumer1",
                         "kadka-topic",
@@ -1255,7 +1255,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
-          + "    \"consumerGroupOffsets\" : {" + NEWLINE
+          + "    \"consumerGroupsOffsets\" : [ {" + NEWLINE
           + "      \"groupId\" : \"consumer1\"," + NEWLINE
           + "      \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
           + "      \"offsets\" : [ {" + NEWLINE
@@ -1269,7 +1269,7 @@ public class ConsoleTest {
           + "        \"logEndOffset\" : 900," + NEWLINE
           + "        \"consumerOffset\" : 900" + NEWLINE
           + "      } ]" + NEWLINE
-          + "    }" + NEWLINE
+          + "    } ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -1347,7 +1347,7 @@ public class ConsoleTest {
                 "kadka-topic",
                 2, 1,
                 "sql statement text",
-                Optional.empty()),
+                Collections.emptyList()),
             Collections.emptyList()
         ))
     );
@@ -1415,7 +1415,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
-          + "    \"consumerGroupOffsets\" : null" + NEWLINE
+          + "    \"consumerGroupsOffsets\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));

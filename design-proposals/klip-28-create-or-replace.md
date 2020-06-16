@@ -34,7 +34,7 @@ but identical consumer groups), but these methods burden users with extra comple
 
 To better understand the scope of this KLIP and any future improvements, we define a taxonomy on 
 query upgrades as any combination of three types of characteristics: **source query, upgrade** and
-**environment**:
+(optionally) **environment**:
 
 | **Category** | **Characteristic** | **Description** |
 |----------|----------------|-------------|
@@ -103,6 +103,11 @@ for the most basic upgrades:
 - _Source modifying_ upgrades will not be supported
 - _Topology changes_ will not be supported
 
+Note that _Schema Evolution_ compatibility is defined by the limitations of the serialization
+format that is used with the added restrictions against removing fields and changing types to ensure
+referential integrity of ksqlDB tables. This way, downstream query output schemas willn not be affected
+by upstream schema evolution.
+
 There are currently discussions that discuss how to expand the support of some of these upgrades,
 but we believe there is value in supporting the limitted set described above.
 
@@ -123,20 +128,59 @@ section above.
 
 ## Test plan
 
-_What are the failure scenarios you are going to cover in your testing? What scale testing do you plan to run? What about peformance and load testing? It goes 
-without saying that most classes should have unit tests._
+QTT tests will be expanded to augmented to support interleaving statements with events. For example:
+
+```json
+{
+  "statements": [
+    [
+      "CREATE STREAM foo (col1 int, col2 int) ...;",
+      "CREATE STREAM bar AS SELECT col1 FROM foo;"
+    ],
+    ["CREATE OR REPLACE STREAM bar AS SELECT col1, col2 FROM foo;"]
+  ],
+  "inputs": [
+    [{"topic": "foo", "value": {"col1": 1, "col2": 1}}],
+    [{"topic": "foo", "value": {"col1": 2, "col2": 2}}]
+  ],
+  "outputs": [
+    {"topic": "bar", "value": {"col1": 1}},
+    {"topic": "bar", "value": {"col1": 2, "col2": 2}}
+  ]
+}
+```
+
+The test would execute in the following order:
+
+1. Issue the first two statements
+2. Issue the first input
+3. Issue the third statement
+4. Issue the second input
+5. Ensure output
+
+This can be done in a backwards compatible way and without changing any existing QTT test file
+by utilizing `DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY`.
 
 ## Documentation Updates
 
-We will add the following `md` file:
-
-### Synopsis:
+The documentation entries for `CREATE STREAM AS SELECT` and `CREATE TABLE AS SELECT` to encompass
+the new syntax addition. For example:
 
 ```sql
-CREATE OR REPLACE (STREAM | TABLE) source_name 
-    [WITH ( property_name = expression [, ...] )]
-    AS query;
+CREATE [OR REPLACE] TABLE table_name
+  [WITH ( property_name = expression [, ...] )]
+  AS SELECT  select_expr [, ...]
+  FROM from_item
+  [ LEFT | FULL | INNER ] JOIN join_table ON join_criteria
+  [ WINDOW window_expression ]
+  [ WHERE condition ]
+  [ GROUP BY grouping_expression ]
+  [ HAVING having_expression ]
+  EMIT CHANGES;
 ```
+
+Additionally, we will link to a new documentation which describes the limitations in terms of
+the query characteristics listed above.
 
 ### Description:
 

@@ -375,9 +375,6 @@ public final class PullQueryExecutor {
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true,
         KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
 
-    System.out.println("*** FORWARD TO WITH SC: " + serviceContext + ": " + System
-        .identityHashCode(serviceContext));
-
     final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
         .makeQueryRequest(

@@ -30,7 +30,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -61,9 +60,9 @@ public final class KsqlClient implements AutoCloseable {
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions,
-      final Supplier<Vertx> vertxSupplier
+      final Vertx vertx
   ) {
-    this(clientProps, credentials, localProperties, httpClientOptions, vertxSupplier.get(), false);
+    this(clientProps, credentials, localProperties, httpClientOptions, vertx, false);
   }
 
   private KsqlClient(

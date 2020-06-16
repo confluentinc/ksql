@@ -33,7 +33,7 @@ public class DefaultServiceContext implements ServiceContext {
 
   private final KafkaClientSupplier kafkaClientSupplier;
   private final MemoizedSupplier<Admin> adminClientSupplier;
-  private final MemoizedSupplier<KafkaTopicClient>  topicClientSupplier;
+  private final MemoizedSupplier<KafkaTopicClient> topicClientSupplier;
   private final Supplier<SchemaRegistryClient> srClientFactorySupplier;
   private final MemoizedSupplier<SchemaRegistryClient> srClient;
   private final MemoizedSupplier<ConnectClient> connectClientSupplier;
@@ -66,8 +66,7 @@ public class DefaultServiceContext implements ServiceContext {
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
-      final Supplier<SimpleKsqlClient> ksqlClientSupplier,
-      final boolean sharedClient
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier
   ) {
     this(
         kafkaClientSupplier,
@@ -76,7 +75,7 @@ public class DefaultServiceContext implements ServiceContext {
         srClientSupplier,
         connectClientSupplier,
         ksqlClientSupplier,
-        sharedClient
+        false
     );
   }
 

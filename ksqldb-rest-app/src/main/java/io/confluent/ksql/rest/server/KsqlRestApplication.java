@@ -215,7 +215,7 @@ public final class KsqlRestApplication implements Executable {
       final PullQueryExecutor pullQueryExecutor,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent,
-      final Optional<Supplier<Vertx>> vertxSupplier
+      final Vertx vertx
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -241,11 +241,7 @@ public final class KsqlRestApplication implements Executable {
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
-    if (vertxSupplier.isPresent()) {
-      this.vertx = vertxSupplier.get().get();
-    } else {
-      this.vertx = createVertx(ksqlConfig);
-    }
+    this.vertx = requireNonNull(vertx, "vertx");
 
     this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
     if (heartbeatAgent.isPresent()) {
@@ -643,14 +639,14 @@ public final class KsqlRestApplication implements Executable {
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
-    final CachedVertxSupplier vertxSupplier = new CachedVertxSupplier(ksqlConfig);
+    final Vertx vertx = createVertx(ksqlConfig);
 
     final KsqlClient sharedClient = new KsqlClient(
         toClientProps(ksqlConfig.originals()),
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
         createClientOptions(),
-        vertxSupplier
+        vertx
     );
 
     final KsqlSecurityContextProvider ksqlSecurityContextProvider =
@@ -756,38 +752,7 @@ public final class KsqlRestApplication implements Executable {
         pullQueryExecutor,
         heartbeatAgent,
         lagReportingAgent,
-        Optional.of(vertxSupplier)
-    );
-  }
-
-  private static class CachedVertxSupplier implements Supplier<Vertx> {
-
-    private final KsqlConfig ksqlConfig;
-    private Vertx vertx;
-
-    CachedVertxSupplier(final KsqlConfig ksqlConfig) {
-      this.ksqlConfig = ksqlConfig;
-    }
-
-    @Override
-    public synchronized Vertx get() {
-      if (vertx == null) {
-        vertx = createVertx(ksqlConfig);
-      }
-      return vertx;
-    }
-  }
-
-  private static Map<String, String> toClientProps(final Map<String, Object> config) {
-    final Map<String, String> clientProps = new HashMap<>();
-    for (Map.Entry<String, Object> entry : config.entrySet()) {
-      clientProps.put(entry.getKey(), entry.getValue().toString());
-    }
-    return clientProps;
-  }
-
-  private static HttpClientOptions createClientOptions() {
-    return new HttpClientOptions().setMaxPoolSize(100);
+        vertx);
   }
 
   private static Optional<HeartbeatAgent> initializeHeartbeatAgent(
@@ -1053,6 +1018,18 @@ public final class KsqlRestApplication implements Executable {
         Joiner.on(",").join(authenticationSkipPaths));
 
     return new KsqlRestConfig(restConfigs);
+  }
+
+  private static Map<String, String> toClientProps(final Map<String, Object> config) {
+    final Map<String, String> clientProps = new HashMap<>();
+    for (Map.Entry<String, Object> entry : config.entrySet()) {
+      clientProps.put(entry.getKey(), entry.getValue().toString());
+    }
+    return clientProps;
+  }
+
+  private static HttpClientOptions createClientOptions() {
+    return new HttpClientOptions().setMaxPoolSize(100);
   }
 
 }

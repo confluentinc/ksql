@@ -74,7 +74,6 @@ Your output should resemble:
 
 ```
 Type                 : TABLE
-Key field            : CLICKSTREAM.IP
 Timestamp field      : Not set - using <ROWTIME>
 Key format           : STRING
 Value format         : JSON

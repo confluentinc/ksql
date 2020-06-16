@@ -11,28 +11,34 @@ client-facing and internal endpoints. ksqlDB also supports many of the security
 features of the other services it communicates with, like {{ site.aktm }} and
 {{ site.sr }}.
 
-- [Securing ksqlDB on Confluent Cloud](#configure-ksqldb-for-confluent-cloud)
-- [Securing ksqlDB on premise](#securing-ksqlDB-on-premise)
-  - [Securing ksqlDB installation](#securing-ksqldb-installation)
+- [Securing ksqlDB on Confluent Cloud](#securing-ksqldb-for-confluent-cloud)
+- [Securing ksqlDB on premise](#securing-ksqldb-on-premise)
+  * [Securing ksqlDB installation](#securing-ksqldb-installation)
     - [Securing interactive deployments](#securing-interactive-deployments)
-      - [Securing single listener setup](#securing-single-listener-setup)
+      * [Securing single listener setup](#securing-single-listener-setup)
         - [Configuring listener for SSL encryption](#configuring-listener-for-ssl-encryption)
         - [Configuring listener for HTTP-BASIC authentication](#configuring-listener-for-http-basic-authentication)
-      - [Securing dual listener setup](#securing-dual-listener-setup)
-        - [Configuring internal for SSL-mutual authentication](#configuring-intenral-for-ssl-mutual-authentication)
-        - [Configuring internal for SSL-mutual authentication + external for SSL encryption](#configuring-internal-for-ssl-mutual-authentication-+-external-for-ssl-encryption)
-        - [Configuring internal for SSL-mutual authentication + external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-+-external-for-http-basic-authentication)
+      * [Securing dual listener setup](#securing-dual-listener-setup)
+        - [Configuring internal for SSL-mutual authentication](#configuring-internal-for-ssl-mutual-authentication)
+        - [Configuring internal for SSL-mutual authentication and external for SSL encryption](#configuring-internal-for-ssl-mutual-authentication-and-external-for-ssl-encryption)
+        - [Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-and-external-for-http-basic-authentication)
     - [Securing headless deployments](#securing-headless-deployments)
-
-  - [Securing communication with other services](#securing-communication-with-other-services)
+  * [Securing communication with other services](#securing-communication-with-other-services)
     - [Configure ksqlDB for Confluent Control Center](#configure-ksqldb-for-confluent-control-center)
     - [Configure ksqlDB for Secured Confluent Schema Registry](#configure-ksqldb-for-secured-confluent-schema-registry)
     - [Configure ksqlDB for Secured Apache Kafka clusters](#configure-ksqldb-for-secured-apache-kafka-clusters)
-      - [Configuring Kafka Encrypted Communication](#configuring-kafa-encrypted-communication)
-      - [Configuring Kafka Authentication](#configuring-kafka-authentication)
-      - [Configure Authorization of ksqlDB with Kafka ACLs](#configure-authorization-of-ksqldb-with-kafka-acls)
-        - [Confluent Platform v5.0 (Apache Kafka v2.0) and above](#confluent-platform-v5.0-(apache-kafka-v2.0)-and-above)
-        - [Confluent Platform versions below v5.0 (Apache Kafka < v2.0)](#confluent-platform-versions-below-v.5.0-(apache-kafka-<-v2.0))
+        * [Configuring Kafka Encrypted Communication](#configuring-kafka-encrypted-communication)
+        * [Configuring Kafka Authentication](#configuring-kafka-authentication)
+        * [Configure Authorization of ksqlDB with Kafka ACLs](#configure-authorization-of-ksqldb-with-kafka-acls)
+            - [Confluent Platform v5.0 (Apache Kafka v2.0) and above](#confluent-platform-v50-apache-kafka-v20-and-above)
+            - [Confluent Platform versions below v5.0 (Apache Kafka < v2.0)](#confluent-platform-versions-below-v50-apache-kafka-v20)
+
+Securing ksqlDB for Confluent Cloud
+------------------------------------
+
+You can use ksqlDB with a {{ site.ak }} cluster in {{ site.ccloud }}. For more
+information, see
+[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
 
 Securing ksqlDB on premise
 --------------------------
@@ -75,7 +81,6 @@ the ksqlDB servers accept client connections.
 deployments are those where the ksqlDB servers do not accept client connections.
 They read the SQL statements they should run from a file on-disk.
 
-
 Securing interactive deployments
 --------------------------------
 
@@ -93,15 +98,6 @@ same network interfaces as client communication.
 [Securing dual listener setup](#securing-dual-listener-setup): Useful where
 inter-node communication is over a different network interfaces or requires
 different authentication or encryption configuration.
-
-
-Securing headless deployments
------------------------------
-
-Unlike interactive deployments, there are no exposed REST APIs, so security
-is greatly simplified.
-
-You may still have to [secure communication](#securing-communication-with-other-services) with other services.
 
 
 Securing single-listener setup
@@ -315,18 +311,18 @@ IaaS service.
 The supported setups are SSL-mutual auth for the internal communication
 combined with SSL encryption and authentication for the external client:
 
-[Configuring internal for SSL-mutual authentication](#configuring-intenral-for-ssl-mutual-authentication):
+[Configuring internal for SSL-mutual authentication](#configuring-internal-for-ssl-mutual-authentication):
 Creates secure and authenticated connections for inter-node communication,
 but leaves the external
 client API unsecured. This is most appropriate when clients are trusted, but
 the internal APIs are protected from use.
 
-[Configuring internal for SSL-mutual authentication + external for SSL encryption](#configuring-internal-for-ssl-mutual-authentication-+-external-for-ssl-encryption):
+[Configuring internal for SSL-mutual authentication and external for SSL encryption](#configuring-internal-for-ssl-mutual-authentication-and-external-for-ssl-encryption):
 Creates secure and authenticated connections for inter-node
 communication and uses SSL for the external client API. This is most
 likely to be pair with authentication below.
 
-[Configuring internal for SSL-mutual authentication + external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-+-external-for-http-basic-authentication):
+[Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-and-external-for-http-basic-authentication):
 Creates secure and authenticated connections for inter-node
 communication and uses basic authentication for the external client API.
 This is most likely to be paired with SSL above.
@@ -467,12 +463,13 @@ keytool -import -v -trustcacerts -alias internal_node1 -file node1.cer -keystore
 keytool -import -v -trustcacerts -alias internal_node1 -file node2.cer -keystore ksql.server.truststore.jks -keypass password -storepass password
 ```
 
-Securing ksqlDB for Confluent Cloud
-------------------------------------
+Securing headless deployments
+-----------------------------
 
-You can use ksqlDB with a {{ site.ak }} cluster in {{ site.ccloud }}. For more
-information, see
-[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html).
+Unlike interactive deployments, there are no exposed REST APIs, so security
+is greatly simplified.
+
+You may still have to [secure communication](#securing-communication-with-other-services) with other services.
 
 Securing communication with other services
 ------------------------------------------

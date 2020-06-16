@@ -268,16 +268,6 @@ public final class KsqlRestApplication implements Executable {
     log.debug("ksqlDB API server instance created");
   }
 
-  static Vertx createVertx(final KsqlConfig ksqlConfig) {
-    final Vertx vertx = Vertx.vertx(
-        new VertxOptions()
-            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
-            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
-            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
-    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
-    return vertx;
-  }
-
   @Override
   public void startAsync() {
     log.debug("Starting the ksqlDB API server");
@@ -641,7 +631,12 @@ public final class KsqlRestApplication implements Executable {
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
-    final Vertx vertx = createVertx(ksqlConfig);
+    final Vertx vertx = Vertx.vertx(
+        new VertxOptions()
+            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
+            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
+    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
 
     final KsqlClient sharedClient = InternalKsqlClientFactory.createInternalClient(
         toClientProps(ksqlConfig.originals()),
@@ -1026,10 +1021,6 @@ public final class KsqlRestApplication implements Executable {
       clientProps.put(entry.getKey(), entry.getValue().toString());
     }
     return clientProps;
-  }
-
-  private static HttpClientOptions createClientOptions() {
-    return new HttpClientOptions().setMaxPoolSize(100);
   }
 
 }

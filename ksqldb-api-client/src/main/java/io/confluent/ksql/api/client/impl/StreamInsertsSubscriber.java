@@ -47,7 +47,7 @@ public class StreamInsertsSubscriber extends BaseSubscriber<KsqlObject> {
 
   @Override
   protected void handleValue(final KsqlObject row) {
-    httpRequest.write(Buffer.buffer().appendString(row.toJsonString()).appendString("\n")); // TODO: is this extra newline needed?
+    httpRequest.writeCustomFrame(0, 0, Buffer.buffer().appendString(row.toJsonString()).appendString("\n")); // TODO: is this extra newline needed?
     outstandingTokens--;
 
     if (httpRequest.writeQueueFull()) {

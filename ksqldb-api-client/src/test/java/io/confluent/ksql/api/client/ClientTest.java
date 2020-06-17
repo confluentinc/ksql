@@ -54,7 +54,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -607,12 +606,12 @@ public class ClientTest extends BaseApiTest {
 
   @Test
   public void shouldHandleErrorResponseFromStreamInserts() {
-
+    // TODO
   }
 
   @Test
   public void shouldHandleErrorFromStreamInserts() {
-
+    // TODO
   }
 
   protected Client createJavaClient() {

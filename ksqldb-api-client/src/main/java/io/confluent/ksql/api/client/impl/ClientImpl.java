@@ -238,7 +238,10 @@ public class ClientImpl implements Client {
     if (endRequest) {
       request.end(requestBody);
     } else {
-      request.write(requestBody);
+      final HttpClientRequest finalRequest = request;
+      finalRequest.sendHead(version -> {
+        finalRequest.writeCustomFrame(0, 0, requestBody);
+      });
     }
   }
 

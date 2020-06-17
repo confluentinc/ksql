@@ -248,6 +248,8 @@ public final class HeartbeatAgent {
           final  boolean isAlive = decideStatus(ksqlHostInfo, windowStart, windowEnd, copy);
           if (!isAlive) {
             LOG.info("Host: {} marked as dead.", ksqlHostInfo);
+          } else {
+            LOG.info("Host: {} marked as ALIVE.", ksqlHostInfo);
           }
           hostsStatus.computeIfPresent(ksqlHostInfo, (host, status) -> status
               .withHostAlive(isAlive).withLastStatusUpdateMs(windowEnd));

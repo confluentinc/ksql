@@ -157,18 +157,24 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest
   ) {
-    final long startTime = time.nanoseconds();
-    throwIfNotConfigured();
+    try {
+      final long startTime = time.nanoseconds();
+      throwIfNotConfigured();
 
-    activenessRegistrar.updateLastRequestTime();
+      activenessRegistrar.updateLastRequestTime();
 
-    final PreparedStatement<?> statement = parseStatement(request);
+      final PreparedStatement<?> statement = parseStatement(request);
 
-    CommandStoreUtil.httpWaitForCommandSequenceNumber(
-        commandQueue, request, commandQueueCatchupTimeout);
+      CommandStoreUtil.httpWaitForCommandSequenceNumber(
+          commandQueue, request, commandQueueCatchupTimeout);
 
-    return handleStatement(securityContext, request, statement, startTime, connectionClosedFuture,
-        isInternalRequest);
+      return handleStatement(securityContext, request, statement, startTime, connectionClosedFuture,
+          isInternalRequest);
+    } catch (Throwable t) {
+      System.out.println("ALAN ERROR1 ");
+      t.printStackTrace();
+      throw t;
+    }
   }
 
   public void closeMetrics() {
@@ -259,8 +265,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
     } catch (final KsqlException e) {
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Throwable t) {
-      log.info("ERROR ", t);
-      return errorHandler.generateResponse(new KsqlException(t), Errors.badRequest(t));
+      System.out.println("ALAN ERROR ");
+      t.printStackTrace();
+//      return errorHandler.generateResponse(new KsqlException(t), Errors.badRequest(t));
+      throw t;
     }
   }
 
@@ -293,6 +301,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     Map<String, String> headers = ImmutableMap.of("X-KSQL-Node",
         result.getNode().location().toString());
+    System.out.println("RETURNING " +  headers.get("X-KSQL-Node"));
     return EndpointResponse.ok(headers, data);
   }
 

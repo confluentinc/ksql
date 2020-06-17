@@ -86,8 +86,10 @@ public final class OldApiUtils {
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
     response.setStatusCode(endpointResponse.getStatus());
-    endpointResponse.getHeaders().entrySet()
-        .forEach(entry -> response.putHeader(entry.getKey(), entry.getValue()));
+    if (endpointResponse.getHeaders() != null) {
+      endpointResponse.getHeaders().entrySet()
+          .forEach(entry -> response.putHeader(entry.getKey(), entry.getValue()));
+    }
 
 
     // What the old API returns in it's response is something of a mishmash - sometimes it's

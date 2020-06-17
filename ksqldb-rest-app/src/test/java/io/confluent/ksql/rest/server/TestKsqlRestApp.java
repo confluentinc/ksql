@@ -34,6 +34,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
 import io.confluent.ksql.services.DisabledKsqlClient;
+import io.confluent.ksql.services.FaultyKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -489,6 +490,15 @@ public class TestKsqlRestApp extends ExternalResource {
       withEnabledKsqlClient(SocketAddress::inetSocketAddress);
       return this;
     }
+
+    public Builder withEnabledKsqlClient(Supplier<Boolean> cutoff) {
+      this.serviceContext =
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
+              () -> new FaultyKsqlClient(TestDefaultKsqlClientFactory.instance(additionalProps),
+                  cutoff));
+      return this;
+    }
+
     public Builder withStaticServiceContext(final Supplier<ServiceContext> serviceContext) {
       this.serviceContext = serviceContext;
       return this;

@@ -21,6 +21,7 @@ import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -154,6 +155,14 @@ public final class IntegrationTestHarness extends ExternalResource {
   public void deleteInternalTopics(String applicationId) {
     final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
     topicClient.deleteInternalTopics(applicationId);
+  }
+
+  /**
+   * Delete a topic.
+   */
+  public void deleteITopic(String topic) {
+    final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+    topicClient.deleteTopics(ImmutableList.of(topic));
   }
 
   /**

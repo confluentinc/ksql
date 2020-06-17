@@ -344,7 +344,8 @@ public final class KsqlTarget {
       }
     }
 
-    return Pair.of(URI.create(resp.getResponse().headers().get("X-KSQL-Node")), rows);
+    URI uri = resp.getResponse().getHeader("X-KSQL-Node") != null ? URI.create(resp.getResponse().getHeader("X-KSQL-Node")) : URI.create("http://localhost:1234");
+    return Pair.of(uri, rows);
   }
 
 }

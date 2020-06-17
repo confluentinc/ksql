@@ -1065,4 +1065,9 @@ public class KsqlConfig extends AbstractConfig {
     SslConfigs.addClientSslSupport(sslConfig);
     return sslConfig.names();
   }
+
+  public String getServiceId() {
+      return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+              + this.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+  }
 }

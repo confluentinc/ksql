@@ -154,7 +154,7 @@ public final class QueryExecutor {
     final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
     final String applicationId = addTimeSuffix(getQueryApplicationId(
-        getServiceId(),
+        ksqlConfig.getServiceId(),
         ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
         queryId
     ));
@@ -200,7 +200,7 @@ public final class QueryExecutor {
     final String persistenceQueryPrefix =
         ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
     final String applicationId = getQueryApplicationId(
-        getServiceId(),
+        ksqlConfig.getServiceId(),
         persistenceQueryPrefix,
         queryId
     );
@@ -282,11 +282,6 @@ public final class QueryExecutor {
         functionRegistry,
         queryId
     );
-  }
-
-  private String getServiceId() {
-    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 
   private Map<String, Object> buildStreamsProperties(

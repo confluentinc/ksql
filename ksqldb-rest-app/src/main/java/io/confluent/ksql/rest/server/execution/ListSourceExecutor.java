@@ -229,7 +229,7 @@ public final class ListSourceExecutor {
           final String persistenceQueryPrefix =
               ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
           final String applicationId = getQueryApplicationId(
-              getServiceId(ksqlConfig),
+              ksqlConfig.getServiceId(),
               persistenceQueryPrefix,
               queryId
           );
@@ -289,11 +289,6 @@ public final class ListSourceExecutor {
           ));
     }
     return sourceConsumerGroupOffsets;
-  }
-
-  private static String getServiceId(final KsqlConfig ksqlConfig) {
-    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 
   private static String getQueryApplicationId(

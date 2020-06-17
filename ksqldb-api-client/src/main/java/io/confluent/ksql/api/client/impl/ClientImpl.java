@@ -297,6 +297,7 @@ public class ClientImpl implements Client {
         .setSsl(clientOptions.isUseTls())
         .setUseAlpn(clientOptions.isUseAlpn())
         .setProtocolVersion(HttpVersion.HTTP_2)
+        .setHttp2ClearTextUpgrade(false)
         .setVerifyHost(clientOptions.isVerifyHost())
         .setDefaultHost(clientOptions.getHost())
         .setDefaultPort(clientOptions.getPort());

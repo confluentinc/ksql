@@ -592,7 +592,7 @@ public class ClientTest extends BaseApiTest {
     assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size()));
     assertThat(acksSubscriber.getError(), is(nullValue()));
     for (int i = 0; i < INSERT_ROWS.size(); i++) {
-      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(i));
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
     }
 
     // When:

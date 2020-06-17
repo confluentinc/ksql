@@ -48,7 +48,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;

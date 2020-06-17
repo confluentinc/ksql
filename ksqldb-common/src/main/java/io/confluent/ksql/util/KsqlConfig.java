@@ -69,7 +69,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
-  
+
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
       ImmutableSet.of(
@@ -79,7 +79,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
-  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY = 
+  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY =
       "ksql.internal.topic.min.insync.replicas";
 
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
@@ -1067,7 +1067,7 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   public String getServiceId() {
-      return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-              + this.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+        + this.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 }

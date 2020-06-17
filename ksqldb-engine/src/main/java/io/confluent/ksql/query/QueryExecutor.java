@@ -47,7 +47,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.HashMap;

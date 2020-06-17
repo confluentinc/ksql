@@ -54,6 +54,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -567,8 +568,41 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldStreamInserts() {
+  public void shouldStreamInserts() throws Exception {
+    // Given:
+    final InsertsPublisher insertsPublisher = new InsertsPublisher();
 
+    // When:
+    final AcksPublisher acksPublisher = javaClient.streamInserts("test-stream", insertsPublisher).get();
+    for (final KsqlObject row : INSERT_ROWS) {
+      insertsPublisher.accept(row);
+    }
+
+    TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
+    acksSubscriber.getSub().request(INSERT_ROWS.size());
+
+    // Then:
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), hasSize(INSERT_ROWS.size()));
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted().get(i), is(EXPECTED_INSERT_ROWS.get(i)));
+    }
+    assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+    assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(false));
+    assertThat(testEndpoints.getInsertsSubscriber().isClosed(), is(false));
+
+    assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size()));
+    assertThat(acksSubscriber.getError(), is(nullValue()));
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(i));
+    }
+
+    // When:
+    insertsPublisher.complete();
+
+    // Then:
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isClosed(), is(true));
+    assertThatEventually(acksSubscriber::isCompleted, is(true));
   }
 
   @Test

@@ -1066,8 +1066,8 @@ public class KsqlConfig extends AbstractConfig {
     return sslConfig.names();
   }
 
-  public String getServiceId() {
+  public static String getServiceId(KsqlConfig ksqlConfig) {
     return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + this.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 }

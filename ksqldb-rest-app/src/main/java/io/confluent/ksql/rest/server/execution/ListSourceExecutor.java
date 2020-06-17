@@ -228,7 +228,7 @@ public final class ListSourceExecutor {
           final String persistenceQueryPrefix =
               ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
           final String applicationId = getQueryApplicationId(
-              ksqlConfig.getServiceId(),
+              KsqlConfig.getServiceId(ksqlConfig),
               persistenceQueryPrefix,
               queryId
           );

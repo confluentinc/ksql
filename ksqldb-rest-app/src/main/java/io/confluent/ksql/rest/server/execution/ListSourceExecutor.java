@@ -220,11 +220,11 @@ public final class ListSourceExecutor {
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
+        final String kafkaTopicName = dataSource.getKafkaTopicName();
+        final TopicDescription topicDescription = serviceContext.getTopicClient()
+                .describeTopic(kafkaTopicName);
+        topicDescriptionOptional = Optional.of(topicDescription);
         for (RunningQuery sourceQuery : sourceQueries) {
-          final String kafkaTopicName = dataSource.getKafkaTopicName();
-          final TopicDescription topicDescription = serviceContext.getTopicClient()
-                  .describeTopic(kafkaTopicName);
-          topicDescriptionOptional = Optional.of(topicDescription);
           final QueryId queryId = sourceQuery.getId();
           final String persistenceQueryPrefix =
               ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);

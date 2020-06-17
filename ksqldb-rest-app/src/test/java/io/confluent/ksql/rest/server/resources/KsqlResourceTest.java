@@ -148,6 +148,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -178,6 +179,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema.Type;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -267,6 +269,7 @@ public class KsqlResourceTest {
   private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
+  private FakeKafkaConsumerGroupClient kafkaConsumerGroupClient;
   private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
   @Mock
@@ -318,7 +321,8 @@ public class KsqlResourceTest {
         2, new CommandStatusFuture(new CommandId(STREAM, "something", EXECUTE)));
 
     kafkaTopicClient = new FakeKafkaTopicClient();
-    serviceContext = TestServiceContext.create(kafkaTopicClient);
+    kafkaConsumerGroupClient = new FakeKafkaConsumerGroupClient();
+    serviceContext = TestServiceContext.create(kafkaTopicClient, kafkaConsumerGroupClient);
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
     registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());

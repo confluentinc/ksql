@@ -146,14 +146,14 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
-            Collections.emptyList()),
+            ImmutableList.of()),
         SourceDescriptionFactory.create(
             stream2,
             true,
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
-            Collections.emptyList())
+            ImmutableList.of())
     ));
   }
 
@@ -215,7 +215,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
-            Collections.emptyList()
+            ImmutableList.of()
         ),
         SourceDescriptionFactory.create(
             table2,
@@ -223,7 +223,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
-            Collections.emptyList()
+            ImmutableList.of()
         )
     ));
   }
@@ -269,9 +269,10 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
-                queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)),
+                queryStatusCount,
+                KsqlConstants.KsqlQueryType.PERSISTENT)),
             Optional.empty(),
-            Collections.emptyList())));
+            ImmutableList.of())));
   }
 
   @Test
@@ -334,7 +335,7 @@ public class ListSourceExecutorTest {
                             ImmutableList.of(),
                             ImmutableList.of(),
                             Optional.empty(),
-                            Collections.emptyList()
+                            ImmutableList.of()
                         )
                     )
                 )
@@ -421,7 +422,7 @@ public class ListSourceExecutorTest {
                 ImmutableList.of(),
                 ImmutableList.of(),
                 Optional.empty(),
-                Collections.emptyList()
+                ImmutableList.of()
             )
         )
     );

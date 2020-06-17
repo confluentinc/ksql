@@ -214,4 +214,27 @@ public class SourceDescription {
         consumerGroupsOffsets
     );
   }
+
+  @Override
+  public String toString() {
+    return "SourceDescription{" +
+            "name='" + name + '\'' +
+            ", windowType=" + windowType +
+            ", readQueries=" + readQueries +
+            ", writeQueries=" + writeQueries +
+            ", fields=" + fields +
+            ", type='" + type + '\'' +
+            ", timestamp='" + timestamp + '\'' +
+            ", statistics='" + statistics + '\'' +
+            ", errorStats='" + errorStats + '\'' +
+            ", extended=" + extended +
+            ", keyFormat='" + keyFormat + '\'' +
+            ", valueFormat='" + valueFormat + '\'' +
+            ", topic='" + topic + '\'' +
+            ", partitions=" + partitions +
+            ", replication=" + replication +
+            ", statement='" + statement + '\'' +
+            ", consumerGroupsOffsets=" + consumerGroupsOffsets +
+            '}';
+  }
 }

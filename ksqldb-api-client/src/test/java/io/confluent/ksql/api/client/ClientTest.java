@@ -586,32 +586,67 @@ public class ClientTest extends BaseApiTest {
       assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted().get(i), is(EXPECTED_INSERT_ROWS.get(i)));
     }
     assertThat(testEndpoints.getLastTarget(), is("test-stream"));
-    assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(false));
-    assertThat(testEndpoints.getInsertsSubscriber().isClosed(), is(false));
 
     assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size()));
     assertThat(acksSubscriber.getError(), is(nullValue()));
     for (int i = 0; i < INSERT_ROWS.size(); i++) {
       assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
     }
+    assertThat(acksSubscriber.isCompleted(), is(false));
 
     // When:
     insertsPublisher.complete();
 
     // Then:
-    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
-    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isClosed(), is(true));
     assertThatEventually(acksSubscriber::isCompleted, is(true));
   }
 
   @Test
   public void shouldHandleErrorResponseFromStreamInserts() {
-    // TODO
+    // Given
+    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    testEndpoints.setCreateInsertsSubscriberException(exception);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.streamInserts("a-table", new InsertsPublisher()).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
   }
 
   @Test
-  public void shouldHandleErrorFromStreamInserts() {
-    // TODO
+  public void shouldHandleErrorFromStreamInserts() throws Exception {
+    // Given:
+    testEndpoints.setAcksBeforePublisherError(INSERT_ROWS.size() - 1);
+    final InsertsPublisher insertsPublisher = new InsertsPublisher();
+
+    // When:
+    final AcksPublisher acksPublisher = javaClient.streamInserts("test-stream", insertsPublisher).get();
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      insertsPublisher.accept(INSERT_ROWS.get(i));
+    }
+
+    TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
+    acksSubscriber.getSub().request(INSERT_ROWS.size() - 1); // Error is sent even if not requested
+
+    // Then:
+    // No ack is emitted for the row that generates the error, but the row still counts as having been inserted
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), hasSize(INSERT_ROWS.size()));
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted().get(i), is(EXPECTED_INSERT_ROWS.get(i)));
+    }
+    assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+
+    assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size() - 1));
+    for (int i = 0; i < INSERT_ROWS.size() - 1; i++) {
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+    }
+    assertThatEventually(acksSubscriber::getError, is(notNullValue()));
   }
 
   protected Client createJavaClient() {

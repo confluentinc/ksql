@@ -67,7 +67,7 @@ public class InsertsPublisher implements Publisher<KsqlObject> {
     if (complete || sentComplete) {
       throw new IllegalStateException("Cannot call accept after complete is called");
     }
-    if (!cancelled && !isFailed()) {
+    if (!cancelled) {
       if (demand == 0) {
         buffer.add(row);
       } else {
@@ -97,7 +97,7 @@ public class InsertsPublisher implements Publisher<KsqlObject> {
    * further elements will be accepted
    */
   public synchronized void complete() {
-    if (complete || isFailed()) {
+    if (complete) {
       return;
     }
     complete = true;
@@ -152,7 +152,7 @@ public class InsertsPublisher implements Publisher<KsqlObject> {
       doOnNext(val);
     }
 
-    if (buffer.isEmpty() && !isFailed()) {
+    if (buffer.isEmpty()) {
       if (shouldSendComplete) {
         sendComplete();
         shouldSendComplete = false;
@@ -175,10 +175,5 @@ public class InsertsPublisher implements Publisher<KsqlObject> {
   private void sendComplete() {
     sentComplete = true;
     subscriber.onComplete();
-  }
-
-  // TODO: is this necessary? probably not
-  private boolean isFailed() {
-    return false;
   }
 }

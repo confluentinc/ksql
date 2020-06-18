@@ -70,6 +70,7 @@ public final class KsqlTarget {
   private static final String LAG_REPORT_PATH = "/lag";
   private static final String SERVER_METADATA_PATH = "/v1/metadata";
   private static final String SERVER_METADATA_ID_PATH = "/v1/metadata/id";
+  public static final String REPLYING_NODE_HEADER = "X-KSQL-Replying-Node";
 
   private final HttpClient httpClient;
   private final SocketAddress socketAddress;
@@ -344,7 +345,8 @@ public final class KsqlTarget {
       }
     }
 
-    URI uri = resp.getResponse().getHeader("X-KSQL-Node") != null ? URI.create(resp.getResponse().getHeader("X-KSQL-Node")) : URI.create("http://localhost:1234");
+    String replyingNodeHeader = resp.getResponse().getHeader(REPLYING_NODE_HEADER);
+    URI uri = URI.create(replyingNodeHeader);
     return Pair.of(uri, rows);
   }
 

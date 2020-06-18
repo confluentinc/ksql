@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.client.KsqlTarget;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
@@ -157,24 +158,18 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest
   ) {
-    try {
-      final long startTime = time.nanoseconds();
-      throwIfNotConfigured();
+    final long startTime = time.nanoseconds();
+    throwIfNotConfigured();
 
-      activenessRegistrar.updateLastRequestTime();
+    activenessRegistrar.updateLastRequestTime();
 
-      final PreparedStatement<?> statement = parseStatement(request);
+    final PreparedStatement<?> statement = parseStatement(request);
 
-      CommandStoreUtil.httpWaitForCommandSequenceNumber(
-          commandQueue, request, commandQueueCatchupTimeout);
+    CommandStoreUtil.httpWaitForCommandSequenceNumber(
+        commandQueue, request, commandQueueCatchupTimeout);
 
-      return handleStatement(securityContext, request, statement, startTime, connectionClosedFuture,
-          isInternalRequest);
-    } catch (Throwable t) {
-      System.out.println("ALAN ERROR1 ");
-      t.printStackTrace();
-      throw t;
-    }
+    return handleStatement(securityContext, request, statement, startTime, connectionClosedFuture,
+        isInternalRequest);
   }
 
   public void closeMetrics() {
@@ -264,11 +259,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return errorHandler.generateResponse(e, Errors.badRequest(e));
-    } catch (final Throwable t) {
-      System.out.println("ALAN ERROR ");
-      t.printStackTrace();
-//      return errorHandler.generateResponse(new KsqlException(t), Errors.badRequest(t));
-      throw t;
     }
   }
 
@@ -299,9 +289,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .map(this::writeValueAsString)
         .collect(Collectors.joining("," + System.lineSeparator(), "[", "]"));
 
-    Map<String, String> headers = ImmutableMap.of("X-KSQL-Node",
-        result.getNode().location().toString());
-    System.out.println("RETURNING " +  headers.get("X-KSQL-Node"));
+    Map<String, String> headers = ImmutableMap.of(KsqlTarget.REPLYING_NODE_HEADER,
+        result.getReplyingNode().location().toString());
     return EndpointResponse.ok(headers, data);
   }
 

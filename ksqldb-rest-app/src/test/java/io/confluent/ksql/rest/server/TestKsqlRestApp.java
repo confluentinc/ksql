@@ -252,10 +252,6 @@ public class TestKsqlRestApp extends ExternalResource {
     ksqlEngine = ksqlRestApplication.getEngine();
   }
 
-  public boolean isStopped() {
-    return ksqlRestApplication == null;
-  }
-
   @Override
   protected void after() {
     if (ksqlRestApplication == null) {
@@ -491,7 +487,7 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
-    public Builder withEnabledKsqlClient(Supplier<Boolean> cutoff) {
+    public Builder withFaultyKsqlClient(Supplier<Boolean> cutoff) {
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
               () -> new FaultyKsqlClient(TestDefaultKsqlClientFactory.instance(additionalProps),
@@ -501,11 +497,6 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public Builder withStaticServiceContext(final Supplier<ServiceContext> serviceContext) {
       this.serviceContext = serviceContext;
-      return this;
-    }
-
-    public Builder withTestProxy(String host, int port, String remoteHost, int remotePort, Supplier<Boolean> pause) {
-      TestProxy.runInBackground(host, port, remoteHost, remotePort, pause);
       return this;
     }
 

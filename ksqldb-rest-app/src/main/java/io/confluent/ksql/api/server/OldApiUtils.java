@@ -34,7 +34,6 @@ import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;

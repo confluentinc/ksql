@@ -67,7 +67,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -104,7 +103,6 @@ public class PullQueryRoutingFunctionalTest {
     } catch (final IOException e) {
       throw new AssertionError("Failed to init TMP", e);
     }
-//    TestProxy.runInBackground("localhost", 9093, "localhost", 9092, () -> false);
   }
 
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
@@ -167,9 +165,9 @@ public class PullQueryRoutingFunctionalTest {
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
       .withProperties(COMMON_CONFIG)
-      .withEnabledKsqlClient(APP0_SHUTOFFS.ksqlOutgoing::get)
-//      .withTestProxy("localhost", 8288, "localhost", 8188, APP0_CUTOFF::get)
-      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafka0.class.getName())
+      .withFaultyKsqlClient(APP0_SHUTOFFS.ksqlOutgoing::get)
+      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
+          + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafka0.class.getName())
       .build();
 
   @Rule
@@ -181,9 +179,9 @@ public class PullQueryRoutingFunctionalTest {
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
       .withProperties(COMMON_CONFIG)
-      .withEnabledKsqlClient(APP1_SHUTOFFS.ksqlOutgoing::get)
-//      .withTestProxy("localhost", 8289, "localhost", 8189, APP1_CUTOFF::get)
-      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafka1.class.getName())
+      .withFaultyKsqlClient(APP1_SHUTOFFS.ksqlOutgoing::get)
+      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
+          + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafka1.class.getName())
       .build();
 
   @Rule
@@ -195,9 +193,9 @@ public class PullQueryRoutingFunctionalTest {
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8187")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8187")
       .withProperties(COMMON_CONFIG)
-      .withEnabledKsqlClient(APP2_SHUTOFFS.ksqlOutgoing::get)
-//      .withTestProxy("localhost", 8287, "localhost", 8187, APP2_CUTOFF::get)
-      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafka2.class.getName())
+      .withFaultyKsqlClient(APP2_SHUTOFFS.ksqlOutgoing::get)
+      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
+          + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafka2.class.getName())
       .build();
 
   @ClassRule
@@ -274,25 +272,25 @@ public class PullQueryRoutingFunctionalTest {
   public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.standBy.getMiddle(), 3);
-    waitForRemoteServerToChangeStatus(clusterFormation.router.getMiddle(),
-        clusterFormation.router.getLeft(),
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(),
         PullQueryRoutingFunctionalTest::lagsExist);
 
     waitForRemoteServerToChangeStatus(
-        clusterFormation.standBy.getMiddle(),
-        clusterFormation.active.getLeft(),
+        clusterFormation.standBy.getApp(),
+        clusterFormation.active.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
 
     // When:
     Pair<URI, List<StreamedRow>> result =
-        makePullQueryRequest(clusterFormation.standBy.getMiddle(), sql);
+        makePullQueryRequest(clusterFormation.standBy.getApp(), sql);
     final List<StreamedRow> rows_0 = result.getRight();
     final URI host = result.getLeft();
 
     // Then:
-    assertThat(host.getHost(), is(clusterFormation.active.getLeft().getHost()));
-    assertThat(host.getPort(), is(clusterFormation.active.getLeft().getPort()));
+    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
@@ -300,34 +298,34 @@ public class PullQueryRoutingFunctionalTest {
 
 
   @Test
-  public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() throws Exception {
+  public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.getMiddle(), 3);
-    waitForRemoteServerToChangeStatus(clusterFormation.router.getMiddle(),
-        clusterFormation.router.getLeft(),
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(),
         PullQueryRoutingFunctionalTest::lagsExist);
 
     // Partition off the standby
-    clusterFormation.standBy.getRight().shutOffAll();
+    clusterFormation.standBy.getShutoffs().shutOffAll();
 
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getMiddle(),
-        clusterFormation.active.getLeft(),
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getMiddle(),
-        clusterFormation.standBy.getLeft(),
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
         HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
-    final Pair<URI, List<StreamedRow>> result = makePullQueryRequest(clusterFormation.router.getMiddle(), sql);
+    final Pair<URI, List<StreamedRow>> result = makePullQueryRequest(clusterFormation.router.getApp(), sql);
     final List<StreamedRow> rows_0 = result.getRight();
     final URI host = result.getLeft();
 
     // Then:
-    assertThat(host.getHost(), is(clusterFormation.active.getLeft().getHost()));
-    assertThat(host.getPort(), is(clusterFormation.active.getLeft().getPort()));
+    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
@@ -337,31 +335,31 @@ public class PullQueryRoutingFunctionalTest {
   public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.getMiddle(), 3);
-    waitForRemoteServerToChangeStatus(clusterFormation.router.getMiddle(),
-        clusterFormation.router.getLeft(),
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(),
         PullQueryRoutingFunctionalTest::lagsExist);
 
     // Partition off the active
-    clusterFormation.active.getRight().shutOffAll();
+    clusterFormation.active.getShutoffs().shutOffAll();
 
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getMiddle(),
-        clusterFormation.standBy.getLeft(),
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getMiddle(),
-        clusterFormation.active.getLeft(),
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
         HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
-    final Pair<URI, List<StreamedRow>> result = makePullQueryRequest(clusterFormation.router.getMiddle(), sql);
+    final Pair<URI, List<StreamedRow>> result = makePullQueryRequest(clusterFormation.router.getApp(), sql);
     final List<StreamedRow> rows_0 = result.getRight();
     final URI host = result.getLeft();
 
     // Then:
-    assertThat(host.getHost(), is(clusterFormation.standBy.getLeft().getHost()));
-    assertThat(host.getPort(), is(clusterFormation.standBy.getLeft().getPort()));
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
@@ -372,26 +370,26 @@ public class PullQueryRoutingFunctionalTest {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
     System.out.println("clusterFormation " + clusterFormation.toString());
-    waitForClusterToBeDiscovered(clusterFormation.router.getMiddle(), 3);
-    waitForRemoteServerToChangeStatus(clusterFormation.router.getMiddle(),
-        clusterFormation.router.getLeft(),
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(),
         PullQueryRoutingFunctionalTest::lagsExist);
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getMiddle(),
-        clusterFormation.active.getLeft(),
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getMiddle(),
-        clusterFormation.standBy.getLeft(),
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
 
-    waitForRemoteServerToChangeStatus(clusterFormation.router.getMiddle(),
-        clusterFormation.router.getLeft(),
-        PullQueryRoutingFunctionalTest.lagsExist(clusterFormation.standBy.getLeft(), 5));
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(),
+        PullQueryRoutingFunctionalTest.lagsExist(clusterFormation.standBy.getHost(), 5));
 
     // Cut off standby from Kafka to simulate lag
-    System.out.println("Setting kafkaIncoming true for " + clusterFormation.standBy.getLeft().toString());
-    clusterFormation.standBy.getRight().kafkaIncoming.set(true);
+    System.out.println("Setting kafkaIncoming true for " + clusterFormation.standBy.getHost().toString());
+    clusterFormation.standBy.getShutoffs().kafkaIncoming.set(true);
     Thread.sleep(2000);
 
     // Produce more data that will now only be available on active since standby is cut off
@@ -403,38 +401,38 @@ public class PullQueryRoutingFunctionalTest {
     );
 
     // Make sure that the lags get reported before we kill active
-    waitForRemoteServerToChangeStatus(clusterFormation.router.getMiddle(),
-        clusterFormation.router.getLeft(),
-        PullQueryRoutingFunctionalTest.lagsExist(clusterFormation.active.getLeft(), 10));
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(),
+        PullQueryRoutingFunctionalTest.lagsExist(clusterFormation.active.getHost(), 10));
 
     // Partition active off
-    clusterFormation.active.getRight().shutOffAll();
+    clusterFormation.active.getShutoffs().shutOffAll();
 
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getMiddle(),
-        clusterFormation.standBy.getLeft(),
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getMiddle(),
-        clusterFormation.active.getLeft(),
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
         HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
     final Pair<URI, List<StreamedRow>> result = makePullQueryRequest(
-        clusterFormation.router.getMiddle(), sql,
+        clusterFormation.router.getApp(), sql,
         LAG_FILTER_6);
     final List<StreamedRow> rows_0 = result.getRight();
     final URI host = result.getLeft();
 
     // Then:
-    assertThat(host.getHost(), is(clusterFormation.standBy.getLeft().getHost()));
-    assertThat(host.getPort(), is(clusterFormation.standBy.getLeft().getPort()));
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     // This line ensures that we've not processed the new data
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
 
-    KsqlErrorMessage errorMessage = makePullQueryRequestWithError(clusterFormation.router.getMiddle(),
+    KsqlErrorMessage errorMessage = makePullQueryRequestWithError(clusterFormation.router.getApp(),
         sql, LAG_FILTER_3);
     Assert.assertEquals(40001, errorMessage.getErrorCode());
     Assert.assertTrue(errorMessage.getMessage().contains("All nodes are dead or exceed max allowed lag."));
@@ -496,59 +494,59 @@ public class PullQueryRoutingFunctionalTest {
 
     // find active
     if (!entity0.getActiveStores().isEmpty() && !entity0.getActivePartitions().isEmpty()) {
-      clusterFormation.setActive(Triple.of(host0, restApp0, APP0_SHUTOFFS));
+      clusterFormation.setActive(new TestApp(host0, restApp0, APP0_SHUTOFFS));
     } else if (!entity1.getActiveStores().isEmpty() && !entity1.getActivePartitions().isEmpty()) {
-      clusterFormation.setActive(Triple.of(host1, restApp1, APP1_SHUTOFFS));
+      clusterFormation.setActive(new TestApp(host1, restApp1, APP1_SHUTOFFS));
     } else {
-      clusterFormation.setActive(Triple.of(host2, restApp2, APP2_SHUTOFFS));
+      clusterFormation.setActive(new TestApp(host2, restApp2, APP2_SHUTOFFS));
     }
 
     //find standby
     if (!entity0.getStandByStores().isEmpty() && !entity0.getStandByPartitions().isEmpty()) {
-      clusterFormation.setStandBy(Triple.of(host0, restApp0, APP0_SHUTOFFS));
+      clusterFormation.setStandBy(new TestApp(host0, restApp0, APP0_SHUTOFFS));
     } else if (!entity1.getStandByStores().isEmpty() && !entity1.getStandByPartitions().isEmpty()) {
-      clusterFormation.setStandBy(Triple.of(host1, restApp1, APP1_SHUTOFFS));
+      clusterFormation.setStandBy(new TestApp(host1, restApp1, APP1_SHUTOFFS));
     } else {
-      clusterFormation.setStandBy(Triple.of(host2, restApp2, APP2_SHUTOFFS));
+      clusterFormation.setStandBy(new TestApp(host2, restApp2, APP2_SHUTOFFS));
     }
 
     //find router
     if (entity0.getStandByStores().isEmpty() && entity0.getActiveStores().isEmpty()) {
-      clusterFormation.setRouter(Triple.of(host0, restApp0, APP0_SHUTOFFS));
+      clusterFormation.setRouter(new TestApp(host0, restApp0, APP0_SHUTOFFS));
     } else if (entity1.getStandByStores().isEmpty() && entity1.getActiveStores().isEmpty()) {
-      clusterFormation.setRouter(Triple.of(host1, restApp1, APP1_SHUTOFFS));
+      clusterFormation.setRouter(new TestApp(host1, restApp1, APP1_SHUTOFFS));
     } else {
-      clusterFormation.setRouter(Triple.of(host2, restApp2, APP2_SHUTOFFS));
+      clusterFormation.setRouter(new TestApp(host2, restApp2, APP2_SHUTOFFS));
     }
 
     return clusterFormation;
   }
 
   static class ClusterFormation {
-    Triple<KsqlHostInfoEntity, TestKsqlRestApp, Shutoffs> active;
-    Triple<KsqlHostInfoEntity, TestKsqlRestApp, Shutoffs> standBy;
-    Triple<KsqlHostInfoEntity, TestKsqlRestApp, Shutoffs> router;
+    TestApp active;
+    TestApp standBy;
+    TestApp router;
 
     ClusterFormation() {
     }
 
-    public void setActive(final Triple<KsqlHostInfoEntity, TestKsqlRestApp, Shutoffs> active) {
+    public void setActive(final TestApp active) {
       this.active = active;
     }
 
-    public void setStandBy(final Triple<KsqlHostInfoEntity, TestKsqlRestApp, Shutoffs> standBy) {
+    public void setStandBy(final TestApp standBy) {
       this.standBy = standBy;
     }
 
-    public void setRouter(final Triple<KsqlHostInfoEntity, TestKsqlRestApp, Shutoffs> router) {
+    public void setRouter(final TestApp router) {
       this.router = router;
     }
 
     public String toString() {
       return new StringBuilder()
-          .append("Active = ").append(active.getLeft())
-          .append(", Standby = ").append(standBy.getLeft())
-          .append(", Router = ").append(router.getLeft())
+          .append("Active = ").append(active.getHost())
+          .append(", Standby = ").append(standBy.getHost())
+          .append(", Router = ").append(router.getHost())
           .toString();
     }
   }
@@ -574,6 +572,31 @@ public class PullQueryRoutingFunctionalTest {
     final java.util.regex.Matcher matcher = QUERY_ID_PATTERN.matcher(outputString);
     assertThat("Could not find query id in: " + outputString, matcher.find());
     return matcher.group(1);
+  }
+
+  public static class TestApp {
+
+    private final KsqlHostInfoEntity host;
+    private final TestKsqlRestApp app;
+    private final Shutoffs shutoffs;
+
+    public TestApp(KsqlHostInfoEntity host, TestKsqlRestApp app, Shutoffs shutoffs) {
+      this.host = host;
+      this.app = app;
+      this.shutoffs = shutoffs;
+    }
+
+    public KsqlHostInfoEntity getHost() {
+      return host;
+    }
+
+    public TestKsqlRestApp getApp() {
+      return app;
+    }
+
+    public Shutoffs getShutoffs() {
+      return shutoffs;
+    }
   }
 
   public static class Shutoffs {

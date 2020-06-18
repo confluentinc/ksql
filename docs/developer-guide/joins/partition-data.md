@@ -25,7 +25,7 @@ of tables, meaning you can only use a table's primary key as a join column.
 Streams don't have primary keys, but they do have an optional `KEY` 
 column. A `KEY` column, when present, defines the partitioning column.
 
-Streams allow joins on expressions other than their key column. When the join criteria differs 
+Streams allow joins on expressions other than their key column. When the join criteria differ 
 from the `KEY` column, ksqlDB internally repartitions the stream, which implicitly defines the 
 correct key and partitioning.
 

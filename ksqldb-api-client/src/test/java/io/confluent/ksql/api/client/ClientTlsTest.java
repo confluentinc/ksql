@@ -46,7 +46,12 @@ public class ClientTlsTest extends ClientTest {
 
   @Override
   protected KsqlRestConfig createServerConfig() {
-    return new KsqlRestConfig(serverConfigWithTls());
+    KsqlRestConfig config = super.createServerConfig();
+    Map<String, Object> origs = config.originals();
+    origs.put(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0");
+    origs.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KEY_STORE_PATH);
+    origs.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEY_STORE_PASSWORD);
+    return new KsqlRestConfig(origs);
   }
 
   @Override
@@ -84,15 +89,5 @@ public class ClientTlsTest extends ClientTest {
         .setUseTls(true)
         .setVerifyHost(false)
         .setUseAlpn(true);
-  }
-
-  protected static Map<String, Object> serverConfigWithTls() {
-    Map<String, Object> config = new HashMap<>();
-    config.put(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0");
-    config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KEY_STORE_PATH);
-    config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEY_STORE_PASSWORD);
-    config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
-
-    return config;
   }
 }

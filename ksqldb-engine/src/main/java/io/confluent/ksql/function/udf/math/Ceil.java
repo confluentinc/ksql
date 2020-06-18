@@ -21,12 +21,17 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
-@UdfDescription(name = "Ceil", description = Ceil.DESCRIPTION)
+@UdfDescription(
+    name = "Ceil",
+    description = Ceil.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class Ceil {
 
   static final String DESCRIPTION = "Returns the smallest integer greater than or equal to the "

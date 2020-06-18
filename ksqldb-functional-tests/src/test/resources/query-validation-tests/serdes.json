@@ -247,11 +247,7 @@
       ],
       "post": {
         "sources": [
-          {
-            "name": "INPUT",
-            "type": "stream",
-            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
-          }
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
         ]
       }
     },
@@ -281,11 +277,7 @@
       ],
       "post": {
         "sources": [
-          {
-            "name": "INPUT",
-            "type": "stream",
-            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, STRING>"
-          }
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, STRING>"}
         ]
       }
     },
@@ -320,11 +312,7 @@
       ],
       "post": {
         "sources": [
-          {
-            "name": "INPUT",
-            "type": "stream",
-            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
-          }
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
         ]
       }
     },
@@ -346,11 +334,7 @@
       ],
       "post": {
         "sources": [
-          {
-            "name": "INPUT",
-            "type": "stream",
-            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
-          }
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
         ]
       }
     },
@@ -375,11 +359,7 @@
       ],
       "post": {
         "sources": [
-          {
-            "name": "INPUT",
-            "type": "stream",
-            "schema": "ROWKEY STRING KEY, FOO MAP<STRING, INT>"
-          }
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
         ]
       }
     },

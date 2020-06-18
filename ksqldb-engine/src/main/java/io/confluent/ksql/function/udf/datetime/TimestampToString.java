@@ -28,9 +28,12 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutionException;
 
-@UdfDescription(name = "timestamptostring", author = KsqlConstants.CONFLUENT_AUTHOR,
+@UdfDescription(
+    name = "timestamptostring",
+    author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts a BIGINT millisecond timestamp value into"
-        + " the string representation of the timestamp in the given format.")
+        + " the string representation of the timestamp in the given format."
+)
 public class TimestampToString {
 
   private final LoadingCache<String, DateTimeFormatter> formatters =

@@ -18,9 +18,14 @@ package io.confluent.ksql.function.udf.list;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 
-@UdfDescription(name = "slice", description = "slice of an ARRAY")
+@UdfDescription(
+    name = "slice",
+    description = "slice of an ARRAY",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class Slice {
 
   @Udf

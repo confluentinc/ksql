@@ -18,8 +18,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -31,20 +29,11 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
   public KsqlStatementErrorMessage(
       @JsonProperty("error_code") final int errorCode,
       @JsonProperty("message") final String message,
-      @JsonProperty("stackTrace") final List<String> stackTrace,
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("entities") final KsqlEntityList entities) {
-    super(errorCode, message, stackTrace);
+    super(errorCode, message);
     this.entities = entities;
     this.statementText = statementText;
-  }
-
-  public KsqlStatementErrorMessage(
-      final int errorCode,
-      final String message,
-      final String statementText,
-      final KsqlEntityList entityList) {
-    this(errorCode, message, Collections.emptyList(), statementText, entityList);
   }
 
   public KsqlStatementErrorMessage(
@@ -52,9 +41,7 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
       final Throwable t,
       final String statementText,
       final KsqlEntityList entityList) {
-    this(
-        errorCode, ErrorMessageUtil.buildErrorMessage(t), getStackTraceStrings(t),
-        statementText, entityList);
+    this(errorCode, ErrorMessageUtil.buildErrorMessage(t), statementText, entityList);
   }
 
   public String getStatementText() {
@@ -78,7 +65,9 @@ public class KsqlStatementErrorMessage extends KsqlErrorMessage {
     }
     final KsqlStatementErrorMessage that = (KsqlStatementErrorMessage) o;
     return Objects.equals(statementText, that.statementText)
-           && Objects.equals(entities, that.entities);
+        && Objects.equals(entities, that.entities)
+        && Objects.equals(this.getMessage(), that.getMessage())
+        && Objects.equals(this.getErrorCode(), that.getErrorCode());
   }
 
   @Override

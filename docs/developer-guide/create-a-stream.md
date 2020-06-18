@@ -21,13 +21,11 @@ query results from other streams.
 Create a Stream from an existing Kafka topic
 --------------------------------------------
 
-Use the [CREATE STREAM](./create-stream) statement to create a stream from an existing underlying
-Kafka topic.
+Use the [CREATE STREAM](./create-stream) statement to create a stream from an
+existing underlying {{ site.ak }} topic.
 
-The following examples show how to create streams from an existing Kafka topic,
-named `pageviews`. To see these examples in action, create the
-`pageviews` topic by following the procedure in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
+The following examples show how to create streams from a {{ site.ak }} topic
+named `pageviews`.
 
 ### Create a Stream with Selected Columns
 
@@ -90,7 +88,6 @@ Your output should resemble:
 Name                 : PAGEVIEWS
  Field    | Type
 --------------------------------------
- ROWKEY   | VARCHAR(STRING)  (key)
  VIEWTIME | BIGINT
  USERID   | VARCHAR(STRING)
  PAGEID   | VARCHAR(STRING)
@@ -98,23 +95,15 @@ Name                 : PAGEVIEWS
 For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 ```
 
-You may notice that ksqlDB has added a key column named `ROWKEY`.
-This is the default key column that ksqlDB adds if you don't provide one.
-If your data doesn't contain a {{ site.ak }} serialized
-`STRING` in the {{ site.ak }} message key, don't use `ROWKEY` in your SQL statements,
-because this may cause unexpected results.
-
 ### Create a Stream with a Specified Key
 
 The previous SQL statement doesn't define a column to represent the data in the
-{{ site.ak }} message key in the underlying {{ site.ak }} topic, so the system adds a
-`ROWKEY` column with type `STRING`.
-
-If the {{ site.ak }} message key is serialized in a key format that ksqlDB supports (currently `KAFKA`),
+{{ site.ak }} message key in the underlying {{ site.ak }} topic. If the {{ site.ak }} message key 
+is serialized in a key format that ksqlDB supports (currently `KAFKA`),
 you can specify the key in the column list of the CREATE STREAM statement.
 
-For example, the {{ site.ak }}  message key of the `pageviews` topic is a `BIGINT` containing the `viewtime`,
-so you can write the CREATE STREAM statement like this:
+For example, the {{ site.ak }}  message key of the `pageviews` topic is a `BIGINT` containing the 
+`viewtime`, so you can write the CREATE STREAM statement like this:
 
 ```sql
 CREATE STREAM pageviews_withkey

@@ -35,6 +35,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.context.QueryLoggerUtil.QueryType;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -63,6 +64,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -259,7 +261,11 @@ public final class PullQueryExecutor {
     );
 
     if (filteredAndOrderedNodes.isEmpty()) {
-      throw new MaterializationException("All nodes are dead or exceed max allowed lag.");
+      LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
+                statement.getStatementText());
+      throw new MaterializationException(String.format(
+          "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
+          statement.getStatementText()));
     }
 
     // Nodes are ordered by preference: active is first if alive then standby nodes in
@@ -268,8 +274,8 @@ public final class PullQueryExecutor {
       try {
         return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
       } catch (Exception t) {
-        LOG.debug("Error routing query {} to host {} at timestamp {}",
-                 statement.getStatementText(), node, System.currentTimeMillis());
+        LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
+                  statement.getStatementText(), node, System.currentTimeMillis(), t);
       }
     }
     throw new MaterializationException(String.format(
@@ -892,8 +898,8 @@ public final class PullQueryExecutor {
         .getProcessingLogContext()
         .getLoggerFactory()
         .getLogger(
-            QueryLoggerUtil
-                .queryLoggerName(queryId, contextStacker.push("PROJECT").getQueryContext())
+            QueryLoggerUtil.queryLoggerName(
+                QueryType.PULL_QUERY, contextStacker.push("PROJECT").getQueryContext())
         );
 
     final KsqlTransformer<Object, GenericRow> transformer = select
@@ -979,8 +985,15 @@ public final class PullQueryExecutor {
 
     final QueryId queryId = new QueryId(Iterables.get(queries, 0));
 
-    return executionContext.getPersistentQuery(queryId)
+    final PersistentQueryMetadata query = executionContext
+        .getPersistentQuery(queryId)
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
+
+    if (query.getDataSourceType() != DataSourceType.KTABLE) {
+      throw new KsqlException("Pull queries are not supported on streams.");
+    }
+
+    return query;
   }
 
   private static SourceName getSourceName(final ImmutableAnalysis analysis) {

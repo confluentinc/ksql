@@ -20,12 +20,14 @@ import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -48,6 +50,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
 
 @EffectivelyImmutable
@@ -65,6 +68,13 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
+  
+  private static final String TELEMETRY_PREFIX = "confluent.telemetry";
+  private static final Set<String> REPORTER_CONFIGS_PREFIXES =
+      ImmutableSet.of(
+          TELEMETRY_PREFIX,
+          CommonClientConfigs.METRICS_CONTEXT_PREFIX
+      );
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
@@ -262,7 +272,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_TIMESTAMP_THROW_ON_INVALID_DOC = "If an incoming message "
       + "contains an invalid timestamp, ksqlDB will log a warning and continue. To disable this "
       + "behavior, and instead throw an exception to ensure that no data is missed, set "
-      + "ksql.timestamp.skip.invalid to true.";
+      + "ksql.timestamp.throw.on.invalid to true.";
 
   public static final String KSQL_ERROR_CLASSIFIER_REGEX_PREFIX = "ksql.error.classifier.regex";
   public static final String KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC = "Any configuration with the "
@@ -763,20 +773,59 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
+  public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
+    final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
+    map.put(
+        MetricCollectors.RESOURCE_LABEL_PREFIX
+            + StreamsConfig.APPLICATION_ID_CONFIG,
+        applicationId
+    );
+    map.putAll(
+        addConfluentMetricsContextConfigsKafka(
+            Collections.emptyMap(),
+            getString(KSQL_SERVICE_ID_CONFIG)));
+    return Collections.unmodifiableMap(map);
+  }
+
   public Map<String, Object> getKsqlStreamConfigProps() {
-    final Map<String, Object> props = new HashMap<>();
+    final Map<String, Object> map = new HashMap<>();
     for (final ConfigValue config : ksqlStreamConfigProps.values()) {
-      props.put(config.key, config.value);
+      map.put(config.key, config.value);
     }
-    return Collections.unmodifiableMap(props);
+    return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getKsqlAdminClientConfigProps() {
-    return getConfigsFor(AdminClientConfig.configNames());
+    final Map<String, Object> map = new HashMap<>();
+    map.putAll(getConfigsFor(AdminClientConfig.configNames()));
+    map.putAll(
+        addConfluentMetricsContextConfigsKafka(Collections.emptyMap(),
+        getString(KSQL_SERVICE_ID_CONFIG)));
+    return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
-    return getConfigsFor(ProducerConfig.configNames());
+    final Map<String, Object> map = new HashMap<>();
+    map.putAll(getConfigsFor(ProducerConfig.configNames()));
+    map.putAll(
+        addConfluentMetricsContextConfigsKafka(Collections.emptyMap(),
+        getString(KSQL_SERVICE_ID_CONFIG)));
+    return Collections.unmodifiableMap(map);
+  }
+
+  public Map<String, Object> addConfluentMetricsContextConfigsKafka(
+      final Map<String,Object> props,
+      final String ksqlServiceId
+  ) {
+    final Map<String, Object> updatedProps = new HashMap<>(props);
+    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+    updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
+    updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());
+
+    updatedProps.putAll(
+        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServiceId));
+    updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
+    return updatedProps;
   }
 
   public Map<String, Object> getProcessingLogConfigProps() {
@@ -787,6 +836,14 @@ public class KsqlConfig extends AbstractConfig {
     final Map<String, Object> props = new HashMap<>();
     ksqlStreamConfigProps.values().stream()
         .filter(configValue -> configs.contains(configValue.key))
+        .forEach(configValue -> props.put(configValue.key, configValue.value));
+    return Collections.unmodifiableMap(props);
+  }
+
+  private Map<String, Object> getConfigsForPrefix(final Set<String> configs) {
+    final Map<String, Object> props = new HashMap<>();
+    ksqlStreamConfigProps.values().stream()
+        .filter(configValue -> configs.stream().anyMatch(configValue.key::startsWith))
         .forEach(configValue -> props.put(configValue.key, configValue.value));
     return Collections.unmodifiableMap(props);
   }

@@ -47,18 +47,7 @@ public class QueryCapacityUtilTest {
     givenQueryLimit(2);
 
     // Then:
-    assertThat(QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, ksqlConfig, 0),
-        equalTo(true));
-  }
-
-  @Test
-  public void shouldReportCapacityExceededIfTooManyQueriesAdded() {
-    // Given:
-    givenActivePersistentQueries(2);
-    givenQueryLimit(4);
-
-    // Then:
-    assertThat(QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, ksqlConfig, 3),
+    assertThat(QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, ksqlConfig),
         equalTo(true));
   }
 
@@ -66,21 +55,10 @@ public class QueryCapacityUtilTest {
   public void shouldNotReportCapacityExceededIfReached() {
     // Given:
     givenActivePersistentQueries(2);
-    givenQueryLimit(4);
+    givenQueryLimit(2);
 
     // Then:
-    assertThat(QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, ksqlConfig, 2),
-        equalTo(false));
-  }
-
-  @Test
-  public void shouldNotReportCapacityExceededIfNotReached() {
-    // Given:
-    givenActivePersistentQueries(2);
-    givenQueryLimit(4);
-
-    // Then:
-    assertThat(QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, ksqlConfig, 1),
+    assertThat(QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, ksqlConfig),
         equalTo(false));
   }
 

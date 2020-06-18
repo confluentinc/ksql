@@ -507,7 +507,7 @@ public class SchemaKStreamTest {
     );
     initialSchemaKStream = new SchemaKStream(
         sourceStep,
-        logicalPlan.getTheSourceNode().getSchema(),
+        logicalPlan.getLeftmostSourceNode().getSchema(),
         keyFormat,
         ksqlConfig,
         functionRegistry

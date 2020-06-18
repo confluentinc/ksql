@@ -15,22 +15,15 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
-import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
-public class FilterNode extends PlanNode {
+public class FilterNode extends SingleSourcePlanNode {
 
-  private final PlanNode source;
   private final Expression predicate;
 
   public FilterNode(
@@ -38,9 +31,8 @@ public class FilterNode extends PlanNode {
       final PlanNode source,
       final Expression predicate
   ) {
-    super(id, source.getNodeOutputType(), source.getSourceName());
+    super(id, source.getNodeOutputType(), source.getSourceName(), source);
 
-    this.source = Objects.requireNonNull(source, "source");
     this.predicate = Objects.requireNonNull(predicate, "predicate");
   }
 
@@ -50,42 +42,17 @@ public class FilterNode extends PlanNode {
 
   @Override
   public LogicalSchema getSchema() {
-    return source.getSchema();
-  }
-
-  @Override
-  public List<PlanNode> getSources() {
-    return ImmutableList.of(source);
-  }
-
-  public PlanNode getSource() {
-    return source;
-  }
-
-  @Override
-  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
-    return source.getPartitions(kafkaTopicClient);
+    return getSource().getSchema();
   }
 
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final Stacker contextStacker = builder.buildNodeContext(getId().toString());
 
-    return source.buildStream(builder)
+    return getSource().buildStream(builder)
         .filter(
             getPredicate(),
             contextStacker
         );
-  }
-
-  @Override
-  protected Set<ColumnReferenceExp> validateColumns(
-      final RequiredColumns requiredColumns
-  ) {
-    final RequiredColumns updated = requiredColumns.asBuilder()
-        .add(predicate)
-        .build();
-
-    return source.validateColumns(updated);
   }
 }

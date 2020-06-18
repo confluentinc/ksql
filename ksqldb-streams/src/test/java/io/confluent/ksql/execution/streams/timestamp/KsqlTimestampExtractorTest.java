@@ -12,7 +12,7 @@ public class KsqlTimestampExtractorTest {
   public void shouldCallExtractTimestampFromGenericRow() {
     // Given
     final long timestamp = 1526075913000L;
-    final KsqlTimestampExtractor timestampExtractor  = (row -> timestamp);
+    final KsqlTimestampExtractor timestampExtractor  = (key, row) -> timestamp;
 
     // When
     final long actualTime = timestampExtractor.extract(new ConsumerRecord<>("topic",

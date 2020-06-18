@@ -53,7 +53,7 @@ public class QueryStreamRunner extends BasePerfRunner {
   private static final String DEFAULT_PUSH_QUERY = "select * from foo emit changes;";
   private static final JsonObject DEFAULT_PUSH_QUERY_REQUEST_BODY = new JsonObject()
       .put("sql", DEFAULT_PUSH_QUERY)
-      .put("properties", new JsonObject());
+      .put("properties", new JsonObject().put("auto.offset.reset", "earliest"));
 
   public static void main(String[] args) {
     new QueryStreamRunner().go();

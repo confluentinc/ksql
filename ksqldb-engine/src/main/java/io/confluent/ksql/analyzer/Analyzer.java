@@ -63,6 +63,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -248,15 +249,19 @@ class Analyzer {
 
       process(node.getSelect(), context);
 
-      throwOnUnknownColumnReference();
+      throwOnUnknownColumnReference(
+          !node.isPullQuery() && !node.getGroupBy().isPresent()
+      );
 
       return null;
     }
 
-    private void throwOnUnknownColumnReference() {
+    private void throwOnUnknownColumnReference(final boolean possibleSyntheticColumns) {
 
-      final ColumnReferenceValidator columnValidator =
-          new ColumnReferenceValidator(analysis.getFromSourceSchemas(true));
+      final ColumnReferenceValidator columnValidator = new ColumnReferenceValidator(
+          analysis.getFromSourceSchemas(true),
+          possibleSyntheticColumns
+      );
 
       analysis.getWhereExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "WHERE"));
@@ -273,7 +278,11 @@ class Analyzer {
       analysis.getHavingExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));
 
-      // Note: Analysis of select items has moved into the Logical Plan.
+      analysis.getSelectItems().stream()
+          .filter(si -> si instanceof SingleColumn)
+          .map(SingleColumn.class::cast)
+          .map(SingleColumn::getExpression)
+          .forEach(expression -> columnValidator.analyzeExpression(expression, "SELECT"));
     }
 
     @Override
@@ -305,7 +314,7 @@ class Analyzer {
       }
 
       final ColumnReferenceValidator columnValidator =
-          new ColumnReferenceValidator(analysis.getFromSourceSchemas(false));
+          new ColumnReferenceValidator(analysis.getFromSourceSchemas(false), false);
 
       final Set<SourceName> srcsUsedInLeft = columnValidator
           .analyzeExpression(comparisonExpression.getLeft(), "JOIN ON");
@@ -477,18 +486,18 @@ class Analyzer {
 
     @Override
     protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
-      final SourceName structuredDataSourceName = ((Table) node.getRelation()).getName();
+      final SourceName sourceName = ((Table) node.getRelation()).getName();
 
-      final DataSource source = metaStore.getSource(structuredDataSourceName);
+      final DataSource source = metaStore.getSource(sourceName);
       if (source == null) {
-        throw new KsqlException(structuredDataSourceName + " does not exist.");
+        throw new UnknownSourceException(Optional.empty(), sourceName);
       }
 
       final Optional<AliasedDataSource> existing = analysis.getSourceByName(source.getName());
       if (existing.isPresent()) {
         throw new KsqlException(
             "Can not join '"
-                + structuredDataSourceName.toString(FormatOptions.noEscape())
+                + sourceName.toString(FormatOptions.noEscape())
                 + "' to '"
                 + existing.get().getDataSource().getName().toString(FormatOptions.noEscape())
                 + "': self joins are not yet supported."

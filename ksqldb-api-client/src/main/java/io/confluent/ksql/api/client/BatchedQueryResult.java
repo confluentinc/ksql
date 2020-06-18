@@ -35,6 +35,8 @@ public abstract class BatchedQueryResult extends CompletableFuture<List<Row>> {
    * Returns a {@code CompletableFuture} containing the ID of the underlying query if the query is
    * a push query, else null. The future is completed once a response is received from the server.
    *
+   * <p>If a non-200 response is received from the server, this future will complete exceptionally.
+   *
    * @return a future containing the query ID (or null in the case of pull queries)
    */
   public abstract CompletableFuture<String> queryID();

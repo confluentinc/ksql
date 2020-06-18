@@ -21,11 +21,16 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
 
-@UdfDescription(name = UrlDecodeParamKudf.NAME, description = UrlDecodeParamKudf.DESCRIPTION)
+@UdfDescription(
+    name = UrlDecodeParamKudf.NAME,
+    description = UrlDecodeParamKudf.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class UrlDecodeParamKudf {
 
   static final String DESCRIPTION =

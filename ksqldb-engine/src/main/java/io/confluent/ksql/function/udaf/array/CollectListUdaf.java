@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 
 @UdafDescription(
@@ -27,7 +28,9 @@ import java.util.List;
         + "\nAlthough this aggregate works on both Stream and Table inputs, the order of entries"
         + " in the result array is not guaranteed when working on Table input data."
         + "\nThis version limits the size of the resultant Array to 1000 entries, beyond which"
-        + " any further values will be silently ignored.")
+        + " any further values will be silently ignored.",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public final class CollectListUdaf {
 
   private static final int LIMIT = 1000;

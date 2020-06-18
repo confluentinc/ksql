@@ -180,6 +180,47 @@ public class KafkaSerdeFactoryTest {
     assertThat(result, is(nullValue()));
   }
 
+
+  @Test
+  public void shouldHandleNullKeyColumn() {
+    // Given:
+    final LogicalSchema logical = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("f0"), SqlTypes.INTEGER)
+        .build();
+
+    final PersistenceSchema schema = PhysicalSchema.from(logical, SerdeOption.none()).keySchema();
+
+    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+
+    // Given:
+    final byte[] bytes = serde.serializer().serialize("topic", null);
+    final Object result = serde.deserializer().deserialize("topic", null);
+
+    // Then:
+    assertThat(bytes, is(nullValue()));
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldHandleEmptyKey() {
+    // Given:
+    final LogicalSchema logical = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("f0"), SqlTypes.INTEGER)
+        .build();
+
+    final PersistenceSchema schema = PhysicalSchema.from(logical, SerdeOption.none()).keySchema();
+
+    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+
+    // Given:
+    final byte[] bytes = serde.serializer().serialize("topic", new Struct(logical.keyConnectSchema()));
+    final Object result = serde.deserializer().deserialize("topic", null);
+
+    // Then:
+    assertThat(bytes, is(nullValue()));
+    assertThat(result, is(nullValue()));
+  }
+
   @Test
   public void shouldHandleInt() {
     shouldHandle(SqlTypes.INTEGER, 1);

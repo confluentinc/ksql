@@ -51,15 +51,20 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.junit.runners.MethodSorters;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
+// shouldFailOnAvroWithoutSchemasIfSchemaNotEvolvable fails if run after shouldHandleJsonWithSchemas
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class StandaloneExecutorFunctionalTest {
 
   @ClassRule
@@ -100,6 +105,7 @@ public class StandaloneExecutorFunctionalTest {
     final Map<String, Object> properties = ImmutableMap.<String, Object>builder()
         .putAll(KsqlConfigTestUtil.baseTestConfig())
         .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers())
+        .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
         .build();
 
     final Function<KsqlConfig, ServiceContext> serviceContextFactory = config ->
@@ -133,10 +139,10 @@ public class StandaloneExecutorFunctionalTest {
   public void shouldHandleJsonWithSchemas() {
     // Given:
     givenScript(""
-        + "CREATE STREAM S (ORDERTIME BIGINT)"
+        + "CREATE STREAM S (ROWKEY STRING KEY, ORDERTIME BIGINT)"
         + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json');\n"
         + "\n"
-        + "CREATE TABLE T (ORDERTIME BIGINT) "
+        + "CREATE TABLE T (ROWKEY STRING PRIMARY KEY, ORDERTIME BIGINT) "
         + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json');\n"
         + "\n"
         + "SET 'auto.offset.reset' = 'earliest';"
@@ -175,10 +181,10 @@ public class StandaloneExecutorFunctionalTest {
   public void shouldHandleAvroWithSchemas() {
     // Given:
     givenScript(""
-        + "CREATE STREAM S (ORDERTIME BIGINT)"
+        + "CREATE STREAM S (ROWKEY STRING KEY, ORDERTIME BIGINT)"
         + "    WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
         + "\n"
-        + "CREATE TABLE T (ORDERTIME BIGINT) "
+        + "CREATE TABLE T (ROWKEY STRING PRIMARY KEY, ORDERTIME BIGINT) "
         + "    WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
         + "\n"
         + "SET 'auto.offset.reset' = 'earliest';"
@@ -219,7 +225,7 @@ public class StandaloneExecutorFunctionalTest {
     givenScript(""
         + "SET 'auto.offset.reset' = 'earliest';"
         + ""
-        + "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
+        + "CREATE STREAM S (ROWKEY STRING KEY) WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
         + ""
         + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
 
@@ -285,7 +291,7 @@ public class StandaloneExecutorFunctionalTest {
         + ""
         + "SET 'auto.offset.reset' = 'earliest';"
         + ""
-        + "CREATE STREAM S /*inline comment*/ (ID int)"
+        + "CREATE STREAM S /*inline comment*/ (ROWKEY STRING KEY, ID int)"
         + "    with (kafka_topic='" + JSON_TOPIC + "',value_format='json');\n"
         + "\n"
         + "CREATE STREAM " + s1 + "  AS SELECT * FROM S;");

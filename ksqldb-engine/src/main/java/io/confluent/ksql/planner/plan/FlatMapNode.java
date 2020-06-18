@@ -22,7 +22,6 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -33,24 +32,20 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * A node in the logical plan which represents a flat map operation - transforming a single row into
  * zero or more rows.
  */
-public class FlatMapNode extends PlanNode {
+public class FlatMapNode extends SingleSourcePlanNode {
 
-  private final PlanNode source;
   private final ImmutableList<FunctionCall> tableFunctions;
   private final ImmutableMap<Integer, UnqualifiedColumnReferenceExp> columnMappings;
   private final LogicalSchema schema;
@@ -64,10 +59,10 @@ public class FlatMapNode extends PlanNode {
     super(
         id,
         source.getNodeOutputType(),
-        Optional.empty()
+        Optional.empty(),
+        source
     );
     this.schema = buildSchema(source, functionRegistry, analysis);
-    this.source = Objects.requireNonNull(source, "source");
     this.tableFunctions = ImmutableList.copyOf(analysis.getTableFunctions());
     this.columnMappings = buildColumnMappings(functionRegistry, analysis);
   }
@@ -75,20 +70,6 @@ public class FlatMapNode extends PlanNode {
   @Override
   public LogicalSchema getSchema() {
     return schema;
-  }
-
-  @Override
-  public List<PlanNode> getSources() {
-    return ImmutableList.of(source);
-  }
-
-  public PlanNode getSource() {
-    return source;
-  }
-
-  @Override
-  protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
-    return source.getPartitions(kafkaTopicClient);
   }
 
   @Override
@@ -106,15 +87,6 @@ public class FlatMapNode extends PlanNode {
         tableFunctions,
         contextStacker
     );
-  }
-
-  @Override
-  protected Set<ColumnReferenceExp> validateColumns(final RequiredColumns requiredColumns) {
-    final RequiredColumns updadted = requiredColumns.asBuilder()
-        .removeAll(columnMappings.values())
-        .build();
-
-    return source.validateColumns(updadted);
   }
 
   private static ImmutableMap<Integer, UnqualifiedColumnReferenceExp> buildColumnMappings(

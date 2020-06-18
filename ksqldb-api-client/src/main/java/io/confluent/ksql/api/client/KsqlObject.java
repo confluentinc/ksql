@@ -300,7 +300,9 @@ public class KsqlObject {
    * @return a reference to this
    */
   public KsqlObject put(final String key, final BigDecimal value) {
-    delegate.put(key, value.doubleValue());
+    // Vert.x JsonObject does not accept BigDecimal values. Instead we store the value as a string
+    // so as to not lose precision.
+    delegate.put(key, value.toString());
     return this;
   }
 

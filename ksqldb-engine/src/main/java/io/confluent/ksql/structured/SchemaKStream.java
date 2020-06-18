@@ -315,6 +315,11 @@ public class SchemaKStream<K> {
     // Note: A repartition is only not required if partitioning by the existing key column, or
     // the existing keyField.
 
+    if (schema.key().isEmpty()) {
+      // No current key, so repartition needed:
+      return false;
+    }
+
     if (schema.key().size() != 1) {
       throw new UnsupportedOperationException("logic only supports single key column");
     }

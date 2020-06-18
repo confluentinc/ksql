@@ -18,9 +18,14 @@ package io.confluent.ksql.function.udf.url;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 
-@UdfDescription(name = UrlExtractHostKudf.NAME, description = UrlExtractHostKudf.DESCRIPTION)
+@UdfDescription(
+    name = UrlExtractHostKudf.NAME,
+    description = UrlExtractHostKudf.DESCRIPTION,
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class UrlExtractHostKudf {
 
   static final String DESCRIPTION =

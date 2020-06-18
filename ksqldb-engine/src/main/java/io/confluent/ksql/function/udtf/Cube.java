@@ -20,11 +20,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-@UdtfDescription(name = "cube_explode", author = KsqlConstants.CONFLUENT_AUTHOR,
+@UdtfDescription(
+    name = "cube_explode",
+    author = KsqlConstants.CONFLUENT_AUTHOR,
     description =
         "Takes as argument a list of columns and outputs all possible combinations of them. "
             + "It produces 2^d new rows where d is the number of columns given as parameter. "
-            + "Duplicate entries for columns with null value are skipped.")
+            + "Duplicate entries for columns with null value are skipped."
+)
 public class Cube {
 
   @Udtf

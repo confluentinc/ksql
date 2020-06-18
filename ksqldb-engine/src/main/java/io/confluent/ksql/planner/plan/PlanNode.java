@@ -19,9 +19,11 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -37,8 +39,10 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Immutable
 public abstract class PlanNode {
 
   private final PlanNodeId id;
@@ -67,13 +71,17 @@ public abstract class PlanNode {
 
   public abstract List<PlanNode> getSources();
 
-  public DataSourceNode getTheSourceNode() {
+  public DataSourceNode getLeftmostSourceNode() {
+    return Iterables.getOnlyElement(getSourceNodes().limit(1).collect(Collectors.toList()));
+  }
+
+  public Stream<DataSourceNode> getSourceNodes() {
     if (this instanceof DataSourceNode) {
-      return (DataSourceNode) this;
-    } else if (!getSources().isEmpty()) {
-      return this.getSources().get(0).getTheSourceNode();
+      return Stream.of((DataSourceNode) this);
     }
-    throw new IllegalStateException("No source node in hierarchy");
+
+    return getSources().stream()
+        .flatMap(PlanNode::getSourceNodes);
   }
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
@@ -141,27 +149,41 @@ public abstract class PlanNode {
   static void throwKeysNotIncludedError(
       final SourceName sinkName,
       final String type,
-      final List<? extends Expression> requiredKeys,
-      final GrammaticalJoiner joiner
+      final List<? extends Expression> requiredKeys
   ) {
-    throwKeysNotIncludedError(sinkName, type, requiredKeys, joiner, "");
+    throwKeysNotIncludedError(sinkName, type, requiredKeys, true, false);
   }
 
   static void throwKeysNotIncludedError(
       final SourceName sinkName,
       final String type,
       final List<? extends Expression> requiredKeys,
-      final GrammaticalJoiner joiner,
-      final String additional
+      final boolean requireAll,
+      final boolean synthetic
   ) {
-    final String postfix = requiredKeys.size() == 1 ? "" : "s";
+    final String keyPostfix = requireAll && requiredKeys.size() > 1 ? "s" : "";
+    final String types = type + (requiredKeys.size() == 1 ? "" : "s");
 
-    final String joined = joiner.join(requiredKeys);
+    final String joined = (requireAll ? GrammaticalJoiner.and() : GrammaticalJoiner.or())
+        .join(requiredKeys);
 
-    throw new KsqlException("The query used to build " + sinkName
-        + " must include the " + type + postfix
-        + " " + joined + " in its projection."
-        + additional
+    final String additional1 = synthetic
+        ? "See " + DocumentationLinks.SYNTHETIC_JOIN_KEY_DOC_URL + "."
+        : "";
+
+    final String additional2 = synthetic
+        ? System.lineSeparator()
+        + Iterables.getOnlyElement(requiredKeys) + " was added as a synthetic key column "
+        + "because the join criteria did not match any source column. "
+        + "This expression must be included in the projection and may be aliased. "
+        : "";
+
+    throw new KsqlException("Key" + keyPostfix + " missing from projection. "
+        + additional1
+        + System.lineSeparator()
+        + "The query used to build " + sinkName
+        + " must include the " + types + " " + joined + " in its projection."
+        + additional2
     );
   }
 

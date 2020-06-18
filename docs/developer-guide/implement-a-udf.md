@@ -346,12 +346,11 @@ Variations  :
     Description : multiply two non-nullable INTs.
 ```
 
-Use the MULTIPLY function in a query. If you follow the steps in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Docker)](../tutorials/basics-docker.md),
-you can multiply the two BIGINT fields in the `pageviews_original` stream:
+Use the MULTIPLY function in a query. the following SELECT statement
+multiplies two BIGINT fields in `pageviews` stream:
 
 ```sql
-SELECT MULTIPLY(rowtime, viewtime) FROM pageviews_original EMIT CHANGES;
+SELECT MULTIPLY(rowtime, viewtime) FROM pageviews EMIT CHANGES;
 ```
 
 Your output should resemble:
@@ -386,10 +385,11 @@ that you implement a UDF. You use the `UdtfDescription` and `Udtf`
 annotations in your Java code, and you deploy a JAR to the `ksql` extensions
 directory. For more information, see [UDTFs](../concepts/functions.md#udtfs).
 
-Next Steps
-----------
+Suggested Reading
+-----------------
 
--   [How to Build a UDF and/or UDAF in KSQL 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
--   [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
--   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
+- [ksqlDB UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)
+- [How to Build a UDF and/or UDAF in ksqlDB 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
+- [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
+- [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 

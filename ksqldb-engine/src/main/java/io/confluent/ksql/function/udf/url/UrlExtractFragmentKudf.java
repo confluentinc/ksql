@@ -18,11 +18,14 @@ package io.confluent.ksql.function.udf.url;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 
 @UdfDescription(
         name = UrlExtractFragmentKudf.NAME,
-        description = "Extracts the fragment of an application/x-www-form-urlencoded String input")
+        description = "Extracts the fragment of an application/x-www-form-urlencoded String input",
+    author = KsqlConstants.CONFLUENT_AUTHOR
+)
 public class UrlExtractFragmentKudf {
 
   static final String NAME = "url_extract_fragment";

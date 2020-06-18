@@ -24,6 +24,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -75,7 +77,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         final Subscriber<Collection<StreamedRow>> subscriber,
         final TransientQueryMetadata queryMetadata
     ) {
-      super(exec, subscriber, queryMetadata.getLogicalSchema());
+      super(exec, subscriber, valueColumnOnly(queryMetadata.getLogicalSchema()));
       this.queryMetadata = requireNonNull(queryMetadata, "queryMetadata");
 
       queryMetadata.setLimitHandler(this::setDone);
@@ -105,5 +107,12 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         queryMetadata.close();
       }
     }
+  }
+
+  private static LogicalSchema valueColumnOnly(final LogicalSchema logicalSchema) {
+    // Push queries only return value columns, but query metadata schema includes key and meta:
+    final Builder builder = LogicalSchema.builder();
+    logicalSchema.value().forEach(builder::valueColumn);
+    return builder.build();
   }
 }

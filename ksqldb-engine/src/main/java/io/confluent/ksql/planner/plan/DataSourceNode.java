@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.util.GrammaticalJoiner.and;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
@@ -129,13 +128,18 @@ public class DataSourceNode extends PlanNode {
 
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
+    if (getSchema().key().isEmpty()) {
+      // No key column.
+      return;
+    }
+
     final ColumnName keyName = Iterables.getOnlyElement(getSchema().key()).name();
 
     if (!projection.containsExpression(new QualifiedColumnReferenceExp(getAlias(), keyName))
         && !projection.containsExpression(new UnqualifiedColumnReferenceExp(keyName))
     ) {
       throwKeysNotIncludedError(sinkName, "key column", ImmutableList.of(
-          (ColumnReferenceExp) new UnqualifiedColumnReferenceExp(keyName)), and());
+          (ColumnReferenceExp) new UnqualifiedColumnReferenceExp(keyName)));
     }
   }
 
@@ -147,11 +151,10 @@ public class DataSourceNode extends PlanNode {
   }
 
   private boolean nonKnownColumn(final ColumnReferenceExp columnRef) {
-    if (columnRef instanceof QualifiedColumnReferenceExp) {
-      final SourceName source = ((QualifiedColumnReferenceExp) columnRef).getQualifier();
-      if (!source.equals(getAlias())) {
-        return true;
-      }
+    if (columnRef.maybeQualifier().isPresent()
+        && !columnRef.maybeQualifier().get().equals(getAlias())
+    ) {
+      return true;
     }
 
     final ColumnName columnName = columnRef.getColumnName();

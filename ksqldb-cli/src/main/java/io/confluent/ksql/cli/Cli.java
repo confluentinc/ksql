@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -47,12 +48,14 @@ import io.confluent.ksql.util.HandlerMaps.Handler2;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
+import io.vertx.core.VertxException;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -66,6 +69,8 @@ import org.slf4j.LoggerFactory;
 public class Cli implements KsqlRequestExecutor, Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
+
+  private static final int MAX_RETRIES = 10;
 
   private static final ClassHandlerMap2<StatementContext, Cli, String> STATEMENT_HANDLERS =
       HandlerMaps
@@ -137,19 +142,40 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     final Long commandSequenceNumberToWaitFor = remoteServerState.getRequestPipelining()
         ? null
         : remoteServerState.getLastCommandSequenceNumber();
-    final RestResponse<R> response = requestIssuer.apply(ksql, commandSequenceNumberToWaitFor);
 
-    if (isSequenceNumberTimeout(response)) {
-      terminal.writer().printf(
-          "Error: command not executed since the server timed out "
-              + "while waiting for prior commands to finish executing.%n"
-              + "If you wish to execute new commands without waiting for "
-              + "prior commands to finish, run the command '%s ON'.%n",
-          RequestPipeliningCommand.NAME);
-    } else if (isKsqlEntityList(response)) {
-      updateLastCommandSequenceNumber((KsqlEntityList)response.getResponse());
+    int retries = 0;
+    while (retries < MAX_RETRIES) {
+      try {
+        final RestResponse<R> response = requestIssuer.apply(ksql, commandSequenceNumberToWaitFor);
+
+        if (isSequenceNumberTimeout(response)) {
+          terminal.writer().printf(
+              "Error: command not executed since the server timed out "
+                  + "while waiting for prior commands to finish executing.%n"
+                  + "If you wish to execute new commands without waiting for "
+                  + "prior commands to finish, run the command '%s ON'.%n",
+              RequestPipeliningCommand.NAME);
+        } else if (isKsqlEntityList(response)) {
+          updateLastCommandSequenceNumber((KsqlEntityList) response.getResponse());
+        }
+        return response;
+      } catch (KsqlRestClientException e) {
+        if (e.getCause() instanceof ExecutionException && e.getCause()
+            .getCause() instanceof VertxException) {
+          // We close the connection asynchronously after a pull query is terminated at the terminal
+          // this means there is a chance that a subsequent query can grab the same connection
+          // and attempt to use it resulting in an exception. This is extremely unlikely to happen
+          // in real-usage, but can happen in the test suite, so we catch this case and retry
+          final VertxException ve = (VertxException) e.getCause().getCause();
+          if (ve.getMessage().equals("Connection was closed")) {
+            retries++;
+            continue;
+          }
+        }
+        throw e;
+      }
     }
-    return response;
+    throw new KsqlRestClientException("Failed to execute request " + ksql);
   }
 
   public void runInteractively() {

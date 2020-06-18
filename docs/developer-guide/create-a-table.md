@@ -22,12 +22,10 @@ Create a Table from an existing Kafka Topic
 -------------------------------------------
 
 Use the [CREATE TABLE](./create-table) statement to create a table from an existing
-underlying Kafka topic.
+underlying {{ site.ak }} topic.
 
-The following examples show how to create tables from an existing Kafka topic,
-named `users`. To see these examples in action, create the `users` topic
-by following the procedure in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
+The following examples show how to create tables from a {{ site.ak }} topic
+named `users`.
 
 ### Create a Table with Selected Columns
 

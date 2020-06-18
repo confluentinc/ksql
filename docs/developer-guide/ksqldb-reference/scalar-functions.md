@@ -138,15 +138,13 @@ The square root of a value.
 
 ## Collections
 
-### `ARRAY_LENGTH`
+### `ARRAY`
 
 ```sql
-ARRAY_LENGTH(ARRAY[1, 2, 3])
+ARRAY[col1, col2, ...]
 ```
 
-Given an array, return the number of elements in the array.
-
-If the supplied parameter is NULL the method returns NULL.
+Construct an array from a variable number of inputs.
 
 ### ``ARRAY_CONTAINS``
 
@@ -158,31 +156,127 @@ Given an array, checks if a search value is contained in the array.
 
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
-### `JSON_ARRAY_CONTAINS`
+### ``ARRAY_DISTINCT``
 
 ```sql
-JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)
+ARRAY_DISTINCT([1, 2, 3])
 ```
 
-Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
+Returns an array of all the distinct values, including NULL if present, from the input array.
+The output array elements are in order of their first occurrence in the input.
 
-Returns `false` if the first parameter does not contain a JSON array.
+Returns NULL if the input array is NULL.
 
-### `ARRAY`
+Examples:
+```sql 
+ARRAY_DISTINCT(ARRAY[1, 1, 2, 3, 1, 2])  => [1, 2, 3]
+ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'cherry']
+```
+
+### ``ARRAY_EXCEPT``
 
 ```sql
-ARRAY[col1, col2, ...]
+ARRAY_EXCEPT(array1, array2)
 ```
 
-Construct an array from a variable number of inputs.
+Returns an array of all the distinct elements from an array, except for those also present in a second array. The order of entries in the first array is preserved but duplicates are removed. 
 
-### `MAP`
+Returns NULL if either input is NULL.
+
+Examples:
+```sql 
+ARRAY_EXCEPT(ARRAY[1, 2, 3, 1, 2], [2, 3])  => [1]
+ARRAY_EXCEPT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL]
+```
+
+### ``ARRAY_INTERSECT``
 
 ```sql
-MAP(key VARCHAR := value, ...)
+ARRAY_INTERSECT(array1, array2)
 ```
 
-Construct a map from specific key-value tuples.
+Returns an array of all the distinct elements from the intersection of both input arrays. The order of entries in the output is the same as in the first input array.
+
+Returns NULL if either input array is NULL.
+
+Examples:
+```sql 
+ARRAY_INTERSECT(ARRAY[1, 2, 3, 1, 2], [2, 1])  => [1, 2]
+ARRAY_INTERSECT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['apple'])  => ['apple']
+```
+
+### `ARRAY_LENGTH`
+
+```sql
+ARRAY_LENGTH(ARRAY[1, 2, 3])
+```
+
+Given an array, return the number of elements in the array.
+
+If the supplied parameter is NULL the method returns NULL.
+
+### ``ARRAY_MAX``
+
+```sql
+ARRAY_MAX(['foo', 'bar', 'baz'])
+```
+
+Returns the maximum value from within a given array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof). 
+
+Array entries are compared according to their natural sort order, which sorts the various data-types per the following examples:
+- ```array_max[-1, 2, NULL, 0] -> 2```
+- ```array_max[false, NULL, true] -> true```
+- ```array_max['Foo', 'Bar', NULL, 'baz'] -> 'baz'``` (lower-case characters are "greater" than upper-case characters)
+
+If the array field is NULL, or contains only NULLs, then NULL is returned.
+
+### ``ARRAY_MIN``
+
+```sql
+ARRAY_MIN(['foo', 'bar', 'baz'])
+```
+
+Returns the minimum value from within a given array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof). 
+
+Array entries are compared according to their natural sort order, which sorts the various data-types per the following examples:
+- ```array_min[-1, 2, NULL, 0] -> -1```
+- ```array_min[false, NULL, true] -> false```
+- ```array_min['Foo', 'Bar', NULL, 'baz'] -> 'Bar'```
+
+If the array field is NULL, or contains only NULLs, then NULL is returned.
+
+### ``ARRAY_SORT``
+
+```sql
+ARRAY_SORT(['foo', 'bar', 'baz'], 'ASC|DESC')
+```
+
+Given an array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof), returns an array of the same elements sorted according to their natural sort order. Any NULLs contained in the array will always be moved to the end.
+
+For example:
+- ```array_sort[-1, 2, NULL, 0] -> [-1, 0, 2, NULL]```
+- ```array_sort[false, NULL, true] -> [false, true, NULL]```
+- ```array_sort['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]```
+
+If the array field is NULL then NULL is returned.
+
+An optional second parameter can be used to specify whether to sort the elements in 'ASC'ending or 'DESC'ending order. If neither is specified then the default is ascending order. 
+
+### ``ARRAY_UNION``
+
+```sql
+ARRAY_UNION(array1, array2)
+```
+
+Returns an array of all the distinct elements from both input arrays, in the order in which they are first encountered.
+
+Returns NULL if either input array is NULL.
+
+Examples:
+```sql 
+ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
+ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
+```
 
 ### `AS_MAP`
 
@@ -212,6 +306,71 @@ Returns the 1-indexed position of `str` in `args`, or 0 if not found.
 If `str` is NULL, the return value is 0, because NULL is not considered
 to be equal to any value. FIELD is the complement to ELT.
 
+### `JSON_ARRAY_CONTAINS`
+
+```sql
+JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)
+```
+
+Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
+
+Returns `false` if the first parameter does not contain a JSON array.
+
+### `MAP`
+
+```sql
+MAP(key VARCHAR := value, ...)
+```
+
+Construct a map from specific key-value tuples.
+
+### `MAP_KEYS`
+
+```sql
+MAP_KEYS(a_map)
+```
+
+Returns an array that contains all of the keys from the specified map.
+
+Returns NULL if the input map is NULL.
+
+Example:
+```sql
+map_keys( map('apple' := 10, 'banana' := 20) )  => ['apple', 'banana'] 
+```
+
+### `MAP_VALUES`
+
+```sql
+MAP_VALUES(a_map)
+```
+
+Returns an array that contains all of the values from the specified map.
+
+Returns NULL if the input map is NULL.
+
+Example:
+```sql
+map_values( map('apple' := 10, 'banana' := 20) )  => [10, 20] 
+```
+
+### `MAP_UNION`
+
+```sql
+MAP_UNION(map1, map2)
+```
+
+Returns a new map containing the union of all entries from both input maps. If a key is present in both input maps, the corresponding value from _map2_ is returned.
+
+Returns NULL if all of the input maps are NULL.
+
+Example:
+```sql
+map_union( map('apple' := 10, 'banana' := 20), map('cherry' := 99) )  => ['apple': 10, 'banana': 20, 'cherry': 99] 
+
+map_union( map('apple' := 10, 'banana' := 20), map('apple' := 50) )  => ['apple': 50, 'banana': 20] 
+```
+
 ### `SLICE`
 
 ```sql
@@ -221,15 +380,73 @@ SLICE(col1, from, to)
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
 
+### `ARRAY_JOIN`
+
+```sql
+ARRAY_JOIN(col1, delimiter)
+```
+
+Creates a flat string representation of all the elements contained in the given array.
+The elements in the resulting string are separated by the chosen `delimiter`, 
+which is an optional parameter that falls back to a comma `,`. The current implementation only
+allows for array elements of primitive ksqlDB types.
+
 ## Strings
+
+### `CHR`
+
+```sql
+CHR(decimal_code | utf_string)
+```
+
+Returns a single-character string representing the Unicode code-point described by the input. The input parameter can be either a decimal character code or a string representation of a UTF code.
+
+Returns NULL if the input is NULL or does not represent a valid code-point.
+
+Commonly used to insert control characters such as `Tab` (9), `Line Feed` (10), or `Carriage Return` (13) into strings.
+
+Examples:
+```sql
+CHR(75)        => 'K'
+CHR('\u004b')  => 'K'
+CHR(22909)     => '好'
+CHR('\u597d')  => '好'
+```
 
 ### `CONCAT`
 
 ```sql
-CONCAT(col1, '_hello')
+CONCAT(col1, col2, 'hello', ..., col-n)
 ```
 
-Concatenate two or more strings.
+Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
+
+### `CONCAT_WS`
+
+```sql
+CONCAT_WS(separator, expr1, expr2, ...)
+```
+
+Concatenates two or more string expressions, inserting a separator string between each.
+
+If the separator is NULL, this function returns NULL.
+Any expressions which evaluate to NULL are skipped.
+
+Example: 
+```sql
+CONCAT_WS(', ', 'apple', 'banana', NULL, 'date')  ->  'apple, banana, date'
+```
+
+### `ENCODE`
+
+```sql
+ENCODE(col1, input_encoding, output_encoding)
+```
+
+Given a STRING that is encoded as `input_encoding`, encode it using the `output_encoding`. The accepted input and output encodings are:
+`hex`, `utf8`, `ascii`, and `base64`. Throws an exception if the provided encodings are not supported.
+
+For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', 'utf8')`.
 
 ### `EXTRACTJSONFIELD`
 
@@ -321,6 +538,25 @@ LEN(col1)
 ```
 
 The length of a string.
+
+### `LPAD`
+
+```sql
+LPAD(input, length, padding)
+```
+
+Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
+If the input string is longer than the specified target length, it is truncated.
+
+If the padding string is empty or NULL, or the target length is negative, NULL is returned.
+
+Examples:
+```sql
+LPAD('Foo', 7, 'Bar')  =>  'BarBFoo'
+LPAD('Foo', 2, 'Bar')  =>  'Fo'
+LPAD('', 2, 'Bar')  =>  'Ba'
+LPAD('123', 5, '0')  => '00123'
+```
 
 ### `MASK`
 
@@ -415,6 +651,69 @@ the entire substring is returned by default.
 For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
 returns "there".
 
+### `REGEXP_EXTRACT_ALL`
+
+```sql
+REGEXP_EXTRACT_ALL('.*', col1)
+```
+
+```sql
+REGEXP_EXTRACT_ALL('(([AEIOU]).)', col1, 2)
+```
+
+Extract all subtrings matched by the regex pattern from the input.
+
+A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
+the entire substring is returned by default.
+
+For example, `REGEXP_EXTRACT("(\\w+) (\\w+)", 'hello there nice day', 2)`
+returns `['there', 'day']`.
+
+### `REGEXP_REPLACE`
+
+```sql
+REGEXP_REPLACE(col1, 'a.b+', 'bar')
+```
+
+Replace all matches of a regex in an input string with a new string.
+If either the input string, regular expression, or new string is null,
+the result is null.
+
+### `REGEXP_SPLIT_TO_ARRAY`
+
+```sql
+REGEXP_SPLIT_TO_ARRAY(col1, 'a.b+')
+```
+
+Splits a string into an array of substrings based
+on a regular expression. If there is no match,
+the original string is returned as the only
+element in the array. If the regular expression is empty,
+then all characters in the string are split.
+If either the string or the regular expression is `NULL`, a
+NULL value is returned.
+
+If the regular expression is found at the beginning or end
+of the string, or there are contiguous matches,
+then an empty element is added to the array.
+
+### `RPAD`
+
+```sql
+RPAD(input, length, padding)
+```
+
+Pads the input string, starting from the end, with the specified padding string until the target length is reached. If the input string is longer than the specified target length it will be truncated. 
+
+If the padding string is empty or NULL, or the target length is negative, then NULL is returned.
+
+Examples:
+```sql
+RPAD('Foo', 7, 'Bar')  =>  'FooBarB'
+RPAD('Foo', 2, 'Bar')  =>  'Fo'
+RPAD('', 2, 'Bar')  =>  'Ba'
+```
+
 ### `SPLIT`
 
 ```sql
@@ -432,6 +731,23 @@ NULL value is returned.
 If the delimiter is found at the beginning or end
 of the string, or there are contiguous delimiters,
 then an empty space is added to the array.
+
+### `SPLIT_TO_MAP`
+
+```sql
+SPLIT_TO_MAP(input, entryDelimiter, kvDelimiter)
+```
+
+Splits a string into key-value pairs and creates a map from them. The 
+`entryDelimiter` splits the string into key-value pairs which are then split by `kvDelimiter`. If the same key is present multiple times in the input, the latest value for that key is returned. 
+
+Returns NULL if the input text is NULL.
+Returns NULL if either of the delimiters is NULL or an empty string.
+
+Example:
+```sql
+SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green', 'cherry':'red'}
+```
 
 ### `SUBSTRING`
 
@@ -466,6 +782,16 @@ UCASE(col1)
 ```
 
 Convert a string to uppercase.
+
+### `UUID`
+
+```sql
+UUID()
+```
+Create a Universally Unique Identifier (UUID) generated according to RFC 4122. 
+A call to UUID() returns a value conforming to UUID version 4, sometimes called 
+"random UUID", as described in RFC 4122. The value is a 128-bit number represented 
+as a string of five hexadecimal numbers _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_.
 
 ## Nulls
 

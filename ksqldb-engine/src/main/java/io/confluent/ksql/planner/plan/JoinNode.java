@@ -15,12 +15,11 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.util.GrammaticalJoiner.or;
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
@@ -38,10 +37,8 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
-import io.confluent.ksql.planner.RequiredColumns.Builder;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -152,7 +149,7 @@ public class JoinNode extends PlanNode {
       return names;
     }
 
-    final Column syntheticKey = Iterables.getOnlyElement(getSchema().key());
+    final Column syntheticKey = getOnlyElement(getSchema().key());
 
     return Streams.concat(Stream.of(syntheticKey.name()), names);
   }
@@ -164,20 +161,10 @@ public class JoinNode extends PlanNode {
         .anyMatch(projection::containsExpression);
 
     if (!atLeastOneKey) {
-      final List<? extends Expression> originalKeys = joinKey.getOriginalViableKeys(schema);
+      final boolean synthetic = joinKey.isSynthetic();
+      final List<? extends Expression> viable = joinKey.getOriginalViableKeys(schema);
 
-      final Optional<Expression> syntheticKey = joinKey.isSynthetic()
-          ? Optional.of(originalKeys.get(0))
-          : Optional.empty();
-
-      final String additional = syntheticKey
-          .map(e -> System.lineSeparator()
-              + e + " was added as a synthetic key column because the join criteria did "
-              + "not match any source column. "
-              + "This expression must be included in the projection and may be aliased. ")
-          .orElse("");
-
-      throwKeysNotIncludedError(sinkName, "join expression", originalKeys, or(), additional);
+      throwKeysNotIncludedError(sinkName, "join expression", viable, false, synthetic);
     }
   }
 
@@ -185,15 +172,13 @@ public class JoinNode extends PlanNode {
   protected Set<ColumnReferenceExp> validateColumns(
       final RequiredColumns requiredColumns
   ) {
-    final Builder builder = requiredColumns.asBuilder();
+    final boolean noSyntheticKey = !finalJoin || !joinKey.isSynthetic();
 
-    if (finalJoin && joinKey.isSynthetic()) {
-      builder.remove(
-          new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name())
-      );
-    }
-
-    final RequiredColumns updated = builder.build();
+    final RequiredColumns updated = noSyntheticKey
+        ? requiredColumns
+        : requiredColumns.asBuilder()
+            .remove(new UnqualifiedColumnReferenceExp(getOnlyElement(schema.key()).name()))
+            .build();
 
     final Set<ColumnReferenceExp> leftUnknown = left.validateColumns(updated);
     final Set<ColumnReferenceExp> rightUnknown = right.validateColumns(updated);
@@ -202,26 +187,30 @@ public class JoinNode extends PlanNode {
   }
 
   private ColumnName getKeyColumnName() {
-    return Iterables.getOnlyElement(getSchema().key()).name();
+    return getOnlyElement(getSchema().key()).name();
   }
 
   private void ensureMatchingPartitionCounts(final KafkaTopicClient kafkaTopicClient) {
     final int leftPartitions = left.getPartitions(kafkaTopicClient);
     final int rightPartitions = right.getPartitions(kafkaTopicClient);
-
-    if (leftPartitions != rightPartitions) {
-      throw new KsqlException(
-          "Can't join " + getSourceName(left) + " with "
-              + getSourceName(right) + " since the number of partitions don't "
-              + "match. " + getSourceName(left) + " partitions = "
-              + leftPartitions + "; " + getSourceName(right) + " partitions = "
-              + rightPartitions + ". Please repartition either one so that the "
-              + "number of partitions match.");
+    if (leftPartitions == rightPartitions) {
+      return;
     }
+
+    final SourceName leftSource = getSourceName(left);
+    final SourceName rightSource = getSourceName(right);
+
+    throw new KsqlException(
+        "Can't join " + leftSource + " with "
+            + rightSource + " since the number of partitions don't "
+            + "match. " + leftSource + " partitions = "
+            + leftPartitions + "; " + rightSource + " partitions = "
+            + rightPartitions + ". Please repartition either one so that the "
+            + "number of partitions match.");
   }
 
-  private static String getSourceName(final PlanNode node) {
-    return node.getTheSourceNode().getAlias().text();
+  private static SourceName getSourceName(final PlanNode node) {
+    return node.getLeftmostSourceNode().getAlias();
   }
 
   private static class JoinerFactory {
@@ -294,7 +283,7 @@ public class JoinNode extends PlanNode {
     }
 
     static ValueFormat getFormatForSource(final PlanNode sourceNode) {
-      return sourceNode.getTheSourceNode()
+      return sourceNode.getLeftmostSourceNode()
           .getDataSource()
           .getKsqlTopic()
           .getValueFormat();
@@ -599,7 +588,7 @@ public class JoinNode extends PlanNode {
     @Override
     public List<? extends Expression> getOriginalViableKeys(final LogicalSchema schema) {
       return ImmutableList.of(
-          new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(schema.key()).name())
+          new UnqualifiedColumnReferenceExp(getOnlyElement(schema.key()).name())
       );
     }
 
@@ -611,14 +600,12 @@ public class JoinNode extends PlanNode {
       // re-partitions or earlier joins in multi-way joins are only implementation details and
       // should not affect the naming of the synthetic key column.
 
-      final PlanSourceExtractorVisitor extractor = new PlanSourceExtractorVisitor();
+      final Stream<LogicalSchema> schemas = Streams
+          .concat(left.getSourceNodes(), right.getSourceNodes())
+          .map(DataSourceNode::getDataSource)
+          .map(DataSource::getSchema);
 
-      final LogicalSchema[] schemas = Streams
-          .concat(extractor.extract(left), extractor.extract(right))
-          .map(DataSource::getSchema)
-          .toArray(LogicalSchema[]::new);
-
-      return ColumnNames.nextKsqlColAlias(schemas);
+      return ColumnNames.generateSyntheticJoinKey(schemas);
     }
 
     @Override

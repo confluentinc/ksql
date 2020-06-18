@@ -37,6 +37,52 @@
       }
     },
     {
+      "name": "udafs only in having (stream->table)",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT NAME, LEN(NAME) AS LEN FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"NAME": "bob"}},
+        {"topic": "test_topic", "value": {"NAME": "bob"}},
+        {"topic": "test_topic", "value": {"NAME": "bob"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "bob", "value": null},
+        {"topic": "OUTPUT", "key": "bob", "value": {"LEN": 3}},
+        {"topic": "OUTPUT", "key": "bob", "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyFormat": {"format": "KAFKA"}, "schema": "NAME STRING KEY, LEN INT"}
+        ]
+      }
+    },
+    {
+      "name": "all columns - repartition (stream->table)",
+      "comment": "Currently, at least one value column is required...",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT NAME FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The projection contains no value columns."
+      }
+    },
+    {
+      "name": "all columns - no repartition (stream->table)",
+      "comment": "Currently, at least one value column is required...",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, V0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT NAME FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The projection contains no value columns."
+      }
+    },
+    {
       "name": "value column (stream->table)",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -285,6 +331,34 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "table", "schema": "NEW_KEY INT KEY, COUNT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "steam with no key",
+      "statements": [
+        "CREATE STREAM TEST (data INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"data": 22}},
+        {"topic": "test_topic", "value": {"data": 333}},
+        {"topic": "test_topic", "value": {"data": 22}}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 22, "value": {"ROWTIME": 0, "DATA": 22}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 333, "value": {"ROWTIME": 0, "DATA": 333}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 22, "value": {"ROWTIME": 0, "DATA": 22}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 22, "value": {"ROWTIME": 0, "DATA": 22, "KSQL_AGG_VARIABLE_0": 1}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 333, "value": {"ROWTIME": 0, "DATA": 333, "KSQL_AGG_VARIABLE_0": 1}},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 22, "value": {"ROWTIME": 0, "DATA": 22, "KSQL_AGG_VARIABLE_0": 2}},
+        {"topic": "OUTPUT", "key": 22, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": 333, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": 22, "value": {"COUNT": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "DATA INT KEY, COUNT BIGINT"}
         ]
       }
     },
@@ -1881,14 +1955,14 @@
       }
     },
     {
-      "name": "with projection without aggregate functions (stream->table)",
+      "name": "without aggregate functions (stream->table)",
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(d1, 1, 2) FROM TEST GROUP BY d2;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "GROUP BY requires columns using aggregate functions in SELECT clause."
+        "message": "GROUP BY requires aggregate functions in either the SELECT or HAVING clause."
       }
     },
     {

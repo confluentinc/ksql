@@ -31,7 +31,7 @@ named `users`.
 
 The following example creates a table that has four columns from the
 `users` topic: `registertime`, `userid`, `gender`, and `regionid`. 
-The `userid` column is the primary key of the table. This means it is loaded from the Kafka message
+The `userid` column is the primary key of the table. This means that it's loaded from the {{ site.ak }} message
 key. Primary key columns can not be `NULL`.
 
 ksqlDB can't infer the topic value's data format, so you must provide the
@@ -356,4 +356,3 @@ Next Steps
 ----------
 
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
-

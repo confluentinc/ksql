@@ -38,9 +38,17 @@ class HighAvailabilityTestUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(HighAvailabilityTestUtil.class);
 
-  static ClusterStatusResponse sendClusterStatusRequest(final TestKsqlRestApp restApp) {
-    try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient()) {
-      final RestResponse<ClusterStatusResponse> res = restClient.makeClusterStatusRequest();
+  static ClusterStatusResponse sendClusterStatusRequest(
+      final TestKsqlRestApp restApp) {
+    return sendClusterStatusRequest(restApp, Optional.empty());
+  }
+
+  static ClusterStatusResponse sendClusterStatusRequest(
+      final TestKsqlRestApp restApp,
+      final Optional<BasicCredentials> credentials) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(credentials)) {
+      final RestResponse<ClusterStatusResponse> res = restClient
+          .makeClusterStatusRequest();
 
       if (res.isErroneous()) {
         throw new AssertionError("Erroneous result: " + res.getErrorMessage());
@@ -70,9 +78,19 @@ class HighAvailabilityTestUtil {
       final KsqlHostInfoEntity remoteServer,
       final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function
   ) {
+    return waitForRemoteServerToChangeStatus(restApp, remoteServer, function, Optional.empty());
+  }
+
+  static ClusterStatusResponse  waitForRemoteServerToChangeStatus(
+      final TestKsqlRestApp restApp,
+      final KsqlHostInfoEntity remoteServer,
+      final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function,
+      final Optional<BasicCredentials> credentials
+  ) {
     while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp);
-      if(function.apply(remoteServer, clusterStatusResponse.getClusterStatus())) {
+      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp,
+          credentials);
+      if (function.apply(remoteServer, clusterStatusResponse.getClusterStatus())) {
         return clusterStatusResponse;
       }
       try {
@@ -84,10 +102,20 @@ class HighAvailabilityTestUtil {
   }
 
   static void waitForClusterToBeDiscovered(
-      final TestKsqlRestApp restApp, final int numServers
+      final TestKsqlRestApp restApp,
+      final int numServers
+  ) {
+    waitForClusterToBeDiscovered(restApp, numServers, Optional.empty());
+  }
+
+  static void waitForClusterToBeDiscovered(
+      final TestKsqlRestApp restApp,
+      final int numServers,
+      final Optional<BasicCredentials> credentials
   ) {
     while (true) {
-      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp);
+      final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(
+          restApp, credentials);
       if(allServersDiscovered(numServers, clusterStatusResponse.getClusterStatus())) {
         break;
       }

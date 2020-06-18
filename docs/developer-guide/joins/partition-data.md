@@ -41,7 +41,7 @@ repartitioning, ksqlDB uses the correct format. If the data in your {{ site.ak }
 does not have a suitable key format, see [Key Requirements](syntax-reference.md#key-requirements).
 
 The KAFKA format doesn't support serializing the column name within the data, so the key column name is 
-not important when it comes to joins. The key column type is important: for the join to be valid
+not important for joins. The key column type is important: for the join to be valid,
 both sides must have a key with the same SQL type.
 
 The following example shows a `users` table joined with a `clicks` stream

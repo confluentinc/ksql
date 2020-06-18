@@ -1,6 +1,8 @@
 # Build products
 target/
 docs/_build/
+# Javadocs
+docs/developer-guide/ksqldb-clients/java-client/api
 dist/
 node/
 node_modules/

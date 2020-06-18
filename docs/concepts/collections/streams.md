@@ -72,7 +72,7 @@ It's important that the columns you define match the data in the existing topic.
 In this case, the message would need a `KAFKA` serialized `VARCHAR` in the message key
 and an `AVRO` serialized record containing a `title` field in the message value.
 
-If both the `author` and `title` columns where in the message value we could write: 
+If both the `author` and `title` columns are in the message value, you can write: 
 
 ```sql
 CREATE STREAM publications (

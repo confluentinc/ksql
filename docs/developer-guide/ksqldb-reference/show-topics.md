@@ -38,7 +38,8 @@ between each of the topic partition's latest and earliest offset.
 For non-compacted topics, for example those normally backing a stream, this number is the _actual_ 
 row count in the topic. 
 
-For compacted topics, for example those normally backing a table, this number is the _maximum_ row 
+For compacted topics, like those normally backing a table, this number is the _maximum_ row 
+
 count possible in the table. Key compaction likely mean the _actual_ number of rows is much less.  
 
 Example

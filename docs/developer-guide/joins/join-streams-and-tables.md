@@ -236,7 +236,7 @@ later populated. For the LEFT JOIN the same scenario results in an output
 of leftRecord-NULL.  It is therefore important that the table data is 
 loaded _before_ the stream event is received. 
 
-KsqlDB attempts to process both sides of a join in event-time order, 
+ksqlDB attempts to process both sides of a join in event-time order, 
 but it can't offer strong guarantees, especially in the presence of 
 out-of-order rows. 
 

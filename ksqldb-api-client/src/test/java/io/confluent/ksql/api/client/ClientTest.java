@@ -594,10 +594,15 @@ public class ClientTest extends BaseApiTest {
     }
     assertThat(acksSubscriber.isCompleted(), is(false));
 
+    assertThat(acksPublisher.isComplete(), is(false));
+    assertThat(acksPublisher.isFailed(), is(false));
+
     // When:
     insertsPublisher.complete();
 
     // Then:
+    assertThatEventually(acksPublisher::isComplete, is(true));
+    assertThat(acksPublisher.isFailed(), is(false));
     assertThatEventually(acksSubscriber::isCompleted, is(true));
   }
 
@@ -647,6 +652,9 @@ public class ClientTest extends BaseApiTest {
       assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
     }
     assertThatEventually(acksSubscriber::getError, is(notNullValue()));
+
+    assertThat(acksPublisher.isFailed(), is(true));
+    assertThat(acksPublisher.isComplete(), is(false));
   }
 
   protected Client createJavaClient() {

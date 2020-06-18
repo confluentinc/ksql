@@ -46,7 +46,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Publisher;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class ClientImpl implements Client {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final ClientOptions clientOptions;
   private final Vertx vertx;
@@ -147,7 +149,7 @@ public class ClientImpl implements Client {
 
     final Buffer requestBody = Buffer.buffer();
     final JsonObject params = new JsonObject().put("target", streamName);
-    requestBody.appendBuffer(params.toBuffer()).appendString("\n"); // TODO: is this extra newline needed?
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
 
     makeRequest(
         "/inserts-stream",

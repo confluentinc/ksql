@@ -18,7 +18,8 @@ package io.confluent.ksql.api.client;
 import org.reactivestreams.Publisher;
 
 /**
- * TODO
+ * A Reactive Streams Publisher that publishes server acknowledgments for rows inserted into
+ * an existing ksqlDB stream via {@link Client#streamInserts(String, Publisher)}.
  */
 public interface AcksPublisher extends Publisher<InsertAck> {
 
@@ -26,7 +27,7 @@ public interface AcksPublisher extends Publisher<InsertAck> {
    * Returns whether the {@code AcksPublisher} is complete.
    *
    * <p>An {@code AcksPublisher} is complete if the HTTP connection associated with this
-   * {@code insertsStream()} request has been ended gracefully. Once complete, the
+   * {@link Client#streamInserts} request has been ended gracefully. Once complete, the
    * {@code AcksPublisher} will continue to deliver any remaining rows, then call
    * {@code onComplete()} on the subscriber, if present.
    *

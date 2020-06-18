@@ -624,6 +624,9 @@ public class ClientIntegrationTest {
     assertThat(acksSubscriber.getError(), is(nullValue()));
     assertThat(acksSubscriber.isCompleted(), is(false));
 
+    assertThat(acksPublisher.isComplete(), is(false));
+    assertThat(acksPublisher.isFailed(), is(false));
+
     // Then: should receive new rows
     final String query = "SELECT * FROM " + EMPTY_TEST_STREAM_2 + " EMIT CHANGES LIMIT " + numRows + ";";
     final List<Row> rows = client.executeQuery(query).get();
@@ -645,6 +648,9 @@ public class ClientIntegrationTest {
     // Then
     assertThatEventually(acksSubscriber::isCompleted, is(true));
     assertThat(acksSubscriber.getError(), is(nullValue()));
+
+    assertThat(acksPublisher.isComplete(), is(true));
+    assertThat(acksPublisher.isFailed(), is(false));
   }
 
   @Test

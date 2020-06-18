@@ -15,8 +15,20 @@
 
 package io.confluent.ksql.api.client;
 
+import org.reactivestreams.Publisher;
+
+/**
+ * An acknowledgment from the ksqlDB server that a row has been successfully inserted into a
+ * ksqlDB stream. See {@link Client#streamInserts(String, Publisher)} for details.
+ */
 public interface InsertAck {
 
+  /**
+   * Returns the corresponding sequence number for this acknowledgment. Sequence numbers start at
+   * zero for each new {@link Client#streamInserts} request.
+   *
+   * @return the sequence number
+   */
   long seqNum();
 
 }

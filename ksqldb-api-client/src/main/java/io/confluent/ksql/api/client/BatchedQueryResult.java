@@ -24,6 +24,10 @@ import java.util.concurrent.CompletableFuture;
  * {@link StreamedQueryResult} should be used instead.
  *
  * <p>If a non-200 response is received from the server, this future will complete exceptionally.
+ *
+ * <p>The maximum number of {@code Row}s that may be returned from a {@code BatchedQueryResult}
+ * defaults to {@link ClientOptions#DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS} and can be configured
+ * via {@link ClientOptions#setExecuteQueryMaxResultRows(int)}.
  */
 public abstract class BatchedQueryResult extends CompletableFuture<List<Row>> {
 

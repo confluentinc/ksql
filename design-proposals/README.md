@@ -66,9 +66,8 @@ Next KLIP number: **30**
 | [KLIP-23: PRIMARY KEYs for tables](klip-23-primary-keys-for-tables.md)                               | Merged         | 0.9.0             | 6.0.0      |               |
 | [KLIP-24: KEY column semantics in queries](klip-24-key-column-semantics-in-queries.md)               | Merged         | 0.10.0            | 6.0.0      |               |
 | [KLIP-25: Removal of `WITH(KEY)` syntax](klip-25-removal-of-with-key-syntax.md)                      | Merged         | 0.10.0            | 6.0.0      |               |
-| [KLIP-26: Java client interfaces](klip-26-java-client-interfaces.md)                                 | Proposal       |                   |            |               |
+| [KLIP-26: Java client interfaces](klip-26-java-client-interfaces.md)                                 | Merged         | 0.10.0            | 6.0.0      |               |
 | KLIP-27: Enhanced UDF Configuration Options                                                          | Proposal       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/5269) |
 | KLIP-28: Introduce 'CREATE OR REPLACE' for Query Upgrades                                            | Proposal       |                   |            |               |
 | [KLIP-29: Explicit Table Primary Keys and Key-less Streams]( klip-29-explicit-keys.md)               | Merged         | 0.10.0            | 6.0.0      | [Discussion](https://github.com/confluentinc/ksql/pull/5530) |
-
 

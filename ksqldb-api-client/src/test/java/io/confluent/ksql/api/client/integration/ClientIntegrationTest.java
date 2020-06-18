@@ -35,10 +35,13 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.InsertAck;
+import io.confluent.ksql.api.client.InsertsPublisher;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
@@ -112,6 +115,11 @@ public class ClientIntegrationTest {
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
   private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.kstreamName();
 
+  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider<>(
+      "EMPTY_STRUCTURED_TYPES_2", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
+  private static final String EMPTY_TEST_TOPIC_2 = EMPTY_TEST_DATA_PROVIDER_2.topicName();
+  private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.kstreamName();
+
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
@@ -138,16 +146,15 @@ public class ClientIntegrationTest {
 
   @BeforeClass
   public static void setUpClass() {
-    TEST_HARNESS.ensureTopics(TEST_TOPIC);
+    TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC, EMPTY_TEST_TOPIC_2);
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
+    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
+    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER_2);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT STR, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY STR;"
     );
-
-    TEST_HARNESS.ensureTopics(EMPTY_TEST_TOPIC);
-    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
 
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
@@ -558,6 +565,72 @@ public class ClientIntegrationTest {
     assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
     assertThat(row.getKsqlArray("ARRAY"), is(new KsqlArray().add("v1_shouldExecuteQueryWithProperties").add("v2_shouldExecuteQueryWithProperties")));
     assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties")));
+  }
+
+  @Test
+  public void shouldStreamInserts() throws Exception {
+    // Given
+    final InsertsPublisher insertsPublisher = new InsertsPublisher();
+    final int numRows = 5;
+
+    // When
+    final AcksPublisher acksPublisher = client.streamInserts(EMPTY_TEST_STREAM_2, insertsPublisher).get();
+
+    TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
+    assertThat(acksSubscriber.getValues(), hasSize(0));
+    acksSubscriber.getSub().request(numRows);
+
+    for (int i = 0; i < numRows; i++) {
+      insertsPublisher.accept(new KsqlObject()
+          .put("STR", "TEST_" + i)
+          .put("LONG", i)
+          .put("DEC", new BigDecimal("13.31"))
+          .put("ARRAY", new KsqlArray().add("v_" + i))
+          .put("MAP", new KsqlObject().put("k_" + i, "v_" + i)));
+    }
+
+    // Then
+    assertThatEventually(acksSubscriber::getValues, hasSize(numRows));
+    for (int i = 0; i < numRows; i++) {
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+    }
+    assertThat(acksSubscriber.getError(), is(nullValue()));
+    assertThat(acksSubscriber.isCompleted(), is(false));
+
+    // Then: should receive new rows
+    final String query = "SELECT * FROM " + EMPTY_TEST_STREAM_2 + " EMIT CHANGES LIMIT " + numRows + ";";
+    final List<Row> rows = client.executeQuery(query).get();
+
+    // Verify inserted rows are as expected
+    assertThat(rows, hasSize(numRows));
+    for (int i = 0; i < numRows; i++) {
+      assertThat(rows.get(i).getString("STR"), is("TEST_" + i));
+      assertThat(rows.get(i).getLong("LONG"), is(Long.valueOf(i)));
+      assertThat(rows.get(i).getDecimal("DEC"), is(new BigDecimal("13.31")));
+      assertThat(rows.get(i).getKsqlArray("ARRAY"), is(new KsqlArray().add("v_" + i)));
+      assertThat(rows.get(i).getKsqlObject("MAP"), is(new KsqlObject().put("k_" + i, "v_" + i)));
+    }
+
+    // When: end connection
+    insertsPublisher.complete();
+
+    // Then
+    assertThatEventually(acksSubscriber::isCompleted, is(true));
+    assertThat(acksSubscriber.getError(), is(nullValue()));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromStreamInserts() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.streamInserts(AGG_TABLE, new InsertsPublisher()).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
   }
 
   private Client createClient() {

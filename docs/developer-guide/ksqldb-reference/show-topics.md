@@ -32,7 +32,8 @@ and their active consumer counts.
 
 `SHOW TOPICS EXTENDED` includes additional information about each topic, including the 
 `Max Row Count`. This is intended as a guide only. It is calculated as the sum of the difference 
-between each of topic partition's latest and earliest offset. 
+between each of the topic partition's latest and earliest offset. 
+
 
 For non-compacted topics, for example those normally backing a stream, this number is the _actual_ 
 row count in the topic. 

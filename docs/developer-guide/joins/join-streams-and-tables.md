@@ -237,7 +237,7 @@ of leftRecord-NULL.  It is therefore important that the table data is
 loaded _before_ the stream event is received. 
 
 KsqlDB attempts to process both sides of a join in event-time order, 
-but can not offer strong guarantees, especially in the presence of 
+but it can't offer strong guarantees, especially in the presence of 
 out-of-order rows. 
 
 To maximise join predictability, ensure historic table data is available in the 

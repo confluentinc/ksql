@@ -27,14 +27,15 @@ public class ClientTlsMutualAuthTest extends ClientTlsTest {
 
   @Override
   protected KsqlRestConfig createServerConfig() {
-    final Map<String, Object> config = serverConfigWithTls();
-    config.put(
+    KsqlRestConfig config = super.createServerConfig();
+    Map<String, Object> origs = config.originals();
+    origs.put(
         KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
         KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED
     );
-    config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, TRUST_STORE_PATH);
-    config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUST_STORE_PASSWORD);
-    return new KsqlRestConfig(config);
+    origs.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, TRUST_STORE_PATH);
+    origs.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, TRUST_STORE_PASSWORD);
+    return new KsqlRestConfig(origs);
   }
 
   @Override

@@ -51,15 +51,20 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.junit.runners.MethodSorters;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
+// shouldFailOnAvroWithoutSchemasIfSchemaNotEvolvable fails if run after shouldHandleJsonWithSchemas
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class StandaloneExecutorFunctionalTest {
 
   @ClassRule
@@ -100,6 +105,7 @@ public class StandaloneExecutorFunctionalTest {
     final Map<String, Object> properties = ImmutableMap.<String, Object>builder()
         .putAll(KsqlConfigTestUtil.baseTestConfig())
         .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers())
+        .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
         .build();
 
     final Function<KsqlConfig, ServiceContext> serviceContextFactory = config ->

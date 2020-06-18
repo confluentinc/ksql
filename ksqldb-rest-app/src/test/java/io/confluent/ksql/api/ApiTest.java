@@ -246,7 +246,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("OK"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size() - 1));
-    validateError(ERROR_CODE_SERVER_ERROR, "Error in processing query", queryResponse.error);
+    validateError(ERROR_CODE_SERVER_ERROR, "Error in processing query. Check server logs for details.", queryResponse.error);
     assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
     assertThat(server.getQueryIDs().isEmpty(), is(true));
   }
@@ -505,7 +505,7 @@ public class ApiTest extends BaseApiTest {
     String responseBody = response.bodyAsString();
     InsertsResponse insertsResponse = new InsertsResponse(responseBody);
     assertThat(insertsResponse.acks, hasSize(rows.size() - 1));
-    validateInsertStreamError(ERROR_CODE_SERVER_ERROR, "Error in processing inserts",
+    validateInsertStreamError(ERROR_CODE_SERVER_ERROR, "Error in processing inserts. Check server logs for details.",
         insertsResponse.error,
         (long) rows.size() - 1);
     assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));

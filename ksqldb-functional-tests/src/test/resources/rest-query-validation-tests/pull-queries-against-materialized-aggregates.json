@@ -1105,6 +1105,19 @@
         "message": "Ony comparison to literals is currently supported: (ID = CAST(1 AS INTEGER))",
         "status": 400
       }
+    },
+    {
+      "name": "on stream",
+      "statements": [
+        "CREATE STREAM S1 (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S2 AS SELECT * FROM S1;",
+        "SELECT * FROM S2 WHERE ID = 10;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Pull queries are not supported on streams.",
+        "status": 400
+      }
     }
   ]
 }

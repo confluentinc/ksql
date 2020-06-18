@@ -22,9 +22,11 @@ The quick start shows how to:
 ksqlDB Tutorials and Examples
 -----------------------------
 
-The [ksqlDB tutorials and examples](tutorials/index.md)
-page provides introductory and advanced ksqlDB usage scenarios in both
-local and Docker-based versions.
+- The [Tutorials](tutorials/index.md) page provides introductory and advanced
+  ksqlDB usage scenarios.
 
-- The [ksqlDB Examples](tutorials/examples.md) show commonly used SQL queries
+- The [Examples](tutorials/examples.md) page shows commonly used SQL queries
   and statements used in ksqlDB applications.
+
+- The [How-to guides](how-to-guides/index.md) are compact lessons that help you work with
+  commonly used ksqlDB functionality.

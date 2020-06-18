@@ -31,6 +31,7 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,8 @@ public final class KafkaClusterUtil {
       );
 
       return authorizedOperations.authorizedOperations().get() != null;
+    } catch (final UnsupportedVersionException e) {
+      return false;
     } catch (final Exception e) {
       throw new KsqlServerException("Could not get Kafka authorized operations!", e);
     }

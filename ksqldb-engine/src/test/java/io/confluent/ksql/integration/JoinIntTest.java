@@ -29,6 +29,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,7 +62,9 @@ public class JoinIntTest {
       .around(TEST_HARNESS);
 
   @Rule
-  public final TestKsqlContext ksqlContext = TEST_HARNESS.buildKsqlContext();
+  public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
+      .withAdditionalConfig(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .build();
 
   private final long now = System.currentTimeMillis();
   private String itemTableTopicJson = "ItemTopicJson";

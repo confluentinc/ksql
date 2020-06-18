@@ -30,7 +30,7 @@ named `pageviews`.
 ### Create a Stream with Selected Columns
 
 The following example creates a stream that has three columns from the
-`pageviews` topic: `viewtime`, `userid`, and `pageid`. All these columns will be loaded from the 
+`pageviews` topic: `viewtime`, `userid`, and `pageid`. All of these columns are loaded from the 
 {{ site.ak }} topic message value. If you wish to access data in your message key see 
 [Create a Stream with a Specified Key](#create-a-stream-with-a-specified-key), below.
 

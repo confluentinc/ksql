@@ -35,6 +35,7 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.context.QueryLoggerUtil.QueryType;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -63,6 +64,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -896,8 +898,8 @@ public final class PullQueryExecutor {
         .getProcessingLogContext()
         .getLoggerFactory()
         .getLogger(
-            QueryLoggerUtil
-                .queryLoggerName(queryId, contextStacker.push("PROJECT").getQueryContext())
+            QueryLoggerUtil.queryLoggerName(
+                QueryType.PULL_QUERY, contextStacker.push("PROJECT").getQueryContext())
         );
 
     final KsqlTransformer<Object, GenericRow> transformer = select
@@ -983,8 +985,15 @@ public final class PullQueryExecutor {
 
     final QueryId queryId = new QueryId(Iterables.get(queries, 0));
 
-    return executionContext.getPersistentQuery(queryId)
+    final PersistentQueryMetadata query = executionContext
+        .getPersistentQuery(queryId)
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
+
+    if (query.getDataSourceType() != DataSourceType.KTABLE) {
+      throw new KsqlException("Pull queries are not supported on streams.");
+    }
+
+    return query;
   }
 
   private static SourceName getSourceName(final ImmutableAnalysis analysis) {

@@ -36,15 +36,15 @@ component. Both components have their own Docker images.
 Confluent maintains images on [Docker Hub](https://hub.docker.com/u/confluentinc)
 for ksqlDB components.
 
-- [ksqldb-server](https://hub.docker.com/r/confluentinc/ksqldb-server/):
+- **[ksqldb-server](https://hub.docker.com/r/confluentinc/ksqldb-server/):**
   ksqlDB Server image
-- [ksqldb-cli](https://hub.docker.com/r/confluentinc/ksqldb-cli/):
+- **[ksqldb-cli](https://hub.docker.com/r/confluentinc/ksqldb-cli/):**
   ksqlDB command-line interface (CLI) image
-- [cp-zookeeper](https://hub.docker.com/r/confluentinc/cp-zookeeper):
+- **[cp-zookeeper](https://hub.docker.com/r/confluentinc/cp-zookeeper):**
   {{ site.zk }} image (Community Version)
-- [cp-schema-registry](https://hub.docker.com/r/confluentinc/cp-schema-registry):
+- **[cp-schema-registry](https://hub.docker.com/r/confluentinc/cp-schema-registry):**
   {{ site.sr }} image (Community Version)
-- [cp-kafka](https://hub.docker.com/r/confluentinc/cp-kafka):
+- **[cp-kafka](https://hub.docker.com/r/confluentinc/cp-kafka):**
   {{ site.aktm }} image (Community Version)
 
 Install ksqlDB and {{ site.aktm }} by starting a
@@ -103,23 +103,24 @@ Build a ksqlDB application
 The following steps describe how to define and deploy a stack for a ksqlDB
 application.
 
-### 1.  Define the services for your ksqlDB application
+### 1. Define the services for your ksqlDB application
 
 Decide which services you need for your ksqlDB application. 
 
 For a local installation, include one or more {{ site.ak }} brokers in the
 stack and one or more ksqlDB Server instances. 
 
-- {{ site.zk }} -- one, for cluster metadata
-- {{ site.ak }} -- one or more
-- {{ site.sr }} -- optional, but required for Avro and Protobuf
-- ksqlDB Server  -- one or more
-- ksqlDB CLI -- optional
-- Other services -- like Elasticsearch, optional
+- **{{ site.zk }}:** one instance, for cluster metadata
+- **{{ site.ak }}:** one or more instances
+- **{{ site.sr }}:** optional, but required for Avro, Protobuf, and JSON_SR
+- **ksqlDB Server:** one or more instances
+- **ksqlDB CLI:** optional
+- **Other services:** like Elasticsearch, optional
 
 !!! note
-    A stack that runs {{ site.sr }} can handle Avro- and Protobuf-encoded events.
-    Without {{ site.sr }}, ksqlDB handles only JSON or delimited schemas for events. 
+    A stack that runs {{ site.sr }} can handle Avro, Protobuf, and JSON_SR
+    formats. Without {{ site.sr }}, ksqlDB handles only JSON or delimited
+    schemas for events. 
 
 You can declare a container for the ksqlDB CLI in the stack, or you can attach
 the CLI to a ksqlDB Server instance later, from a separate container.
@@ -140,28 +141,39 @@ To bring up the stack and run ksqlDB, use the
 which reads your `docker-compose.yml` file and runs containers for your
 {{ site.ak }} and ksqlDB services. 
 
-ksqlDB Tutorial stack
----------------------
+ksqlDB reference stack
+----------------------
 
 Many `docker-compose.yml` files exist for different configurations, and this
 topic shows a simple stack that you can extend for your use cases. The
-stack for the [ksqlDB Tutorial](../../tutorials/basics-docker.md) brings up
-these services:
+[ksqlDB reference stack](https://github.com/confluentinc/ksql/blob/master/docker-compose.yml)
+brings up these services:
 
-- {{ site.zk }}
-- {{ site.ak }} -- one broker
-- {{ site.sr }} -- enables Avro and Protobuf
-- ksqlDB Server -- one instance
+- **{{ site.zk }}:** one instance
+- **{{ site.ak }}:** one broker
+- **{{ site.sr }}:** enables Avro, Protobuf, and JSON_SR
+- **ksqlDB Server:** two instances
+- **ksqlDB CLI:** one container running `/bin/sh`
 
-Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docs/tutorials/docker-compose.yml)
-for the [ksqlDB Tutorial](../../tutorials/basics-docker.md) to get started with
-a local installation of ksqlDB.
+### 1. Clone the ksqlDB repository.
 
-Start the stack
----------------
+```bash
+git clone https://github.com/confluentinc/ksql.git
+cd ksql
+```
 
-Navigate to the directory where you saved `docker-compose.yml` and start the
-stack by using the `docker-compose up` command:
+### 2. Switch to the correct branch
+
+Switch to the correct ksqlDB release branch.
+
+```bash
+git checkout {{ site.releasepostbranch }}
+```
+
+### 3. Start the stack
+
+Start the stack by using the `docker-compose up` command. Depending on your
+network speed, this may take up to 5-10 minutes.
 
 ```bash
 docker-compose up -d
@@ -173,11 +185,13 @@ docker-compose up -d
 Your output should resemble:
 
 ```
-Creating network "tutorials_default" with the default driver
-Creating tutorials_zookeeper_1 ... done
-Creating tutorials_kafka_1     ... done
-Creating tutorials_schema-registry_1 ... done
-Creating tutorials_ksql-server_1     ... done
+Creating network "ksql_default" with the default driver
+Creating ksql_zookeeper_1 ... done
+Creating ksql_kafka_1     ... done
+Creating ksql_schema-registry_1 ... done
+Creating primary-ksqldb-server  ... done
+Creating ksqldb-cli               ... done
+Creating additional-ksqldb-server ... done
 ```
 
 Run the following command to check the status of the stack.
@@ -189,12 +203,14 @@ docker-compose ps
 Your output should resemble:
 
 ```
-           Name                        Command            State                 Ports
-----------------------------------------------------------------------------------------------------
-tutorials_kafka_1             /etc/confluent/docker/run   Up      0.0.0.0:39092->39092/tcp, 9092/tcp
-tutorials_ksql-server_1       /usr/bin/docker/run         Up
-tutorials_schema-registry_1   /etc/confluent/docker/run   Up      8081/tcp
-tutorials_zookeeper_1         /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 3888/tcp
+          Name                      Command            State                 Ports
+-------------------------------------------------------------------------------------------------
+additional-ksqldb-server   /usr/bin/docker/run         Up      0.0.0.0:32768->8090/tcp
+ksql_kafka_1               /etc/confluent/docker/run   Up      0.0.0.0:29092->29092/tcp, 9092/tcp
+ksql_schema-registry_1     /etc/confluent/docker/run   Up      8081/tcp
+ksql_zookeeper_1           /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 3888/tcp
+ksqldb-cli                 /bin/sh                     Up
+primary-ksqldb-server      /usr/bin/docker/run         Up      0.0.0.0:8088->8088/tcp
 ```
 
 When all of the containers have the `Up` state, the ksqlDB stack is ready
@@ -206,18 +222,12 @@ Start the ksqlDB CLI
 When all of the services in the stack are `Up`, run the following command
 to start the ksqlDB CLI and connect to a ksqlDB Server.
 
-For the ksqlDB Tutorial stack, run the following command to start a container
-from the `ksqldb-cli:latest` image that runs the ksqlDB CLI:
+Run the following command to start the ksqlDB CLI in the running `ksqldb-cli`
+container.
 
 ```bash
-docker run --network tutorials_default --rm --interactive --tty \
-    confluentinc/ksqldb-cli:latest ksql \
-    http://ksql-server:8088
+docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088
 ```
-
-The `--interactive` and `--tty` options together enable the ksqlDB CLI process
-to communicate with the console. For more information, see
-[docker run](https://docs.docker.com/engine/reference/run/#foreground).
 
 After the ksqlDB CLI starts, your terminal should resemble the following.
 
@@ -235,7 +245,7 @@ After the ksqlDB CLI starts, your terminal should resemble the following.
 
 Copyright 2017-2020 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at http://ksql-server:8088
+CLI v{{ site.release }}, Server v{{ site.release }} located at http://primary-ksql-server:8088
 
 Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
@@ -266,6 +276,22 @@ To interact with a CLI container that's defined this way, use the
 docker exec ksqldb-cli ksql http://<ksqldb-server-host>:<ksqldb-port>
 ```
 
+### Run a ksqlDB CLI container
+
+For stacks that don't declare a container for the ksqlDB CLI, use the
+`docker run` command to start a new container from the `ksqldb-cli`
+image.
+
+```bash
+docker run --network tutorials_default --rm --interactive --tty \
+    confluentinc/ksqldb-cli:latest ksql \
+    http://ksql-server:8088
+```
+
+The `--interactive` and `--tty` options together enable the ksqlDB CLI process
+to communicate with the console. For more information, see
+[docker run](https://docs.docker.com/engine/reference/run/#foreground).
+
 Stop your ksqlDB application
 ----------------------------
 
@@ -278,15 +304,19 @@ docker-compose down
 Your output should resemble:
 
 ```
-Stopping tutorials_ksql-server_1     ... done
-Stopping tutorials_schema-registry_1 ... done
-Stopping tutorials_kafka_1           ... done
-Stopping tutorials_zookeeper_1       ... done
-Removing tutorials_ksql-server_1     ... done
-Removing tutorials_schema-registry_1 ... done
-Removing tutorials_kafka_1           ... done
-Removing tutorials_zookeeper_1       ... done
-Removing network tutorials_default
+Stopping additional-ksqldb-server ... done
+Stopping ksqldb-cli               ... done
+Stopping primary-ksqldb-server    ... done
+Stopping ksql_schema-registry_1   ... done
+Stopping ksql_kafka_1             ... done
+Stopping ksql_zookeeper_1         ... done
+Removing additional-ksqldb-server ... done
+Removing ksqldb-cli               ... done
+Removing primary-ksqldb-server    ... done
+Removing ksql_schema-registry_1   ... done
+Removing ksql_kafka_1             ... done
+Removing ksql_zookeeper_1         ... done
+Removing network ksql_default
 ```
 
 Specify ksqlDB Server configuration parameters
@@ -334,8 +364,7 @@ the IP addresses of the cluster's bootstrap servers when you start a
 container for ksqlDB Server. For more information, see
 [Configuring ksqlDB Server](server-config/index.md).
 
-To start ksqlDB containers in configurations like "ksqlDB Headless Server"
-and "ksqlDB Interactive Server (Development)", see
+To start ksqlDB containers in different configurations, see
 [Configure ksqlDB with Docker](install-ksqldb-with-docker.md).
 
 Supported versions and interoperability
@@ -344,10 +373,10 @@ Supported versions and interoperability
 You can use ksqlDB with compatible {{ site.aktm }} and {{ site.cp }}
 versions.
 
-|    ksqlDB version     | {{ site.release }} |
-| --------------------- | ------------------ |
-| Apache Kafka version  | 0.11.0 and later   |
-| {{ site.cp }} version | > 3.3.0 and later  |
+|    ksqlDB version       | {{ site.release }} |
+| ----------------------- | ------------------ |
+| {{ site.aktm }} version | 0.11.0 and later   |
+| {{ site.cp }} version   | 5.5.0 and later    |
 
 Scale your ksqlDB Server deployment
 -----------------------------------
@@ -368,7 +397,7 @@ operations, to scale query processing. You can use different resource pools
 to support workload isolation. For example, you could deploy separate pools
 for production and for testing.
 
-Next steps
+Next Steps
 ----------
 
 ### Configure ksqlDB for Confluent Cloud
@@ -380,7 +409,7 @@ For more information, see
 ### Experiment with other stacks
 
 You can try out other stacks that have different configurations, like the
-"Quickstart" and "reference" stacks.
+"Quickstart" and "PostgreSQL" stacks.
 
 #### ksqlDB Quickstart stack
 
@@ -398,24 +427,6 @@ container.
 
 ```bash
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
-```
-
-#### ksqlDB reference stack
-
-Download the [docker-compose.yml file](https://github.com/confluentinc/ksql/blob/master/docker-compose.yml)
-for the reference stack in the ksqlDB repo.
-
-This `docker-compose.yml` file defines a stack with these features:
-
-- Start two or more ksqlDB Server instances.
-- Start {{ site.sr }}.
-- Start the ksqlDB CLI container automatically. 
-  
-Use the following command to start the ksqlDB CLI in the running `ksqldb-cli`
-container.
-
-```bash
-docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088
 ```
 
 #### PostgreSQL stack

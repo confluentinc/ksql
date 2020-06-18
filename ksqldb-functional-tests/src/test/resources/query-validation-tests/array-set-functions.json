@@ -1,0 +1,176 @@
+{
+  "comments": [
+    "Tests covering the use of UDFs for set-like operations on arrays."
+  ],
+  "tests": [
+    {
+      "name": "array_distinct with literals",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, dummy INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_distinct(array['foo', 'bar', 'foo']) as a1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"dummy": 0 }},
+        {"topic": "test_topic", "key": "r2", "value": {"dummy": 0 }}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"A1": ["foo","bar"]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"A1": ["foo","bar"]}}
+      ]
+    },
+    {
+      "name": "array_distinct with primitive types",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, bools ARRAY<BOOLEAN>, ints ARRAY<INT>, bigints ARRAY<BIGINT>, doubles ARRAY<DOUBLE>, strings ARRAY<STRING>, decimals ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_distinct(bools) as bools_dist, array_distinct(ints) as ints_dist, array_distinct(bigints) as bigints_dist, array_distinct(doubles) as doubles_dist, array_distinct(strings) as strings_dist, array_distinct(decimals) as decimals_dist FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"bools": [false, true, false], "ints": [0,0,1,0,-1], "bigints": [345,-123,345], "doubles": [0.0, 0.2, -12345.678, 0.2], "strings": ["foo", "bar", "foo"], "decimals": [1.0, -0.2, 1.0, -9.9]}},
+        {"topic": "test_topic", "key": "r2", "value": {"bools": [null, false, true], "ints": [0,null,1,0,-1], "bigints": [null,-123], "doubles": [0.3, -12345.678, null, 0.3], "strings": ["foo", "Food", null, "food"], "decimals": [1.0, 1.1, 1.1, -0.2, null, 1.0]}},
+        {"topic": "test_topic", "key": "r3", "value": {"bools": [], "ints": [], "bigints": [], "doubles": [], "strings": [], "decimals": []}},
+        {"topic": "test_topic", "key": "r4", "value": {"bools": null, "ints": null, "bigints": null, "doubles": null, "strings": null, "decimals": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"BOOLS_DIST": [false, true], "INTS_DIST": [0,1,-1], "BIGINTS_DIST": [345,-123], "DOUBLES_DIST": [0.0,0.2,-12345.678], "STRINGS_DIST": ["foo","bar"], "DECIMALS_DIST": [1.0, -0.2, -9.9]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"BOOLS_DIST": [null,false,true], "INTS_DIST": [0,null,1,-1], "BIGINTS_DIST": [null,-123], "DOUBLES_DIST": [0.3,-12345.678,null], "STRINGS_DIST": ["foo", "Food", null, "food"], "DECIMALS_DIST": [1.0,1.1,-0.2,null]}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"BOOLS_DIST": [], "INTS_DIST": [], "BIGINTS_DIST": [], "DOUBLES_DIST": [], "STRINGS_DIST": [], "DECIMALS_DIST": []}},
+        {"topic": "OUTPUT", "key": "r4", "value": {"BOOLS_DIST": null, "INTS_DIST": null, "BIGINTS_DIST": null, "DOUBLES_DIST": null, "STRINGS_DIST": null, "DECIMALS_DIST": null}}
+      ]
+    },
+    {
+      "name": "array_distinct with complex types",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, lists ARRAY<ARRAY<STRING>>, maps ARRAY<MAP<STRING,INT>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_distinct(lists) as lists_dist, array_distinct(maps) as maps_dist FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"lists": [ ["foo", "bar", "foo"], ["foo", "bar", "foo"], ["foo"] ], "maps": [ {"apple": 1, "banana": 2}, {"apple": 3, "banana": 4}, {"apple": 1, "banana": 2} ] }},
+        {"topic": "test_topic", "key": "r2", "value": {"lists": [ ["foo", null], ["foo", "bar"], ["foo"] ], "maps": [ {"apple": null, "banana": 2}, {"apple": 1, "banana": 2}, {"apple": 1, "banana": 2} ] }},
+        {"topic": "test_topic", "key": "r3", "value": {"lists": [ null, ["foo"] ], "maps": [ {"apple": 1, "banana": 2}, null] }},
+        {"topic": "test_topic", "key": "r4", "value": {"lists": [ ], "maps": [ ] }},
+        {"topic": "test_topic", "key": "r5", "value": {"lists": null, "maps": null }}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"LISTS_DIST": [ ["foo","bar","foo"], ["foo"] ], "MAPS_DIST": [{"apple": 1, "banana": 2}, {"apple": 3, "banana": 4} ] }},
+        {"topic": "OUTPUT", "key": "r2", "value": {"LISTS_DIST": [ ["foo", null], ["foo","bar"], ["foo"] ], "MAPS_DIST": [{"apple": null, "banana": 2}, {"apple": 1, "banana": 2} ] }},
+        {"topic": "OUTPUT", "key": "r3", "value": {"LISTS_DIST": [ null, ["foo"] ], "MAPS_DIST": [ {"apple": 1, "banana": 2}, null ] }},
+        {"topic": "OUTPUT", "key": "r4", "value": {"LISTS_DIST": [ ], "MAPS_DIST": [ ] }},
+        {"topic": "OUTPUT", "key": "r5", "value": {"LISTS_DIST": null, "MAPS_DIST": null }}
+      ]
+    },
+    {
+      "name": "array_except with literals",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, dummy INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_except(array['foo', 'bar', 'foo'], array['bar', 'baz']) as a1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"dummy": 0 }},
+        {"topic": "test_topic", "key": "r2", "value": {"dummy": 0 }}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"A1": ["foo"]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"A1": ["foo"]}}
+      ]
+    },
+    {
+      "name": "array_except with primitive type",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, ints ARRAY<INT>, int_exceptions ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_except(ints, int_exceptions) as result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"ints": [0,0,1,0,-1], "int_exceptions": [1,-2]}},
+        {"topic": "test_topic", "key": "r2", "value": {"ints": [0,0,1,0,-1], "int_exceptions": [1,-1,0]}},
+        {"topic": "test_topic", "key": "r3", "value": {"ints": [], "int_exceptions": [1,-2]}},
+        {"topic": "test_topic", "key": "r4", "value": {"ints": [0,0,1,0,-1], "int_exceptions": []}},
+        {"topic": "test_topic", "key": "r5", "value": {"ints": null, "int_exceptions": [1,-2]}},
+        {"topic": "test_topic", "key": "r6", "value": {"ints": [0,0,1,0,-1], "int_exceptions": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": [0,-1] }},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": [] }},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": [] }},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": [0,1,-1] }},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": null }},
+        {"topic": "OUTPUT", "key": "r6", "value": {"RESULT": null }}
+      ]
+    },
+    {
+      "name": "array_intersect with literals",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, dummy INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_intersect(array['foo', 'bar', 'foo'], array['foo', 'baz']) as a1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"dummy": 0 }},
+        {"topic": "test_topic", "key": "r2", "value": {"dummy": 0 }}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"A1": ["foo"]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"A1": ["foo"]}}
+      ]
+    },
+    {
+      "name": "array_intersect with primitive type",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, arr1 ARRAY<INT>, arr2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_intersect(arr1, arr2) as result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"arr1": [0,0,1,0,-1], "arr2": [1,-2,0]}},
+        {"topic": "test_topic", "key": "r2", "value": {"arr1": [0,0,1,0,-1], "arr2": [3,4]}},
+        {"topic": "test_topic", "key": "r3", "value": {"arr1": [], "arr2": [1,-2]}},
+        {"topic": "test_topic", "key": "r4", "value": {"arr1": [0,0,1,0,-1], "arr2": []}},
+        {"topic": "test_topic", "key": "r5", "value": {"arr1": null, "arr2": [1,-2]}},
+        {"topic": "test_topic", "key": "r6", "value": {"arr1": [0,0,1,0,-1], "arr2": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": [0,1] }},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": [] }},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": [] }},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": [] }},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": null }},
+        {"topic": "OUTPUT", "key": "r6", "value": {"RESULT": null }}
+      ]
+    },
+    {
+      "name": "array_union with literals",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, dummy INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_union(array['foo', 'bar', 'foo'], array['foo', 'baz']) as a1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"dummy": 0 }},
+        {"topic": "test_topic", "key": "r2", "value": {"dummy": 0 }}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"A1": ["foo", "bar", "baz"]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"A1": ["foo", "bar", "baz"]}}
+      ]
+    },
+    {
+      "name": "array_union with primitive type",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, arr1 ARRAY<INT>, arr2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_union(arr1, arr2) as result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"arr1": [0,0,1,0,-1], "arr2": [1,-2,0]}},
+        {"topic": "test_topic", "key": "r2", "value": {"arr1": [0,0,1,0,-1], "arr2": [3,4]}},
+        {"topic": "test_topic", "key": "r3", "value": {"arr1": [], "arr2": [1,-2]}},
+        {"topic": "test_topic", "key": "r4", "value": {"arr1": [0,0,1,0,-1], "arr2": []}},
+        {"topic": "test_topic", "key": "r5", "value": {"arr1": null, "arr2": [1,-2]}},
+        {"topic": "test_topic", "key": "r6", "value": {"arr1": [0,0,1,0,-1], "arr2": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": [0,1,-1,-2] }},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": [0,1,-1,3,4] }},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": [1,-2] }},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": [0,1,-1] }},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": null }},
+        {"topic": "OUTPUT", "key": "r6", "value": {"RESULT": null }}
+      ]
+    }   
+  ]
+}

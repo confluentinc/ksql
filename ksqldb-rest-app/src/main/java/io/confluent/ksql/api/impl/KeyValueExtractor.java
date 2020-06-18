@@ -22,12 +22,9 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
-import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.vertx.core.json.JsonArray;
+import io.confluent.ksql.util.ParserUtil;
 import io.vertx.core.json.JsonObject;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
@@ -69,38 +66,23 @@ public final class KeyValueExtractor {
     return GenericRow.fromList(vals);
   }
 
+  static JsonObject convertColumnNameCase(final JsonObject jsonObjectWithCaseInsensitiveFields) {
+    try {
+      return ParserUtil.convertJsonFieldCase(jsonObjectWithCaseInsensitiveFields);
+    } catch (IllegalArgumentException e) {
+      throw new KsqlApiException(e.getMessage(), Errors.ERROR_CODE_BAD_REQUEST);
+    }
+  }
+
   private static Object coerceObject(
       final Object value,
       final SqlType sqlType,
       final SqlValueCoercer sqlValueCoercer
   ) {
-    if (sqlType instanceof SqlDecimal) {
-      // We have to handle this manually as SqlValueCoercer doesn't seem to do it
-      final SqlDecimal decType = (SqlDecimal) sqlType;
-      if (value instanceof Double) {
-        return new BigDecimal(String.valueOf(value))
-            .setScale(decType.getScale(), RoundingMode.HALF_UP);
-      } else if (value instanceof String) {
-        return new BigDecimal((String) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
-      } else if (value instanceof Integer) {
-        return new BigDecimal((Integer) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
-      } else if (value instanceof Long) {
-        return new BigDecimal((Long) value).setScale(decType.getScale(), RoundingMode.HALF_UP);
-      }
-    }
-    final Object rawValue;
-    if (value instanceof JsonArray) {
-      rawValue = ((JsonArray) value).getList();
-    } else if (value instanceof JsonObject) {
-      rawValue = ((JsonObject) value).getMap();
-    } else {
-      rawValue = value;
-    }
-    return sqlValueCoercer.coerce(rawValue, sqlType)
-
+    return sqlValueCoercer.coerce(value, sqlType)
         .orElseThrow(() -> new KsqlApiException(
-            String.format("Can't coerce a field of type %s (%s) into type %s", rawValue.getClass(),
-                rawValue, sqlType),
+            String.format("Can't coerce a field of type %s (%s) into type %s", value.getClass(),
+                value, sqlType),
             Errors.ERROR_CODE_BAD_REQUEST))
         .orElse(null);
   }

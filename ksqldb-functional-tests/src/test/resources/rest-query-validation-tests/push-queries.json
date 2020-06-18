@@ -4,6 +4,66 @@
   ],
   "tests": [
     {
+      "name": "only key column",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT K FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING"}},
+          {"row":{"columns":["11"]}},
+          {"row":{"columns":["12"]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "only value column",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT ID FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER"}},
+          {"row":{"columns":[100]}},
+          {"row":{"columns":[101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "only literal",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT 1 AS I FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`I` INTEGER"}},
+          {"row":{"columns":[1]}},
+          {"row":{"columns":[1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "explicit ROWTIME",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -429,6 +489,66 @@
       ]
     },
     {
+      "name": "windowed group by - repartition - key in projection",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT ID, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ID EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 1, "value": {"id": 2}, "timestamp": 13251}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER, `COUNT` BIGINT"}},
+          {"row":{"columns":[2, 1]}},
+          {"row":{"columns":[2, 1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed group by - no-repartition - key in projection",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT K, COUNT(1) AS count FROM TEST WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID": 2}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 1, "value": {"Id": 2}, "timestamp": 13251}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `COUNT` BIGINT"}},
+          {"row":{"columns":[0, 1]}},
+          {"row":{"columns":[1, 1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed group by - key in projection",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT ID, count(1) as count FROM test group by ID EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 1, "value": {"id": 2}, "timestamp": 13251}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER, `COUNT` BIGINT"}},
+          {"row":{"columns":[2, 1]}},
+          {"row":{"columns":[2, 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "non-windowed group by expression - key not in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -444,6 +564,27 @@
           {"header":{"schema":"`COUNT` BIGINT"}},
           {"row":{"columns":[1]}},
           {"row":{"columns":[2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "aggregate with no value columns",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT K FROM test GROUP BY K HAVING COUNT(K) > 1 EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 13251},
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 13253}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER"}},
+          {"row":{"columns":[0]}},
+          {"row":{"columns":[0]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -493,7 +634,7 @@
       }
     },
     {
-      "name": "Zero limit",
+      "name": "zero limit",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 0;"
@@ -525,6 +666,66 @@
           {"header":{"schema":"`ID` INTEGER, `K` STRING"}},
           {"row":{"columns":[100, "11"]}},
           {"row":{"columns":[101, "11"]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "streams without key columns",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT K, ID FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "should be ignored", "value": {"k": "a", "id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "should be ignored", "value": {"k": "b", "id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING, `ID` INTEGER"}},
+          {"row":{"columns":["a", 100]}},
+          {"row":{"columns":["b", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "streams without key columns - grouped",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT K, COUNT(K) AS COUNT FROM INPUT GROUP BY K EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "should be ignored", "value": {"k": "a", "id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "should be ignored", "value": {"k": "b", "id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING, `COUNT` BIGINT"}},
+          {"row":{"columns":["a", 1]}},
+          {"row":{"columns":["b", 1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "streams without key columns - windowed and grouped",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT K, COUNT(K) AS COUNT, WINDOWSTART, WINDOWEND FROM INPUT WINDOW TUMBLING (SIZE 1 MINUTE) GROUP BY K EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "should be ignored", "value": {"k": "a", "id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "should be ignored", "value": {"k": "b", "id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING, `COUNT` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT"}},
+          {"row":{"columns":["a", 1, 0, 60000]}},
+          {"row":{"columns":["b", 1, 0, 60000]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

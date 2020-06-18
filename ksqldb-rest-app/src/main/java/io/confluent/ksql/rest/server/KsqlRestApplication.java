@@ -262,7 +262,7 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         this.restConfig,
         this.ksqlConfigNoPort);
-    MetricCollectors.addConfigurableReporter(ksqlConfig);
+    MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     log.debug("ksqlDB API server instance created");
   }
 
@@ -605,12 +605,17 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
+    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopicName,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties()
+        ksqlConfig.addConfluentMetricsContextConfigsKafka(
+            restConfig.getCommandConsumerProperties(),
+            serviceId),
+        ksqlConfig.addConfluentMetricsContextConfigsKafka(
+            restConfig.getCommandProducerProperties(),
+            serviceId)
     );
 
     final InteractiveStatementExecutor statementExecutor =

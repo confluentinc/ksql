@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.impl;
 
+import static io.confluent.ksql.api.impl.KeyValueExtractor.convertColumnNameCase;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
@@ -53,7 +55,7 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
 
   private static final Logger log = LoggerFactory.getLogger(InsertsSubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 200;
-  private static final SqlValueCoercer SQL_VALUE_COERCER = DefaultSqlValueCoercer.INSTANCE;
+  private static final SqlValueCoercer SQL_VALUE_COERCER = DefaultSqlValueCoercer.API_INSTANCE;
 
   private final Producer<byte[], byte[]> producer;
   private final DataSource dataSource;
@@ -132,9 +134,11 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
   }
 
   @Override
-  protected void handleValue(final JsonObject jsonObject) {
+  protected void handleValue(final JsonObject jsonObjectWithCaseInsensitiveFields) {
 
     try {
+      final JsonObject jsonObject = convertColumnNameCase(jsonObjectWithCaseInsensitiveFields);
+
       final Struct key = extractKey(jsonObject);
       final GenericRow values = extractValues(jsonObject);
 

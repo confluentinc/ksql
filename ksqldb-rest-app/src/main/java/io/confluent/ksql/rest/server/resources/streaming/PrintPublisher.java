@@ -32,8 +32,6 @@ import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -112,8 +110,8 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
           return null;
         }
 
-        final Collection<Supplier<String>> formatted = formatter.format(records);
-        final Collection<Supplier<String>> limited = new LimitIntervalCollection<>(
+        final Collection<String> formatted = formatter.format(records);
+        final Collection<String> limited = new LimitIntervalCollection<>(
             formatted,
             printTopic.getLimit().orElse(Integer.MAX_VALUE) - numWritten,
             printTopic.getIntervalValue(),
@@ -128,9 +126,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
           setDone();
         }
 
-        return limited.stream()
-            .map(Supplier::get)
-            .collect(Collectors.toList());
+        return limited;
       } catch (final Exception e) {
         setError(e);
         return null;

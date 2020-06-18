@@ -101,7 +101,7 @@
       "outputs": [{"topic": "OUTPUT", "value": {"@TIMESTAMP": 4, "FROM": 5}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`@TIMESTAMP` BIGINT, `FROM` BIGINT"}
         ]
       }
     },
@@ -857,6 +857,54 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, ID_COPY INT"}
+        ]
+      }
+    },
+    {
+      "name": "table without primary key fails",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT, F0 INT) WITH (kafka_topic='input', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Tables require a PRIMARY KEY. Please define the PRIMARY KEY."
+      }
+    },
+    {
+      "name": "table without primary key fails - schema inference",
+      "statements": [
+        "CREATE TABLE INPUT WITH (kafka_topic='input', value_format='Avro');"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Tables require a PRIMARY KEY. Please define the PRIMARY KEY.\nUse a partial schema to define the primary key and still load the value columns from the Schema Registry, for example:\n\tCREATE TABLE INPUT (ID INT PRIMARY KEY) WITH (...);"
+      }
+    },
+    {
+      "name": "stream without key column",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT, F0 INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": null, "value": {"ID": 1, "F0": 2}},
+        {"topic": "input", "key": "should be ignored", "value": {"ID": 2, "F0": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 1, "F0": 2}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 2, "F0": 4}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID INT, F0 INT"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT, F0 INT"}
         ]
       }
     }

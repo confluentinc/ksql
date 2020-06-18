@@ -26,15 +26,17 @@ import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.PfxOptions;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -74,6 +76,7 @@ public class Server {
   private final List<URI> listeners = new ArrayList<>();
   private URI internalListener;
   private WorkerExecutor workerExecutor;
+  private FileWatcher fileWatcher;
 
   public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
       final KsqlSecurityExtension securityExtension,
@@ -92,11 +95,9 @@ public class Server {
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
     }
-    final DeploymentOptions options = new DeploymentOptions()
-        .setInstances(config.getInt(KsqlRestConfig.VERTICLE_INSTANCES));
     this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
         config.getInt(KsqlRestConfig.WORKER_POOL_SIZE));
-    log.debug("Deploying " + options.getInstances() + " instances of server verticle");
+    configureTlsCertReload(config);
 
     final List<URI> listenUris = parseListeners(config);
     final Optional<URI> internalListenUri = parseInternalListener(config, listenUris);
@@ -104,6 +105,7 @@ public class Server {
     internalListenUri.ifPresent(allListenUris::add);
 
     final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
+    log.debug("Deploying " + instances + " instances of server verticle");
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();
     final Map<URI, URI> uris = new ConcurrentHashMap<>();
@@ -162,6 +164,9 @@ public class Server {
     if (workerExecutor != null) {
       workerExecutor.close();
     }
+    if (fileWatcher != null) {
+      fileWatcher.shutdown();
+    }
     final List<CompletableFuture<Void>> undeployFutures = new ArrayList<>();
     for (String deploymentID : deploymentIds) {
       final VertxCompletableFuture<Void> future = new VertxCompletableFuture<>();
@@ -174,7 +179,14 @@ public class Server {
       throw new KsqlException("Failure in stopping API server", e);
     }
     deploymentIds.clear();
+    listeners.clear();
     log.info("API server stopped");
+  }
+
+  public synchronized void restart() {
+    log.info("Restarting server");
+    stop();
+    start();
   }
 
   public WorkerExecutor getWorkerExecutor() {
@@ -238,6 +250,26 @@ public class Server {
     return Optional.ofNullable(internalListener);
   }
 
+  private void configureTlsCertReload(final KsqlRestConfig config) {
+    if (config.getBoolean(KsqlRestConfig.SSL_KEYSTORE_RELOAD_CONFIG)) {
+      final Path watchLocation;
+      if (!config.getString(KsqlRestConfig.SSL_KEYSTORE_WATCH_LOCATION_CONFIG).isEmpty()) {
+        watchLocation = Paths.get(
+            config.getString(KsqlRestConfig.SSL_KEYSTORE_WATCH_LOCATION_CONFIG));
+      } else {
+        watchLocation = Paths.get(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG));
+      }
+
+      try {
+        fileWatcher = new FileWatcher(watchLocation, this::restart);
+        fileWatcher.start();
+        log.info("Enabled SSL cert auto reload for: " + watchLocation);
+      } catch (java.io.IOException e) {
+        log.error("Failed to enable SSL cert auto reload", e);
+      }
+    }
+  }
+
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
       final String host, final int port, final boolean tls) {
 
@@ -258,8 +290,15 @@ public class Server {
       final Password keyStorePassword = ksqlRestConfig
           .getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
       if (keyStorePath != null && !keyStorePath.isEmpty()) {
-        options.setKeyStoreOptions(
-            new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
+        final String keyStoreType =
+            ksqlRestConfig.getString(KsqlRestConfig.SSL_KEYSTORE_TYPE_CONFIG);
+        if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+          options.setKeyStoreOptions(
+              new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
+        } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+          options.setPfxKeyCertOptions(
+              new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
+        }
       }
 
       final String trustStorePath = ksqlRestConfig
@@ -267,8 +306,15 @@ public class Server {
       final Password trustStorePassword = ksqlRestConfig
           .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
       if (trustStorePath != null && !trustStorePath.isEmpty()) {
-        options.setTrustStoreOptions(
-            new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+        final String trustStoreType =
+            ksqlRestConfig.getString(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG);
+        if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+          options.setTrustStoreOptions(
+              new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+        } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+          options.setPfxTrustOptions(
+              new PfxOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+        }
       }
 
       options.setClientAuth(ksqlRestConfig.getClientAuth());
@@ -323,5 +369,4 @@ public class Server {
     }
     return listeners;
   }
-
 }

@@ -11,10 +11,10 @@
         "CREATE TABLE copy AS SELECT * FROM addresses;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"address": {"number": 899, "street": "W. Evelyn", "city": "Mountain View"}}}
+        {"topic": "test", "key": "a", "value": {"address": {"number": 899, "street": "W. Evelyn", "city": "Mountain View"}}}
       ],
       "outputs": [
-        {"topic": "COPY", "value": {"ADDRESS": {"NUMBER": 899, "STREET": "W. Evelyn", "CITY": "Mountain View"}}}
+        {"topic": "COPY", "key": "a", "value": {"ADDRESS": {"NUMBER": 899, "STREET": "W. Evelyn", "CITY": "Mountain View"}}}
       ]
     },
     {
@@ -26,10 +26,10 @@
         "CREATE TABLE copy AS SELECT * FROM people;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"person":  {"name": "jay", "address": {"number": 899, "street": "W. Evelyn", "city": "Mountain View"}}}}
+        {"topic": "test", "key": "a", "value": {"person":  {"name": "jay", "address": {"number": 899, "street": "W. Evelyn", "city": "Mountain View"}}}}
       ],
       "outputs": [
-        {"topic": "COPY", "value": {"PERSON": {"NAME": "jay", "ADDRESS": {"NUMBER": 899, "STREET": "W. Evelyn", "CITY": "Mountain View"}}}}
+        {"topic": "COPY", "key": "a", "value": {"PERSON": {"NAME": "jay", "ADDRESS": {"NUMBER": 899, "STREET": "W. Evelyn", "CITY": "Mountain View"}}}}
       ]
     }
   ]

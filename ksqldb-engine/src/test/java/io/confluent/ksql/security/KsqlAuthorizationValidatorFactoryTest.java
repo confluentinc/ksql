@@ -35,12 +35,14 @@ import java.util.Set;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.DescribeClusterOptions;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -165,6 +167,33 @@ public class KsqlAuthorizationValidatorFactoryTest {
   public void shouldReturnEmptyValidatorIfAuthorizedOperationsReturnNull() {
     // Given:
     givenKafkaAuthorizer("an-authorizer-class", null);
+
+    // When:
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
+        ksqlConfig,
+        serviceContext
+    );
+
+    // Then
+    assertThat(validator, is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldReturnEmptyValidatorIfKafkaBrokerVersionTooLowButAuthorizerClassConfigIsSet() {
+    // Given:
+    final Collection<Node> nodes = Collections.singletonList(node);
+    final DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
+    when(describeClusterResult.nodes()).thenReturn(KafkaFuture.completedFuture(nodes));
+    when(adminClient.describeCluster()).thenReturn(describeClusterResult);
+
+    final DescribeConfigsResult describeConfigsResult = describeBrokerResult(
+        Collections.singletonList(
+            new ConfigEntry(KAFKA_AUTHORIZER_CLASS_NAME, "a-class")
+        )
+    );
+    when(adminClient.describeConfigs(describeBrokerRequest()))
+        .thenReturn(describeConfigsResult);
+    when(adminClient.describeCluster(any())).thenThrow(new UnsupportedVersionException("too old"));
 
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(

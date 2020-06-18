@@ -249,7 +249,7 @@ public class InsertValuesExecutor {
 
     if (canBeDisabledByConfig && !isEnabled) {
       throw new KsqlException("The server has disabled INSERT INTO ... VALUES functionality. "
-          + "To enable it, restart your KSQL-server "
+          + "To enable it, restart your ksqlDB server "
           + "with 'ksql.insert.into.values.enabled'=true");
     }
   }

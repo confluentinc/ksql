@@ -15,17 +15,20 @@
 
 package io.confluent.ksql.execution.streams.timestamp;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.GenericRow;
 
 public class LongTimestampExtractor implements KsqlTimestampExtractor {
-  private final int timestampColumnindex;
 
-  LongTimestampExtractor(final int timestampColumnindex) {
-    this.timestampColumnindex = timestampColumnindex;
+  private final ColumnExtractor extractor;
+
+  LongTimestampExtractor(final ColumnExtractor extractor) {
+    this.extractor = requireNonNull(extractor, "extractor");
   }
 
   @Override
-  public long extract(final GenericRow row) {
-    return (long)row.get(timestampColumnindex);
+  public long extract(final Object key, final GenericRow value) {
+    return (long) extractor.extract(key, value);
   }
 }

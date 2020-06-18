@@ -6,7 +6,7 @@ description: Send requests to ksqlDB from your Java app
 keywords: ksqlDB, java, client
 ---
 
-ksqlDB ships with a lightweight Java client that allows you to easily send requests to a ksqlDB server
+ksqlDB ships with a lightweight Java client that enables sending requests easily to a ksqlDB server
 from within your Java application, as an alternative to using the [REST API](../api.md).
 The client currently supports pull and push queries as well as inserting new rows of data into existing ksqlDB streams.
 Soon the client will also support persistent queries and admin operations such as listing streams, tables, and topics. 
@@ -16,7 +16,7 @@ Soon the client will also support persistent queries and admin operations such a
 
 The client sends requests to the recently added HTTP2 server endpoints: pull and push queries are served by
 the [`/query-stream` endpoint](TODO), and inserts are served by the [`/inserts-stream` endpoint](TODO).
-Consequently, the client should only be used with ksqlDB deployments on version 0.10.0 or newer.
+The client is compatible only with ksqlDB deployments that are on version 0.10.0 or later.
 
 Use the Java client to:
 
@@ -209,7 +209,7 @@ client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;")
 ### Synchronous Usage ###
 
 To consume records one-at-a-time in a synchronous fashion, use the `poll()` method on the query result object.
-If `poll()` is called with no arguments, `poll()` blocks until a new row becomes available or the query is terminated.
+If `poll()` is called with no arguments, it blocks until a new row becomes available or the query is terminated.
 You can also pass a `Duration` argument to `poll()`, which causes `poll()` to return `null` if no new rows are received by the time the duration has elapsed.
 For more information, see the [API reference](TODO).
 
@@ -257,7 +257,7 @@ public interface Client {
 ```
 
 This method is suitable for both pull queries and for terminating push queries, for example, queries that have a `LIMIT` clause).
-For non-temrinating push queries, use [the `streamQuery()` method](./stream-query.md) instead. 
+For non-terminating push queries, use [the `streamQuery()` method](./stream-query.md) instead.
 
 Query properties can be passed as an optional second argument. For more information, see the [client API reference](TODO).
 
@@ -318,7 +318,7 @@ String queryId = streamedQueryResult.queryID();
 client.terminatePushQuery(queryId).get();
 ```
 
-And here's an analogous example for terminating a push query issued by using the `executeQuery()` method:
+Here's an analogous example for terminating a push query issued by using the `executeQuery()` method:
 
 ```java
 String pushQuery = "SELECT * FROM MY_STREAM EMIT CHANGES LIMIT 10;";

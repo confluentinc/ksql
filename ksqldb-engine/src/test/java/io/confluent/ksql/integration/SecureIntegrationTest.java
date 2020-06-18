@@ -353,7 +353,7 @@ public class SecureIntegrationTest {
 
   private void execInitCreateStreamQueries() {
     final String ordersStreamStr =
-        "CREATE STREAM " + INPUT_STREAM + " (ORDERTIME bigint, ORDERID varchar, "
+        "CREATE STREAM " + INPUT_STREAM + " (ROWKEY STRING KEY, ORDERTIME bigint, ORDERID varchar, "
             + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
             + "map<varchar, double>) WITH (value_format = 'json', "
             + "kafka_topic='" + INPUT_TOPIC + "');";

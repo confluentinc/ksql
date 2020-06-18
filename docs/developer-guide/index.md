@@ -11,8 +11,6 @@ These topics show how to develop ksqlDB applications.
 - [Create a ksqlDB Stream](create-a-stream.md)
 - [Create a ksqlDB Table](create-a-table.md)
 - [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
-- [Query With Arrays and Maps](query-with-arrays-and-maps.md)
-- [Query With Structured Data](query-with-structured-data.md)
 - [Transform a Stream With ksqlDB](transform-a-stream-with-ksqldb.md)
 - [Implement a User-defined Function (UDF, UDAF, and UDTF)](implement-a-udf)
 - [Partition Data to Enable Joins](joins/partition-data.md)

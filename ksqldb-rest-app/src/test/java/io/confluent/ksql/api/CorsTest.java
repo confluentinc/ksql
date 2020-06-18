@@ -268,6 +268,7 @@ public class CorsTest extends BaseApiTest {
   }
 
   private void init() {
+    config.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0");
     KsqlRestConfig serverConfig = new KsqlRestConfig(config);
     createServer(serverConfig);
     this.client = createClient();

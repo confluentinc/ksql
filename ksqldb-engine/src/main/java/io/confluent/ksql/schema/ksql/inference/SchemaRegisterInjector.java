@@ -31,6 +31,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
@@ -68,7 +69,7 @@ public class SchemaRegisterInjector implements Injector {
     // we can assume that the kafka topic is always present in the
     // statement properties
     registerSchema(
-        cs.getStatement().getElements().toLogicalSchema(false),
+        cs.getStatement().getElements().toLogicalSchema(),
         cs.getStatement().getProperties().getKafkaTopic(),
         cs.getStatement().getProperties().getFormatInfo(),
         cs.getConfig(),
@@ -107,8 +108,11 @@ public class SchemaRegisterInjector implements Injector {
       final String statementText
   ) {
     final Format format = FormatFactory.of(formatInfo);
-    if (format.supportsSchemaInference()
-        && config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) != null
+    if (!format.supportsSchemaInference()) {
+      return;
+    }
+
+    if (config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) != null
         && !config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).isEmpty()) {
       try {
         serviceContext.getSchemaRegistryClient().register(
@@ -118,6 +122,12 @@ public class SchemaRegisterInjector implements Injector {
       } catch (IOException | RestClientException e) {
         throw new KsqlStatementException("Could not register schema for topic.", statementText, e);
       }
+    } else {
+      throw new KsqlSchemaRegistryNotConfiguredException(
+          String.format(
+              "Cannot create topic '%s' with format %s without configuring '%s'",
+              topic, format.name(), KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
+      );
     }
   }
 }

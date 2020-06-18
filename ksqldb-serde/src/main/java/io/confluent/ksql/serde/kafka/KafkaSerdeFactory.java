@@ -24,11 +24,13 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.voids.KsqlVoidSerde;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -85,6 +87,11 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     }
 
     final List<Field> fields = schema.fields();
+    if (fields.isEmpty()) {
+      // No columns:
+      return (Serde) new KsqlVoidSerde();
+    }
+
     if (fields.size() != 1) {
       final String got = new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST).format(schema);
       throw new KsqlException("The '" + FormatFactory.KAFKA.name()
@@ -108,16 +115,21 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
   private static final class RowSerializer implements Serializer<Object> {
 
     private final Serializer<Object> delegate;
-    private final Field field;
+    private final Optional<Field> field;
 
     RowSerializer(final Serializer<Object> delegate, final ConnectSchema schema) {
       this.delegate = Objects.requireNonNull(delegate, "delegate");
-      this.field = schema.fields().get(0);
+      this.field = schema.fields().isEmpty()
+          ? Optional.empty()
+          : Optional.of(schema.fields().get(0));
     }
 
     @Override
     public byte[] serialize(final String topic, final Object struct) {
-      final Object value = struct == null ? null : ((Struct) struct).get(field);
+      final Object value = struct == null || !field.isPresent()
+          ? null
+          : ((Struct) struct).get(field.get());
+
       return delegate.serialize(topic, value);
     }
   }
@@ -126,7 +138,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
 
     private final Deserializer<Object> delegate;
     private final ConnectSchema schema;
-    private final Field field;
+    private final Optional<Field> field;
 
     RowDeserializer(
         final Deserializer<Object> delegate,
@@ -134,7 +146,9 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     ) {
       this.delegate = Objects.requireNonNull(delegate, "delegate");
       this.schema = Objects.requireNonNull(schema, "schema");
-      this.field = schema.fields().get(0);
+      this.field = schema.fields().isEmpty()
+          ? Optional.empty()
+          : Optional.of(schema.fields().get(0));
     }
 
     @Override
@@ -144,8 +158,9 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
         if (primitive == null) {
           return null;
         }
+
         final Struct struct = new Struct(schema);
-        struct.put(field, primitive);
+        struct.put(field.orElseThrow(IllegalStateException::new), primitive);
         return struct;
       } catch (final Exception e) {
         throw new SerializationException(

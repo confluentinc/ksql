@@ -35,7 +35,8 @@ and their active consumer counts.
 between each of the topic partition's latest and earliest offset. 
 
 
-For non-compacted topics, for example those normally backing a stream, this number is the _actual_ 
+For non-compacted topics, like those normally backing a stream, this number is the _actual_ 
+
 row count in the topic. 
 
 For compacted topics, like those normally backing a table, this number is the _maximum_ row 

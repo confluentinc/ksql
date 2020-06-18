@@ -249,11 +249,11 @@ columns.
 
 ```sql
 CREATE TABLE driverProfiles (
-  rowkey INTEGER KEY,
+  rowkey INTEGER PRIMARY KEY,
   driver_id INTEGER,
   make STRING,
   model STRING,
-  year INTEGER,
+  year INTEGER, 
   license_plate STRING,
   rating DOUBLE
 )

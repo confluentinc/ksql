@@ -71,7 +71,7 @@ public interface StreamedQueryResult extends Publisher<Row> {
    * Returns whether the {@code StreamedQueryResult} is complete.
    *
    * <p>A {@code StreamedQueryResult} is complete if the HTTP connection associated with this query
-   * has been ended gracefully. Once complete, the @{code StreamedQueryResult} will continue to
+   * has been ended gracefully. Once complete, the {@code StreamedQueryResult} will continue to
    * deliver any remaining rows, then call {@code onComplete()} on the subscriber, if present.
    *
    * @return whether the {@code StreamedQueryResult} is complete.

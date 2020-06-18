@@ -17,8 +17,8 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.ColumnType;
-import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;

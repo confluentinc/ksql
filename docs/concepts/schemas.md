@@ -12,23 +12,21 @@ available in the data, just like a the columns in a traditional SQL database tab
 ## Key vs Value columns
 
 KsqlDB supports both key and value columns. These map to the data held in the keys and values of the
-underlying {{ site.ak }} topic.
+underlying {{ site.ak }} topic message.
 
 A column is defined by a combination of its [name](#valid-identifiers), its [SQL data type](#sql-data-types),
 and possibly a namespace.
 
-Key columns have a `KEY` namespace suffix. Key columns have the following restrictions:
-  * The can only be a single key column, currently.
-  * The key column must be named `ROWKEY` in the KSQL schema.
+Key columns have a `KEY` or `PRIMARY KEY` suffix for streams and tables, respectively.
+ksqlDB currently only supports a single key column.
 
 Value columns have no namespace suffix. There can be one or more value columns amd the value columns
 can have any name.
 
-For example, the following declares a schema with a single `INT` key column and several value
-columns:
+For example, the following declares a schema with a single key column and several value columns:
 
 ```sql
-ROWKEY INT KEY, ID BIGINT, STRING NAME, ADDRESS ADDRESS_TYPE
+ID BIGINT, STRING NAME, ADDRESS ADDRESS_TYPE
 ```
 
 ## Valid Identifiers

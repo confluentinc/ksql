@@ -241,7 +241,7 @@ but it can't offer strong guarantees, especially in the presence of
 out-of-order rows. 
 
 To maximise join predictability, ensure historic table data is available in the 
-source topic, the query is running and the ksqlDB has had enough time to process 
+source topic, the query is running, and ksqlDB has had enough time to process 
 the table data _before_ starting to produce to your stream.
 
 Table-Table Joins

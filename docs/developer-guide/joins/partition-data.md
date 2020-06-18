@@ -46,7 +46,7 @@ both sides must have a key with the same SQL type.
 
 The following example shows a `users` table joined with a `clicks` stream
 on the click's `userId` column. The `users` table has a correct primary key,
-`id`, of the same SQL type. The `clicks` stream  doesn't have a defined key, 
+`id`, of the same SQL type. The `clicks` stream doesn't have a defined key, 
 so ksqlDB internally repartitions it on the joining column (`userId`) 
 to assign the key before performing the join.
 

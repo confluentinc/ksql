@@ -23,7 +23,9 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
+import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.TableInfo;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -41,6 +43,7 @@ import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -150,6 +153,25 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<List<StreamInfo>> listStreams() {
+    final CompletableFuture<List<StreamInfo>> cf = new CompletableFuture<>();
+
+    makeRequest(
+        "/ksql",
+        new JsonObject().put("ksql", "list streams;"),
+        cf,
+        response -> handleListStreamsResponse(response, cf)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<List<TableInfo>> listTables() {
+    return null; // TODO
+  }
+
+  @Override
   public void close() {
     httpClient.close();
     if (ownedVertx) {
@@ -228,6 +250,18 @@ public class ClientImpl implements Client {
       final CompletableFuture<Void> cf
   ) {
     if (response.statusCode() == OK.code()) {
+      cf.complete(null);
+    } else {
+      handleErrorResponse(response, cf);
+    }
+  }
+
+  private static void handleListStreamsResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<List<StreamInfo>> cf
+  ) {
+    if (response.statusCode() == OK.code()) {
+      // TODO: here
       cf.complete(null);
     } else {
       handleErrorResponse(response, cf);

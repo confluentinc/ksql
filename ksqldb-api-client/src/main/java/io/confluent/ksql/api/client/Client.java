@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -100,6 +101,10 @@ public interface Client {
    * @return a future that completes once the server response is received
    */
   CompletableFuture<Void> terminatePushQuery(String queryId);
+
+  CompletableFuture<List<StreamInfo>> listStreams();
+
+  CompletableFuture<List<TableInfo>> listTables();
 
   /**
    * Closes the underlying HTTP client.

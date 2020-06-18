@@ -214,7 +214,7 @@ CREATE STREAM pageviews(
   );
 ```
 
-This will create the pageviews topics for you with the supplied partition and replica count. The 
+This statement creates the `pageviews` topic for you with the supplied partition and replica count. The 
 value of `viewTime` will be stored in the {{ site.ak }} topic message key. If you wish to store
 the column in the message value, simple remove `KEY` from the column definition.
 

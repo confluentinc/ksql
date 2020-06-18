@@ -121,11 +121,6 @@ public interface Client {
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
    *
-   * <p>By default, push queries issued via this method return results starting from the beginning
-   * of the stream or table. To override this behavior, use the method
-   * {@link #streamQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
-   * with value set to {@code latest}.
-   *
    * @param sql statement of query to execute
    * @return a future that completes once the server response is received, and contains the query
    *         result if successful
@@ -142,8 +137,8 @@ For pull queries, consider [the `executeQuery()` method](./execute-query.md) ins
 
 Query properties can be passed as an optional second argument. For more information, see the [client API reference](TODO).
 
-By default, push queries return results starting from the beginning of the stream or table.
-To start from the end and receive only newly arriving rows, set the `auto.offset.reset` property to `latest`.
+By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
+set the `auto.offset.reset` property to `earliest`.
 
 ### Asynchronous Usage ###
 
@@ -241,11 +236,6 @@ public interface Client {
    * Executes a query (push or pull) and returns all result rows in a single batch, once the query
    * has completed.
    *
-   * <p>By default, push queries issued via this method return results starting from the beginning
-   * of the stream or table. To override this behavior, use the method
-   * {@link #executeQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
-   * with value set to {@code latest}.
-   *
    * @param sql statement of query to execute
    * @return query result
    */
@@ -261,8 +251,8 @@ For non-terminating push queries, use [the `streamQuery()` method](./stream-quer
 
 Query properties can be passed as an optional second argument. For more information, see the [client API reference](TODO).
 
-By default, push queries return results starting from the beginning of the stream or table.
-To start from the end and receive only newly arriving rows, set the `auto.offset.reset` property to `latest`.
+By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
+set the `auto.offset.reset` property to `earliest`.
 
 ### Example Usage ###
 

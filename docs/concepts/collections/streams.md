@@ -68,7 +68,7 @@ CREATE STREAM publications (
 
 Because the topic already exists, you do not need to specify the number of partitions.
 
-It's important that the columns we've defined match the data in the existing topic.
+It's important that the columns you define match the data in the existing topic.
 In this case, the message would need a `KAFKA` serialized `VARCHAR` in the message key
 and an `AVRO` serialized record containing a `title` field in the message value.
 

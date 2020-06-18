@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartition;
 
 /**
  * Note: all methods are synchronous, i.e. they wait for responses from Kafka before returning.
@@ -159,6 +160,13 @@ public interface KafkaTopicClient {
   default TopicDescription describeTopic(final String topicName) {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
+
+  /**
+   * Get the maximum number of messages in a partition, i.e. latestOffset - earliestOffset.
+   *
+   * <p>For compacted topics the actual number of messages in the partition could be much less.
+   */
+  Map<TopicPartition, Long> maxMsgCounts(Set<TopicPartition> partitions);
 
   /**
    * Call to get the config of a topic.

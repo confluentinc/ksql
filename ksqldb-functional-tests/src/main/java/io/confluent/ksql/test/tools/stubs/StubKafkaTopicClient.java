@@ -35,6 +35,7 @@ import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
@@ -150,6 +151,11 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
     }
 
     return stubTopic.getDescription();
+  }
+
+  @Override
+  public Map<TopicPartition, Long> maxMsgCounts(final Set<TopicPartition> partitions) {
+    return Collections.emptyMap();
   }
 
   @Override

@@ -27,10 +27,12 @@ import org.apache.commons.lang3.StringUtils;
 public class KafkaTopicsListTableBuilder {
 
   public static class SimpleBuilder implements TableBuilder<KafkaTopicsList> {
+
     private static final List<String> HEADERS = ImmutableList.of(
         "Kafka Topic",
         "Partitions",
-        "Partition Replicas");
+        "Replicas"
+    );
 
     @Override
     public Table buildTable(final KafkaTopicsList entity) {
@@ -48,12 +50,15 @@ public class KafkaTopicsListTableBuilder {
   }
 
   public static class ExtendedBuilder implements TableBuilder<KafkaTopicsListExtended> {
+
     private static final List<String> HEADERS = ImmutableList.of(
         "Kafka Topic",
         "Partitions",
-        "Partition Replicas",
+        "Replicas",
+        "Max Row Count",
         "Consumers",
-        "ConsumerGroups");
+        "ConsumerGroups"
+    );
 
     @Override
     public Table buildTable(final KafkaTopicsListExtended entity) {
@@ -62,6 +67,7 @@ public class KafkaTopicsListTableBuilder {
               t.getName(),
               Integer.toString(t.getReplicaInfo().size()),
               getTopicReplicaInfo(t.getReplicaInfo()),
+              Long.toString(t.getMaxMsgCount()),
               Integer.toString(t.getConsumerCount()),
               Integer.toString(t.getConsumerGroupCount())));
 

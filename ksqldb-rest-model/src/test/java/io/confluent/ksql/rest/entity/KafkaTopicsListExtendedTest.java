@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.rest.entity;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -27,28 +28,63 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KafkaTopicsListExtendedTest {
 
+  private static final ObjectMapper MAPPER = ApiJsonMapper.INSTANCE.get();
+
   @Test
-  public void testSerde() throws Exception {
+  public void shouldRoundTrip() throws Exception {
     // Given:
-    final ObjectMapper mapper = ApiJsonMapper.INSTANCE.get();
-    final KafkaTopicsListExtended expected = new KafkaTopicsListExtended(
+    final KafkaTopicsListExtended original = new KafkaTopicsListExtended(
         "SHOW TOPICS EXTENDED;",
-        ImmutableList.of(new KafkaTopicInfoExtended("thetopic", ImmutableList.of(1, 2, 3), 42, 12))
+        ImmutableList.of(new KafkaTopicInfoExtended(
+            "thetopic",
+            ImmutableList.of(1, 2, 3),
+            19L,
+            42,
+            12)
+        )
     );
 
     // When:
-    final String json = mapper.writeValueAsString(expected);
-    final KafkaTopicsListExtended actual = mapper.readValue(json, KafkaTopicsListExtended.class);
+    final String json = MAPPER.writeValueAsString(original);
+    final KafkaTopicsListExtended actual = MAPPER.readValue(json, KafkaTopicsListExtended.class);
 
     // Then:
-    assertEquals(
+    assertThat("serialized wrong", json, is(
         "{"
             + "\"@type\":\"kafka_topics_extended\","
             + "\"statementText\":\"SHOW TOPICS EXTENDED;\","
             + "\"topics\":["
-            + "{\"name\":\"thetopic\",\"replicaInfo\":[1,2,3],\"consumerCount\":42,\"consumerGroupCount\":12}"
-            + "],\"warnings\":[]}",
-        json);
-    assertEquals(expected, actual);
+            + "{\"name\":\"thetopic\",\"replicaInfo\":[1,2,3],\"consumerCount\":42,\"consumerGroupCount\":12,\"msgCount\":19}"
+            + "],\"warnings\":[]}"
+    ));
+
+    assertThat("deserialized wrong", actual, is(original));
+  }
+
+  @Test
+  public void shouldDeserializePreV11() throws Exception {
+    // Given:
+    final String jsonWithoutMsgCount = "{"
+        + "\"@type\":\"kafka_topics_extended\","
+        + "\"statementText\":\"SHOW TOPICS EXTENDED;\","
+        + "\"topics\":["
+        + "{\"name\":\"t\",\"replicaInfo\":[1,2,3],\"consumerCount\":42,\"consumerGroupCount\":12}"
+        + "],\"warnings\":[]}";
+
+    // When:
+    final KafkaTopicsListExtended actual = MAPPER
+        .readValue(jsonWithoutMsgCount, KafkaTopicsListExtended.class);
+
+    // Then:
+    assertThat(actual, is(new KafkaTopicsListExtended(
+        "SHOW TOPICS EXTENDED;",
+        ImmutableList.of(new KafkaTopicInfoExtended(
+            "t",
+            ImmutableList.of(1, 2, 3),
+            0L,
+            42,
+            12)
+        )
+    )));
   }
 }

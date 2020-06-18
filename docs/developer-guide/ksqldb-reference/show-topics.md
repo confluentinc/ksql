@@ -30,31 +30,41 @@ and their active consumer counts.
 
 `SHOW ALL TOPICS` lists all topics, including hidden topics.
 
+`SHOW TOPICS EXTENDED` includes additional information about each topic, including the 
+`Max Row Count`. This is intended as a guide only. It is calculated as the sum of the difference 
+between each of topic partition's latest and earliest offset. 
+
+For non-compacted topics, for example those normally backing a stream, this number is the _actual_ 
+row count in the topic. 
+
+For compacted topics, for example those normally backing a table, this number is the _maximum_ row 
+count possible in the table. Key compaction likely mean the _actual_ number of rows is much less.  
+
 Example
 -------
 
 ```sql
 ksql> SHOW TOPICS;
 
- Kafka Topic                                                                           | Partitions | Partition Replicas
---------------------------------------------------------------------------------------------------------
+ Kafka Topic                                                                           | Partitions | Replicas
+--------------------------------------------------------------------------------------------------------------
  default_ksql_processing_log                                                           | 1          | 1
  pageviews                                                                             | 1          | 1
  users                                                                                 | 1          | 1
---------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
 ```
 
 
 ```sql
 ksql> SHOW ALL TOPICS;
 
- Kafka Topic                                                                           | Partitions | Partition Replicas
---------------------------------------------------------------------------------------------------------
+ Kafka Topic                                                                           | Partitions | Replicas
+--------------------------------------------------------------------------------------------------------------
  _confluent-ksql-default__command_topic                                                | 1          | 1
  _confluent-ksql-default_query_CTAS_USERS_0-Aggregate-Aggregate-Materialize-changelog  | 1          | 1
  _confluent-ksql-default_query_CTAS_USERS_0-Aggregate-GroupBy-repartition              | 1          | 1
  default_ksql_processing_log                                                           | 1          | 1
  pageviews                                                                             | 1          | 1
  users                                                                                 | 1          | 1
---------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
 ```

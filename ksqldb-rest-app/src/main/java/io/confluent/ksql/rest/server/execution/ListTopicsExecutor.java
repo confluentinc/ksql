@@ -37,10 +37,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartition;
@@ -48,44 +48,81 @@ import org.apache.kafka.common.TopicPartition;
 public final class ListTopicsExecutor {
 
   private ListTopicsExecutor() {
-
   }
 
+  @SuppressWarnings("unused")
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListTopics> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final KafkaTopicClient client = serviceContext.getTopicClient();
-    final Map<String, TopicDescription> topicDescriptions = listTopics(client, statement);
-
-    if (statement.getStatement().getShowExtended()) {
-      final KafkaConsumerGroupClient consumerGroupClient
-          = new KafkaConsumerGroupClientImpl(serviceContext.getAdminClient());
-      final Map<String, List<Integer>> topicConsumersAndGroupCount
-          = getTopicConsumerAndGroupCounts(consumerGroupClient);
-
-      final List<KafkaTopicInfoExtended> topicInfoExtendedList = topicDescriptions.values()
-          .stream().map(desc ->
-              topicDescriptionToTopicInfoExtended(desc, topicConsumersAndGroupCount))
-          .collect(Collectors.toList());
-
-      return Optional.of(
-          new KafkaTopicsListExtended(statement.getStatementText(), topicInfoExtendedList));
-    } else {
-      final List<KafkaTopicInfo> topicInfoList = topicDescriptions.values()
-          .stream().map(desc -> topicDescriptionToTopicInfo(desc))
-          .collect(Collectors.toList());
-
-      return Optional.of(new KafkaTopicsList(statement.getStatementText(), topicInfoList));
-    }
+    return statement.getStatement().getShowExtended()
+        ? listTopicsExtended(statement, serviceContext)
+        : listTopics(statement, serviceContext);
   }
 
-  private static Map<String, TopicDescription> listTopics(
-      final KafkaTopicClient topicClient,
+  private static Optional<KsqlEntity> listTopics(
+      final ConfiguredStatement<ListTopics> statement,
+      final ServiceContext serviceContext
+  ) {
+    final Map<String, TopicDescription> topicDescriptions =
+        getTopicDescriptions(serviceContext, statement);
+
+    final List<KafkaTopicInfo> topicInfoList = topicDescriptions.values()
+        .stream().map(ListTopicsExecutor::topicDescriptionToTopicInfo)
+        .collect(Collectors.toList());
+
+    return Optional.of(new KafkaTopicsList(statement.getStatementText(), topicInfoList));
+  }
+
+  private static Optional<KsqlEntity> listTopicsExtended(
+      final ConfiguredStatement<ListTopics> statement,
+      final ServiceContext serviceContext
+  ) {
+    final Map<String, List<Integer>> topicConsumersAndGroupCount =
+        getTopicConsumerAndGroupCounts(serviceContext);
+
+    final Map<String, TopicDescription> topicDescriptions =
+        getTopicDescriptions(serviceContext, statement);
+
+    final Map<String, Long> msgCounts =
+        getTopicMessageCounts(serviceContext, topicDescriptions);
+
+    final List<KafkaTopicInfoExtended> topicInfoExtendedList = topicDescriptions.values()
+        .stream().map(desc ->
+            topicDescriptionToTopicInfoExtended(desc, topicConsumersAndGroupCount, msgCounts))
+        .collect(Collectors.toList());
+
+    return Optional.of(
+        new KafkaTopicsListExtended(statement.getStatementText(), topicInfoExtendedList));
+  }
+
+  private static Map<String, Long> getTopicMessageCounts(
+      final ServiceContext serviceContext,
+      final Map<String, TopicDescription> topicDescriptions
+  ) {
+    final Set<TopicPartition> topicPartitions = topicDescriptions.values().stream()
+        .flatMap(td ->
+            td.partitions().stream().map(pd -> new TopicPartition(td.name(), pd.partition())))
+        .collect(Collectors.toSet());
+
+    final Map<TopicPartition, Long> partitionMsgCounts = serviceContext.getTopicClient()
+        .maxMsgCounts(topicPartitions);
+
+    return partitionMsgCounts.entrySet().stream()
+        .collect(Collectors.groupingBy(
+            e -> e.getKey().topic(),
+            Collectors.summingLong(Entry::getValue)
+        ));
+  }
+
+  private static Map<String, TopicDescription> getTopicDescriptions(
+      final ServiceContext serviceContext,
       final ConfiguredStatement<ListTopics> statement
   ) {
+    final KafkaTopicClient topicClient = serviceContext.getTopicClient();
+
     final ReservedInternalTopics internalTopics = new ReservedInternalTopics(statement.getConfig());
 
     final Set<String> topics = statement.getStatement().getShowAll()
@@ -105,30 +142,35 @@ public final class ListTopicsExecutor {
 
   private static KafkaTopicInfoExtended topicDescriptionToTopicInfoExtended(
       final TopicDescription topicDescription,
-      final Map<String, List<Integer>> topicConsumersAndGroupCount
+      final Map<String, List<Integer>> topicConsumersAndGroupCount,
+      final Map<String, Long> msgCounts
   ) {
-
     final List<Integer> consumerAndGroupCount = topicConsumersAndGroupCount
         .getOrDefault(topicDescription.name(), Arrays.asList(0, 0));
+
+    final long msgCount = msgCounts.getOrDefault(topicDescription.name(), 0L);
 
     return new KafkaTopicInfoExtended(
         topicDescription.name(),
         topicDescription.partitions()
             .stream().map(partition -> partition.replicas().size()).collect(Collectors.toList()),
-        consumerAndGroupCount.get(0),
-        consumerAndGroupCount.get(1));
+        msgCount, consumerAndGroupCount.get(0),
+        consumerAndGroupCount.get(1)
+    );
   }
 
   /**
    * @return all topics with their associated consumerCount and consumerGroupCount
    */
   private static Map<String, List<Integer>> getTopicConsumerAndGroupCounts(
-      final KafkaConsumerGroupClient consumerGroupClient
+      final ServiceContext serviceContext
   ) {
+    final KafkaConsumerGroupClient consumerGroupClient =
+        new KafkaConsumerGroupClientImpl(serviceContext.getAdminClient());
 
     final List<String> consumerGroups = consumerGroupClient.listGroups();
 
-    final Map<String, AtomicInteger> topicConsumerCount = new HashMap<>();
+    final Map<String, Integer> topicConsumerCount = new HashMap<>();
     final Map<String, Set<String>> topicConsumerGroupCount = new HashMap<>();
 
     for (final String group : consumerGroups) {
@@ -139,17 +181,18 @@ public final class ListTopicsExecutor {
 
         for (final TopicPartition topicPartition : summary.partitions()) {
           topicConsumerCount
-              .computeIfAbsent(topicPartition.topic(), k -> new AtomicInteger())
-              .incrementAndGet();
+              .compute(topicPartition.topic(), (topic, count) -> count == null ? 1 : count + 1);
           topicConsumerGroupCount
-              .computeIfAbsent(topicPartition.topic(), k -> new HashSet<>()).add(group);
+              .computeIfAbsent(topicPartition.topic(), k -> new HashSet<>())
+              .add(group);
         }
       }
     }
+
     final HashMap<String, List<Integer>> results = new HashMap<>();
     topicConsumerCount.forEach(
         (k, v) -> {
-          results.computeIfAbsent(k, v1 -> new ArrayList<>()).add(v.intValue());
+          results.computeIfAbsent(k, v1 -> new ArrayList<>()).add(v);
           results.get(k).add(topicConsumerGroupCount.get(k).size());
         }
     );

@@ -11,7 +11,7 @@
 
 While ksqlDB’s UDF interface makes it relatively easy for users to add their own functionality to invoke within their queries, the process of implementing and deploying a UDF is not particularly straightforward. Furthermore, the deployment of UDFs may not even be an option in some environments. Without UDFs, users are at the mercy of ksqlDB’s builtins, which may not always provide enough functionality for them to solve their specific problems. This can be particularly problematic with collections (i.e. `Array` and `Map`), as it can be awkward to work with all of their individual values within a single query. However, we can mitigate this limitation somewhat by empowering users to express user-defined functionality in a way that doesn’t require them to implement full-fledged UDFs.
 
-Introducing lambda functions would enable users to express simple inline functions that can be applied to input values in various ways. For example, lambda functions could be applied to each element of a collection, resulting in a transformed output collection. Lambda functions could also be used to filter the elements of a collection.
+Introducing lambda functions would enable users to express simple inline functions that can be applied to input values in various ways. For example, lambda functions could be applied to each element of a collection, resulting in a transformed output collection. Lambda functions could also be used to filter the elements of a collection, or reduce a collection down to a single value.
 
 The remainder of this document will propose the addition of lambda functions into ksqlDB’s grammar and execution engine.
 

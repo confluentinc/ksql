@@ -11,27 +11,27 @@
 
 While ksqlDB’s UDF interface makes it relatively easy for users to add their own functionality to invoke within their queries, the process of implementing and deploying a UDF is not particularly straightforward. Furthermore, the deployment of UDFs may not even be an option in some environments. Without UDFs, users are at the mercy of ksqlDB’s builtins, which may not always provide enough functionality for them to solve their specific problems. This can be particularly problematic with collections (i.e. `Array` and `Map`), as it can be awkward to work with all of their individual values within a single query. However, we can mitigate this limitation somewhat by empowering users to express user-defined functionality in a way that doesn’t require them to implement full-fledged UDFs.
 
-Introducing lambda functions would enable users to express simple inline functions that can be applied to input values in various ways. For example, lambda functions could be applied to each element of a collection, resulting in a transformed output collection. Lambda functions could also be used to filter the elements of a collection, or even reduce a collection down to a single output value.
+Introducing lambda functions would enable users to express simple inline functions that can be applied to input values in various ways. For example, lambda functions could be applied to each element of a collection, resulting in a transformed output collection. Lambda functions could also be used to filter the elements of a collection.
 
 The remainder of this document will propose the addition of lambda functions into ksqlDB’s grammar and execution engine.
 
 ## Scope
 
-### What is in scope 
-* Syntax for describing lambda functions will be proposed
+### What is in scope
+
+* Syntax for defining lambda functions will be proposed
 * Lambda invocation functions will be proposed
 
 ## What is not in scope
-* Implementation details will not be proposed 
-* Level of effort will not be estimated
 
+* Implementation details will not be proposed
+* Level of effort will not be estimated
 
 ## Value/return
 
 The introduction of lambda functions will ultimately empower ksqDB users to solve more problems with less effort. Many of the UDFs we’ve seen users write are designed to apply relatively simple functionality to the elements of `Arrays` and `Maps`. Lambda functions are well-suited to solve this class of problems in a very easy and intuitive way.
 
 Lambda functions will also enable some users to use ksqlDB in environments that do not allow for the deployment of UDFs.
-Design
 
 ## Public APIs
 
@@ -41,7 +41,7 @@ There are two aspects of the user-facing lambda function interface: syntax for d
 
 ### Syntax
 
-It would probably be ideal to use Java-style lambda syntax, but we already use the `->` symbol to represent a `Struct` field lookup. Giving `->` a double meaning (if that’s even possible) would create ambiguity and complexity in the grammar/parser. We therefore propose using the `=>` symbol to signify a lambda function:
+It would probably be ideal to use Java-style lambda syntax, but we already use the `->` symbol to represent `Struct` field lookups. Giving `->` a double meaning (if that’s even possible) would create ambiguity and complexity in the grammar/parser. We therefore propose using the `=>` symbol to signify a lambda function:
 
 ```
 arg => expr
@@ -60,7 +60,7 @@ Multiple arguments should also be allowed for lambda functions. When multiple ar
 
 **Allowed expressions**:
 
-The body of each lambda function should simply be an expression that could be used in a `SELECT` expression list, with some exceptions depending on the invocation function:
+The body of each lambda function should simply be **any expression that could be used in a `SELECT` expression list**, with some exceptions:
 
 * Aggregates should not be allowed (please see *Open questions* section)
 * `SELECT` subqueries should not be allowed
@@ -73,6 +73,7 @@ Given these restrictions, the following examples would be valid lambda functions
 * `s => UCASE(s)`
 * `(x, y) => x + y`
 * `(x, y) => CASE WHEN x IS NULL THEN y ELSE x + y END`
+* `(x, y) => x, x + y1`
 
 ### Invocation functions
 
@@ -86,12 +87,16 @@ Lambda functions should require a specific **invocation function**, which tells 
 
 - `filter_map(map, (k, v) => bool)` - Filters the input `Map` using the given lambda function. A new `Map` is returned, containing only the key-value pairs for which the lambda function evaluated to `true`.
 
+- `reduce_array(arr, s, (x, s) => s)` - Reduces the input `Array` down to a single value. `s` is the initial state and is passed into the scope of the lambda function. Each invocation returns a new value for `s`, which the next invocation will receive. `reduce_array` will return the final value of `s`.
+
+- `reduce_map(map, s, (k, v, s) => (y, s))` - Reduces the input `Map` down to a single value. `s` is the initial state and is passed into the scope of the lambda function. Each invocation returns a new value for `s`, which the next invocation will receive. `reduce_map` will return the final value of `s`.
+
 ## Documentation updates
 
 We must document and provide examples for the two core aspects of lambda functions:
 
-- Lambda function syntax
-- Invocation functions
+1. Lambda function syntax
+2. Invocation functions
 
 ## Compatibility implications
 
@@ -107,8 +112,8 @@ Since lambda functions would only allow SQL expressions that can already be used
 
 - `agg_array(arr, x => sum(x))`
 
-If this is feasible then it would likely be worth doing. Without support for aggregates via `reduce`, users will not be able to easily perform any aggregation over a collection.
+If this is feasible then it would likely be worth doing. Without support for aggregates, users will not be able to easily perform any aggregation over a collection.
 
 **2. Would allowing lambda functions to be applied to types other than `Array` or `Map` provide any value?**
 
-**3. Will the lambda function implementation require backward-incompatble changes to ksqlDB's internals?**
+**3. Will the lambda function implementation require backward-incompatible changes to ksqlDB's internals?**

@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **30**
+Next KLIP number: **31**
 
 | KLIP                                                                                                 | Status         | Community Release | CP Release | Discussion PR |
 |------------------------------------------------------------------------------------------------------|:--------------:|:-----------------:|:----------:|:--------------|
@@ -70,4 +70,5 @@ Next KLIP number: **30**
 | KLIP-27: Enhanced UDF Configuration Options                                                          | Proposal       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/5269) |
 | KLIP-28: Introduce 'CREATE OR REPLACE' for Query Upgrades                                            | Proposal       |                   |            |               |
 | [KLIP-29: Explicit Table Primary Keys and Key-less Streams]( klip-29-explicit-keys.md)               | Merged         | 0.10.0            | 6.0.0      | [Discussion](https://github.com/confluentinc/ksql/pull/5530) |
+| KLIP-30: Lambda Functions               | Proposal         |             |       | N/A |
 

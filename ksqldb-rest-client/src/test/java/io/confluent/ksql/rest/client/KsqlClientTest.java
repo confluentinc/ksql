@@ -300,7 +300,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<Pair<URI, List<StreamedRow>>> response = target.postQueryRequest(
+    RestResponse<Pair<Optional<URI>, List<StreamedRow>>> response = target.postQueryRequest(
         sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
@@ -323,7 +323,7 @@ public class KsqlClientTest {
 
     // When:
     final KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<Pair<URI, List<StreamedRow>>> response = target.postQueryRequest(
+    RestResponse<Pair<Optional<URI>, List<StreamedRow>>> response = target.postQueryRequest(
         "some sql", Collections.emptyMap(), Optional.of(321L));
 
     // Then:

@@ -13,13 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.services;
+package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
@@ -63,12 +64,13 @@ public class FaultyKsqlClient implements SimpleKsqlClient {
   public RestResponse<List<StreamedRow>> makeQueryRequest(
       final URI serverEndPoint,
       final String sql,
-      final Map<String, ?> configOverrides, Map<String, ?> requestProperties) {
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties) {
     return getClient().makeQueryRequest(serverEndPoint, sql, configOverrides, requestProperties);
   }
 
   @Override
-  public void makeAsyncHeartbeatRequest(final URI serverEndPoint, KsqlHostInfo host,
+  public void makeAsyncHeartbeatRequest(final URI serverEndPoint, final KsqlHostInfo host,
       final long timestamp) {
     getClient().makeAsyncHeartbeatRequest(serverEndPoint, host, timestamp);
   }

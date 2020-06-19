@@ -103,7 +103,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .target(serverEndPoint)
         .properties(configOverrides);
 
-    final RestResponse<Pair<URI, List<StreamedRow>>> resp = getTarget(target, authHeader)
+    final RestResponse<Pair<Optional<URI>, List<StreamedRow>>> resp = getTarget(target, authHeader)
         .postQueryRequest(sql, requestProperties, Optional.empty());
 
     if (resp.isErroneous()) {

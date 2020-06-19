@@ -182,7 +182,7 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static Pair<URI, List<StreamedRow>> makeQueryRequestWithRespondingHost(
+  static Pair<Optional<URI>, List<StreamedRow>> makeQueryRequestWithRespondingHost(
       final TestKsqlRestApp restApp,
       final String sql,
       final Optional<BasicCredentials> userCreds,
@@ -190,7 +190,7 @@ public final class RestIntegrationTestUtil {
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
-      final RestResponse<Pair<URI, List<StreamedRow>>> res =
+      final RestResponse<Pair<Optional<URI>, List<StreamedRow>>> res =
           restClient.makeQueryRequestWithRespondingHost(sql, null, properties);
 
       throwOnError(res);

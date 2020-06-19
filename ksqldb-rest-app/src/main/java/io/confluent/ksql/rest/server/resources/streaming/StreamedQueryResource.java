@@ -274,11 +274,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     final PullQueryResult result = pullQueryExecutor
         .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
-    TableRowsEntity entity = result.getTableRowsEntity();
+    final TableRowsEntity tableRows = result.getTableRowsEntity();
 
-    final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
+    final StreamedRow header = StreamedRow.header(tableRows.getQueryId(), tableRows.getSchema());
 
-    final List<StreamedRow> rows = entity.getRows().stream()
+    final List<StreamedRow> rows = tableRows.getRows().stream()
         .map(StreamedQueryResource::toGenericRow)
         .map(StreamedRow::row)
         .collect(Collectors.toList());
@@ -289,9 +289,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .map(this::writeValueAsString)
         .collect(Collectors.joining("," + System.lineSeparator(), "[", "]"));
 
-    Map<String, String> headers = ImmutableMap.of(KsqlTarget.REPLYING_NODE_HEADER,
-        result.getReplyingNode().location().toString());
-    return EndpointResponse.ok(headers, data);
+    final ImmutableMap.Builder<String, String> responseHeaders = ImmutableMap.builder();
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_SET_REPLYING_HOST_CONFIG)) {
+      responseHeaders.put(KsqlTarget.REPLYING_NODE_HEADER,
+          result.getReplyingNode().location().toString());
+    }
+    return EndpointResponse.ok(responseHeaders.build(), data);
   }
 
   private EndpointResponse handlePushQuery(

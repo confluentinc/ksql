@@ -174,7 +174,7 @@ public final class KsqlTarget {
     );
   }
 
-  public RestResponse<Pair<URI, List<StreamedRow>>> postQueryRequest(
+  public RestResponse<Pair<Optional<URI>, List<StreamedRow>>> postQueryRequest(
       final String ksql,
       final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
@@ -326,7 +326,7 @@ public final class KsqlTarget {
     return vcf;
   }
 
-  private static Pair<URI, List<StreamedRow>> toRows(final ResponseWithBody resp) {
+  private static Pair<Optional<URI>, List<StreamedRow>> toRows(final ResponseWithBody resp) {
 
     final List<StreamedRow> rows = new ArrayList<>();
     final Buffer buff = resp.getBody();
@@ -345,8 +345,9 @@ public final class KsqlTarget {
       }
     }
 
-    String replyingNodeHeader = resp.getResponse().getHeader(REPLYING_NODE_HEADER);
-    URI uri = URI.create(replyingNodeHeader);
+    final String replyingNodeHeader = resp.getResponse().getHeader(REPLYING_NODE_HEADER);
+    final Optional<URI> uri = replyingNodeHeader != null
+        ? Optional.of(URI.create(replyingNodeHeader)) : Optional.empty();
     return Pair.of(uri, rows);
   }
 

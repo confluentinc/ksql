@@ -577,9 +577,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Set to 1 because only 1 broker
     config.put(KafkaConfig.TransactionsTopicMinISRProp(), 1);
 
-//    config.put(KafkaConfig.ListenersProp(), "PLAINTEXT://127.0.0.1:9092");
-//    config.put(KafkaConfig.AdvertisedListenersProp(), "PLAINTEXT://127.0.0.1:9093");
-
     return config;
   }
 

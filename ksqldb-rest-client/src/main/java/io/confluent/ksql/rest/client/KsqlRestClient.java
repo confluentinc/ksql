@@ -185,7 +185,7 @@ public final class KsqlRestClient implements Closeable {
 
   public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
       final Long commandSeqNum, final Map<String, ?> properties) {
-    final RestResponse<Pair<URI, List<StreamedRow>>> resp =
+    final RestResponse<Pair<Optional<URI>, List<StreamedRow>>> resp =
         makeQueryRequestWithRespondingHost(ksql, commandSeqNum, properties);
 
     if (resp.isErroneous()) {
@@ -195,7 +195,7 @@ public final class KsqlRestClient implements Closeable {
     return RestResponse.successful(resp.getStatusCode(), resp.getResponse().getRight());
   }
 
-  public RestResponse<Pair<URI, List<StreamedRow>>> makeQueryRequestWithRespondingHost(
+  public RestResponse<Pair<Optional<URI>, List<StreamedRow>>> makeQueryRequestWithRespondingHost(
       final String ksql,
       final Long commandSeqNum, final Map<String, ?> properties) {
     KsqlTarget target = target();

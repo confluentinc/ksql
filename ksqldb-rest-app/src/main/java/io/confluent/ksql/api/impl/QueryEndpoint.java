@@ -97,7 +97,7 @@ public class QueryEndpoint {
   ) {
     final PullQueryResult result = pullQueryExecutor.execute(
         statement, serviceContext, Optional.empty(), Optional.of(false));
-    TableRowsEntity tableRows = result.getTableRowsEntity();
+    final TableRowsEntity tableRows = result.getTableRowsEntity();
 
     return new PullQueryPublisher(
         context,

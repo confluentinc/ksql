@@ -89,7 +89,7 @@ Lambda functions should require a specific **invocation function**, which tells 
 
 - `reduce_array(arr, s, (x, s) => s)` - Reduces the input `Array` down to a single value. `s` is the initial state and is passed into the scope of the lambda function. Each invocation returns a new value for `s`, which the next invocation will receive. `reduce_array` will return the final value of `s`.
 
-- `reduce_map(map, s, (k, v, s) => (y, s))` - Reduces the input `Map` down to a single value. `s` is the initial state and is passed into the scope of the lambda function. Each invocation returns a new value for `s`, which the next invocation will receive. `reduce_map` will return the final value of `s`.
+- `reduce_map(map, s, (k, v, s) => s)` - Reduces the input `Map` down to a single value. `s` is the initial state and is passed into the scope of the lambda function. Each invocation returns a new value for `s`, which the next invocation will receive. `reduce_map` will return the final value of `s`.
 
 ## Documentation updates
 

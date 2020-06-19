@@ -1,6 +1,6 @@
 # KLIP-27 - Lambda Expressions
 
-**Author**: derekjn, blueedgenick |
+**Authors**: derekjn, blueedgenick |
 **Release Target**: N/A |
 **Status**: _In Discussion_ |
 **Discussion**: N/A

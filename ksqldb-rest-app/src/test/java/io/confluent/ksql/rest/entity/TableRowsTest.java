@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 
-public class TableRowsEntityTest {
+public class TableRowsTest {
 
   private static final ObjectMapper MAPPER;
   private static final String SOME_SQL = "some SQL";
@@ -57,7 +57,7 @@ public class TableRowsEntityTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnRowWindowTypeMismatch() {
-    new TableRowsEntity(
+    new TableRows(
         SOME_SQL,
         QUERY_ID,
         LOGICAL_SCHEMA,
@@ -68,7 +68,7 @@ public class TableRowsEntityTest {
   @Test
   public void shouldSerializeEntity() throws Exception {
     // Given:
-    final TableRowsEntity entity = new TableRowsEntity(
+    final TableRows entity = new TableRows(
         SOME_SQL,
         QUERY_ID,
         LOGICAL_SCHEMA,
@@ -99,7 +99,7 @@ public class TableRowsEntityTest {
   @Test
   public void shouldSerializeNullElements() throws Exception {
     // Given:
-    final TableRowsEntity entity = new TableRowsEntity(
+    final TableRows entity = new TableRows(
         SOME_SQL,
         QUERY_ID,
         LOGICAL_SCHEMA,

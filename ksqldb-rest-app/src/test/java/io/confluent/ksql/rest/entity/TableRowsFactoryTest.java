@@ -38,7 +38,7 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
 
-public class TableRowsEntityFactoryTest {
+public class TableRowsFactoryTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
 
@@ -80,7 +80,7 @@ public class TableRowsEntityFactoryTest {
     );
 
     // When:
-    final List<List<?>> output = TableRowsEntityFactory.createRows(input);
+    final List<List<?>> output = TableRowsFactory.createRows(input);
 
     // Then:
     assertThat(output, hasSize(1));
@@ -110,7 +110,7 @@ public class TableRowsEntityFactoryTest {
     );
 
     // When:
-    final List<List<?>> output = TableRowsEntityFactory.createRows(input);
+    final List<List<?>> output = TableRowsFactory.createRows(input);
 
     // Then:
     assertThat(output, hasSize(2));
@@ -129,7 +129,7 @@ public class TableRowsEntityFactoryTest {
     builder.add(Row.of(SCHEMA_NULL, KEY_BUILDER.build("k"), row, ROWTIME));
 
     // When:
-    final List<List<?>> output = TableRowsEntityFactory.createRows(builder.build());
+    final List<List<?>> output = TableRowsFactory.createRows(builder.build());
 
     // Then:
     assertThat(output, hasSize(1));
@@ -139,7 +139,7 @@ public class TableRowsEntityFactoryTest {
   @Test
   public void shouldJustDuplicateRowTimeInValueIfNotWindowed() {
     // When:
-    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, false);
+    final LogicalSchema result = TableRowsFactory.buildSchema(SCHEMA, false);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
@@ -154,7 +154,7 @@ public class TableRowsEntityFactoryTest {
   @Test
   public void shouldAddHoppingWindowFieldsToSchema() {
     // When:
-    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, true);
+    final LogicalSchema result = TableRowsFactory.buildSchema(SCHEMA, true);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()

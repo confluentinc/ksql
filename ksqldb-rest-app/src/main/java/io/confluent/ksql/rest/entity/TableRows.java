@@ -17,8 +17,6 @@ package io.confluent.ksql.rest.entity;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.query.QueryId;
@@ -28,25 +26,29 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class TableRowsEntity extends KsqlEntity {
+public class TableRows {
 
   private final LogicalSchema schema;
   private final QueryId queryId;
   private final ImmutableList<List<?>> rows;
+  private final String statementText;
 
-  public TableRowsEntity(
-      @JsonProperty("statementText") final String statementText,
-      @JsonProperty("queryId") final QueryId queryId,
-      @JsonProperty("schema") final LogicalSchema schema,
-      @JsonProperty("rows") final List<List<?>> rows
+  public TableRows(
+      final String statementText,
+      final QueryId queryId,
+      final LogicalSchema schema,
+      final List<List<?>> rows
   ) {
-    super(statementText);
+    this.statementText = requireNonNull(statementText, "statementText");
     this.schema = requireNonNull(schema, "schema");
     this.queryId = requireNonNull(queryId, "queryId");
     this.rows = deepCopy(requireNonNull(rows, "rows"));
 
     rows.forEach(this::validate);
+  }
+
+  public String getStatementText() {
+    return statementText;
   }
 
   public LogicalSchema getSchema() {
@@ -66,17 +68,19 @@ public class TableRowsEntity extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof TableRowsEntity)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableRowsEntity that = (TableRowsEntity) o;
+    final TableRows that = (TableRows) o;
     return Objects.equals(schema, that.schema)
-        && Objects.equals(rows, that.rows);
+        && Objects.equals(queryId, that.queryId)
+        && Objects.equals(rows, that.rows)
+        && Objects.equals(statementText, that.statementText);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(schema, rows);
+    return Objects.hash(schema, queryId, rows, statementText);
   }
 
   private void validate(final List<?> row) {

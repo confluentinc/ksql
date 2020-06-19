@@ -3,7 +3,7 @@
 **Authors**: derekjn, blueedgenick |
 **Release Target**: N/A |
 **Status**: _In Discussion_ |
-**Discussion**: N/A
+**Discussion**: [#5661](https://github.com/confluentinc/ksql/pull/5661)
 
 **tl;dr**: The introduction of lambda functions would bridge the gap somewhat between builtins and UDFs.
 

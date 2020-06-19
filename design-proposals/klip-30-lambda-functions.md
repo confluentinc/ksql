@@ -1,5 +1,12 @@
 # KLIP-27 - Lambda Expressions
 
+**Author**: derekjn, blueedgenick |
+**Release Target**: N/A |
+**Status**: _In Discussion_ |
+**Discussion**: N/A
+
+tl;dr: The introduction of lambda functions would bridge the gap somewhat between builtins and UDFs.
+
 ## Motivation and background
 
 While ksqlDB’s UDF interface makes it relatively easy for users to add their own functionality to invoke within their queries, the process of implementing and deploying a UDF is not particularly straightforward. Furthermore, the deployment of UDFs may not even be an option in some environments. Without UDFs, users are at the mercy of ksqlDB’s builtins, which may not always provide enough functionality for them to solve their specific problems. This can be particularly problematic with collections (i.e. `Array` and `Map`), as it can be awkward to work with all of their individual values within a single query. However, we can mitigate this limitation somewhat by empowering users to express user-defined functionality in a way that doesn’t require them to implement full-fledged UDFs.

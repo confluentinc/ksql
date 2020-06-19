@@ -300,7 +300,7 @@ public class KsqlClientTest {
 
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<Pair<Optional<URI>, List<StreamedRow>>> response = target.postQueryRequest(
+    RestResponse<List<StreamedRow>> response = target.postQueryRequest(
         sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
@@ -309,7 +309,7 @@ public class KsqlClientTest {
     assertThat(server.getPath(), is("/query"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
-    assertThat(response.getResponse().getRight(), is(expectedResponse));
+    assertThat(response.getResponse(), is(expectedResponse));
   }
 
   @Test
@@ -323,11 +323,11 @@ public class KsqlClientTest {
 
     // When:
     final KsqlTarget target = ksqlClient.target(serverUri);
-    RestResponse<Pair<Optional<URI>, List<StreamedRow>>> response = target.postQueryRequest(
+    RestResponse<List<StreamedRow>> response = target.postQueryRequest(
         "some sql", Collections.emptyMap(), Optional.of(321L));
 
     // Then:
-    assertThat(response.getResponse().getRight(), is(ImmutableList.of(
+    assertThat(response.getResponse(), is(ImmutableList.of(
         StreamedRow.row(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
     )));
   }

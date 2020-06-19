@@ -33,7 +33,6 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.util.KeystoreUtil;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.Pair;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
@@ -103,14 +102,14 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .target(serverEndPoint)
         .properties(configOverrides);
 
-    final RestResponse<Pair<Optional<URI>, List<StreamedRow>>> resp = getTarget(target, authHeader)
+    final RestResponse<List<StreamedRow>> resp = getTarget(target, authHeader)
         .postQueryRequest(sql, requestProperties, Optional.empty());
 
     if (resp.isErroneous()) {
       return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
     }
 
-    return RestResponse.successful(resp.getStatusCode(), resp.getResponse().getRight());
+    return RestResponse.successful(resp.getStatusCode(), resp.getResponse());
   }
 
   @Override

@@ -215,13 +215,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
       + "queries. Once the limit is hit, queries will fail immediately";
 
-  public static final String KSQL_QUERY_PULL_SET_REPLYING_HOST_CONFIG =
-      "ksql.query.pull.set.responding.host";
-  public static final boolean KSQL_QUERY_PULL_SET_REPLYING_HOST_DEFAULT = false;
-  public static final String KSQL_QUERY_PULL_SET_REPLYING_HOST_DOC = "Controls whether the "
-      + "header X-KSQL-Replying-Node is set with the endpoint of the replying node when responding "
-      + "to a pull query.  This is useful for debugging network setup when deploying pull queries";
-
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of();
 
@@ -652,13 +645,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_QPS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_MAX_QPS_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_SET_REPLYING_HOST_CONFIG,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_SET_REPLYING_HOST_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_SET_REPLYING_HOST_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

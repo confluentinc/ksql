@@ -45,6 +45,7 @@ import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsume
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer2;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -52,10 +53,9 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -104,9 +104,6 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
-  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", 8188);
-  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", 8189);
-  private static final KsqlHostInfoEntity host2 = new KsqlHostInfoEntity("localhost", 8187);
   private static final String USER_TOPIC = "user_topic_";
   private static final String USERS_STREAM = "users";
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
@@ -144,20 +141,26 @@ public class PullQueryRoutingFunctionalTest {
       .put(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-      .put(KsqlConfig.KSQL_QUERY_PULL_SET_REPLYING_HOST_CONFIG, true)
       .build();
 
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
   private static final Shutoffs APP_SHUTOFFS_1 = new Shutoffs();
   private static final Shutoffs APP_SHUTOFFS_2 = new Shutoffs();
 
+  private static final int INT_PORT_0 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT_1 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT_2 = TestUtils.findFreeLocalPort();
+  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", INT_PORT_0);
+  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", INT_PORT_1);
+  private static final KsqlHostInfoEntity host2 = new KsqlHostInfoEntity("localhost", INT_PORT_2);
+
   @Rule
   public final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_0)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_0)
       .withFaultyKsqlClient(APP_SHUTOFFS_0.ksqlOutgoing::get)
       .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
           + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafkaConsumer0.class.getName())
@@ -168,9 +171,9 @@ public class PullQueryRoutingFunctionalTest {
   public final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_1)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_1)
       .withFaultyKsqlClient(APP_SHUTOFFS_1.ksqlOutgoing::get)
       .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
           + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafkaConsumer1.class.getName())
@@ -181,9 +184,9 @@ public class PullQueryRoutingFunctionalTest {
   public final TestKsqlRestApp REST_APP_2 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8087")
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8187")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8187")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_2)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_2)
       .withFaultyKsqlClient(APP_SHUTOFFS_2.ksqlOutgoing::get)
       .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
           + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafkaConsumer2.class.getName())
@@ -275,15 +278,14 @@ public class PullQueryRoutingFunctionalTest {
         HighAvailabilityTestUtil::remoteServerIsUp);
 
     // When:
-    Pair<Optional<URI>, List<StreamedRow>> result =
+    List<StreamedRow> rows_0 =
         makePullQueryRequest(clusterFormation.standBy.getApp(), sql);
-    final List<StreamedRow> rows_0 = result.getRight();
-    final Optional<URI> host = result.getLeft();
 
     // Then:
-    assertThat(host.get().getHost(), is(clusterFormation.active.getHost().getHost()));
-    assertThat(host.get().getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
@@ -311,14 +313,13 @@ public class PullQueryRoutingFunctionalTest {
         HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
-    final Pair<Optional<URI>, List<StreamedRow>> result = makePullQueryRequest(clusterFormation.router.getApp(), sql);
-    final List<StreamedRow> rows_0 = result.getRight();
-    final Optional<URI> host = result.getLeft();
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(), sql);
 
     // Then:
-    assertThat(host.get().getHost(), is(clusterFormation.active.getHost().getHost()));
-    assertThat(host.get().getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
@@ -345,14 +346,13 @@ public class PullQueryRoutingFunctionalTest {
         HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
-    final Pair<Optional<URI>, List<StreamedRow>> result = makePullQueryRequest(clusterFormation.router.getApp(), sql);
-    final List<StreamedRow> rows_0 = result.getRight();
-    final Optional<URI> host = result.getLeft();
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(), sql);
 
     // Then:
-    assertThat(host.get().getHost(), is(clusterFormation.standBy.getHost().getHost()));
-    assertThat(host.get().getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
@@ -408,16 +408,15 @@ public class PullQueryRoutingFunctionalTest {
         HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
-    final Pair<Optional<URI>, List<StreamedRow>> result = makePullQueryRequest(
+    final List<StreamedRow> rows_0 = makePullQueryRequest(
         clusterFormation.router.getApp(), sql,
         LAG_FILTER_6);
-    final List<StreamedRow> rows_0 = result.getRight();
-    final Optional<URI> host = result.getLeft();
 
     // Then:
-    assertThat(host.get().getHost(), is(clusterFormation.standBy.getHost().getHost()));
-    assertThat(host.get().getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     // This line ensures that we've not processed the new data
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
@@ -428,12 +427,12 @@ public class PullQueryRoutingFunctionalTest {
     Assert.assertTrue(errorMessage.getMessage().contains("All nodes are dead or exceed max allowed lag."));
   }
 
-  private Pair<Optional<URI>, List<StreamedRow>> makePullQueryRequest(
+  private List<StreamedRow> makePullQueryRequest(
       final TestKsqlRestApp target,
       final String sql
   ) {
-    return RestIntegrationTestUtil.makeQueryRequestWithRespondingHost(target, sql, Optional.empty(),
-        null);
+    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(),
+        null, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
   }
 
   private static void makeAdminRequest(TestKsqlRestApp restApp, final String sql) {
@@ -445,13 +444,13 @@ public class PullQueryRoutingFunctionalTest {
     return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
   }
 
-  private static Pair<Optional<URI>, List<StreamedRow>> makePullQueryRequest(
+  private static List<StreamedRow> makePullQueryRequest(
       final TestKsqlRestApp target,
       final String sql,
       final Map<String, ?> properties
   ) {
-    return RestIntegrationTestUtil.makeQueryRequestWithRespondingHost(target, sql, Optional.empty(),
-        properties);
+    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(),
+        properties, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
   }
 
   private static KsqlErrorMessage makePullQueryRequestWithError(

@@ -20,16 +20,16 @@ import static java.util.Optional.empty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.client.KsqlTarget;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
@@ -275,12 +275,15 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final PullQueryResult result = pullQueryExecutor
         .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
     final TableRowsEntity tableRows = result.getTableRowsEntity();
+    final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
+        .map(KsqlNode::location)
+        .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));
 
     final StreamedRow header = StreamedRow.header(tableRows.getQueryId(), tableRows.getSchema());
 
     final List<StreamedRow> rows = tableRows.getRows().stream()
         .map(StreamedQueryResource::toGenericRow)
-        .map(StreamedRow::row)
+        .map(row -> StreamedRow.row(row, host))
         .collect(Collectors.toList());
 
     rows.add(0, header);
@@ -289,12 +292,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .map(this::writeValueAsString)
         .collect(Collectors.joining("," + System.lineSeparator(), "[", "]"));
 
-    final ImmutableMap.Builder<String, String> responseHeaders = ImmutableMap.builder();
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_SET_REPLYING_HOST_CONFIG)) {
-      responseHeaders.put(KsqlTarget.REPLYING_NODE_HEADER,
-          result.getReplyingNode().location().toString());
-    }
-    return EndpointResponse.ok(responseHeaders.build(), data);
+    return EndpointResponse.ok(data);
   }
 
   private EndpointResponse handlePushQuery(

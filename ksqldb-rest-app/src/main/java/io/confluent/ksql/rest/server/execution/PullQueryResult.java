@@ -17,25 +17,26 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
+import java.util.Optional;
 
 public class PullQueryResult {
 
   private final TableRowsEntity tableRowsEntity;
-  private final KsqlNode replyingNode;
+  private final Optional<KsqlNode> sourceNode;
 
   public PullQueryResult(
       final TableRowsEntity tableRowsEntity,
-      final KsqlNode replyingNode) {
+      final Optional<KsqlNode> sourceNode) {
 
     this.tableRowsEntity = tableRowsEntity;
-    this.replyingNode = replyingNode;
+    this.sourceNode = sourceNode;
   }
 
   public TableRowsEntity getTableRowsEntity() {
     return tableRowsEntity;
   }
 
-  public KsqlNode getReplyingNode() {
-    return replyingNode;
+  public Optional<KsqlNode> getSourceNode() {
+    return sourceNode;
   }
 }

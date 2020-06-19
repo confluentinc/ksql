@@ -35,7 +35,6 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -44,7 +43,6 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -70,7 +68,6 @@ public final class KsqlTarget {
   private static final String LAG_REPORT_PATH = "/lag";
   private static final String SERVER_METADATA_PATH = "/v1/metadata";
   private static final String SERVER_METADATA_ID_PATH = "/v1/metadata/id";
-  public static final String REPLYING_NODE_HEADER = "X-KSQL-Replying-Node";
 
   private final HttpClient httpClient;
   private final SocketAddress socketAddress;
@@ -174,7 +171,7 @@ public final class KsqlTarget {
     );
   }
 
-  public RestResponse<Pair<Optional<URI>, List<StreamedRow>>> postQueryRequest(
+  public RestResponse<List<StreamedRow>> postQueryRequest(
       final String ksql,
       final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
@@ -326,7 +323,7 @@ public final class KsqlTarget {
     return vcf;
   }
 
-  private static Pair<Optional<URI>, List<StreamedRow>> toRows(final ResponseWithBody resp) {
+  private static List<StreamedRow> toRows(final ResponseWithBody resp) {
 
     final List<StreamedRow> rows = new ArrayList<>();
     final Buffer buff = resp.getBody();
@@ -344,11 +341,7 @@ public final class KsqlTarget {
         begin = i + 1;
       }
     }
-
-    final String replyingNodeHeader = resp.getResponse().getHeader(REPLYING_NODE_HEADER);
-    final Optional<URI> uri = replyingNodeHeader != null
-        ? Optional.of(URI.create(replyingNodeHeader)) : Optional.empty();
-    return Pair.of(uri, rows);
+    return rows;
   }
 
 }

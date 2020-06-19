@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest;
 
-import com.google.common.collect.ImmutableMap;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,19 +45,11 @@ public final class EndpointResponse {
   }
 
   public static EndpointResponse ok(final Object entity) {
-    return new EndpointResponse(ImmutableMap.of(), HttpResponseStatus.OK.code(), entity);
-  }
-
-  public static EndpointResponse ok(final Map<String, String> headers, final Object entity) {
-    return new EndpointResponse(headers, HttpResponseStatus.OK.code(), entity);
+    return new EndpointResponse(null, HttpResponseStatus.OK.code(), entity);
   }
 
   public static EndpointResponse failed(final int status) {
-    return new EndpointResponse(ImmutableMap.of(), status, null);
-  }
-
-  public Map<String, String> getHeaders() {
-    return headers;
+    return new EndpointResponse(null, status, null);
   }
 
   public static final class Builder {

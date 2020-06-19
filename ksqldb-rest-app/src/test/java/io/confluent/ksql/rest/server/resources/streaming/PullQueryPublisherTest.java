@@ -69,8 +69,6 @@ public class PullQueryPublisherTest {
   private PullQueryExecutor pullQueryExecutor;
   @Mock
   private TableRows entity;
-  @Mock
-  private KsqlNode node;
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
 
@@ -84,7 +82,7 @@ public class PullQueryPublisherTest {
         statement,
         pullQueryExecutor);
 
-    PullQueryResult result = new PullQueryResult(entity, node);
+    PullQueryResult result = new PullQueryResult(entity, Optional.empty());
     when(pullQueryExecutor.execute(any(), any(), any(), any())).thenReturn(result);
     when(entity.getSchema()).thenReturn(SCHEMA);
 

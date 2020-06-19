@@ -20,10 +20,13 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -55,7 +58,6 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
         () -> pullQueryExecutor.execute(query, serviceContext, Optional.empty(), Optional.of(false))
-            .getTableRowsEntity()
     );
 
     subscriber.onSubscribe(subscription);
@@ -64,12 +66,20 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private static final class PullQuerySubscription implements Flow.Subscription {
 
     private final Subscriber<Collection<StreamedRow>> subscriber;
+<<<<<<< HEAD
     private final Callable<TableRows> executor;
+=======
+    private final Callable<PullQueryResult> executor;
+>>>>>>> Feedback
     private boolean done = false;
 
     private PullQuerySubscription(
         final Subscriber<Collection<StreamedRow>> subscriber,
+<<<<<<< HEAD
         final Callable<TableRows> executor
+=======
+        final Callable<PullQueryResult> executor
+>>>>>>> Feedback
     ) {
       this.subscriber = requireNonNull(subscriber, "subscriber");
       this.executor = requireNonNull(executor, "executor");
@@ -86,13 +96,21 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       done = true;
 
       try {
+<<<<<<< HEAD
         final TableRows entity = executor.call();
+=======
+        final PullQueryResult result = executor.call();
+        final TableRowsEntity entity = result.getTableRowsEntity();
+        final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
+            .map(KsqlNode::location)
+            .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));
+>>>>>>> Feedback
 
         subscriber.onSchema(entity.getSchema());
 
         final List<StreamedRow> rows = entity.getRows().stream()
             .map(PullQuerySubscription::toGenericRow)
-            .map(StreamedRow::row)
+            .map(row -> StreamedRow.row(row, host))
             .collect(Collectors.toList());
 
         subscriber.onNext(rows);

@@ -39,7 +39,6 @@ import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
@@ -162,36 +161,20 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<BasicCredentials> userCreds
   ) {
-    return makeQueryRequest(restApp, sql, userCreds, null);
+    return makeQueryRequest(restApp, sql, userCreds, null, Collections.emptyMap());
   }
 
   static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
       final Optional<BasicCredentials> userCreds,
-      final Map<String, ?> properties
+      final Map<String, ?> properties,
+      final Map<String, ?> requestProperties
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<List<StreamedRow>> res =
-          restClient.makeQueryRequest(sql, null, properties);
-
-      throwOnError(res);
-
-      return res.getResponse();
-    }
-  }
-
-  static Pair<Optional<URI>, List<StreamedRow>> makeQueryRequestWithRespondingHost(
-      final TestKsqlRestApp restApp,
-      final String sql,
-      final Optional<BasicCredentials> userCreds,
-      final Map<String, ?> properties
-  ) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
-
-      final RestResponse<Pair<Optional<URI>, List<StreamedRow>>> res =
-          restClient.makeQueryRequestWithRespondingHost(sql, null, properties);
+          restClient.makeQueryRequest(sql, null, properties, requestProperties);
 
       throwOnError(res);
 
@@ -208,7 +191,7 @@ public final class RestIntegrationTestUtil {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<List<StreamedRow>> res =
-          restClient.makeQueryRequest(sql, null, properties);
+          restClient.makeQueryRequest(sql, null, properties, Collections.emptyMap());
 
       throwOnNoError(res);
 

@@ -73,7 +73,7 @@ Given these restrictions, the following examples would be valid lambda functions
 * `s => UCASE(s)`
 * `(x, y) => x + y`
 * `(x, y) => CASE WHEN x IS NULL THEN y ELSE x + y END`
-* `(x, y) => x, x + y1`
+* `(x, y) => x + COALESCE(y, 0)`
 
 ### Invocation functions
 

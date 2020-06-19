@@ -117,3 +117,5 @@ If this is feasible then it would likely be worth doing. Without support for agg
 **2. Would allowing lambda functions to be applied to types other than `Array` or `Map` provide any value?**
 
 **3. Will the lambda function implementation require backward-incompatible changes to ksqlDB's internals?**
+
+**4. Should we extend ksqlDB's UDF interface to allow users to write their own lambda invocation functions?**

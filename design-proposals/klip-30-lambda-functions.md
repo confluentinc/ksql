@@ -1,4 +1,4 @@
-# KLIP-27 - Lambda Expressions
+# KLIP-30 - Lambda Expressions
 
 **Authors**: derekjn, blueedgenick |
 **Release Target**: N/A |

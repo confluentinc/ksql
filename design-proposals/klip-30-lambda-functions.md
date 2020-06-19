@@ -62,7 +62,7 @@ Multiple arguments should also be allowed for lambda functions. When multiple ar
 
 The body of each lambda function should simply be **any expression that could be used in a `SELECT` expression list**, with some exceptions:
 
-* Aggregates should not be allowed (please see *Open questions* section)
+* Aggregates should not be allowed (please see *[Open questions](#open-questions)* section)
 * `SELECT` subqueries should not be allowed
 
 #### Examples

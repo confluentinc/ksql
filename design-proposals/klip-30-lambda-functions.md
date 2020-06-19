@@ -5,7 +5,7 @@
 **Status**: _In Discussion_ |
 **Discussion**: N/A
 
-tl;dr: The introduction of lambda functions would bridge the gap somewhat between builtins and UDFs.
+**tl;dr**: The introduction of lambda functions would bridge the gap somewhat between builtins and UDFs.
 
 ## Motivation and background
 

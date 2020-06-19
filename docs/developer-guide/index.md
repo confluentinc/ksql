@@ -18,6 +18,7 @@ These topics show how to develop ksqlDB applications.
 - [Serialization](serialization.md)
 - [Testing Tool](test-and-debug/ksqldb-testing-tool.md)
 - [ksqlDB REST API Reference](api.md)
+- [ksqlDB Clients](ksqldb-clients/index.md)
 - [Processing Log](test-and-debug/processing-log.md)
 - [Tutorials and Examples](../tutorials/index.md)
 

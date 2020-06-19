@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import io.confluent.ksql.api.client.KsqlClientException;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;

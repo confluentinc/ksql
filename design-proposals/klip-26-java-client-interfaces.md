@@ -3,7 +3,7 @@
 **Author**: Victoria Xia (@vcrfxia) | 
 **Release Target**: ksqlDB 0.10.0 | 
 **Status**: _In development_ | 
-**Discussion**: TBD
+**Discussion**: [GitHub PR](https://github.com/confluentinc/ksql/pull/5236)
 
 **tl;dr:** _[KLIP 15](./klip-15-new-api-and-client.md) already made the case for why it makes sense
            to introduce a Java client for ksqlDB. This KLIP proposes interfaces for the client._
@@ -31,7 +31,7 @@ The Java client will support the following operations:
     * `SHOW STREAMS` (non-extended)
     * `SHOW TABLES` (non-extended)
     * `SHOW QUERIES` (non-extended)
-* Insert values, i.e., insert rows into an existing stream/table
+* Insert values, i.e., insert rows into an existing stream
 * Terminate push query (via the `/close-query` endpoint)
 
 The purpose of this KLIP is to reach agreement on the interfaces / public APIs.
@@ -91,8 +91,10 @@ public interface ClientOptions {
   ClientOptions setPort(int port);
 
   ClientOptions setUseTls(boolean useTls);
-
-  ClientOptions setUseClientAuth(boolean useClientAuth);
+  
+  ClientOptions setVerifyHost(boolean verifyHost);
+  
+  ClientOptions setUseAlpn(boolean useAlpn);
 
   ClientOptions setTrustStore(String trustStorePath);
 
@@ -103,14 +105,18 @@ public interface ClientOptions {
   ClientOptions setKeyStorePassword(String keyStorePassword);
 
   ClientOptions setBasicAuthCredentials(String username, String password);
+  
+  ClientOptions setExecuteQueryMaxResultRows(int maxRows);
 
   String getHost();
 
   int getPort();
 
   boolean isUseTls();
-
-  boolean isUseClientAuth();
+  
+  boolean isVerifyHost();
+  
+  boolean isUseAlpn();
 
   boolean isUseBasicAuth();
 
@@ -142,19 +148,36 @@ advanced users that wish to provide custom configs.
 The `Client` interface will provide the following methods for streaming the results of a transient (push or pull) query:
 ```
   /**
-   * Execute a query (push or pull) and receive the results one row at a time.
+   * Executes a query (push or pull) and returns the results one row at a time.
    *
-   * @param sql statement of query to execute.
-   * @return query result.
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * <p>By default, push queries issued via this method return results starting from the beginning
+   * of the stream or table. To override this behavior, use the method
+   * {@link #streamQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
+   * with value set to {@code latest}.
+   *
+   * @param sql statement of query to execute
+   * @return a future that completes once the server response is received, and contains the query
+   *         result if successful
    */
   CompletableFuture<StreamedQueryResult> streamQuery(String sql);
 
   /**
-   * Execute a query (push or pull) and receive the results one row at a time.
+   * Executes a query (push or pull) and returns the results one row at a time.
    *
-   * @param sql statement of query to execute.
-   * @param properties query properties.
-   * @return query result.
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * <p>By default, push queries issued via this method return results starting from the beginning
+   * of the stream or table. To override this behavior, pass in the query property
+   * {@code auto.offset.reset} with value set to {@code latest}.
+   *
+   * @param sql statement of query to execute
+   * @param properties query properties
+   * @return a future that completes once the server response is received, and contains the query
+   *         result if successful
    */
   CompletableFuture<StreamedQueryResult> streamQuery(String sql, Map<String, Object> properties);
 ```
@@ -166,6 +189,8 @@ import org.reactivestreams.Publisher;
  * The result of a query (push or pull), streamed one row at time. Records may be consumed by either
  * subscribing to the publisher or polling (blocking) for one record at a time. These two methods of
  * consumption are mutually exclusive; only one method may be used (per StreamedQueryResult).
+ *
+ * <p>The {@code subscribe()} method cannot be called if {@link #isFailed} is true.
  */
 public interface StreamedQueryResult extends Publisher<Row> {
 
@@ -173,26 +198,53 @@ public interface StreamedQueryResult extends Publisher<Row> {
 
   List<ColumnType> columnTypes();
 
+  /**
+   * Returns the ID of the underlying query if the query is a push query. Else, returns null.
+   *
+   * @return the query ID
+   */
   String queryID();
 
   /**
-   * Block until a row becomes available.
+   * Returns the next row. Blocks until one is available or the underlying query is terminated
+   * (either gracefully or because of an error).
    *
-   * @return the row.
+   * @return the row, or null if the query was terminated.
    */
   Row poll();
 
   /**
-   * Block until a row becomes available or the timeout has elapsed.
+   * Returns the next row. Blocks until one is available, the specified timeout has elapsed, or the
+   * underlying query is terminated (either gracefully or because of an error).
    *
-   * @param timeout amount of to wait for a row. Non-positive values are interpreted as no timeout.
-   * @return the row, if available; else, null.
+   * @param timeout amount of time to wait for a row. A non-positive value will cause this method to
+   *        block until a row is received or the query is terminated.
+   * @return the row, or null if the timeout elapsed or the query was terminated.
    */
-  Row poll(long timeout, Duration timeUnit);
+  Row poll(Duration timeout);
 
+  /**
+   * Returns whether the {@code StreamedQueryResult} is complete.
+   *
+   * <p>A {@code StreamedQueryResult} is complete if the HTTP connection associated with this query
+   * has been ended gracefully. Once complete, the @{code StreamedQueryResult} will continue to
+   * deliver any remaining rows, then call {@code onComplete()} on the subscriber, if present.
+   *
+   * @return whether the {@code StreamedQueryResult} is complete.
+   */
   boolean isComplete();
 
-  void close();
+  /**
+   * Returns whether the {@code StreamedQueryResult} is failed.
+   *
+   * <p>A {@code StreamedQueryResult} is failed if an error is received from the server. Once
+   * failed, {@code onError()} is called on the subscriber, if present, any existing {@code poll()}
+   * calls will return null, and new calls to {@link #poll} and {@code subscribe()} will be
+   * rejected.
+   *
+   * @return whether the {@code StreamedQueryResult} is failed.
+   */
+  boolean isFailed();
 }
 ```
 Note that `StreamedQueryResult` is a Reactive Streams `Publisher` so users can stream results. Users can also call `poll()` to receive
@@ -209,167 +261,222 @@ public interface Row {
 
   List<ColumnType> columnTypes();
 
+  /**
+   * Returns the values (data) in this row, represented as a {@link KsqlArray}.
+   *
+   * <p>Returned values are JSON types which means numeric columns are not necessarily typed in
+   * accordance with {@link #columnTypes}. For example, a {@code BIGINT} field will be typed as an
+   * integer rather than a long, if the numeric value fits into an integer.
+   *
+   * @return the values
+   */
   KsqlArray values();
+
+  /**
+   * Returns the data in this row represented as a {@link KsqlObject} where keys are column names
+   * and values are column values.
+   *
+   * @return the data
+   */
+  KsqlObject asObject();
   
   /**
-   * Whether the value for a particular column of the Row is null.
+   * Returns whether the value for a particular column of the {@code Row} is null.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return whether the column value is null.
+   * @param columnIndex index of column (1-indexed)
+   * @return whether the column value is null
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   boolean isNull(int columnIndex);
-  
+
   /**
-   * Whether the value for a particular column of the Row is null.
+   * Returns whether the value for a particular column of the {@code Row} is null.
    *
-   * @param columnName name of column.
-   * @return whether the column value is null.
+   * @param columnName name of column
+   * @return whether the column value is null
+   * @throws IllegalArgumentException if the column name is invalid
    */
   boolean isNull(String columnName);
 
   /**
-   * Get the value for a particular column of the Row as an Object.
+   * Returns the value for a particular column of the {@code Row} as an {@code Object}.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   Object getValue(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as an Object.
+   * Returns the value for a particular column of the {@code Row} as an {@code Object}.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws IllegalArgumentException if the column name is invalid
    */
   Object getValue(String columnName);
 
   /**
-   * Get the value for a particular column of the Row as a string.
+   * Returns the value for a particular column of the {@code Row} as a string.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value is not a string
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   String getString(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as a string.
+   * Returns the value for a particular column of the {@code Row} as a string.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value is not a string
+   * @throws IllegalArgumentException if the column name is invalid
    */
   String getString(String columnName);
 
   /**
-   * Get the value for a particular column of the Row as an integer.
+   * Returns the value for a particular column of the {@code Row} as an integer.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code Number}
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
-  Integer getInt(int columnIndex);
+  Integer getInteger(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as an integer.
+   * Returns the value for a particular column of the {@code Row} as an integer.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code Number}
+   * @throws IllegalArgumentException if the column name is invalid
    */
-  Integer getInt(String columnName);
+  Integer getInteger(String columnName);
 
   /**
-   * Get the value for a particular column of the Row as a long.
+   * Returns the value for a particular column of the {@code Row} as a long.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code Number}
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   Long getLong(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as a long.
+   * Returns the value for a particular column of the {@code Row} as a long.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code Number}
+   * @throws IllegalArgumentException if the column name is invalid
    */
   Long getLong(String columnName);
 
   /**
-   * Get the value for a particular column of the Row as a double.
+   * Returns the value for a particular column of the {@code Row} as a double.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code Number}
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   Double getDouble(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as a double.
+   * Returns the value for a particular column of the {@code Row} as a double.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code Number}
+   * @throws IllegalArgumentException if the column name is invalid
    */
   Double getDouble(String columnName);
 
   /**
-   * Get the value for a particular column of the Row as a boolean.
+   * Returns the value for a particular column of the {@code Row} as a boolean.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value is not a boolean
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   Boolean getBoolean(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as a boolean.
+   * Returns the value for a particular column of the {@code Row} as a boolean.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value is not a boolean
+   * @throws IllegalArgumentException if the column name is invalid
    */
   Boolean getBoolean(String columnName);
 
   /**
-   * Get the value for a particular column of the Row as a decimal.
+   * Returns the value for a particular column of the {@code Row} as a {@code BigDecimal}.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code Number}
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   BigDecimal getDecimal(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as a decimal.
+   * Returns the value for a particular column of the {@code Row} as a {@code BigDecimal}.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value is not a {@code Number}
+   * @throws IllegalArgumentException if the column name is invalid
    */
   BigDecimal getDecimal(String columnName);
-  
+
   /**
-   * Get the value for a particular column of the Row as a KsqlObject.
-   * Useful for MAP and STRUCT column types.
+   * Returns the value for a particular column of the {@code Row} as a {@link KsqlObject}.
+   * Useful for {@code MAP} and {@code STRUCT} column types.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value cannot be converted to a map
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   KsqlObject getKsqlObject(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as a KsqlObject.
-   * Useful for MAP and STRUCT column types.
+   * Returns the value for a particular column of the {@code Row} as a {@link KsqlObject}.
+   * Useful for {@code MAP} and {@code STRUCT} column types.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value cannot be converted to a map
+   * @throws IllegalArgumentException if the column name is invalid
    */
   KsqlObject getKsqlObject(String columnName);
 
   /**
-   * Get the value for a particular column of the Row as a KsqlArray. Useful for ARRAY column types.
+   * Returns the value for a particular column of the {@code Row} as a {@link KsqlArray}.
+   * Useful for {@code ARRAY} column types.
    *
-   * @param columnIndex index of column (1-indexed).
-   * @return column value.
+   * @param columnIndex index of column (1-indexed)
+   * @return column value
+   * @throws ClassCastException if the column value cannot be converted to a list
+   * @throws IndexOutOfBoundsException if the index is invalid
    */
   KsqlArray getKsqlArray(int columnIndex);
 
   /**
-   * Get the value for a particular column of the Row as a KsqlArray. Useful for ARRAY column types.
+   * Returns the value for a particular column of the {@code Row} as a {@link KsqlArray}.
+   * Useful for {@code ARRAY} column types.
    *
-   * @param columnName name of column.
-   * @return column value.
+   * @param columnName name of column
+   * @return column value
+   * @throws ClassCastException if the column value cannot be converted to a list
+   * @throws IllegalArgumentException if the column name is invalid
    */
   KsqlArray getKsqlArray(String columnName);
 }
@@ -381,134 +488,725 @@ We chose to introduce new types rather than using   `List<Object>` and `Map<Stri
 
 The methods exposed on each type are as follows:
 ```
+/**
+ * A representation of an array of values.
+ */
 public KsqlArray {
 
-  KsqlArray();
+  /**
+   * Creates an empty instance.
+   */
+  public KsqlArray() {
+    delegate = new JsonArray();
+  }
 
-  KsqlArray(List list);
+  /**
+   * Creates an instance with the specified values.
+   *
+   * @param list the values
+   */
+  public KsqlArray(final List<?> list) {
+    delegate = new JsonArray(list);
+  }
 
-  boolean contains(Object value);
+  /**
+   * Returns the size (number of values) of the array.
+   *
+   * @return the size
+   */
+  public int size() {
+    return delegate.size();
+  }
 
-  int size();
+  /**
+   * Returns whether the array is empty.
+   *
+   * @return whether the array is empty
+   */
+  public boolean isEmpty() {
+    return delegate.isEmpty();
+  }
 
-  boolean isEmpty();
+  /**
+   * Returns values of the array as a list.
+   *
+   * @return list of values
+   */
+  public List<?> getList() {
+    return delegate.getList();
+  }
 
-  List getList();
+  /**
+   * Returns an iterator over values of the array.
+   *
+   * @return the iterator
+   */
+  public Iterator<Object> iterator() {
+    return delegate.iterator();
+  }
 
-  Iterator<Object> iterator();
+  /**
+   * Returns values of the array as a stream.
+   *
+   * @return the stream
+   */
+  public java.util.stream.Stream<Object> stream() {
+    return delegate.stream();
+  }
 
-  java.util.stream.Stream<Object> stream();
+  /**
+   * Returns the value at a specified index as an {@code Object}.
+   *
+   * @param pos the index
+   * @return the value
+   */
+  public Object getValue(final int pos) {
+    return delegate.getValue(pos);
+  }
 
-  Object getValue(int pos);
+  /**
+   * Returns the value at a specified index as a string.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws ClassCastException if the value is not a string
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public String getString(final int pos) {
+    return delegate.getString(pos);
+  }
 
-  String getString(int pos);
+  /**
+   * Returns the value at a specified index as an integer.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code Number}
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public Integer getInteger(final int pos) {
+    return delegate.getInteger(pos);
+  }
 
-  Integer getInteger(int pos);
+  /**
+   * Returns the value at a specified index as a long.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code Number}
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public Long getLong(final int pos) {
+    return delegate.getLong(pos);
+  }
 
-  Long getLong(int pos);
+  /**
+   * Returns the value at a specified index as a double.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code Number}
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public Double getDouble(final int pos) {
+    return delegate.getDouble(pos);
+  }
 
-  Double getDouble(int pos);
+  /**
+   * Returns the value at a specified index as a boolean.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws ClassCastException if the value is not a boolean
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public Boolean getBoolean(final int pos) {
+    return delegate.getBoolean(pos);
+  }
 
-  Boolean getBoolean(int pos);
+  /**
+   * Returns the value at a specified index as a {@code BigDecimal}.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code Number}
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public BigDecimal getDecimal(final int pos) {
+    return new BigDecimal(getValue(pos).toString());
+  }
 
-  KsqlArray getKsqlArray(int pos);
+  /**
+   * Returns the value at a specified index as a {@code KsqlArray}.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws ClassCastException if the value cannot be converted to a list
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public KsqlArray getKsqlArray(final int pos) {
+    return new KsqlArray(delegate.getJsonArray(pos));
+  }
 
-  KsqlObject getKsqlObject(int pos);
+  /**
+   * Returns the value at a specified index as a {@link KsqlObject}.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws ClassCastException if the value cannot be converted to a map
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public KsqlObject getKsqlObject(final int pos) {
+    return new KsqlObject(delegate.getJsonObject(pos));
+  }
 
-  Object remove(int pos);
+  /**
+   * Removes the value at a specified index from the array.
+   *
+   * @param pos the index
+   * @return the removed value
+   * @throws IndexOutOfBoundsException if the index is invalid
+   */
+  public Object remove(final int pos) {
+    return delegate.remove(pos);
+  }
 
-  Object remove(Object value);
+  /**
+   * Removes the first occurrence of the specified value from the array, if present.
+   *
+   * @param value the value to remove
+   * @return whether the value was removed
+   */
+  public boolean remove(final Object value) {
+    return delegate.remove(value);
+  }
 
-  KsqlArray add(String value);
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final String value) {
+    delegate.add(value);
+    return this;
+  }
 
-  KsqlArray add(Integer value);
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final Integer value) {
+    delegate.add(value);
+    return this;
+  }
 
-  KsqlArray add(Long value);
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final Long value) {
+    delegate.add(value);
+    return this;
+  }
 
-  KsqlArray add(Double value);
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final Double value) {
+    delegate.add(value);
+    return this;
+  }
 
-  KsqlArray add(Boolean value);
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final Boolean value) {
+    delegate.add(value);
+    return this;
+  }
 
-  KsqlArray add(KsqlArray value);
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final BigDecimal value) {
+    // Vert.x JsonArray does not accept BigDecimal values. Instead we store the value as a string
+    // so as to not lose precision.
+    delegate.add(value.toString());
+    return this;
+  }
 
-  KsqlArray add(KsqlObject value);
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final KsqlArray value) {
+    delegate.add(KsqlArray.toJsonArray(value));
+    return this;
+  }
 
-  KsqlArray add(Object value);
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final KsqlObject value) {
+    delegate.add(KsqlObject.toJsonObject(value));
+    return this;
+  }
 
-  KsqlArray addNull();
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final Object value) {
+    delegate.add(value);
+    return this;
+  }
 
-  KsqlArray addAll(KsqlArray array);
+  /**
+   * Appends a null value to the end of the array.
+   *
+   * @return a reference to this
+   */
+  public KsqlArray addNull() {
+    delegate.addNull();
+    return this;
+  }
 
-  KsqlArray copy();
+  /**
+   * Appends the values in the specified {@code KsqlArray} to the end of this instance.
+   *
+   * @param array the values to append
+   * @return a reference to this
+   */
+  public KsqlArray addAll(final KsqlArray array) {
+    delegate.addAll(toJsonArray(array));
+    return this;
+  }
+
+  /**
+   * Returns a copy of this.
+   *
+   * @return the copy
+   */
+  public KsqlArray copy() {
+    return new KsqlArray(delegate.copy());
+  }
+
+  /**
+   * Returns a JSON string representing the values in the array.
+   *
+   * @return the JSON string
+   */
+  public String toJsonString() {
+    return delegate.toString();
+  }
+
+  /**
+   * Returns a JSON string representing the values in the array. Same as {@link #toJsonString()}.
+   *
+   * @return the JSON string
+   */
+  @Override
+  public String toString() {
+    return toJsonString();
+  }
 }
 ```
 and
 ```
+/**
+ * A representation of a map of string keys to values. Useful for representing a JSON object.
+ */
 public KsqlObject {
 
-  KsqlObject();
+  /**
+   * Creates an empty instance.
+   */
+  public KsqlObject() {
+    delegate = new JsonObject();
+  }
 
-  KsqlObject(Map<String, Object> map);
+  /**
+   * Creates an instance with the specified entries.
+   *
+   * @param map the entries
+   */
+  public KsqlObject(final Map<String, Object> map) {
+    delegate = new JsonObject(map);
+  }
 
-  boolean containsKey(String key);
+  KsqlObject(final JsonObject jsonObject) {
+    delegate = Objects.requireNonNull(jsonObject);
+  }
 
-  Set<String> fieldNames();
+  /**
+   * Returns whether the map contains the specified key.
+   *
+   * @param key the key
+   * @return whether the map contains the key
+   */
+  public boolean containsKey(final String key) {
+    return delegate.containsKey(key);
+  }
 
-  int size();
+  /**
+   * Returns the keys of the map.
+   *
+   * @return the keys
+   */
+  public Set<String> fieldNames() {
+    return delegate.fieldNames();
+  }
 
-  boolean isEmpty();
+  /**
+   * Returns the size (number of entries) of the map.
+   *
+   * @return the size
+   */
+  public int size() {
+    return delegate.size();
+  }
 
-  Map<String, Object> getMap();
+  /**
+   * Returns whether the map is empty.
+   *
+   * @return whether the map is empty
+   */
+  public boolean isEmpty() {
+    return delegate.isEmpty();
+  }
 
-  Iterator<Map.Entry<String,Object>> iterator();
+  /**
+   * Returns the entries of the map as a {@code Map}.
+   *
+   * @return the entries
+   */
+  public Map<String, Object> getMap() {
+    return delegate.getMap();
+  }
 
-  java.util.stream.Stream<Map.Entry<String,Object>> stream();
+  /**
+   * Returns an iterator over the entries of the map.
+   *
+   * @return the iterator
+   */
+  public Iterator<Entry<String,Object>> iterator() {
+    return delegate.iterator();
+  }
 
-  Object getValue(String key);
+  /**
+   * Returns entries of the map as a stream.
+   *
+   * @return the stream
+   */
+  public java.util.stream.Stream<Map.Entry<String,Object>> stream() {
+    return delegate.stream();
+  }
 
-  String getString(String key);
+  /**
+   * Returns the value associated with the specified key as an {@code Object}. Returns null if the
+   * key is not present.
+   *
+   * @param key the key
+   * @return the value
+   */
+  public Object getValue(final String key) {
+    return delegate.getValue(key);
+  }
 
-  Integer getInteger(String key);
+  /**
+   * Returns the value associated with the specified key as a string. Returns null if the key is not
+   * present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value is not a string
+   */
+  public String getString(final String key) {
+    return delegate.getString(key);
+  }
 
-  Long getLong(String key);
+  /**
+   * Returns the value associated with the specified key as an integer. Returns null if the key is
+   * not present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code Number}
+   */
+  public Integer getInteger(final String key) {
+    return delegate.getInteger(key);
+  }
 
-  Double getDouble(String key);
+  /**
+   * Returns the value associated with the specified key as a long. Returns null if the key is not
+   * present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code Number}
+   */
+  public Long getLong(final String key) {
+    return delegate.getLong(key);
+  }
 
-  Boolean getBoolean(String key);
+  /**
+   * Returns the value associated with the specified key as a double. Returns null if the key is
+   * not present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code Number}
+   */
+  public Double getDouble(final String key) {
+    return delegate.getDouble(key);
+  }
 
-  KsqlArray getKsqlArray(String key);
+  /**
+   * Returns the value associated with the specified key as a boolean. Returns null if the key is
+   * not present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value is not a boolean
+   */
+  public Boolean getBoolean(final String key) {
+    return delegate.getBoolean(key);
+  }
 
-  KsqlObject getKsqlObject(String key);
+  /**
+   * Returns the value associated with the specified key as a {@code BigDecimal}. Returns null if
+   * the key is not present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code Number}
+   */
+  public BigDecimal getDecimal(final String key) {
+    return new BigDecimal(getValue(key).toString());
+  }
 
-  Object remove(String key);
+  /**
+   * Returns the value associated with the specified key as a {@link KsqlArray}. Returns null if the
+   * key is not present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value cannot be converted to a list
+   */
+  public KsqlArray getKsqlArray(final String key) {
+    return new KsqlArray(delegate.getJsonArray(key));
+  }
 
-  KsqlObject put(String key, Integer value);
+  /**
+   * Returns the value associated with the specified key as a {@code KsqlObject}. Returns null if
+   * the key is not present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value cannot be converted to a map
+   */
+  public KsqlObject getKsqlObject(final String key) {
+    return new KsqlObject(delegate.getJsonObject(key));
+  }
 
-  KsqlObject put(String key, Long value);
+  /**
+   * Removes the value associated with a specified key.
+   *
+   * @param key the key
+   * @return the removed value, or null if the key was not present
+   */
+  public Object remove(final String key) {
+    return delegate.remove(key);
+  }
 
-  KsqlObject put(String key, String value);
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final Integer value) {
+    delegate.put(key, value);
+    return this;
+  }
 
-  KsqlObject put(String key, Double value);
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final Long value) {
+    delegate.put(key, value);
+    return this;
+  }
 
-  KsqlObject put(String key, Boolean value);
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final String value) {
+    delegate.put(key, value);
+    return this;
+  }
 
-  KsqlObject put(String key, KsqlArray value);
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final Double value) {
+    delegate.put(key, value);
+    return this;
+  }
 
-  KsqlObject put(String key, KsqlObject value);
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final Boolean value) {
+    delegate.put(key, value);
+    return this;
+  }
 
-  KsqlObject put(String key, Object value);
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final BigDecimal value) {
+    // Vert.x JsonObject does not accept BigDecimal values. Instead we store the value as a string
+    // so as to not lose precision.
+    delegate.put(key, value.toString());
+    return this;
+  }
 
-  KsqlObject putNull(String key);
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final KsqlArray value) {
+    delegate.put(key, KsqlArray.toJsonArray(value));
+    return this;
+  }
 
-  KsqlObject mergeIn(KsqlObject other);
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final KsqlObject value) {
+    delegate.put(key, KsqlObject.toJsonObject(value));
+    return this;
+  }
 
-  KsqlObject copy();
+  /**
+   * Adds an entry for the specified key and value to the map.
+   *
+   * @param key the key
+   * @param value the value
+   * @return a reference to this
+   */
+  public KsqlObject put(final String key, final Object value) {
+    delegate.put(key, value);
+    return this;
+  }
+
+  /**
+   * Adds an entry for the specified key with null value to the map.
+   *
+   * @param key the key
+   * @return a reference to this
+   */
+  public KsqlObject putNull(final String key) {
+    delegate.putNull(key);
+    return this;
+  }
+
+  /**
+   * Adds entries from the specified {@code KsqlObject} into this instance.
+   *
+   * @param other the entries to add
+   * @return a reference to this
+   */
+  public KsqlObject mergeIn(final KsqlObject other) {
+    delegate.mergeIn(toJsonObject(other));
+    return this;
+  }
+
+  /**
+   * Returns a copy of this.
+   *
+   * @return the copy
+   */
+  public KsqlObject copy() {
+    return new KsqlObject(delegate.copy());
+  }
+
+  /**
+   * Returns a JSON string representing the entries in the map.
+   *
+   * @return the JSON string
+   */
+  public String toJsonString() {
+    return delegate.toString();
+  }
+
+  /**
+   * Returns a JSON string representing the entries in the map. Same as {@link #toJsonString()}.
+   *
+   * @return the JSON string
+   */
+  @Override
+  public String toString() {
+    return toJsonString();
+  }
 }
 ``` 
-It may be nice to expose specific methods for handling `BigDecimal` on these types in order to have the decimal ksqlDB type feel like a first-class citizen, though this needs more investigation to flesh out since such methods would not be able to be delegated to Vert.x's `JsonArray` and `JsonObject` directly.
 
 Finally, `ColumnType` is:
 ```
+/**
+ * The type of a column returned as part of a query result.
+ */
 public interface ColumnType {
 
   enum Type { STRING, INTEGER, BIGINT, DOUBLE, BOOLEAN, DECIMAL, ARRAY, MAP, STRUCT }
@@ -521,6 +1219,9 @@ public interface ColumnType {
 For now, `ColumnType` simply wraps a type represented as an enum. We can add additional methods in the future if we wish to expose more detailed type information (e.g., decimal scale and precision, or inner types for nested/complex types).
 (The server side APIs currently return type information only as strings, which means providing a fully-specified type requires either client-side parsing or a server side change. The latter is preferred but is a fair bit of additional work.)
 
+As pointed out in the javadocs, push queries issued via this method default to using `auto.offset.reset=earliestt`
+(as a consequence of using the new `/query-stream` endpoint), which is a departure from the old REST API and the ksqlDB CLI.
+
 For `getDecimal(...)` in the `Row` interface, rather than trying to parse the column type to extract the precision and scale, we will simply convert the value to a BigDecimal without explicitly specifying the precision and scale. We could also add an option for users to specify the scale and precision in the getter, if we think that would be useful.
 
 It's interesting that the method `getKsqlObject()` in the `Row` interface is used to represent both the `MAP` and `STRUCT` ksqlDB types. I'm not sure what a better alternative to avoid this confusion might be.
@@ -531,39 +1232,56 @@ The `Client` interface will also provide the following methods for receiving the
 once the query has completed:
 ```
   /**
-   * Execute a query (push or pull) and receive all result rows together, once the query has
-   * completed.
+   * Executes a query (push or pull) and returns all result rows in a single batch, once the query
+   * has completed.
    *
-   * @param sql statement of query to execute.
-   * @return query result.
+   * <p>By default, push queries issued via this method return results starting from the beginning
+   * of the stream or table. To override this behavior, use the method
+   * {@link #executeQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
+   * with value set to {@code latest}.
+   *
+   * @param sql statement of query to execute
+   * @return query result
    */
-  CompletableFuture<BatchedQueryResult> executeQuery(String sql);
+  BatchedQueryResult executeQuery(String sql);
 
   /**
-   * Execute a query (push or pull) and receive all result rows together, once the query has
-   * completed.
+   * Executes a query (push or pull) and returns all result rows in a single batch, once the query
+   * has completed.
    *
-   * @param sql statement of query to execute.
-   * @param properties query properties.
-   * @return query result.
+   * <p>By default, push queries issued via this method return results starting from the beginning
+   * of the stream or table. To override this behavior, pass in the query property
+   * {@code auto.offset.reset} with value set to {@code latest}.
+   *
+   * @param sql statement of query to execute
+   * @param properties query properties
+   * @return query result
    */
-  CompletableFuture<BatchedQueryResult> executeQuery(String sql, Map<String, Object> properties);
+  BatchedQueryResult executeQuery(String sql, Map<String, Object> properties);
 ```
 where
 ```
 /**
  * The result of a query (push or pull), returned as a single batch once the query has finished
- * executing. For non-terminating push queries, {@code StreamedQueryResult} should be used instead.
+ * executing, or the query has been terminated. For non-terminating push queries,
+ * {@link StreamedQueryResult} should be used instead.
+ *
+ * <p>If a non-200 response is received from the server, this future will complete exceptionally.
+ *
+ * <p>The maximum number of {@code Row}s that may be returned from a {@code BatchedQueryResult}
+ * defaults to {@link ClientOptions#DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS} and can be configured
+ * via {@link ClientOptions#setExecuteQueryMaxResultRows(int)}.
  */
-public interface BatchedQueryResult {
+public abstract class BatchedQueryResult extends CompletableFuture<List<Row>> {
 
-  List<String> columnNames();
+  /**
+   * Returns a {@code CompletableFuture} containing the ID of the underlying query if the query is
+   * a push query, else null. The future is completed once a response is received from the server.
+   *
+   * @return a future containing the query ID (or null in the case of pull queries)
+   */
+  public abstract CompletableFuture<String> queryID();
 
-  List<ColumnType> columnTypes();
-
-  String queryID();
-
-  List<Row> rows();
 }
 ```
 
@@ -572,23 +1290,22 @@ For a query to "complete" could mean:
 * The query is a push query with a limit clause, and the limit has been reached
 * The query is a push query that has been terminated
 
-We may want to introduce a limit to the number of rows that may be returned from these `executeQuery()` methods,
-in order to decrease the likelihood of running out of memory.
-
-For `BatchedQueryResult`, the `columnNames()` and `columnTypes()` methods are not strictly necessary as this same information is contained in `Row`
-and (unlike the `StreamedQueryResult`) the rows are returned at the same time as the query result object itself.
-I think it's nice to have them for purposes of consistency but we remove them if others think the additional methods are redundant.
+Similar to the `streamQuery()` methods above, push queries issued via this method default to using `auto.offset.reset=earliestt`
+(as a consequence of using the new `/query-stream` endpoint), which is a departure from the old REST API and the ksqlDB CLI.
 
 ### Insert values
 
 A method to insert one row at a time:
 ```
   /**
-   * Insert a single row into the relevant stream/table.
+   * Inserts a row into a ksqlDB stream.
    *
-   * @param streamName name of stream/table.
-   * @param row the row to insert.
-   * @return a future that completes once the request has been processed.
+   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
+   * server, or if the server encounters an error while processing the insertion.
+   *
+   * @param streamName name of the target stream
+   * @param row the row to insert. Keys are column names and values are column values.
+   * @return a future that completes once the server response is received
    */
   CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
 ```
@@ -624,6 +1341,11 @@ public interface InsertResponse {
 
 }
 ```
+
+Note that these methods only allow the insertion of rows into ksqlDB streams, not tables.
+
+We consciously choose not to expose a method to insert a batch of rows in a non-streaming fashion
+as the lack of transactional guarantees means some rows may be inserted whereas others are not (e.g., if an error is encountered partway). 
 
 ### DDL operations
 
@@ -837,6 +1559,15 @@ public interface QueryInfo {
 ### Terminate push query
 
 ```
+  /**
+   * Terminates a push query with the specified query ID.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param queryId ID of the query to terminate
+   * @return a future that completes once the server response is received
+   */
   CompletableFuture<Void> terminatePushQuery(String queryId);
 ```
 
@@ -844,6 +1575,9 @@ public interface QueryInfo {
 
 The `Client` interface will also have the following:
 ```
+  /**
+   * Closes the underlying HTTP client.
+   */
   void close();
 ```
 
@@ -857,20 +1591,20 @@ N/A. This KLIP is only about the interfaces.
 
 ## LOEs and Delivery Milestones
 
-The order in which the client methods will be implemented is as follows:
+The following client methods will be available in the 0.10.0 release:
 * Push and pull queries
-* Insert values
-* DDL statements
 * Terminate push queries
+* Insert values -- non-streaming (i.e., `insertInto()` only)
+
+The following methods are targeted for 0.11.0:
+* Insert values -- streaming (i.e., `streamInserts()`)
+* DDL statements
 * Admin operations
-
-Push and pull queries are targeted for ksqlDB 0.10.0 for sure. Insert values and some DDL statements may make the cut as well, but it's uncertain at the moment. Everything that slips through will be in ksqlDB 0.11.0 instead. 
-
-A more detailed breakdown of implementation phases is out of scope for this KLIP.
 
 ## Documentation Updates
 
-We'll add Java docs for the Client interfaces for sure. I think it'd also be good to add a new docs page with example usage of the client, though I'm not sure what sort of example makes the most sense.
+HTML API docs generated from the javadocs on the client interfaces will be hosted on the ksqlDB microsite.
+We'll also have a separate docs page with example usage for each of the methods. (See https://github.com/confluentinc/ksql/pull/5434 for a work-in-progress draft.)
 
 ## Compatibility Implications
 

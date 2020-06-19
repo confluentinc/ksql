@@ -13,17 +13,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.client;
+package io.confluent.ksql.api.client.exception;
 
-/**
- * Converts {@code KsqlErrorMessage} into an exception to be passed to client exception handlers.
- */
-public class KsqlException extends RuntimeException {
+public class KsqlClientException extends RuntimeException {
 
-  private final int errorCode;
-
-  public KsqlException(final int errorCode, final String message) {
+  public KsqlClientException(final String message) {
     super(message);
-    this.errorCode = errorCode;
+  }
+
+  public KsqlClientException(final String message, final Throwable throwable) {
+    super(message, throwable);
   }
 }

@@ -118,6 +118,8 @@ nav:
       - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
       - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
+    - Clients:
+      - Java Client: developer-guide/ksqldb-clients/java-client.md
   - Operate and Deploy:
       - Operations Index: operate-and-deploy/index.md
       - Deploy:

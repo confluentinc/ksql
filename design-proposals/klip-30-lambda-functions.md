@@ -108,7 +108,7 @@ Since lambda functions would only allow SQL expressions that can already be used
 
 ## Open questions
 
-**1. Would it be possible to allow aggregates within a particular invocation function? For example,**
+**1. Would it be possible to allow aggregates in lambdas within the context of a particular invocation function? For example,**
 
 - `agg_array(arr, x => sum(x))`
 

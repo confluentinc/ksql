@@ -67,8 +67,6 @@ The body of each lambda function should simply be **any expression that could be
 
 Given these restrictions, the following examples would be valid lambda functions:
 
-**Examples**:
-
 * `x => x + 1`
 * `s => UCASE(s)`
 * `(x, y) => x + y`

@@ -4,6 +4,10 @@
 
 ### Features
 
+* Any key name ([#5093](https://github.com/confluentinc/ksql/pull/5093)) ([1f0ca3e](https://github.com/confluentinc/ksql/commit/1f0ca3efb0f5ecadc7a604f219cbc16b2e120d8d))
+* add CHR UDF ([#5559](https://github.com/confluentinc/ksql/pull/5559)) ([5a746e8](https://github.com/confluentinc/ksql/commit/5a746e85502235753cf11bfa507ab69e1e19064c))
+* implements ARRAY_JOIN as requested in ([#5028](https://github.com/confluentinc/ksql/pull/5028)) ([#5474](https://github.com/confluentinc/ksql/issues/5474)) ([#5638](https://github.com/confluentinc/ksql/issues/5638)) ([6c67866](https://github.com/confluentinc/ksql/commit/6c678665cee4a67e7737460710eac2875bc8c2e2))
+* new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
 * add CHR UDF ([#5559](https://github.com/confluentinc/ksql/pull/5559)) ([5a746e8](https://github.com/confluentinc/ksql/commit/5a746e85502235753cf11bfa507ab69e1e19064c))
 * Add encode udf ([#5523](https://github.com/confluentinc/ksql/pull/5523)) ([b02f1ce](https://github.com/confluentinc/ksql/commit/b02f1ce8ae564688eda385268a51b1217dc9e277))
 * add extra log messages for pull queries ([#4909](https://github.com/confluentinc/ksql/pull/4909)) ([d622ecc](https://github.com/confluentinc/ksql/commit/d622eccb845698c245340556b6b4965fec075305))
@@ -50,11 +54,9 @@
 * fail on WINDOW clause without matching GROUP BY ([#5431](https://github.com/confluentinc/ksql/pull/5431)) ([68354d4](https://github.com/confluentinc/ksql/commit/68354d488aec07dc0bc9a7354ee8b8794bfef4e6))
 * improve print topic ([#5552](https://github.com/confluentinc/ksql/pull/5552)) ([e193576](https://github.com/confluentinc/ksql/commit/e193576c0f6c0295da6f4357391639e49a45863b))
 * Improve pull query error logging ([#5477](https://github.com/confluentinc/ksql/pull/5477)) ([f23412e](https://github.com/confluentinc/ksql/commit/f23412e9103531d2b8ce96cfcee3eff92784239b))
-* Java client error handling ([#5360](https://github.com/confluentinc/ksql/pull/5360)) ([4dca4dc](https://github.com/confluentinc/ksql/commit/4dca4dc4f56d9448bc0e66ea39cc728b2cf0a8fa))
 * KSQL does not accept more queries when running QueryLimit - 1 queries ([#5461](https://github.com/confluentinc/ksql/pull/5461)) ([d64f1bc](https://github.com/confluentinc/ksql/commit/d64f1bc7ba4359b3d7a8cf3ba28d315eef47389e))
 * make stream and column names case-insensitive in /inserts-stream ([#5591](https://github.com/confluentinc/ksql/pull/5591)) ([e9e3042](https://github.com/confluentinc/ksql/commit/e9e3042f1bdbd6da384146410f866aab6b12b987))
 * NPE in latest_by_offset if first element being processed has null… ([#4975](https://github.com/confluentinc/ksql/pull/4975)) ([a9668d2](https://github.com/confluentinc/ksql/commit/a9668d245db797e193d1e4bcc8734eab29ba99b3))
-* Override Scala version in our build ([#5381](https://github.com/confluentinc/ksql/pull/5381)) ([7cf82e4](https://github.com/confluentinc/ksql/commit/7cf82e443283bbd189944a15a8341646919cf01f))
 * Prevent memory leaks caused by pull query logging ([#5532](https://github.com/confluentinc/ksql/pull/5532)) ([723b6cb](https://github.com/confluentinc/ksql/commit/723b6cb764950a4d9d639f5d40c4b4e6c615fba6))
 * remove leading zeros when casting decimal to string ([#5270](https://github.com/confluentinc/ksql/pull/5270)) ([e1cc8ad](https://github.com/confluentinc/ksql/commit/e1cc8ad8db9f9f34c3a2f26b60c3d0a7631b23a2))
 * Remove stacktrace from error message ([#5478](https://github.com/confluentinc/ksql/pull/5478)) ([b63d7e8](https://github.com/confluentinc/ksql/commit/b63d7e8d3fb325a74120e40e3fc96d51e9c35856))
@@ -62,73 +64,67 @@
 * set retention.ms to -1 instead of Long.MAX_VALUE ([#5560](https://github.com/confluentinc/ksql/pull/5560)) ([22da8a0](https://github.com/confluentinc/ksql/commit/22da8a091f0020bbd541ad5f812054c7744f0785))
 * update Concat UDF to new framework and make variadic ([#5513](https://github.com/confluentinc/ksql/pull/5513)) ([cab6a86](https://github.com/confluentinc/ksql/commit/cab6a8672f97d86da75a3e5b1e70985146129640))
 * zero decimal bug ([#5531](https://github.com/confluentinc/ksql/pull/5531)) ([1b9094b](https://github.com/confluentinc/ksql/commit/1b9094bd5ead8a8441ef8f10a5f86722dd7d3988))
-* **client:** expose query ID from executeQuery() return type ([#5391](https://github.com/confluentinc/ksql/pull/5391)) ([bd3c642](https://github.com/confluentinc/ksql/commit/bd3c64289dc315fedd1f5f4040d571a5bf26323a))
-* **client:** fail queryID future if request fails (MINOR) ([#5435](https://github.com/confluentinc/ksql/pull/5435)) ([ddaf9f9](https://github.com/confluentinc/ksql/commit/ddaf9f998009cf58ee68133dac143191c0e1ad9a))
 * /query-stream endpoint should serialize Struct (MINOR) ([#5205](https://github.com/confluentinc/ksql/pull/5205)) ([12b092b](https://github.com/confluentinc/ksql/commit/12b092bda160f614ef0b8096f77b7013efc3b190))
 * Move Cors handler in front of /chc handlers ([#5239](https://github.com/confluentinc/ksql/pull/5239)) ([004ced2](https://github.com/confluentinc/ksql/commit/004ced255479f6a5975848270746a45746a4437a))
 * use schema in annotation as schema provider if present ([1a90eeb](https://github.com/confluentinc/ksql/commit/1a90eeb71ae8292410fc99d49c24fdafadcf9de7))
 * use sr's jackson-jsonschema version ([#5213](https://github.com/confluentinc/ksql/pull/5213)) ([0b3899a](https://github.com/confluentinc/ksql/commit/0b3899a4a31f668a897d82d98c59365aae8022ec))
-
-
-
-### Reverts
-
-* Revert "build: reference plugin URL as protperty (MINOR) (#5497)" ([093955f](https://github.com/confluentinc/ksql/commit/093955f9ce875a0b8656aaec78d4c619ebdc83ff)), closes [#5497](https://github.com/confluentinc/ksql/issues/5497)
-* Revert "build ksqlDB against 6.0.0 (#5339)" (#5347) ([0a1bdad](https://github.com/confluentinc/ksql/commit/0a1bdadb7745efd2d3a5859ab5018719a2ed7f1e)), closes [#5339](https://github.com/confluentinc/ksql/issues/5339) [#5347](https://github.com/confluentinc/ksql/issues/5347)
-* Any key name (#5093) ([1f0ca3e](https://github.com/confluentinc/ksql/commit/1f0ca3efb0f5ecadc7a604f219cbc16b2e120d8d)), closes [#5093](https://github.com/confluentinc/ksql/issues/5093)
-
+* /inserts-stream endpoint now supports nested types ([#5621](https://github.com/confluentinc/ksql/pull/5621)) ([866ae34](https://github.com/confluentinc/ksql/commit/866ae3499a9d59068461d17ed15e1353759a0334))
+* don't fail if broker does not support AuthorizedOperations ([#5617](https://github.com/confluentinc/ksql/pull/5617)) ([0feb081](https://github.com/confluentinc/ksql/commit/0feb081c89d00f326e151035ac5616d19f610307))
+* ensure only deserializable cmds are written to command topic ([#5645](https://github.com/confluentinc/ksql/pull/5645)) ([4ad2bde](https://github.com/confluentinc/ksql/commit/4ad2bde44f31ea3c15fdd898ce12d50a595013d1))
+* fail AVRO/Protobuf/JSON Schema statements if SR is missing ([#5597](https://github.com/confluentinc/ksql/pull/5597)) ([85a0320](https://github.com/confluentinc/ksql/commit/85a0320e774d236bda4898f82eb5d5c2f7b42cec))
+* support GROUP BY with no source columns used ([#5644](https://github.com/confluentinc/ksql/pull/5644)) ([a8e6630](https://github.com/confluentinc/ksql/commit/a8e66304081879335c62948d5a8dd5f5531766be))
 
 
 ### BREAKING CHANGES
 
 * Statements containing PARTITION BY, GROUP BY or JOIN clauses will now produce different output schemas.
-For PARTITION BY and GROUP BY statements, the name of the key column in the result is determined by the PARTITION BY or GROUP BY clause:
-1. Where the partitioning or grouping is a single column reference, then the key column will have the same name as this column. For example:
-```sql
-CREATE STREAM OUTPUT AS
-SELECT * FROM INPUT GROUP BY X;
--- OUTPUT will have a key column called X;
-```
-2. Where the partitioning or grouping is a single struct field, then the key column will have the same name as the field. For example:
-```sql
-CREATE STREAM OUTPUT AS
-SELECT * FROM INPUT GROUP BY X->field1;
--- OUTPUT will have a key column called FIELD1;
-```
-3. Otherwise, the key column name will be system generated and be in the form `KSQL_COL_n`, where `n` is some positive integer.
-In all case, except where grouping by more than one column, the new key column's name can be set by defining an alias in the projection. For example:
-```sql
-CREATE TABLE OUTPUT AS
-SELECT USERID AS ID, COUNT(*) FROM USERS GROUP BY ID;
--- OUTPUT will have a key column named ID.
-```
-For groupings of multiple expressions there is currently no way to provide a name for the system generated key column. This is a shortcoming that will be fixed shortly when ksqlDB supports more than just a single key column.
-For JOIN statements, the name of the key column in the result is determined by the join criteria.
-1. For INNER and LEFT OUTER joins where the join criteria contains at least one column reference the key column will be named of the left most source whose join criteria is a column reference. For example:
-```sql
-CREATE TABLE OUTPUT AS
-SELECT * FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
--- OUTPUT will have a key column named I2_ID.
-```
-The key column can be given a new name, if required, by defining an alias in the projection. For example:
-```sql
-CREATE TABLE OUTPUT AS
-SELECT I2.ID AS ID, I1.V0, I2.V0, I3.V0 FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
--- OUTPUT will have a key column named ID.
-```
-2. For FULL OUTER joins and other joins where the join criteria is not on column references, the key column in the output is not equivalent to any column from any source. The key column will have a system generated name in the form `KSQL_COL_n`, where `n` is a positive integer. For example:
-```sql
-CREATE TABLE OUTPUT AS
-SELECT * FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
--- OUTPUT will have a key column named KSQL_COL_0, or similar.
-```
-The key column can be given a new name, if required, by defining an alias in the projection. A new UDF has been introduced to help define the alias called `JOINKEY`. It takes the join criteria as its parameters. For example:
-```sql
-CREATE TABLE OUTPUT AS
-SELECT JOINKEY(I1.ID, I2.ID) AS ID, I1.V0, I2.V0 FROM  I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
--- OUTPUT will have a key column named ID.
-```
-`JOINKEY` will be deprecated in a future release of ksqlDB once multiple key columns are supported.
+    For PARTITION BY and GROUP BY statements, the name of the key column in the result is determined by the PARTITION BY or GROUP BY clause:
+    1. Where the partitioning or grouping is a single column reference, then the key column will have the same name as this column. For example:
+    ```sql
+    CREATE STREAM OUTPUT AS
+    SELECT * FROM INPUT GROUP BY X;
+    -- OUTPUT will have a key column called X;
+    ```
+    2. Where the partitioning or grouping is a single struct field, then the key column will have the same name as the field. For example:
+    ```sql
+    CREATE STREAM OUTPUT AS
+    SELECT * FROM INPUT GROUP BY X->field1;
+    -- OUTPUT will have a key column called FIELD1;
+    ```
+    3. Otherwise, the key column name will be system generated and be in the form `KSQL_COL_n`, where `n` is some positive integer.
+    In all case, except where grouping by more than one column, the new key column's name can be set by defining an alias in the projection. For example:
+    ```sql
+    CREATE TABLE OUTPUT AS
+    SELECT USERID AS ID, COUNT(*) FROM USERS GROUP BY ID;
+    -- OUTPUT will have a key column named ID.
+    ```
+    For groupings of multiple expressions there is currently no way to provide a name for the system generated key column. This is a shortcoming that will be fixed shortly when ksqlDB supports more than just a single key column.
+    For JOIN statements, the name of the key column in the result is determined by the join criteria.
+    1. For INNER and LEFT OUTER joins where the join criteria contains at least one column reference the key column will be named of the left most source whose join criteria is a column reference. For example:
+    ```sql
+    CREATE TABLE OUTPUT AS
+    SELECT * FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
+    -- OUTPUT will have a key column named I2_ID.
+    ```
+    The key column can be given a new name, if required, by defining an alias in the projection. For example:
+    ```sql
+    CREATE TABLE OUTPUT AS
+    SELECT I2.ID AS ID, I1.V0, I2.V0, I3.V0 FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
+    -- OUTPUT will have a key column named ID.
+    ```
+    2. For FULL OUTER joins and other joins where the join criteria is not on column references, the key column in the output is not equivalent to any column from any source. The key column will have a system generated name in the form `KSQL_COL_n`, where `n` is a positive integer. For example:
+    ```sql
+    CREATE TABLE OUTPUT AS
+    SELECT * FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
+    -- OUTPUT will have a key column named KSQL_COL_0, or similar.
+    ```
+    The key column can be given a new name, if required, by defining an alias in the projection. A new UDF has been introduced to help define the alias called `JOINKEY`. It takes the join criteria as its parameters. For example:
+    ```sql
+    CREATE TABLE OUTPUT AS
+    SELECT JOINKEY(I1.ID, I2.ID) AS ID, I1.V0, I2.V0 FROM  I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
+    -- OUTPUT will have a key column named ID.
+    ```
+    `JOINKEY` will be deprecated in a future release of ksqlDB once multiple key columns are supported.
 
 
 ## [0.9.0](https://github.com/confluentinc/ksql/releases/tag/v0.9.0-ksqldb) (2020-05-11)

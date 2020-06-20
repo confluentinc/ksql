@@ -108,11 +108,11 @@ Since lambda functions would only allow SQL expressions that can already be used
 
 ## Open questions
 
-**1. Would it be possible to allow aggregates in lambdas within the context of a particular invocation function? For example,**
+~~**1. Would it be possible to allow aggregates in lambdas within the context of a particular invocation function? For example,**~~
 
-- `agg_array(arr, x => sum(x))`
+~~- `agg_array(arr, x => sum(x))`~~
 
-If this is feasible then it would likely be worth doing. Without support for aggregates, users will not be able to easily perform any aggregation over a collection using `reduce_*`.
+~~If this is feasible then it would likely be worth doing. Without support for aggregates, users will not be able to easily perform any aggregation over a collection using `reduce_*`.~~
 
 **2. Would allowing lambda functions to be applied to types other than `Array` or `Map` provide any value?**
 

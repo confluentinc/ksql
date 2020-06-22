@@ -83,7 +83,7 @@ Lambda functions should require a specific **invocation function**, which tells 
 
 * `transform_keys(map, k => k)` - Applies the given lambda function to each key in the input `Map`, returning a new `Map` containing the transformed keys.
 
-* `transform_values(map, k => k)` - Applies the given lambda function to each value in the input `Map`, returning a new `Map` containing the transformed values.
+* `transform_values(map, v => v)` - Applies the given lambda function to each value in the input `Map`, returning a new `Map` containing the transformed values.
 
 * `filter_array(arr, x => bool)` - Filters the input `Array` using the given lambda function. A new `Array` is returned, containing only values for which the lambda function evaluated to `true`.
 

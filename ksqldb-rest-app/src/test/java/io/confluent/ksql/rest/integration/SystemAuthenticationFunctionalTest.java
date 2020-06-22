@@ -105,9 +105,9 @@ public class SystemAuthenticationFunctionalTest {
 
   private static final Map<String, Object> COMMON_CONFIG = ImmutableMap.<String, Object>builder()
       .put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 200)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 1000)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 1000)
+      .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 1000)
+      .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 3000)
+      .put(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 3000)
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
@@ -217,7 +217,7 @@ public class SystemAuthenticationFunctionalTest {
       waitForClusterToBeDiscovered(REST_APP_0, 2, Optional.of(USER1));
 
       // This ensures that we can't hit the initial optimistic alive status
-      Thread.sleep(2000);
+      Thread.sleep(6000);
 
       // When:
       waitForRemoteServerToChangeStatus(
@@ -293,7 +293,7 @@ public class SystemAuthenticationFunctionalTest {
       waitForClusterToBeDiscovered(REST_APP_0, 2);
 
       // This ensures that we can't hit the initial optimistic alive status
-      Thread.sleep(2000);
+      Thread.sleep(6000);
 
       // When:
       waitForRemoteServerToChangeStatus(

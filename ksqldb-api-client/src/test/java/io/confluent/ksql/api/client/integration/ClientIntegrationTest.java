@@ -21,6 +21,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -43,6 +44,7 @@ import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
@@ -75,6 +77,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -586,6 +591,19 @@ public class ClientIntegrationTest {
     assertThat(row.getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldListStreams() throws Exception {
+    // When
+    final List<StreamInfo> streams = client.listStreams().get();
+
+    // Then
+    assertThat(streams, containsInAnyOrder(
+        streamForProvider(TEST_DATA_PROVIDER),
+        streamForProvider(EMPTY_TEST_DATA_PROVIDER)
+    ));
+  }
+
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")
@@ -769,5 +787,39 @@ public class ClientIntegrationTest {
       expectedRows.add(expectedRow);
     }
     return expectedRows;
+  }
+
+  private static Matcher<? super StreamInfo> streamForProvider(
+      final TestDataProvider<?> testDataProvider
+  ) {
+    return streamInfo(testDataProvider.kstreamName(), testDataProvider.topicName(), "JSON");
+  }
+
+  private static Matcher<? super StreamInfo> streamInfo(
+      final String streamName, final String topicName, final String format
+  ) {
+    return new TypeSafeDiagnosingMatcher<StreamInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final StreamInfo actual,
+          final Description mismatchDescription) {
+        if (!streamName.equals(actual.getName())) {
+          return false;
+        }
+        if (!topicName.equals(actual.getTopic())) {
+          return false;
+        }
+        if (!format.equals(actual.getFormat())) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "streamName: %s. topicName: %s. format: %s", streamName, topicName, format));
+      }
+    };
   }
 }

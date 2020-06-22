@@ -39,6 +39,8 @@ import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.entity.PushQueryId;
+import io.confluent.ksql.rest.entity.SourceInfo;
+import io.confluent.ksql.rest.entity.StreamsList;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -564,6 +566,28 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString("Received error from /inserts-stream"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 50000"));
     assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts. Check server logs for details."));
+  }
+
+  @Test
+  public void shouldListStreams() throws Exception {
+    // Given
+    final List<SourceInfo.Stream> expectedStreams = new ArrayList<>();
+    expectedStreams.add(new SourceInfo.Stream("stream1", "topic1", "JSON"));
+    expectedStreams.add(new SourceInfo.Stream("stream2", "topic2", "AVRO"));
+    final StreamsList entity = new StreamsList("list streams;", expectedStreams);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<StreamInfo> streams = javaClient.listStreams().get();
+
+    // Then
+    assertThat(streams, hasSize(expectedStreams.size()));
+    assertThat(streams.get(0).getName(), is("stream1"));
+    assertThat(streams.get(0).getTopic(), is("topic1"));
+    assertThat(streams.get(0).getFormat(), is("JSON"));
+    assertThat(streams.get(1).getName(), is("stream2"));
+    assertThat(streams.get(1).getTopic(), is("topic2"));
+    assertThat(streams.get(1).getFormat(), is("AVRO"));
   }
 
   protected Client createJavaClient() {

@@ -25,17 +25,17 @@ import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
-import io.confluent.ksql.rest.entity.StreamsList;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -46,6 +46,7 @@ public class TestEndpoints implements Endpoints {
 
   private Supplier<RowGenerator> rowGeneratorFactory;
   private TestInsertsSubscriber insertsSubscriber;
+  private List<KsqlEntity> ksqlEndpointResponse;
   private String lastSql;
   private JsonObject lastProperties;
   private String lastTarget;
@@ -54,6 +55,7 @@ public class TestEndpoints implements Endpoints {
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
   private RuntimeException createInsertsSubscriberException;
+  private RuntimeException executeKsqlRequestException;
   private ApiSecurityContext lastApiSecurityContext;
 
   @Override
@@ -115,9 +117,17 @@ public class TestEndpoints implements Endpoints {
     this.lastSql = request.getKsql();
     this.lastProperties = new JsonObject(request.getRequestProperties());
     this.lastApiSecurityContext = apiSecurityContext;
-    if (request.getKsql().toLowerCase().equals("show streams;")) {
-      final StreamsList entity = new StreamsList(request.getKsql(), Collections.emptyList());
-      return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
+    CompletableFuture<EndpointResponse> cf = new CompletableFuture<>();
+
+    if (executeKsqlRequestException != null) {
+      executeKsqlRequestException.fillInStackTrace();
+      cf.completeExceptionally(executeKsqlRequestException);
+      return cf;
+    }
+
+    final String lowerCaseSql = request.getKsql().toLowerCase();
+    if (lowerCaseSql.equals("show streams;") || lowerCaseSql.equals("list streams;")) {
+      return CompletableFuture.completedFuture(EndpointResponse.ok(ksqlEndpointResponse));
     } else {
       return null;
     }
@@ -204,6 +214,10 @@ public class TestEndpoints implements Endpoints {
     return insertsSubscriber;
   }
 
+  public synchronized void setKsqlEndpointResponse(final List<KsqlEntity> entities) {
+    this.ksqlEndpointResponse = entities;
+  }
+
   public synchronized String getLastSql() {
     return lastSql;
   }
@@ -238,6 +252,10 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized void setCreateInsertsSubscriberException(final RuntimeException exception) {
     this.createInsertsSubscriberException = exception;
+  }
+
+  public synchronized void setExecuteKsqlRequestException(final RuntimeException exception) {
+    this.executeKsqlRequestException = exception;
   }
 
   private static int extractLimit(final String sql) {

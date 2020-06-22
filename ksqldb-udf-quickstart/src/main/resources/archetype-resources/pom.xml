@@ -61,7 +61,7 @@
                 <configuration>
                     <compilerArgs>
                         <arg>-Xlint:all</arg>
-                        <arg>${compile.warnings-flag}</arg>
+                        <arg>-Werror</arg>
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>

@@ -5,6 +5,7 @@
 ### Features
 
 * Any key name ([#5093](https://github.com/confluentinc/ksql/pull/5093)) ([1f0ca3e](https://github.com/confluentinc/ksql/commit/1f0ca3efb0f5ecadc7a604f219cbc16b2e120d8d))
+* Explicit keys ([#5533](https://github.com/confluentinc/ksql/pull/5533)) ([d0db0cf](https://github.com/confluentinc/ksql/commit/d0db0cfac050cef94019c6daa59cd765ca0f7379))
 * add CHR UDF ([#5559](https://github.com/confluentinc/ksql/pull/5559)) ([5a746e8](https://github.com/confluentinc/ksql/commit/5a746e85502235753cf11bfa507ab69e1e19064c))
 * implements ARRAY_JOIN as requested in ([#5028](https://github.com/confluentinc/ksql/pull/5028)) ([#5474](https://github.com/confluentinc/ksql/issues/5474)) ([#5638](https://github.com/confluentinc/ksql/issues/5638)) ([6c67866](https://github.com/confluentinc/ksql/commit/6c678665cee4a67e7737460710eac2875bc8c2e2))
 * new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
@@ -126,6 +127,39 @@
     ```
     `JOINKEY` will be deprecated in a future release of ksqlDB once multiple key columns are supported.
 
+* `CREATE TABLE` statements will now fail if not `PRIMARY KEY` column is provided.
+  
+  For example, a statement such as:
+  
+  ```sql
+  CREATE TABLE FOO (name STRING) WITH (kafka_topic='foo', value_format='json');
+  ```
+  
+  Will need to be updated to include the definition of the PRIMARY KEY, e.g.
+  
+  ```sql
+  CREATE TABLE FOO (ID STRING PRIMARY KEY, name STRING) WITH (kafka_topic='foo', value_format='json');
+  ```
+  
+  If using schema inference, i.e. loading the value columns of the topic from the Schema Registry, the primary key can be provided as a partial schema, e.g.
+  
+  ```sql
+  -- FOO will have value columns loaded from the Schema Registry
+  CREATE TABLE FOO (ID INT PRIMARY KEY) WITH (kafka_topic='foo', value_format='avro');
+  ```
+  
+  `CREATE STREAM` statements that do not define a `KEY` column will no longer have an implicit `ROWKEY` key column.
+  
+  For example:
+  
+  ```sql
+  CREATE STREAM BAR (NAME STRING) WITH (...);
+  ```
+  
+  The above statement would previously have resulted in a stream with two columns: `ROWKEY STRING KEY` and `NAME STRING`.
+  With this change the above statement will result in a stream with only the `NAME STRING` column.
+  
+  Streams will no KEY column will be serialized to Kafka topics with a `null` key.
 
 ## [0.9.0](https://github.com/confluentinc/ksql/releases/tag/v0.9.0-ksqldb) (2020-05-11)
 

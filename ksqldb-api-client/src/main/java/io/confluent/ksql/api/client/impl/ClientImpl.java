@@ -36,6 +36,7 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
@@ -46,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class ClientImpl implements Client {
 
@@ -132,7 +134,7 @@ public class ClientImpl implements Client {
         "/inserts-stream",
         requestBody,
         cf,
-        response -> handleResponse(response, cf, InsertsResponseHandler::new)
+        response -> handleStreamedResponse(response, cf, InsertsResponseHandler::new)
     );
 
     return cf;
@@ -196,7 +198,7 @@ public class ClientImpl implements Client {
         "/query-stream",
         requestBody,
         cf,
-        response -> handleResponse(response, cf, responseHandlerSupplier)
+        response -> handleStreamedResponse(response, cf, responseHandlerSupplier)
     );
   }
 
@@ -228,7 +230,7 @@ public class ClientImpl implements Client {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T extends CompletableFuture<?>> void handleResponse(
+  private static <T extends CompletableFuture<?>> void handleStreamedResponse(
       final HttpClientResponse response,
       final T cf,
       final ResponseHandlerSupplier<T> responseHandlerSupplier) {
@@ -256,13 +258,34 @@ public class ClientImpl implements Client {
     }
   }
 
+  // TODO: refactor to handleSingleEntityResponse
   private static void handleListStreamsResponse(
       final HttpClientResponse response,
       final CompletableFuture<List<StreamInfo>> cf
   ) {
     if (response.statusCode() == OK.code()) {
-      // TODO: here
-      cf.complete(null);
+      response.bodyHandler(buffer -> {
+        final JsonArray entities = buffer.toJsonArray();
+        if (entities.size() != 1) {
+          cf.completeExceptionally(new IllegalStateException(
+              "Unexpected number of entities in server response: " + entities.size()));
+        }
+        try {
+          final JsonObject streamsList = entities.getJsonObject(0);
+          final JsonArray streams = streamsList.getJsonArray("streams");
+          cf.complete(streams.stream()
+              .map(o -> (JsonObject) o)
+              .map(o -> new StreamInfoImpl(
+                  o.getString("name"),
+                  o.getString("topic"),
+                  o.getString("format")))
+              .collect(Collectors.toList())
+          );
+        } catch (Exception e) {
+          cf.completeExceptionally(new IllegalStateException(
+              "Unexpected server response format. Response: " + entities.getJsonObject(0)));
+        }
+      });
     } else {
       handleErrorResponse(response, cf);
     }

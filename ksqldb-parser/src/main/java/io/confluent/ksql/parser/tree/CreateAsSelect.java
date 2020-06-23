@@ -27,6 +27,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
 
   private final SourceName name;
   private final Query query;
+  private final boolean orReplace;
   private final boolean notExists;
   private final CreateSourceAsProperties properties;
 
@@ -34,12 +35,14 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
       final Optional<NodeLocation> location,
       final SourceName name,
       final Query query,
+      final boolean orReplace,
       final boolean notExists,
       final CreateSourceAsProperties properties
   ) {
     super(location);
     this.name = requireNonNull(name, "name");
     this.query = requireNonNull(query, "query");
+    this.orReplace = orReplace;
     this.notExists = notExists;
     this.properties = requireNonNull(properties, "properties");
   }
@@ -52,6 +55,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
         other.getLocation(),
         other.name,
         other.query,
+        other.orReplace,
         other.notExists,
         properties
     );
@@ -70,6 +74,10 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
 
   public boolean isNotExists() {
     return notExists;
+  }
+
+  public boolean isOrReplace() {
+    return orReplace;
   }
 
   public CreateSourceAsProperties getProperties() {
@@ -93,6 +101,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
     return Objects.equals(name, o.name)
         && Objects.equals(query, o.query)
         && Objects.equals(notExists, o.notExists)
+        && Objects.equals(orReplace, o.orReplace)
         && Objects.equals(properties, o.properties);
   }
 
@@ -101,6 +110,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
     return "CreateAsSelect{" + "name=" + name
         + ", query=" + query
         + ", notExists=" + notExists
+        + ", orReplace =" + orReplace
         + ", properties=" + properties
         + '}';
   }

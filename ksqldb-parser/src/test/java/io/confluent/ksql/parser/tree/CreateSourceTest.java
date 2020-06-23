@@ -77,7 +77,7 @@ public class CreateSourceTest {
     // When:
     final ParseFailedException e = assertThrows(
         ParseFailedException.class,
-        () -> new TestCreateSource(Optional.empty(), SOME_NAME, multipleKeys, false, SOME_PROPS)
+        () -> new TestCreateSource(Optional.empty(), SOME_NAME, multipleKeys, false, false, SOME_PROPS)
     );
 
     // Then:
@@ -91,10 +91,11 @@ public class CreateSourceTest {
         final Optional<NodeLocation> location,
         final SourceName name,
         final TableElements elements,
+        final boolean orReplace,
         final boolean notExists,
         final CreateSourceProperties properties
     ) {
-      super(location, name, elements, notExists, properties);
+      super(location, name, elements, orReplace, notExists, properties);
     }
 
     @Override

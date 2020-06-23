@@ -15,7 +15,7 @@ Soon the client will also support persistent queries and admin operations such a
     [View the Java client API documentation](api/index.html)
 
 The client sends requests to the recently added HTTP2 server endpoints: pull and push queries are served by
-the [`/query-stream` endpoint](TODO), and inserts are served by the [`/inserts-stream` endpoint](TODO).
+the `/query-stream` endpoint, and inserts are served by the `/inserts-stream` endpoint.
 The client is compatible only with ksqlDB deployments that are on version 0.10.0 or later.
 
 Use the Java client to:

@@ -27,18 +27,18 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
 
 /**
- * Factory class for {@link TableRowsEntity}
+ * Factory class for {@link TableRows}
  */
-public final class TableRowsEntityFactory {
+public final class TableRowsFactory {
 
-  private TableRowsEntityFactory() {
+  private TableRowsFactory() {
   }
 
   public static List<List<?>> createRows(
       final List<? extends TableRow> result
   ) {
     return result.stream()
-        .map(TableRowsEntityFactory::createRow)
+        .map(TableRowsFactory::createRow)
         .collect(Collectors.toList());
   }
 

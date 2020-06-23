@@ -17,7 +17,14 @@ clause.
 While ksqlDB supports different value formats, it requires keys to be `KAFKA` format.
 
 ```sql
-CREATE TABLE ORDERS (F0 INT, F1 STRING) WITH (VALUE_FORMAT='JSON', ...);
+-- create table with JSON value format:
+CREATE TABLE ORDERS (
+    F0 INT PRIMARY KEY, 
+    F1 STRING
+  ) WITH (
+    VALUE_FORMAT='JSON', 
+    ...
+  );
 ```
 
 Serialization Formats
@@ -246,7 +253,7 @@ For example, if your {{ site.ak }} messages have a `long` key, you can make
 them available to ksqlDB by using a statement like:
 
 ```sql
-CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
+CREATE STREAM USERS (ID BIGINT KEY, NAME STRING) WITH (VALUE_FORMAT='JSON', ...);
 ```
 
 If you integrate ksqlDB with
@@ -256,7 +263,7 @@ Protobuf), you can just supply the key column, and ksqlDB loads the value
 columns from {{ site.sr }}:
 
 ```sql
-CREATE STREAM USERS (ROWKEY BIGINT KEY) WITH (VALUE_FORMAT='JSON_SR', ...);
+CREATE STREAM USERS (ID BIGINT KEY) WITH (VALUE_FORMAT='JSON_SR', ...);
 ```
 
 The key column must be supplied, because ksqlDB supports only keys in `KAFKA`
@@ -354,7 +361,13 @@ For example, the following creates a table where the values in the
 underlying topic have been serialized as an anonymous JSON number:
 
 ```sql
-CREATE TABLE TRADES (ID INT) WITH (WRAP_SINGLE_VALUE=false, ...);
+CREATE TABLE TRADES (
+    ID INT PRIMARY KEY, 
+    VALUE INT
+  ) WITH (
+    WRAP_SINGLE_VALUE=false, 
+    ...
+  );
 ```
 
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the

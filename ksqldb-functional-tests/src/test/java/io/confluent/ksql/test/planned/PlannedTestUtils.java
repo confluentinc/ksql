@@ -42,7 +42,7 @@ public final class PlannedTestUtils {
 
   public static boolean isPlannedTestCase(final TestCase testCase) {
     return !testCase.expectedException().isPresent()
-        && !testCase.getTestFile().endsWith("/scratch.json");
+        && !testCase.getTestLocation().getTestPath().toString().endsWith("/scratch.json");
   }
 
   public static boolean isNotExcluded(final TestCase testCase) {
@@ -83,7 +83,8 @@ public final class PlannedTestUtils {
 
     final TestCase testCase = Iterables.getOnlyElement(TestCaseBuilder.buildTests(
         testCasePlan.getSpecNode().getTestCase(),
-        Paths.get(testCasePlan.getSpecNode().getPath())
+        Paths.get(testCasePlan.getSpecNode().getPath()),
+        testName -> testCasePlan.getLocation()
     ));
 
     return testCase.withExpectedTopology(

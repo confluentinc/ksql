@@ -161,6 +161,9 @@ public final class SqlSchemaFormatter implements SchemaFormatter {
     }
 
     public String visitStruct(final Schema schema, final List<? extends String> fields) {
+      if (fields.isEmpty()) {
+        return "STRUCT< >";
+      }
       return fields.stream()
           .collect(Collectors.joining(", ", STRUCT_START, STRUCTURED_END));
     }

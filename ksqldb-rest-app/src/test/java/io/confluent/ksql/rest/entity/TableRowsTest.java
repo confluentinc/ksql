@@ -15,10 +15,6 @@
 
 package io.confluent.ksql.rest.entity;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
@@ -28,11 +24,10 @@ import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 
-public class TableRowsEntityTest {
+public class TableRowsTest {
 
   private static final ObjectMapper MAPPER;
   private static final String SOME_SQL = "some SQL";
@@ -57,65 +52,11 @@ public class TableRowsEntityTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnRowWindowTypeMismatch() {
-    new TableRowsEntity(
+    new TableRows(
         SOME_SQL,
         QUERY_ID,
         LOGICAL_SCHEMA,
         ImmutableList.of(ImmutableList.of("too", "few"))
     );
-  }
-
-  @Test
-  public void shouldSerializeEntity() throws Exception {
-    // Given:
-    final TableRowsEntity entity = new TableRowsEntity(
-        SOME_SQL,
-        QUERY_ID,
-        LOGICAL_SCHEMA,
-        ImmutableList.of(A_VALUE)
-    );
-
-    // When:
-    final String json = MAPPER.writeValueAsString(entity);
-
-    // Then:
-    assertThat(json, is("{"
-        + "\"@type\":\"rows\","
-        + "\"statementText\":\"some SQL\","
-        + "\"queryId\":\"bob\","
-        + "\"schema\":\"`ROWKEY` STRING KEY, `v0` DOUBLE, `v1` STRING\","
-        + "\"rows\":["
-        + "[\"key value\",10.1,\"some text\"]"
-        + "],"
-        + "\"warnings\":[]}"));
-
-    // When:
-    final KsqlEntity result = MAPPER.readValue(json, KsqlEntity.class);
-
-    // Then:
-    assertThat(result, is(entity));
-  }
-
-  @Test
-  public void shouldSerializeNullElements() throws Exception {
-    // Given:
-    final TableRowsEntity entity = new TableRowsEntity(
-        SOME_SQL,
-        QUERY_ID,
-        LOGICAL_SCHEMA,
-        ImmutableList.of(Arrays.asList(null, 10.1D, null))
-    );
-
-    // When:
-    final String json = MAPPER.writeValueAsString(entity);
-
-    // Then:
-    assertThat(json, containsString("[null,10.1,null]"));
-
-    // When:
-    final KsqlEntity result = MAPPER.readValue(json, KsqlEntity.class);
-
-    // Then:
-    assertThat(result, is(entity));
   }
 }

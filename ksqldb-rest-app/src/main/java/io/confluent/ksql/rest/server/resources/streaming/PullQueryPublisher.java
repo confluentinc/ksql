@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.services.ServiceContext;
@@ -63,12 +63,12 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private static final class PullQuerySubscription implements Flow.Subscription {
 
     private final Subscriber<Collection<StreamedRow>> subscriber;
-    private final Callable<TableRowsEntity> executor;
+    private final Callable<TableRows> executor;
     private boolean done = false;
 
     private PullQuerySubscription(
         final Subscriber<Collection<StreamedRow>> subscriber,
-        final Callable<TableRowsEntity> executor
+        final Callable<TableRows> executor
     ) {
       this.subscriber = requireNonNull(subscriber, "subscriber");
       this.executor = requireNonNull(executor, "executor");
@@ -85,7 +85,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       done = true;
 
       try {
-        final TableRowsEntity entity = executor.call();
+        final TableRows entity = executor.call();
 
         subscriber.onSchema(entity.getSchema());
 

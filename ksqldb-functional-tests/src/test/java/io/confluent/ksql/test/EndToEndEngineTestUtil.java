@@ -44,7 +44,7 @@ final class EndToEndEngineTestUtil {
           + System.lineSeparator()
           + "failed test: " + testCase.getName()
           + System.lineSeparator()
-          + "in file: " + testCase.getTestFile(),
+          + "in " + testCase.getTestLocation(),
           e
       );
     }

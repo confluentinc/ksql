@@ -5,7 +5,7 @@
 **Status**: _Approved_ | 
 **Discussion**: [GitHub PR](https://github.com/confluentinc/ksql/pull/5269)
 
-**tl;dr:** This KLIP suggests to introduce a new configuration option in order to externally define UDF properties, that can be shared among a group / family of (custom) UDFs which logically belong together. At the same time, support for the `_global_` scope of configuration settings should get dropped.
+**tl;dr:** This KLIP suggests to introduce a new configuration option in order to define UDF properties, that can be shared among a group / family of (custom) UDFs which logically belong together. At the same time, support for the `_global_` scope of configuration settings should get dropped.
 
 ## Motivation and background
 
@@ -23,7 +23,7 @@ This KLIP aims to allow for multiple, yet specifically defined UDFs, to share co
 
 ## What is not in scope
 
-The scope of this KLIP is not a complete rewrite of the current configuration mechanisms, but a modified implementation that suppport the sharing of configuration properties between specific (custom) UDFs.
+The scope of this KLIP is not a complete rewrite of the current configuration mechanisms, but a modified implementation that suppports the sharing of configuration properties between specific (custom) UDFs.
 
 ## Value/Return
 
@@ -31,20 +31,38 @@ The main value of this KLIP lies in the fact that users can easily define certai
 
 ## Public APIS
 
-There should neither be public API changes nor any KSQL query language modifications necessary. Ideally, the chosen implementation allows for existing configurations to be upgraded / migrated to newer ksqlDB versions without changes for configurations tied to specific UDFs. 
+There should neither be public API changes nor any KSQL query language modifications necessary. Ideally, the chosen implementation allows for existing configurations to be upgraded / migrated to newer ksqlDB versions without changes for configurations tied to specific UDFs.
 
 **Note however, that for workloads which make use of the `_global_` scope it will lead to a breaking change since support for this  gets dropped.**
 
 ## Design
 
-A simple approach is to introduce a wildcard character that can be used to do prefix matching of the UDFs' names that should be able to share certain configuration properties. For instance,
+A simple approach is to extend the function meta-data and add a _groups_ option to the `@UdfDecription` annotation, which takes a list of strings. Each string entry in _groups_ explicitly defines a name used to logically group functions for which to share configuration properties.
 
-```properties
-ksql.functions.my_udfgroup_*.some.value.x=foo
-ksql.functions.otherudfs_*.other.value.y=1234
+Given the following example:
+
+```java
+@UdfDescription(
+    name = "someudf",
+    description = "...",
+    author = "...",
+    version = "...",
+    groups = {"shareit"/*,"..."*/})
+public class SomeUdf implements Configurable {
+    //...
+}
 ```
 
-means, that based on the wildcard character `*` the setting `some.value.x` would be accessible by all UDFs which have a name starting with `my_udfgroup_`. The setting `other.value.y` is only available for the by all UDFs having a name starting with `otherudfs_*`.
+allows to configure the function _someudf_ using `ksql.functions.someudf.my.value.x=foo` (basic, single-UDF config) or `ksql.groups.functions.shareit.my.value.x=foo` (grouped config across several functions declaring the same group name(s)). This distinction also makes it obvious, whether configuration properties are set for single functions or several grouped functions respectively.
+
+A drawback of the meta-data driven approach is that the group information must be declared in the code. If this restriction turns out to be an issue, a future enhancement could allow to explicitly define the group information in the configuration properties like so:  ?`ksql.groups.define.group_name=...,...` which for the particular example above would read `ksql.groups.define.shareit=someudf`.
+
+The benefits of this design are:
+
+* full backwards compatibility because groups config meta-data is a new option
+* the default and most common case is to configure a single function which means that it stays simple for users
+* it is easy to add new configurations
+* the grouping is neither derived from the name itself (e.g. prefix matching) nor is it tied to java package naming convention
 
 ## Test plan
 
@@ -56,7 +74,7 @@ To be defined by product manager and team.
 
 ## Documentation Updates
 
-The current documentation regarding configuration options for custom UDFs isn't overly specific but of course needs to be updated accordingly. **It's important to be very clear and call out the dropped support of the `_global_` configuration scope which leads to a breaking change for upgrading/migrating worklods.**
+The current documentation regarding configuration options for custom UDFs isn't overly specific but of course needs to be updated accordingly. **It's important to be very clear and call out the dropped support of the `_global_` configuration scope which leads to a breaking change for upgrading/migrating workloads.**
 
 ## Compatibility Implications
 
@@ -67,6 +85,19 @@ As the design proposal suggests to remove support of the `_global_` scope, this 
 There should be no negative implications regarding security. On the contrary, if the `_global_` scope cannot be "misused" any longer in order to (accidentally) share _sensitive_ configuration properties across all UDFs, it can even improve overall security a little bit.
 
 ## Rejected Alternatives
+
+### Alternative 1:
+
+One way to do this is to introduce a wildcard character that can be used to do prefix matching of the UDFs' names that should be able to share certain configuration properties. For instance,
+
+```properties
+ksql.functions.my_udfgroup_*.some.value.x=foo
+ksql.functions.otherudfs_*.other.value.y=1234
+```
+
+means, that based on the wildcard character `*` the setting `some.value.x` would be accessible by all UDFs which have a name starting with `my_udfgroup_`. The setting `other.value.y` is only available for the by all UDFs having a name starting with `otherudfs_*`.
+
+### Alternative 2:
 
 Configuration properties are initially set "without any scope". At this point, such properties aren't available to any UDFs at all. Only after defining an explicit scope by means of providing a list with all UDF names, will such properties become available to the corresponding functions. For instance, 
 

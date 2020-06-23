@@ -30,32 +30,32 @@ named `users`.
 ### Create a Table with Selected Columns
 
 The following example creates a table that has four columns from the
-`users` topic: `registertime`, `userid`, `gender`, and `regionid`. Also,
-the `userid` field is assigned as the table's KEY property.
-
-!!! note
-      The KEY field is optional. For more information, see
-      [Key Requirements](syntax-reference.md#key-requirements).
+`users` topic: `registertime`, `userid`, `gender`, and `regionid`. 
+The `userid` column is the primary key of the table. This means that it's loaded from the {{ site.ak }} message
+key. Primary key columns can't be `NULL`.
 
 ksqlDB can't infer the topic value's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
-data format is `JSON`. Other options are `Avro`, `DELIMITED`, `JSON_SR`, `PROTOBUF`, and `KAFKA`. For
-more information, see
-[Serialization Formats](serialization.md#serialization-formats).
+data format is `JSON`. Other options are `Avro`, `DELIMITED`, `JSON_SR`, `PROTOBUF`, and `KAFKA`. 
+For more information, see [Serialization Formats](serialization.md#serialization-formats).
 
 ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
-serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
+serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types. If the data in your
+{{ site.ak }} topics does not have a suitable key format, 
+see [Key Requirements](syntax-reference.md#key-requirements).
 
 In the ksqlDB CLI, paste the following CREATE TABLE statement:
 
 ```sql
-CREATE TABLE users
-  (userid VARCHAR PRIMARY KEY,
-   registertime BIGINT,
-   gender VARCHAR,
-   regionid VARCHAR)
-  WITH (KAFKA_TOPIC = 'users',
-        VALUE_FORMAT='JSON');
+CREATE TABLE users (
+    userid VARCHAR PRIMARY KEY,
+    registertime BIGINT,
+    gender VARCHAR,
+    regionid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC = 'users',
+    VALUE_FORMAT='JSON'
+);
 ```
 
 Your output should resemble:
@@ -139,24 +139,25 @@ Kafka topic does not already exist, you can create the table by pasting
 the following CREATE TABLE statement into the CLI:
 
 ```sql
-CREATE TABLE users
-  (userid VARCHAR PRIMARY KEY,
-   registertime BIGINT,
-   gender VARCHAR,
-   regionid VARCHAR)
-  WITH (KAFKA_TOPIC = 'users',
-        VALUE_FORMAT='JSON',
-        PARTITIONS=4,
-        REPLICAS=3);
+CREATE TABLE users (
+    userid VARCHAR PRIMARY KEY,
+    registertime BIGINT,
+    gender VARCHAR,
+    regionid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC = 'users',
+    VALUE_FORMAT='JSON',
+    PARTITIONS=4,
+    REPLICAS=3
+  );
 ```
 
 This will create the users topics for you with the supplied partition and replica count.
 
-
 Create a ksqlDB Table with Streaming Query Results
 --------------------------------------------------
 
-Use the CREATE TABLE AS SELECT statement to create a ksqlDB table that
+Use the CREATE TABLE AS SELECT statement to create a ksqlDB table view that
 contains the results of a SELECT query from another table or stream.
 
 CREATE TABLE AS SELECT creates a new ksqlDB table with a corresponding
@@ -170,7 +171,8 @@ set to `FEMALE`:
 
 ```sql
 CREATE TABLE users_female AS
-  SELECT userid, gender, regionid FROM users
+  SELECT userid, gender, regionid 
+  FROM users
   WHERE gender='FEMALE'
   EMIT CHANGES;
 ```
@@ -244,7 +246,7 @@ statement has the string `CTAS` in its ID, for example,
 `CTAS_USERS_FEMALE_0`.
 
 Create a ksqlDB Table from a ksqlDB Stream
---------------------------------------
+------------------------------------------
 
 Use the CREATE TABLE AS SELECT statement to create a table from a
 stream. Creating a table from a stream requires aggregation, so you need
@@ -354,4 +356,3 @@ Next Steps
 ----------
 
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
-

@@ -2180,6 +2180,80 @@ public class KsqlResourceTest {
     ksqlResource.configure(ksqlConfig);
   }
 
+  @Test
+  public void shouldThrowOnDenyListedStreamProperty() {
+    // Given:
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        Optional.of(authorizationValidator),
+        errorsHandler
+    );
+    final Map<String, Object> props = new HashMap<>(ksqlRestConfig.getKsqlConfigProperties());
+    props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG);
+    ksqlResource.configure(new KsqlConfig(props));
+
+    // When:
+    final EndpointResponse response = ksqlResource.handleKsqlStatements(
+        securityContext,
+        new KsqlRequest(
+            "query",
+            ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1"), // stream properties
+            emptyMap(), // config properties
+            null
+        )
+    );
+
+    // Then:
+    assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        is("Cannot override property '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
+  }
+
+  @Test
+  public void shouldThrowOnDenyListedConfigProperty() {
+    // Given:
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        Optional.of(authorizationValidator),
+        errorsHandler
+    );
+    final Map<String, Object> props = new HashMap<>(ksqlRestConfig.getKsqlConfigProperties());
+    props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG);
+    ksqlResource.configure(new KsqlConfig(props));
+
+    // When:
+    final EndpointResponse response = ksqlResource.handleKsqlStatements(
+        securityContext,
+        new KsqlRequest(
+            "query",
+            emptyMap(), // stream properties
+            ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1"), // config properties
+            null
+        )
+    );
+
+    // Then:
+    assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        is("Cannot override property '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
+  }
+
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {
     final Map<String, Object> config = ksqlRestConfig.getKsqlConfigProperties();
     config.putAll(additionalConfig);

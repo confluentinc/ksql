@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
@@ -61,6 +62,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -101,6 +103,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private KsqlHostInfo localHost;
   private URL localUrl;
+  private DenyListPropertyValidator denyListPropertyValidator;
 
   public KsqlResource(
       final KsqlEngine ksqlEngine,
@@ -187,6 +190,9 @@ public class KsqlResource implements KsqlConfigurable {
             distributedCmdResponseTimeout
         )
     );
+
+    this.denyListPropertyValidator = new DenyListPropertyValidator(
+        config.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
   }
 
   public EndpointResponse terminateCluster(
@@ -199,6 +205,9 @@ public class KsqlResource implements KsqlConfigurable {
 
     ensureValidPatterns(request.getDeleteTopicList());
     try {
+      final Map<String, Object> streamsProperties = request.getStreamsProperties();
+      denyListPropertyValidator.validateAll(streamsProperties);
+
       final KsqlEntityList entities = handler.execute(
           securityContext,
           TERMINATE_CLUSTER,
@@ -232,14 +241,20 @@ public class KsqlResource implements KsqlConfigurable {
           request,
           distributedCmdResponseTimeout);
 
-      final KsqlRequestConfig requestConfig =
-          new KsqlRequestConfig(request.getRequestProperties());
+      final Map<String, Object> requestProperties = request.getRequestProperties();
+      denyListPropertyValidator.validateAll(requestProperties);
+
+      final Map<String, Object> configProperties = request.getConfigOverrides();
+      denyListPropertyValidator.validateAll(configProperties);
+
+      final KsqlRequestConfig requestConfig = new KsqlRequestConfig(requestProperties);
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+
       validator.validate(
           SandboxedServiceContext.create(securityContext.getServiceContext()),
           statements,
           new SessionProperties(
-              request.getConfigOverrides(),
+              configProperties,
               localHost,
               localUrl,
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
@@ -251,7 +266,7 @@ public class KsqlResource implements KsqlConfigurable {
           securityContext,
           statements,
           new SessionProperties(
-              request.getConfigOverrides(),
+              configProperties,
               localHost,
               localUrl,
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)

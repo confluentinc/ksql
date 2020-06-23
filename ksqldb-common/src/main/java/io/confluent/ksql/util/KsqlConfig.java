@@ -333,6 +333,12 @@ public class KsqlConfig extends AbstractConfig {
       + "error messages (per query) to hold in the internal query errors queue and display"
       + "in the query description when executing the `EXPLAIN <query>` command.";
 
+  public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
+      "ksql.properties.overrides.denylist";
+  public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DEFAULT = "";
+  public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
+      + "properties that KSQL users cannot override.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -761,6 +767,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+            Type.LIST,
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST_DEFAULT,
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
         )
         .withClientSslSupport();
 

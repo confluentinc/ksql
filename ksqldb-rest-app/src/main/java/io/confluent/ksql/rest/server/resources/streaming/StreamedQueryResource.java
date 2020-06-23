@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -83,6 +84,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final PullQueryExecutor pullQueryExecutor;
   private Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Time time;
+  private DenyListPropertyValidator denyListPropertyValidator;
 
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
@@ -150,6 +152,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
         ksqlEngine.getServiceId(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
         : empty();
+
+    this.denyListPropertyValidator = new DenyListPropertyValidator(
+        config.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
   }
 
   public EndpointResponse streamQuery(
@@ -214,6 +219,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
               statement.getStatement())
       );
 
+      final Map<String, Object> requestProperties = request.getRequestProperties();
+      denyListPropertyValidator.validateAll(requestProperties);
+
+      final Map<String, Object> configProperties = request.getConfigOverrides();
+      denyListPropertyValidator.validateAll(configProperties);
+
       if (statement.getStatement() instanceof Query) {
         final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
 
@@ -221,8 +232,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           final EndpointResponse response = handlePullQuery(
               securityContext.getServiceContext(),
               queryStmt,
-              request.getConfigOverrides(),
-              request.getRequestProperties(),
+              configProperties,
+              requestProperties,
               isInternalRequest
           );
           if (pullQueryMetrics.isPresent()) {
@@ -237,7 +248,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         return handlePushQuery(
             securityContext.getServiceContext(),
             queryStmt,
-            request.getConfigOverrides(),
+            configProperties,
             connectionClosedFuture
         );
       }
@@ -245,7 +256,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       if (statement.getStatement() instanceof PrintTopic) {
         return handlePrintTopic(
             securityContext.getServiceContext(),
-            request.getConfigOverrides(),
+            configProperties,
             (PreparedStatement<PrintTopic>) statement,
             connectionClosedFuture);
       }

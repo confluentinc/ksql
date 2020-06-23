@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -70,6 +71,7 @@ public class WSQueryEndpoint {
   private final PullQueryExecutor pullQueryExecutor;
 
   private WebSocketSubscriber<?> subscriber;
+  private DenyListPropertyValidator denyListPropertyValidator;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
@@ -135,6 +137,9 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(authorizationValidator, "authorizationValidator");
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
+
+    this.denyListPropertyValidator = new DenyListPropertyValidator(
+        ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
@@ -228,7 +233,7 @@ public class WSQueryEndpoint {
         throw new IllegalArgumentException("\"ksql\" field of \"request\" must be populated");
       }
       // To validate props:
-      request.getConfigOverrides();
+      denyListPropertyValidator.validateAll(request.getConfigOverrides());
       return request;
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing request: " + e.getMessage(), e);
@@ -245,6 +250,7 @@ public class WSQueryEndpoint {
 
   private void handleQuery(final RequestContext info, final Query query) {
     final Map<String, Object> clientLocalProperties = info.request.getConfigOverrides();
+    denyListPropertyValidator.validateAll(clientLocalProperties);
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
         new WebSocketSubscriber<>(info.websocket);

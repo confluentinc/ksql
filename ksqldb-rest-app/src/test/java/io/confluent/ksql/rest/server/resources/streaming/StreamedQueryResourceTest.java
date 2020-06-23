@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
+import static io.confluent.ksql.rest.Errors.badRequest;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
@@ -85,6 +86,7 @@ import java.io.PipedOutputStream;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
@@ -101,6 +103,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.codehaus.plexus.util.StringUtils;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -355,6 +358,49 @@ public class StreamedQueryResourceTest {
     final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) AUTHORIZATION_ERROR_RESPONSE.getEntity();
     assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
     assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
+  }
+
+  @Test
+  public void shouldThrowOnDenyListedStreamProperty() {
+    // Given:
+    when(mockStatementParser.<Query>parseSingleStatement(PULL_QUERY_STRING)).thenReturn(query);
+    testResource = new StreamedQueryResource(
+        mockKsqlEngine,
+        mockStatementParser,
+        commandQueue,
+        DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
+        activenessRegistrar,
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        pullQueryExecutor
+    );
+    final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
+    ));
+    props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG);
+    testResource.configure(new KsqlConfig(props));
+    when(errorsHandler.generateResponse(any(), any()))
+        .thenReturn(badRequest("Cannot override property 'num.stream.threads'"));
+
+    // When:
+    final EndpointResponse response = testResource.streamQuery(
+        securityContext,
+        new KsqlRequest(
+            PULL_QUERY_STRING,
+            ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1"), // stream properties
+            Collections.emptyMap(), // config properties
+            null
+        ),
+        new CompletableFuture<>(),
+        Optional.empty()
+    );
+
+    // Then:
+    assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        is("Cannot override property '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
   }
 
   @Test

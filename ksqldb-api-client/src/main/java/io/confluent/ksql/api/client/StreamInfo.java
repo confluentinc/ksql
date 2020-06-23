@@ -15,12 +15,30 @@
 
 package io.confluent.ksql.api.client;
 
+/**
+ * Metadata for a ksqlDB stream.
+ */
 public interface StreamInfo {
 
+  /**
+   * Returns the name of this stream.
+   *
+   * @return stream name
+   */
   String getName();
 
+  /**
+   * Returns the name of the Kafka topic underlying this ksqlDB stream.
+   *
+   * @return topic name
+   */
   String getTopic();
 
+  /**
+   * Returns the format of the data in this stream.
+   *
+   * @return the format
+   */
   String getFormat();
 
 }

@@ -17,12 +17,31 @@ package io.confluent.ksql.api.client;
 
 import java.util.List;
 
+/**
+ * Metadata for a Kafka topic available for use with ksqlDB.
+ */
 public interface TopicInfo {
 
+  /**
+   * Returns the name of this topic.
+   *
+   * @return topic name
+   */
   String getName();
 
+  /**
+   * Returns the number of partitions for this topic.
+   *
+   * @return number of partitions
+   */
   int getPartitions();
 
+  /**
+   * Returns the number of replicas for each topic partition.
+   *
+   * @return a list with size equal to the number of partitions. Each element is the number of
+   *         replicas for the partition corresponding to the list index.
+   */
   List<Integer> getReplicasPerPartition();
 
 }

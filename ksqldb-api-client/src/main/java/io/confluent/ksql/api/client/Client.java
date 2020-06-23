@@ -102,10 +102,28 @@ public interface Client {
    */
   CompletableFuture<Void> terminatePushQuery(String queryId);
 
+  /**
+   * Returns the list of ksqlDB streams from the ksqlDB server's metastore.
+   *
+   * @return list of streams
+   */
   CompletableFuture<List<StreamInfo>> listStreams();
 
+  /**
+   * Returns the list of ksqlDB tables from the ksqlDB server's metastore
+   *
+   * @return list of tables
+   */
   CompletableFuture<List<TableInfo>> listTables();
 
+  /**
+   * Returns the list of Kafka topics available for use with ksqlDB.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of topics
+   */
   CompletableFuture<List<TopicInfo>> listTopics();
 
   /**

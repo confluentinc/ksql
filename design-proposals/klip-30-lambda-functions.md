@@ -120,4 +120,4 @@ Since lambda functions would only allow SQL expressions that can already be used
 
 **3. Will the lambda function implementation require backward-incompatible changes to ksqlDB's internals?**
 
-**4. Should we extend ksqlDB's UDF interface to allow users to write their own lambda invocation functions?**
+~~**4. Should we extend ksqlDB's UDF interface to allow users to write their own lambda invocation functions?**~~

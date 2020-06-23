@@ -38,6 +38,7 @@ import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
@@ -638,6 +639,25 @@ public class ClientTest extends BaseApiTest {
     assertThat(topics.get(1).getName(), is("topic2"));
     assertThat(topics.get(1).getPartitions(), is(2));
     assertThat(topics.get(1).getReplicasPerPartition(), is(ImmutableList.of(1, 1)));
+  }
+
+  @Test
+  public void shouldHandleErrorFromListTopics() {
+    // Given
+    KafkaResponseGetFailedException exception = new KafkaResponseGetFailedException(
+        "Failed to retrieve Kafka Topic names", new RuntimeException("boom"));
+    testEndpoints.setExecuteKsqlRequestException(exception);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.listTopics().get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Failed to retrieve Kafka Topic names"));
   }
 
   protected Client createJavaClient() {

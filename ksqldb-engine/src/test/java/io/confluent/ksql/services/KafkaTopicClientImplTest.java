@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,11 +61,15 @@ import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
@@ -653,6 +658,92 @@ public class KafkaTopicClientImplTest {
 
     // Then:
     verify(adminClient, times(2)).incrementalAlterConfigs(any());
+  }
+
+  @Test
+  public void shouldGetMessageCounts() {
+    // Given:
+    final TopicPartition tp1 = new TopicPartition("T1", 0);
+    final TopicPartition tp2 = new TopicPartition("T2", 3);
+
+    when(adminClient.listOffsets(any()))
+        .thenAnswer(listOffsetsResult(ImmutableMap.of(tp1, 0L, tp2, 88L), OffsetSpec.earliest()))
+        .thenAnswer(listOffsetsResult(ImmutableMap.of(tp1, 25L, tp2, 742L), OffsetSpec.latest()));
+
+    // When:
+    final Map<TopicPartition, Long> counts = kafkaTopicClient
+        .maxMsgCounts(ImmutableSet.of(tp1, tp2));
+
+    // Then:
+    assertThat(counts, is(ImmutableMap.of(tp1, 25L, tp2, 654L)));
+  }
+
+  @Test
+  public void shouldRetryWhenGettingMessageCounts() {
+    // Given:
+    final TopicPartition tp1 = new TopicPartition("T1", 0);
+    final TopicPartition tp2 = new TopicPartition("T2", 3);
+
+    when(adminClient.listOffsets(any()))
+        .thenThrow(new DisconnectException())
+        .thenAnswer(listOffsetsResult(ImmutableMap.of(tp1, 0L, tp2, 88L), OffsetSpec.earliest()))
+        .thenAnswer(listOffsetsResult(failedFuture(new DisconnectException())))
+        .thenAnswer(listOffsetsResult(ImmutableMap.of(tp1, 25L, tp2, 742L), OffsetSpec.latest()));
+
+    // When:
+    final Map<TopicPartition, Long> counts = kafkaTopicClient
+        .maxMsgCounts(ImmutableSet.of(tp1, tp2));
+
+    // Then:
+    assertThat(counts, is(ImmutableMap.of(tp1, 25L, tp2, 654L)));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Answer<ListOffsetsResult> listOffsetsResult(
+      final Map<TopicPartition, Long> offsets,
+      final OffsetSpec expectedType
+  ) {
+    return inv -> {
+      final Map<TopicPartition, OffsetSpec> topicPartitionOffsets = inv.getArgument(0);
+
+      topicPartitionOffsets.values()
+          .forEach(offsetSpec -> assertThat(offsetSpec, instanceOf(expectedType.getClass())));
+
+      final Set<TopicPartition> partitions = topicPartitionOffsets.keySet();
+      assertThat(partitions, is(offsets.keySet()));
+
+      final Map<TopicPartition, ListOffsetsResultInfo> partitionResults = offsets.entrySet()
+          .stream()
+          .collect(Collectors.toMap(
+              Entry::getKey,
+              e -> {
+                final ListOffsetsResultInfo info = mock(ListOffsetsResultInfo.class);
+                when(info.offset()).thenReturn(e.getValue());
+                return info;
+              }));
+
+      try {
+        final KafkaFuture<Map<TopicPartition, ListOffsetsResultInfo>> future = mock(
+            KafkaFuture.class);
+        when(future.get()).thenReturn(partitionResults);
+
+        final ListOffsetsResult result = mock(ListOffsetsResult.class);
+        when(result.all()).thenReturn(future);
+        return result;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+  }
+
+  private static Answer<ListOffsetsResult> listOffsetsResult(
+      final KafkaFuture<Map<TopicPartition, ListOffsetsResultInfo>> future
+  ) {
+    return inv -> {
+      final ListOffsetsResult result = mock(ListOffsetsResult.class);
+      when(result.all()).thenReturn(future);
+      return result;
+    };
   }
 
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {

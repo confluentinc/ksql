@@ -52,11 +52,11 @@ public class KafkaTopicsListExtended extends KsqlEntity {
       return false;
     }
     final KafkaTopicsListExtended that = (KafkaTopicsListExtended) o;
-    return Objects.equals(getTopics(), that.getTopics());
+    return Objects.equals(topics, that.topics);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getTopics());
+    return Objects.hash(topics);
   }
 }

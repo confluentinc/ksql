@@ -55,11 +55,12 @@ public class KafkaTopicInfo {
       return false;
     }
     final KafkaTopicInfo that = (KafkaTopicInfo) o;
-    return Objects.equals(name, that.name);
+    return Objects.equals(name, that.name)
+        && Objects.equals(replicaInfo, that.replicaInfo);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name);
+    return Objects.hash(name, replicaInfo);
   }
 }

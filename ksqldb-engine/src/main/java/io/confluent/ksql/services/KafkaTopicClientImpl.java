@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.ExecutorUtil;
+import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -29,10 +31,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
@@ -44,9 +48,12 @@ import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
@@ -63,6 +70,7 @@ import org.slf4j.LoggerFactory;
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @ThreadSafe
+@SuppressWarnings("UnstableApiUsage")
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -193,6 +201,49 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e);
+    }
+  }
+
+  @Override
+  public Map<TopicPartition, Long> maxMsgCounts(final Set<TopicPartition> partitions) {
+    try {
+      final Map<TopicPartition, OffsetSpec> earliestOffsetRequests = partitions.stream()
+          .collect(ImmutableMap.toImmutableMap(Function.identity(), p -> OffsetSpec.earliest()));
+
+      final Map<TopicPartition, OffsetSpec> latestOffsetRequests = partitions.stream()
+          .collect(ImmutableMap.toImmutableMap(Function.identity(), p -> OffsetSpec.latest()));
+
+      final Map<TopicPartition, ListOffsetsResultInfo> earliestResult =
+          ExecutorUtil.executeWithRetries(
+              () -> adminClient.get().listOffsets(earliestOffsetRequests).all().get(),
+              RetryBehaviour.ON_RETRYABLE
+          );
+
+      final Map<TopicPartition, ListOffsetsResultInfo> latestResult =
+          ExecutorUtil.executeWithRetries(
+              () -> adminClient.get().listOffsets(latestOffsetRequests).all().get(),
+              RetryBehaviour.ON_RETRYABLE
+          );
+
+      return earliestResult.entrySet().stream()
+          .filter(e -> latestResult.containsKey(e.getKey()))
+          .collect(Collectors.toMap(
+              Entry::getKey,
+              e -> latestResult.get(e.getKey()).offset() - e.getValue().offset()
+          ));
+    } catch (final TopicAuthorizationException e) {
+      final Set<String> topics = partitions.stream()
+          .map(TopicPartition::topic)
+          .collect(Collectors.toSet());
+
+      throw new KsqlTopicAuthorizationException(
+          AclOperation.DESCRIBE, topics);
+    } catch (final ExecutionException e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to get topic offsets. partitions: " + partitions, e.getCause());
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to get topic offsets. partitions: " + partitions, e);
     }
   }
 

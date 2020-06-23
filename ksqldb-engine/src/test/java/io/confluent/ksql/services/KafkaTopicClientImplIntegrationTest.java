@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -39,7 +40,9 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -215,20 +218,39 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
-  public void shouldThrowOnDescribeIfTopicDoesNotExist() {// Expect
-
-
-// When:
+  public void shouldThrowOnDescribeIfTopicDoesNotExist() {
+    // When:
     final Exception e = assertThrows(
         KafkaResponseGetFailedException.class,
         () -> client.describeTopic("i_do_not_exist")
     );
 
-// Then:
+    // Then:
     assertThat(e.getMessage(), containsString(
         "Failed to Describe Kafka Topic(s):"));
     assertThat(e.getMessage(), containsString(
         "i_do_not_exist"));
+  }
+
+  @Test
+  public void shouldGetMessageCount() {
+    // Given:
+    final TopicPartition partition = new TopicPartition(testTopic, 0);
+
+    // Produce two messages:
+    KAFKA.produceRows(
+        testTopic,
+        ImmutableMap.of("k", "v", "k2", "v2").entrySet(),
+        Serdes.String().serializer(),
+        Serdes.String().serializer(),
+        System::currentTimeMillis
+    );
+
+    // When:
+    final Map<TopicPartition, Long> result = client.maxMsgCounts(ImmutableSet.of(partition));
+
+    // Then:
+    assertThat(result, is(ImmutableMap.of(partition, 2L)));
   }
 
   private String getTopicConfig(final String configName) {

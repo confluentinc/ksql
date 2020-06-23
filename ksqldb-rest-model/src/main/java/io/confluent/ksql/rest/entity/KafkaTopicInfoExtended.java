@@ -30,11 +30,13 @@ public class KafkaTopicInfoExtended {
   private final List<Integer> replicaInfo;
   private final int consumerGroupCount;
   private final int consumerCount;
+  private final long maxMsgCount;
 
   @JsonCreator
   public KafkaTopicInfoExtended(
       @JsonProperty("name") final String name,
       @JsonProperty("replicaInfo") final List<Integer> replicaInfo,
+      @JsonProperty("maxMsgCount") final Long maxMsgCount, // Add v 0.11
       @JsonProperty("consumerCount") final int consumerCount,
       @JsonProperty("consumerGroupCount") final int consumerGroupCount
   ) {
@@ -42,6 +44,7 @@ public class KafkaTopicInfoExtended {
     this.replicaInfo = replicaInfo;
     this.consumerGroupCount = consumerGroupCount;
     this.consumerCount = consumerCount;
+    this.maxMsgCount = maxMsgCount == null ? 0L : maxMsgCount; // Old servers don't include this.
   }
 
   public String getName() {
@@ -60,6 +63,10 @@ public class KafkaTopicInfoExtended {
     return consumerGroupCount;
   }
 
+  public long getMaxMsgCount() {
+    return maxMsgCount;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -69,11 +76,15 @@ public class KafkaTopicInfoExtended {
       return false;
     }
     final KafkaTopicInfoExtended that = (KafkaTopicInfoExtended) o;
-    return Objects.equals(name, that.name);
+    return consumerGroupCount == that.consumerGroupCount
+        && consumerCount == that.consumerCount
+        && maxMsgCount == that.maxMsgCount
+        && Objects.equals(name, that.name)
+        && Objects.equals(replicaInfo, that.replicaInfo);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name);
+    return Objects.hash(name, replicaInfo, consumerGroupCount, consumerCount, maxMsgCount);
   }
 }

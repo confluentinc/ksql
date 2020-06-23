@@ -6,28 +6,13 @@
 
 * Any key name ([#5093](https://github.com/confluentinc/ksql/pull/5093)) ([1f0ca3e](https://github.com/confluentinc/ksql/commit/1f0ca3efb0f5ecadc7a604f219cbc16b2e120d8d))
 * Explicit keys ([#5533](https://github.com/confluentinc/ksql/pull/5533)) ([d0db0cf](https://github.com/confluentinc/ksql/commit/d0db0cfac050cef94019c6daa59cd765ca0f7379))
-* add CHR UDF ([#5559](https://github.com/confluentinc/ksql/pull/5559)) ([5a746e8](https://github.com/confluentinc/ksql/commit/5a746e85502235753cf11bfa507ab69e1e19064c))
-* implements ARRAY_JOIN as requested in ([#5028](https://github.com/confluentinc/ksql/pull/5028)) ([#5474](https://github.com/confluentinc/ksql/issues/5474)) ([#5638](https://github.com/confluentinc/ksql/issues/5638)) ([6c67866](https://github.com/confluentinc/ksql/commit/6c678665cee4a67e7737460710eac2875bc8c2e2))
-* new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
-* Add encode udf ([#5523](https://github.com/confluentinc/ksql/pull/5523)) ([b02f1ce](https://github.com/confluentinc/ksql/commit/b02f1ce8ae564688eda385268a51b1217dc9e277))
 * add extra log messages for pull queries ([#4909](https://github.com/confluentinc/ksql/pull/4909)) ([d622ecc](https://github.com/confluentinc/ksql/commit/d622eccb845698c245340556b6b4965fec075305))
 * Adds the ability have internal endpoints listen on ksql.internal.listener ([#5212](https://github.com/confluentinc/ksql/pull/5212)) ([46acb73](https://github.com/confluentinc/ksql/commit/46acb73f8e0df7118876e1d991fd8ba0946905f7))
-* Adds UDF regexp_extract_all ([#5507](https://github.com/confluentinc/ksql/pull/5507)) ([e19233c](https://github.com/confluentinc/ksql/commit/e19233c6bba4e5f4be9a93c224265c949626d317))
-* Adds UDF regexp_replace ([#5504](https://github.com/confluentinc/ksql/pull/5504)) ([30309bf](https://github.com/confluentinc/ksql/commit/30309bf07fbc706fb5200996ce33318d379cd97f))
-* Adds udf regexp_split_to_array ([#5501](https://github.com/confluentinc/ksql/pull/5501)) ([3766129](https://github.com/confluentinc/ksql/commit/3766129fe4511cedc2f7102427944876fb927a8a))
 * create MetricsContext for ksql metrics reporters ([#5528](https://github.com/confluentinc/ksql/pull/5528)) ([50561a5](https://github.com/confluentinc/ksql/commit/50561a55cdf7a4264481ca51de8d3db17d3aeea6))
 * drop WITH(KEY) syntax ([#5363](https://github.com/confluentinc/ksql/pull/5363)) ([bb43d23](https://github.com/confluentinc/ksql/commit/bb43d23ad36ec3519a06d05c25ca99f726244ad0))
 * expose JMX metric that classifies an error state ([#5374](https://github.com/confluentinc/ksql/pull/5374)) ([52271bf](https://github.com/confluentinc/ksql/commit/52271bf6ccbfdb26e83e5c30c2e11db0c72e8efc))
 * Expose Vert.x metrics ([#5340](https://github.com/confluentinc/ksql/pull/5340)) ([e82f762](https://github.com/confluentinc/ksql/commit/e82f7626236cc62d98e62e1d51ff33e4d6ff1519))
-* implement earliest_by_offset() UDAF ([#5273](https://github.com/confluentinc/ksql/pull/5273)) ([2a356ac](https://github.com/confluentinc/ksql/commit/2a356acbc1d55c868f0cde95b72835476615f8d6))
-* INSTR function [#881](https://github.com/confluentinc/ksql/issues/881) ([#5385](https://github.com/confluentinc/ksql/pull/5385)) ([ca86bbf](https://github.com/confluentinc/ksql/commit/ca86bbfad51e479d6847f84a0c7928f31d8a2b26))
 * introduce RegexClassifier for classifying errors via cfg ([#5412](https://github.com/confluentinc/ksql/pull/5412)) ([b25dd98](https://github.com/confluentinc/ksql/commit/b25dd987b219dcb8a3105beb7251503828ade023))
-* new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
-* new string UDFs LPad, RPad ([#5546](https://github.com/confluentinc/ksql/pull/5546)) ([00f5083](https://github.com/confluentinc/ksql/commit/00f5083cf3320ddb773d25cc160fffb414173ddc))
-* new UDFs for array max/min/sort ([#5505](https://github.com/confluentinc/ksql/pull/5505)) ([415d930](https://github.com/confluentinc/ksql/commit/415d93049670d30d48d68b294f7eb724fb8f90c8))
-* new UDFs for set-like operations on Arrays ([#5548](https://github.com/confluentinc/ksql/pull/5548)) ([50428c7](https://github.com/confluentinc/ksql/commit/50428c74089dddd43fb96e8299a28c507c615e4a))
-* new UDFs for working with Maps ([#5536](https://github.com/confluentinc/ksql/pull/5536)) ([bc9ad2e](https://github.com/confluentinc/ksql/commit/bc9ad2ea93b08ace708d6e74684582fa3e9c2d4d))
-* new UUID UDF ([#5535](https://github.com/confluentinc/ksql/pull/5535)) ([cfa65da](https://github.com/confluentinc/ksql/commit/cfa65da59ee057840a6c394e3038eb741a161e06))
 * Pull Queries: QPS check utilizes internal API flag to determine if forwarded ([#5392](https://github.com/confluentinc/ksql/pull/5392)) ([08b428f](https://github.com/confluentinc/ksql/commit/08b428f368a6f6238f9ffd9caab9f27afad9d1b9))
 * reload TLS certificate without restarting server ([#5516](https://github.com/confluentinc/ksql/pull/5516)) ([a5920b0](https://github.com/confluentinc/ksql/commit/a5920b0f31fe2f32adcfe8cd03e1f2bd14c1368e))
 * support TIMESTAMP being a key column ([#5542](https://github.com/confluentinc/ksql/pull/5542)) ([286ce08](https://github.com/confluentinc/ksql/commit/286ce0850e43e06ef0c7263546d31946c3c05302))
@@ -35,7 +20,22 @@
 * **client:** Java client with push + pull query support ([#5200](https://github.com/confluentinc/ksql/pull/5200)) ([280ef0c](https://github.com/confluentinc/ksql/commit/280ef0ca8aa02693db1427ece08cd7863abed98d))
 * **client:** support (non-streaming) insert into in Java client ([#5448](https://github.com/confluentinc/ksql/pull/5448)) ([9e8234a](https://github.com/confluentinc/ksql/commit/9e8234ad93745f73dc8e0d7463e44f33bb0739a9))
 * **client:** support push query termination in Java client ([#5371](https://github.com/confluentinc/ksql/pull/5371)) ([62dacca](https://github.com/confluentinc/ksql/commit/62dacca7efc8fc2a4202c69caa58596051c67fee))
-
+* New UDF/UDAF
+    * Adds UDF regexp_extract_all ([#5507](https://github.com/confluentinc/ksql/pull/5507)) ([e19233c](https://github.com/confluentinc/ksql/commit/e19233c6bba4e5f4be9a93c224265c949626d317))
+    * Adds UDF regexp_replace ([#5504](https://github.com/confluentinc/ksql/pull/5504)) ([30309bf](https://github.com/confluentinc/ksql/commit/30309bf07fbc706fb5200996ce33318d379cd97f))
+    * Adds udf regexp_split_to_array ([#5501](https://github.com/confluentinc/ksql/pull/5501)) ([3766129](https://github.com/confluentinc/ksql/commit/3766129fe4511cedc2f7102427944876fb927a8a))
+    * new UDFs for array max/min/sort ([#5505](https://github.com/confluentinc/ksql/pull/5505)) ([415d930](https://github.com/confluentinc/ksql/commit/415d93049670d30d48d68b294f7eb724fb8f90c8))
+    * new UDFs for set-like operations on Arrays ([#5548](https://github.com/confluentinc/ksql/pull/5548)) ([50428c7](https://github.com/confluentinc/ksql/commit/50428c74089dddd43fb96e8299a28c507c615e4a))
+    * new UDFs for working with Maps ([#5536](https://github.com/confluentinc/ksql/pull/5536)) ([bc9ad2e](https://github.com/confluentinc/ksql/commit/bc9ad2ea93b08ace708d6e74684582fa3e9c2d4d))
+    * new UUID UDF ([#5535](https://github.com/confluentinc/ksql/pull/5535)) ([cfa65da](https://github.com/confluentinc/ksql/commit/cfa65da59ee057840a6c394e3038eb741a161e06))
+    * new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
+    * new string UDFs LPad, RPad ([#5546](https://github.com/confluentinc/ksql/pull/5546)) ([00f5083](https://github.com/confluentinc/ksql/commit/00f5083cf3320ddb773d25cc160fffb414173ddc))
+    * implement earliest_by_offset() UDAF ([#5273](https://github.com/confluentinc/ksql/pull/5273)) ([2a356ac](https://github.com/confluentinc/ksql/commit/2a356acbc1d55c868f0cde95b72835476615f8d6))
+    * INSTR function [#881](https://github.com/confluentinc/ksql/issues/881) ([#5385](https://github.com/confluentinc/ksql/pull/5385)) ([ca86bbf](https://github.com/confluentinc/ksql/commit/ca86bbfad51e479d6847f84a0c7928f31d8a2b26))
+    * add CHR UDF ([#5559](https://github.com/confluentinc/ksql/pull/5559)) ([5a746e8](https://github.com/confluentinc/ksql/commit/5a746e85502235753cf11bfa507ab69e1e19064c))
+    * implements ARRAY_JOIN as requested in ([#5028](https://github.com/confluentinc/ksql/pull/5028)) ([#5474](https://github.com/confluentinc/ksql/issues/5474)) ([#5638](https://github.com/confluentinc/ksql/issues/5638)) ([6c67866](https://github.com/confluentinc/ksql/commit/6c678665cee4a67e7737460710eac2875bc8c2e2))
+    * new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
+    * Add encode udf ([#5523](https://github.com/confluentinc/ksql/pull/5523)) ([b02f1ce](https://github.com/confluentinc/ksql/commit/b02f1ce8ae564688eda385268a51b1217dc9e277))
 
 
 ### Bug Fixes
@@ -77,7 +77,9 @@
 
 ### BREAKING CHANGES
 
-* Statements containing PARTITION BY, GROUP BY or JOIN clauses will now produce different output schemas.
+*   **Any key name**
+
+    Statements containing PARTITION BY, GROUP BY or JOIN clauses will now produce different output schemas.
     For PARTITION BY and GROUP BY statements, the name of the key column in the result is determined by the PARTITION BY or GROUP BY clause:
     1. Where the partitioning or grouping is a single column reference, then the key column will have the same name as this column. For example:
     ```sql
@@ -126,7 +128,9 @@
     ```
     `JOINKEY` will be deprecated in a future release of ksqlDB once multiple key columns are supported.
 
-* `CREATE TABLE` statements will now fail if not `PRIMARY KEY` column is provided.
+* **Explicit keys**
+
+  `CREATE TABLE` statements will now fail if the `PRIMARY KEY` column is not provided.
   
   For example, a statement such as:
   

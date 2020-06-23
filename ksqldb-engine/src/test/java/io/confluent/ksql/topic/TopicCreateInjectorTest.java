@@ -114,7 +114,7 @@ public class TopicCreateInjectorTest {
         false,
         sourceTopic
     );
-    metaStore.putSource(source);
+    metaStore.putSource(source, false);
 
     final KsqlTopic joinTopic = new KsqlTopic(
         "jSource",
@@ -131,7 +131,7 @@ public class TopicCreateInjectorTest {
         false,
         joinTopic
     );
-    metaStore.putSource(joinSource);
+    metaStore.putSource(joinSource, false);
 
     when(topicClient.describeTopic("source")).thenReturn(sourceDescription);
     when(topicClient.isTopicExists("source")).thenReturn(true);

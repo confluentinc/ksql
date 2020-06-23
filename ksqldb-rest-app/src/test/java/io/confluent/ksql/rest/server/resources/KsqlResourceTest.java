@@ -2228,7 +2228,7 @@ public class KsqlResourceTest {
               Optional.empty(),
               false,
               ksqlTopic
-          ));
+          ), false);
     }
     if (type == DataSourceType.KTABLE) {
       metaStore.putSource(
@@ -2240,7 +2240,7 @@ public class KsqlResourceTest {
               Optional.empty(),
               false,
               ksqlTopic
-          ));
+          ), false);
     }
   }
 

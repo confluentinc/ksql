@@ -27,12 +27,14 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
@@ -163,7 +165,7 @@ final class EngineExecutor {
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
-          statement.getStatementText(),
+          statement,
           outputNode
       );
 
@@ -193,11 +195,12 @@ final class EngineExecutor {
       final Query query,
       final Optional<Sink> sink) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
+    final KsqlConfig config = this.ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties);
     final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
         query,
         sink,
         engineContext.getMetaStore(),
-        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
+        config
     );
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
         statement.getStatementText(),
@@ -207,7 +210,7 @@ final class EngineExecutor {
         engineContext.getMetaStore(),
         engineContext.idGenerator(),
         outputNode,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED)
+        config.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED)
     );
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
@@ -232,7 +235,7 @@ final class EngineExecutor {
   }
 
   private Optional<DdlCommand> maybeCreateSinkDdl(
-      final String sql,
+      final ConfiguredStatement<?> cfgStatement,
       final KsqlStructuredDataOutputNode outputNode
   ) {
     if (!outputNode.createInto()) {
@@ -246,6 +249,7 @@ final class EngineExecutor {
         outputNode.getSerdeOptions()
     );
 
+    final Statement statement = cfgStatement.getStatement();
     final CreateSourceCommand ddl;
     if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
       ddl = new CreateStreamCommand(
@@ -254,7 +258,8 @@ final class EngineExecutor {
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
-          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo()
+          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+          statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace()
       );
     } else {
       ddl = new CreateTableCommand(
@@ -263,12 +268,13 @@ final class EngineExecutor {
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
-          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo()
+          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+          statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace()
       );
     }
 
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-    AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(cfgStatement.getStatementText(), ddl, srClient);
     return Optional.of(ddl);
   }
 

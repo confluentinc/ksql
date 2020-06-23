@@ -189,7 +189,7 @@ public class SqlFormatterTest {
         ksqlTopicOrders
     );
 
-    metaStore.putSource(ksqlStreamOrders);
+    metaStore.putSource(ksqlStreamOrders, false);
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
@@ -206,7 +206,7 @@ public class SqlFormatterTest {
         ksqlTopicItems
     );
 
-    metaStore.putSource(ksqlTableOrders);
+    metaStore.putSource(ksqlTableOrders, false);
 
     final KsqlTable<String> ksqlTableTable = new KsqlTable<>(
         "sqlexpression",
@@ -218,7 +218,7 @@ public class SqlFormatterTest {
         ksqlTopicItems
     );
 
-    metaStore.putSource(ksqlTableTable);
+    metaStore.putSource(ksqlTableTable, false);
   }
 
   @Test

@@ -174,7 +174,7 @@ public class SourceTopicsExtractorTest {
         sourceTopic
     );
 
-    metaStore.putSource(streamSource);
+    metaStore.putSource(streamSource, false);
   }
 
   private static void givenTopic(final String topicName, final TopicDescription topicDescription) {

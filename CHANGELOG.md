@@ -77,92 +77,92 @@
 
 ### BREAKING CHANGES
 
-*   **Any key name**
+#### Any key name
 
-    Statements containing PARTITION BY, GROUP BY or JOIN clauses will now produce different output schemas.
-    For PARTITION BY and GROUP BY statements, the name of the key column in the result is determined by the PARTITION BY or GROUP BY clause:
-    1. Where the partitioning or grouping is a single column reference, then the key column will have the same name as this column. For example:
-    ```sql
-    CREATE STREAM OUTPUT AS
-    SELECT * FROM INPUT GROUP BY X;
-    -- OUTPUT will have a key column called X;
-    ```
-    2. Where the partitioning or grouping is a single struct field, then the key column will have the same name as the field. For example:
-    ```sql
-    CREATE STREAM OUTPUT AS
-    SELECT * FROM INPUT GROUP BY X->field1;
-    -- OUTPUT will have a key column called FIELD1;
-    ```
-    3. Otherwise, the key column name will be system generated and be in the form `KSQL_COL_n`, where `n` is some positive integer.
-    In all case, except where grouping by more than one column, the new key column's name can be set by defining an alias in the projection. For example:
-    ```sql
-    CREATE TABLE OUTPUT AS
-    SELECT USERID AS ID, COUNT(*) FROM USERS GROUP BY ID;
-    -- OUTPUT will have a key column named ID.
-    ```
-    For groupings of multiple expressions there is currently no way to provide a name for the system generated key column. This is a shortcoming that will be fixed shortly when ksqlDB supports more than just a single key column.
-    For JOIN statements, the name of the key column in the result is determined by the join criteria.
-    1. For INNER and LEFT OUTER joins where the join criteria contains at least one column reference the key column will be named of the left most source whose join criteria is a column reference. For example:
-    ```sql
-    CREATE TABLE OUTPUT AS
-    SELECT * FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
-    -- OUTPUT will have a key column named I2_ID.
-    ```
-    The key column can be given a new name, if required, by defining an alias in the projection. For example:
-    ```sql
-    CREATE TABLE OUTPUT AS
-    SELECT I2.ID AS ID, I1.V0, I2.V0, I3.V0 FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
-    -- OUTPUT will have a key column named ID.
-    ```
-    2. For FULL OUTER joins and other joins where the join criteria is not on column references, the key column in the output is not equivalent to any column from any source. The key column will have a system generated name in the form `KSQL_COL_n`, where `n` is a positive integer. For example:
-    ```sql
-    CREATE TABLE OUTPUT AS
-    SELECT * FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
-    -- OUTPUT will have a key column named KSQL_COL_0, or similar.
-    ```
-    The key column can be given a new name, if required, by defining an alias in the projection. A new UDF has been introduced to help define the alias called `JOINKEY`. It takes the join criteria as its parameters. For example:
-    ```sql
-    CREATE TABLE OUTPUT AS
-    SELECT JOINKEY(I1.ID, I2.ID) AS ID, I1.V0, I2.V0 FROM  I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
-    -- OUTPUT will have a key column named ID.
-    ```
-    `JOINKEY` will be deprecated in a future release of ksqlDB once multiple key columns are supported.
+Statements containing PARTITION BY, GROUP BY or JOIN clauses will now produce different output schemas.
+For PARTITION BY and GROUP BY statements, the name of the key column in the result is determined by the PARTITION BY or GROUP BY clause:
+1. Where the partitioning or grouping is a single column reference, then the key column will have the same name as this column. For example:
+```sql
+CREATE STREAM OUTPUT AS
+SELECT * FROM INPUT GROUP BY X;
+-- OUTPUT will have a key column called X;
+```
+2. Where the partitioning or grouping is a single struct field, then the key column will have the same name as the field. For example:
+```sql
+CREATE STREAM OUTPUT AS
+SELECT * FROM INPUT GROUP BY X->field1;
+-- OUTPUT will have a key column called FIELD1;
+```
+3. Otherwise, the key column name will be system generated and be in the form `KSQL_COL_n`, where `n` is some positive integer.
+In all case, except where grouping by more than one column, the new key column's name can be set by defining an alias in the projection. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT USERID AS ID, COUNT(*) FROM USERS GROUP BY ID;
+-- OUTPUT will have a key column named ID.
+```
+For groupings of multiple expressions there is currently no way to provide a name for the system generated key column. This is a shortcoming that will be fixed shortly when ksqlDB supports more than just a single key column.
+For JOIN statements, the name of the key column in the result is determined by the join criteria.
+1. For INNER and LEFT OUTER joins where the join criteria contains at least one column reference the key column will be named of the left most source whose join criteria is a column reference. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT * FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
+-- OUTPUT will have a key column named I2_ID.
+```
+The key column can be given a new name, if required, by defining an alias in the projection. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT I2.ID AS ID, I1.V0, I2.V0, I3.V0 FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
+-- OUTPUT will have a key column named ID.
+```
+2. For FULL OUTER joins and other joins where the join criteria is not on column references, the key column in the output is not equivalent to any column from any source. The key column will have a system generated name in the form `KSQL_COL_n`, where `n` is a positive integer. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT * FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
+-- OUTPUT will have a key column named KSQL_COL_0, or similar.
+```
+The key column can be given a new name, if required, by defining an alias in the projection. A new UDF has been introduced to help define the alias called `JOINKEY`. It takes the join criteria as its parameters. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT JOINKEY(I1.ID, I2.ID) AS ID, I1.V0, I2.V0 FROM  I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
+-- OUTPUT will have a key column named ID.
+```
+`JOINKEY` will be deprecated in a future release of ksqlDB once multiple key columns are supported.
 
-* **Explicit keys**
+#### Explicit keys
 
-  `CREATE TABLE` statements will now fail if the `PRIMARY KEY` column is not provided.
-  
-  For example, a statement such as:
-  
-  ```sql
-  CREATE TABLE FOO (name STRING) WITH (kafka_topic='foo', value_format='json');
-  ```
-  
-  Will need to be updated to include the definition of the PRIMARY KEY, e.g.
-  
-  ```sql
-  CREATE TABLE FOO (ID STRING PRIMARY KEY, name STRING) WITH (kafka_topic='foo', value_format='json');
-  ```
-  
-  If using schema inference, i.e. loading the value columns of the topic from the Schema Registry, the primary key can be provided as a partial schema, e.g.
-  
-  ```sql
-  -- FOO will have value columns loaded from the Schema Registry
-  CREATE TABLE FOO (ID INT PRIMARY KEY) WITH (kafka_topic='foo', value_format='avro');
-  ```
-  
-  `CREATE STREAM` statements that do not define a `KEY` column will no longer have an implicit `ROWKEY` key column.
-  
-  For example:
-  
-  ```sql
-  CREATE STREAM BAR (NAME STRING) WITH (...);
-  ```
-  
-  The above statement would previously have resulted in a stream with two columns: `ROWKEY STRING KEY` and `NAME STRING`.
-  With this change the above statement will result in a stream with only the `NAME STRING` column.
-  
-  Streams will no KEY column will be serialized to Kafka topics with a `null` key.
+`CREATE TABLE` statements will now fail if the `PRIMARY KEY` column is not provided.
+
+For example, a statement such as:
+
+```sql
+CREATE TABLE FOO (name STRING) WITH (kafka_topic='foo', value_format='json');
+```
+
+Will need to be updated to include the definition of the PRIMARY KEY, e.g.
+
+```sql
+CREATE TABLE FOO (ID STRING PRIMARY KEY, name STRING) WITH (kafka_topic='foo', value_format='json');
+```
+
+If using schema inference, i.e. loading the value columns of the topic from the Schema Registry, the primary key can be provided as a partial schema, e.g.
+
+```sql
+-- FOO will have value columns loaded from the Schema Registry
+CREATE TABLE FOO (ID INT PRIMARY KEY) WITH (kafka_topic='foo', value_format='avro');
+```
+
+`CREATE STREAM` statements that do not define a `KEY` column will no longer have an implicit `ROWKEY` key column.
+
+For example:
+
+```sql
+CREATE STREAM BAR (NAME STRING) WITH (...);
+```
+
+The above statement would previously have resulted in a stream with two columns: `ROWKEY STRING KEY` and `NAME STRING`.
+With this change the above statement will result in a stream with only the `NAME STRING` column.
+
+Streams will no KEY column will be serialized to Kafka topics with a `null` key.
 
 ## [0.9.0](https://github.com/confluentinc/ksql/releases/tag/v0.9.0-ksqldb) (2020-05-11)
 

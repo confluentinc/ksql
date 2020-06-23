@@ -35,7 +35,8 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
       final Optional<NodeLocation> location,
       final SourceName name,
       final Query query,
-      final boolean orReplace, final boolean notExists,
+      final boolean orReplace,
+      final boolean notExists,
       final CreateSourceAsProperties properties
   ) {
     super(location);

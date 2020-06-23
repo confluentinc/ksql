@@ -36,9 +36,11 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -48,6 +50,7 @@ import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -255,7 +258,7 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void shouldFormatCreateOrReplaceStreameStatement() {
+  public void shouldFormatCreateOrReplaceStreamStatement() {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties.from(
         new ImmutableMap.Builder<String, Literal>()
@@ -525,7 +528,7 @@ public class SqlFormatterTest {
         + "FROM ADDRESS A\nEMIT CHANGES"));
   }
 
-  @Test
+  @Test(expected = ParseFailedException.class)
   public void shouldFormatReplaceSelectQueryCorrectly() {
     final String statementString =
         "CREATE OR REPLACE STREAM S AS SELECT a.address->city FROM address a;";

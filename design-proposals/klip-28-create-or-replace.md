@@ -2,8 +2,8 @@
 
 **Author**: agavra | 
 **Release Target**: 0.11 | 
-**Status**: _In Discussion_ | 
-**Discussion**: _link to the design discussion PR_
+**Status**: _Approved_ | 
+**Discussion**: _https://github.com/confluentinc/ksql/pull/5611_
 
 **tl;dr:** _CREATE OR REPLACE is a mechanism geared toward enabling in-place ksqlDB query evolution._
            

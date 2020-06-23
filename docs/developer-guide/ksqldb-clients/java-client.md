@@ -353,7 +353,6 @@ with schema (ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR).
 
 ```java
 KsqlObject row = new KsqlObject()
-    .put("ROWKEY", "k1")
     .put("ORDER_ID", 12345678L)
     .put("PRODUCT_ID", "UAC-222-19234")
     .put("USER_ID", "User_321");

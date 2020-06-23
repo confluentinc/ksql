@@ -17,7 +17,7 @@ CREATE STREAM stream_name
   [WITH ( property_name = expression [, ...] )]
   AS SELECT  select_expr [, ...]
   FROM from_stream
-  [ LEFT | FULL | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria 
+  [[ LEFT | FULL | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria]* 
   [ WHERE condition ]
   [PARTITION BY column_name]
   EMIT CHANGES;
@@ -26,28 +26,44 @@ CREATE STREAM stream_name
 Description
 -----------
 
-Create a new stream along with the corresponding Kafka topic, and
-continuously write the result of the SELECT query into the stream and
-its corresponding topic.
+Create a new materialized stream view, along with the corresponding Kafka topic, and
+stream the result of the query into the topic.
 
-If the PARTITION BY clause is present, then the resulting stream will have the specified column as
-its key. The PARTITION BY clause is applied to the source _after_ any JOIN or WHERE clauses, and
-_before_ the SELECT clause, in much the same way as GROUP BY. For more information, see
-[Partition Data to Enable Joins](../joins/partition-data.md).
+The PARTITION BY clause, if supplied, is applied to the source _after_ any JOIN or WHERE clauses, 
+and _before_ the SELECT clause, in much the same way as GROUP BY. 
 
-For joins, the key of the resulting stream will be the value from the
-column from the left stream that was used in the join criteria. This
-column will be registered as the key of the resulting stream if included
-in the selected columns.
+Joins to streams can use any stream column. If the join criteria is not the key column of the stream
+ksqlDB will internally repartition the data. 
 
-For stream-table joins, the column used in the join criteria for the
-table must be the table key.
+!!! important
+    {{ site.ak }} guarantees the relative order of any two messages from
+    one source partition only if they are also both in the same partition
+    *after* the repartition. Otherwise, {{ site.ak }} is likely to interleave
+    messages. The use case will determine if these ordering guarantees are
+    acceptable.
+
+Joins to tables must use the table's PRIMARY KEY as the join criteria: none primary key joins are 
+[not yet supported](https://github.com/confluentinc/ksql/issues/4424).
+For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
+
+See [Partition Data to Enable Joins](../joins/partition-data.md) for more information about how to
+correctly partition your data for joins.
 
 For stream-stream joins, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
 units, see [ksqlDB Time Units](../syntax-reference.md#ksqldb-time-units).
 
-For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
+The key of the resulting stream is determined by the following rules, in order of priority:
+ 1. if the query has a  `PARTITION BY`: 
+    1. if the `PARITION BY` is on a single source column reference, the key will match the 
+       name, type and contents of the source column.
+    1. otherwise the key will have a system generated name, unless you provide an alias in the 
+       projection, and will match the type and contents of the result of the expression.
+ 1. if the query has a join see [Join Synthetic Key Columns](../joins/synthetic-keys) for more info.
+ 1. otherwise, the primary key will match the name, unless you provide an alias in the projection, 
+    and type of the source stream's key.
+
+The projection must include all columns required in the result, including any key columns.
 
 The WITH clause for the result supports the following properties:
 
@@ -73,5 +89,23 @@ The WITH clause for the result supports the following properties:
 Example
 -------
 
-TODO: example
+```sql
+-- Create a view that filters an existing stream:
+CREATE STREAM filtered AS
+   SELECT 
+     a, 
+     few,
+     columns 
+   FROM source_stream;
+
+-- Create a view that enriches a stream with a table lookup:
+CREATE STREAM enriched AS
+   SELECT
+      cs.*,
+      u.name,
+      u.classification,
+      u.level
+   FROM clickstream cs
+      JOIN users u ON u.id = cs.userId;
+```
 

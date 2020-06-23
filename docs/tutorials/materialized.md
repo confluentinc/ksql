@@ -343,7 +343,7 @@ Now you can query our materialized views to look up the values for keys with low
 ```sql
 SELECT name, distinct_reasons, last_reason
 FROM support_view
-WHERE ROWKEY = 'derek';
+WHERE name = 'derek';
 ```
 
 Your output should resemble:
@@ -360,7 +360,7 @@ How many times has Michael called us, and how many minutes has he spent on the l
 ```sql
 SELECT name, total_calls, minutes_engaged
 FROM lifetime_view
-WHERE ROWKEY = 'michael';
+WHERE name = 'michael';
 ```
 
 Your output should resemble:

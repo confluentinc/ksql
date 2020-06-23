@@ -48,7 +48,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class ClientImpl implements Client {
 
@@ -163,7 +162,8 @@ public class ClientImpl implements Client {
         "/ksql",
         new JsonObject().put("ksql", "list streams;"),
         cf,
-        response -> handleSingleEntityResponse(response, cf, ClientImpl::handleListStreamsResponse)
+        response -> handleSingleEntityResponse(
+            response, cf, AdminResponseHandlers::handleListStreamsResponse)
     );
 
     return cf;
@@ -177,7 +177,8 @@ public class ClientImpl implements Client {
         "/ksql",
         new JsonObject().put("ksql", "list tables;"),
         cf,
-        response -> handleSingleEntityResponse(response, cf, ClientImpl::handleListTablesResponse)
+        response -> handleSingleEntityResponse(
+            response, cf, AdminResponseHandlers::handleListTablesResponse)
     );
 
     return cf;
@@ -191,7 +192,8 @@ public class ClientImpl implements Client {
         "/ksql",
         new JsonObject().put("ksql", "list topics;"),
         cf,
-        response -> handleSingleEntityResponse(response, cf, ClientImpl::handleListTopicsResponse)
+        response -> handleSingleEntityResponse(
+            response, cf, AdminResponseHandlers::handleListTopicsResponse)
     );
 
     return cf;
@@ -284,73 +286,6 @@ public class ClientImpl implements Client {
       cf.complete(null);
     } else {
       handleErrorResponse(response, cf);
-    }
-  }
-
-  private static void handleListStreamsResponse(
-      final JsonObject streamsListEntity,
-      final CompletableFuture<List<StreamInfo>> cf
-  ) {
-    try {
-      final JsonArray streams = streamsListEntity.getJsonArray("streams");
-      cf.complete(streams.stream()
-          .map(o -> (JsonObject) o)
-          .map(o -> new StreamInfoImpl(
-              o.getString("name"),
-              o.getString("topic"),
-              o.getString("format")))
-          .collect(Collectors.toList())
-      );
-    } catch (Exception e) {
-      cf.completeExceptionally(new IllegalStateException(
-          "Unexpected server response format. Response: " + streamsListEntity));
-    }
-  }
-
-  private static void handleListTablesResponse(
-      final JsonObject tablesListEntity,
-      final CompletableFuture<List<TableInfo>> cf
-  ) {
-    try {
-      final JsonArray tables = tablesListEntity.getJsonArray("tables");
-      cf.complete(tables.stream()
-          .map(o -> (JsonObject) o)
-          .map(o -> new TableInfoImpl(
-              o.getString("name"),
-              o.getString("topic"),
-              o.getString("format"),
-              o.getBoolean("isWindowed")))
-          .collect(Collectors.toList())
-      );
-    } catch (Exception e) {
-      cf.completeExceptionally(new IllegalStateException(
-          "Unexpected server response format. Response: " + tablesListEntity));
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static void handleListTopicsResponse(
-      final JsonObject kafkaTopicsListEntity,
-      final CompletableFuture<List<TopicInfo>> cf
-  ) {
-    try {
-      final JsonArray topics = kafkaTopicsListEntity.getJsonArray("topics");
-      cf.complete(topics.stream()
-          .map(o -> (JsonObject) o)
-          .map(o -> {
-            final List<Integer> replicaInfo = o.getJsonArray("replicaInfo").stream()
-                .map(v -> (Integer)v)
-                .collect(Collectors.toList());
-            return new TopicInfoImpl(
-                o.getString("name"),
-                replicaInfo.size(),
-                replicaInfo);
-          })
-          .collect(Collectors.toList())
-      );
-    } catch (Exception e) {
-      cf.completeExceptionally(new IllegalStateException(
-          "Unexpected server response format. Response: " + kafkaTopicsListEntity));
     }
   }
 

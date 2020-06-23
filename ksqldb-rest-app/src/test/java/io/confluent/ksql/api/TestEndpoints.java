@@ -122,15 +122,11 @@ public class TestEndpoints implements Endpoints {
     if (executeKsqlRequestException != null) {
       executeKsqlRequestException.fillInStackTrace();
       cf.completeExceptionally(executeKsqlRequestException);
-      return cf;
+    } else {
+      cf.complete(EndpointResponse.ok(ksqlEndpointResponse));
     }
 
-    final String lowerCaseSql = request.getKsql().toLowerCase();
-    if (lowerCaseSql.equals("show streams;") || lowerCaseSql.equals("list streams;")) {
-      return CompletableFuture.completedFuture(EndpointResponse.ok(ksqlEndpointResponse));
-    } else {
-      return null;
-    }
+    return cf;
   }
 
   @Override

@@ -46,6 +46,7 @@ import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -604,6 +605,16 @@ public class ClientIntegrationTest {
     ));
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldListTables() throws Exception {
+    // When
+    final List<TableInfo> tables = client.listTables().get();
+
+    // Then
+    assertThat(tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
+  }
+
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")
@@ -819,6 +830,38 @@ public class ClientIntegrationTest {
       public void describeTo(final Description description) {
         description.appendText(String.format(
             "streamName: %s. topicName: %s. format: %s", streamName, topicName, format));
+      }
+    };
+  }
+
+  private static Matcher<? super TableInfo> tableInfo(
+      final String tableName, final String topicName, final String format, final boolean isWindowed
+  ) {
+    return new TypeSafeDiagnosingMatcher<TableInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final TableInfo actual,
+          final Description mismatchDescription) {
+        if (!tableName.equals(actual.getName())) {
+          return false;
+        }
+        if (!topicName.equals(actual.getTopic())) {
+          return false;
+        }
+        if (!format.equals(actual.getFormat())) {
+          return false;
+        }
+        if (isWindowed != actual.isWindowed()) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "tableName: %s. topicName: %s. format: %s. isWindowed: %s",
+            tableName, topicName, format, isWindowed));
       }
     };
   }

@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.TablesList;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -588,6 +589,30 @@ public class ClientTest extends BaseApiTest {
     assertThat(streams.get(1).getName(), is("stream2"));
     assertThat(streams.get(1).getTopic(), is("topic2"));
     assertThat(streams.get(1).getFormat(), is("AVRO"));
+  }
+
+  @Test
+  public void shouldListTables() throws Exception {
+    // Given
+    final List<SourceInfo.Table> expectedTables = new ArrayList<>();
+    expectedTables.add(new SourceInfo.Table("table1", "topic1", "JSON", true));
+    expectedTables.add(new SourceInfo.Table("table2", "topic2", "AVRO", false));
+    final TablesList entity = new TablesList("list tables;", expectedTables);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<TableInfo> tables = javaClient.listTables().get();
+
+    // Then
+    assertThat(tables, hasSize(expectedTables.size()));
+    assertThat(tables.get(0).getName(), is("table1"));
+    assertThat(tables.get(0).getTopic(), is("topic1"));
+    assertThat(tables.get(0).getFormat(), is("JSON"));
+    assertThat(tables.get(0).isWindowed(), is(true));
+    assertThat(tables.get(1).getName(), is("table2"));
+    assertThat(tables.get(1).getTopic(), is("topic2"));
+    assertThat(tables.get(1).getFormat(), is("AVRO"));
+    assertThat(tables.get(1).isWindowed(), is(false));
   }
 
   protected Client createJavaClient() {

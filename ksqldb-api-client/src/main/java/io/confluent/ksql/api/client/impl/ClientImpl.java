@@ -170,7 +170,16 @@ public class ClientImpl implements Client {
 
   @Override
   public CompletableFuture<List<TableInfo>> listTables() {
-    return null; // TODO
+    final CompletableFuture<List<TableInfo>> cf = new CompletableFuture<>();
+
+    makeRequest(
+        "/ksql",
+        new JsonObject().put("ksql", "list tables;"),
+        cf,
+        response -> handleSingleEntityResponse(response, cf, ClientImpl::handleListTablesResponse)
+    );
+
+    return cf;
   }
 
   @Override
@@ -280,6 +289,27 @@ public class ClientImpl implements Client {
     } catch (Exception e) {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + streamsListEntity));
+    }
+  }
+
+  private static void handleListTablesResponse(
+      final JsonObject tablesListEntity,
+      final CompletableFuture<List<TableInfo>> cf
+  ) {
+    try {
+      final JsonArray tables = tablesListEntity.getJsonArray("tables");
+      cf.complete(tables.stream()
+          .map(o -> (JsonObject) o)
+          .map(o -> new TableInfoImpl(
+              o.getString("name"),
+              o.getString("topic"),
+              o.getString("format"),
+              o.getBoolean("isWindowed")))
+          .collect(Collectors.toList())
+      );
+    } catch (Exception e) {
+      cf.completeExceptionally(new IllegalStateException(
+          "Unexpected server response format. Response: " + tablesListEntity));
     }
   }
 

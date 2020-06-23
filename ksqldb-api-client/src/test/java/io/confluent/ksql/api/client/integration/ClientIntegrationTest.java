@@ -47,6 +47,7 @@ import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
+import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -605,7 +606,6 @@ public class ClientIntegrationTest {
     ));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldListTables() throws Exception {
     // When
@@ -613,6 +613,20 @@ public class ClientIntegrationTest {
 
     // Then
     assertThat(tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldListTopics() throws Exception {
+    // When
+    final List<TopicInfo> topics = client.listTopics().get();
+
+    // Then
+    assertThat(topics, containsInAnyOrder(
+        topicInfo(TEST_TOPIC),
+        topicInfo(EMPTY_TEST_TOPIC),
+        topicInfo(AGG_TABLE)
+    ));
   }
 
   private Client createClient() {
@@ -862,6 +876,33 @@ public class ClientIntegrationTest {
         description.appendText(String.format(
             "tableName: %s. topicName: %s. format: %s. isWindowed: %s",
             tableName, topicName, format, isWindowed));
+      }
+    };
+  }
+
+  // validates topics have 1 partition and 1 replica
+  private static Matcher<? super TopicInfo> topicInfo(final String name) {
+    return new TypeSafeDiagnosingMatcher<TopicInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final TopicInfo actual,
+          final Description mismatchDescription) {
+        if (!name.equals(actual.getName())) {
+          return false;
+        }
+        if (actual.getPartitions() != 1) {
+          return false;
+        }
+        final List<Integer> replicasPerPartition = actual.getReplicasPerPartition();
+        if (replicasPerPartition.size() != 1 || replicasPerPartition.get(0) != 1) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("name: " + name);
       }
     };
   }

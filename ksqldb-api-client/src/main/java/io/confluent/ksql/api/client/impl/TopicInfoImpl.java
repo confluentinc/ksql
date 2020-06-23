@@ -15,19 +15,20 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import io.confluent.ksql.api.client.StreamInfo;
+import io.confluent.ksql.api.client.TopicInfo;
+import java.util.List;
 import java.util.Objects;
 
-public class StreamInfoImpl implements StreamInfo {
+public class TopicInfoImpl implements TopicInfo {
 
   private final String name;
-  private final String topicName;
-  private final String format;
+  private final int partitions;
+  private final List<Integer> replicasPerPartition;
 
-  StreamInfoImpl(final String name, final String topicName, final String format) {
+  TopicInfoImpl(final String name, final int partitions, final List<Integer> replicasPerPartition) {
     this.name = Objects.requireNonNull(name);
-    this.topicName = Objects.requireNonNull(topicName);
-    this.format = Objects.requireNonNull(format);
+    this.partitions = partitions;
+    this.replicasPerPartition = Objects.requireNonNull(replicasPerPartition);
   }
 
   @Override
@@ -36,12 +37,12 @@ public class StreamInfoImpl implements StreamInfo {
   }
 
   @Override
-  public String getTopic() {
-    return topicName;
+  public int getPartitions() {
+    return partitions;
   }
 
   @Override
-  public String getFormat() {
-    return format;
+  public List<Integer> getReplicasPerPartition() {
+    return replicasPerPartition;
   }
 }

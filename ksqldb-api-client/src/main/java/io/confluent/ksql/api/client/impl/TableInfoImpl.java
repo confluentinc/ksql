@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.TableInfo;
+import java.util.Objects;
 
 public class TableInfoImpl implements TableInfo {
 
@@ -30,9 +31,9 @@ public class TableInfoImpl implements TableInfo {
       final String format,
       final boolean isWindowed
   ) {
-    this.name = name;
-    this.topicName = topicName;
-    this.format = format;
+    this.name = Objects.requireNonNull(name);
+    this.topicName = Objects.requireNonNull(topicName);
+    this.format = Objects.requireNonNull(format);
     this.isWindowed = isWindowed;
   }
 

@@ -26,6 +26,7 @@ import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
+import io.confluent.ksql.api.client.TopicInfo;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -183,6 +184,20 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<List<TopicInfo>> listTopics() {
+    final CompletableFuture<List<TopicInfo>> cf = new CompletableFuture<>();
+
+    makeRequest(
+        "/ksql",
+        new JsonObject().put("ksql", "list topics;"),
+        cf,
+        response -> handleSingleEntityResponse(response, cf, ClientImpl::handleListTopicsResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
   public void close() {
     httpClient.close();
     if (ownedVertx) {
@@ -310,6 +325,32 @@ public class ClientImpl implements Client {
     } catch (Exception e) {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + tablesListEntity));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void handleListTopicsResponse(
+      final JsonObject kafkaTopicsListEntity,
+      final CompletableFuture<List<TopicInfo>> cf
+  ) {
+    try {
+      final JsonArray topics = kafkaTopicsListEntity.getJsonArray("topics");
+      cf.complete(topics.stream()
+          .map(o -> (JsonObject) o)
+          .map(o -> {
+            final List<Integer> replicaInfo = o.getJsonArray("replicaInfo").stream()
+                .map(v -> (Integer)v)
+                .collect(Collectors.toList());
+            return new TopicInfoImpl(
+                o.getString("name"),
+                replicaInfo.size(),
+                replicaInfo);
+          })
+          .collect(Collectors.toList())
+      );
+    } catch (Exception e) {
+      cf.completeExceptionally(new IllegalStateException(
+          "Unexpected server response format. Response: " + kafkaTopicsListEntity));
     }
   }
 

@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
@@ -38,6 +39,8 @@ import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.rest.entity.KafkaTopicInfo;
+import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
@@ -613,6 +616,28 @@ public class ClientTest extends BaseApiTest {
     assertThat(tables.get(1).getTopic(), is("topic2"));
     assertThat(tables.get(1).getFormat(), is("AVRO"));
     assertThat(tables.get(1).isWindowed(), is(false));
+  }
+
+  @Test
+  public void shouldListTopics() throws Exception {
+    // Given
+    final List<KafkaTopicInfo> expectedTopics = new ArrayList<>();
+    expectedTopics.add(new KafkaTopicInfo("topic1", ImmutableList.of(2, 2, 2)));
+    expectedTopics.add(new KafkaTopicInfo("topic2", ImmutableList.of(1, 1)));
+    final KafkaTopicsList entity = new KafkaTopicsList("list topics;", expectedTopics);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<TopicInfo> topics = javaClient.listTopics().get();
+
+    // Then
+    assertThat(topics, hasSize(expectedTopics.size()));
+    assertThat(topics.get(0).getName(), is("topic1"));
+    assertThat(topics.get(0).getPartitions(), is(3));
+    assertThat(topics.get(0).getReplicasPerPartition(), is(ImmutableList.of(2, 2, 2)));
+    assertThat(topics.get(1).getName(), is("topic2"));
+    assertThat(topics.get(1).getPartitions(), is(2));
+    assertThat(topics.get(1).getReplicasPerPartition(), is(ImmutableList.of(1, 1)));
   }
 
   protected Client createJavaClient() {

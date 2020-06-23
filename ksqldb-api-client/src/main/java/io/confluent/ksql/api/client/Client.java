@@ -106,6 +106,8 @@ public interface Client {
 
   CompletableFuture<List<TableInfo>> listTables();
 
+  CompletableFuture<List<TopicInfo>> listTopics();
+
   /**
    * Closes the underlying HTTP client.
    */

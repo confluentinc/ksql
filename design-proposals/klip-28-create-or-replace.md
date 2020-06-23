@@ -44,7 +44,7 @@ query upgrades as any combination of three types of characteristics: **source qu
 | | Multistage | Multistage queries contain intermediate, non-user visible topics in Kafka
 | | Nondeterministic | Nondeterministic queries may produce different results when executing identical input
 | | Simple | Queries with none of the above characteristics
-| Upgrade | Transparent | Transparent upgrades change the way something is computer (e.g. improving a UDF performance)
+| Upgrade | Transparent | Transparent upgrades change the way something is computed (e.g. improving a UDF performance)
 | | Data Selection | Data selecting query upgrades change which/how many events are emitted
 | | Schema Evolution | Schema evolving query upgrades change the output type of the data |
 | | Source Modifying | These upgrades change the source data, whether by means of modifying a JOIN or swapping out a source |

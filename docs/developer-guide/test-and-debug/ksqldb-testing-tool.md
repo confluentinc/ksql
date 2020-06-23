@@ -56,13 +56,13 @@ are the supported statements in the testing tool:
 -   CREATE TABLE
 -   CREATE STREAM AS SELECT
 -   CREATE TABLE AS SELECT
--   INSERT INTO SELECT
+-   INSERT INTO
 
 Here is a sample statements file for the testing tool:
 
 ```sql
-CREATE STREAM orders (ROWKEY INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
-CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
+CREATE STREAM orders (ORDERID INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
+CREATE STREAM S1 AS SELECT ORDERID, ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
 ```
 
 ### Input File
@@ -77,12 +77,12 @@ the previous test:
 ```json
 {
   "inputs": [
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 2.0}, "key": 0},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 4.0}, "key": 100},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 6.0 }, "key": 101},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 3.0}, "key": 101},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 1.0}, "key": 101}
-        ]
+    {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"ORDERUNITS": 2.0}},
+    {"topic": "test_topic", "timestamp": 0, "key": 100, "value": {"ORDERUNITS": 4.0}},
+    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 6.0 }},
+    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 3.0}},
+    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 1.0}}
+  ]
 }
 ```
 
@@ -99,12 +99,12 @@ expected output file for the previous test:
 ```json
 {
   "outputs": [
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESULT": "medium"}, "key": 0},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 4.0, "CASE_RESULT": "large"}, "key": 100},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 6.0, "CASE_RESULT": "large"}, "key": 101},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 3.0, "CASE_RESULT": "medium"}, "key": 101},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 1.0, "CASE_RESULT": "small"},"key": 101}
-        ]
+    {"topic": "S1", "timestamp": 0, "key": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESULT": "medium"}},
+    {"topic": "S1", "timestamp": 0, "key": 100, "value": {"ORDERUNITS": 4.0, "CASE_RESULT": "large"}},
+    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 6.0, "CASE_RESULT": "large"}},
+    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 3.0, "CASE_RESULT": "medium"}},
+    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 1.0, "CASE_RESULT": "small"}}
+  ]
 }
 ```
 
@@ -124,10 +124,10 @@ a window field:
 ```json
 {
    "outputs": [
-     {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-     {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-     {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-     {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+     {"topic": "S2", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 30000, "type": "time"}, "value": "0,0"},
+     {"topic": "S2", "timestamp": 10000, "key": 0, "window": {"start": 0, "end": 30000, "type": "time"}, "value": "0,5"},
+     {"topic": "S2", "timestamp": 30000, "key": 100, "window": {"start": 30000, "end": 60000, "type": "time"}, "value": "100,100"},
+     {"topic": "S2", "timestamp": 45000, "key": 100, "window": {"start": 30000, "end": 60000, "type": "time"}, "value": "100,100"}
    ]
 }
 ```
@@ -152,14 +152,8 @@ Test passed!
 If a test fails, the testing tool will indicate the failure along with
 the cause. Here is an example of the output for a failing test:
 
-```bash
-ksql-test-runner -s statements_bad.sql -i input_bad.json -o output_bad.json
 ```
-
-Your output should resemble:
-
-```
-  Test failed: Expected <900, {T_ID=90, NAME=ninety}> with timestamp=17000 but was <90, {T_ID=90, NAME=ninety}> with timestamp=17000
+  >>>>> Test failed: Topic 'S1', message 4: Expected <101, {"ORDERUNITS":18.0,"CASE_RESULT":"small"}> with timestamp=0 but was <101, {ORDERUNITS=1.0, CASE_RESULT=small}> with timestamp=0
 ```
 
 Query Execution in the ksqlDB Testing Tool

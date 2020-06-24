@@ -51,6 +51,11 @@ import java.util.concurrent.CompletableFuture;
 
 public class ClientImpl implements Client {
 
+  private static final String QUERY_STREAM_ENDPOINT = "/query-stream";
+  private static final String INSERTS_ENDPOINT = "/inserts-stream";
+  private static final String CLOSE_QUERY_ENDPOINT = "/close-query";
+  private static final String KSQL_ENDPOINT = "/ksql";
+
   private final ClientOptions clientOptions;
   private final Vertx vertx;
   private final HttpClient httpClient;
@@ -131,7 +136,7 @@ public class ClientImpl implements Client {
     requestBody.appendString(row.toJsonString()).appendString("\n");
 
     makeRequest(
-        "/inserts-stream",
+        INSERTS_ENDPOINT,
         requestBody,
         cf,
         response -> handleStreamedResponse(response, cf, InsertsResponseHandler::new)
@@ -145,7 +150,7 @@ public class ClientImpl implements Client {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
     makeRequest(
-        "/close-query",
+        CLOSE_QUERY_ENDPOINT,
         new JsonObject().put("queryId", queryId),
         cf,
         response -> handleCloseQueryResponse(response, cf)
@@ -159,7 +164,7 @@ public class ClientImpl implements Client {
     final CompletableFuture<List<StreamInfo>> cf = new CompletableFuture<>();
 
     makeRequest(
-        "/ksql",
+        KSQL_ENDPOINT,
         new JsonObject().put("ksql", "list streams;"),
         cf,
         response -> handleSingleEntityResponse(
@@ -174,7 +179,7 @@ public class ClientImpl implements Client {
     final CompletableFuture<List<TableInfo>> cf = new CompletableFuture<>();
 
     makeRequest(
-        "/ksql",
+        KSQL_ENDPOINT,
         new JsonObject().put("ksql", "list tables;"),
         cf,
         response -> handleSingleEntityResponse(
@@ -189,7 +194,7 @@ public class ClientImpl implements Client {
     final CompletableFuture<List<TopicInfo>> cf = new CompletableFuture<>();
 
     makeRequest(
-        "/ksql",
+        KSQL_ENDPOINT,
         new JsonObject().put("ksql", "list topics;"),
         cf,
         response -> handleSingleEntityResponse(
@@ -226,7 +231,7 @@ public class ClientImpl implements Client {
     final JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
 
     makeRequest(
-        "/query-stream",
+        QUERY_STREAM_ENDPOINT,
         requestBody,
         cf,
         response -> handleStreamedResponse(response, cf, responseHandlerSupplier)

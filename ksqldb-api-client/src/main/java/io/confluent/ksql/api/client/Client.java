@@ -96,12 +96,18 @@ public interface Client {
   /**
    * Returns the list of ksqlDB streams from the ksqlDB server's metastore.
    *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
    * @return list of streams
    */
   CompletableFuture<List<StreamInfo>> listStreams();
 
   /**
    * Returns the list of ksqlDB tables from the ksqlDB server's metastore
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
    *
    * @return list of tables
    */

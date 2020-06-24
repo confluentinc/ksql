@@ -21,30 +21,22 @@ package io.confluent.ksql.api.client;
 public interface TableInfo {
 
   /**
-   * Returns the name of this table.
-   *
-   * @return table name
+   * @return the name of this table
    */
   String getName();
 
   /**
-   * Returns the name of the Kafka topic underlying this ksqlDB table.
-   *
-   * @return topic name
+   * @return the name of the Kafka topic underlying this ksqlDB table
    */
   String getTopic();
 
   /**
-   * Returns the format of the data in this table.
-   *
-   * @return the format
+   * @return the format of the data in this table
    */
   String getFormat();
 
   /**
-   * Returns whether this ksqlDB table is windowed.
-   *
-   * @return whether the table is windowed
+   * @return whether this ksqlDB table is windowed
    */
   boolean isWindowed();
 

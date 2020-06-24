@@ -23,16 +23,12 @@ import java.util.List;
 public interface TopicInfo {
 
   /**
-   * Returns the name of this topic.
-   *
-   * @return topic name
+   * @return the name of this topic
    */
   String getName();
 
   /**
-   * Returns the number of partitions for this topic.
-   *
-   * @return number of partitions
+   * @return the number of partitions for this topic
    */
   int getPartitions();
 

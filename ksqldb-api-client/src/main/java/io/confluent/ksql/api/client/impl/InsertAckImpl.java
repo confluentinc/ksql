@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.InsertAck;
+import java.util.Objects;
 
 public class InsertAckImpl implements InsertAck {
 
@@ -28,5 +29,29 @@ public class InsertAckImpl implements InsertAck {
   @Override
   public long seqNum() {
     return num;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final InsertAckImpl insertAck = (InsertAckImpl) o;
+    return num == insertAck.num;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(num);
+  }
+
+  @Override
+  public String toString() {
+    return "InsertAckImpl{"
+        + "num=" + num
+        + '}';
   }
 }

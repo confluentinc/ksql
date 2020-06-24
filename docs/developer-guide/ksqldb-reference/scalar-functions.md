@@ -16,6 +16,26 @@ ABS(col1)
 
 The absolute value of a value.
 
+### `AS_VALUE`
+
+```sql
+AS_VALUE(keyCol)
+```
+
+Creates a copy of a key column in the value.
+
+For example:
+
+```sql
+CREATE TABLE AGG AS
+   SELECT 
+     ID,                  -- this is the grouping column and will be stored in the message key.
+     AS_VALUE(ID) AS ID2  -- this creates a copy of ID, called ID2, stored in the message value.
+     COUNT(*) AS COUNT
+   FROM S
+   GROUP BY ID;
+```
+
 ### `CEIL`
 
 ```sql

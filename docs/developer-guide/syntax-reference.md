@@ -138,25 +138,31 @@ character in SQL statements.
 
 ```sql
 -- Example timestamp format: yyyy-MM-dd'T'HH:mm:ssX
-CREATE STREAM TEST (ROWKEY INT KEY, ID bigint, event_timestamp VARCHAR)
-  WITH (kafka_topic='test_topic',
-        value_format='JSON',
-        timestamp='event_timestamp',
-        timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');
+CREATE STREAM TEST (id BIGINT KEY, event_timestamp VARCHAR)
+  WITH (
+    kafka_topic='test_topic',
+    value_format='JSON',
+    timestamp='event_timestamp',
+    timestamp_format='yyyy-MM-dd''T''HH:mm:ssX'
+  );
 
 -- Example timestamp format: yyyy.MM.dd G 'at' HH:mm:ss z
-CREATE STREAM TEST (ROWKEY INT KEY, ID bigint, event_timestamp VARCHAR)
-  WITH (kafka_topic='test_topic',
-        value_format='JSON',
-        timestamp='event_timestamp',
-        timestamp_format='yyyy.MM.dd G ''at'' HH:mm:ss z');
+CREATE STREAM TEST (id BIGINT KEY, event_timestamp VARCHAR)
+  WITH (
+    kafka_topic='test_topic',
+    value_format='JSON',
+    timestamp='event_timestamp',
+    timestamp_format='yyyy.MM.dd G ''at'' HH:mm:ss z'
+  );
 
 -- Example timestamp format: hh 'o'clock' a, zzzz
-CREATE STREAM TEST (ROWKEY INT KEY, ID bigint, event_timestamp VARCHAR)
-  WITH (kafka_topic='test_topic',
-        value_format='JSON',
-        timestamp='event_timestamp',
-        timestamp_format='hh ''o''clock'' a, zzzz');
+CREATE STREAM TEST (id BIGINT KEY, event_timestamp VARCHAR)
+  WITH (
+    kafka_topic='test_topic',
+    value_format='JSON',
+    timestamp='event_timestamp',
+    timestamp_format='hh ''o''clock'' a, zzzz'
+  );
 ```
 
 For more information on timestamp formats, see
@@ -428,15 +434,23 @@ Key Requirements
 
 ### Message Keys
 
-The `CREATE STREAM` and `CREATE TABLE` statements, which read data from
-a Kafka topic into a stream or table, allow you to specify a
-`KEY` or `PRIMARY KEY` column, respectively, to represent the data in the Kafka message key.
+The `CREATE STREAM` and `CREATE TABLE` statements define streams and tables over data in 
+{{ site.ak }} topics. They allow you to specify which columns should be read from the Kafka message
+key, as opposed to the value, by using the `KEY` and `PRIMARY KEY` keywords, for streams and tables,
+respectively. 
 
 Example:
 
 ```sql
-CREATE TABLE users (userId INT PRIMARY KEY, registertime BIGINT, gender VARCHAR, regionid VARCHAR)
-  WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON');
+CREATE TABLE users (
+    userId INT PRIMARY KEY, -- userId will be read from the Kafka message key 
+    registertime BIGINT,    -- all other columns from the value
+    gender VARCHAR, 
+    regionid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='users', 
+    VALUE_FORMAT='JSON'
+  );
 ```
 
 While tables require a `PRIMARY KEY`, the `KEY` column of a stream is optional.
@@ -481,48 +495,70 @@ Example:
 -   Goal: You want to create a table from a topic, which is keyed by
     userid of type INT.
 -   Problem: The required key is present as a column (aptly named
-    `userid`) in the message value, as is a string containing an integer,
-    but the actual message key in {{ site.ak }} is not set or has some
-    other value or format.
+    `userid`) in the message value as a string containing the integer,
+    but the actual message key in {{ site.ak }} contains the userId in
+    a format ksqlDB does not recognise.
 
 ```sql
--- Create a stream on the original topic
-CREATE STREAM users_with_wrong_key (userid INT, username VARCHAR, email VARCHAR)
-  WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON');
+-- Create a stream on the original topic without a KEY columns:
+CREATE STREAM users_with_wrong_key (
+     userid STRING,
+     username VARCHAR, 
+     email VARCHAR
+  ) WITH (
+     KAFKA_TOPIC='users', 
+     VALUE_FORMAT='JSON'
+  );
   
 -- Derive a new stream with the required key changes.
 -- 1) The CAST statement converts userId to the required SQL type.
 -- 2) The PARTITION BY clause re-partitions the stream based on the new, converted key.
 -- 3) The SELECT clause selects the required value columns, all in this case.
--- The resulting schema is: KSQL_COL_0 INT KEY, USERNAME STRING, EMAIL STRING.
--- Note: the system generated KSQL_COL_0 column name can be replaced via an alias in the projection,
--- but this is not necessary in this case, because this stream is not a source for other queries.
+-- The resulting schema is: USERID INT KEY, USERNAME STRING, EMAIL STRING.
 CREATE STREAM users_with_proper_key
-  WITH(KAFKA_TOPIC='users-with-proper-key') AS
-  SELECT *
+  WITH (KAFKA_TOPIC='users-with-proper-key') AS
+  SELECT 
+    CAST(userid AS BIGINT) AS userId,
+    userName,
+    email
   FROM users_with_wrong_key
   PARTITION BY CAST(userid AS BIGINT)
   EMIT CHANGES;
 
 -- Now you can create the table on the properly keyed stream.
-CREATE TABLE users_table (userId INT PRIMARY KEY, username VARCHAR, email VARCHAR)
-  WITH (KAFKA_TOPIC='users-with-proper-key',
-        VALUE_FORMAT='JSON');
+CREATE TABLE users_table (
+    userId INT PRIMARY KEY, 
+    username VARCHAR, 
+    email VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='users-with-proper-key',
+    VALUE_FORMAT='JSON'
+  );
 
 -- Or, if you prefer, you can keep userId in the value of the repartitioned data
--- by using the AS_VALUE function.
--- The resulting schema is: userId INT KEY, USERNAME STRING, EMAIL STRING, VUSERID INT
+-- by using the AS_VALUE() function.
+-- The resulting schema is: USERID INT KEY, USERNAME STRING, EMAIL STRING, VUSERID INT
 CREATE STREAM users_with_proper_key_and_user_id
   WITH(KAFKA_TOPIC='users_with_proper_key_and_user_id') AS
-  SELECT userId, username, email, AS_VALUE(userId) as vUserId
+  SELECT 
+    CAST(userid AS BIGINT) as USERID,
+    username, 
+    email, 
+    AS_VALUE(CAST(userid AS BIGINT)) as vUserId,
   FROM users_with_wrong_key
-  PARTITION BY userid
+  PARTITION BY CAST(userid AS BIGINT)
   EMIT CHANGES;
 
 -- Now you can create the table on the properly keyed stream.
-CREATE TABLE users_table_2 (userId INT PRIMARY KEY, username VARCHAR, email VARCHAR, vUserId INT)
-  WITH (KAFKA_TOPIC='users_with_proper_key_and_user_id',
-        VALUE_FORMAT='JSON');
+CREATE TABLE users_table_2 (
+     userId INT PRIMARY KEY, 
+     username VARCHAR, 
+     email VARCHAR, 
+     vUserId INT
+  ) WITH (
+     KAFKA_TOPIC='users_with_proper_key_and_user_id',
+     VALUE_FORMAT='JSON'
+  );
 ```
 
 For more information, see

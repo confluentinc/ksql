@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -91,6 +92,36 @@ public interface Client {
    * @return a future that completes once the server response is received
    */
   CompletableFuture<Void> terminatePushQuery(String queryId);
+
+  /**
+   * Returns the list of ksqlDB streams from the ksqlDB server's metastore.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of streams
+   */
+  CompletableFuture<List<StreamInfo>> listStreams();
+
+  /**
+   * Returns the list of ksqlDB tables from the ksqlDB server's metastore
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of tables
+   */
+  CompletableFuture<List<TableInfo>> listTables();
+
+  /**
+   * Returns the list of Kafka topics available for use with ksqlDB.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of topics
+   */
+  CompletableFuture<List<TopicInfo>> listTopics();
 
   /**
    * Closes the underlying HTTP client.

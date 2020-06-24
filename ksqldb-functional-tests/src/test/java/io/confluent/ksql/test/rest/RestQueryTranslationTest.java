@@ -98,7 +98,7 @@ public class RestQueryTranslationTest {
   }
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(10);
+  public final Timeout timeout = Timeout.seconds(30);
 
   private final RestTestCase testCase;
 

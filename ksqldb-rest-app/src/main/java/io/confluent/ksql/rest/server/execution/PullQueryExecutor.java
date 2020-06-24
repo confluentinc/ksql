@@ -78,8 +78,8 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
-import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
+import io.confluent.ksql.rest.entity.TableRows;
+import io.confluent.ksql.rest.entity.TableRowsFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -159,7 +159,7 @@ public final class PullQueryExecutor {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
-  public TableRowsEntity execute(
+  public TableRows execute(
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
@@ -245,7 +245,7 @@ public final class PullQueryExecutor {
     }
   }
 
-  private TableRowsEntity handlePullQuery(
+  private TableRows handlePullQuery(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
@@ -282,7 +282,7 @@ public final class PullQueryExecutor {
         "Unable to execute pull query: %s", statement.getStatementText()));
   }
 
-  private static TableRowsEntity routeQuery(
+  private static TableRows routeQuery(
       final KsqlNode node,
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
@@ -307,7 +307,7 @@ public final class PullQueryExecutor {
     }
   }
 
-  private static TableRowsEntity queryRowsLocally(
+  private static TableRows queryRowsLocally(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final PullQueryContext pullQueryContext
@@ -332,9 +332,9 @@ public final class PullQueryExecutor {
     final LogicalSchema outputSchema;
     final List<List<?>> rows;
     if (isSelectStar(statement.getStatement().getSelect())) {
-      outputSchema = TableRowsEntityFactory.buildSchema(
+      outputSchema = TableRowsFactory.buildSchema(
           result.schema, pullQueryContext.mat.windowType().isPresent());
-      rows = TableRowsEntityFactory.createRows(result.rows);
+      rows = TableRowsFactory.createRows(result.rows);
     } else {
       final List<SelectExpression> projection = pullQueryContext.analysis.getSelectItems().stream()
           .map(SingleColumn.class::cast)
@@ -357,7 +357,7 @@ public final class PullQueryExecutor {
           pullQueryContext.contextStacker
       );
     }
-    return new TableRowsEntity(
+    return new TableRows(
         statement.getStatementText(),
         pullQueryContext.queryId,
         outputSchema,
@@ -365,7 +365,7 @@ public final class PullQueryExecutor {
     );
   }
 
-  private static TableRowsEntity forwardTo(
+  private static TableRows forwardTo(
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext
@@ -392,8 +392,6 @@ public final class PullQueryExecutor {
       throw new KsqlServerException("Invalid empty response from forwarding call");
     }
 
-    // Temporary code to convert from QueryStream to TableRowsEntity
-    // Tracked by: https://github.com/confluentinc/ksql/issues/3865
     final Header header = streamedRows.get(0).getHeader()
         .orElseThrow(() -> new KsqlServerException("Expected header in first row"));
 
@@ -414,7 +412,7 @@ public final class PullQueryExecutor {
       rows.add(row.getRow().get().values());
     }
 
-    return new TableRowsEntity(
+    return new TableRows(
         statement.getStatementText(),
         header.getQueryId(),
         header.getSchema(),

@@ -30,7 +30,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
@@ -269,7 +269,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
-    final TableRowsEntity entity = pullQueryExecutor
+    final TableRows entity = pullQueryExecutor
         .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
 
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());

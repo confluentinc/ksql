@@ -43,7 +43,7 @@ import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.InsertsPublisher;
 import io.confluent.ksql.api.client.KsqlArray;
-import io.confluent.ksql.api.client.KsqlClientException;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;

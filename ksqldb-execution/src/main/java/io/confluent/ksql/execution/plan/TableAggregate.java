@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
@@ -51,6 +53,10 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
         = ImmutableList.copyOf(requireNonNull(nonAggregateColumns, "nonAggregatecolumns"));
     this.aggregationFunctions = ImmutableList
         .copyOf(requireNonNull(aggregationFunctions, "aggValToFunctionMap"));
+
+    if (aggregationFunctions.isEmpty()) {
+      throw new IllegalArgumentException("Need at least one aggregate function");
+    }
   }
 
   @Override
@@ -72,6 +78,7 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
     return aggregationFunctions;
   }
 
+  @JsonInclude(Include.NON_NULL)
   public List<ColumnName> getNonAggregateColumns() {
     return nonAggregateColumns;
   }

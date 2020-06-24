@@ -4,6 +4,21 @@
   ],
   "tests": [
     {
+      "name": "stream clone row with null value",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": {"NAME": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": null},
+        {"topic": "OUTPUT", "key": 2, "value": {"NAME": null}}
+      ]
+    },
+    {
       "name": "is null",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",

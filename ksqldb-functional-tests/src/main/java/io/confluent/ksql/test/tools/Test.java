@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.test.tools;
 
+import io.confluent.ksql.test.model.TestLocation;
+
 public interface Test {
 
   String getName();
 
-  String getTestFile();
+  TestLocation getTestLocation();
 }  

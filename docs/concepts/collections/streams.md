@@ -26,10 +26,14 @@ in the `publications` stream are distributed over 3 partitions, are keyed on
 the `author` column, and are serialized in the Avro format.
 
 ```sql
-CREATE STREAM publications (author VARCHAR KEY, title VARCHAR)
-    WITH (kafka_topic = 'publication_events',
-          partitions = 3,
-          value_format = 'avro');
+CREATE STREAM publications (
+    author VARCHAR KEY, 
+    title VARCHAR
+  ) WITH (
+    kafka_topic = 'publication_events',
+    value_format = 'avro',
+    partitions = 3
+  );
 ```
 
 In this example, a new stream named `publications` is created with two columns:
@@ -53,14 +57,36 @@ Internally, ksqlDB simply registers the topic with the provided schema
 and doesn't create anything new. 
 
 ```sql
-CREATE STREAM publications (author VARCHAR, title VARCHAR)
-    WITH (kafka_topic = 'publication_events',
-          value_format = 'avro');
+CREATE STREAM publications (
+    author VARCHAR KEY, 
+    title VARCHAR
+  ) WITH (
+    kafka_topic = 'publication_events',
+    value_format = 'avro'
+  );
 ```
 
-Because the topic already exists, you can't specify the number of partitions.
-The key shouldn't be set here either, because any data that already exists in
-the same topic has a given key.
+Because the topic already exists, you do not need to specify the number of partitions.
+
+It's important that the columns you define match the data in the existing topic.
+In this case, the message would need a `KAFKA` serialized `VARCHAR` in the message key
+and an `AVRO` serialized record containing a `title` field in the message value.
+
+If both the `author` and `title` columns are in the message value, you can write: 
+
+```sql
+CREATE STREAM publications (
+    author VARCHAR, 
+    title VARCHAR
+  ) WITH (
+    kafka_topic = 'publication_events',
+    value_format = 'avro'
+  );
+```
+
+Notice the `author` column is no longer marked with the `KEY` keyword, so it is now 
+read from the message value.
 
 If an underlying event in the {{ site.ak }} topic doesn’t conform to the given
-stream schema, the event is discarded at read-time.
+stream schema, the event is discarded at read-time, and an error is added to the 
+[processing log](../../developer-guide/test-and-debug/processing-log.md).

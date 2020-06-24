@@ -13,18 +13,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udf.string;
+package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
 
-public class LenKudf implements Kudf {
+@UdfDescription(
+    name = "random",
+    description = "Returns a random number greater than or equal to 0.0 and less than 1.0.")
+public class Random {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Length udf should have one input argument.");
-    }
-    return args[0].toString().length();
+  @Udf
+  public Double random() {
+    return Math.random();
   }
 }

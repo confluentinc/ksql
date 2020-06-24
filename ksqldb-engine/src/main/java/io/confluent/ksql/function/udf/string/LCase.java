@@ -15,16 +15,21 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
-public class LCaseKudf implements Kudf {
+@UdfDescription(
+    name = "lcase",
+    description = "Returns a lower-case version of the input string.")
+public class LCase {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("LCase udf should have one input argument.");
+  @Udf
+  public String lcase(
+      @UdfParameter(description = "The string to lower-case") final String input) {
+    if (input == null) {
+      return null;
     }
-    return args[0].toString().toLowerCase();
+    return input.toLowerCase();
   }
 }

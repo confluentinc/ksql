@@ -15,25 +15,14 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
 import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
-import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
-import io.confluent.ksql.function.udf.math.RandomKudf;
-import io.confluent.ksql.function.udf.string.LCaseKudf;
-import io.confluent.ksql.function.udf.string.LenKudf;
-import io.confluent.ksql.function.udf.string.TrimKudf;
-import io.confluent.ksql.function.udf.string.UCaseKudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -238,71 +227,8 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     }
 
-    private static UdfFactory builtInUdfFactory(
-        final KsqlScalarFunction ksqlFunction
-    ) {
-      final UdfMetadata metadata = new UdfMetadata(
-          ksqlFunction.name().text(),
-          ksqlFunction.getDescription(),
-          KsqlConstants.CONFLUENT_AUTHOR,
-          "",
-          KsqlScalarFunction.INTERNAL_PATH
-      );
-
-      return new UdfFactory(ksqlFunction.getKudfClass(), metadata);
-    }
-
     private void init() {
-      addStringFunctions();
-      addMathFunctions();
-      addJsonFunctions();
       addUdafFunctions();
-    }
-
-    private void addStringFunctions() {
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.STRING,
-          Collections.singletonList(ParamTypes.STRING),
-          FunctionName.of("LCASE"), LCaseKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.STRING,
-          Collections.singletonList(ParamTypes.STRING),
-          FunctionName.of("UCASE"), UCaseKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.STRING,
-          Collections.singletonList(ParamTypes.STRING),
-          FunctionName.of("TRIM"), TrimKudf.class
-      ));
-
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.INTEGER,
-          Collections.singletonList(ParamTypes.STRING),
-          FunctionName.of("LEN"),
-          LenKudf.class
-      ));
-    }
-
-    private void addMathFunctions() {
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.DOUBLE,
-          Collections.emptyList(),
-          FunctionName.of("RANDOM"),
-          RandomKudf.class
-      ));
-    }
-
-    private void addJsonFunctions() {
-      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          SqlTypes.STRING,
-          ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING),
-          JsonExtractStringKudf.FUNCTION_NAME,
-          JsonExtractStringKudf.class
-      ));
     }
 
     private void addUdafFunctions() {
@@ -315,12 +241,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
       functionRegistry.addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
       functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
-    }
-
-    private void addBuiltInFunction(final KsqlScalarFunction ksqlFunction) {
-      functionRegistry
-          .ensureFunctionFactory(builtInUdfFactory(ksqlFunction))
-          .addFunction(ksqlFunction);
     }
   }
 }

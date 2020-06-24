@@ -25,20 +25,20 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 
-public class MaskRightKudfTest {
-  private final MaskRightKudf udf = new MaskRightKudf();
+public class MaskKeepLeftTest {
+  private final MaskKeepLeft udf = new MaskKeepLeft();
 
   @Test
-  public void shouldMaskLastNChars() {
+  public void shouldNotMaskFirstNChars() {
     final String result = udf.mask("AbCd#$123xy Z", 5);
-    assertThat(result, is("AbCd#$12nxx-X"));
+    assertThat(result, is("AbCd#-nnnxx-X"));
   }
 
   @Test
-  public void shouldMaskAllCharsIfLengthTooLong() {
+  public void shouldNotMaskAnyCharsIfLengthTooLong() {
     final String result = udf.mask("AbCd#$123xy Z", 999);
-    assertThat(result, is("XxXx--nnnxx-X"));
-  }
+    assertThat(result, is("AbCd#$123xy Z"));
+ }
 
   @Test
   public void shouldThrowIfLengthIsNegative() {
@@ -49,12 +49,12 @@ public class MaskRightKudfTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("function mask_right requires a non-negative number"));
-  }
+    assertThat(e.getMessage(), containsString("function mask_keep_left requires a non-negative number"));
+ }
 
   @Test
   public void shouldReturnNullForNullInput() {
     final String result = udf.mask(null, 5);
     assertThat(result, is(nullValue()));
-  }
+ }
 }

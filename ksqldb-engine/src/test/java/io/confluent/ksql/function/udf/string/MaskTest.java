@@ -15,46 +15,43 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 
-public class MaskLeftKudfTest {
-  private final MaskLeftKudf udf = new MaskLeftKudf();
+public class MaskTest {
+  private final Mask udf = new Mask();
 
   @Test
-  public void shouldMaskFirstNChars() {
-    final String result = udf.mask("AbCd#$123xy Z", 5);
-    assertThat(result, is("XxXx-$123xy Z"));
-  }
-
-  @Test
-  public void shouldMaskAllCharsIfLengthTooLong() {
-    final String result = udf.mask("AbCd#$123xy Z", 999);
+  public void shouldApplyAllDefaultTypeMasks() {
+    final String result = udf.mask("AbCd#$123xy Z");
     assertThat(result, is("XxXx--nnnxx-X"));
   }
 
   @Test
-  public void shouldThrowIfLengthIsNegative() {
-    // When:
-    final KsqlException e = assertThrows(
-        KsqlFunctionException.class,
-        () -> udf.mask("AbCd#$123xy Z", -1)
-    );
+  public void shouldApplyAllExplicitTypeMasks() {
+    final String result = udf.mask("AbCd#$123xy Z", "Q", "q", "9", "@");
+    assertThat(result, is("QqQq@@999qq@Q"));
+  }
 
-    // Then:
-    assertThat(e.getMessage(), containsString("function mask_left requires a non-negative number"));
+  @Test
+  public void shouldMaskNothingIfNullMasks() {
+    final String result = udf.mask("AbCd#$123xy Z", null, null, null, null);
+    assertThat(result, is("AbCd#$123xy Z"));
+  }
+
+  @Test
+  public void shouldMaskOnlySpecifiedCharTypes() {
+    final String result = udf.mask("AbCd#$123xy Z", null, "q", null, "=");
+    assertThat(result, is("AqCq==123qq=Z"));
   }
 
   @Test
   public void shouldReturnNullForNullInput() {
-    final String result = udf.mask(null, 5);
+    final String result = udf.mask(null);
     assertThat(result, is(nullValue()));
-  }
+ }
+
 }

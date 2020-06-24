@@ -21,32 +21,33 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
-    name = MaskLeftKudf.NAME,
+    name = MaskRight.NAME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns a version of the input string with the"
-        + " specified number of characters, starting from the beginning of the string, masked out."
+        + " specified number of characters, counting back from the end of the string, masked out."
         + " Default masking rules will replace all upper-case characters with 'X', all lower-case"
         + " characters with 'x', all digits with 'n', and any other character with '-'."
 )
-public class MaskLeftKudf {
-  protected static final String NAME = "mask_left";
+public class MaskRight {
 
-  @Udf(description = "Returns a masked version of the input string. The first n characters"
+  protected static final String NAME = "mask_right";
+
+  @Udf(description = "Returns a masked version of the input string. The last n characters"
       + " will be replaced according to the default masking rules.")
   @SuppressWarnings("MethodMayBeStatic") // Invoked via reflection
   public String mask(
       @UdfParameter("input STRING to be masked") final String input,
-      @UdfParameter("number of characters to mask from the start") final int numChars
+      @UdfParameter("number of characters to mask before the end") final int numChars
   ) {
     return doMask(new Masker(), input, numChars);
   }
 
-  @Udf(description = "Returns a masked version of the input string. The first n characters"
+  @Udf(description = "Returns a masked version of the input string. The last n characters"
       + " will be replaced with the specified masking characters")
   @SuppressWarnings("MethodMayBeStatic") // Invoked via reflection
   public String mask(
       @UdfParameter("input STRING to be masked") final String input,
-      @UdfParameter("number of characters to mask from the start") final int numChars,
+      @UdfParameter("number of characters to mask before the end") final int numChars,
       @UdfParameter("upper-case mask, or NULL to use default") final String upper,
       @UdfParameter("lower-case mask, or NULL to use default") final String lower,
       @UdfParameter("digit mask, or NULL to use default") final String digit,
@@ -66,9 +67,9 @@ public class MaskLeftKudf {
       return null;
     }
     final StringBuilder output = new StringBuilder(input.length());
-    final int charsToMask = Math.min(numChars, input.length());
-    output.append(masker.mask(input.substring(0, charsToMask)));
-    output.append(input.substring(charsToMask));
+    final int charsToKeep = Math.max(0, input.length() - numChars);
+    output.append(input.substring(0, charsToKeep));
+    output.append(masker.mask(input.substring(charsToKeep)));
     return output.toString();
   }
 }

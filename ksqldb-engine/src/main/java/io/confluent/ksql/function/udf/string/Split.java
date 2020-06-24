@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 @UdfDescription(
-    name = SplitKudf.NAME,
+    name = Split.NAME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Splits a string into an array of substrings based on a delimiter. "
         + "If the delimiter is found at the beginning of the string, end of the string, or there "
@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
         + "element in the array. If the delimiter is empty, then all characters in the string are "
         + "split."
 )
-public class SplitKudf {
+public class Split {
   static final String NAME = "split";
 
   private static final Pattern EMPTY_DELIMITER = Pattern.compile("");

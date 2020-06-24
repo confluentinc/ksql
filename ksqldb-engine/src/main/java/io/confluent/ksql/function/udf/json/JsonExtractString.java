@@ -19,33 +19,39 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.json.JsonPathTokenizer;
 import java.io.IOException;
 import java.util.List;
 
-public class JsonExtractStringKudf implements Kudf {
+@UdfDescription(
+    name = "extractjsonfield",
+    description = "Given a STRING that contains JSON data, extract the value at the specified "
+        + " JSONPath or NULL if the specified path does not exist.")
+public class JsonExtractString {
 
   private static final ObjectReader OBJECT_READER = UdfJsonMapper.INSTANCE.get().reader();
-  public static final FunctionName FUNCTION_NAME = FunctionName.of("EXTRACTJSONFIELD");
 
   private List<String> tokens = null;
 
-  @Override
-  public Object evaluate(final Object... args) {
-    UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, String.class);
+  @Udf
+  public String extract(
+      @UdfParameter(description = "The input JSON string") final String input,
+      @UdfParameter(description = "The JSONPath to extract") final String path) {
 
-    ensureInitialized(args);
-
-    if (args[0] == null) {
+    if (input == null || path == null) {
       return null;
     }
 
-    JsonNode currentNode = parseJsonDoc(args[0]);
+    if (tokens == null) {
+      final JsonPathTokenizer tokenizer = new JsonPathTokenizer(path);
+      tokens = ImmutableList.copyOf(tokenizer);
+    }
+
+    JsonNode currentNode = parseJsonDoc(input);
     for (final String token : tokens) {
       if (currentNode instanceof ArrayNode) {
         try {
@@ -70,22 +76,7 @@ public class JsonExtractStringKudf implements Kudf {
     }
   }
 
-  private void ensureInitialized(final Object[] args) {
-    if (tokens != null) {
-      return;
-    }
-
-    if (args[1] == null) {
-      throw new KsqlException("Path can not be null");
-    }
-
-    final String path = args[1].toString();
-    final JsonPathTokenizer tokenizer = new JsonPathTokenizer(path);
-    tokens = ImmutableList.copyOf(tokenizer);
-  }
-
-  private static JsonNode parseJsonDoc(final Object arg) {
-    final String jsonString = arg.toString();
+  private static JsonNode parseJsonDoc(final String jsonString) {
     try {
       return OBJECT_READER.readTree(jsonString);
     } catch (final IOException e) {

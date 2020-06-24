@@ -21,8 +21,8 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
-public class SplitKudfTest {
-  private final static SplitKudf splitUdf = new SplitKudf();
+public class SplitTest {
+  private final static Split splitUdf = new Split();
 
   @Test
   public void shouldReturnNullOnAnyNullParameters() {

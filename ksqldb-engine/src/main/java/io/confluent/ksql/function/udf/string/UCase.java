@@ -15,16 +15,21 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
-public class TrimKudf implements Kudf {
+  @UdfDescription(
+      name = "ucase",
+      description = "Returns an upper-case version of the input string.")
+  public class UCase {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Trim udf should have one input argument.");
+    @Udf
+    public String ucase(
+        @UdfParameter(description = "The string to upper-case") final String input) {
+      if (input == null) {
+        return null;
+      }
+      return input.toUpperCase();
     }
-    return args[0].toString().trim();
   }
-}

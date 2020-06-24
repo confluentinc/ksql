@@ -41,6 +41,8 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.KsqlArray;
+import io.confluent.ksql.api.client.QueryInfo;
+import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
@@ -73,6 +75,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -629,6 +632,24 @@ public class ClientIntegrationTest {
     ));
   }
 
+  @Test
+  public void shouldListQueries() throws Exception {
+    // When
+    final List<QueryInfo> queries = client.listQueries().get();
+
+    // Then
+    assertThat(queries, contains(persistentQueryInfo(
+        "CTAS_" + AGG_TABLE + "_0",
+        "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+            + "  " + TEST_STREAM + ".STR STR,\n"
+            + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
+            + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
+            + "GROUP BY " + TEST_STREAM + ".STR\n"
+            + "EMIT CHANGES;",
+        AGG_TABLE,
+        AGG_TABLE)));
+  }
+
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")
@@ -903,6 +924,41 @@ public class ClientIntegrationTest {
       @Override
       public void describeTo(final Description description) {
         description.appendText("name: " + name);
+      }
+    };
+  }
+
+  private static Matcher<? super QueryInfo> persistentQueryInfo(
+      final String id, final String sql, final String sink, final String sinkTopic
+  ) {
+    return new TypeSafeDiagnosingMatcher<QueryInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final QueryInfo actual,
+          final Description mismatchDescription) {
+        if (actual.getQueryType() != QueryType.PERSISTENT) {
+          return false;
+        }
+        if (!id.equals(actual.getId())) {
+          return false;
+        }
+        if (!sql.equals(actual.getSql())) {
+          return false;
+        }
+        if (!actual.getSink().equals(Optional.of(sink))) {
+          return false;
+        }
+        if (!actual.getSinkTopic().equals(Optional.of(sinkTopic))) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "id: %s. sql: %s. sink: %s. sinkTopic: %s",
+            id, sql, sink, sinkTopic));
       }
     };
   }

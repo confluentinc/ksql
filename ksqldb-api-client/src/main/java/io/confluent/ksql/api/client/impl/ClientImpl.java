@@ -22,6 +22,7 @@ import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.KsqlObject;
+import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
@@ -199,6 +200,21 @@ public class ClientImpl implements Client {
         cf,
         response -> handleSingleEntityResponse(
             response, cf, AdminResponseHandlers::handleListTopicsResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<List<QueryInfo>> listQueries() {
+    final CompletableFuture<List<QueryInfo>> cf = new CompletableFuture<>();
+
+    makeRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "list queries;"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AdminResponseHandlers::handleListQueriesResponse)
     );
 
     return cf;

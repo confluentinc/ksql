@@ -123,6 +123,8 @@ public interface Client {
    */
   CompletableFuture<List<TopicInfo>> listTopics();
 
+  CompletableFuture<List<QueryInfo>> listQueries();
+
   /**
    * Closes the underlying HTTP client.
    */

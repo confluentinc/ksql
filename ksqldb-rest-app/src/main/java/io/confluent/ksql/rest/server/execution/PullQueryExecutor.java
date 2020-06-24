@@ -92,8 +92,8 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlServerException;
@@ -130,8 +130,11 @@ public final class PullQueryExecutor {
       Type.LESS_THAN_OR_EQUAL
   );
 
+  private static final String VALID_WINDOW_BOUNDS_COLUMNS =
+      GrammaticalJoiner.and().join(SystemColumns.windowBoundsColumnNames());
+
   private static final String VALID_WINDOW_BOUNDS_TYPES_STRING =
-      VALID_WINDOW_BOUNDS_TYPES.toString();
+      GrammaticalJoiner.and().join(VALID_WINDOW_BOUNDS_TYPES);
 
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
@@ -313,11 +316,11 @@ public final class PullQueryExecutor {
       final PullQueryContext pullQueryContext
   ) {
     final Result result;
-    if (pullQueryContext.whereInfo.windowStartBounds.isPresent()) {
-      final Range<Instant> windowStart = pullQueryContext.whereInfo.windowStartBounds.get();
+    if (pullQueryContext.whereInfo.windowBounds.isPresent()) {
+      final WindowBounds windowBounds = pullQueryContext.whereInfo.windowBounds.get();
 
       final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
-          .get(pullQueryContext.key, windowStart);
+          .get(pullQueryContext.key, windowBounds.start, windowBounds.end);
 
       result = new Result(pullQueryContext.mat.schema(), rows);
     } else {
@@ -466,43 +469,33 @@ public final class PullQueryExecutor {
       this.pullQueryMetrics = Objects.requireNonNull(
           pullQueryMetrics, "pullQueryExecutorMetrics");
     }
+  }
 
-    public Struct getKey() {
-      return key;
-    }
+  private static final class WindowBounds {
 
-    public Materialization getMat() {
-      return mat;
-    }
+    private final Range<Instant> start;
+    private final Range<Instant> end;
 
-    public ImmutableAnalysis getAnalysis() {
-      return analysis;
-    }
-
-    public WhereInfo getWhereInfo() {
-      return whereInfo;
-    }
-
-    public QueryId getQueryId() {
-      return queryId;
-    }
-
-    public QueryContext.Stacker getContextStacker() {
-      return contextStacker;
+    private WindowBounds(
+        final Range<Instant> start,
+        final Range<Instant> end
+    ) {
+      this.start = Objects.requireNonNull(start, "startBounds");
+      this.end = Objects.requireNonNull(end, "endBounds");
     }
   }
 
   private static final class WhereInfo {
 
     private final Object keyBound;
-    private final Optional<Range<Instant>> windowStartBounds;
+    private final Optional<WindowBounds> windowBounds;
 
     private WhereInfo(
         final Object keyBound,
-        final Optional<Range<Instant>> windowStartBounds
+        final Optional<WindowBounds> windowBounds
     ) {
       this.keyBound = keyBound;
-      this.windowStartBounds = windowStartBounds;
+      this.windowBounds = Objects.requireNonNull(windowBounds);
     }
   }
 
@@ -551,12 +544,10 @@ public final class PullQueryExecutor {
       return new WhereInfo(key, Optional.empty());
     }
 
-    final Optional<List<ComparisonExpression>> windowBoundsComparison =
-        Optional.ofNullable(comparisons.get(ComparisonTarget.WINDOWSTART));
+    final WindowBounds windowBounds =
+        extractWhereClauseWindowBounds(comparisons);
 
-    final Range<Instant> windowStart = extractWhereClauseWindowBounds(windowBoundsComparison);
-
-    return new WhereInfo(key, Optional.of(windowStart));
+    return new WhereInfo(key, Optional.of(windowBounds));
   }
 
   private static Object extractKeyWhereClause(
@@ -605,14 +596,26 @@ public final class PullQueryExecutor {
         .orElse(null);
   }
 
-  private static Range<Instant> extractWhereClauseWindowBounds(
-      final Optional<List<ComparisonExpression>> maybeComparisons
+  private static WindowBounds extractWhereClauseWindowBounds(
+      final Map<ComparisonTarget, List<ComparisonExpression>> allComparisons
   ) {
-    if (!maybeComparisons.isPresent()) {
+    return new WindowBounds(
+        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWSTART, allComparisons),
+        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWEND, allComparisons)
+    );
+  }
+
+  private static Range<Instant> extractWhereClauseWindowBounds(
+      final ComparisonTarget windowType,
+      final Map<ComparisonTarget, List<ComparisonExpression>> allComparisons
+  ) {
+    final List<ComparisonExpression> comparisons =
+        Optional.ofNullable(allComparisons.get(windowType))
+            .orElseGet(ImmutableList::of);
+
+    if (comparisons.isEmpty()) {
       return Range.all();
     }
-
-    final List<ComparisonExpression> comparisons = maybeComparisons.get();
 
     final Map<Type, List<ComparisonExpression>> byType = comparisons.stream()
         .collect(Collectors.groupingBy(PullQueryExecutor::getSimplifiedBoundType));
@@ -620,9 +623,7 @@ public final class PullQueryExecutor {
     final SetView<Type> unsupported = Sets.difference(byType.keySet(), VALID_WINDOW_BOUNDS_TYPES);
     if (!unsupported.isEmpty()) {
       throw invalidWhereClauseException(
-          "Unsupported " + ComparisonTarget.WINDOWSTART + " bounds: " + unsupported,
-          true
-      );
+          "Unsupported " + windowType + " bounds: " + unsupported, true);
     }
 
     final String duplicates = byType.entrySet().stream()
@@ -632,9 +633,7 @@ public final class PullQueryExecutor {
 
     if (!duplicates.isEmpty()) {
       throw invalidWhereClauseException(
-          "Duplicate bounds on " + ComparisonTarget.WINDOWSTART + ": " + duplicates,
-          true
-      );
+          "Duplicate " + windowType + " bounds on: " + duplicates, true);
     }
 
     final Map<Type, ComparisonExpression> singles = byType.entrySet().stream()
@@ -644,8 +643,7 @@ public final class PullQueryExecutor {
     if (equals != null) {
       if (byType.size() > 1) {
         throw invalidWhereClauseException(
-            "`" + equals + "` cannot be combined with other bounds on "
-                + ComparisonTarget.WINDOWSTART,
+            "`" + equals + "` cannot be combined with other " + windowType + " bounds",
             true
         );
       }
@@ -744,14 +742,15 @@ public final class PullQueryExecutor {
     }
 
     throw invalidWhereClauseException(
-        ComparisonTarget.WINDOWSTART + " bounds must be BIGINT",
+        "Window bounds must be an INT, BIGINT or STRING containing a datetime.",
         true
     );
   }
 
   private enum ComparisonTarget {
     KEYCOL,
-    WINDOWSTART
+    WINDOWSTART,
+    WINDOWEND
   }
 
   private static Map<ComparisonTarget, List<ComparisonExpression>> extractComparisons(
@@ -802,6 +801,10 @@ public final class PullQueryExecutor {
     final ColumnName columnName = column.getColumnName();
     if (columnName.equals(SystemColumns.WINDOWSTART_NAME)) {
       return ComparisonTarget.WINDOWSTART;
+    }
+
+    if (columnName.equals(SystemColumns.WINDOWEND_NAME)) {
+      return ComparisonTarget.WINDOWEND;
     }
 
     final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
@@ -1013,17 +1016,11 @@ public final class PullQueryExecutor {
     final String additional = !windowed
         ? ""
         : System.lineSeparator()
-            + " - (optionally) limits the time bounds of the windowed table. This can be: "
+            + " - (optionally) limits the time bounds of the windowed table."
             + System.lineSeparator()
-            + "    + a single window lower bound, e.g. `WHERE WINDOWSTART = z`, or"
+            + "\t Bounds on " + VALID_WINDOW_BOUNDS_COLUMNS + " are supported"
             + System.lineSeparator()
-            + "    + a range, e.g. `WHERE a <= WINDOWSTART AND WINDOWSTART < b"
-            + System.lineSeparator()
-            + "WINDOWSTART currently supports operators: " + VALID_WINDOW_BOUNDS_TYPES_STRING
-            + System.lineSeparator()
-            + "WINDOWSTART currently comparison with epoch milliseconds "
-            + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN
-            + " with an optional numeric 4-digit timezone, e.g. '+0100'";
+            + "\t Supported operators are " + VALID_WINDOW_BOUNDS_TYPES_STRING;
 
     return new KsqlException(msg + ". "
         + PullQueryValidator.PULL_QUERY_SYNTAX_HELP

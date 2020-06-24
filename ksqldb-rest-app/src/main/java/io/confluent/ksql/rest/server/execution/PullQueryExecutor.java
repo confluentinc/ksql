@@ -171,8 +171,8 @@ public final class PullQueryExecutor {
 
     if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
       throw new KsqlException(
-          "Pull queries are disabled. "
-              + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+          "Pull queries are disabled."
+              + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
               + System.lineSeparator()
               + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
               + "this feature.");
@@ -1000,15 +1000,9 @@ public final class PullQueryExecutor {
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
-    return new KsqlException("'"
-        + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized. "
-        + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
-        + System.lineSeparator()
-        + " KSQL currently only supports pull queries on materialized aggregate tables."
-        + " i.e. those created by a 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
-        + "FROM <sources> GROUP BY <key>' style statement."
-        + System.lineSeparator()
-        + PullQueryValidator.NEW_QUERY_SYNTAX_ADDITIONAL_HELP
+    return new KsqlException(
+        "Can't pull from " + sourceTable + " as it's not a materialized table."
+        + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
     );
   }
 
@@ -1019,7 +1013,7 @@ public final class PullQueryExecutor {
     final String additional = !windowed
         ? ""
         : System.lineSeparator()
-            + " - limits the time bounds of the windowed table. This can be: "
+            + " - (optionally) limits the time bounds of the windowed table. This can be: "
             + System.lineSeparator()
             + "    + a single window lower bound, e.g. `WHERE WINDOWSTART = z`, or"
             + System.lineSeparator()
@@ -1032,11 +1026,11 @@ public final class PullQueryExecutor {
             + " with an optional numeric 4-digit timezone, e.g. '+0100'";
 
     return new KsqlException(msg + ". "
-        + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+        + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
         + System.lineSeparator()
         + "Pull queries require a WHERE clause that:"
         + System.lineSeparator()
-        + " - limits the query to a single key, e.g. `SELECT * FROM X WHERE <key-column>>=Y;`."
+        + " - limits the query to a single key, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
         + additional
     );
   }

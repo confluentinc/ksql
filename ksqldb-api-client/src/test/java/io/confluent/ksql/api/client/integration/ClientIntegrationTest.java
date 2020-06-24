@@ -21,6 +21,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -46,7 +47,10 @@ import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.TableInfo;
+import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -78,6 +82,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -667,6 +674,44 @@ public class ClientIntegrationTest {
     assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldListStreams() throws Exception {
+    // When
+    final List<StreamInfo> streams = client.listStreams().get();
+
+    // Then
+    assertThat(streams, containsInAnyOrder(
+        streamForProvider(TEST_DATA_PROVIDER),
+        streamForProvider(EMPTY_TEST_DATA_PROVIDER),
+        streamForProvider(EMPTY_TEST_DATA_PROVIDER_2)
+    ));
+  }
+
+  @Test
+  public void shouldListTables() throws Exception {
+    // When
+    final List<TableInfo> tables = client.listTables().get();
+
+    // Then
+    assertThat(tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldListTopics() throws Exception {
+    // When
+    final List<TopicInfo> topics = client.listTopics().get();
+
+    // Then
+    assertThat(topics, containsInAnyOrder(
+        topicInfo(TEST_TOPIC),
+        topicInfo(EMPTY_TEST_TOPIC),
+        topicInfo(EMPTY_TEST_TOPIC_2),
+        topicInfo(AGG_TABLE)
+    ));
+  }
+
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")
@@ -850,5 +895,98 @@ public class ClientIntegrationTest {
       expectedRows.add(expectedRow);
     }
     return expectedRows;
+  }
+
+  private static Matcher<? super StreamInfo> streamForProvider(
+      final TestDataProvider<?> testDataProvider
+  ) {
+    return streamInfo(testDataProvider.kstreamName(), testDataProvider.topicName(), "JSON");
+  }
+
+  private static Matcher<? super StreamInfo> streamInfo(
+      final String streamName, final String topicName, final String format
+  ) {
+    return new TypeSafeDiagnosingMatcher<StreamInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final StreamInfo actual,
+          final Description mismatchDescription) {
+        if (!streamName.equals(actual.getName())) {
+          return false;
+        }
+        if (!topicName.equals(actual.getTopic())) {
+          return false;
+        }
+        if (!format.equals(actual.getFormat())) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "streamName: %s. topicName: %s. format: %s", streamName, topicName, format));
+      }
+    };
+  }
+
+  private static Matcher<? super TableInfo> tableInfo(
+      final String tableName, final String topicName, final String format, final boolean isWindowed
+  ) {
+    return new TypeSafeDiagnosingMatcher<TableInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final TableInfo actual,
+          final Description mismatchDescription) {
+        if (!tableName.equals(actual.getName())) {
+          return false;
+        }
+        if (!topicName.equals(actual.getTopic())) {
+          return false;
+        }
+        if (!format.equals(actual.getFormat())) {
+          return false;
+        }
+        if (isWindowed != actual.isWindowed()) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "tableName: %s. topicName: %s. format: %s. isWindowed: %s",
+            tableName, topicName, format, isWindowed));
+      }
+    };
+  }
+
+  // validates topics have 1 partition and 1 replica
+  private static Matcher<? super TopicInfo> topicInfo(final String name) {
+    return new TypeSafeDiagnosingMatcher<TopicInfo>() {
+      @Override
+      protected boolean matchesSafely(
+          final TopicInfo actual,
+          final Description mismatchDescription) {
+        if (!name.equals(actual.getName())) {
+          return false;
+        }
+        if (actual.getPartitions() != 1) {
+          return false;
+        }
+        final List<Integer> replicasPerPartition = actual.getReplicasPerPartition();
+        if (replicasPerPartition.size() != 1 || replicasPerPartition.get(0) != 1) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("name: " + name);
+      }
+    };
   }
 }

@@ -16,19 +16,21 @@
 package io.confluent.ksql.materialization.ks;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.test.util.AssertEventually.RetryOnException;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
-import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
@@ -762,15 +764,7 @@ public class KsMaterializationFunctionalTest {
    * When that happens: retry!
    */
   private static <T> T withRetry(final Supplier<T> supplier) {
-    final long threshold = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30);
-    while (System.currentTimeMillis() < threshold) {
-      try {
-        return supplier.get();
-      } catch (final MaterializationException e) {
-        // Expected occasionally if partitions are being rebalanced.
-      }
-    }
-    return supplier.get();
+    return assertThatEventually(supplier, is(notNullValue()), RetryOnException);
   }
 }
 

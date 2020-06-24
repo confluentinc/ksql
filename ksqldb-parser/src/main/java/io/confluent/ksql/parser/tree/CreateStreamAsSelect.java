@@ -28,9 +28,10 @@ public class CreateStreamAsSelect extends CreateAsSelect {
       final SourceName name,
       final Query query,
       final boolean notExists,
+      final boolean orReplace,
       final CreateSourceAsProperties properties
   ) {
-    this(Optional.empty(), name, query, notExists, properties);
+    this(Optional.empty(), name, query, notExists, orReplace, properties);
   }
 
   public CreateStreamAsSelect(
@@ -38,8 +39,9 @@ public class CreateStreamAsSelect extends CreateAsSelect {
       final SourceName name,
       final Query query,
       final boolean notExists,
+      final boolean orReplace,
       final CreateSourceAsProperties properties) {
-    super(location, name, query, notExists, properties);
+    super(location, name, query, orReplace, notExists, properties);
   }
 
   private CreateStreamAsSelect(

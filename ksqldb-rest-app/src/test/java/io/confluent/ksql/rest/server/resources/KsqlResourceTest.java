@@ -221,6 +221,7 @@ public class KsqlResourceTest {
       new CreateStream(
           SourceName.of("bob"),
           SOME_ELEMENTS,
+          false,
           true,
           CreateSourceProperties.from(ImmutableMap.of(
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
@@ -237,6 +238,7 @@ public class KsqlResourceTest {
       new CreateStream(
           SourceName.of("john"),
           SOME_ELEMENTS,
+          false,
           true,
           CreateSourceProperties.from(ImmutableMap.of(
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),

@@ -50,7 +50,8 @@ public class FunctionNameValidatorTest {
       final String symbolicName = vocabulary.getSymbolicName(i);
       if (symbolicName != null) {
         if (symbolicName.equalsIgnoreCase("substring")
-            || symbolicName.equalsIgnoreCase("concat")) {
+            || symbolicName.equalsIgnoreCase("concat")
+            || symbolicName.equalsIgnoreCase("replace")) {
           assertTrue(validator.test(symbolicName));
         } else {
           assertFalse(validator.test(symbolicName));

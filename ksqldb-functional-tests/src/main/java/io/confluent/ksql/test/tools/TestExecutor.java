@@ -164,7 +164,8 @@ public class TestExecutor implements Closeable {
           );
         }
 
-        topologyTestDriverContainer.getOutputTopicNames()
+        topologyTestDriverContainer.getTopologyTestDriver()
+            .producedTopicNames()
             .forEach(topicInfoCache::get);
       }
 

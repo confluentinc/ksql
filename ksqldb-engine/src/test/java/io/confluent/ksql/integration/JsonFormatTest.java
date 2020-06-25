@@ -27,6 +27,8 @@ import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -79,6 +81,7 @@ public class JsonFormatTest {
       .around(TEST_HARNESS);
 
   private MetaStore metaStore;
+  private MutableFunctionRegistry functionRegistry;
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
@@ -93,11 +96,13 @@ public class JsonFormatTest {
 
     ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.kafkaBootstrapServers());
     serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
+    functionRegistry = new InternalFunctionRegistry();
+    UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
 
     ksqlEngine = new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
-        new InternalFunctionRegistry(),
+        functionRegistry,
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator());
 

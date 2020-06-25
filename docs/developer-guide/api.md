@@ -9,7 +9,7 @@ description: Learn how to communicate with ksqlDB by using HTTP
 - [Run a ksqlDB Statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)
 - [Execute a push or pull query and stream the results back (/query-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)
 - [Stream inserts to the server (/inserts-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)
-- [Deprecated: Run A Pull or Push Query And Stream Back The Chunked Output (/query-stream endpoint)](ksqldb-rest-api/query-endpoint.md)
+- [Run A Pull or Push Query And Stream Back The Chunked Output (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
 - [Get the Status of a CREATE, DROP, or TERMINATE statement (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
 - [Terminate a Cluster (/ksql/terminate endpoint)](ksqldb-rest-api/terminate-endpoint.md)
 

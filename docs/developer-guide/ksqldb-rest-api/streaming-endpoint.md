@@ -7,22 +7,24 @@ server
 keywords: ksqlDB, query, insert, select
 ---
 
-Please note: These endpoints are used by the ksqlDB Java client. If you are using Java you might want
-to consider using the Java client rather than using this API directly.
+!!! note
 
-These endpoints are only available when using HTTP 2.
+    These endpoints are used by the ksqlDB Java client. If you are using Java you might want
+    to use the Java client rather than using this API directly.
+
+    These endpoints are only available when using HTTP 2.
 
 ### Executing pull or push queries
 
-The request method will be a POST.
+The request method is a POST.
 
-Requests will be made to the endpoint "/query-stream".
+Send requests to the `/query-stream` endpoint.
 
 The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
-operation (newlines have been added here for the sake of clarity but the real JSON must not contain
- unescaped newlines)
+operation. Newlines have been added here for the sake of clarity, but the actual JSON must not contain
+ unescaped newlines.
 
-````
+```
 {
 "sql": "select * from foo", <----- the SQL of the query to execute
 "properties": {             <----- Optional properties for the query
@@ -31,117 +33,124 @@ operation (newlines have been added here for the sake of clarity but the real JS
    }
 }
 
-````
+```
 
-The endpoint produces responses with two possible content types `application/json` and
-`application/vnd.ksqlapi.delimited.v1`. To choose one or the other you should set the `Accept`
+The endpoint produces responses with two possible content types: `application/json` and
+`application/vnd.ksqlapi.delimited.v1`. To specify the content type, set the `Accept`
 header in the request. The default is `application/vnd.ksqlapi.delimited.v1`.
 
-In the case of a successful query, if the content type is `application/vnd.ksqlapi.delimited.v1`
-then the results are returned as a header JSON object followed by zero or more JSON arrays
-delimited by newlines. Newline delimited formats are easy to parse by clients, and don't require
+In the case of a successful query, if the content type is `application/vnd.ksqlapi.delimited.v1`,
+the results are returned as a header JSON object followed by zero or more JSON arrays
+that are delimited by newlines. Newline-delimited formats are easy to parse by clients and don't require
 a streaming JSON parser on the client in the case that intermediate results need to be output.
 
-````
+```
 {
-"queryId", "xyz123",                          <---- unique ID of the query, used when terminating the query
+"queryId", "xyz123",                          <---- unique ID, provided for push queries only
 "columnNames":["col", "col2", "col3"],        <---- the names of the columns
 "columnTypes":["BIGINT", "STRING", "BOOLEAN"] <---- The types of the columns
 }
-````
+```
 
 Followed by zero or more JSON arrays:
 
-````
+```
 [123, "blah", true]
 [432, "foo", true]
 [765, "whatever", false]
-````
+```
 
-If you prefer to receive the entire response as valid JSON then you can request
-content type `application/json`. In which case you will receive the results, as a single JSON
-array, for example: (newlines have been added for clarity, the response body
-won't contain newlines).
+If you prefer to receive the entire response as valid JSON, request the
+content type `application/json`. In this case you receive the results as a single JSON
+array, as shown in the following example. Newlines have been added for clarity and the response body
+won't contain newlines.
 
-````
+```
 [
 {
-"queryId", "xyz123",                          <---- unique ID of the query, used when terminating the query
+"queryId": "xyz123",                          <---- unique ID, provided for push queries only
 "columnNames":["col", "col2", "col3"],        <---- the names of the columns
 "columnTypes":["BIGINT", "STRING", "BOOLEAN"] <---- The types of the columns
 },
-[123, "blah", true]
-[432, "foo", true]
+[123, "blah", true],
+[432, "foo", true],
 [765, "whatever", false]
 ]
-````
+```
 
 ### Terminating queries
 
-Push queries can be explicitly terminated by the client by making a request to this endpoint
+You can terminate push queries explicitly in the client by making a request to this endpoint.
 
-The request method will be a POST.
+The request method is POST.
 
-Requests will be made to the endpoint "/close-query"
+Send requests to the `/close-query` endpoint.
 
 The body of the request is a JSON object UTF-8 encoded as text, containing the id of the 
-query to close. (newlines have been added here for the sake of clarity but the real JSON must not
-contain newlines)
+query to close. Newlines have been added here for the sake of clarity but the actual JSON must not
+contain newlines.
 
-````
+```
 {
-"queryId": "xyz123", <----- the ID of the query to terminate
+"queryId": "xyz123" <----- the ID of the query to terminate
 }
 
-````
+```
  
-### Streaming inserts
+### Inserting rows into an existing stream
 
-The request method will be a POST.
+This endpoint allows you to insert rows into an existing ksqlDB stream. The stream must have
+already been created in ksqlDB.
 
-Requests will be made to the endpoint "/insert-stream".
+The request method is a POST.
+
+Send requests to the `/inserts-stream` endpoint.
 
 The body of the request is a JSON object UTF-8 encoded as text, containing the arguments for the
-operation (newlines have been added for clarity, the real JSON must not contain newlines):
+operation. Newlines have been added for clarity, but the actual JSON must not contain newlines.
 
-````
+```
 {
 "target": "my-stream" <----- The name of the KSQL stream to insert into
 }
 
-````
+```
+
+The stream name is case insensitive. 
 
 Followed by zero or more JSON objects representing the values to insert:
 
-````
+```
 {
 "col1" : "val1",
 "col2": 2.3,
 "col3", true
 }
-````
-Each JSON object will be separated by a new line.
+```
+Each JSON object is separated by a newline.
 
-To terminate the insert stream the client should end the request.
+To terminate the insert stream the client must end the request.
 
-Acks will be written to the response when each row has been
-successfully committed to the underlying topic. Rows are committed in the order they are provided.
+An acks is written to the response when each row has been
+committed successfully to the underlying topic. Rows are committed in the order they are provided.
 Each ack in the response is a JSON object, separated by newlines:
 
-````
+```
 {"status":"ok","seq":0}
 {"status":"ok","seq":2}
 {"status":"ok","seq":1}
 {"status":"ok","seq":3}
-````
+```
 
-A successful ack will contain a field `status` with value `ok`.
+A successful ack contains a `status` field with value `ok`.
 
-All ack responses also contain a field `seq` with a 64 bit signed integer value. This number
+All ack responses also contain a `seq` field with a 64-bit signed integer value. This number
 corresponds to the sequence of the insert on the request. The first send has sequence `0`, the second
 `1`, the third `2`, etc. It allows the client to correlate the ack to the corresponding send.
 
-In case of error, an error response (see below) will be sent. For an error response for a send, the
-`seq` field will also be included. 
+In case of error, an error response (see below) is sent. For an error response for a send, the
+`seq` field is included. 
 
-Please note that acks can be returned in a different sequence to which the inserts were submitted. 
+!!!note
+    
+    Please note that acks can be returned in a different sequence to which the inserts were submitted. 

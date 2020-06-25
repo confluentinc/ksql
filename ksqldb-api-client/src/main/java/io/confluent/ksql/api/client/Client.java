@@ -123,6 +123,14 @@ public interface Client {
    */
   CompletableFuture<List<TopicInfo>> listTopics();
 
+  /**
+   * Returns the list of queries currently running on the ksqlDB server.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of queries
+   */
   CompletableFuture<List<QueryInfo>> listQueries();
 
   /**

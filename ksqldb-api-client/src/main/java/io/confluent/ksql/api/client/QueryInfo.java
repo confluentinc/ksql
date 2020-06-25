@@ -18,7 +18,7 @@ package io.confluent.ksql.api.client;
 import java.util.Optional;
 
 /**
- *
+ * Metadata for a ksqlDB query.
  */
 public interface QueryInfo {
 
@@ -27,22 +27,41 @@ public interface QueryInfo {
     PUSH
   }
 
+  /**
+   * @return the type of this query
+   */
   QueryType getQueryType();
 
   /**
-   * Query ID, used for control operations such as terminating the query
+   * Returns the ID of this query, used for control operations such as terminating the query.
+   *
+   * @return the ID of this query
    */
   String getId();
 
+  /**
+   * Returns the KSQL statement text corresponding to this query. This text may not be exactly the
+   * statement submitted in order to start the query, but submitting this statement will result
+   * in exactly this query.
+   *
+   * @return the KSQL statement text
+   */
   String getSql();
 
   /**
-   * Name of sink stream/table, for a persistent query. Else, empty.
+   * Returns the name of the sink ksqlDB stream or table that this query writes to, if this query is
+   * persistent. If this query is a push query, then the returned optional will be empty.
+   *
+   * @return the sink ksqlDB stream or table name, if applicable
    */
   Optional<String> getSink();
 
   /**
-   * Name of sink topic, for a persistent query. Else, empty.
+   * Returns the name of the Kafka topic that backs the sink ksqlDB stream or table that this query
+   * writes to, if this query is persistent. If this query is a push query, then the returned
+   * optional will be empty.
+   *
+   * @return the sink Kafka topic name, if applicable
    */
   Optional<String> getSinkTopic();
 

@@ -182,13 +182,12 @@ public class RowImpl implements Row {
     final RowImpl row = (RowImpl) o;
     return columnNames.equals(row.columnNames)
         && columnTypes.equals(row.columnTypes)
-        && values.equals(row.values)
-        && columnNameToIndex.equals(row.columnNameToIndex);
+        && values.equals(row.values);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(columnNames, columnTypes, values, columnNameToIndex);
+    return Objects.hash(columnNames, columnTypes, values);
   }
 
   @Override
@@ -197,7 +196,6 @@ public class RowImpl implements Row {
         + "columnNames=" + columnNames
         + ", columnTypes=" + columnTypes
         + ", values=" + values
-        + ", columnNameToIndex=" + columnNameToIndex
         + '}';
   }
 }

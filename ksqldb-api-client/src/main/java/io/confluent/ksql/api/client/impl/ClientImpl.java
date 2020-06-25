@@ -48,6 +48,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public class ClientImpl implements Client {
@@ -391,5 +392,31 @@ public class ClientImpl implements Client {
     final String base64creds =
         Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
     return "Basic " + base64creds;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final ClientImpl client = (ClientImpl) o;
+    return clientOptions.equals(client.clientOptions)
+        && vertx.equals(client.vertx);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(clientOptions, vertx);
+  }
+
+  @Override
+  public String toString() {
+    return "Client{"
+        + "clientOptions=" + clientOptions
+        + ", vertx=" + vertx
+        + '}';
   }
 }

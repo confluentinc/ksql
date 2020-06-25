@@ -45,4 +45,32 @@ public class TopicInfoImpl implements TopicInfo {
   public List<Integer> getReplicasPerPartition() {
     return replicasPerPartition;
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final TopicInfoImpl topicInfo = (TopicInfoImpl) o;
+    return partitions == topicInfo.partitions
+        && name.equals(topicInfo.name)
+        && replicasPerPartition.equals(topicInfo.replicasPerPartition);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, partitions, replicasPerPartition);
+  }
+
+  @Override
+  public String toString() {
+    return "TopicInfo{"
+        + "name='" + name + '\''
+        + ", partitions=" + partitions
+        + ", replicasPerPartition=" + replicasPerPartition
+        + '}';
+  }
 }

@@ -166,7 +166,7 @@ ARRAY[col1, col2, ...]
 
 Construct an array from a variable number of inputs.
 
-### ``ARRAY_CONTAINS``
+### `ARRAY_CONTAINS`
 
 ```sql
 ARRAY_CONTAINS([1, 2, 3], 3)
@@ -176,7 +176,7 @@ Given an array, checks if a search value is contained in the array.
 
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
-### ``ARRAY_DISTINCT``
+### `ARRAY_DISTINCT`
 
 ```sql
 ARRAY_DISTINCT([1, 2, 3])
@@ -193,7 +193,7 @@ ARRAY_DISTINCT(ARRAY[1, 1, 2, 3, 1, 2])  => [1, 2, 3]
 ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'cherry']
 ```
 
-### ``ARRAY_EXCEPT``
+### `ARRAY_EXCEPT`
 
 ```sql
 ARRAY_EXCEPT(array1, array2)
@@ -209,7 +209,7 @@ ARRAY_EXCEPT(ARRAY[1, 2, 3, 1, 2], [2, 3])  => [1]
 ARRAY_EXCEPT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL]
 ```
 
-### ``ARRAY_INTERSECT``
+### `ARRAY_INTERSECT`
 
 ```sql
 ARRAY_INTERSECT(array1, array2)
@@ -225,6 +225,17 @@ ARRAY_INTERSECT(ARRAY[1, 2, 3, 1, 2], [2, 1])  => [1, 2]
 ARRAY_INTERSECT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['apple'])  => ['apple']
 ```
 
+### `ARRAY_JOIN`
+
+```sql
+ARRAY_JOIN(col1, delimiter)
+```
+
+Creates a flat string representation of all the elements contained in the given array.
+The elements in the resulting string are separated by the chosen `delimiter`, 
+which is an optional parameter that falls back to a comma `,`. The current implementation only
+allows for array elements of primitive ksqlDB types.
+
 ### `ARRAY_LENGTH`
 
 ```sql
@@ -235,7 +246,7 @@ Given an array, return the number of elements in the array.
 
 If the supplied parameter is NULL the method returns NULL.
 
-### ``ARRAY_MAX``
+### `ARRAY_MAX`
 
 ```sql
 ARRAY_MAX(['foo', 'bar', 'baz'])
@@ -250,7 +261,7 @@ Array entries are compared according to their natural sort order, which sorts th
 
 If the array field is NULL, or contains only NULLs, then NULL is returned.
 
-### ``ARRAY_MIN``
+### `ARRAY_MIN`
 
 ```sql
 ARRAY_MIN(['foo', 'bar', 'baz'])
@@ -265,7 +276,7 @@ Array entries are compared according to their natural sort order, which sorts th
 
 If the array field is NULL, or contains only NULLs, then NULL is returned.
 
-### ``ARRAY_SORT``
+### `ARRAY_SORT`
 
 ```sql
 ARRAY_SORT(['foo', 'bar', 'baz'], 'ASC|DESC')
@@ -282,7 +293,7 @@ If the array field is NULL then NULL is returned.
 
 An optional second parameter can be used to specify whether to sort the elements in 'ASC'ending or 'DESC'ending order. If neither is specified then the default is ascending order. 
 
-### ``ARRAY_UNION``
+### `ARRAY_UNION`
 
 ```sql
 ARRAY_UNION(array1, array2)
@@ -399,17 +410,6 @@ SLICE(col1, from, to)
 
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
-
-### `ARRAY_JOIN`
-
-```sql
-ARRAY_JOIN(col1, delimiter)
-```
-
-Creates a flat string representation of all the elements contained in the given array.
-The elements in the resulting string are separated by the chosen `delimiter`, 
-which is an optional parameter that falls back to a comma `,`. The current implementation only
-allows for array elements of primitive ksqlDB types.
 
 ## Strings
 

@@ -2,8 +2,7 @@
 layout: page
 title: HTTP Streaming API
 tagline: streaming endpoints
-description: The HTTP Streaming API lets you execute pull or push queries and stream inserts to the
-server
+description: The HTTP Streaming API lets you execute pull or push queries and stream inserts to the server
 keywords: ksqlDB, query, insert, select
 ---
 

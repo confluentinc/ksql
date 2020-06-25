@@ -320,7 +320,7 @@ public class KsMaterializationFunctionalTest {
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart =
-          withRetry(() -> table.get(key, Range.singleton(w.start())));
+          withRetry(() -> table.get(key, Range.singleton(w.start()), Range.all()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -328,13 +328,17 @@ public class KsMaterializationFunctionalTest {
       assertThat(resultAtWindowStart.get(0).key(), is(key));
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
+      final List<WindowedRow> resultAtWindowEnd =
+          withRetry(() -> table.get(key, Range.all(), Range.singleton(w.end())));
+      assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
+
       final List<WindowedRow> resultFromRange = withRetry(() -> withRetry(() -> table
-          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)))));
+          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)), Range.all())));
 
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> table
-          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))));
+          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)), Range.all()));
       assertThat("past start", resultPast, is(empty())
       );
     });
@@ -369,7 +373,7 @@ public class KsMaterializationFunctionalTest {
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart =
-          withRetry(() -> table.get(key, Range.singleton(w.start())));
+          withRetry(() -> table.get(key, Range.singleton(w.start()), Range.all()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -377,13 +381,17 @@ public class KsMaterializationFunctionalTest {
       assertThat(resultAtWindowStart.get(0).key(), is(key));
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
+      final List<WindowedRow> resultAtWindowEnd =
+          withRetry(() -> table.get(key, Range.all(), Range.singleton(w.end())));
+      assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
+
       final List<WindowedRow> resultFromRange = withRetry(() -> table
-          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1))));
+          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)), Range.all()));
 
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> table
-          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))));
+          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)), Range.all()));
 
       assertThat("past start", resultPast, is(empty()));
     });
@@ -417,7 +425,7 @@ public class KsMaterializationFunctionalTest {
       final Struct key = asKeyStruct(k.key(), query.getPhysicalSchema());
 
       final List<WindowedRow> resultAtWindowStart =
-          withRetry(() -> table.get(key, Range.singleton(w.start())));
+          withRetry(() -> table.get(key, Range.singleton(w.start()), Range.all()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -425,12 +433,16 @@ public class KsMaterializationFunctionalTest {
       assertThat(resultAtWindowStart.get(0).key(), is(key));
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
+      final List<WindowedRow> resultAtWindowEnd =
+          withRetry(() -> table.get(key, Range.all(), Range.singleton(w.end())));
+      assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
+
       final List<WindowedRow> resultFromRange = withRetry(() -> table
-          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1))));
+          .get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)), Range.all()));
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> table
-          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))));
+          .get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)), Range.all()));
       assertThat("past start", resultPast, is(empty()));
     });
   }
@@ -644,7 +656,9 @@ public class KsMaterializationFunctionalTest {
   ) {
     rows.forEach(record -> {
       final Struct key = asKeyStruct(record.key().key(), query.getPhysicalSchema());
-      final List<WindowedRow> resultAtWindowStart = withRetry(() -> table.get(key, Range.all()));
+      final List<WindowedRow> resultAtWindowStart =
+          withRetry(() -> table.get(key, Range.all(), Range.all()));
+
       assertThat("Should have fewer windows retained",
           resultAtWindowStart,
           hasSize(expectedWindows.size()));

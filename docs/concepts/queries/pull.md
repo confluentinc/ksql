@@ -38,7 +38,7 @@ Pull query features and limitations
   by key.
 - WHERE clauses can only have constraints on the key column for non-windowed tables.
 
-- In addition, windowed tables support bounds on WINDOWSTART using operators
+- In addition, windowed tables support bounds on `WINDOWSTART` and `WINDOWEND` using operators
   `<=`, `<`, `=`, `>`, `>=`.
 - JOIN, PARTITION BY, GROUP BY and WINDOW clauses aren't supported.
 - SELECT statements can contain column arithmetic and function calls.
@@ -53,7 +53,7 @@ timestamp within the specified time window.
 ```sql
 SELECT * FROM user_location
   WHERE userId = 'user19r7t33'
-    AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWSTART <= '2019-10-03T21:31:16';
+    AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWEND <= '2019-10-03T21:31:16';
 ```
 
 API Reference

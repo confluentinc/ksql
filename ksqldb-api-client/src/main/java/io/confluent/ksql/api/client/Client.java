@@ -20,6 +20,7 @@ import io.vertx.core.Vertx;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 
 /**
  * A client that connects to a specific ksqlDB server.
@@ -81,6 +82,24 @@ public interface Client {
    * @return a future that completes once the server response is received
    */
   CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
+
+  /**
+   * Inserts rows into a ksqlDB stream. Rows to insert are supplied by a
+   * {@code org.reactivestreams.Publisher} and server acknowledgments are exposed similarly.
+   *
+   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
+   * server.
+   *
+   * <p>See {@link InsertsPublisher} for an example publisher that may be passed an argument to
+   * this method.
+   *
+   * @param streamName name of the target stream
+   * @param insertsPublisher the publisher to provide rows to insert
+   * @return a future that completes once the initial server response is received, and contains a
+   *         publisher that publishes server acknowledgments for inserted rows.
+   */
+  CompletableFuture<AcksPublisher>
+      streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
 
   /**
    * Terminates a push query with the specified query ID.

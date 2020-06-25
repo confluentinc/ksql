@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client.impl;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
+import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
@@ -50,8 +51,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class ClientImpl implements Client {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final String QUERY_STREAM_ENDPOINT = "/query-stream";
   private static final String INSERTS_ENDPOINT = "/inserts-stream";
@@ -103,7 +107,8 @@ public class ClientImpl implements Client {
       final Map<String, Object> properties
   ) {
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
-    makeQueryRequest(sql, properties, cf, StreamQueryResponseHandler::new);
+    makeQueryRequest(sql, properties, cf,
+        (ctx, rp, fut, req) -> new StreamQueryResponseHandler(ctx, rp, fut));
     return cf;
   }
 
@@ -122,7 +127,7 @@ public class ClientImpl implements Client {
         sql,
         properties,
         result,
-        (context, recordParser, cf) -> new ExecuteQueryResponseHandler(
+        (context, recordParser, cf, request) -> new ExecuteQueryResponseHandler(
             context, recordParser, cf, clientOptions.getExecuteQueryMaxResultRows())
     );
     return result;
@@ -141,7 +146,31 @@ public class ClientImpl implements Client {
         INSERTS_ENDPOINT,
         requestBody,
         cf,
-        response -> handleStreamedResponse(response, cf, InsertsResponseHandler::new)
+        response -> handleStreamedResponse(response, cf,
+            (ctx, rp, fut, req) -> new InsertIntoResponseHandler(ctx, rp, fut))
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<AcksPublisher> streamInserts(
+      final String streamName,
+      final Publisher<KsqlObject> insertsPublisher) {
+    final CompletableFuture<AcksPublisher> cf = new CompletableFuture<>();
+
+    final Buffer requestBody = Buffer.buffer();
+    final JsonObject params = new JsonObject().put("target", streamName);
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+
+    makeRequest(
+        "/inserts-stream",
+        requestBody,
+        cf,
+        response -> handleStreamedResponse(response, cf,
+            (ctx, rp, fut, req) ->
+                new StreamInsertsResponseHandler(ctx, rp, fut, req, insertsPublisher)),
+        false
     );
 
     return cf;
@@ -231,7 +260,7 @@ public class ClientImpl implements Client {
 
   @FunctionalInterface
   private interface StreamedResponseHandlerSupplier<T extends CompletableFuture<?>> {
-    ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
+    ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf, HttpClientRequest request);
   }
 
   @FunctionalInterface
@@ -268,6 +297,15 @@ public class ClientImpl implements Client {
       final Buffer requestBody,
       final T cf,
       final Handler<HttpClientResponse> responseHandler) {
+    makeRequest(path, requestBody, cf, responseHandler, true);
+  }
+
+  private <T extends CompletableFuture<?>> void makeRequest(
+      final String path,
+      final Buffer requestBody,
+      final T cf,
+      final Handler<HttpClientResponse> responseHandler,
+      final boolean endRequest) {
     HttpClientRequest request = httpClient.request(HttpMethod.POST,
         serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
         path,
@@ -276,7 +314,14 @@ public class ClientImpl implements Client {
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
     }
-    request.end(requestBody);
+    if (endRequest) {
+      request.end(requestBody);
+    } else {
+      final HttpClientRequest finalRequest = request;
+      finalRequest.sendHead(version -> {
+        finalRequest.writeCustomFrame(0, 0, requestBody);
+      });
+    }
   }
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
@@ -290,7 +335,7 @@ public class ClientImpl implements Client {
     if (response.statusCode() == OK.code()) {
       final RecordParser recordParser = RecordParser.newDelimited("\n", response);
       final ResponseHandler<T> responseHandler =
-          responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf);
+          responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf, response.request());
 
       recordParser.handler(responseHandler::handleBodyBuffer);
       recordParser.endHandler(responseHandler::handleBodyEnd);
@@ -361,6 +406,7 @@ public class ClientImpl implements Client {
         .setSsl(clientOptions.isUseTls())
         .setUseAlpn(clientOptions.isUseAlpn())
         .setProtocolVersion(HttpVersion.HTTP_2)
+        .setHttp2ClearTextUpgrade(false)
         .setVerifyHost(clientOptions.isVerifyHost())
         .setDefaultHost(clientOptions.getHost())
         .setDefaultPort(clientOptions.getPort());

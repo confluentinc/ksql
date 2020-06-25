@@ -2,7 +2,7 @@
 
 ## Context
 
-You have a piece of logic for transforming or aggregating events that ksqlDB can't currently express. You want to extend ksqlDB to apply that logic in your persistent queries. To do that, ksqlDB exposes hooks so that you can add new logic with Java programs. This functionality is broadly called *user-defined functions*, or UDFs for short.
+You have a piece of logic for transforming or aggregating events that ksqlDB can't currently express. You want to extend ksqlDB to apply that logic in your queries. To do that, ksqlDB exposes hooks through Java programs. This functionality is broadly called *user-defined functions*, or UDFs for short.
 
 ## In action
 
@@ -46,7 +46,7 @@ public class FormulaUdf implements Configurable {
 
 ## Set up a Java project
 
-To implement a user-defined function, the first thing that you need to do is create a Java project with a dependency on ksqlDB's UDF library. This library contains the annotations that you'll use to signal that the classes you're implementing aren't just any old classes, they're UDFs. You can manage your Java project with any build tool, but this guide demonstrates how it works with Gradle. In the end, all that matters is that you're able to put an uberjar in ksqlDB's extension directory.
+To implement a user-defined function, the first thing that you need to do is create a Java project with a dependency on ksqlDB's UDF library. This library contains the annotations you'll use to signal that the classes you're implementing aren't just any old classes, they're UDFs. You can manage your Java project with any build tool, but this guide demonstrates how it works with Gradle. In the end, all that matters is that you're able to put an uberjar in ksqlDB's extension directory.
 
 In a fresh directory, create the following `build.gradle` file to set up the Java project:
 
@@ -91,7 +91,7 @@ shadowJar {
 
 ## Implement the classes
 
-There are three kinds of UDFs for manipulating rows in different ways: scalar functions, tabular functions, and aggregation functions. Each is demonstrated below with simple examples (you can learn about more sophisticated usage in the [concepts section](../concepts/functions.md)). Start by creating a directory to house the class files:
+There are three kinds of UDFs which manipulate rows in different ways: scalar functions, tabular functions, and aggregation functions. Each is demonstrated below with simple examples using a variety of features (you can learn about more sophisticated usage in the [concepts section](../concepts/functions.md)). Start by creating a directory to house the class files:
 
 ```
 mkdir -p src/main/java/com/example
@@ -101,7 +101,7 @@ mkdir -p src/main/java/com/example
 
 A scalar function (UDF for short) consumes one row as input and produces one row as output. Use this when you want to simply transform a value.
 
-Create a file at `src/main/java/com/example/MultiplyUdf.java` and populate it with the following code. This UDF takes two parameters and returns the value of multiplying them together.
+Create a file at `src/main/java/com/example/FormulaUdf.java` and populate it with the following code. This UDF takes two parameters and executes a simple formula.
 
 ```java
 package my.example;
@@ -141,17 +141,20 @@ public class FormulaUdf implements Configurable {
 }
 ```
 
-TODO: call out version in description
-TODO: call out author
-TODO: call out multiple signatures
-TODO: talk about parameterization, not that it doesn't work yet for udtf/udafs
-TODO: why it needs to be List, not array types
-
 Some important points to notice:
 
-1. The `@UdfDescription` annotation marks the class as a scalar UDF. The `name` parameter gives the function a name so you can refer to it in SQL. The `description` parameter gives the function an explanation of what it does so that ksqlDB can render something useful when asked to `DESCRIBE` the function.
-2. The `@Udf` annotation marks the method as a body of code to invoke when the function is called. A UDF can have multiple type signatures, so you can have as many methods as you want per class. The supplied description helps you distinguish what each method does.
+
+1. The `@UdfDescription` annotation marks the class as a scalar UDF. The `name` parameter gives the function a name so you can refer to it in SQL.
+
+2. The `@Udf` annotation marks a method as a body of code to invoke when the function is called. Because ksqlDB is strongly typed, you need to supply multiple signatures if you want your function to work with different column types. This UDF has two signatures: one that takes integer parameters and another that takes doubles.
+
 3. The `@UdfParameter` annotation lets you give the function parameters names, which will be rendered in `DESCRIBE` statements too.
+
+4. This UDF uses an external parameter, `ksql.functions.formula.base.value`. When a UDF implements the `Configurable` interface, it will be invoked once as the server starts up. `configure()` supplies a map of ksqlDB server parameters. You will see how this value is populated later in the guide.
+
+!!! warning
+    External parameters do not yet work for tabular or aggregation functions.
+    Support for these function types will be added soon.
 
 Either continue following this guide by implementing more functions, or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
 
@@ -193,7 +196,8 @@ public class IndexSequenceUdtf {
 }
 ```
 
-TODO: talk about generics
+- TODO: talk about generics
+- TODO: why it needs to be List, not array types
 
 Notice how:
 
@@ -270,8 +274,9 @@ public class RollingSumUdaf {
 }
 ```
 
-TODO: talk about why a factory is needed
-TODO: Intermediate type restrictions
+- TODO: talk about why a factory is needed
+- TODO: Intermediate type restrictions
+- TODO: map
 
 ## Add the uberjar to ksqlDB server
 
@@ -367,6 +372,7 @@ There are a few important things to notice:
 - A volume is mounted from the local `extensions` directory (containing your uberjar) to the container `/opt/ksqldb-udfs` directory. The latter can be any directory that you like. This command effectively puts the uberjar on ksqlDB server's file system.
 - The environment variable `KSQL_KSQL_EXTENSION_DIR` is configured to the same path that was set for the container in the volume mount. This is the path that ksqlDB will look for UDFs in.
 - Although this is a single node setup, remember that every node in your ksqlDB cluster needs to have this configured since any node can handle any query at any time.
+- TODO: env var for udf
 
 ## Invoke the functions
 
@@ -396,6 +402,10 @@ You should see a long list of built-in functions, including your own `MULTIPLY` 
 - udf demo: using columns or constants as parameters
 
 - UDFs only load once!
+
+- TODO: call out version in description
+
+- TODO: call out author
 
 Introspect the `MULTIPLY` function by running:
 
@@ -578,6 +588,12 @@ select a, rolling_sum(b) from s1 group by a emit changes;
 select a, index_seq(c) from s1 emit changes;
 ```
 
+### Invoke the scalar function
+
+### Invoke the tabular function
+
+### Invoke the aggregation function
+
 ## Tear down the stack
 
 When you're done, tear down the stack by running:
@@ -588,3 +604,5 @@ docker-compose down
 
 - << TODO: Table UDAF >>
 - << TODO: Call out load in log file like `[2020-06-24 23:38:10,942] INFO Adding UDAF name=rolling_sum from path=/opt/ksqldb-udfs/example-udfs-0.0.1.jar class=class my.example.RollingSumUdaf (io.confluent.ksql.function.UdafLoader:71)` >>
+- << TODO: page redirect from old material >>
+- << TODO: right Gradle UDF coordinates >>

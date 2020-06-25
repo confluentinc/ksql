@@ -34,7 +34,7 @@ public class QueryInfoImpl implements QueryInfo {
       final Optional<String> sinkName,
       final Optional<String> sinkTopicName
   ) {
-    this.queryType = queryType;
+    this.queryType = Objects.requireNonNull(queryType);
     this.id = Objects.requireNonNull(id);
     this.sql = Objects.requireNonNull(sql);
     this.sinkName = Objects.requireNonNull(sinkName);
@@ -64,5 +64,37 @@ public class QueryInfoImpl implements QueryInfo {
   @Override
   public Optional<String> getSinkTopic() {
     return sinkTopicName;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final QueryInfoImpl queryInfo = (QueryInfoImpl) o;
+    return queryType == queryInfo.queryType
+        && id.equals(queryInfo.id)
+        && sql.equals(queryInfo.sql)
+        && sinkName.equals(queryInfo.sinkName)
+        && sinkTopicName.equals(queryInfo.sinkTopicName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(queryType, id, sql, sinkName, sinkTopicName);
+  }
+
+  @Override
+  public String toString() {
+    return "QueryInfo{"
+        + "queryType=" + queryType
+        + ", id='" + id + '\''
+        + ", sql='" + sql + '\''
+        + ", sinkName=" + sinkName
+        + ", sinkTopicName=" + sinkTopicName
+        + '}';
   }
 }

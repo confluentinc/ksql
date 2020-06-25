@@ -144,13 +144,13 @@ public class FormulaUdf implements Configurable {
 Some important points to notice:
 
 
-1. The `@UdfDescription` annotation marks the class as a scalar UDF. The `name` parameter gives the function a name so you can refer to it in SQL.
+- The `@UdfDescription` annotation marks the class as a scalar UDF. The `name` parameter gives the function a name so you can refer to it in SQL.
 
-2. The `@Udf` annotation marks a method as a body of code to invoke when the function is called. Because ksqlDB is strongly typed, you need to supply multiple signatures if you want your function to work with different column types. This UDF has two signatures: one that takes integer parameters and another that takes doubles.
+- The `@Udf` annotation marks a method as a body of code to invoke when the function is called. Because ksqlDB is strongly typed, you need to supply multiple signatures if you want your function to work with different column types. This UDF has two signatures: one that takes integer parameters and another that takes doubles.
 
-3. The `@UdfParameter` annotation lets you give the function parameters names, which will be rendered in `DESCRIBE` statements too.
+- The `@UdfParameter` annotation lets you give the function parameters names, which will be rendered in `DESCRIBE` statements too.
 
-4. This UDF uses an external parameter, `ksql.functions.formula.base.value`. When a UDF implements the `Configurable` interface, it will be invoked once as the server starts up. `configure()` supplies a map of ksqlDB server parameters. You will see how this value is populated later in the guide.
+- This UDF uses an external parameter, `ksql.functions.formula.base.value`. When a UDF implements the `Configurable` interface, it will be invoked once as the server starts up. `configure()` supplies a map of ksqlDB server parameters. You will see how this value is populated later in the guide.
 
 !!! warning
     External parameters do not yet work for tabular or aggregation functions.
@@ -160,9 +160,9 @@ Either continue following this guide by implementing more functions, or skip ahe
 
 ### Tabular functions
 
-A tabular function (UDTF for short) takes one row as input and produces zero or more rows as output. This is sometimes called "flat map" or "mapcat" in different programming languages. Use this when a value represents many other values and needs to be "exploded" into its individual values to be useful.
+A tabular function (UDTF for short) takes one row as input and produces zero or more rows as output. This is sometimes called "flat map" or "mapcat" in different programming languages. Use this when a value represents many smaller values and needs to be "exploded" into its individual parts to be useful.
 
-Create a file at `src/main/java/com/example/IndexCharactersUdtf.java` and populate it with the following code. This UDTF takes one parameter as input, a string, and returns a sequence of rows, where each element is the character in the string concatenated with its index position.
+Create a file at `src/main/java/com/example/IndexSeqUdtf.java` and populate it with the following code. This UDTF takes one parameter as input, an array of any type, and returns a sequence of rows, where each element is the element in the array concatenated with its index position as a string.
 
 ```java
 package my.example;
@@ -196,17 +196,25 @@ public class IndexSequenceUdtf {
 }
 ```
 
-- TODO: talk about generics
-- TODO: why it needs to be List, not array types
-
 Notice how:
 
 - The UDTF returns a Java `List`. This is the collection type that ksqlDB expects all tabular functions to return.
-- The annotations work similiarly to the [scalar function](#scalar-functions) example.
+
+- This UDTF uses Java generics which allow it operate over any ksqlDB supported types. This if you want to express logic that operates uniformly over many different column types. The generic parameter must be declared at the head of the method.
+
+
+!!! info
+    Java arrays and `List`s are not interchangable in user-defined functions,
+    which is especially important to remember when working with UDTFs. ksqlDB
+    arrays correspond to the Java `List` type, not native Java arrays.
 
 Either continue following this guide by implementing more functions, or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
 
 ### Aggregation functions
+
+An aggregation function (UDAF for short) consumes one row at a time and maintains a stateful representation of all historical data. Use this when you want to model data from multiple rows together.
+
+Create a file at `src/main/java/com/example/RollingsumUdaf.java` and populate it with the following code. This UDAF maintains a rolling sum of the last `3` integers in a stream, discarding the oldest values.
 
 ```java
 package my.example;
@@ -274,9 +282,15 @@ public class RollingSumUdaf {
 }
 ```
 
-- TODO: talk about why a factory is needed
-- TODO: Intermediate type restrictions
-- TODO: map
+There are a few things to observe in this class:
+
+- By contrast to scalar and tabular functions, aggregation functions are designated by a static method with the `@UdafFactory` annotation. Because aggregations must implement multiple methods, this helps ksqlDB differentiate aggregations when multiple type signatures are used.
+
+- ksqlDB decouples the internal representation of an aggregate from how it is used in an operation. This is very useful because aggregations can maintain complex state, but expose it in a simpler way in a query. In this example, the internal representation is the `LinkedList`, as indicated by the `initialize()` method. But when ksqlDB interacts with the aggregation value, `map()` is called, which sums the values in the list. The `List` is needed to keep a running history of values, but the summed value is needed for operations.
+
+- UDAFs must be parameterized with three generic types. The first parameter represents the type of the column to aggregate over. The second column represents the internal representation of the aggregation, which is established in `initialize()`. The third parameter represents the type that the query interacts with, which is converted by `map()`.
+
+- All types, including inputs, intermediate representations, and final representations, must be types that ksqlDB supports. 
 
 ## Add the uberjar to ksqlDB server
 
@@ -286,7 +300,7 @@ In order for ksqlDB to be able to load your UDFs, they need to be compiled from 
 gradle build
 ```
 
-You should now have a directory, `extensions`, with a file named `how-to-guides-0.0.1.jar` in it.
+You should now have a directory, `extensions` with a file named `how-to-guides-0.0.1.jar` in it.
 
 In order to use the uberjar, you need to make it available to ksqlDB server. Create the following `docker-compose.yml` file:
 
@@ -367,16 +381,20 @@ services:
     tty: true
 ```
 
-There are a few important things to notice:
+Notice that:
 
-- A volume is mounted from the local `extensions` directory (containing your uberjar) to the container `/opt/ksqldb-udfs` directory. The latter can be any directory that you like. This command effectively puts the uberjar on ksqlDB server's file system.
+- A volume is mounted from the local `build/libs` directory (containing your uberjar) to the container `/opt/ksqldb-udfs` directory. The latter can be any directory that you like. This command effectively puts the uberjar on ksqlDB server's file system.
+
 - The environment variable `KSQL_KSQL_EXTENSION_DIR` is configured to the same path that was set for the container in the volume mount. This is the path that ksqlDB will look for UDFs in.
-- Although this is a single node setup, remember that every node in your ksqlDB cluster needs to have this configured since any node can handle any query at any time.
-- TODO: env var for udf
+
+- The environment variable `KSQL_KSQL_FUNCTIONS_FORMULA_BASE_VALUE` is set to `5`. Recall that in the UDF example, the function loads an external parameter named` ksql.functions.formula.base.value`. All `KSQL_` environment variables are converted automatically to server configuration properties, which is where UDF parameters are looked up.
+
+!!! info
+    Although this is a single node setup, remember that every node in your ksqlDB cluster needs to have this configured since any node can handle any query at any time.
 
 ## Invoke the functions
 
-Bring up your local setup by running:
+Bring up your stack by running:
 
 ```
 docker-compose up
@@ -394,80 +412,13 @@ Verify that your functions have been loaded by running the following ksqlDB comm
 SHOW FUNCTIONS;
 ```
 
-You should see a long list of built-in functions, including your own `MULTIPLY` and `INDEX_CHARACTERS` (which are listed as `SCALAR` and `TABLE` respectivly).
+You should see a long list of built-in functions, including your own `FORMULA`, `INDEX_SEQ`, and `ROLLING_SUM` (which are listed as `SCALAR`, `TABLE`, and `AGGREGATE` respectivly).
 
-- What to do if they didn't load.
+- TODO: What to do if they didn't load.
 
 
-- udf demo: using columns or constants as parameters
+- TODO: UDFs only load once!
 
-- UDFs only load once!
-
-- TODO: call out version in description
-
-- TODO: call out author
-
-Introspect the `MULTIPLY` function by running:
-
-```sql
-DESCRIBE FUNCTION multiply;
-```
-
-Which should output:
-
-```
-Name        : FORMULA
-Author      : example user
-Version     : 1.0.2
-Overview    : A custom formula for important business logic.
-Type        : SCALAR
-Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
-Variations  : 
-
-	Variation   : FORMULA(a DOUBLE, b DOUBLE)
-	Returns     : BIGINT
-	Description : A special variant of the formula, handling double parameters.
-
-	Variation   : FORMULA(a INT, b INT)
-	Returns     : BIGINT
-	Description : The standard version of the formula with integer parameters.
-```
-
-Do the same for `index_characters`:
-
-```sql
-DESCRIBE FUNCTION index_characters;
-```
-
-Which should output:
-
-```
-Name        : INDEX_SEQ
-Author      : example user
-Version     : 1.5.0
-Overview    : Disassembles a sequence and produces new elements concatenated with indices.
-Type        : TABLE
-Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
-Variations  : 
-
-	Variation   : INDEX_SEQ(s ARRAY<E>)
-	Returns     : VARCHAR
-	Description : Disassembles a sequence and produces new elements concatenated with indices.
-```
-
-```
-Name        : ROLLING_SUM
-Author      : example user
-Version     : 2.0.0
-Overview    : Maintains a rolling sum of the last 3 integers of a stream.
-Type        : AGGREGATE
-Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
-Variations  : 
-
-	Variation   : ROLLING_SUM(val INT)
-	Returns     : INT
-	Description : Sums the previous 3 integers of a stream, discarding the oldest elements as new ones arrive.
-```
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';
@@ -501,35 +452,6 @@ CREATE STREAM s1 (
 INSERT INTO s1 (a, b, c) VALUES ('k1', 2, 'abc');
 INSERT INTO s1 (a, b, c) VALUES ('k2', 4, 'de');
 INSERT INTO s1 (a, b, c) VALUES ('k3', 6, 'f');
-```
-
-```sql
-SELECT a, multiply(b, 3) AS product FROM s1 EMIT CHANGES;
-```
-
-```
-+------------------------------------------------------------+------------------------------------------------------------+
-|A                                                           |PRODUCT                                                     |
-+------------------------------------------------------------+------------------------------------------------------------+
-|k1                                                          |6                                                           |
-|k2                                                          |12                                                          |
-|k3                                                          |18                                                          |
-```
-
-```sql
-SELECT a, index_characters(c) AS indexed FROM s1 EMIT CHANGES;
-```
-
-```
-+------------------------------------------------------------+------------------------------------------------------------+
-|A                                                           |INDEXED                                                     |
-+------------------------------------------------------------+------------------------------------------------------------+
-|k1                                                          |a-0                                                         |
-|k1                                                          |b-1                                                         |
-|k1                                                          |c-2                                                         |
-|k2                                                          |d-0                                                         |
-|k2                                                          |e-1                                                         |
-|k3                                                          |f-0                                                         |
 ```
 
 ```sql
@@ -580,19 +502,83 @@ INSERT INTO s2 (a, b, c) VALUES ('k2', 4, ARRAY[3, 4]);
 INSERT INTO s2 (a, b, c) VALUES ('k3', 6, ARRAY[5]);
 ```
 
-```sql
-select a, rolling_sum(b) from s1 group by a emit changes;
-```
-
-```sql
-select a, index_seq(c) from s1 emit changes;
-```
-
 ### Invoke the scalar function
+
+Introspect the `formula` function by running:
+
+```sql
+DESCRIBE FUNCTION formula;
+```
+
+Which should output:
+
+- TODO: call out version in description
+- TODO: call out author
+
+
+```
+Name        : FORMULA
+Author      : example user
+Version     : 1.0.2
+Overview    : A custom formula for important business logic.
+Type        : SCALAR
+Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
+Variations  : 
+
+	Variation   : FORMULA(a DOUBLE, b DOUBLE)
+	Returns     : BIGINT
+	Description : A special variant of the formula, handling double parameters.
+
+	Variation   : FORMULA(a INT, b INT)
+	Returns     : BIGINT
+	Description : The standard version of the formula with integer parameters.
+```
+
+- TODO: udf demo: using columns or constants as parameters
 
 ### Invoke the tabular function
 
+Do the same for `index_seq`:
+
+```sql
+DESCRIBE FUNCTION index_seq;
+```
+
+Which should output:
+
+```
+Name        : INDEX_SEQ
+Author      : example user
+Version     : 1.5.0
+Overview    : Disassembles a sequence and produces new elements concatenated with indices.
+Type        : TABLE
+Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
+Variations  : 
+
+	Variation   : INDEX_SEQ(s ARRAY<E>)
+	Returns     : VARCHAR
+	Description : Disassembles a sequence and produces new elements concatenated with indices.
+```
+
 ### Invoke the aggregation function
+
+```sql
+DESCRIBE FUNCTION rolling_sum;
+```
+
+```
+Name        : ROLLING_SUM
+Author      : example user
+Version     : 2.0.0
+Overview    : Maintains a rolling sum of the last 3 integers of a stream.
+Type        : AGGREGATE
+Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
+Variations  : 
+
+	Variation   : ROLLING_SUM(val INT)
+	Returns     : INT
+	Description : Sums the previous 3 integers of a stream, discarding the oldest elements as new ones arrive.
+```
 
 ## Tear down the stack
 

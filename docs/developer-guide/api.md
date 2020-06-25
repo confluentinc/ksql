@@ -5,13 +5,12 @@ tagline: Run queries over HTTP
 description: Learn how to communicate with ksqlDB by using HTTP
 ---
 
-- [Get the Status of a ksqlDB Server (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
-- [Run a ksqlDB Statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)
-- [Execute a push or pull query and stream the results back (/query-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)
-- [Stream inserts to the server (/inserts-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)
-- [Run A Pull or Push Query And Stream Back The Chunked Output (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
-- [Get the Status of a CREATE, DROP, or TERMINATE statement (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
-- [Terminate a Cluster (/ksql/terminate endpoint)](ksqldb-rest-api/terminate-endpoint.md)
+- [Introspect query status (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
+- [Introspect server status (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
+- [Execute a statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)
+- [Run a query (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
+- [Run push and pull queries (/query-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)
+- [Terminate a cluster (/ksql/terminate endpoint)](ksqldb-rest-api/terminate-endpoint.md)
 
 REST Endpoint
 -------------

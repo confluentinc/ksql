@@ -21,27 +21,27 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
-public class UrlEncodeParamKudfTest {
+public class UrlDecodeParamTest {
 
-  private UrlEncodeParamKudf encodeUdf;
+  private UrlDecodeParam decodeUdf;
 
   @Before
   public void setUp() {
-    encodeUdf = new UrlEncodeParamKudf();
+    decodeUdf = new UrlDecodeParam();
   }
 
   @Test
-  public void shouldEncodeValue() {
-    assertThat(encodeUdf.encodeParam("?foo $bar"), equalTo("%3Ffoo+%24bar"));
+  public void shouldDecodeEncodedValue() {
+    assertThat(decodeUdf.decodeParam("%3Ffoo+%24bar"), equalTo("?foo $bar"));
   }
 
   @Test
   public void shouldReturnSpecialCharsIntact() {
-    assertThat(".-*_ should all pass through without being encoded", encodeUdf.encodeParam("foo.-*_bar"), equalTo("foo.-*_bar"));
+    assertThat(".-*_ should all pass through without being encoded", decodeUdf.decodeParam("foo.-*_bar"), equalTo("foo.-*_bar"));
   }
 
   @Test
   public void shouldReturnEmptyStringForEmptyInput() {
-    assertThat(encodeUdf.encodeParam(""), equalTo(""));
+    assertThat(decodeUdf.decodeParam(""), equalTo(""));
   }
 }

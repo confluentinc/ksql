@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.url;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -24,27 +25,28 @@ import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class UrlExtractPortKudfTest {
+public class UrlExtractFragmentTest {
 
-  private UrlExtractPortKudf extractUdf;
+  private UrlExtractFragment extractUdf;
 
   @Before
   public void setUp() {
-    extractUdf = new UrlExtractPortKudf();
+    extractUdf = new UrlExtractFragment();
   }
 
   @Test
-  public void shouldExtractPortIfPresent() {
-    assertThat(
-            extractUdf.extractPort("https://docs.confluent.io:8080/current/ksql/docs/syntax-reference.html#scalar-functions"),
-            equalTo(8080));
+  public void testEncodedFragment() {
+    assertThat(extractUdf.extractFragment("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar%20functions"), equalTo("scalar functions"));
   }
 
   @Test
-  public void shouldReturnNullIfNoPort() {
-    assertThat(
-            extractUdf.extractPort("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"),
-            equalTo(null));
+  public void shouldExtractFragmentIfPresent() {
+    assertThat(extractUdf.extractFragment("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("scalar-functions"));
+  }
+
+  @Test
+  public void shouldReturnNullIfNoFragment() {
+    assertThat(extractUdf.extractFragment("https://docs.confluent.io/current/ksql/docs/syntax-reference.html"), nullValue());
   }
 
   @Test
@@ -52,10 +54,11 @@ public class UrlExtractPortKudfTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> extractUdf.extractPort("http://257.1/bogus/[url")
+        () -> extractUdf.extractFragment("http://257.1/bogus/[url")
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("URL input has invalid syntax: http://257.1/bogus/[url"));
   }
+
 }

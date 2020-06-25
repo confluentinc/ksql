@@ -22,18 +22,21 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 
 @UdfDescription(
-        name = UrlExtractFragmentKudf.NAME,
-        description = "Extracts the fragment of an application/x-www-form-urlencoded String input",
+    name = "url_extract_port",
+    description = "Extracts the port from an application/x-www-form-urlencoded encoded String."
+        + " If there is no port or the string is invalid, this will return null.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class UrlExtractFragmentKudf {
+public class UrlExtractPort {
 
-  static final String NAME = "url_extract_fragment";
+  @Udf
+  public Integer extractPort(
+      @UdfParameter(description = "a valid URL to extract a port from") final String input) {
+    final Integer port = UrlParser.extract(input, URI::getPort);
 
-  @Udf(description = "Extracts the fragment of an application/x-www-form-urlencoded String input")
-  public String extractFragment(
-      @UdfParameter(value = "input", description = "a valid URL to extract a fragment from")
-      final String input) {
-    return UrlParser.extract(input, URI::getFragment);
+    // check for LT 0 because URI::getPort returns -1 if the port
+    // does not exist, but UrlParser#extract will return null if
+    // the URI is invalid
+    return (port == null || port < 0) ? null : port;
   }
 }

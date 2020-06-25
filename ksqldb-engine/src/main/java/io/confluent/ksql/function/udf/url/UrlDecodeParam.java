@@ -15,29 +15,32 @@
 
 package io.confluent.ksql.function.udf.url;
 
-import com.google.common.escape.Escaper;
-import com.google.common.net.UrlEscapers;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+
 
 @UdfDescription(
-    name = UrlEncodeParamKudf.NAME,
-    description = UrlEncodeParamKudf.DESCRIPTION,
+    name = "url_decode_param",
+    description = "Decodes a previously encoded application/x-www-form-urlencoded String",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class UrlEncodeParamKudf {
+public class UrlDecodeParam {
 
-  static final String DESCRIPTION =
-      "Returns a version of the input with all URL sensitive characters encoded "
-          + "using the application/x-www-form-urlencoded standard.";
-  static final String NAME = "url_encode_param";
-
-  @Udf(description = DESCRIPTION)
-  public String encodeParam(
-      @UdfParameter(description = "the value to encode") final String input) {
-    final Escaper escaper = UrlEscapers.urlFormParameterEscaper();
-    return escaper.escape(input);
+  @Udf
+  public String decodeParam(
+      @UdfParameter(description = "the value to decode") final String input) {
+    try {
+      return URLDecoder.decode(input, UTF_8.name());
+    } catch (final UnsupportedEncodingException e) {
+      throw new KsqlFunctionException(
+          "url_decode udf encountered an encoding exception while decoding: " + input, e);
+    }
   }
 }

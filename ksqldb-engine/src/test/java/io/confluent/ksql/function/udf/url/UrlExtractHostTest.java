@@ -25,33 +25,23 @@ import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class UrlExtractParameterKudfTest {
+public class UrlExtractHostTest {
 
-  private UrlExtractParameterKudf extractUdf;
+  private UrlExtractHost extractUdf;
 
   @Before
   public void setUp() {
-    extractUdf = new UrlExtractParameterKudf();
+    extractUdf = new UrlExtractHost();
   }
 
   @Test
-  public void shouldExtractParamValueIfPresent() {
-    assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz%20zab&blank#scalar-functions", "foo bar"), equalTo("baz zab"));
+  public void shouldExtractHostIfPresent() {
+    assertThat(extractUdf.extractHost("https://docs.confluent.io:8080/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("docs.confluent.io"));
   }
 
   @Test
-  public void shouldExtractParamValueCaseSensitive() {
-    assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz&blank#scalar-functions", "foo Bar"), nullValue());
-  }
-
-  @Test
-  public void shouldReturnEmptyStringIfParamHasNoValue() {
-    assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz&blank#scalar-functions", "blank"), equalTo(""));
-  }
-
-  @Test
-  public void shouldReturnNullIfParamNotPresent() {
-    assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz&blank#scalar-functions", "absent"), nullValue());
+  public void shouldReturnNullIfNoHost() {
+    assertThat(extractUdf.extractHost("https:///current/ksql/docs/syntax-reference.html#scalar-functions"), nullValue());
   }
 
   @Test
@@ -59,7 +49,7 @@ public class UrlExtractParameterKudfTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> extractUdf.extractParam("http://257.1/bogus/[url", "foo bar")
+        () -> extractUdf.extractHost("http://257.1/bogus/[url")
     );
 
     // Given:

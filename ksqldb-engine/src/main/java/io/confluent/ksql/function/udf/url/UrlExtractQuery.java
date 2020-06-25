@@ -22,19 +22,16 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 
 @UdfDescription(
-    name = UrlExtractHostKudf.NAME,
-    description = UrlExtractHostKudf.DESCRIPTION,
+    name = "url_extract_query",
+    description = "Extracts the query parameters of an "
+        + "application/x-www-form-urlencoded encoded String input, if it exists.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class UrlExtractHostKudf {
+public class UrlExtractQuery {
 
-  static final String DESCRIPTION =
-      "Extracts the Host Name of an application/x-www-form-urlencoded String input";
-  static final String NAME = "url_extract_host";
-
-  @Udf(description = DESCRIPTION)
-  public String extractHost(
-      @UdfParameter(description = "a valid URL") final String input) {
-    return UrlParser.extract(input, URI::getHost);
+  @Udf
+  public String extractQuery(
+      @UdfParameter(description = "a valid URL to extract a query from") final String input) {
+    return UrlParser.extract(input, URI::getQuery);
   }
 }

@@ -22,21 +22,15 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 
 @UdfDescription(
-    name = UrlExtractProtocolKudf.NAME,
-    description = UrlExtractProtocolKudf.DESCRIPTION,
+    name = "url_extract_path",
+    description = "Extracts the path of an application/x-www-form-urlencoded encoded String input",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class UrlExtractProtocolKudf {
+public class UrlExtractPath {
 
-  static final String DESCRIPTION =
-      "Extracts the Scheme Component (protocol) of an application/x-www-form-urlencoded "
-          + "encoded String input";
-  static final String NAME = "url_extract_protocol";
-
-  @Udf(description = DESCRIPTION)
-  public String extractProtocol(
-      @UdfParameter(description = "a valid URL to extract a protocl from")
-      final String input) {
-    return UrlParser.extract(input, URI::getScheme);
+  @Udf
+  public String extractPath(
+      @UdfParameter(description = "a valid URL") final String input) {
+    return UrlParser.extract(input, URI::getPath);
   }
 }

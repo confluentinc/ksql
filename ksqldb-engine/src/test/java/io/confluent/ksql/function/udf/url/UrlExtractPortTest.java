@@ -24,28 +24,27 @@ import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class UrlExtractPathKudfTest {
+public class UrlExtractPortTest {
 
-  private UrlExtractPathKudf extractUdf;
+  private UrlExtractPort extractUdf;
 
   @Before
   public void setUp() {
-    extractUdf = new UrlExtractPathKudf();
+    extractUdf = new UrlExtractPort();
   }
 
   @Test
-  public void shouldExtractPathIfPresent() {
-    assertThat(extractUdf.extractPath("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("/current/ksql/docs/syntax-reference.html"));
+  public void shouldExtractPortIfPresent() {
+    assertThat(
+            extractUdf.extractPort("https://docs.confluent.io:8080/current/ksql/docs/syntax-reference.html#scalar-functions"),
+            equalTo(8080));
   }
 
   @Test
-  public void shouldReturnSlashIfRootPath() {
-    assertThat(extractUdf.extractPath("https://docs.confluent.io/"), equalTo("/"));
-  }
-
-  @Test
-  public void shouldReturnEmptyIfNoPath() {
-    assertThat(extractUdf.extractPath("https://docs.confluent.io"), equalTo(""));
+  public void shouldReturnNullIfNoPort() {
+    assertThat(
+            extractUdf.extractPort("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"),
+            equalTo(null));
   }
 
   @Test
@@ -53,7 +52,7 @@ public class UrlExtractPathKudfTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> extractUdf.extractPath("http://257.1/bogus/[url")
+        () -> extractUdf.extractPort("http://257.1/bogus/[url")
     );
 
     // Then:

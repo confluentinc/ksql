@@ -15,33 +15,25 @@
 
 package io.confluent.ksql.function.udf.url;
 
+import com.google.common.escape.Escaper;
+import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
-import java.net.URI;
 
 @UdfDescription(
-    name = UrlExtractPortKudf.NAME,
-    description = UrlExtractPortKudf.DESCRIPTION,
+    name = "url_encode_param",
+    description = "Returns a version of the input with all URL sensitive characters encoded "
+        + "using the application/x-www-form-urlencoded standard.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class UrlExtractPortKudf {
+public class UrlEncodeParam {
 
-  static final String DESCRIPTION =
-      "Extracts the port from an application/x-www-form-urlencoded encoded String."
-          + " If there is no port or the string is invalid, this will return null.";
-  static final String NAME = "url_extract_port";
-
-  @Udf(description = DESCRIPTION)
-  public Integer extractPort(
-      @UdfParameter(description = "a valid URL to extract a port from")
-      final String input) {
-    final Integer port = UrlParser.extract(input, URI::getPort);
-
-    // check for LT 0 because URI::getPort returns -1 if the port
-    // does not exist, but UrlParser#extract will return null if
-    // the URI is invalid
-    return (port == null || port < 0) ? null : port;
+  @Udf
+  public String encodeParam(
+      @UdfParameter(description = "the value to encode") final String input) {
+    final Escaper escaper = UrlEscapers.urlFormParameterEscaper();
+    return escaper.escape(input);
   }
 }

@@ -25,23 +25,23 @@ import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class UrlExtractHostKudfTest {
+public class UrlExtractQueryTest {
 
-  private UrlExtractHostKudf extractUdf;
+  private UrlExtractQuery extractUdf;
 
   @Before
   public void setUp() {
-    extractUdf = new UrlExtractHostKudf();
+    extractUdf = new UrlExtractQuery();
   }
 
   @Test
-  public void shouldExtractHostIfPresent() {
-    assertThat(extractUdf.extractHost("https://docs.confluent.io:8080/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("docs.confluent.io"));
+  public void shouldExtractQueryIfPresent() {
+    assertThat(extractUdf.extractQuery("https://docs.confluent.io/current/ksql/docs/syntax-reference.html?a=b&foo%20bar=baz&c=d&e#scalar-functions"), equalTo("a=b&foo bar=baz&c=d&e"));
   }
 
   @Test
-  public void shouldReturnNullIfNoHost() {
-    assertThat(extractUdf.extractHost("https:///current/ksql/docs/syntax-reference.html#scalar-functions"), nullValue());
+  public void shouldReturnNullIfNoQuery() {
+    assertThat(extractUdf.extractQuery("https://current/ksql/docs/syntax-reference.html#scalar-functions"), nullValue());
   }
 
   @Test
@@ -49,7 +49,7 @@ public class UrlExtractHostKudfTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> extractUdf.extractHost("http://257.1/bogus/[url")
+        () -> extractUdf.extractQuery("http://257.1/bogus/[url")
     );
 
     // Given:

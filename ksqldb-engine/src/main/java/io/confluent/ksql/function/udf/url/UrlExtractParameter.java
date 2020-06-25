@@ -24,21 +24,17 @@ import java.net.URI;
 import java.util.List;
 
 @UdfDescription(
-    name = UrlExtractParameterKudf.NAME,
-    description = UrlExtractParameterKudf.DESCRIPTION,
+    name = "url_extract_parameter",
+    description = "Extracts a parameter with a specified name encoded inside an "
+        + "application/x-www-form-urlencoded String.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class UrlExtractParameterKudf {
-
-  static final String DESCRIPTION =
-      "Extracts a parameter with a specified name encoded inside an "
-      + "application/x-www-form-urlencoded String.";
-  static final String NAME = "url_extract_parameter";
+public class UrlExtractParameter {
 
   private static final Splitter PARAM_SPLITTER = Splitter.on('&');
   private static final Splitter KV_SPLITTER = Splitter.on('=').limit(2);
 
-  @Udf(description = DESCRIPTION)
+  @Udf
   public String extractParam(
       @UdfParameter(description = "a valid URL") final String input,
       @UdfParameter(description = "the parameter key") final String paramToFind) {

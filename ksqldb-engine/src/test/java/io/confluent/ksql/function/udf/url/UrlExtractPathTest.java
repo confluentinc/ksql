@@ -16,7 +16,6 @@
 package io.confluent.ksql.function.udf.url;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -25,28 +24,28 @@ import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class UrlExtractFragmentKudfTest {
+public class UrlExtractPathTest {
 
-  private UrlExtractFragmentKudf extractUdf;
+  private UrlExtractPath extractUdf;
 
   @Before
   public void setUp() {
-    extractUdf = new UrlExtractFragmentKudf();
+    extractUdf = new UrlExtractPath();
   }
 
   @Test
-  public void testEncodedFragment() {
-    assertThat(extractUdf.extractFragment("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar%20functions"), equalTo("scalar functions"));
+  public void shouldExtractPathIfPresent() {
+    assertThat(extractUdf.extractPath("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("/current/ksql/docs/syntax-reference.html"));
   }
 
   @Test
-  public void shouldExtractFragmentIfPresent() {
-    assertThat(extractUdf.extractFragment("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("scalar-functions"));
+  public void shouldReturnSlashIfRootPath() {
+    assertThat(extractUdf.extractPath("https://docs.confluent.io/"), equalTo("/"));
   }
 
   @Test
-  public void shouldReturnNullIfNoFragment() {
-    assertThat(extractUdf.extractFragment("https://docs.confluent.io/current/ksql/docs/syntax-reference.html"), nullValue());
+  public void shouldReturnEmptyIfNoPath() {
+    assertThat(extractUdf.extractPath("https://docs.confluent.io"), equalTo(""));
   }
 
   @Test
@@ -54,11 +53,10 @@ public class UrlExtractFragmentKudfTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> extractUdf.extractFragment("http://257.1/bogus/[url")
+        () -> extractUdf.extractPath("http://257.1/bogus/[url")
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("URL input has invalid syntax: http://257.1/bogus/[url"));
   }
-
 }

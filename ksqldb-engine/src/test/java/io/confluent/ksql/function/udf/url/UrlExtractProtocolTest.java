@@ -25,13 +25,13 @@ import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class UrlExtractProtocolKudfTest {
+public class UrlExtractProtocolTest {
 
-  private UrlExtractProtocolKudf extractUdf;
+  private UrlExtractProtocol extractUdf;
 
   @Before
   public void setUp() {
-    extractUdf = new UrlExtractProtocolKudf();
+    extractUdf = new UrlExtractProtocol();
   }
 
   @Test

@@ -22,20 +22,18 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 
 @UdfDescription(
-    name = UrlExtractQueryKudf.NAME,
-    description = UrlExtractQueryKudf.DESCRIPTION,
+    name = "url_extract_fragment",
+    description = "Extracts the fragment of an application/x-www-form-urlencoded String input",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class UrlExtractQueryKudf {
+public class UrlExtractFragment {
 
-  static final String DESCRIPTION = "Extracts the query parameters of an "
-      + "application/x-www-form-urlencoded encoded String input, if it exists.";
-  static final String NAME = "url_extract_query";
-
-  @Udf(description = DESCRIPTION)
-  public String extractQuery(
-      @UdfParameter(description = "a valid URL to extract a query from")
+  @Udf
+  public String extractFragment(
+      @UdfParameter(
+          value = "input",
+          description = "a valid URL to extract a fragment from")
       final String input) {
-    return UrlParser.extract(input, URI::getQuery);
+    return UrlParser.extract(input, URI::getFragment);
   }
 }

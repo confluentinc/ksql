@@ -13,12 +13,32 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 
-@UdfDescription(name = "multiply", description = "multiplies 2 numbers")
-public class Multiply {
+import org.apache.kafka.common.Configurable;
 
-    @Udf(description = "multiply two non-nullable integers")
-    public long multiply(@UdfParameter(value = "v1") int v1, @UdfParameter(value = "v2") int v2) {
-        return v1 * v2;
+import java.util.Map;
+
+@UdfDescription(name = "formula",
+                author = "example user",
+                version = "1.0.2",
+                description = "A custom formula for important business logic.")
+public class FormulaUdf implements Configurable {
+
+    private int baseValue;
+
+    @Override
+    public void configure(final Map<String, ?> map) {
+        String s = (String) map.get("ksql.functions.formula.base.value");
+        baseValue = Integer.parseInt(s);
+    }
+
+    @Udf(description = "The standard version of the formula with integer parameters.")
+    public long formula(@UdfParameter(value = "a") int v1, @UdfParameter(value = "b") int v2) {
+        return (v1 * v2) + baseValue;
+    }
+
+    @Udf(description = "A special variant of the formula, handling double parameters.")
+    public long formula(@UdfParameter(value = "a") double v1, @UdfParameter(value = "b") double v2) {
+        return ((int) (Math.ceil(v1) * Math.ceil(v2))) + baseValue;
     }
 
 }
@@ -57,6 +77,7 @@ repositories {
 
 dependencies {
     compile "io.confluent.ksql:ksqldb-udf:5.5.0"
+    compile "org.apache.kafka:kafka_2.13:2.5.0"
 }
 
 apply plugin: "com.github.johnrengelman.shadow"
@@ -89,16 +110,42 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 
-@UdfDescription(name = "multiply", description = "Multiplies 2 numbers.")
-public class MultiplyUdf {
+import org.apache.kafka.common.Configurable;
 
-    @Udf(description = "Multiply two non-nullable integers.")
-    public long multiply(@UdfParameter(value = "v1") int v1, @UdfParameter(value="v2") int v2) {
-        return v1 * v2;
+import java.util.Map;
+
+@UdfDescription(name = "formula",
+                author = "example user",
+                version = "1.0.2",
+                description = "A custom formula for important business logic.")
+public class FormulaUdf implements Configurable {
+
+    private int baseValue;
+
+    @Override
+    public void configure(final Map<String, ?> map) {
+        String s = (String) map.get("ksql.functions.formula.base.value");
+        baseValue = Integer.parseInt(s);
+    }
+
+    @Udf(description = "The standard version of the formula with integer parameters.")
+    public long formula(@UdfParameter(value = "a") int v1, @UdfParameter(value = "b") int v2) {
+        return (v1 * v2) + baseValue;
+    }
+
+    @Udf(description = "A special variant of the formula, handling double parameters.")
+    public long formula(@UdfParameter(value = "a") double v1, @UdfParameter(value = "b") double v2) {
+        return ((int) (Math.ceil(v1) * Math.ceil(v2))) + baseValue;
     }
 
 }
 ```
+
+TODO: call out version in description
+TODO: call out author
+TODO: call out multiple signatures
+TODO: talk about parameterization, not that it doesn't work yet for udtf/udafs
+TODO: why it needs to be List, not array types
 
 Some important points to notice:
 
@@ -117,22 +164,27 @@ Create a file at `src/main/java/com/example/IndexCharactersUdtf.java` and popula
 ```java
 package my.example;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 
-@UdtfDescription(name = "index_characters", description = "Returns a sequence of rows, where each element is the character in the string concatenated with its index position.")
-public class IndexCharactersUdtf {
+import java.util.ArrayList;
+import java.util.List;
 
-    @Udtf(description = "Concat each character with its index.")
-    public List<String> indexCharacters(@UdfParameter(value = "s") String s) {
+@UdtfDescription(name = "index_seq",
+                 author = "example user",
+                 version = "1.5.0",
+                 description = "Disassembles a sequence and produces new elements concatenated with indices.")
+public class IndexSequenceUdtf {
+
+    private final String DELIMITER = "-";
+
+    @Udtf(description = "Takes an array of any type and returns rows with each element paired to its index.")
+    public <E> List<String> indexSequence(@UdfParameter(value = "s") List<E> x) {
         List<String> result = new ArrayList<>();
 
-        for(int i = 0; i < s.length(); i++) { 
-            result.add(s.charAt(i) + "-" + i);
+        for(int i = 0; i < x.size(); i++) { 
+            result.add(x.get(i) + DELIMITER + i);
         }
 
         return result;
@@ -140,6 +192,8 @@ public class IndexCharactersUdtf {
 
 }
 ```
+
+TODO: talk about generics
 
 Notice how:
 
@@ -149,6 +203,75 @@ Notice how:
 Either continue following this guide by implementing more functions, or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
 
 ### Aggregation functions
+
+```java
+package my.example;
+
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.UdafDescription;
+import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.function.udf.UdfParameter;
+
+import java.util.List;
+import java.util.LinkedList;
+import java.util.Iterator;
+
+@UdafDescription(name = "rolling_sum",
+                 author = "example user",
+                 version = "2.0.0",
+                 description = "Maintains a rolling sum of the last 3 integers of a stream.")
+public class RollingSumUdaf {
+
+    private RollingSumUdaf() {
+    }
+
+    @UdafFactory(description = "Sums the previous 3 integers of a stream, discarding the oldest elements as new ones arrive.")
+    public static Udaf<Integer, List<Integer>, Integer> createUdaf() {
+        return new RollingSumUdafImpl();
+    }
+
+    private static class RollingSumUdafImpl implements Udaf<Integer, List<Integer>, Integer> {
+
+        private final int CAPACITY = 3;
+
+        @Override
+        public List<Integer> initialize() {
+            return new LinkedList<Integer>();
+        }
+
+        @Override
+        public List<Integer> aggregate(Integer newValue, List<Integer> aggregateValue) {
+            aggregateValue.add(newValue);
+
+            if (aggregateValue.size() > CAPACITY) {
+                aggregateValue = aggregateValue.subList(1, CAPACITY + 1);
+            }
+
+            return aggregateValue;
+        }
+
+        @Override
+        public Integer map(List<Integer> intermediate) {
+            Iterator<Integer> it = intermediate.iterator();
+            int k = 0;
+
+            while(it.hasNext()) {
+                k += it.next();
+            }
+
+            return k;
+        }
+
+        @Override
+        public List<Integer> merge(List<Integer> aggOne, List<Integer> aggTwo) {
+            return aggOne;
+        }
+    }
+}
+```
+
+TODO: talk about why a factory is needed
+TODO: Intermediate type restrictions
 
 ## Add the uberjar to ksqlDB server
 
@@ -227,6 +350,7 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       # Configuration for UDFs
       KSQL_KSQL_EXTENSION_DIR: "/opt/ksqldb-udfs"
+      KSQL_KSQL_FUNCTIONS_FORMULA_BASE_VALUE: 5
 
   ksqldb-cli:
     image: confluentinc/ksqldb-cli:0.9.0
@@ -282,15 +406,21 @@ DESCRIBE FUNCTION multiply;
 Which should output:
 
 ```
-Name        : MULTIPLY
-Overview    : multiplies 2 numbers
+Name        : FORMULA
+Author      : example user
+Version     : 1.0.2
+Overview    : A custom formula for important business logic.
 Type        : SCALAR
-Jar         : /opt/ksqldb-udfs/how-to-guides-0.0.1.jar
+Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
 Variations  : 
 
-	Variation   : MULTIPLY(v1 INT, v2 INT)
+	Variation   : FORMULA(a DOUBLE, b DOUBLE)
 	Returns     : BIGINT
-	Description : multiply two non-nullable INTs.
+	Description : A special variant of the formula, handling double parameters.
+
+	Variation   : FORMULA(a INT, b INT)
+	Returns     : BIGINT
+	Description : The standard version of the formula with integer parameters.
 ```
 
 Do the same for `index_characters`:
@@ -302,15 +432,31 @@ DESCRIBE FUNCTION index_characters;
 Which should output:
 
 ```
-Name        : INDEX_CHARACTERS
-Overview    : ...
+Name        : INDEX_SEQ
+Author      : example user
+Version     : 1.5.0
+Overview    : Disassembles a sequence and produces new elements concatenated with indices.
 Type        : TABLE
-Jar         : /opt/ksqldb-udfs/how-to-guides-0.0.1.jar
+Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
 Variations  : 
 
-	Variation   : INDEX_CHARACTERS(s VARCHAR)
+	Variation   : INDEX_SEQ(s ARRAY<E>)
 	Returns     : VARCHAR
-	Description : ...
+	Description : Disassembles a sequence and produces new elements concatenated with indices.
+```
+
+```
+Name        : ROLLING_SUM
+Author      : example user
+Version     : 2.0.0
+Overview    : Maintains a rolling sum of the last 3 integers of a stream.
+Type        : AGGREGATE
+Jar         : /opt/ksqldb-udfs/example-udfs-0.0.1.jar
+Variations  : 
+
+	Variation   : ROLLING_SUM(val INT)
+	Returns     : INT
+	Description : Sums the previous 3 integers of a stream, discarding the oldest elements as new ones arrive.
 ```
 
 ```sql
@@ -428,6 +574,10 @@ INSERT INTO s2 (a, b, c) VALUES ('k3', 6, ARRAY[5]);
 select a, rolling_sum(b) from s1 group by a emit changes;
 ```
 
+```sql
+select a, index_seq(c) from s1 emit changes;
+```
+
 ## Tear down the stack
 
 When you're done, tear down the stack by running:
@@ -436,11 +586,5 @@ When you're done, tear down the stack by running:
 docker-compose down
 ```
 
-- << TODO: UDFs, multiple signatures >>
-- << TODO: versions of UDFs, authors >>
 - << TODO: Table UDAF >>
-- << TODO: why UDAFs need a factory >>
-- << TODO: Show how to parameterize a UDF >>
-- << TODO: why it needs to be List, not array types >>
-- << TODO: Intermediate type restrictions >>
 - << TODO: Call out load in log file like `[2020-06-24 23:38:10,942] INFO Adding UDAF name=rolling_sum from path=/opt/ksqldb-udfs/example-udfs-0.0.1.jar class=class my.example.RollingSumUdaf (io.confluent.ksql.function.UdafLoader:71)` >>

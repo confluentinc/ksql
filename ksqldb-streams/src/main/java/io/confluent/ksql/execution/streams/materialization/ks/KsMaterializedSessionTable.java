@@ -78,7 +78,7 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
           continue;
         }
 
-        if (!windowEnd.contains((wnd.endTime()))) {
+        if (!windowEnd.contains(wnd.endTime())) {
           continue;
         }
 

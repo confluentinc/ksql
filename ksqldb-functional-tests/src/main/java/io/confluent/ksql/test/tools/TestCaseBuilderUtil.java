@@ -62,11 +62,11 @@ public final class TestCaseBuilderUtil {
   }
 
   public static String buildTestName(
-      final Path testPath,
+      final Path originalFileName,
       final String testName,
       final Optional<String> explicitFormat
   ) {
-    final String prefix = filePrefix(testPath.toString());
+    final String prefix = filePrefix(originalFileName.toString());
 
     final String pf = explicitFormat
         .map(f -> " - " + f)
@@ -76,10 +76,10 @@ public final class TestCaseBuilderUtil {
   }
 
   public static String extractSimpleTestName(
-      final String testPath,
+      final String originalFileName,
       final String testName
   ) {
-    final String prefix = filePrefix(testPath);
+    final String prefix = filePrefix(originalFileName);
 
     if (!testName.startsWith(prefix)) {
       throw new IllegalArgumentException("Not prefixed test name: " + testName);

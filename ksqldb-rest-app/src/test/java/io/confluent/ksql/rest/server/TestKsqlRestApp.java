@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -471,10 +473,16 @@ public class TestKsqlRestApp extends ExternalResource {
 
     // Rather than having ksql client calls disabled, creates a real instance suitable for
     // functional tests.
-    public Builder withEnabledKsqlClient() {
+    public Builder withEnabledKsqlClient(
+        final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
-              () -> TestDefaultKsqlClientFactory.instance(additionalProps));
+              () -> TestDefaultKsqlClientFactory.instance(additionalProps, socketAddressFactory));
+      return this;
+    }
+
+    public Builder withEnabledKsqlClient() {
+      withEnabledKsqlClient(SocketAddress::inetSocketAddress);
       return this;
     }
 

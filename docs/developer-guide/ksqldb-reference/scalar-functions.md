@@ -16,6 +16,26 @@ ABS(col1)
 
 The absolute value of a value.
 
+### `AS_VALUE`
+
+```sql
+AS_VALUE(keyCol)
+```
+
+Creates a copy of a key column in the value.
+
+For example:
+
+```sql
+CREATE TABLE AGG AS
+   SELECT 
+     ID,                  -- this is the grouping column and will be stored in the message key.
+     AS_VALUE(ID) AS ID2  -- this creates a copy of ID, called ID2, stored in the message value.
+     COUNT(*) AS COUNT
+   FROM S
+   GROUP BY ID;
+```
+
 ### `CEIL`
 
 ```sql
@@ -380,7 +400,38 @@ SLICE(col1, from, to)
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
 
+### `ARRAY_JOIN`
+
+```sql
+ARRAY_JOIN(col1, delimiter)
+```
+
+Creates a flat string representation of all the elements contained in the given array.
+The elements in the resulting string are separated by the chosen `delimiter`, 
+which is an optional parameter that falls back to a comma `,`. The current implementation only
+allows for array elements of primitive ksqlDB types.
+
 ## Strings
+
+### `CHR`
+
+```sql
+CHR(decimal_code | utf_string)
+```
+
+Returns a single-character string representing the Unicode code-point described by the input. The input parameter can be either a decimal character code or a string representation of a UTF code.
+
+Returns NULL if the input is NULL or does not represent a valid code-point.
+
+Commonly used to insert control characters such as `Tab` (9), `Line Feed` (10), or `Carriage Return` (13) into strings.
+
+Examples:
+```sql
+CHR(75)        => 'K'
+CHR('\u004b')  => 'K'
+CHR(22909)     => '好'
+CHR('\u597d')  => '好'
+```
 
 ### `CONCAT`
 
@@ -700,6 +751,23 @@ NULL value is returned.
 If the delimiter is found at the beginning or end
 of the string, or there are contiguous delimiters,
 then an empty space is added to the array.
+
+### `SPLIT_TO_MAP`
+
+```sql
+SPLIT_TO_MAP(input, entryDelimiter, kvDelimiter)
+```
+
+Splits a string into key-value pairs and creates a map from them. The 
+`entryDelimiter` splits the string into key-value pairs which are then split by `kvDelimiter`. If the same key is present multiple times in the input, the latest value for that key is returned. 
+
+Returns NULL if the input text is NULL.
+Returns NULL if either of the delimiters is NULL or an empty string.
+
+Example:
+```sql
+SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green', 'cherry':'red'}
+```
 
 ### `SUBSTRING`
 

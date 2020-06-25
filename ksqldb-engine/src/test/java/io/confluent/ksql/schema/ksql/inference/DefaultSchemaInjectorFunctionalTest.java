@@ -397,6 +397,12 @@ public class DefaultSchemaInjectorFunctionalTest {
   }
 
   @Test
+  public void shouldInferEmptyStruct() {
+    final Schema emptyStruct = SchemaBuilder.struct().optional().build();
+    shouldInferConnectType(emptyStruct, emptyStruct);
+  }
+
+  @Test
   public void shouldInferComplexConnectSchema() {
     final Schema arrayInner = SchemaBuilder.struct()
         .field("arrayInner1", Schema.OPTIONAL_STRING_SCHEMA)

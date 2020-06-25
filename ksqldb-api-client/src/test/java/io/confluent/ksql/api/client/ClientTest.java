@@ -30,15 +30,24 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.rest.entity.KafkaTopicInfo;
+import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.PushQueryId;
+import io.confluent.ksql.rest.entity.SourceInfo;
+import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.TablesList;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -327,7 +336,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThatEventually(subscriber::getError, is(notNullValue()));
     assertThat(subscriber.getError(), instanceOf(KsqlException.class));
-    assertThat(subscriber.getError().getMessage(), containsString("Error in processing query"));
+    assertThat(subscriber.getError().getMessage(), containsString("Error in processing query. Check server logs for details."));
 
     assertThatEventually(streamedQueryResult::isFailed, is(true));
     assertThat(streamedQueryResult.isComplete(), is(false));
@@ -563,7 +572,94 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received error from /inserts-stream"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 50000"));
-    assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts"));
+    assertThat(e.getCause().getMessage(), containsString("Message: Error in processing inserts. Check server logs for details."));
+  }
+
+  @Test
+  public void shouldListStreams() throws Exception {
+    // Given
+    final List<SourceInfo.Stream> expectedStreams = new ArrayList<>();
+    expectedStreams.add(new SourceInfo.Stream("stream1", "topic1", "JSON"));
+    expectedStreams.add(new SourceInfo.Stream("stream2", "topic2", "AVRO"));
+    final StreamsList entity = new StreamsList("list streams;", expectedStreams);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<StreamInfo> streams = javaClient.listStreams().get();
+
+    // Then
+    assertThat(streams, hasSize(expectedStreams.size()));
+    assertThat(streams.get(0).getName(), is("stream1"));
+    assertThat(streams.get(0).getTopic(), is("topic1"));
+    assertThat(streams.get(0).getFormat(), is("JSON"));
+    assertThat(streams.get(1).getName(), is("stream2"));
+    assertThat(streams.get(1).getTopic(), is("topic2"));
+    assertThat(streams.get(1).getFormat(), is("AVRO"));
+  }
+
+  @Test
+  public void shouldListTables() throws Exception {
+    // Given
+    final List<SourceInfo.Table> expectedTables = new ArrayList<>();
+    expectedTables.add(new SourceInfo.Table("table1", "topic1", "JSON", true));
+    expectedTables.add(new SourceInfo.Table("table2", "topic2", "AVRO", false));
+    final TablesList entity = new TablesList("list tables;", expectedTables);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<TableInfo> tables = javaClient.listTables().get();
+
+    // Then
+    assertThat(tables, hasSize(expectedTables.size()));
+    assertThat(tables.get(0).getName(), is("table1"));
+    assertThat(tables.get(0).getTopic(), is("topic1"));
+    assertThat(tables.get(0).getFormat(), is("JSON"));
+    assertThat(tables.get(0).isWindowed(), is(true));
+    assertThat(tables.get(1).getName(), is("table2"));
+    assertThat(tables.get(1).getTopic(), is("topic2"));
+    assertThat(tables.get(1).getFormat(), is("AVRO"));
+    assertThat(tables.get(1).isWindowed(), is(false));
+  }
+
+  @Test
+  public void shouldListTopics() throws Exception {
+    // Given
+    final List<KafkaTopicInfo> expectedTopics = new ArrayList<>();
+    expectedTopics.add(new KafkaTopicInfo("topic1", ImmutableList.of(2, 2, 2)));
+    expectedTopics.add(new KafkaTopicInfo("topic2", ImmutableList.of(1, 1)));
+    final KafkaTopicsList entity = new KafkaTopicsList("list topics;", expectedTopics);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<TopicInfo> topics = javaClient.listTopics().get();
+
+    // Then
+    assertThat(topics, hasSize(expectedTopics.size()));
+    assertThat(topics.get(0).getName(), is("topic1"));
+    assertThat(topics.get(0).getPartitions(), is(3));
+    assertThat(topics.get(0).getReplicasPerPartition(), is(ImmutableList.of(2, 2, 2)));
+    assertThat(topics.get(1).getName(), is("topic2"));
+    assertThat(topics.get(1).getPartitions(), is(2));
+    assertThat(topics.get(1).getReplicasPerPartition(), is(ImmutableList.of(1, 1)));
+  }
+
+  @Test
+  public void shouldHandleErrorFromListTopics() {
+    // Given
+    KafkaResponseGetFailedException exception = new KafkaResponseGetFailedException(
+        "Failed to retrieve Kafka Topic names", new RuntimeException("boom"));
+    testEndpoints.setExecuteKsqlRequestException(exception);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.listTopics().get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Failed to retrieve Kafka Topic names"));
   }
 
   protected Client createJavaClient() {

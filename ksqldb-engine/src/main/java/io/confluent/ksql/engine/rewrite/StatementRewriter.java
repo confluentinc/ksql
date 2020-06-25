@@ -386,6 +386,7 @@ public final class StatementRewriter<C> {
           node.getName(),
           (Query) rewriter.apply(node.getQuery(), context),
           node.isNotExists(),
+          node.isOrReplace(),
           node.getProperties()
       );
     }
@@ -418,6 +419,7 @@ public final class StatementRewriter<C> {
           node.getName(),
           (Query) rewriter.apply(node.getQuery(), context),
           node.isNotExists(),
+          node.isOrReplace(),
           node.getProperties()
       );
     }

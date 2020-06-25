@@ -32,6 +32,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -116,6 +117,9 @@ public class EndToEndIntegrationTest {
           KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
           "expected-value"
       )
+      .withAdditionalConfig(
+          KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
+          "http://foo:8080")
       .build();
 
   @Rule

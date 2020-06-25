@@ -56,6 +56,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
@@ -146,10 +147,10 @@ public class SchemaRegisterInjectorTest {
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', value_format='AVRO', partitions=1);");
 
     // When:
-    injector.inject(statement);
+    final KsqlSchemaRegistryNotConfiguredException e = assertThrows(KsqlSchemaRegistryNotConfiguredException.class, () -> injector.inject(statement));
 
     // Then:
-    verifyNoMoreInteractions(schemaRegistryClient);
+    assertThat(e.getMessage(), containsString("Cannot create topic 'expectedName' with format AVRO without configuring"));
   }
 
   @Test
@@ -184,10 +185,10 @@ public class SchemaRegisterInjectorTest {
     givenStatement("CREATE STREAM sink WITH(value_format='DELIMITED') AS SELECT * FROM SOURCE;");
 
     // When:
-    injector.inject(statement);
+    final KsqlSchemaRegistryNotConfiguredException e = assertThrows(KsqlSchemaRegistryNotConfiguredException.class, () -> injector.inject(statement));
 
     // Then:
-    verifyNoMoreInteractions(schemaRegistryClient);
+    assertThat(e.getMessage(), containsString("Cannot create topic 'SINK' with format AVRO without configuring"));
   }
 
   @Test
@@ -242,8 +243,7 @@ public class SchemaRegisterInjectorTest {
   @Test
   public void shouldNotExecuteQueryOnOriginalExecutionContext() {
     // Given:
-    config = new KsqlConfig(ImmutableMap.of());
-    givenStatement("CREATE STREAM sink WITH(value_format='DELIMITED') AS SELECT * FROM SOURCE;");
+    givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
 
     // When:
     injector.inject(statement);

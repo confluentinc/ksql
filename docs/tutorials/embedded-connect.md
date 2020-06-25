@@ -100,7 +100,7 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_KSQL_CONNECT_WORKER_CONFIG: "/connect/connect.properties"
       KSQL_CONNECT_GROUP_ID: "ksql-connect-cluster"
-      KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
+      KSQL_CONNECT_BOOTSTRAP_SERVERS: broker:9092
       KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
       KSQL_CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
       KSQL_CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
@@ -249,7 +249,7 @@ columns.
 
 ```sql
 CREATE TABLE driverProfiles (
-  driver_id INTEGER KEY,
+  driver_id INTEGER PRIMARY KEY,
   make STRING,
   model STRING,
   year INTEGER,

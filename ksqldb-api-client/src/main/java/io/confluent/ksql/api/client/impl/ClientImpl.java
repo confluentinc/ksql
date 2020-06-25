@@ -21,9 +21,12 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
-import io.confluent.ksql.api.client.KsqlClientException;
 import io.confluent.ksql.api.client.KsqlObject;
+import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.TableInfo;
+import io.confluent.ksql.api.client.TopicInfo;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -34,6 +37,7 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
@@ -41,10 +45,16 @@ import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class ClientImpl implements Client {
+
+  private static final String QUERY_STREAM_ENDPOINT = "/query-stream";
+  private static final String INSERTS_ENDPOINT = "/inserts-stream";
+  private static final String CLOSE_QUERY_ENDPOINT = "/close-query";
+  private static final String KSQL_ENDPOINT = "/ksql";
 
   private final ClientOptions clientOptions;
   private final Vertx vertx;
@@ -126,10 +136,10 @@ public class ClientImpl implements Client {
     requestBody.appendString(row.toJsonString()).appendString("\n");
 
     makeRequest(
-        "/inserts-stream",
+        INSERTS_ENDPOINT,
         requestBody,
         cf,
-        response -> handleResponse(response, cf, InsertsResponseHandler::new)
+        response -> handleStreamedResponse(response, cf, InsertsResponseHandler::new)
     );
 
     return cf;
@@ -140,10 +150,55 @@ public class ClientImpl implements Client {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
     makeRequest(
-        "/close-query",
+        CLOSE_QUERY_ENDPOINT,
         new JsonObject().put("queryId", queryId),
         cf,
         response -> handleCloseQueryResponse(response, cf)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<List<StreamInfo>> listStreams() {
+    final CompletableFuture<List<StreamInfo>> cf = new CompletableFuture<>();
+
+    makeRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "list streams;"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AdminResponseHandlers::handleListStreamsResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<List<TableInfo>> listTables() {
+    final CompletableFuture<List<TableInfo>> cf = new CompletableFuture<>();
+
+    makeRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "list tables;"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AdminResponseHandlers::handleListTablesResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<List<TopicInfo>> listTopics() {
+    final CompletableFuture<List<TopicInfo>> cf = new CompletableFuture<>();
+
+    makeRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "list topics;"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AdminResponseHandlers::handleListTopicsResponse)
     );
 
     return cf;
@@ -158,23 +213,28 @@ public class ClientImpl implements Client {
   }
 
   @FunctionalInterface
-  private interface ResponseHandlerSupplier<T extends CompletableFuture<?>> {
+  private interface StreamedResponseHandlerSupplier<T extends CompletableFuture<?>> {
     ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf);
+  }
+
+  @FunctionalInterface
+  private interface SingleEntityResponseHandler<T> {
+    void accept(JsonObject entity, CompletableFuture<T> cf);
   }
 
   private <T extends CompletableFuture<?>> void makeQueryRequest(
       final String sql,
       final Map<String, Object> properties,
       final T cf,
-      final ResponseHandlerSupplier<T> responseHandlerSupplier
+      final StreamedResponseHandlerSupplier<T> responseHandlerSupplier
   ) {
     final JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
 
     makeRequest(
-        "/query-stream",
+        QUERY_STREAM_ENDPOINT,
         requestBody,
         cf,
-        response -> handleResponse(response, cf, responseHandlerSupplier)
+        response -> handleStreamedResponse(response, cf, responseHandlerSupplier)
     );
   }
 
@@ -206,10 +266,10 @@ public class ClientImpl implements Client {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T extends CompletableFuture<?>> void handleResponse(
+  private static <T extends CompletableFuture<?>> void handleStreamedResponse(
       final HttpClientResponse response,
       final T cf,
-      final ResponseHandlerSupplier<T> responseHandlerSupplier) {
+      final StreamedResponseHandlerSupplier<T> responseHandlerSupplier) {
     if (response.statusCode() == OK.code()) {
       final RecordParser recordParser = RecordParser.newDelimited("\n", response);
       final ResponseHandler<T> responseHandler =
@@ -229,6 +289,36 @@ public class ClientImpl implements Client {
   ) {
     if (response.statusCode() == OK.code()) {
       cf.complete(null);
+    } else {
+      handleErrorResponse(response, cf);
+    }
+  }
+
+  private static <T> void handleSingleEntityResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<T> cf,
+      final SingleEntityResponseHandler<T> responseHandler
+  ) {
+    if (response.statusCode() == OK.code()) {
+      response.bodyHandler(buffer -> {
+        final JsonArray entities = buffer.toJsonArray();
+        if (entities.size() != 1) {
+          cf.completeExceptionally(new IllegalStateException(
+              "Unexpected number of entities in server response: " + entities.size()));
+          return;
+        }
+
+        final JsonObject entity;
+        try {
+          entity = entities.getJsonObject(0);
+        } catch (Exception e) {
+          cf.completeExceptionally(new IllegalStateException(
+              "Unexpected server response format. Response: " + entities.getJsonObject(0)));
+          return;
+        }
+
+        responseHandler.accept(entity, cf);
+      });
     } else {
       handleErrorResponse(response, cf);
     }

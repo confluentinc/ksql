@@ -253,10 +253,15 @@ public class AstBuilder {
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
+      if (context.REPLACE() != null) {
+        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
+      }
+
       return new CreateTable(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
+          context.REPLACE() != null,
           context.EXISTS() != null,
           CreateSourceProperties.from(properties)
       );
@@ -270,10 +275,15 @@ public class AstBuilder {
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
+      if (context.REPLACE() != null) {
+        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
+      }
+
       return new CreateStream(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
+          context.REPLACE() != null,
           context.EXISTS() != null,
           CreateSourceProperties.from(properties)
       );
@@ -285,11 +295,16 @@ public class AstBuilder {
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
 
+      if (context.REPLACE() != null) {
+        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
+      }
+
       return new CreateStreamAsSelect(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
+          context.REPLACE() != null,
           CreateSourceAsProperties.from(properties)
       );
     }
@@ -300,11 +315,16 @@ public class AstBuilder {
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
 
+      if (context.REPLACE() != null) {
+        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
+      }
+
       return new CreateTableAsSelect(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
+          context.REPLACE() != null,
           CreateSourceAsProperties.from(properties)
       );
     }

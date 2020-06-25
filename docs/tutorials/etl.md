@@ -465,7 +465,7 @@ CREATE STREAM enriched_orders AS
            c.age AS customer_age
     FROM orders AS o
     LEFT JOIN customers_by_key c
-    ON o.customer_id = c.ROWKEY
+    ON o.customer_id = c.id
     EMIT CHANGES;
 ```
 

@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-SHOW | LIST TABLES;
+SHOW | LIST TABLES [EXTENDED];
 ```
 
 Description
@@ -24,4 +24,12 @@ List the defined tables.
 Example
 -------
 
-TODO: example
+
+```sql
+-- See the list of tables currently registered:
+LIST TABLES;
+
+-- See extended information about currently registered tables:
+SHOW TABLES EXTENDED; 
+```
+

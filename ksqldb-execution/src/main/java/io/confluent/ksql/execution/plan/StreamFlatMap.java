@@ -39,6 +39,10 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
     this.tableFunctions = ImmutableList.copyOf(Objects.requireNonNull(tableFunctions));
+
+    if (tableFunctions.isEmpty()) {
+      throw new IllegalArgumentException("Need at latest one table function");
+    }
   }
 
   @Override

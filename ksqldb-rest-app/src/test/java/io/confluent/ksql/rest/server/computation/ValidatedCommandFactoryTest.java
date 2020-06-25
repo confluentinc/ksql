@@ -25,6 +25,11 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
+import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.execution.ddl.commands.Executor;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
@@ -35,6 +40,7 @@ import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Map;
@@ -47,7 +53,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ValidatedCommandFactoryTest {
+
   private static final QueryId QUERY_ID = new QueryId("FOO");
+  private static final KsqlPlan A_PLAN = KsqlPlan.ddlPlanCurrent(
+      "DROP TABLE Bob",
+      new DropSourceCommand(SourceName.of("BOB"))
+  );
 
   @Mock
   private KsqlExecutionContext executionContext;
@@ -62,8 +73,6 @@ public class ValidatedCommandFactoryTest {
   @Mock
   private Map<String, Object> overrides;
   @Mock
-  private KsqlPlan plan;
-  @Mock
   private PersistentQueryMetadata query1;
   @Mock
   private PersistentQueryMetadata query2;
@@ -73,7 +82,7 @@ public class ValidatedCommandFactoryTest {
 
   @Before
   public void setup() {
-    commandFactory = new ValidatedCommandFactory(config);
+    commandFactory = new ValidatedCommandFactory();
   }
 
   @Test
@@ -171,7 +180,7 @@ public class ValidatedCommandFactoryTest {
     verify(executionContext).plan(serviceContext, configuredStatement);
     verify(executionContext).execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(plan, overrides, config)
+        ConfiguredKsqlPlan.of(A_PLAN, overrides, config)
     );
   }
 
@@ -184,7 +193,23 @@ public class ValidatedCommandFactoryTest {
     final Command command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
-    assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(plan, overrides, config))));
+    assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, overrides, config))));
+  }
+
+  @Test
+  public void shouldThrowIfCommandCanNotBeDeserialized() {
+    // Given:
+    givenNonDeserializableCommand();
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> commandFactory.create(configuredStatement, executionContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Did not write the command to the command topic "
+        + "as it could not be deserialized."));
   }
 
   private void givenTerminate() {
@@ -201,8 +226,15 @@ public class ValidatedCommandFactoryTest {
 
   private void givenPlannedQuery() {
     configuredStatement = configuredStatement("CREATE STREAM", plannedQuery);
-    when(plan.getStatementText()).thenReturn("CREATE STREAM ");
-    when(executionContext.plan(any(), any())).thenReturn(plan);
+    when(executionContext.plan(any(), any())).thenReturn(A_PLAN);
+    when(executionContext.getServiceContext()).thenReturn(serviceContext);
+  }
+
+  private void givenNonDeserializableCommand() {
+    configuredStatement = configuredStatement("CREATE STREAM", plannedQuery);
+    final KsqlPlan planThatFailsToDeserialize = KsqlPlan
+        .ddlPlanCurrent("some sql", new UnDeserializableCommand());
+    when(executionContext.plan(any(), any())).thenReturn(planThatFailsToDeserialize);
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
   }
 
@@ -215,5 +247,14 @@ public class ValidatedCommandFactoryTest {
         overrides,
         config
     );
+  }
+
+  // Not a known subtype so will fail to deserialize:
+  private static class UnDeserializableCommand implements DdlCommand {
+
+    @Override
+    public DdlCommandResult execute(final Executor executor) {
+      return null;
+    }
   }
 }

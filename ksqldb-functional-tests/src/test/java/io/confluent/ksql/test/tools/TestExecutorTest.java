@@ -120,12 +120,13 @@ public class TestExecutorTest {
     when(sourceTopic.getName()).thenReturn("source_topic");
     when(sinkTopic.getName()).thenReturn(SINK_TOPIC_NAME);
 
-    final TopologyTestDriverContainer container = new TopologyTestDriverContainer(
+    final TopologyTestDriverContainer container = TopologyTestDriverContainer.of(
         topologyTestDriver,
         ImmutableList.of(sourceTopic),
-        sinkTopic,
-        () -> ImmutableSet.of(SINK_TOPIC_NAME)
+        sinkTopic
     );
+
+    when(topologyTestDriver.producedTopicNames()).thenReturn(ImmutableSet.of(SINK_TOPIC_NAME));
 
     when(topologyBuilder.buildStreamsTopologyTestDrivers(any(), any(), any(), any(), any(), any()))
         .thenReturn(ImmutableList.of(container));

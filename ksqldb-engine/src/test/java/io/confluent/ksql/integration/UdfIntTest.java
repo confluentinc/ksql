@@ -39,6 +39,7 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,7 +80,9 @@ public class UdfIntTest {
       .around(TEST_HARNESS);
 
   @Rule
-  public final TestKsqlContext ksqlContext = TEST_HARNESS.buildKsqlContext();
+  public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
+      .withAdditionalConfig(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .build();
 
   private final TestData testData;
 

@@ -346,12 +346,11 @@ Variations  :
     Description : multiply two non-nullable INTs.
 ```
 
-Use the MULTIPLY function in a query. If you follow the steps in
-[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Docker)](../tutorials/basics-docker.md),
-you can multiply the two BIGINT fields in the `pageviews_original` stream:
+Use the MULTIPLY function in a query. the following SELECT statement
+multiplies two BIGINT fields in `pageviews` stream:
 
 ```sql
-SELECT MULTIPLY(rowtime, viewtime) FROM pageviews_original EMIT CHANGES;
+SELECT MULTIPLY(rowtime, viewtime) FROM pageviews EMIT CHANGES;
 ```
 
 Your output should resemble:

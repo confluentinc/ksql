@@ -579,9 +579,13 @@ You should see the following:
 
 ### Invoke the aggregation function
 
+Inspect the `rolling_sum` function by running:
+
 ```sql
 DESCRIBE FUNCTION rolling_sum;
 ```
+
+Which should output the following:
 
 ```
 Name        : ROLLING_SUM
@@ -597,6 +601,69 @@ Variations  :
 	Description : Sums the previous 3 integers of a stream, discarding the oldest elements as new ones arrive.
 ```
 
+Create a stream named `s3`:
+
+```sql
+CREATE STREAM s3 (
+    a VARCHAR KEY,
+    b INT
+) WITH (
+    kafka_topic = 's3',
+    partitions = 1,
+    value_format = 'avro'
+);
+```
+
+Insert some rows into the stream:
+
+```sql
+INSERT INTO s3 (a, b) VALUES ('k1', 3);
+INSERT INTO s3 (a, b) VALUES ('k1', 5);
+INSERT INTO s3 (a, b) VALUES ('k1', 7);
+INSERT INTO s3 (a, b) VALUES ('k2', 6);
+INSERT INTO s3 (a, b) VALUES ('k2', 2);
+```
+
+Execute a push query. Recall what `rolling_sum` does. It aggregates the previous three elements together, sums them up, and emits their output.
+
+```sql
+SELECT a, rolling_sum(b) AS MOVING_SUM FROM s3 GROUP BY a EMIT CHANGES;
+```
+
+Your output should look like the following. `k1` sums `3`, `5`, and `7` together to get a result of `15`. `k2` sums `6` and `2` together to get a result of `8`.
+
+```
++--------------------------------------------------------------+--------------------------------------------------------------+
+|A                                                             |MOVING_SUM                                                    |
++--------------------------------------------------------------+--------------------------------------------------------------+
+|k1                                                            |15                                                            |
+|k2                                                            |8                                                             |
+```
+
+Insert some more rows and shift older elements out of the aggregate:
+
+```sql
+INSERT INTO s3 (a, b) VALUES ('k1', 9);
+INSERT INTO s3 (a, b) VALUES ('k2', 1);
+INSERT INTO s3 (a, b) VALUES ('k2', 6);
+```
+
+Run the query again:
+
+```sql
+SELECT a, rolling_sum(b) AS MOVING_SUM FROM s3 GROUP BY a EMIT CHANGES;
+```
+
+And you should now see these results. In `k1`, the previous three values are now `5`, `7`, and `9`. In `k2`, the elements are `2`, `1`, and `6`.
+
+```
++--------------------------------------------------------------+--------------------------------------------------------------+
+|A                                                             |MOVING_SUM                                                    |
++--------------------------------------------------------------+--------------------------------------------------------------+
+|k1                                                            |21                                                            |
+|k2                                                            |9                                                             |
+```
+
 ## Tear down the stack
 
 When you're done, tear down the stack by running:
@@ -606,64 +673,6 @@ docker-compose down
 ```
 
 - << TODO: Table UDAF >>
-- << TODO: Call out load in log file like 
 - << TODO: page redirect from old material >>
 - << TODO: right Gradle UDF coordinates >>
 - << TODO: Struct example? >>
-
-
-
-```sql
-CREATE STREAM s1 (
-    a VARCHAR,
-    b INT,
-    c VARCHAR
-) WITH (
-    kafka_topic = 's1',
-    partitions = 1,
-    value_format = 'avro',
-    key = 'a'
-);
-```
-
-Insert some rows into the stream:
-
-```sql
-INSERT INTO s1 (a, b, c) VALUES ('k1', 2, 'abc');
-INSERT INTO s1 (a, b, c) VALUES ('k2', 4, 'de');
-INSERT INTO s1 (a, b, c) VALUES ('k3', 6, 'f');
-```
-
-```sql
-CREATE STREAM s1 (
-    a VARCHAR,
-    b INT,
-    c ARRAY<VARCHAR>
-) WITH (
-    kafka_topic = 's1',
-    partitions = 1,
-    value_format = 'avro',
-    key = 'a'
-);
-
-INSERT INTO s1 (a, b, c) VALUES ('k1', 2, ARRAY['a', 'b', 'c']);
-INSERT INTO s1 (a, b, c) VALUES ('k2', 4, ARRAY['d', 'e']);
-INSERT INTO s1 (a, b, c) VALUES ('k3', 6, ARRAY['f']);
-
-
-
-CREATE STREAM s2 (
-    a VARCHAR,
-    b INT,
-    c ARRAY<INT>
-) WITH (
-    kafka_topic = 's2',
-    partitions = 1,
-    value_format = 'avro',
-    key = 'a'
-);
-
-INSERT INTO s2 (a, b, c) VALUES ('k1', 2, ARRAY[0, 1, 2]);
-INSERT INTO s2 (a, b, c) VALUES ('k2', 4, ARRAY[3, 4]);
-INSERT INTO s2 (a, b, c) VALUES ('k3', 6, ARRAY[5]);
-```

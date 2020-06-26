@@ -716,7 +716,6 @@ public class ClientIntegrationTest {
     ));
   }
 
-  @Ignore // temporarily disable while flakiness is being investigated
   @Test
   public void shouldListQueries() throws Exception {
     // When

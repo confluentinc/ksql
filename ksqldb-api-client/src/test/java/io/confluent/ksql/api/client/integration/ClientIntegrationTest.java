@@ -93,6 +93,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -715,6 +716,7 @@ public class ClientIntegrationTest {
     ));
   }
 
+  @Ignore // temporarily disable while flakiness is being investigated
   @Test
   public void shouldListQueries() throws Exception {
     // When

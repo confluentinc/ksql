@@ -187,6 +187,26 @@ public class SearchedCaseFunctionTest {
   public void shouldReturnDefaultIfNoMatch() {
     // Given:
     final List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> 1),
+        SearchedCaseFunction.whenClause(() -> false, () -> 2),
+        SearchedCaseFunction.whenClause(() -> false, () -> 3),
+        SearchedCaseFunction.whenClause(() -> false, () -> 4)
+    );
+
+    // When:
+    final Integer result = SearchedCaseFunction.searchedCaseFunction(
+        lazyWhenClauses,
+        () -> 10
+    );
+
+    // Then:
+    assertThat(result, equalTo(10));
+  }
+
+  @Test
+  public void shouldHandleNullReturnValues() {
+    // Given:
+    final List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
         SearchedCaseFunction.whenClause(() -> true, () -> null)
     );
 
@@ -200,10 +220,5 @@ public class SearchedCaseFunctionTest {
 
     // Then:
     assertThat(result, is(nullValue()));
-  }
-
-  @Test
-  public void shouldHandleNullReturnValues() {
-
   }
 }

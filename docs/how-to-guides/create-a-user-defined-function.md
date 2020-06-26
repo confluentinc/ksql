@@ -286,11 +286,13 @@ There are a few things to observe in this class:
 
 - By contrast to scalar and tabular functions, aggregation functions are designated by a static method with the `@UdafFactory` annotation. Because aggregations must implement multiple methods, this helps ksqlDB differentiate aggregations when multiple type signatures are used.
 
+- The static factory method needs to either return `Udaf` or `TableUdaf` (in package `io.confluent.ksql.function.udaf`). The former, which is used in this example, can only be used to aggregate streams into tables, and cannot aggregate tables into other tables. To achieve the latter, use the `TableUdaf`, which derives from `Udaf`, and implement the `undo()` method, too.
+
 - ksqlDB decouples the internal representation of an aggregate from how it is used in an operation. This is very useful because aggregations can maintain complex state, but expose it in a simpler way in a query. In this example, the internal representation is the `LinkedList`, as indicated by the `initialize()` method. But when ksqlDB interacts with the aggregation value, `map()` is called, which sums the values in the list. The `List` is needed to keep a running history of values, but the summed value is needed for operations.
 
 - UDAFs must be parameterized with three generic types. The first parameter represents the type of the column to aggregate over. The second column represents the internal representation of the aggregation, which is established in `initialize()`. The third parameter represents the type that the query interacts with, which is converted by `map()`.
 
-- All types, including inputs, intermediate representations, and final representations, must be types that ksqlDB supports. 
+- All types, including inputs, intermediate representations, and final representations, must be types that ksqlDB supports.
 
 ## Add the uberjar to ksqlDB server
 
@@ -672,7 +674,6 @@ When you're done, tear down the stack by running:
 docker-compose down
 ```
 
-- << TODO: Table UDAF >>
 - << TODO: page redirect from old material >>
 - << TODO: right Gradle UDF coordinates >>
 - << TODO: Struct example? >>

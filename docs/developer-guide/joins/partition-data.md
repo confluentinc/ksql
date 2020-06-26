@@ -38,7 +38,7 @@ correct key and partitioning.
 ksqlDB requires keys to use the `KAFKA` format. For more information, see
 [Serialization Formats](../serialization.md#serialization-formats). If internally
 repartitioning, ksqlDB uses the correct format. If the data in your {{ site.ak }} topics 
-does not have a suitable key format, see [Key Requirements](syntax-reference.md#key-requirements).
+does not have a suitable key format, see [Key Requirements](../syntax-reference.md#key-requirements).
 
 The KAFKA format doesn't support serializing the column name within the data, so the key column name is 
 not important for joins. The key column type is important: for the join to be valid,
@@ -169,7 +169,7 @@ if these ordering guarantees are acceptable.
 
 !!! important
       If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
-      random partition. You many want to use [COALESCE](../syntax-reference#coalesce) to wrap
+      random partition. You many want to use [COALESCE](../ksqldb-reference/scalar-functions.md#coalesce) to wrap
       the expression and convert any NULL values to a default value, for example,
       `PARTITION BY COALESCE(MY_UDF_THAT_MAY_FAIL(Col0), 0)`.
 

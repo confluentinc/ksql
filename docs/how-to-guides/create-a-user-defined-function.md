@@ -76,7 +76,7 @@ repositories {
 }
 
 dependencies {
-    compile "io.confluent.ksql:ksqldb-udf:5.5.0"
+    compile "io.confluent.ksql:ksqldb-udf:{{ site.cprelease }}"
     compile "org.apache.kafka:kafka_2.13:2.5.0"
 }
 
@@ -310,7 +310,7 @@ version: '2'
 
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.4.0
+    image: confluentinc/cp-zookeeper:{{ site.cprelease }}
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -320,7 +320,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:5.4.0
+    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -338,7 +338,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:5.4.1
+    image: confluentinc/cp-schema-registry:{{ site.cprelease }}
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -351,7 +351,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:0.9.0
+    image: confluentinc/ksqldb-server:{{ site.release }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -372,7 +372,7 @@ services:
       KSQL_KSQL_FUNCTIONS_FORMULA_BASE_VALUE: 5
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:0.9.0
+    image: confluentinc/ksqldb-cli:{{ site.release }}
     container_name: ksqldb-cli
     depends_on:
       - broker

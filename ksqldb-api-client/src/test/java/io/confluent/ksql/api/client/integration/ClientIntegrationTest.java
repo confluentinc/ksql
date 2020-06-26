@@ -93,7 +93,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -717,30 +716,29 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldListQueries() throws Exception {
+  public void shouldListQueries() {
     // When
-    final List<QueryInfo> queries = client.listQueries().get();
-
-    System.out.println("num queries: " + queries.size());
-    for (QueryInfo query : queries) {
-      System.out.println("id: " + query.getId());
-      System.out.println("sql: " + query.getSql());
-      System.out.println("sink: " + query.getSink().get());
-      System.out.println("sinkTopic: " + query.getSinkTopic().get());
-      System.out.println("type: " + query.getQueryType());
-    }
+    // Try multiple times to allow time for queries started by the other tests to finish terminating
+    final List<QueryInfo> queries = assertThatEventually(() -> {
+      try {
+        return client.listQueries().get();
+      } catch (Exception e) {
+        return Collections.emptyList();
+      }
+    }, hasSize(1));
 
     // Then
-    assertThat(queries, contains(persistentQueryInfo(
-        "CTAS_" + AGG_TABLE + "_0",
+    assertThat(queries.get(0).getQueryType(), is(QueryType.PERSISTENT));
+    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_0"));
+    assertThat(queries.get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
             + "  " + TEST_STREAM + ".STR STR,\n"
             + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
             + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
             + "GROUP BY " + TEST_STREAM + ".STR\n"
-            + "EMIT CHANGES;",
-        AGG_TABLE,
-        AGG_TABLE)));
+            + "EMIT CHANGES;"));
+    assertThat(queries.get(0).getSink(), is(Optional.of(AGG_TABLE)));
+    assertThat(queries.get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
   }
 
   private Client createClient() {
@@ -1021,38 +1019,4 @@ public class ClientIntegrationTest {
     };
   }
 
-  private static Matcher<? super QueryInfo> persistentQueryInfo(
-      final String id, final String sql, final String sink, final String sinkTopic
-  ) {
-    return new TypeSafeDiagnosingMatcher<QueryInfo>() {
-      @Override
-      protected boolean matchesSafely(
-          final QueryInfo actual,
-          final Description mismatchDescription) {
-        if (actual.getQueryType() != QueryType.PERSISTENT) {
-          return false;
-        }
-        if (!id.equals(actual.getId())) {
-          return false;
-        }
-        if (!sql.equals(actual.getSql())) {
-          return false;
-        }
-        if (!actual.getSink().equals(Optional.of(sink))) {
-          return false;
-        }
-        if (!actual.getSinkTopic().equals(Optional.of(sinkTopic))) {
-          return false;
-        }
-        return true;
-      }
-
-      @Override
-      public void describeTo(final Description description) {
-        description.appendText(String.format(
-            "id: %s. sql: %s. sink: %s. sinkTopic: %s",
-            id, sql, sink, sinkTopic));
-      }
-    };
-  }
 }

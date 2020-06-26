@@ -134,7 +134,8 @@ public interface Client {
 ```
 
 You can use this method to issue both push and pull queries, but the usage pattern is better for push queries.
-For pull queries, consider [the `executeQuery()` method](./execute-query.md) instead. 
+For pull queries, consider using the [`executeQuery()`](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String))
+method instead.
 
 Query properties can be passed as an optional second argument. For more information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#streamQuery(java.lang.String,java.util.Map)).
 
@@ -247,10 +248,13 @@ public interface Client {
 }
 ```
 
-This method is suitable for both pull queries and for terminating push queries, for example, queries that have a `LIMIT` clause).
-For non-terminating push queries, use [the `streamQuery()` method](./stream-query.md) instead.
+This method is suitable for both pull queries and for terminating push queries,
+for example, queries that have a `LIMIT` clause). For non-terminating push queries,
+use the [`streamQuery()`](api/io/confluent/ksql/api/client/Client.html#streamQuery(java.lang.String,java.util.Map))
+method instead.
 
-Query properties can be passed as an optional second argument. For more information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String,java.util.Map)).
+Query properties can be passed as an optional second argument. For more
+information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String,java.util.Map)).
 
 By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
 set the `auto.offset.reset` property to `earliest`.
@@ -295,7 +299,8 @@ public interface Client {
 ```
 
 The query ID is obtained from the query result response object when the client issues push queries,
-by using either the [`streamQuery()`](./stream-query.md) or [`executeQuery()`](./execute-query.md) methods.
+by using either the [`streamQuery()`](api/io/confluent/ksql/api/client/Client.html#streamQuery(java.lang.String,java.util.Map))
+or [`executeQuery()`](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String,java.util.Map)) methods.
 
 ### Example Usage ###
 

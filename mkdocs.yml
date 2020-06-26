@@ -54,6 +54,7 @@ nav:
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
   - Developer Guide:
     - Develop ksqlDB Applications: developer-guide/index.md
+    - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md
     - Create a Stream: developer-guide/create-a-stream.md
     - Create a Table: developer-guide/create-a-table.md
     - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md

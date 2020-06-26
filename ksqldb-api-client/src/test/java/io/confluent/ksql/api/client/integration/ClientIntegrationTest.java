@@ -720,19 +720,14 @@ public class ClientIntegrationTest {
     // When
     final List<QueryInfo> queries = client.listQueries().get();
 
-    assertThat(queries, hasSize(1));
-    System.out.println("id: " + queries.get(0).getId());
-    System.out.println("sql: " + queries.get(0).getSql());
-    System.out.println("sink: " + queries.get(0).getSink().get());
-    System.out.println("sinkTopic: " + queries.get(0).getSinkTopic().get());
-    System.out.println("type: " + queries.get(0).getQueryType());
-    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_0"));
-    assertThat(queries.get(0).getSql(), is("CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
-        + "  " + TEST_STREAM + ".STR STR,\n"
-        + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
-        + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
-        + "GROUP BY " + TEST_STREAM + ".STR\n"
-        + "EMIT CHANGES;"));
+    System.out.println("num queries: " + queries.size());
+    for (QueryInfo query : queries) {
+      System.out.println("id: " + query.getId());
+      System.out.println("sql: " + query.getSql());
+      System.out.println("sink: " + query.getSink().get());
+      System.out.println("sinkTopic: " + query.getSinkTopic().get());
+      System.out.println("type: " + query.getQueryType());
+    }
 
     // Then
     assertThat(queries, contains(persistentQueryInfo(

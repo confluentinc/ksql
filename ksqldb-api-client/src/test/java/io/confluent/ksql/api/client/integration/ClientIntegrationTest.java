@@ -684,7 +684,7 @@ public class ClientIntegrationTest {
     final List<StreamInfo> streams = client.listStreams().get();
 
     // Then
-    assertThat(streams, containsInAnyOrder(
+    assertThat("" + streams, streams, containsInAnyOrder(
         streamForProvider(TEST_DATA_PROVIDER),
         streamForProvider(EMPTY_TEST_DATA_PROVIDER),
         streamForProvider(EMPTY_TEST_DATA_PROVIDER_2)
@@ -697,7 +697,7 @@ public class ClientIntegrationTest {
     final List<TableInfo> tables = client.listTables().get();
 
     // Then
-    assertThat(tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
+    assertThat("" + tables, tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
   }
 
   @SuppressWarnings("unchecked")
@@ -707,7 +707,7 @@ public class ClientIntegrationTest {
     final List<TopicInfo> topics = client.listTopics().get();
 
     // Then
-    assertThat(topics, containsInAnyOrder(
+    assertThat("" + topics, topics, containsInAnyOrder(
         topicInfo(TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC_2),

@@ -400,7 +400,7 @@ Bring up your stack by running:
 docker-compose up
 ```
 
-And connect to ksqlDB's server by using its interactive CLI. Run the following command:
+And connect to ksqlDB's server by using its interactive CLI:
 
 ```
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
@@ -412,109 +412,30 @@ Verify that your functions have been loaded by running the following ksqlDB comm
 SHOW FUNCTIONS;
 ```
 
-You should see a long list of built-in functions, including your own `FORMULA`, `INDEX_SEQ`, and `ROLLING_SUM` (which are listed as `SCALAR`, `TABLE`, and `AGGREGATE` respectivly).
+You should see a long list of built-in functions, including your own `FORMULA`, `INDEX_SEQ`, and `ROLLING_SUM` (which are listed as `SCALAR`, `TABLE`, and `AGGREGATE` respectivly). If they weren't, check that your uberjar was correctly mounted into the container. Be sure to check the logs files of ksqlDB server, too, using `docker logs -f ksqldb-server`. You should see log lines similar to:
 
-- TODO: What to do if they didn't load.
+```
+[2020-06-24 23:38:10,942] INFO Adding UDAF name=rolling_sum from path=/opt/ksqldb-udfs/example-udfs-0.0.1.jar class=class my.example.RollingSumUdaf (io.confluent.ksql.function.UdafLoader:71)
+```
 
+!!! info
+    UDFs are only loaded once as the ksqlDB server starts up. ksqlDB does not support hot-reloading UDFs. If you want to change the code of a UDF, you need to create a new uberjar, replace the one that is available to ksqlDB, and restart the server. Keep in mind that in a multi-node setup, different nodes may be running different versions of a UDF at the same time.
 
-- TODO: UDFs only load once!
-
+Before you run any queries, be sure to have ksqlDB start all queries from the earliest point in each topic.
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-```sql
-CREATE STREAM s1 (
-    a VARCHAR KEY,
-    b INT
-) WITH (
-    kafka_topic = 's1',
-    partitions = 1,
-    value_format = 'avro'
-);
-```
-
-```sql
-CREATE STREAM s1 (
-    a VARCHAR,
-    b INT,
-    c VARCHAR
-) WITH (
-    kafka_topic = 's1',
-    partitions = 1,
-    value_format = 'avro',
-    key = 'a'
-);
-```
-
-```sql
-INSERT INTO s1 (a, b, c) VALUES ('k1', 2, 'abc');
-INSERT INTO s1 (a, b, c) VALUES ('k2', 4, 'de');
-INSERT INTO s1 (a, b, c) VALUES ('k3', 6, 'f');
-```
-
-```sql
-CREATE STREAM s1 (
-    a VARCHAR,
-    b INT,
-    c ARRAY<VARCHAR>
-) WITH (
-    kafka_topic = 's1',
-    partitions = 1,
-    value_format = 'avro',
-    key = 'a'
-);
-
-INSERT INTO s1 (a, b, c) VALUES ('k1', 2, ARRAY['a', 'b', 'c']);
-INSERT INTO s1 (a, b, c) VALUES ('k2', 4, ARRAY['d', 'e']);
-INSERT INTO s1 (a, b, c) VALUES ('k3', 6, ARRAY['f']);
-
-
-CREATE STREAM s1 (
-    a VARCHAR,
-    b INT,
-    c ARRAY<VARCHAR>
-) WITH (
-    kafka_topic = 's1',
-    partitions = 1,
-    value_format = 'avro',
-    key = 'a'
-);
-
-INSERT INTO s1 (a, b, c) VALUES ('k1', 2, ARRAY['a', 'b', 'c']);
-INSERT INTO s1 (a, b, c) VALUES ('k2', 4, ARRAY['d', 'e']);
-INSERT INTO s1 (a, b, c) VALUES ('k3', 6, ARRAY['f']);
-
-CREATE STREAM s2 (
-    a VARCHAR,
-    b INT,
-    c ARRAY<INT>
-) WITH (
-    kafka_topic = 's2',
-    partitions = 1,
-    value_format = 'avro',
-    key = 'a'
-);
-
-INSERT INTO s2 (a, b, c) VALUES ('k1', 2, ARRAY[0, 1, 2]);
-INSERT INTO s2 (a, b, c) VALUES ('k2', 4, ARRAY[3, 4]);
-INSERT INTO s2 (a, b, c) VALUES ('k3', 6, ARRAY[5]);
-```
-
 ### Invoke the scalar function
 
-Introspect the `formula` function by running:
+Inspect the `formula` function by running:
 
 ```sql
 DESCRIBE FUNCTION formula;
 ```
 
-Which should output:
-
-- TODO: call out version in description
-- TODO: call out author
-
+Which should output the following. ksqlDB shows all the type signatures that the UDF implements, which in two in this case.
 
 ```
 Name        : FORMULA
@@ -534,17 +455,72 @@ Variations  :
 	Description : The standard version of the formula with integer parameters.
 ```
 
-- TODO: udf demo: using columns or constants as parameters
+Create a stream named `s1`:
+
+```sql
+CREATE STREAM s1 (
+    a VARCHAR KEY,
+    b INT,
+    c INT
+) WITH (
+    kafka_topic = 's1',
+    partitions = 1,
+    value_format = 'avro'
+);
+```
+
+Insert some rows into the stream:
+
+```sql
+INSERT INTO s1 (a, b, c) VALUES ('k1', 2, 3);
+INSERT INTO s1 (a, b, c) VALUES ('k2', 4, 6);
+INSERT INTO s1 (a, b, c) VALUES ('k3', 6, 9);
+```
+
+Execute a push query. Recall what `formula` does. When given two integers, it multiples the together, then adds the value of the parameter `ksql.functions.formula.base.value`, which is set to `5` in your Docker Compose file:
+
+```sql
+SELECT a, formula(b, c) AS result FROM s1 EMIT CHANGES;
+```
+
+You should see:
+
+```
++--------------------------------------------------------------+--------------------------------------------------------------+
+|A                                                             |RESULT                                                        |
++--------------------------------------------------------------+--------------------------------------------------------------+
+|k1                                                            |11                                                            |
+|k2                                                            |29                                                            |
+|k3                                                            |59                                                            |
+```
+
+Try the other variant which takes two doubles. This implementation takes the ceiling of `a` and `b` before multiplying. Notice how you can use constants instead of column names as arguments to the function:
+
+```sql
+SELECT a, formula(CAST(b AS DOUBLE), 7.3) AS result FROM s1 EMIT CHANGES;
+```
+
+You should see:
+
+```
++--------------------------------------------------------------+--------------------------------------------------------------+
+|A                                                             |RESULT                                                        |
++--------------------------------------------------------------+--------------------------------------------------------------+
+|k1                                                            |21                                                            |
+|k2                                                            |37                                                            |
+|k3                                                            |53                                                            |
+
+```
 
 ### Invoke the tabular function
 
-Do the same for `index_seq`:
+Inspect the `index_seq` function by running:
 
 ```sql
 DESCRIBE FUNCTION index_seq;
 ```
 
-Which should output:
+Which should output the following. Notice how ksqlDB shows that this is a generic function with the type parameter `E`. This means that this UDTF can take a parameter that is an array of any type.
 
 ```
 Name        : INDEX_SEQ
@@ -558,6 +534,47 @@ Variations  :
 	Variation   : INDEX_SEQ(s ARRAY<E>)
 	Returns     : VARCHAR
 	Description : Disassembles a sequence and produces new elements concatenated with indices.
+```
+
+Create a stream named `s2`:
+
+```sql
+CREATE STREAM s2 (
+    a VARCHAR KEY,
+    b ARRAY<VARCHAR>
+) WITH (
+    kafka_topic = 's2',
+    partitions = 1,
+    value_format = 'avro'
+);
+```
+
+Insert some rows into the stream:
+
+```sql
+INSERT INTO s2 (a, b) VALUES ('k1', ARRAY['a', 'b', 'c']);
+INSERT INTO s2 (a, b) VALUES ('k2', ARRAY['d', 'e']);
+INSERT INTO s2 (a, b) VALUES ('k3', ARRAY['f']);
+```
+
+Execute a push query. Recall what `index_seq` does. It creates a row per element in an array concatenated with its index position.
+
+```sql
+SELECT a, index_seq(b) AS str FROM s2 EMIT CHANGES;
+```
+
+You should see the following:
+
+```
++--------------------------------------------------------------+--------------------------------------------------------------+
+|A                                                             |STR                                                           |
++--------------------------------------------------------------+--------------------------------------------------------------+
+|k1                                                            |a-0                                                           |
+|k1                                                            |b-1                                                           |
+|k1                                                            |c-2                                                           |
+|k2                                                            |d-0                                                           |
+|k2                                                            |e-1                                                           |
+|k3                                                            |f-0                                                           |
 ```
 
 ### Invoke the aggregation function
@@ -589,6 +606,64 @@ docker-compose down
 ```
 
 - << TODO: Table UDAF >>
-- << TODO: Call out load in log file like `[2020-06-24 23:38:10,942] INFO Adding UDAF name=rolling_sum from path=/opt/ksqldb-udfs/example-udfs-0.0.1.jar class=class my.example.RollingSumUdaf (io.confluent.ksql.function.UdafLoader:71)` >>
+- << TODO: Call out load in log file like 
 - << TODO: page redirect from old material >>
 - << TODO: right Gradle UDF coordinates >>
+- << TODO: Struct example? >>
+
+
+
+```sql
+CREATE STREAM s1 (
+    a VARCHAR,
+    b INT,
+    c VARCHAR
+) WITH (
+    kafka_topic = 's1',
+    partitions = 1,
+    value_format = 'avro',
+    key = 'a'
+);
+```
+
+Insert some rows into the stream:
+
+```sql
+INSERT INTO s1 (a, b, c) VALUES ('k1', 2, 'abc');
+INSERT INTO s1 (a, b, c) VALUES ('k2', 4, 'de');
+INSERT INTO s1 (a, b, c) VALUES ('k3', 6, 'f');
+```
+
+```sql
+CREATE STREAM s1 (
+    a VARCHAR,
+    b INT,
+    c ARRAY<VARCHAR>
+) WITH (
+    kafka_topic = 's1',
+    partitions = 1,
+    value_format = 'avro',
+    key = 'a'
+);
+
+INSERT INTO s1 (a, b, c) VALUES ('k1', 2, ARRAY['a', 'b', 'c']);
+INSERT INTO s1 (a, b, c) VALUES ('k2', 4, ARRAY['d', 'e']);
+INSERT INTO s1 (a, b, c) VALUES ('k3', 6, ARRAY['f']);
+
+
+
+CREATE STREAM s2 (
+    a VARCHAR,
+    b INT,
+    c ARRAY<INT>
+) WITH (
+    kafka_topic = 's2',
+    partitions = 1,
+    value_format = 'avro',
+    key = 'a'
+);
+
+INSERT INTO s2 (a, b, c) VALUES ('k1', 2, ARRAY[0, 1, 2]);
+INSERT INTO s2 (a, b, c) VALUES ('k2', 4, ARRAY[3, 4]);
+INSERT INTO s2 (a, b, c) VALUES ('k3', 6, ARRAY[5]);
+```

@@ -52,6 +52,21 @@ Start by creating a `pom.xml` for your Java application:
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>ksqlDB</id>
+            <name>ksqlDB</name>
+            <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>ksqlDB</id>
+            <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencies>
         <dependency>
             <groupId>io.confluent.ksql</groupId>

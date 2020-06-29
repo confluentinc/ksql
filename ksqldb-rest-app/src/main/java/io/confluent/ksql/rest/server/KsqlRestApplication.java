@@ -85,6 +85,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -262,7 +263,8 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         this.restConfig,
         this.ksqlConfigNoPort);
-    MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
+    MetricCollectors.addConfigurableReporter(
+        ksqlConfigNoPort, KafkaClusterUtil.getKafkaClusterId(serviceContext));
     log.debug("ksqlDB API server instance created");
   }
 

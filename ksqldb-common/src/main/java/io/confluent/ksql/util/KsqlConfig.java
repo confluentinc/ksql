@@ -102,7 +102,9 @@ public class KsqlConfig extends AbstractConfig {
   public static final String FAIL_ON_PRODUCTION_ERROR_CONFIG = "ksql.fail.on.production.error";
 
   public static final String
-      KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
+      SERVICE_ID = "service.id";
+  public static final String
+      KSQL_SERVICE_ID_CONFIG = "ksql." + SERVICE_ID;
   public static final String
       KSQL_SERVICE_ID_DEFAULT = "default_";
 

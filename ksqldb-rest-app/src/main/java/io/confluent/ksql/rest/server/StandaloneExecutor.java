@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.properties.PropertyOverrider;
+import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
@@ -104,7 +105,8 @@ public class StandaloneExecutor implements Executable {
     this.failOnNoQueries = failOnNoQueries;
     this.versionChecker = requireNonNull(versionChecker, "versionChecker");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
-    MetricCollectors.addConfigurableReporter(ksqlConfig);
+    MetricCollectors.addConfigurableReporter(
+        ksqlConfig, KafkaClusterUtil.getKafkaClusterId(serviceContext));
   }
 
   public void startAsync() {

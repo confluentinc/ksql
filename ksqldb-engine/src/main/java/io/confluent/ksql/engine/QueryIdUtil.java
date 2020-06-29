@@ -67,7 +67,8 @@ final class QueryIdUtil {
       return new QueryId(Iterables.getOnlyElement(queriesForSink));
     }
 
-    final String suffix = outputNode.getId().toString().toUpperCase() + "_" + idGenerator.getNext();
+    final String suffix = outputNode.getId().toString().toUpperCase()
+        + "_" + idGenerator.getNext().toUpperCase();
     return new QueryId(
         outputNode.getNodeOutputType() == DataSourceType.KTABLE
             ? "CTAS_" + suffix

@@ -28,7 +28,6 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;

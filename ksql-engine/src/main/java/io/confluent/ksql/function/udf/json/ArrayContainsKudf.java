@@ -26,6 +26,7 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_STRING;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_TRUE;
 
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -38,8 +39,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ArrayContainsKudf implements Kudf {
-  private static final JsonFactory JSON_FACTORY =
-      new JsonFactory().disable(CANONICALIZE_FIELD_NAMES);
+  private static final JsonFactory JSON_FACTORY = new JsonFactoryBuilder()
+      .disable(CANONICALIZE_FIELD_NAMES)
+      .build();
 
   interface Matcher {
     boolean matches(JsonParser parser, Object searchValue) throws IOException;

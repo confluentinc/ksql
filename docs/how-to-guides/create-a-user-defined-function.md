@@ -99,7 +99,7 @@ mkdir -p src/main/java/com/example
 
 ### Scalar functions
 
-A scalar function (UDF for short) consumes one row as input and produces one row as output. Use this when you want to simply transform a value.
+A scalar function (UDF for short) consumes one row as input and produces one row as output. Use this when you simply want to transform a value.
 
 Create a file at `src/main/java/com/example/FormulaUdf.java` and populate it with the following code. This UDF takes two parameters and executes a simple formula.
 
@@ -148,15 +148,15 @@ Some important points to notice:
 
 - The `@Udf` annotation marks a method as a body of code to invoke when the function is called. Because ksqlDB is strongly typed, you need to supply multiple signatures if you want your function to work with different column types. This UDF has two signatures: one that takes integer parameters and another that takes doubles.
 
-- The `@UdfParameter` annotation lets you give the function parameters names, which will be rendered in `DESCRIBE` statements too.
+- The `@UdfParameter` annotation lets you give the function parameters names. These are rendered when using the `DESCRIBE` statement on a function.
 
-- This UDF uses an external parameter, `ksql.functions.formula.base.value`. When a UDF implements the `Configurable` interface, it will be invoked once as the server starts up. `configure()` supplies a map of ksqlDB server parameters. You will see how this value is populated later in the guide.
+- This UDF uses an external parameter, `ksql.functions.formula.base.value`. When a UDF implements the `Configurable` interface, it will be invoked once as the server starts up. `configure()` supplies a map of the parameters that ksqlDB server was started with. You will see how this value is populated later in the guide.
 
 !!! warning
     External parameters do not yet work for tabular or aggregation functions.
     Support for these function types will be added soon.
 
-Either continue following this guide by implementing more functions, or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
+Either continue following this guide by implementing more functions or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
 
 ### Tabular functions
 
@@ -200,7 +200,7 @@ Notice how:
 
 - The UDTF returns a Java `List`. This is the collection type that ksqlDB expects all tabular functions to return.
 
-- This UDTF uses Java generics which allow it operate over any ksqlDB supported types. This if you want to express logic that operates uniformly over many different column types. The generic parameter must be declared at the head of the method.
+- This UDTF uses Java generics which allow it operate over any ksqlDB supported types. Use this if you want to express logic that operates uniformly over many different column types. The generic parameter must be declared at the head of the method since you can have multiple signatures, each with a different generic type parameter.
 
 
 !!! info
@@ -208,13 +208,13 @@ Notice how:
     which is especially important to remember when working with UDTFs. ksqlDB
     arrays correspond to the Java `List` type, not native Java arrays.
 
-Either continue following this guide by implementing more functions, or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
+Either continue following this guide by implementing more functions or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
 
 ### Aggregation functions
 
-An aggregation function (UDAF for short) consumes one row at a time and maintains a stateful representation of all historical data. Use this when you want to model data from multiple rows together.
+An aggregation function (UDAF for short) consumes one row at a time and maintains a stateful representation of all historical data. Use this when you want to compound data from multiple rows together.
 
-Create a file at `src/main/java/com/example/RollingsumUdaf.java` and populate it with the following code. This UDAF maintains a rolling sum of the last `3` integers in a stream, discarding the oldest values.
+Create a file at `src/main/java/com/example/RollingsumUdaf.java` and populate it with the following code. This UDAF maintains a rolling sum of the last `3` integers in a stream, discarding the oldest values as new ones arrive.
 
 ```java
 package my.example;
@@ -288,11 +288,11 @@ There are a few things to observe in this class:
 
 - The static factory method needs to either return `Udaf` or `TableUdaf` (in package `io.confluent.ksql.function.udaf`). The former, which is used in this example, can only be used to aggregate streams into tables, and cannot aggregate tables into other tables. To achieve the latter, use the `TableUdaf`, which derives from `Udaf`, and implement the `undo()` method, too.
 
-- ksqlDB decouples the internal representation of an aggregate from how it is used in an operation. This is very useful because aggregations can maintain complex state, but expose it in a simpler way in a query. In this example, the internal representation is the `LinkedList`, as indicated by the `initialize()` method. But when ksqlDB interacts with the aggregation value, `map()` is called, which sums the values in the list. The `List` is needed to keep a running history of values, but the summed value is needed for operations.
+- ksqlDB decouples the internal representation of an aggregate from how it is used in an operation. This is very useful because aggregations can maintain complex state, but expose it in a simpler way in a query. In this example, the internal representation is a `LinkedList`, as indicated by the `initialize()` method. But when ksqlDB interacts with the aggregation value, `map()` is called, which sums the values in the list. The `List` is needed to keep a running history of values, but the summed value is needed for the query itself.
 
-- UDAFs must be parameterized with three generic types. The first parameter represents the type of the column to aggregate over. The second column represents the internal representation of the aggregation, which is established in `initialize()`. The third parameter represents the type that the query interacts with, which is converted by `map()`.
+- UDAFs must be parameterized with three generic types. In this example, they are `<Integer, List<Integer>, Integer>`. The first parameter represents the type of the column to aggregate over. The second column represents the internal representation of the aggregation, which is established in `initialize()`. The third parameter represents the type that the query interacts with, which is converted by `map()`.
 
-- All types, including inputs, intermediate representations, and final representations, must be types that ksqlDB supports.
+- All types, including inputs, intermediate representations, and final representations, must be [types that ksqlDB supports](../../developer-guide/syntax-reference/#ksqldb-data-types).
 
 ## Add the uberjar to ksqlDB server
 
@@ -392,7 +392,7 @@ Notice that:
 - The environment variable `KSQL_KSQL_FUNCTIONS_FORMULA_BASE_VALUE` is set to `5`. Recall that in the UDF example, the function loads an external parameter named` ksql.functions.formula.base.value`. All `KSQL_` environment variables are converted automatically to server configuration properties, which is where UDF parameters are looked up.
 
 !!! info
-    Although this is a single node setup, remember that every node in your ksqlDB cluster needs to have this configured since any node can handle any query at any time.
+    Although this is a single node setup, remember that every node in your ksqlDB cluster needs to have event variable parameters configured since any node can handle any query at any time.
 
 ## Invoke the functions
 
@@ -414,14 +414,14 @@ Verify that your functions have been loaded by running the following ksqlDB comm
 SHOW FUNCTIONS;
 ```
 
-You should see a long list of built-in functions, including your own `FORMULA`, `INDEX_SEQ`, and `ROLLING_SUM` (which are listed as `SCALAR`, `TABLE`, and `AGGREGATE` respectivly). If they weren't, check that your uberjar was correctly mounted into the container. Be sure to check the logs files of ksqlDB server, too, using `docker logs -f ksqldb-server`. You should see log lines similar to:
+You should see a long list of built-in functions, including your own `FORMULA`, `INDEX_SEQ`, and `ROLLING_SUM` (which are listed as `SCALAR`, `TABLE`, and `AGGREGATE` respectivly). If they aren't there, check that your uberjar was correctly mounted into the container. Be sure to check the log files of ksqlDB server, too, using `docker logs -f ksqldb-server`. You should see log lines similar to:
 
 ```
 [2020-06-24 23:38:10,942] INFO Adding UDAF name=rolling_sum from path=/opt/ksqldb-udfs/example-udfs-0.0.1.jar class=class my.example.RollingSumUdaf (io.confluent.ksql.function.UdafLoader:71)
 ```
 
 !!! info
-    UDFs are only loaded once as the ksqlDB server starts up. ksqlDB does not support hot-reloading UDFs. If you want to change the code of a UDF, you need to create a new uberjar, replace the one that is available to ksqlDB, and restart the server. Keep in mind that in a multi-node setup, different nodes may be running different versions of a UDF at the same time.
+    UDFs are only loaded once as ksqlDB server starts up. ksqlDB does not support hot-reloading UDFs. If you want to change the code of a UDF, you need to create a new uberjar, replace the one that is available to ksqlDB, and restart the server. Keep in mind that in a multi-node setup, different nodes may be running different versions of a UDF at the same time.
 
 Before you run any queries, be sure to have ksqlDB start all queries from the earliest point in each topic.
 
@@ -437,7 +437,7 @@ Inspect the `formula` function by running:
 DESCRIBE FUNCTION formula;
 ```
 
-Which should output the following. ksqlDB shows all the type signatures that the UDF implements, which in two in this case.
+It should output the following. ksqlDB shows all the type signatures that the UDF implements, which in two in this case.
 
 ```
 Name        : FORMULA
@@ -522,7 +522,7 @@ Inspect the `index_seq` function by running:
 DESCRIBE FUNCTION index_seq;
 ```
 
-Which should output the following. Notice how ksqlDB shows that this is a generic function with the type parameter `E`. This means that this UDTF can take a parameter that is an array of any type.
+It should output the following. Notice how ksqlDB shows that this is a generic function with the type parameter `E`. This means that this UDTF can take a parameter that is an array of any type.
 
 ```
 Name        : INDEX_SEQ
@@ -587,7 +587,7 @@ Inspect the `rolling_sum` function by running:
 DESCRIBE FUNCTION rolling_sum;
 ```
 
-Which should output the following:
+It should output the following:
 
 ```
 Name        : ROLLING_SUM
@@ -676,3 +676,4 @@ docker-compose down
 
 - << TODO: right Gradle UDF coordinates >>
 - << TODO: Struct example? >>
+- << TODO: fix project name >>

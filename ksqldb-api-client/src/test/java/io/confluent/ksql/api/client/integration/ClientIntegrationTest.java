@@ -93,7 +93,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -685,7 +684,7 @@ public class ClientIntegrationTest {
     final List<StreamInfo> streams = client.listStreams().get();
 
     // Then
-    assertThat(streams, containsInAnyOrder(
+    assertThat("" + streams, streams, containsInAnyOrder(
         streamForProvider(TEST_DATA_PROVIDER),
         streamForProvider(EMPTY_TEST_DATA_PROVIDER),
         streamForProvider(EMPTY_TEST_DATA_PROVIDER_2)
@@ -698,7 +697,7 @@ public class ClientIntegrationTest {
     final List<TableInfo> tables = client.listTables().get();
 
     // Then
-    assertThat(tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
+    assertThat("" + tables, tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
   }
 
   @SuppressWarnings("unchecked")
@@ -708,7 +707,7 @@ public class ClientIntegrationTest {
     final List<TopicInfo> topics = client.listTopics().get();
 
     // Then
-    assertThat(topics, containsInAnyOrder(
+    assertThat("" + topics, topics, containsInAnyOrder(
         topicInfo(TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC_2),
@@ -716,23 +715,30 @@ public class ClientIntegrationTest {
     ));
   }
 
-  @Ignore // temporarily disable while flakiness is being investigated
   @Test
-  public void shouldListQueries() throws Exception {
+  public void shouldListQueries() {
     // When
-    final List<QueryInfo> queries = client.listQueries().get();
+    // Try multiple times to allow time for queries started by the other tests to finish terminating
+    final List<QueryInfo> queries = assertThatEventually(() -> {
+      try {
+        return client.listQueries().get();
+      } catch (Exception e) {
+        return Collections.emptyList();
+      }
+    }, hasSize(1));
 
     // Then
-    assertThat(queries, contains(persistentQueryInfo(
-        "CTAS_" + AGG_TABLE + "_0",
+    assertThat(queries.get(0).getQueryType(), is(QueryType.PERSISTENT));
+    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_0"));
+    assertThat(queries.get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
             + "  " + TEST_STREAM + ".STR STR,\n"
             + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
             + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
             + "GROUP BY " + TEST_STREAM + ".STR\n"
-            + "EMIT CHANGES;",
-        AGG_TABLE,
-        AGG_TABLE)));
+            + "EMIT CHANGES;"));
+    assertThat(queries.get(0).getSink(), is(Optional.of(AGG_TABLE)));
+    assertThat(queries.get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
   }
 
   private Client createClient() {
@@ -1013,38 +1019,4 @@ public class ClientIntegrationTest {
     };
   }
 
-  private static Matcher<? super QueryInfo> persistentQueryInfo(
-      final String id, final String sql, final String sink, final String sinkTopic
-  ) {
-    return new TypeSafeDiagnosingMatcher<QueryInfo>() {
-      @Override
-      protected boolean matchesSafely(
-          final QueryInfo actual,
-          final Description mismatchDescription) {
-        if (actual.getQueryType() != QueryType.PERSISTENT) {
-          return false;
-        }
-        if (!id.equals(actual.getId())) {
-          return false;
-        }
-        if (!sql.equals(actual.getSql())) {
-          return false;
-        }
-        if (!actual.getSink().equals(Optional.of(sink))) {
-          return false;
-        }
-        if (!actual.getSinkTopic().equals(Optional.of(sinkTopic))) {
-          return false;
-        }
-        return true;
-      }
-
-      @Override
-      public void describeTo(final Description description) {
-        description.appendText(String.format(
-            "id: %s. sql: %s. sink: %s. sinkTopic: %s",
-            id, sql, sink, sinkTopic));
-      }
-    };
-  }
 }

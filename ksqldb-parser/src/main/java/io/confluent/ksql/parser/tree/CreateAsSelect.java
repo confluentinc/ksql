@@ -85,6 +85,11 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
   }
 
   @Override
+  public Sink getSink() {
+    return Sink.of(getName(), true, isOrReplace(), getProperties());
+  }
+
+  @Override
   public int hashCode() {
     return Objects.hash(name, query, properties, notExists, getClass());
   }

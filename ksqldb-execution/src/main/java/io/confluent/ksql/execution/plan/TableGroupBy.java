@@ -42,6 +42,10 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
     this.source = requireNonNull(source, "source");
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.groupByExpressions = ImmutableList.copyOf(requireNonNull(groupBys, "groupBys"));
+
+    if (groupByExpressions.isEmpty()) {
+      throw new IllegalArgumentException("Need at least one grouping expression");
+    }
   }
 
   @Override

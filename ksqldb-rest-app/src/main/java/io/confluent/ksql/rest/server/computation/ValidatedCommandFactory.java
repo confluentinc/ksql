@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
@@ -24,10 +26,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -36,11 +37,6 @@ import java.util.Optional;
  * command queue.
  */
 public final class ValidatedCommandFactory {
-  private final KsqlConfig config;
-
-  public ValidatedCommandFactory(final KsqlConfig config) {
-    this.config = Objects.requireNonNull(config, "config");
-  }
 
   /**
    * Create a validated command.
@@ -61,19 +57,56 @@ public final class ValidatedCommandFactory {
    * @param context The KSQL engine snapshot to validate the command against.
    * @return A validated command, which is safe to enqueue onto the command topic.
    */
+  @SuppressWarnings("MethodMayBeStatic") // Not static to allow dependency injection
   public Command create(
       final ConfiguredStatement<? extends Statement> statement,
       final ServiceContext serviceContext,
-      final KsqlExecutionContext context) {
+      final KsqlExecutionContext context
+  ) {
+    return ensureDeserializable(createCommand(statement, serviceContext, context));
+  }
+
+  /**
+   * Ensure any command written to the command topic can be deserialized.
+   *
+   * <p>Any command that can't be deserialized is a bug. However, given a non-deserializable
+   * command will kill the command runner thread, this is a safety net to ensure commands written to
+   * the command topic can be deserialzied.
+   *
+   * @param command the command to test.
+   * @return the passed in command.
+   */
+  private static Command ensureDeserializable(final Command command) {
+    try {
+      final String json = PlanJsonMapper.INSTANCE.get().writeValueAsString(command);
+      PlanJsonMapper.INSTANCE.get().readValue(json, Command.class);
+      return command;
+    } catch (final JsonProcessingException e) {
+      throw new KsqlServerException("Did not write the command to the command topic "
+          + "as it could not be deserialized. This is a bug! Please raise a Github issue "
+          + "containing the series of commands you ran to get to this point."
+          + System.lineSeparator()
+          + e.getMessage());
+    }
+  }
+
+  private static Command createCommand(
+      final ConfiguredStatement<? extends Statement> statement,
+      final ServiceContext serviceContext,
+      final KsqlExecutionContext context
+  ) {
     if (statement.getStatementText().equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
       return Command.of(statement);
-    } else if (statement.getStatement() instanceof TerminateQuery) {
+    }
+
+    if (statement.getStatement() instanceof TerminateQuery) {
       return createForTerminateQuery(statement, context);
     }
+
     return createForPlannedQuery(statement, serviceContext, context);
   }
 
-  private Command createForTerminateQuery(
+  private static Command createForTerminateQuery(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext context
   ) {
@@ -93,7 +126,7 @@ public final class ValidatedCommandFactory {
     return Command.of(statement);
   }
 
-  private Command createForPlannedQuery(
+  private static Command createForPlannedQuery(
       final ConfiguredStatement<? extends Statement> statement,
       final ServiceContext serviceContext,
       final KsqlExecutionContext context
@@ -107,6 +140,7 @@ public final class ValidatedCommandFactory {
             statement.getConfig()
         )
     );
+
     return Command.of(
         ConfiguredKsqlPlan.of(plan, statement.getConfigOverrides(), statement.getConfig()));
   }

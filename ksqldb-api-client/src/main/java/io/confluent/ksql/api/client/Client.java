@@ -31,11 +31,6 @@ public interface Client {
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
    *
-   * <p>By default, push queries issued via this method return results starting from the beginning
-   * of the stream or table. To override this behavior, use the method
-   * {@link #streamQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
-   * with value set to {@code earliest}.
-   *
    * @param sql statement of query to execute
    * @return a future that completes once the server response is received, and contains the query
    *         result if successful
@@ -47,10 +42,6 @@ public interface Client {
    *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
-   *
-   * <p>By default, push queries issued via this method return results starting from the beginning
-   * of the stream or table. To override this behavior, pass in the query property
-   * {@code auto.offset.reset} with value set to {@code earliest}.
    *
    * @param sql statement of query to execute
    * @param properties query properties

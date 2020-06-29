@@ -2201,6 +2201,57 @@
         {"topic": "OUTPUT", "key": 0,"value": null},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 100}}
       ]
+    },
+    {
+      "name": "zero non-agg columns (stream)",
+      "statements": [
+        "CREATE STREAM INPUT (VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT 1 as k, count(1) AS ID FROM INPUT group by 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"VALUE": 0}},
+        {"topic": "test_topic", "value": {"VALUE": 0}},
+        {"topic": "test_topic", "value": {"VALUE": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 3}}
+      ]
+    },
+    {
+      "name": "zero non-agg columns (windowed stream)",
+      "statements": [
+        "CREATE STREAM INPUT (VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT 1 as k, count(1) AS ID FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) group by 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"VALUE": 0}},
+        {"topic": "test_topic", "value": {"VALUE": 0}},
+        {"topic": "test_topic", "value": {"VALUE": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"ID": 1}},
+        {"topic": "OUTPUT", "key": 1, "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": 1, "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"ID": 3}}
+      ]
+    },
+    {
+      "name": "zero non-agg columns (table)",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT 1 as k, count(1) AS ID FROM INPUT group by 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 10, "value": {"VALUE": 0}},
+        {"topic": "test_topic", "key": 1666, "value": {"VALUE": 0}},
+        {"topic": "test_topic", "key": 98, "value": {"VALUE": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 1}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 3}}
+      ]
     }
   ]
 }

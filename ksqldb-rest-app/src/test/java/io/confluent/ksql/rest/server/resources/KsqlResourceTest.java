@@ -77,7 +77,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
-import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -1977,7 +1977,7 @@ public class KsqlResourceTest {
     when(sandbox.plan(any(), any())).thenAnswer(
         i -> KsqlPlan.ddlPlanCurrent(
             ((ConfiguredStatement<?>) i.getArgument(1)).getStatementText(),
-            mock(DdlCommand.class)
+            new DropSourceCommand(SourceName.of("bob"))
         )
     );
     when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);

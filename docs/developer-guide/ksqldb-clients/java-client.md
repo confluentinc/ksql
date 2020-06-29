@@ -11,8 +11,12 @@ from within your Java application, as an alternative to using the [REST API](../
 The client currently supports pull and push queries as well as inserting new rows of data into existing ksqlDB streams.
 Soon the client will also support persistent queries and admin operations such as listing streams, tables, and topics. 
 
+!!! tip
+    [View the Java client API documentation](api/index.html)
+
 The client sends requests to the recently added HTTP2 server endpoints: pull and push queries are served by
-the [`/query-stream` endpoint](TODO), and inserts are served by the [`/inserts-stream` endpoint](TODO).
+the [`/query-stream` endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#executing-pull-or-push-queries),
+and inserts are served by the [`/inserts-stream` endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#inserting-rows-into-an-existing-stream).
 The client is compatible only with ksqlDB deployments that are on version 0.10.0 or later.
 
 Use the Java client to:
@@ -101,7 +105,7 @@ public class ExampleApp {
 }
 ```
 
-For additional client options, see [the API reference](TODO).
+For additional client options, see the [API reference](api/io/confluent/ksql/api/client/ClientOptions.html).
 
 Receive query results one row at a time (streamQuery())<a name="stream-query"></a>
 ----------------------------------------------------------------------------------
@@ -118,11 +122,6 @@ public interface Client {
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
    *
-   * <p>By default, push queries issued via this method return results starting from the beginning
-   * of the stream or table. To override this behavior, use the method
-   * {@link #streamQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
-   * with value set to {@code latest}.
-   *
    * @param sql statement of query to execute
    * @return a future that completes once the server response is received, and contains the query
    *         result if successful
@@ -135,12 +134,13 @@ public interface Client {
 ```
 
 You can use this method to issue both push and pull queries, but the usage pattern is better for push queries.
-For pull queries, consider [the `executeQuery()` method](./execute-query.md) instead. 
+For pull queries, consider using the [`executeQuery()`](#execute-query)
+method instead.
 
-Query properties can be passed as an optional second argument. For more information, see the [client API reference](TODO).
+Query properties can be passed as an optional second argument. For more information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#streamQuery(java.lang.String,java.util.Map)).
 
-By default, push queries return results starting from the beginning of the stream or table.
-To start from the end and receive only newly arriving rows, set the `auto.offset.reset` property to `latest`.
+By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
+set the `auto.offset.reset` property to `earliest`.
 
 ### Asynchronous Usage ###
 
@@ -208,7 +208,7 @@ client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;")
 To consume records one-at-a-time in a synchronous fashion, use the `poll()` method on the query result object.
 If `poll()` is called with no arguments, it blocks until a new row becomes available or the query is terminated.
 You can also pass a `Duration` argument to `poll()`, which causes `poll()` to return `null` if no new rows are received by the time the duration has elapsed.
-For more information, see the [API reference](TODO).
+For more information, see the [API reference](api/io/confluent/ksql/api/client/StreamedQueryResult.html#poll(java.time.Duration)).
 
 ```java
 StreamedQueryResult streamedQueryResult = client.streamQuery("SELECT * FROM MY_STREAM EMIT CHANGES;").get();
@@ -238,11 +238,6 @@ public interface Client {
    * Executes a query (push or pull) and returns all result rows in a single batch, once the query
    * has completed.
    *
-   * <p>By default, push queries issued via this method return results starting from the beginning
-   * of the stream or table. To override this behavior, use the method
-   * {@link #executeQuery(String, Map)} to pass in the query property {@code auto.offset.reset}
-   * with value set to {@code latest}.
-   *
    * @param sql statement of query to execute
    * @return query result
    */
@@ -253,13 +248,16 @@ public interface Client {
 }
 ```
 
-This method is suitable for both pull queries and for terminating push queries, for example, queries that have a `LIMIT` clause).
-For non-terminating push queries, use [the `streamQuery()` method](./stream-query.md) instead.
+This method is suitable for both pull queries and for terminating push queries,
+for example, queries that have a `LIMIT` clause). For non-terminating push queries,
+use the [`streamQuery()`](#stream-query)
+method instead.
 
-Query properties can be passed as an optional second argument. For more information, see the [client API reference](TODO).
+Query properties can be passed as an optional second argument. For more
+information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String,java.util.Map)).
 
-By default, push queries return results starting from the beginning of the stream or table.
-To start from the end and receive only newly arriving rows, set the `auto.offset.reset` property to `latest`.
+By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
+set the `auto.offset.reset` property to `earliest`.
 
 ### Example Usage ###
 
@@ -301,7 +299,7 @@ public interface Client {
 ```
 
 The query ID is obtained from the query result response object when the client issues push queries,
-by using either the [`streamQuery()`](./stream-query.md) or [`executeQuery()`](./execute-query.md) methods.
+by using either the [`streamQuery()`](#stream-query) or [`executeQuery()`](#execute-query) methods.
 
 ### Example Usage ###
 
@@ -360,7 +358,6 @@ with schema (ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR).
 
 ```java
 KsqlObject row = new KsqlObject()
-    .put("ROWKEY", "k1")
     .put("ORDER_ID", 12345678L)
     .put("PRODUCT_ID", "UAC-222-19234")
     .put("USER_ID", "User_321");

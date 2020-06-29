@@ -43,6 +43,10 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
     this.source = requireNonNull(source, "source");
     this.groupByExpressions = ImmutableList.copyOf(requireNonNull(groupBys, "groupBys"));
+
+    if (groupByExpressions.isEmpty()) {
+      throw new IllegalArgumentException("Need at least one grouping expression");
+    }
   }
 
   public List<Expression> getGroupByExpressions() {

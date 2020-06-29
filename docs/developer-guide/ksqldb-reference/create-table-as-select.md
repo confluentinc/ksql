@@ -17,7 +17,7 @@ CREATE TABLE table_name
   [WITH ( property_name = expression [, ...] )]
   AS SELECT  select_expr [, ...]
   FROM from_item
-  [ LEFT | FULL | INNER ] JOIN join_table ON join_criteria 
+  [[ LEFT | FULL | INNER ] JOIN [join_table | join_stream] ON join_criteria]* 
   [ WINDOW window_expression ]
   [ WHERE condition ]
   [ GROUP BY grouping_expression ]
@@ -28,20 +28,43 @@ CREATE TABLE table_name
 Description
 -----------
 
-Create a new ksqlDB table along with the corresponding Kafka topic and
-stream the result of the SELECT query as a changelog into the topic.
-Note that the WINDOW clause can only be used if the `from_item` is a
-stream.
+Create a new ksqlDB materialized table view, along with the corresponding Kafka topic, and
+stream the result of the query as a changelog into the topic.
 
-For joins, the key of the resulting table will be the value from the
-column from the left table that was used in the join criteria. This
-column will be registered as the key of the resulting table if included
-in the selected columns.
+Note that the WINDOW clause can only be used if the `from_item` is a stream and the query contains
+a `GROUP BY` clause.
 
-For joins, the columns used in the join criteria must be the keys of the
-tables being joined.
+Joins to streams can use any stream column. If the join criteria is not the key column of the stream
+ksqlDB will internally repartition the data. 
 
+!!! important
+    {{ site.ak }} guarantees the relative order of any two messages from
+    one source partition only if they are also both in the same partition
+    *after* the repartition. Otherwise, {{ site.ak }} is likely to interleave
+    messages. The use case will determine if these ordering guarantees are
+    acceptable.
+
+Joins to tables must use the table's PRIMARY KEY as the join criteria: none primary key joins are 
+[not yet supported](https://github.com/confluentinc/ksql/issues/4424).
 For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
+
+See [Partition Data to Enable Joins](../joins/partition-data.md) for more information about how to
+correctly partition your data for joins.
+
+The primary key of the resulting table is determined by the following rules, in order of priority:
+ 1. if the query has a  `GROUP BY`: 
+    1. if the `GROUP BY` is on a single source column reference, the primary key will match the 
+       name, type and contents of the source column.
+    1. if the `GROUP BY` is any other single expression, the primary key will have a system 
+       generated name, unless you provide an alias in the projection, and will match the type and 
+       contents of the result of the expression.
+    1. otherwise, the primary key will have a system generated name, and will be of type `STRING` 
+       and contain the grouping expression concatenated together.
+ 1. if the query has a join see [Join Synthetic Key Columns](../joins/synthetic-keys) for more info.
+ 1. otherwise, the primary key will match the name, unless you provide an alias in the projection, 
+    and type of the source table's primary key.
+ 
+The projection must include all columns required in the result, including any primary key columns.
 
 The WITH clause supports the following properties:
 
@@ -67,4 +90,23 @@ The WITH clause supports the following properties:
 Example
 -------
 
-TODO: example
+```sql
+-- Derive a new view from an existing table:
+CREATE TABLE derived AS
+  SELECT
+    a,
+    b,
+    d
+  FROM source
+  WHERE A is not null;
+
+-- Or, join a stream of play events to a songs table, windowing weekly, to create a weekly chart:
+CREATE TABLE weeklyMusicCharts AS
+   SELECT
+      s.songName,
+      count(1) AS playCount
+   FROM playStream p
+      JOIN songs s ON p.song_id = s.id
+   WINDOW TUMBLING (7 DAYS)
+   GROUP BY s.songName;
+```

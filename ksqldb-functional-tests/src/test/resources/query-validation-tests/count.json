@@ -113,6 +113,23 @@
         {"topic": "OUTPUT", "key": 3, "value": "1"},
         {"topic": "OUTPUT", "key": 3, "value": null}
       ]
+    },
+    {
+      "name": "auto-incrementing id",
+      "statements": [
+        "CREATE STREAM INPUT (VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT 1 as k, latest_by_offset(value) as value, count(1) AS ID FROM INPUT group by 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"VALUE": 12}},
+        {"topic": "test_topic", "value": {"VALUE": 8367}},
+        {"topic": "test_topic", "value": {"VALUE": 764}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"VALUE": 12, "ID": 1}},
+        {"topic": "OUTPUT", "key": 1, "value": {"VALUE": 8367, "ID": 2}},
+        {"topic": "OUTPUT", "key": 1, "value": {"VALUE": 764, "ID": 3}}
+      ]
     }
   ]
 }

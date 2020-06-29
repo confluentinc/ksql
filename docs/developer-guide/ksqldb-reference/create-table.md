@@ -20,11 +20,11 @@ Description
 Create a new table with the specified columns and properties.
 
 A ksqlDB TABLE works much like tables in other SQL systems. A table has zero or more rows. Each
-row is identified by its `PRIMARY KEY`. `PRIMARY KEY` values can not be NULL. A message in the
-underlying Kafka topic that has the same key as an existing row will _replace_ the earlier row in the
-table, or _delete_ the row if the message's value is NULL, i.e. a _tombstone_, as long as the
-previously received row does not have a later timestamp / `ROWTIME`. This situation is handled
-differently by [ksqlDB STREAM](./create-stream), as shown in the following table.
+row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY` can not be `NULL`. A message in the
+underlying Kafka topic with the same key as an existing row will _replace_ the existing row in the
+table, or _delete_ the row if the message's value is `NULL`, i.e. a _tombstone_, as long as it has
+a later timestamp / `ROWTIME`. 
+This situation is handled differently by [ksqlDB STREAM](./create-stream), as shown in the following table.
 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
@@ -45,10 +45,13 @@ Each column is defined by:
    from the Kafka message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column(s)
    are NON NULL. Any records in the Kafka topic with NULL key columns are dropped.
    
-ksqlDB adds an implicit `ROWTIME` pseudo column is also available on every
-stream and table, which represents the corresponding Kafka message timestamp. The timestamp has
-milliseconds accuracy, and generally represents the _event time_ of a stream row and the
-_last modified time_ of a table row.
+Each row within the table has a `ROWTIME` pseudo column, which represents the _last modified time_ 
+of the row. The timestamp has milliseconds accuracy. The timestamp is used by ksqlDB when updating
+a row, during any windowing operations and during joins, where data from each side of a join is 
+generally processed in time order.  
+
+By default `ROWTIME` is populated from the corresponding Kafka message timestamp. Set `TIMESTAMP` in
+the `WITH` clause to populate `ROWTIME` from a column in the Kafka message key or value.
 
 The WITH clause supports the following properties:
 
@@ -75,12 +78,13 @@ Example
 -------
 
 ```sql
-CREATE TABLE users
-   (
+CREATE TABLE users (
      id BIGINT PRIMARY KEY,
      usertimestamp BIGINT,
      gender VARCHAR,
      region_id VARCHAR
-   )
-   WITH (KAFKA_TOPIC = 'my-users-topic', VALUE_FORMAT='JSON');
+   ) WITH (
+     KAFKA_TOPIC = 'my-users-topic', 
+     VALUE_FORMAT = 'JSON'
+   );
 ```

@@ -32,6 +32,8 @@ import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;

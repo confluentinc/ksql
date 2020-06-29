@@ -299,10 +299,10 @@ There are a few things to observe in this class:
 In order for ksqlDB to be able to load your UDFs, they need to be compiled from classes into an uberjar. Run the following command to build an uberjar:
 
 ```
-gradle build
+gradle shadowJar
 ```
 
-You should now have a directory, `extensions` with a file named `how-to-guides-0.0.1.jar` in it.
+You should now have a directory, `build/libs` with a file named `example-udfs-0.0.1.jar` in it.
 
 In order to use the uberjar, you need to make it available to ksqlDB server. Create the following `docker-compose.yml` file:
 
@@ -676,4 +676,3 @@ docker-compose down
 
 - << TODO: right Gradle UDF coordinates >>
 - << TODO: Struct example? >>
-- << TODO: fix project name >>

@@ -57,7 +57,6 @@ nav:
     - Create a Stream: developer-guide/create-a-stream.md
     - Create a Table: developer-guide/create-a-table.md
     - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
-    - Implement a User-defined Function (UDF, UDAF, and UDTF): developer-guide/implement-a-udf.md
     - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
     - Example Queries: tutorials/examples.md
     - Test and Debug:
@@ -165,6 +164,9 @@ plugins:
     - search
     - git-revision-date # Must come before the macros plugin
     - macros
+    - redirects:
+        redirect_maps:
+            developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
 
 extra:
     site:

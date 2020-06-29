@@ -674,6 +674,5 @@ When you're done, tear down the stack by running:
 docker-compose down
 ```
 
-- << TODO: page redirect from old material >>
 - << TODO: right Gradle UDF coordinates >>
 - << TODO: Struct example? >>

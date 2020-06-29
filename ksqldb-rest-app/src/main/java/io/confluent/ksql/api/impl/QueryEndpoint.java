@@ -24,7 +24,6 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.BlockingRowQueue;
-import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.schema.ksql.Column;
@@ -97,7 +96,7 @@ public class QueryEndpoint {
   ) {
     final PullQueryResult result = pullQueryExecutor.execute(
         statement, serviceContext, Optional.empty(), Optional.of(false));
-    final TableRowsEntity tableRows = result.getTableRowsEntity();
+    final TableRowsEntity tableRows = result.getTableRows();
 
     return new PullQueryPublisher(
         context,

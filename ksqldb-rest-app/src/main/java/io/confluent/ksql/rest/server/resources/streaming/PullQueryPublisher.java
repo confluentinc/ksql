@@ -66,20 +66,12 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private static final class PullQuerySubscription implements Flow.Subscription {
 
     private final Subscriber<Collection<StreamedRow>> subscriber;
-<<<<<<< HEAD
-    private final Callable<TableRows> executor;
-=======
     private final Callable<PullQueryResult> executor;
->>>>>>> Feedback
     private boolean done = false;
 
     private PullQuerySubscription(
         final Subscriber<Collection<StreamedRow>> subscriber,
-<<<<<<< HEAD
-        final Callable<TableRows> executor
-=======
         final Callable<PullQueryResult> executor
->>>>>>> Feedback
     ) {
       this.subscriber = requireNonNull(subscriber, "subscriber");
       this.executor = requireNonNull(executor, "executor");
@@ -96,15 +88,11 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       done = true;
 
       try {
-<<<<<<< HEAD
-        final TableRows entity = executor.call();
-=======
         final PullQueryResult result = executor.call();
-        final TableRowsEntity entity = result.getTableRowsEntity();
+        final TableRows entity = result.getTableRows();
         final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
             .map(KsqlNode::location)
             .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));
->>>>>>> Feedback
 
         subscriber.onSchema(entity.getSchema());
 

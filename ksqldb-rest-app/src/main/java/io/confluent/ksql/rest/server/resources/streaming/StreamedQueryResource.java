@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
@@ -273,7 +274,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     final PullQueryResult result = pullQueryExecutor
         .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
-    final TableRowsEntity tableRows = result.getTableRows();
+    final TableRows tableRows = result.getTableRows();
     final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
         .map(KsqlNode::location)
         .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));

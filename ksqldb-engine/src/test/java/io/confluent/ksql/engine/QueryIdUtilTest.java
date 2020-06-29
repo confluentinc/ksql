@@ -59,7 +59,7 @@ public class QueryIdUtilTest {
 
     // When:
     long numUniqueIds = IntStream.range(0, 100)
-        .mapToObj(i -> QueryIdUtil.buildId(metaStore, idGenerator, transientPlan))
+        .mapToObj(i -> QueryIdUtil.buildId(metaStore, idGenerator, transientPlan, false))
         .distinct()
         .count();
 
@@ -74,7 +74,7 @@ public class QueryIdUtilTest {
     when(idGenerator.getNext()).thenReturn("1");
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan);
+    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan, false);
 
     // Then:
     assertThat(queryId, is(new QueryId("INSERTQUERY_1")));
@@ -91,7 +91,7 @@ public class QueryIdUtilTest {
     when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan);
+    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan, false);
 
     // Then:
     assertThat(queryId, is(new QueryId("CSAS_FOO_1")));
@@ -108,7 +108,7 @@ public class QueryIdUtilTest {
     when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan);
+    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan, false);
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_1")));
@@ -122,10 +122,21 @@ public class QueryIdUtilTest {
     when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan);
+    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan, true);
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_10")));
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void shouldThrowOnReuseIfCreateOrReplacedIsDisabled() {
+    // Given:
+    when(plan.getSinkName()).thenReturn(Optional.of(SINK));
+    when(plan.createInto()).thenReturn(true);
+    when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
+
+    // When:
+    QueryIdUtil.buildId(metaStore, idGenerator, plan, false);
   }
 
   @Test
@@ -136,7 +147,7 @@ public class QueryIdUtilTest {
     when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_1", "INSERTQUERY_1"));
 
     // When:
-    final KsqlException e = assertThrows(KsqlException.class, () -> QueryIdUtil.buildId(metaStore, idGenerator, plan));
+    final KsqlException e = assertThrows(KsqlException.class, () -> QueryIdUtil.buildId(metaStore, idGenerator, plan, false));
 
     // Then:
     assertThat(e.getMessage(), containsString("there are multiple queries writing"));

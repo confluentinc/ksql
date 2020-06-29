@@ -206,7 +206,8 @@ final class EngineExecutor {
     final QueryId queryId = QueryIdUtil.buildId(
         engineContext.getMetaStore(),
         engineContext.idGenerator(),
-        outputNode
+        outputNode,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED)
     );
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,

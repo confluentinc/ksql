@@ -341,7 +341,6 @@ public final class KsqlTarget {
         begin = i + 1;
       }
     }
-
     return rows;
   }
 

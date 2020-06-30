@@ -161,19 +161,20 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<BasicCredentials> userCreds
   ) {
-    return makeQueryRequest(restApp, sql, userCreds, null);
+    return makeQueryRequest(restApp, sql, userCreds, null, Collections.emptyMap());
   }
 
   static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
       final Optional<BasicCredentials> userCreds,
-      final Map<String, ?> properties
+      final Map<String, ?> properties,
+      final Map<String, ?> requestProperties
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<List<StreamedRow>> res =
-          restClient.makeQueryRequest(sql, null, properties);
+          restClient.makeQueryRequest(sql, null, properties, requestProperties);
 
       throwOnError(res);
 
@@ -190,7 +191,7 @@ public final class RestIntegrationTestUtil {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<List<StreamedRow>> res =
-          restClient.makeQueryRequest(sql, null, properties);
+          restClient.makeQueryRequest(sql, null, properties, Collections.emptyMap());
 
       throwOnNoError(res);
 

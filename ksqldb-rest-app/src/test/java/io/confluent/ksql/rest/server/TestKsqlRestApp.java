@@ -486,6 +486,14 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
+    public Builder withFaultyKsqlClient(Supplier<Boolean> cutoff) {
+      this.serviceContext =
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
+              () -> new FaultyKsqlClient(TestDefaultKsqlClientFactory.instance(additionalProps),
+                  cutoff));
+      return this;
+    }
+
     public Builder withStaticServiceContext(final Supplier<ServiceContext> serviceContext) {
       this.serviceContext = serviceContext;
       return this;

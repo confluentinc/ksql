@@ -162,7 +162,7 @@ public final class PullQueryExecutor {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
-  public TableRows execute(
+  public PullQueryResult execute(
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
@@ -248,7 +248,7 @@ public final class PullQueryExecutor {
     }
   }
 
-  private TableRows handlePullQuery(
+  private PullQueryResult handlePullQuery(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
@@ -275,7 +275,11 @@ public final class PullQueryExecutor {
     // increasing order of lag.
     for (KsqlNode node : filteredAndOrderedNodes) {
       try {
-        return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
+        final Optional<KsqlNode> debugNode = Optional.ofNullable(
+            routingOptions.isDebugRequest() ? node : null);
+        return new PullQueryResult(
+            routeQuery(node, statement, executionContext, serviceContext, pullQueryContext),
+            debugNode);
       } catch (Exception t) {
         LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
                   statement.getStatementText(), node, System.currentTimeMillis(), t);
@@ -1085,6 +1089,13 @@ public final class PullQueryExecutor {
         return (Boolean) requestProperties.get(key);
       }
       return KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DEFAULT;
+    }
+
+    public boolean isDebugRequest() {
+      if (requestProperties.containsKey(KsqlRequestConfig.KSQL_DEBUG_REQUEST)) {
+        return (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST);
+      }
+      return KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT;
     }
 
     @Override

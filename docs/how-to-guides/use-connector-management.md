@@ -252,6 +252,6 @@ This guide omits an example of setting up an external {{ site.kconnectlong }} cl
 
 When you're done, tear down the stack by running:
 
-```
+```bash
 docker-compose down
 ```

@@ -575,7 +575,7 @@ Execute a push query. The `index_seq` function creates one row for each element 
 SELECT a, index_seq(b) AS str FROM s2 EMIT CHANGES;
 ```
 
-You should see the following:
+Your output should resemble:
 
 ```
 +--------------------------------------------------------------+--------------------------------------------------------------+
@@ -597,7 +597,7 @@ Inspect the `rolling_sum` function by running:
 DESCRIBE FUNCTION rolling_sum;
 ```
 
-It should output the following:
+Your output should resemble:
 
 ```
 Name        : ROLLING_SUM
@@ -636,13 +636,13 @@ INSERT INTO s3 (a, b) VALUES ('k2', 6);
 INSERT INTO s3 (a, b) VALUES ('k2', 2);
 ```
 
-Execute a push query. Recall what `rolling_sum` does. It aggregates the previous three elements together, sums them up, and emits their output.
+Execute a push query. The `rolling_sum` function aggregates the previous three elements together, sums them, and emits their output.
 
 ```sql
 SELECT a, rolling_sum(b) AS MOVING_SUM FROM s3 GROUP BY a EMIT CHANGES;
 ```
 
-Your output should look like the following. `k1` sums `3`, `5`, and `7` together to get a result of `15`. `k2` sums `6` and `2` together to get a result of `8`.
+Your output should resemble:
 
 ```
 +--------------------------------------------------------------+--------------------------------------------------------------+
@@ -652,7 +652,9 @@ Your output should look like the following. `k1` sums `3`, `5`, and `7` together
 |k2                                                            |8                                                             |
 ```
 
-Insert some more rows and shift older elements out of the aggregate:
+`k1` sums `3`, `5`, and `7` together to get a result of `15`. `k2` sums `6` and `2` together to get a result of `8`.
+
+Insert more rows, to shift older elements out of the aggregate:
 
 ```sql
 INSERT INTO s3 (a, b) VALUES ('k1', 9);
@@ -666,7 +668,7 @@ Run the query again:
 SELECT a, rolling_sum(b) AS MOVING_SUM FROM s3 GROUP BY a EMIT CHANGES;
 ```
 
-And you should now see these results. In `k1`, the previous three values are now `5`, `7`, and `9`. In `k2`, the elements are `2`, `1`, and `6`.
+Your output should resemble:
 
 ```
 +--------------------------------------------------------------+--------------------------------------------------------------+
@@ -676,11 +678,13 @@ And you should now see these results. In `k1`, the previous three values are now
 |k2                                                            |9                                                             |
 ```
 
+ The output from the `rolling_sum` function has changed. In `k1`, the previous three values are now `5`, `7`, and `9`. In `k2`, the elements are now `2`, `1`, and `6`.
+ 
 ## Working with structs
 
-Using structs in UDFs requires somewhat more ceremony and deserves special attention. Structs are different from the other Java types that ksqlDB interfaces with because their typing is more dynamic. Fields can be added and removed, and their types are inferred on the fly. Because of this dynamism, UDFs need to be more explicit in their type contract with ksqlDB.
+Using structs in UDFs requires a more specific type contract with ksqlDB. Structs are different from the other Java types that ksqlDB interfaces with because their typing is more dynamic. Fields can be added and removed, and their types are inferred on the fly. Because of this dynamism, UDFs need to be more explicit in their type contract with ksqlDB.
 
-To demonstrate, create a simple function that maintains simple statistics. This example will use a UDAF, though the concepts are applicable for both UDFs and UDTFs, too. Although the example is a bit fabricated, it is useful because it demonstrates using a struct in all possible positions.
+For example, create a simple function that maintains simple statistics. This example uses a UDAF, but the concepts are applicable for UDFs and UDTFs. Although the example is a bit contrived, it is useful because it demonstrates using a struct in all possible positions.
 
 ### Implement the class
 
@@ -830,11 +834,11 @@ public class StatsUdaf {
 
 There are a few important things to call out in this class:
 
-- Schemas are declared for the input struct parameter, intermediate aggregation struct value, and output struct value. Becasue each of these three structs are different, they need their own schemas.
+- Schemas are declared for the input struct parameter, intermediate aggregation struct value, and output struct value. These structs hold different data, so they each need their own schema.
 
-- Descriptor strings are created for each schema, too. This communicates the underlying types to ksqlDB is a way that its type system can understand. In the future, this may become automated, but it must be maintained today.
+- Descriptor strings are created for each schema, too. This communicates the underlying types to ksqlDB is a way that its type system can understand.
 
-- The schemas, and all the fields within, are declared as optional. ksqlDB does not yet have null constraints, meaning that today, any value can be null. To cope with this, all schemas and field values must be marked as optional.
+- The schemas, and all of the contained fields, are declared as optional. ksqlDB doesn't have null constraints, meaning that any value can be null. To handle this, all schemas and field values must be marked as optional.
 
 - Explictly declaring schemas is *only* needed when using structs. But because this example makes use of structs in all possible places (input, intermediate, and output values), schemas are declared for all of them.
 
@@ -897,7 +901,7 @@ Execute the following push query:
 SELECT a, stats(b) AS stats FROM s4 GROUP BY a EMIT CHANGES;
 ```
 
-It should output the following:
+Your output should resemble:
 
 ```
 +--------------------------------------------------------------+--------------------------------------------------------------+
@@ -912,6 +916,6 @@ If you like, you can destructure the output into individual columns. Try followi
 
 When you're done, tear down the stack by running:
 
-```
+```bash
 docker-compose down
 ```

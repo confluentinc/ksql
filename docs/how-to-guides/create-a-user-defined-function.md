@@ -78,6 +78,7 @@ repositories {
 dependencies {
     compile "io.confluent.ksql:ksqldb-udf:{{ site.cprelease }}"
     compile "org.apache.kafka:kafka_2.13:2.5.0"
+    compile "org.apache.kafka:connect-api:2.5.0"
 }
 
 apply plugin: "com.github.johnrengelman.shadow"
@@ -86,8 +87,11 @@ apply plugin: "java"
 shadowJar {
     archiveBaseName = "example-udfs"
     archiveClassifier = ""
+    destinationDir = file("extensions")
 }
 ```
+
+Dependencies are also declared on `kafka` and `connect-api`. You'll want both of these dependencies if you plan on making your UDFs capable of being externally configured or able to handle structs. This guide does both of those things.
 
 ## Implement the classes
 
@@ -162,7 +166,7 @@ Either continue following this guide by implementing more functions or skip ahea
 
 A tabular function (UDTF for short) takes one row as input and produces zero or more rows as output. This is sometimes called "flat map" or "mapcat" in different programming languages. Use this when a value represents many smaller values and needs to be "exploded" into its individual parts to be useful.
 
-Create a file at `src/main/java/com/example/IndexSeqUdtf.java` and populate it with the following code. This UDTF takes one parameter as input, an array of any type, and returns a sequence of rows, where each element is the element in the array concatenated with its index position as a string.
+Create a file at `src/main/java/com/example/IndexSequenceUdtf.java` and populate it with the following code. This UDTF takes one parameter as input, an array of any type, and returns a sequence of rows, where each element is the element in the array concatenated with its index position as a string.
 
 ```java
 package my.example;
@@ -200,7 +204,7 @@ Notice how:
 
 - The UDTF returns a Java `List`. This is the collection type that ksqlDB expects all tabular functions to return.
 
-- This UDTF uses Java generics which allow it operate over any ksqlDB supported types. Use this if you want to express logic that operates uniformly over many different column types. The generic parameter must be declared at the head of the method since you can have multiple signatures, each with a different generic type parameter.
+- This UDTF uses Java generics which allow it operate over any [ksqlDB supported types](../../concepts/functions/#supported-types). Use this if you want to express logic that operates uniformly over many different column types. The generic parameter must be declared at the head of the method since you can have multiple signatures, each with a different generic type parameter.
 
 
 !!! info
@@ -214,7 +218,7 @@ Either continue following this guide by implementing more functions or skip ahea
 
 An aggregation function (UDAF for short) consumes one row at a time and maintains a stateful representation of all historical data. Use this when you want to compound data from multiple rows together.
 
-Create a file at `src/main/java/com/example/RollingsumUdaf.java` and populate it with the following code. This UDAF maintains a rolling sum of the last `3` integers in a stream, discarding the oldest values as new ones arrive.
+Create a file at `src/main/java/com/example/RollingSumUdaf.java` and populate it with the following code. This UDAF maintains a rolling sum of the last `3` integers in a stream, discarding the oldest values as new ones arrive.
 
 ```java
 package my.example;
@@ -282,7 +286,7 @@ public class RollingSumUdaf {
 }
 ```
 
-There are a few things to observe in this class:
+There are many things to observe in this class:
 
 - By contrast to scalar and tabular functions, aggregation functions are designated by a static method with the `@UdafFactory` annotation. Because aggregations must implement multiple methods, this helps ksqlDB differentiate aggregations when multiple type signatures are used.
 
@@ -292,7 +296,9 @@ There are a few things to observe in this class:
 
 - UDAFs must be parameterized with three generic types. In this example, they are `<Integer, List<Integer>, Integer>`. The first parameter represents the type of the column to aggregate over. The second column represents the internal representation of the aggregation, which is established in `initialize()`. The third parameter represents the type that the query interacts with, which is converted by `map()`.
 
-- All types, including inputs, intermediate representations, and final representations, must be [types that ksqlDB supports](../../developer-guide/syntax-reference/#ksqldb-data-types).
+- All types, including inputs, intermediate representations, and final representations, must be [types that ksqlDB supports](../../concepts/functions/#supported-types).
+
+- The `merge` method controls how two [session windows](../../concepts/time-and-windows-in-ksqldb-queries/#session-window) fuse together when one extends and overlaps another. In this example, the content of the "earlier" aggregate is simply taken. If you are using session windows, you'll want to think through what good merge semantics are for your aggregation.
 
 ## Add the uberjar to ksqlDB server
 
@@ -302,7 +308,7 @@ In order for ksqlDB to be able to load your UDFs, they need to be compiled from 
 gradle shadowJar
 ```
 
-You should now have a directory, `build/libs` with a file named `example-udfs-0.0.1.jar` in it.
+You should now have a directory, `extensions`, with a file named `example-udfs-0.0.1.jar` in it.
 
 In order to use the uberjar, you need to make it available to ksqlDB server. Create the following `docker-compose.yml` file:
 
@@ -353,7 +359,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:{{ site.release }}
+    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -362,7 +368,7 @@ services:
     ports:
       - "8088:8088"
     volumes:
-      - "./build/libs/:/opt/ksqldb-udfs"
+      - "./extensions/:/opt/ksqldb-udfs"
     environment:
       KSQL_LISTENERS: "http://0.0.0.0:8088"
       KSQL_BOOTSTRAP_SERVERS: "broker:9092"
@@ -374,7 +380,7 @@ services:
       KSQL_KSQL_FUNCTIONS_FORMULA_BASE_VALUE: 5
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:{{ site.release }}
+    image: confluentinc/ksqldb-cli:{{ site.ksqldbversion }}
     container_name: ksqldb-cli
     depends_on:
       - broker
@@ -385,7 +391,7 @@ services:
 
 Notice that:
 
-- A volume is mounted from the local `build/libs` directory (containing your uberjar) to the container `/opt/ksqldb-udfs` directory. The latter can be any directory that you like. This command effectively puts the uberjar on ksqlDB server's file system.
+- A volume is mounted from the local `extensions` directory (containing your uberjar) to the container `/opt/ksqldb-udfs` directory. The latter can be any directory that you like. This command effectively puts the uberjar on ksqlDB server's file system.
 
 - The environment variable `KSQL_KSQL_EXTENSION_DIR` is configured to the same path that was set for the container in the volume mount. This is the path that ksqlDB will look for UDFs in.
 
@@ -666,6 +672,230 @@ And you should now see these results. In `k1`, the previous three values are now
 |k2                                                            |9                                                             |
 ```
 
+## Working with structs
+
+Using structs in UDFs requires somewhat more ceremony and deserves special attention. Structs are different from the other Java types that ksqlDB interfaces with because their typing is more dynamic. Fields can be added and removed, and their types are inferred on the fly. Because of this dynamism, UDFs need to be more explicit in their type contract with ksqlDB.
+
+To demonstrate, create a simple function that maintains simple statistics. This example will use a UDAF, though the concepts are applicable for both UDFs and UDTFs, too. Although the example is a bit fabricated, it is useful because it demonstrates using a struct in all possible positions.
+
+### Implement the class
+
+Create a file at `src/main/java/com/example/StatsUdaf.java` and populate it with the following code. This UDAF maintains the minimum, maximum, count, and difference between the min and max for a series of numbers.
+
+```java
+package my.example;
+
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.UdafDescription;
+import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.function.udf.UdfParameter;
+
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Schema;
+
+import java.util.List;
+import java.util.LinkedList;
+import java.util.Iterator;
+
+@UdafDescription(name = "stats",
+                 author = "example user",
+                 version = "1.3.5",
+                 description = "Maintains statistical values.")
+public class StatsUdaf {
+
+    public static final Schema PARAM_SCHEMA = SchemaBuilder.struct().optional()
+        .field("C", Schema.OPTIONAL_INT64_SCHEMA)
+        .build();
+
+    public static final String PARAM_SCHEMA_DESCRIPTOR = "STRUCT<" +
+        "C BIGINT" +
+        ">";
+
+    public static final Schema AGGREGATE_SCHEMA = SchemaBuilder.struct().optional()
+        .field("MIN", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("MAX", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("COUNT", Schema.OPTIONAL_INT64_SCHEMA)
+        .build();
+
+    public static final String AGGREGATE_SCHEMA_DESCRIPTOR = "STRUCT<" +
+        "MIN BIGINT," +
+        "MAX BIGINT," +
+        "COUNT BIGINT" +
+        ">";
+
+    public static final Schema RETURN_SCHEMA = SchemaBuilder.struct().optional()
+        .field("MIN", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("MAX", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("COUNT", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("DIFFERENTIAL", Schema.OPTIONAL_INT64_SCHEMA)
+        .build();
+
+    public static final String RETURN_SCHEMA_DESCRIPTOR = "STRUCT<" +
+        "MIN BIGINT," +
+        "MAX BIGINT," +
+        "COUNT BIGINT," +
+        "DIFFERENTIAL BIGINT" +
+        ">";
+
+    private StatsUdaf() {
+    }
+
+    @UdafFactory(description = "Computes the min, max, count, and difference between min/max.",
+                 paramSchema = PARAM_SCHEMA_DESCRIPTOR,
+                 aggregateSchema = AGGREGATE_SCHEMA_DESCRIPTOR,
+                 returnSchema = RETURN_SCHEMA_DESCRIPTOR)
+    public static Udaf<Struct, Struct, Struct> createUdaf() {
+        return new StatsUdafImpl();
+    }
+
+    private static class StatsUdafImpl implements Udaf<Struct, Struct, Struct> {
+
+        @Override
+        public Struct initialize() {
+            return new Struct(AGGREGATE_SCHEMA);
+        }
+
+        @Override
+        public Struct aggregate(Struct newValue, Struct aggregateValue) {
+            long c = newValue.getInt64("C");
+            
+            long min = Math.min(c, getMin(aggregateValue));
+            long max = Math.max(c, getMax(aggregateValue));
+            long count = (getCount(aggregateValue) + 1);
+
+            aggregateValue.put("MIN", min);
+            aggregateValue.put("MAX", max);
+            aggregateValue.put("COUNT", count);
+            
+            return aggregateValue;
+        }
+
+        @Override
+        public Struct map(Struct intermediate) {
+            Struct result = new Struct(RETURN_SCHEMA);
+
+            long min = intermediate.getInt64("MIN");
+            long max = intermediate.getInt64("MAX");
+
+            result.put("MIN", min);
+            result.put("MAX", max);
+            result.put("COUNT", intermediate.getInt64("COUNT"));
+            result.put("DIFFERENTIAL", max - min);
+
+            return result;
+        }
+
+        @Override
+        public Struct merge(Struct aggOne, Struct aggTwo) {
+            return aggOne;
+        }
+
+        private Long getMin(Struct aggregateValue) {
+            Long result = aggregateValue.getInt64("MIN");
+
+            if (result != null) {
+                return result;
+            } else {
+                return Long.MAX_VALUE;
+            }
+        }
+
+        private Long getMax(Struct aggregateValue) {
+            Long result = aggregateValue.getInt64("MAX");
+
+            if (result != null) {
+                return result;
+            } else {
+                return Long.MIN_VALUE;
+            }
+        }
+
+        private Long getCount(Struct aggregateValue) {
+            Long result = aggregateValue.getInt64("COUNT");
+
+            if (result != null) {
+                return result;
+            } else {
+                return 0L;
+            }
+        }
+    }
+}
+```
+
+There are a few important things to call out in this class:
+
+- Schemas are declared for the input struct parameter, intermediate aggregation struct value, and output struct value. Becasue each of these three structs are different, they need their own schemas.
+
+- Descriptor strings are created for each schema, too. This communicates the underlying types to ksqlDB is a way that its type system can understand. In the future, this may become automated, but it must be maintained today.
+
+- The schemas, and all the fields within, are declared as optional. ksqlDB does not yet have null constraints, meaning that today, any value can be null. To cope with this, all schemas and field values must be marked as optional.
+
+- Explictly declaring schemas is *only* needed when using structs. But because this example makes use of structs in all possible places (input, intermediate, and output values), schemas are declared for all of them.
+
+!!! info
+    If you're using a struct with a UDF or UDTF, you can set the schema using the `UdfParameter` annotation in the `schema` key.
+
+Create an uberjar in the same manner. If you already have ksqlDB running, be sure to restart it and remount the jar so that it picks up the new code. When you restart the server, keep an eye on the log files. If any of the type schemas are missing or incoherant, ksqlDB will log an error, such as:
+
+```
+[2020-06-29 21:10:23,889] WARN Failed to create UDAF name=struct_example, method=createUdaf, class=class my.example.StructExample, path=/opt/ksqldb-udfs/example-udfs-0.0.1.jar (io.confluent.ksql.function.UdafLoader:87)
+io.confluent.ksql.util.KsqlException: Must specify 'aggregateSchema' for STRUCT parameter in @UdafFactory.
+```
+
+### Invoke the function
+
+Try using the UDAF. Create the stream `s4`:
+
+```sql
+CREATE STREAM s4 (
+    a VARCHAR KEY,
+    b STRUCT<c BIGINT>
+) WITH (
+    kafka_topic = 's4',
+    partitions = 1,
+    value_format = 'avro'
+);
+```
+
+And insert some rows into it:
+
+```sql
+INSERT INTO s4 (
+    a, b
+) VALUES (
+    'k1', STRUCT(c := 5)
+);
+
+INSERT INTO s4 (
+    a, b
+) VALUES (
+    'k1', STRUCT(c := 3)
+);
+
+INSERT INTO s4 (
+    a, b
+) VALUES (
+    'k1', STRUCT(c := 9)
+);
+```
+
+Execute the following push query:
+
+```sql
+SELECT a, stats(b) AS stats FROM s4 GROUP BY a EMIT CHANGES;
+```
+
+It should output the following:
+
+```
++--------------------------------------------------------------+--------------------------------------------------------------+
+|A                                                             |STATS                                                         |
++--------------------------------------------------------------+--------------------------------------------------------------+
+|k1                                                            |{MIN=3, MAX=9, COUNT=3, DIFFERENTIAL=6}                       |
+```
+
 ## Tear down the stack
 
 When you're done, tear down the stack by running:
@@ -673,6 +903,3 @@ When you're done, tear down the stack by running:
 ```
 docker-compose down
 ```
-
-- << TODO: right Gradle UDF coordinates >>
-- << TODO: Struct example? >>

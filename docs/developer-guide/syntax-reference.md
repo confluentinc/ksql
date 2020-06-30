@@ -270,7 +270,7 @@ The following example creates an array from a stream named `s1`.
 SELECT ARRAY[1, 2] FROM s1 EMIT CHANGES;
 ```
 
-Starting in version 0.8.0, the built-in AS_ARRAY function syntax for
+Starting in version 0.7.1, the built-in AS_ARRAY function syntax for
 creating arrays doesn't work. Replace AS_ARRAY with the ARRAY constructor
 syntax. For example, replace this legacy query:
 

@@ -149,8 +149,7 @@ Some important points to notice:
 - This UDF uses an external parameter, `ksql.functions.formula.base.value`. When a UDF implements the `Configurable` interface, it will be invoked once as the server starts up. `configure()` supplies a map of the parameters that ksqlDB server was started with. You will see how this value is populated later in the guide.
 
 !!! warning
-    External parameters aren't supported for tabular or aggregation functions.
-    Support for these function types will be added soon.
+    External parameters aren't yet supported for tabular or aggregation functions.
 
 Either continue following this guide by implementing more functions or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
 

@@ -35,7 +35,7 @@ This is only used by legacy streaming endpoints from the old API which work with
  */
 public class ResponseOutputStream extends OutputStream {
 
-  private static final int WRITE_TIMEOUT_MS = 5 * 60000;
+  private static final int WRITE_TIMEOUT_MS = 10 * 60000;
   private static final int BLOCK_TIME_MS = 100;
 
   private final HttpServerResponse response;

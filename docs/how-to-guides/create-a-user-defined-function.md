@@ -264,7 +264,7 @@ public class RollingSumUdaf {
 
         @Override
         public List<Integer> merge(List<Integer> aggOne, List<Integer> aggTwo) {
-            return aggOne;
+            return aggTwo;
         }
     }
 }
@@ -282,7 +282,7 @@ There are many things to observe in this class:
 
 - All types, including inputs, intermediate representations, and final representations, must be [types that ksqlDB supports](../../concepts/functions/#supported-types).
 
-- The `merge` method controls how two [session windows](../../concepts/time-and-windows-in-ksqldb-queries/#session-window) fuse together when one extends and overlaps another. In this example, the content of the "earlier" aggregate is simply taken. If you're using session windows, consider what good merge semantics are for your aggregation.
+- The `merge` method controls how two [session windows](../../concepts/time-and-windows-in-ksqldb-queries/#session-window) fuse together when one extends and overlaps another. In this example, the content of the "later" aggregate is simply taken since it by definition contains values from a later window of time. If you're using session windows, consider what good merge semantics are for your aggregation.
 
 ## Add the uberjar to ksqlDB server
 

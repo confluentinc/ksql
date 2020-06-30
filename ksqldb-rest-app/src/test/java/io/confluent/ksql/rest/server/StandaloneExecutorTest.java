@@ -97,7 +97,11 @@ import java.util.Properties;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
@@ -238,6 +242,8 @@ public class StandaloneExecutorTest {
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
+  private AdminClient adminClient;
+  @Mock
   private BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   @Mock
   private Injector schemaInjector;
@@ -257,6 +263,12 @@ public class StandaloneExecutorTest {
     queriesFile = Paths.get(TestUtils.tempFile().getPath());
     givenQueryFileContains("something");
 
+    final DescribeClusterResult mockDescribeResults = mock(DescribeClusterResult.class);
+    final KafkaFuture<String> kafkaFuture = mock(KafkaFuture.class);
+    when(kafkaFuture.get(anyLong(), any())).thenReturn("cluster-id");
+    when(mockDescribeResults.clusterId()).thenReturn(kafkaFuture);
+    when(adminClient.describeCluster()).thenReturn(mockDescribeResults);
+    when(serviceContext.getAdminClient()).thenReturn(adminClient);
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
 
     when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0));

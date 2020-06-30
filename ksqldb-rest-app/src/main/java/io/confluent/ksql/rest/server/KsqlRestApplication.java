@@ -263,8 +263,6 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         this.restConfig,
         this.ksqlConfigNoPort);
-    MetricCollectors.addConfigurableReporter(
-        ksqlConfigNoPort, KafkaClusterUtil.getKafkaClusterId(serviceContext));
     log.debug("ksqlDB API server instance created");
   }
 
@@ -407,6 +405,8 @@ public final class KsqlRestApplication implements Executable {
   }
 
   private void initialize(final KsqlConfig configWithApplicationServer) {
+    MetricCollectors.addConfigurableReporter(
+        ksqlConfigNoPort, KafkaClusterUtil.getKafkaClusterId(serviceContext));
     rocksDBConfigSetterHandler.accept(ksqlConfigNoPort);
 
     registerCommandTopic();

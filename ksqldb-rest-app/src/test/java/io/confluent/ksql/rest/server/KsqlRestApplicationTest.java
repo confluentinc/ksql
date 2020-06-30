@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -69,6 +70,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.DescribeClusterResult;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -117,6 +121,8 @@ public class KsqlRestApplicationTest {
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
+  private AdminClient adminClient;
+  @Mock
   private KsqlServerPrecondition precondition1;
   @Mock
   private KsqlServerPrecondition precondition2;
@@ -148,7 +154,7 @@ public class KsqlRestApplicationTest {
 
   @SuppressWarnings("unchecked")
   @Before
-  public void setUp() {
+  public void setUp() throws ExecutionException, InterruptedException, TimeoutException {
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))
@@ -164,6 +170,13 @@ public class KsqlRestApplicationTest {
 
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    
+    final DescribeClusterResult mockDescribeResults = mock(DescribeClusterResult.class);
+    final KafkaFuture<String> kafkaFuture = mock(KafkaFuture.class);
+    when(kafkaFuture.get(anyLong(), any())).thenReturn("cluster-id");
+    when(mockDescribeResults.clusterId()).thenReturn(kafkaFuture);
+    when(adminClient.describeCluster()).thenReturn(mockDescribeResults);
+    when(serviceContext.getAdminClient()).thenReturn(adminClient);
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
     
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
@@ -222,7 +235,7 @@ public class KsqlRestApplicationTest {
     final MetricsReporter mockReporter = mock(MetricsReporter.class);
     when(ksqlConfig.getConfiguredInstances(anyString(), any(), any()))
         .thenReturn(Collections.singletonList(mockReporter));
-    givenAppWithRestConfig(Collections.emptyMap());
+    app.startKsql(ksqlConfig);
 
     // Then:
     final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();

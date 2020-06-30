@@ -164,6 +164,85 @@ With this change the above statement will result in a stream with only the `NAME
 
 Streams will no KEY column will be serialized to Kafka topics with a `null` key.
 
+#### Key columns required in projection
+
+A statement that creates a materialized view must include the key columns in the projection. For example:
+
+```sql
+CREATE TABLE OUTPUT AS
+   SELECT 
+      productId,  // <-- key column in projection
+      SUM(quantity) as unitsSold
+   FROM sales
+   GROUP BY productId;
+```
+
+The key column `productId` is required in the projection. In previous versions of ksqlDB the presence
+of `productId` in the projection would have placed a _copy_ of the data into the value of the underlying 
+Kafka topic's record.  However, as of v0.10 the projection must include the key columns and these columns
+will be stored in the _key_ of the underlying Kafka record.  Optionally, you may provide an alias for 
+the key column(s). 
+
+```sql
+CREATE TABLE OUTPUT AS
+   SELECT 
+      productId as id,  // <-- aliased key column
+      SUM(quantity) as unitsSold
+   FROM sales
+   GROUP BY productId;
+```
+
+If you require a copy of the key column in the Kafka record's value then you can use the 
+[AS_VALUE](docs/developer-guide/ksqldb-reference/scalar-functions#as_value) function to indicate this
+to ksqlDB. For example, the following will produce an output inline with the previous version of ksqlDB
+for the above example materialized view:
+
+```sql
+CREATE TABLE OUTPUT AS
+   SELECT 
+      productId as ROWKEY,              // <-- key column named ROWKEY
+      AS_VALUE(productId) as productId, // <-- productId copied into value
+      SUM(quantity) as unitsSold
+   FROM sales
+   GROUP BY productId;
+```
+
+### WITH(KEY) syntax removed
+
+In previous versions, all key columns where called `ROWKEY`. To enable a more
+user-friendly name to be used for the key column in queries it was possible
+to supply an alias for the key column in the WITH clause, for example:
+
+```sql
+CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, ID INT, V0 STRING) WITH (key='ID', ...);
+```
+
+With the previous query, the `ID` column can be used as an alias for `ROWKEY`.
+This approach required the {{ site.ak }} message value to contain an exact copy
+of the key.
+
+[KLIP-24](https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-24-key-column-semantics-in-queries.md)
+removed the restriction that key columns must be named `ROWKEY`, negating the need for the `WITH(KEY)`
+syntax, which has been removed. Also, this change removed the requirement for
+the {{ site.ak }} message value to contain an exact copy of the key.
+
+Update your queries by removing the `KEY` from the `WITH` clause and  naming
+your `KEY` and `PRIMARY KEY` columns appropriately. For example, the previous
+CREATE TABLE statement can now be rewritten as:
+
+```sql
+CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING) WITH (...);
+```
+
+Unless the value format is `DELIMITED`, which means the value columns are
+*order dependant*, so dropping the `ID` value column would result in a
+deserialization error or the wrong values being loaded. If you're using
+`DELIMITED`, consider rewriting as:
+
+```sql
+CREATE TABLE INPUT (ID INT PRIMARY KEY, ignoreMe INT, V0 STRING) WITH (...);
+```
+
 ## [0.9.0](https://github.com/confluentinc/ksql/releases/tag/v0.9.0-ksqldb) (2020-05-11)
 
 ### Features

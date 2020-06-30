@@ -419,12 +419,14 @@ public class AstBuilder {
       if (pullQuery) {
         resultMaterialization = Optional.empty();
       } else if (buildingPersistentQuery) {
-        resultMaterialization = Optional
+        resultMaterialization = Optional.of(Optional
             .ofNullable(context.resultMaterialization())
             .map(rm -> rm.FINAL() == null
                 ? ResultMaterialization.CHANGES
                 : ResultMaterialization.FINAL
-            );
+            )
+            .orElse(ResultMaterialization.CHANGES
+            ));
         // Else must be a push query
       } else {
         resultMaterialization = Optional

@@ -419,7 +419,7 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldDefaultToYieldFinalForBareQueries() {
+  public void shouldDefaultToEmptyResultMaterializationForBareQueries() {
     // Given:
     final SingleStatementContext stmt =
         givenQuery("SELECT * FROM TEST1;");
@@ -429,7 +429,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be pull", result.isPullQuery(), is(true));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
+    assertThat(result.getResultMaterialization(), is(Optional.empty()));
   }
 
   @Test

@@ -169,7 +169,7 @@ Construct an array from a variable number of inputs.
 ### `ARRAY_CONTAINS`
 
 ```sql
-ARRAY_CONTAINS([1, 2, 3], 3)
+ARRAY_CONTAINS(ARRAY[1, 2, 3], 3)
 ```
 
 Given an array, checks if a search value is contained in the array.

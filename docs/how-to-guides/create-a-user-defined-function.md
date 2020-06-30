@@ -46,7 +46,7 @@ public class FormulaUdf implements Configurable {
 
 ## Set up a Java project
 
-To implement a user-defined function, the first thing that you need to do is create a Java project with a dependency on ksqlDB's UDF library. This library contains the annotations you'll use to signal that the classes you're implementing aren't just any old classes, they're UDFs. You can manage your Java project with any build tool, but this guide demonstrates how it works with Gradle. In the end, all that matters is that you're able to put an uberjar in ksqlDB's extension directory.
+To implement a user-defined function, start by creating a Java project with a dependency on ksqlDB's UDF library. This library contains the annotations you use to signal that the classes you're implementing are UDFs specifically. You can manage your Java project with any build tool, but this guide demonstrates how it works with Gradle. What matters is that you can put an uberjar in ksqlDB's extension directory.
 
 In a fresh directory, create the following `build.gradle` file to set up the Java project:
 
@@ -91,11 +91,13 @@ shadowJar {
 }
 ```
 
-Dependencies are also declared on `kafka` and `connect-api`. You'll want both of these dependencies if you plan on making your UDFs capable of being externally configured or able to handle structs. This guide does both of those things.
+Dependencies are also declared on `kafka` and `connect-api`. You need both of these dependencies to make your UDFs capable of being externally configured or able to handle structs. This guide does both of those things.
 
 ## Implement the classes
 
-There are three kinds of UDFs which manipulate rows in different ways: scalar functions, tabular functions, and aggregation functions. Each is demonstrated below with simple examples using a variety of features (you can learn about more sophisticated usage in the [concepts section](../concepts/functions.md)). Start by creating a directory to house the class files:
+There are three kinds of UDFs which manipulate rows in different ways: scalar functions, tabular functions, and aggregation functions. Each is demonstrated below with simple examples using a variety of features. You can learn about more sophisticated usage in the [concepts section](../concepts/functions.md)).
+
+Start by creating a directory for the class files:
 
 ```
 mkdir -p src/main/java/com/example
@@ -157,7 +159,7 @@ Some important points to notice:
 - This UDF uses an external parameter, `ksql.functions.formula.base.value`. When a UDF implements the `Configurable` interface, it will be invoked once as the server starts up. `configure()` supplies a map of the parameters that ksqlDB server was started with. You will see how this value is populated later in the guide.
 
 !!! warning
-    External parameters do not yet work for tabular or aggregation functions.
+    External parameters aren't supported for tabular or aggregation functions.
     Support for these function types will be added soon.
 
 Either continue following this guide by implementing more functions or skip ahead to [compiling the classes](#add-the-uberjar-to-the-classpath) so you can use the functions in ksqlDB.
@@ -204,7 +206,7 @@ Notice how:
 
 - The UDTF returns a Java `List`. This is the collection type that ksqlDB expects all tabular functions to return.
 
-- This UDTF uses Java generics which allow it operate over any [ksqlDB supported types](../../concepts/functions/#supported-types). Use this if you want to express logic that operates uniformly over many different column types. The generic parameter must be declared at the head of the method since you can have multiple signatures, each with a different generic type parameter.
+- This UDTF uses Java generics, which enable operating over any [ksqlDB supported types](../../concepts/functions/#supported-types). Use this if you want to express logic that operates uniformly over many different column types. The generic parameter must be declared at the head of the method, since you can have multiple signatures, each with a different generic type parameter.
 
 
 !!! info
@@ -288,23 +290,23 @@ public class RollingSumUdaf {
 
 There are many things to observe in this class:
 
-- By contrast to scalar and tabular functions, aggregation functions are designated by a static method with the `@UdafFactory` annotation. Because aggregations must implement multiple methods, this helps ksqlDB differentiate aggregations when multiple type signatures are used.
+- Aggregation functions are designated by a static method with the `@UdafFactory` annotation, which differs from scalar and tabular functions. Because aggregations must implement multiple methods, this helps ksqlDB differentiate aggregations when multiple type signatures are used.
 
 - The static factory method needs to either return `Udaf` or `TableUdaf` (in package `io.confluent.ksql.function.udaf`). The former, which is used in this example, can only be used to aggregate streams into tables, and cannot aggregate tables into other tables. To achieve the latter, use the `TableUdaf`, which derives from `Udaf`, and implement the `undo()` method, too.
 
-- ksqlDB decouples the internal representation of an aggregate from how it is used in an operation. This is very useful because aggregations can maintain complex state, but expose it in a simpler way in a query. In this example, the internal representation is a `LinkedList`, as indicated by the `initialize()` method. But when ksqlDB interacts with the aggregation value, `map()` is called, which sums the values in the list. The `List` is needed to keep a running history of values, but the summed value is needed for the query itself.
+- ksqlDB decouples the internal representation of an aggregate from its use in an operation. This is useful because aggregations can maintain complex state and expose it in a simpler way in a query. In this example, the internal representation is a `LinkedList`, as indicated by the `initialize()` method. But when ksqlDB interacts with the aggregation value, `map()` is called, which sums the values in the list. The `List` is needed to keep a running history of values, but the summed value is needed for the query itself.
 
 - UDAFs must be parameterized with three generic types. In this example, they are `<Integer, List<Integer>, Integer>`. The first parameter represents the type of the column to aggregate over. The second column represents the internal representation of the aggregation, which is established in `initialize()`. The third parameter represents the type that the query interacts with, which is converted by `map()`.
 
 - All types, including inputs, intermediate representations, and final representations, must be [types that ksqlDB supports](../../concepts/functions/#supported-types).
 
-- The `merge` method controls how two [session windows](../../concepts/time-and-windows-in-ksqldb-queries/#session-window) fuse together when one extends and overlaps another. In this example, the content of the "earlier" aggregate is simply taken. If you are using session windows, you'll want to think through what good merge semantics are for your aggregation.
+- The `merge` method controls how two [session windows](../../concepts/time-and-windows-in-ksqldb-queries/#session-window) fuse together when one extends and overlaps another. In this example, the content of the "earlier" aggregate is simply taken. If you're using session windows, consider what good merge semantics are for your aggregation.
 
 ## Add the uberjar to ksqlDB server
 
 In order for ksqlDB to be able to load your UDFs, they need to be compiled from classes into an uberjar. Run the following command to build an uberjar:
 
-```
+```bash
 gradle shadowJar
 ```
 
@@ -404,13 +406,13 @@ Notice that:
 
 Bring up your stack by running:
 
-```
+```bash
 docker-compose up
 ```
 
 And connect to ksqlDB's server by using its interactive CLI:
 
-```
+```bash
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
@@ -427,7 +429,7 @@ You should see a long list of built-in functions, including your own `FORMULA`, 
 ```
 
 !!! info
-    UDFs are only loaded once as ksqlDB server starts up. ksqlDB does not support hot-reloading UDFs. If you want to change the code of a UDF, you need to create a new uberjar, replace the one that is available to ksqlDB, and restart the server. Keep in mind that in a multi-node setup, different nodes may be running different versions of a UDF at the same time.
+    UDFs are loaded only once as ksqlDB server starts up. ksqlDB does not support hot-reloading UDFs. If you want to change the code of a UDF, you must create a new uberjar, replace the one that is available to ksqlDB, and restart the server. Keep in mind that in a multi-node setup, different nodes may be running different versions of a UDF at the same time.
 
 Before you run any queries, be sure to have ksqlDB start all queries from the earliest point in each topic.
 
@@ -443,7 +445,7 @@ Inspect the `formula` function by running:
 DESCRIBE FUNCTION formula;
 ```
 
-It should output the following. ksqlDB shows all the type signatures that the UDF implements, which in two in this case.
+Your output should resemble:
 
 ```
 Name        : FORMULA
@@ -476,7 +478,7 @@ CREATE STREAM s1 (
     value_format = 'avro'
 );
 ```
-
+The DESCRIBE FUNCTION statement shows all of the type signatures that the UDF implements. For the `formula` function, there are two type signatures.
 Insert some rows into the stream:
 
 ```sql
@@ -485,13 +487,13 @@ INSERT INTO s1 (a, b, c) VALUES ('k2', 4, 6);
 INSERT INTO s1 (a, b, c) VALUES ('k3', 6, 9);
 ```
 
-Execute a push query. Recall what `formula` does. When given two integers, it multiples the together, then adds the value of the parameter `ksql.functions.formula.base.value`, which is set to `5` in your Docker Compose file:
+Execute a push query. The `formula` function multiplies two integers and adds the value of the parameter `ksql.functions.formula.base.value`, which is set to `5` in your Docker Compose file:
 
 ```sql
 SELECT a, formula(b, c) AS result FROM s1 EMIT CHANGES;
 ```
 
-You should see:
+Your output should resemble:
 
 ```
 +--------------------------------------------------------------+--------------------------------------------------------------+
@@ -502,13 +504,13 @@ You should see:
 |k3                                                            |59                                                            |
 ```
 
-Try the other variant which takes two doubles. This implementation takes the ceiling of `a` and `b` before multiplying. Notice how you can use constants instead of column names as arguments to the function:
+Try the other variant of the `formula` function, which takes two doubles. This implementation takes the ceiling of `a` and `b` before multiplying. Notice how you can use constants instead of column names as arguments to the function:
 
 ```sql
 SELECT a, formula(CAST(b AS DOUBLE), 7.3) AS result FROM s1 EMIT CHANGES;
 ```
 
-You should see:
+Your output should resemble:
 
 ```
 +--------------------------------------------------------------+--------------------------------------------------------------+
@@ -528,7 +530,7 @@ Inspect the `index_seq` function by running:
 DESCRIBE FUNCTION index_seq;
 ```
 
-It should output the following. Notice how ksqlDB shows that this is a generic function with the type parameter `E`. This means that this UDTF can take a parameter that is an array of any type.
+Your output should resemble:
 
 ```
 Name        : INDEX_SEQ
@@ -543,6 +545,8 @@ Variations  :
 	Returns     : VARCHAR
 	Description : Disassembles a sequence and produces new elements concatenated with indices.
 ```
+
+The DESCRIBE FUNCTION statement shows that `index_seq`  is a generic function with the type parameter `E`, which means that this UDTF can take a parameter that is an array of any type.
 
 Create a stream named `s2`:
 
@@ -565,7 +569,7 @@ INSERT INTO s2 (a, b) VALUES ('k2', ARRAY['d', 'e']);
 INSERT INTO s2 (a, b) VALUES ('k3', ARRAY['f']);
 ```
 
-Execute a push query. Recall what `index_seq` does. It creates a row per element in an array concatenated with its index position.
+Execute a push query. The `index_seq` function creates one row for each element in an array, concatenated with the element's index position.
 
 ```sql
 SELECT a, index_seq(b) AS str FROM s2 EMIT CHANGES;

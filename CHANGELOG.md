@@ -1,5 +1,248 @@
 # Change Log
 
+## [0.10.0](https://github.com/confluentinc/ksql/releases/tag/v0.10.0-ksqldb) (2020-06-25)
+
+### Features
+
+* Any key name ([#5093](https://github.com/confluentinc/ksql/pull/5093)) ([1f0ca3e](https://github.com/confluentinc/ksql/commit/1f0ca3efb0f5ecadc7a604f219cbc16b2e120d8d))
+* Explicit keys ([#5533](https://github.com/confluentinc/ksql/pull/5533)) ([d0db0cf](https://github.com/confluentinc/ksql/commit/d0db0cfac050cef94019c6daa59cd765ca0f7379))
+* add extra log messages for pull queries ([#4909](https://github.com/confluentinc/ksql/pull/4909)) ([d622ecc](https://github.com/confluentinc/ksql/commit/d622eccb845698c245340556b6b4965fec075305))
+* Adds the ability have internal endpoints listen on ksql.internal.listener ([#5212](https://github.com/confluentinc/ksql/pull/5212)) ([46acb73](https://github.com/confluentinc/ksql/commit/46acb73f8e0df7118876e1d991fd8ba0946905f7))
+* create MetricsContext for ksql metrics reporters ([#5528](https://github.com/confluentinc/ksql/pull/5528)) ([50561a5](https://github.com/confluentinc/ksql/commit/50561a55cdf7a4264481ca51de8d3db17d3aeea6))
+* drop WITH(KEY) syntax ([#5363](https://github.com/confluentinc/ksql/pull/5363)) ([bb43d23](https://github.com/confluentinc/ksql/commit/bb43d23ad36ec3519a06d05c25ca99f726244ad0))
+* expose JMX metric that classifies an error state ([#5374](https://github.com/confluentinc/ksql/pull/5374)) ([52271bf](https://github.com/confluentinc/ksql/commit/52271bf6ccbfdb26e83e5c30c2e11db0c72e8efc))
+* Expose Vert.x metrics ([#5340](https://github.com/confluentinc/ksql/pull/5340)) ([e82f762](https://github.com/confluentinc/ksql/commit/e82f7626236cc62d98e62e1d51ff33e4d6ff1519))
+* introduce RegexClassifier for classifying errors via cfg ([#5412](https://github.com/confluentinc/ksql/pull/5412)) ([b25dd98](https://github.com/confluentinc/ksql/commit/b25dd987b219dcb8a3105beb7251503828ade023))
+* Pull Queries: QPS check utilizes internal API flag to determine if forwarded ([#5392](https://github.com/confluentinc/ksql/pull/5392)) ([08b428f](https://github.com/confluentinc/ksql/commit/08b428f368a6f6238f9ffd9caab9f27afad9d1b9))
+* reload TLS certificate without restarting server ([#5516](https://github.com/confluentinc/ksql/pull/5516)) ([a5920b0](https://github.com/confluentinc/ksql/commit/a5920b0f31fe2f32adcfe8cd03e1f2bd14c1368e))
+* support TIMESTAMP being a key column ([#5542](https://github.com/confluentinc/ksql/pull/5542)) ([286ce08](https://github.com/confluentinc/ksql/commit/286ce0850e43e06ef0c7263546d31946c3c05302))
+* turn on snappy compression for produced data ([#5495](https://github.com/confluentinc/ksql/pull/5495)) ([27d8ad5](https://github.com/confluentinc/ksql/commit/27d8ad5d3d9d2f731b0281a525b5e80edb24a637))
+* **client:** Java client with push + pull query support ([#5200](https://github.com/confluentinc/ksql/pull/5200)) ([280ef0c](https://github.com/confluentinc/ksql/commit/280ef0ca8aa02693db1427ece08cd7863abed98d))
+* **client:** support (non-streaming) insert into in Java client ([#5448](https://github.com/confluentinc/ksql/pull/5448)) ([9e8234a](https://github.com/confluentinc/ksql/commit/9e8234ad93745f73dc8e0d7463e44f33bb0739a9))
+* **client:** support push query termination in Java client ([#5371](https://github.com/confluentinc/ksql/pull/5371)) ([62dacca](https://github.com/confluentinc/ksql/commit/62dacca7efc8fc2a4202c69caa58596051c67fee))
+* New UDF/UDAF
+    * Adds UDF regexp_extract_all ([#5507](https://github.com/confluentinc/ksql/pull/5507)) ([e19233c](https://github.com/confluentinc/ksql/commit/e19233c6bba4e5f4be9a93c224265c949626d317))
+    * Adds UDF regexp_replace ([#5504](https://github.com/confluentinc/ksql/pull/5504)) ([30309bf](https://github.com/confluentinc/ksql/commit/30309bf07fbc706fb5200996ce33318d379cd97f))
+    * Adds udf regexp_split_to_array ([#5501](https://github.com/confluentinc/ksql/pull/5501)) ([3766129](https://github.com/confluentinc/ksql/commit/3766129fe4511cedc2f7102427944876fb927a8a))
+    * new UDFs for array max/min/sort ([#5505](https://github.com/confluentinc/ksql/pull/5505)) ([415d930](https://github.com/confluentinc/ksql/commit/415d93049670d30d48d68b294f7eb724fb8f90c8))
+    * new UDFs for set-like operations on Arrays ([#5548](https://github.com/confluentinc/ksql/pull/5548)) ([50428c7](https://github.com/confluentinc/ksql/commit/50428c74089dddd43fb96e8299a28c507c615e4a))
+    * new UDFs for working with Maps ([#5536](https://github.com/confluentinc/ksql/pull/5536)) ([bc9ad2e](https://github.com/confluentinc/ksql/commit/bc9ad2ea93b08ace708d6e74684582fa3e9c2d4d))
+    * new UUID UDF ([#5535](https://github.com/confluentinc/ksql/pull/5535)) ([cfa65da](https://github.com/confluentinc/ksql/commit/cfa65da59ee057840a6c394e3038eb741a161e06))
+    * new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
+    * new string UDFs LPad, RPad ([#5546](https://github.com/confluentinc/ksql/pull/5546)) ([00f5083](https://github.com/confluentinc/ksql/commit/00f5083cf3320ddb773d25cc160fffb414173ddc))
+    * implement earliest_by_offset() UDAF ([#5273](https://github.com/confluentinc/ksql/pull/5273)) ([2a356ac](https://github.com/confluentinc/ksql/commit/2a356acbc1d55c868f0cde95b72835476615f8d6))
+    * INSTR function [#881](https://github.com/confluentinc/ksql/issues/881) ([#5385](https://github.com/confluentinc/ksql/pull/5385)) ([ca86bbf](https://github.com/confluentinc/ksql/commit/ca86bbfad51e479d6847f84a0c7928f31d8a2b26))
+    * add CHR UDF ([#5559](https://github.com/confluentinc/ksql/pull/5559)) ([5a746e8](https://github.com/confluentinc/ksql/commit/5a746e85502235753cf11bfa507ab69e1e19064c))
+    * implements ARRAY_JOIN as requested in ([#5028](https://github.com/confluentinc/ksql/pull/5028)) ([#5474](https://github.com/confluentinc/ksql/issues/5474)) ([#5638](https://github.com/confluentinc/ksql/issues/5638)) ([6c67866](https://github.com/confluentinc/ksql/commit/6c678665cee4a67e7737460710eac2875bc8c2e2))
+    * new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
+    * Add encode udf ([#5523](https://github.com/confluentinc/ksql/pull/5523)) ([b02f1ce](https://github.com/confluentinc/ksql/commit/b02f1ce8ae564688eda385268a51b1217dc9e277))
+
+
+### Bug Fixes
+
+* /inserts-stream endpoint now accepts complex types ([#5469](https://github.com/confluentinc/ksql/pull/5469)) ([0840160](https://github.com/confluentinc/ksql/commit/0840160e81b52b7cd0d55c6af7581c6be0a9eb85))
+* allow dynamic construction of an ARRAY of STRUCTS with duplicate values [#5436](https://github.com/confluentinc/ksql/issues/5436) ([#5506](https://github.com/confluentinc/ksql/pull/5506)) ([0b1162c](https://github.com/confluentinc/ksql/commit/0b1162cc94bef391531bdc33b726aede4b3aab04))
+* allow setting auto.offset.reset=latest on /query-stream endpoint ([#5455](https://github.com/confluentinc/ksql/pull/5455)) ([d91c016](https://github.com/confluentinc/ksql/commit/d91c01625acab2e6c3ce56339ec76d9f5b7a81aa))
+* allow structs in schema provider return types ([#5287](https://github.com/confluentinc/ksql/pull/5287)) ([2e604f0](https://github.com/confluentinc/ksql/commit/2e604f04daf56e720927c9f66219853e0d4fabef))
+* Allow value delimiter to be specified for datagen ([#5332](https://github.com/confluentinc/ksql/pull/5332)) ([865e834](https://github.com/confluentinc/ksql/commit/865e834f9c075705cbe43515925943149e638984))
+* avoid unnecessary warnings from PRINT ([#5459](https://github.com/confluentinc/ksql/pull/5459)) ([080fba9](https://github.com/confluentinc/ksql/commit/080fba94770bfccaa78db2e26e6ed6424b93ee2f))
+* Block writer thread if response output buffer is full ([#5386](https://github.com/confluentinc/ksql/pull/5386)) ([0edda40](https://github.com/confluentinc/ksql/commit/0edda40c04f25d26a60cb135a3827198f4d5c684))
+* deals with issue [#5521](https://github.com/confluentinc/ksql/issues/5521) by adding more descriptive error message ([#5529](https://github.com/confluentinc/ksql/pull/5529)) ([86f8b67](https://github.com/confluentinc/ksql/commit/86f8b67ba6855dbdb8f77c15657aeab567b15bb7))
+* disallow requests to /inserts-stream if insert values disabled ([#5592](https://github.com/confluentinc/ksql/pull/5592)) ([e277f25](https://github.com/confluentinc/ksql/commit/e277f2541f35f329339f1d617c7ca60d632a1cba))
+* exclude window bounds from persistent query value & schema match ([#5425](https://github.com/confluentinc/ksql/pull/5425)) ([3596ceb](https://github.com/confluentinc/ksql/commit/3596ceb09965faf09e2a9e0e2460126b8c9ebf0b))
+* fail AVRO/Protobuf/JSON Schema statements if SR is missing ([#5597](https://github.com/confluentinc/ksql/pull/5597)) ([85a0320](https://github.com/confluentinc/ksql/commit/85a0320e774d236bda4898f82eb5d5c2f7b42cec))
+* fail on WINDOW clause without matching GROUP BY ([#5431](https://github.com/confluentinc/ksql/pull/5431)) ([68354d4](https://github.com/confluentinc/ksql/commit/68354d488aec07dc0bc9a7354ee8b8794bfef4e6))
+* improve print topic ([#5552](https://github.com/confluentinc/ksql/pull/5552)) ([e193576](https://github.com/confluentinc/ksql/commit/e193576c0f6c0295da6f4357391639e49a45863b))
+* Improve pull query error logging ([#5477](https://github.com/confluentinc/ksql/pull/5477)) ([f23412e](https://github.com/confluentinc/ksql/commit/f23412e9103531d2b8ce96cfcee3eff92784239b))
+* KSQL does not accept more queries when running QueryLimit - 1 queries ([#5461](https://github.com/confluentinc/ksql/pull/5461)) ([d64f1bc](https://github.com/confluentinc/ksql/commit/d64f1bc7ba4359b3d7a8cf3ba28d315eef47389e))
+* make stream and column names case-insensitive in /inserts-stream ([#5591](https://github.com/confluentinc/ksql/pull/5591)) ([e9e3042](https://github.com/confluentinc/ksql/commit/e9e3042f1bdbd6da384146410f866aab6b12b987))
+* NPE in latest_by_offset if first element being processed has null… ([#4975](https://github.com/confluentinc/ksql/pull/4975)) ([a9668d2](https://github.com/confluentinc/ksql/commit/a9668d245db797e193d1e4bcc8734eab29ba99b3))
+* Prevent memory leaks caused by pull query logging ([#5532](https://github.com/confluentinc/ksql/pull/5532)) ([723b6cb](https://github.com/confluentinc/ksql/commit/723b6cb764950a4d9d639f5d40c4b4e6c615fba6))
+* remove leading zeros when casting decimal to string ([#5270](https://github.com/confluentinc/ksql/pull/5270)) ([e1cc8ad](https://github.com/confluentinc/ksql/commit/e1cc8ad8db9f9f34c3a2f26b60c3d0a7631b23a2))
+* Remove stacktrace from error message ([#5478](https://github.com/confluentinc/ksql/pull/5478)) ([b63d7e8](https://github.com/confluentinc/ksql/commit/b63d7e8d3fb325a74120e40e3fc96d51e9c35856))
+* Retry on connection closed ([#5515](https://github.com/confluentinc/ksql/pull/5515)) ([8eb1f88](https://github.com/confluentinc/ksql/commit/8eb1f88c165aa0bb494288c46cd96ac911d7cfdf))
+* set retention.ms to -1 instead of Long.MAX_VALUE ([#5560](https://github.com/confluentinc/ksql/pull/5560)) ([22da8a0](https://github.com/confluentinc/ksql/commit/22da8a091f0020bbd541ad5f812054c7744f0785))
+* update Concat UDF to new framework and make variadic ([#5513](https://github.com/confluentinc/ksql/pull/5513)) ([cab6a86](https://github.com/confluentinc/ksql/commit/cab6a8672f97d86da75a3e5b1e70985146129640))
+* zero decimal bug ([#5531](https://github.com/confluentinc/ksql/pull/5531)) ([1b9094b](https://github.com/confluentinc/ksql/commit/1b9094bd5ead8a8441ef8f10a5f86722dd7d3988))
+* /query-stream endpoint should serialize Struct (MINOR) ([#5205](https://github.com/confluentinc/ksql/pull/5205)) ([12b092b](https://github.com/confluentinc/ksql/commit/12b092bda160f614ef0b8096f77b7013efc3b190))
+* Move Cors handler in front of /chc handlers ([#5239](https://github.com/confluentinc/ksql/pull/5239)) ([004ced2](https://github.com/confluentinc/ksql/commit/004ced255479f6a5975848270746a45746a4437a))
+* use schema in annotation as schema provider if present ([1a90eeb](https://github.com/confluentinc/ksql/commit/1a90eeb71ae8292410fc99d49c24fdafadcf9de7))
+* use sr's jackson-jsonschema version ([#5213](https://github.com/confluentinc/ksql/pull/5213)) ([0b3899a](https://github.com/confluentinc/ksql/commit/0b3899a4a31f668a897d82d98c59365aae8022ec))
+* /inserts-stream endpoint now supports nested types ([#5621](https://github.com/confluentinc/ksql/pull/5621)) ([866ae34](https://github.com/confluentinc/ksql/commit/866ae3499a9d59068461d17ed15e1353759a0334))
+* don't fail if broker does not support AuthorizedOperations ([#5617](https://github.com/confluentinc/ksql/pull/5617)) ([0feb081](https://github.com/confluentinc/ksql/commit/0feb081c89d00f326e151035ac5616d19f610307))
+* ensure only deserializable cmds are written to command topic ([#5645](https://github.com/confluentinc/ksql/pull/5645)) ([4ad2bde](https://github.com/confluentinc/ksql/commit/4ad2bde44f31ea3c15fdd898ce12d50a595013d1))
+* fail AVRO/Protobuf/JSON Schema statements if SR is missing ([#5597](https://github.com/confluentinc/ksql/pull/5597)) ([85a0320](https://github.com/confluentinc/ksql/commit/85a0320e774d236bda4898f82eb5d5c2f7b42cec))
+* support GROUP BY with no source columns used ([#5644](https://github.com/confluentinc/ksql/pull/5644)) ([a8e6630](https://github.com/confluentinc/ksql/commit/a8e66304081879335c62948d5a8dd5f5531766be))
+
+
+### BREAKING CHANGES
+
+#### Any key name
+
+Statements containing PARTITION BY, GROUP BY or JOIN clauses will now produce different output schemas.
+For PARTITION BY and GROUP BY statements, the name of the key column in the result is determined by the PARTITION BY or GROUP BY clause:
+1. Where the partitioning or grouping is a single column reference, then the key column will have the same name as this column. For example:
+```sql
+CREATE STREAM OUTPUT AS
+SELECT * FROM INPUT GROUP BY X;
+-- OUTPUT will have a key column called X;
+```
+2. Where the partitioning or grouping is a single struct field, then the key column will have the same name as the field. For example:
+```sql
+CREATE STREAM OUTPUT AS
+SELECT * FROM INPUT GROUP BY X->field1;
+-- OUTPUT will have a key column called FIELD1;
+```
+3. Otherwise, the key column name will be system generated and be in the form `KSQL_COL_n`, where `n` is some positive integer.
+In all case, except where grouping by more than one column, the new key column's name can be set by defining an alias in the projection. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT USERID AS ID, COUNT(*) FROM USERS GROUP BY ID;
+-- OUTPUT will have a key column named ID.
+```
+For groupings of multiple expressions there is currently no way to provide a name for the system generated key column. This is a shortcoming that will be fixed shortly when ksqlDB supports more than just a single key column.
+For JOIN statements, the name of the key column in the result is determined by the join criteria.
+1. For INNER and LEFT OUTER joins where the join criteria contains at least one column reference the key column will be named of the left most source whose join criteria is a column reference. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT * FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
+-- OUTPUT will have a key column named I2_ID.
+```
+The key column can be given a new name, if required, by defining an alias in the projection. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT I2.ID AS ID, I1.V0, I2.V0, I3.V0 FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
+-- OUTPUT will have a key column named ID.
+```
+2. For FULL OUTER joins and other joins where the join criteria is not on column references, the key column in the output is not equivalent to any column from any source. The key column will have a system generated name in the form `KSQL_COL_n`, where `n` is a positive integer. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT * FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
+-- OUTPUT will have a key column named KSQL_COL_0, or similar.
+```
+The key column can be given a new name, if required, by defining an alias in the projection. A new UDF has been introduced to help define the alias called `JOINKEY`. It takes the join criteria as its parameters. For example:
+```sql
+CREATE TABLE OUTPUT AS
+SELECT JOINKEY(I1.ID, I2.ID) AS ID, I1.V0, I2.V0 FROM  I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;
+-- OUTPUT will have a key column named ID.
+```
+`JOINKEY` will be deprecated in a future release of ksqlDB once multiple key columns are supported.
+
+#### Explicit keys
+
+`CREATE TABLE` statements will now fail if the `PRIMARY KEY` column is not provided.
+
+For example, a statement such as:
+
+```sql
+CREATE TABLE FOO (name STRING) WITH (kafka_topic='foo', value_format='json');
+```
+
+Will need to be updated to include the definition of the PRIMARY KEY, e.g.
+
+```sql
+CREATE TABLE FOO (ID STRING PRIMARY KEY, name STRING) WITH (kafka_topic='foo', value_format='json');
+```
+
+If using schema inference, i.e. loading the value columns of the topic from the Schema Registry, the primary key can be provided as a partial schema, e.g.
+
+```sql
+-- FOO will have value columns loaded from the Schema Registry
+CREATE TABLE FOO (ID INT PRIMARY KEY) WITH (kafka_topic='foo', value_format='avro');
+```
+
+`CREATE STREAM` statements that do not define a `KEY` column will no longer have an implicit `ROWKEY` key column.
+
+For example:
+
+```sql
+CREATE STREAM BAR (NAME STRING) WITH (...);
+```
+
+The above statement would previously have resulted in a stream with two columns: `ROWKEY STRING KEY` and `NAME STRING`.
+With this change the above statement will result in a stream with only the `NAME STRING` column.
+
+Streams will no KEY column will be serialized to Kafka topics with a `null` key.
+
+#### Key columns required in projection
+
+A statement that creates a materialized view must include the key columns in the projection. For example:
+
+```sql
+CREATE TABLE OUTPUT AS
+   SELECT 
+      productId,  // <-- key column in projection
+      SUM(quantity) as unitsSold
+   FROM sales
+   GROUP BY productId;
+```
+
+The key column `productId` is required in the projection. In previous versions of ksqlDB the presence
+of `productId` in the projection would have placed a _copy_ of the data into the value of the underlying 
+Kafka topic's record.  However, as of v0.10 the projection must include the key columns and these columns
+will be stored in the _key_ of the underlying Kafka record.  Optionally, you may provide an alias for 
+the key column(s). 
+
+```sql
+CREATE TABLE OUTPUT AS
+   SELECT 
+      productId as id,  // <-- aliased key column
+      SUM(quantity) as unitsSold
+   FROM sales
+   GROUP BY productId;
+```
+
+If you require a copy of the key column in the Kafka record's value then you can use the 
+[AS_VALUE](docs/developer-guide/ksqldb-reference/scalar-functions#as_value) function to indicate this
+to ksqlDB. For example, the following will produce an output inline with the previous version of ksqlDB
+for the above example materialized view:
+
+```sql
+CREATE TABLE OUTPUT AS
+   SELECT 
+      productId as ROWKEY,              // <-- key column named ROWKEY
+      AS_VALUE(productId) as productId, // <-- productId copied into value
+      SUM(quantity) as unitsSold
+   FROM sales
+   GROUP BY productId;
+```
+
+### WITH(KEY) syntax removed
+
+In previous versions, all key columns where called `ROWKEY`. To enable a more
+user-friendly name to be used for the key column in queries it was possible
+to supply an alias for the key column in the WITH clause, for example:
+
+```sql
+CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, ID INT, V0 STRING) WITH (key='ID', ...);
+```
+
+With the previous query, the `ID` column can be used as an alias for `ROWKEY`.
+This approach required the {{ site.ak }} message value to contain an exact copy
+of the key.
+
+[KLIP-24](https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-24-key-column-semantics-in-queries.md)
+removed the restriction that key columns must be named `ROWKEY`, negating the need for the `WITH(KEY)`
+syntax, which has been removed. Also, this change removed the requirement for
+the {{ site.ak }} message value to contain an exact copy of the key.
+
+Update your queries by removing the `KEY` from the `WITH` clause and  naming
+your `KEY` and `PRIMARY KEY` columns appropriately. For example, the previous
+CREATE TABLE statement can now be rewritten as:
+
+```sql
+CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING) WITH (...);
+```
+
+Unless the value format is `DELIMITED`, which means the value columns are
+*order dependant*, so dropping the `ID` value column would result in a
+deserialization error or the wrong values being loaded. If you're using
+`DELIMITED`, consider rewriting as:
+
+```sql
+CREATE TABLE INPUT (ID INT PRIMARY KEY, ignoreMe INT, V0 STRING) WITH (...);
+```
+
 ## [0.9.0](https://github.com/confluentinc/ksql/releases/tag/v0.9.0-ksqldb) (2020-05-11)
 
 ### Features

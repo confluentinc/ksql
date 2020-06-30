@@ -37,7 +37,7 @@ public final class RestServiceContextFactory {
         KsqlConfig config,
         Optional<String> authHeader,
         Supplier<SchemaRegistryClient> srClientFactory,
-        Optional<KsqlClient> sharedClient
+        KsqlClient sharedClient
     );
   }
 
@@ -48,7 +48,7 @@ public final class RestServiceContextFactory {
         Optional<String> authHeader,
         KafkaClientSupplier kafkaClientSupplier,
         Supplier<SchemaRegistryClient> srClientFactory,
-        Optional<KsqlClient> sharedClient
+        KsqlClient sharedClient
     );
   }
 
@@ -56,7 +56,7 @@ public final class RestServiceContextFactory {
       final KsqlConfig ksqlConfig,
       final Optional<String> authHeader,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final Optional<KsqlClient> sharedClient
+      final KsqlClient sharedClient
   ) {
     return create(
         ksqlConfig,
@@ -72,7 +72,7 @@ public final class RestServiceContextFactory {
       final Optional<String> authHeader,
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory,
-      final Optional<KsqlClient> sharedClient
+      final KsqlClient sharedClient
   ) {
     return ServiceContextFactory.create(
         ksqlConfig,
@@ -80,9 +80,7 @@ public final class RestServiceContextFactory {
         srClientFactory,
         () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
             authHeader),
-        () -> sharedClient.map(ksqlClient -> new DefaultKsqlClient(authHeader, ksqlClient))
-            .orElseGet(() -> new DefaultKsqlClient(authHeader, ksqlConfig.originals())),
-        sharedClient.isPresent()
+        () -> new DefaultKsqlClient(authHeader, sharedClient)
     );
   }
 

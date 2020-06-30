@@ -61,7 +61,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
       return new KsqlSecurityContext(
           principal,
           defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory,
-              Optional.of(sharedClient))
+              sharedClient)
       );
     }
 
@@ -73,7 +73,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
                 authHeader,
                 provider.getKafkaClientSupplier(principal.orElse(null)),
                 provider.getSchemaRegistryClientFactory(principal.orElse(null)),
-                Optional.of(sharedClient))))
+                sharedClient)))
         .get();
   }
 

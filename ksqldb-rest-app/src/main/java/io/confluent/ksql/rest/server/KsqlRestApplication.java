@@ -48,7 +48,6 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
@@ -104,7 +103,6 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
@@ -552,19 +550,31 @@ public final class KsqlRestApplication implements Executable {
 
   public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final Vertx vertx = Vertx.vertx(
+        new VertxOptions()
+            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
+            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
+    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+    final KsqlClient sharedClient = InternalKsqlClientFactory.createInternalClient(
+        toClientProps(ksqlConfig.originals()),
+        SocketAddress::inetSocketAddress,
+        vertx
+    );
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ServiceContext serviceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
-            schemaRegistryClientFactory, Optional.empty()));
-
+            schemaRegistryClientFactory, sharedClient));
     return buildApplication(
         "",
         restConfig,
         KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE,
         serviceContext,
-        schemaRegistryClientFactory
+        schemaRegistryClientFactory,
+        vertx,
+        sharedClient
     );
   }
 
@@ -575,7 +585,9 @@ public final class KsqlRestApplication implements Executable {
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final Vertx vertx,
+      final KsqlClient sharedClient) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -630,19 +642,6 @@ public final class KsqlRestApplication implements Executable {
     final ServerState serverState = new ServerState();
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
-
-    final Vertx vertx = Vertx.vertx(
-        new VertxOptions()
-            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
-            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
-            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
-    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
-
-    final KsqlClient sharedClient = InternalKsqlClientFactory.createInternalClient(
-        toClientProps(ksqlConfig.originals()),
-        SocketAddress::inetSocketAddress,
-        vertx
-    );
 
     final KsqlSecurityContextProvider ksqlSecurityContextProvider =
         new DefaultKsqlSecurityContextProvider(
@@ -1015,7 +1014,8 @@ public final class KsqlRestApplication implements Executable {
     return new KsqlRestConfig(restConfigs);
   }
 
-  private static Map<String, String> toClientProps(final Map<String, Object> config) {
+  @VisibleForTesting
+  static Map<String, String> toClientProps(final Map<String, Object> config) {
     final Map<String, String> clientProps = new HashMap<>();
     for (Map.Entry<String, Object> entry : config.entrySet()) {
       clientProps.put(entry.getKey(), entry.getValue().toString());

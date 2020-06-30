@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -63,35 +62,14 @@ public final class KsqlClient implements AutoCloseable {
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions
   ) {
-    this(clientProps, credentials, localProperties, httpClientOptions, Vertx.vertx(), true);
-  }
-
-  public KsqlClient(
-      final Map<String, String> clientProps,
-      final Optional<BasicCredentials> credentials,
-      final LocalProperties localProperties,
-      final HttpClientOptions httpClientOptions,
-      final Vertx vertx
-  ) {
-    this(clientProps, credentials, localProperties, httpClientOptions, vertx, false);
-  }
-
-  private KsqlClient(
-      final Map<String, String> clientProps,
-      final Optional<BasicCredentials> credentials,
-      final LocalProperties localProperties,
-      final HttpClientOptions httpClientOptions,
-      final Vertx vertx,
-      final boolean ownedVertx
-  ) {
-    this.vertx = vertx;
+    this.vertx = Vertx.vertx();
     this.basicAuthHeader = createBasicAuthHeader(
         Objects.requireNonNull(credentials, "credentials"));
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.socketAddressFactory = SocketAddress::inetSocketAddress;
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
-    this.ownedVertx = ownedVertx;
+    this.ownedVertx = true;
   }
 
   /**

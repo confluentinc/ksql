@@ -46,31 +46,33 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
-
-  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
-    this(
-        authHeader,
-        createInternalClient(toClientProps(clientProps), SocketAddress::inetSocketAddress,
-            Vertx.vertx())
-    );
-  }
+  private final boolean ownSharedClient;
 
   @VisibleForTesting
   DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps,
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
     this(
         authHeader,
-        createInternalClient(toClientProps(clientProps), socketAddressFactory, Vertx.vertx())
+        createInternalClient(toClientProps(clientProps), socketAddressFactory, Vertx.vertx()),
+        true
     );
   }
 
-  @VisibleForTesting
   DefaultKsqlClient(
       final Optional<String> authHeader,
       final KsqlClient sharedClient
   ) {
+    this(authHeader, sharedClient, false);
+  }
+
+  DefaultKsqlClient(
+      final Optional<String> authHeader,
+      final KsqlClient sharedClient,
+      final boolean ownSharedClient
+  ) {
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.sharedClient = requireNonNull(sharedClient, "sharedClient");
+    this.ownSharedClient = ownSharedClient;
   }
 
   @Override
@@ -149,7 +151,9 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   @Override
   public void close() {
-    sharedClient.close();
+    if (ownSharedClient) {
+      sharedClient.close();
+    }
   }
 
   private KsqlTarget getTarget(final KsqlTarget target, final Optional<String> authHeader) {

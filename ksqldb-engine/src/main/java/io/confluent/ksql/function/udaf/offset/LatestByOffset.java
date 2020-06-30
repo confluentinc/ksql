@@ -99,11 +99,7 @@ public final class LatestByOffset {
 
       @Override
       public Struct aggregate(final T current, final Struct aggregate) {
-        if (current == null) {
-          return aggregate;
-        } else {
-          return createStruct(structSchema, current);
-        }
+        return createStruct(structSchema, current);
       }
 
       @Override

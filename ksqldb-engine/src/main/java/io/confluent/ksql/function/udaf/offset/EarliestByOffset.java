@@ -93,20 +93,28 @@ public final class EarliestByOffset {
 
       @Override
       public Struct initialize() {
-        return createStruct(structSchema, null);
+        return null;
       }
 
       @Override
       public Struct aggregate(final T current, final Struct aggregate) {
-        if (current == null || aggregate.get(VAL_FIELD) != null) {
+        if (aggregate != null) {
           return aggregate;
-        } else {
-          return createStruct(structSchema, current);
         }
+
+        return createStruct(structSchema, current);
       }
 
       @Override
       public Struct merge(final Struct aggOne, final Struct aggTwo) {
+        if (aggOne == null) {
+          return aggTwo;
+        }
+
+        if (aggTwo == null) {
+          return aggOne;
+        }
+
         // When merging we need some way of evaluating the "earliest' one.
         // We do this by keeping track of the sequence of when it was originally processed
         if (compareStructs(aggOne, aggTwo) < 0) {
@@ -119,6 +127,10 @@ public final class EarliestByOffset {
       @Override
       @SuppressWarnings("unchecked")
       public T map(final Struct agg) {
+        if (agg == null) {
+          return null;
+        }
+
         return (T) agg.get(VAL_FIELD);
       }
     };

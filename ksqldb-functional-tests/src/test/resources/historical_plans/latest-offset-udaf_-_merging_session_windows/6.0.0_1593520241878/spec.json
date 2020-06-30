@@ -1,0 +1,146 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1593520241878,
+  "path" : "query-validation-tests/latest-offset-udaf.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, F0 INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, F0 INT, KSQL_AGG_VARIABLE_0 STRUCT<SEQ BIGINT, VAL INT>> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<L0 INT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "merging session windows",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "F0" : 1
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "F0" : 3
+      },
+      "timestamp" : 1500
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "F0" : 2
+      },
+      "timestamp" : 700
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "L0" : 1
+      },
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "L0" : 3
+      },
+      "timestamp" : 1500,
+      "window" : {
+        "start" : 1500,
+        "end" : 1500,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 0,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 1500,
+      "window" : {
+        "start" : 1500,
+        "end" : 1500,
+        "type" : "SESSION"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "L0" : 2
+      },
+      "timestamp" : 1500,
+      "window" : {
+        "start" : 0,
+        "end" : 1500,
+        "type" : "SESSION"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, LATEST_BY_OFFSET(F0) AS L0 FROM INPUT WINDOW nWINDOW SESSION (1 SECONDS) GROUP BY ID;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

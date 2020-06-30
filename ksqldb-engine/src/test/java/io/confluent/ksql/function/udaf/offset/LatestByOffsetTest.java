@@ -25,12 +25,13 @@ import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.VAL_FIELD;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.function.udaf.Udaf;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
-public class LatestByOffsetUdafTest {
+public class LatestByOffsetTest {
 
   @Test
   public void shouldInitialize() {
@@ -149,4 +150,46 @@ public class LatestByOffsetUdafTest {
     assertThat(res.getString(VAL_FIELD), is("foo"));
   }
 
+  @Test
+  public void shouldNotIgnoreNulls() {
+    // Given:
+    final Udaf<String, Struct, String> udaf = LatestByOffset.latestString();
+
+    // When:
+    Struct res = udaf
+        .aggregate(null, LatestByOffset.createStruct(STRUCT_STRING, "bar"));
+
+    // Then:
+    assertThat(res.getString(VAL_FIELD), is(nullValue()));
+  }
+
+  @Test
+  public void shouldMapInitialized() {
+    // Given:
+    final Udaf<String, Struct, String> udaf = LatestByOffset.latestString();
+
+    final Struct init = udaf.initialize();
+
+    // When:
+    final String result = udaf.map(init);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldMergeAndMapInitialized() {
+    // Given:
+    final Udaf<String, Struct, String> udaf = LatestByOffset.latestString();
+
+    final Struct init1 = udaf.initialize();
+    final Struct init2 = udaf.initialize();
+
+    // When:
+    final Struct merged = udaf.merge(init1, init2);
+    final String result = udaf.map(merged);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
 }

@@ -24,13 +24,13 @@ import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_STRING;
 import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.VAL_FIELD;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.function.udaf.Udaf;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
-public class EarliestByOffsetUdafTest {
+public class EarliestByOffsetTest {
   @Test
   public void shouldInitialize() {
     // Given:
@@ -41,7 +41,7 @@ public class EarliestByOffsetUdafTest {
     Struct init = udaf.initialize();
 
     // Then:
-    assertThat(init, is(notNullValue()));
+    assertThat(init, is(nullValue()));
   }
 
   @Test
@@ -146,5 +146,48 @@ public class EarliestByOffsetUdafTest {
 
     // Then:
     assertThat(res.getString(VAL_FIELD), is("bar"));
+  }
+
+  @Test
+  public void shouldAcceptNullAsEarliest() {
+    // Given:
+    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+
+    // When:
+    Struct res = udaf
+        .aggregate(null, null);
+
+    // Then:
+    assertThat(res.getString(VAL_FIELD), is(nullValue()));
+  }
+
+  @Test
+  public void shouldMapInitialized() {
+    // Given:
+    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+
+    final Struct init = udaf.initialize();
+
+    // When:
+    final String result = udaf.map(init);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldMergeAndMapInitialized() {
+    // Given:
+    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+
+    final Struct init1 = udaf.initialize();
+    final Struct init2 = udaf.initialize();
+
+    // When:
+    final Struct merged = udaf.merge(init1, init2);
+    final String result = udaf.map(merged);
+
+    // Then:
+    assertThat(result, is(nullValue()));
   }
 }

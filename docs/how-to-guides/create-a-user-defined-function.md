@@ -826,6 +826,8 @@ There are a few important things to call out in this class:
 
 - The schemas, and all of the contained fields, are declared as optional. ksqlDB doesn't have null constraints, meaning that any value can be null. To handle this, all schemas and field values must be marked as optional.
 
+- The field names in the descriptors must match their declared field names in ksqlDB exactly, including their casing. By default, ksqlDB uppercases all field names, which is why the descriptors are also uppercased. If you use backticks for your field names to preserve casing, you must also use backticks in the descriptors, too.
+
 - Explictly declaring schemas is *only* needed when using structs. But because this example makes use of structs in all possible places (input, intermediate, and output values), schemas are declared for all of them.
 
 !!! info

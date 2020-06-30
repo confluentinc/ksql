@@ -7,7 +7,7 @@ You have a piece of logic for transforming or aggregating events that ksqlDB can
 ## In action
 
 ```java
-package my.example;
+package com.example;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -100,7 +100,7 @@ A scalar function (UDF for short) consumes one row as input and produces one row
 Create a file at `src/main/java/com/example/FormulaUdf.java` and populate it with the following code. This UDF takes two parameters and executes a simple formula.
 
 ```java
-package my.example;
+package com.example;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -160,7 +160,7 @@ A tabular function (UDTF for short) takes one row as input and produces zero or 
 Create a file at `src/main/java/com/example/IndexSequenceUdtf.java` and populate it with the following code. This UDTF takes one parameter as input, an array of any type, and returns a sequence of rows, where each element is the element in the array concatenated with its index position as a string.
 
 ```java
-package my.example;
+package com.example;
 
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
@@ -212,7 +212,7 @@ An aggregation function (UDAF for short) consumes one row at a time and maintain
 Create a file at `src/main/java/com/example/RollingSumUdaf.java` and populate it with the following code. This UDAF maintains a rolling sum of the last `3` integers in a stream, discarding the oldest values as new ones arrive.
 
 ```java
-package my.example;
+package com.example;
 
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
@@ -259,7 +259,7 @@ public class RollingSumUdaf {
 
         @Override
         public Integer map(List<Integer> intermediate) {
-            return intermediate.stream().reduce(Integer::sum);
+            return intermediate.stream().reduce(0, Integer::sum);
         }
 
         @Override

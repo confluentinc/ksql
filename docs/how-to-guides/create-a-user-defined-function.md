@@ -275,8 +275,9 @@ There are many things to observe in this class:
 - Aggregation functions are designated by a static method with the `@UdafFactory` annotation, which differs from scalar and tabular functions. Because aggregations must implement multiple methods, this helps ksqlDB differentiate aggregations when multiple type signatures are used.
 
 - The static factory method must either return `Udaf` or `TableUdaf` in package `io.confluent.ksql.function.udaf`.
-   - Use the `Udaf` return value, as shown in this example, to aggregate streams into tables.
-   - Use the `TableUdaf` return value, which derives from `Udaf`, to aggregate tables into other tables.
+    - Use the `Udaf` return value, as shown in this example, to aggregate streams into tables.
+
+    - Use the `TableUdaf` return value, which derives from `Udaf`, to aggregate tables into other tables.
      Also, you must implement the `undo()` method.
 
 - ksqlDB decouples the internal representation of an aggregate from its use in an operation. This is useful because aggregations can maintain complex state and expose it in a simpler way in a query. In this example, the internal representation is a `LinkedList`, as indicated by the `initialize()` method. But when ksqlDB interacts with the aggregation value, `map()` is called, which sums the values in the list. The `List` is needed to keep a running history of values, but the summed value is needed for the query itself.

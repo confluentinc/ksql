@@ -835,7 +835,7 @@ There are a few important things to call out in this class:
 - Explictly declaring schemas is *only* needed when using structs. But because this example makes use of structs in all possible places (input, intermediate, and output values), schemas are declared for all of them.
 
 !!! info
-    If you're using a struct with a UDF or UDTF, you can set the schema using the `UdfParameter` annotation in the `schema` key.
+    If you're using a struct with a UDF or UDTF, you can set the schema using the `Udf`, `Udtf`, and `UdfParameter` annotations. Each provides the option to supply a schema for various positions.
 
 Create an uberjar in the same manner. If you already have ksqlDB running, be sure to restart it and remount the jar so that it picks up the new code. When you restart the server, keep an eye on the log files. If any of the type schemas are missing or incoherant, ksqlDB will log an error, such as:
 
@@ -881,6 +881,12 @@ INSERT INTO s4 (
 );
 ```
 
+Remember to have ksqlDB start all queries from the earliest point in each topic:
+
+```sql
+SET 'auto.offset.reset' = 'earliest';
+```
+
 Execute the following push query:
 
 ```sql
@@ -895,6 +901,8 @@ It should output the following:
 +--------------------------------------------------------------+--------------------------------------------------------------+
 |k1                                                            |{MIN=3, MAX=9, COUNT=3, DIFFERENTIAL=6}                       |
 ```
+
+If you like, you can destructure the output into individual columns. Try following the [query structured data guide](query-structured-data.md).
 
 ## Tear down the stack
 

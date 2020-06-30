@@ -27,7 +27,7 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;

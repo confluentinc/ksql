@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.Objects;
 import java.util.Optional;

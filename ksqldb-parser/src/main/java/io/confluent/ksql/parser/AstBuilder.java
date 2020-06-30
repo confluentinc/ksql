@@ -122,7 +122,6 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -414,19 +413,7 @@ public class AstBuilder {
       );
 
       final boolean pullQuery = context.EMIT() == null && !buildingPersistentQuery;
-      /*
-      final ResultMaterialization resultMaterialization = Optional
-          .ofNullable(context.resultMaterialization())
-          .map(rm -> rm.CHANGES() == null
-              ? ResultMaterialization.FINAL
-              : ResultMaterialization.CHANGES
-          )
-          .orElse(buildingPersistentQuery
-              ? ResultMaterialization.CHANGES
-              : ResultMaterialization.FINAL
-          );
 
-      */
       final Optional<ResultMaterialization> resultMaterialization;
 
       if (pullQuery) {
@@ -438,7 +425,7 @@ public class AstBuilder {
                 ? ResultMaterialization.CHANGES
                 : ResultMaterialization.FINAL
             );
-        // Push query
+        // Else must be a push query
       } else {
         resultMaterialization = Optional
             .of(context.resultMaterialization().CHANGES() == null
@@ -462,7 +449,6 @@ public class AstBuilder {
           visitIfPresent(context.groupBy(), GroupBy.class),
           partitionBy,
           visitIfPresent(context.having, Expression.class),
-          //visitIfPresent(context.resultMaterialization(), ResultMaterialization.class),
           resultMaterialization,
           pullQuery,
           limit

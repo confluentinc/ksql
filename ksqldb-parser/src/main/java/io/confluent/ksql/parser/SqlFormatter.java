@@ -127,9 +127,16 @@ public final class SqlFormatter {
       }
 
       if (!node.isPullQuery()) {
-        append(indent, "EMIT ");
-        append(indent, node.getResultMaterialization().toString())
-            .append('\n');
+        if (node.getResultMaterialization().isPresent()) {
+          append(indent, "EMIT ");
+          append(indent, node.getResultMaterialization().get().toString())
+              .append('\n');
+        } else {
+          append(indent, "EMIT ");
+          append(indent, "CHANGES")
+              .append('\n');
+        }
+
       }
 
       if (node.getLimit().isPresent()) {

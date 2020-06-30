@@ -30,10 +30,10 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -86,7 +86,7 @@ public class Analysis implements ImmutableAnalysis {
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
   }
 
-  Optional<ResultMaterialization> getResultMaterialization() {
+  public Optional<ResultMaterialization> getResultMaterialization() {
     return resultMaterialization;
   }
 

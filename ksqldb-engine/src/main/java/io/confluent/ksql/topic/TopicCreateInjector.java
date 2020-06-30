@@ -23,8 +23,8 @@ import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -34,7 +34,6 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -126,7 +125,10 @@ public class TopicCreateInjector implements Injector {
             properties.getPartitions(),
             properties.getReplicas());
 
-    createTopic(topicPropertiesBuilder, createSource instanceof CreateTable);
+    final String topicCleanUpPolicy = createSource instanceof CreateTable
+        ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
+
+    createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
 
     return statement;
   }
@@ -157,10 +159,16 @@ public class TopicCreateInjector implements Injector {
             properties.getPartitions(),
             properties.getReplicas());
 
-    final boolean shouldCompactTopic = createAsSelect instanceof CreateTableAsSelect
-        && !createAsSelect.getQuery().getWindow().isPresent();
+    final String topicCleanUpPolicy;
+    if (createAsSelect instanceof CreateStreamAsSelect) {
+      topicCleanUpPolicy = TopicConfig.CLEANUP_POLICY_DELETE;
+    } else {
+      topicCleanUpPolicy = createAsSelect.getQuery().getWindow().isPresent()
+          ? TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE
+          : TopicConfig.CLEANUP_POLICY_COMPACT;
+    }
 
-    final TopicProperties info = createTopic(topicPropertiesBuilder, shouldCompactTopic);
+    final TopicProperties info = createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
 
     final T withTopic = (T) createAsSelect.copyWith(properties.withTopic(
         info.getTopicName(),
@@ -175,13 +183,12 @@ public class TopicCreateInjector implements Injector {
 
   private TopicProperties createTopic(
       final Builder topicPropertiesBuilder,
-      final boolean shouldCompactTopic
+      final String topicCleanUpPolicy
   ) {
     final TopicProperties info = topicPropertiesBuilder.build();
 
-    final Map<String, ?> config = shouldCompactTopic
-        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
-        : Collections.emptyMap();
+    final Map<String, ?> config =
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, topicCleanUpPolicy);
 
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 

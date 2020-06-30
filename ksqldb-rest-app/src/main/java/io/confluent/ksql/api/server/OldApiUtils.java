@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -33,6 +34,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -52,8 +54,6 @@ public final class OldApiUtils {
       final RoutingContext routingContext,
       final Class<T> requestClass,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
-    final HttpServerResponse response = routingContext.response();
-
     final T requestObject;
     if (requestClass != null) {
       final Optional<T> optRequestObject = ServerUtils
@@ -69,19 +69,19 @@ public final class OldApiUtils {
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {
-      handleOldApiResponse(server, routingContext, response, endpointResponse);
+      handleOldApiResponse(server, routingContext, endpointResponse);
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
-      handleOldApiResponse(server, routingContext, response, mapException(t));
+      handleOldApiResponse(server, routingContext, mapException(t));
       return null;
     });
   }
 
   static void handleOldApiResponse(final Server server, final RoutingContext routingContext,
-      final HttpServerResponse response,
       final EndpointResponse endpointResponse) {
+    final HttpServerResponse response = routingContext.response();
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
     response.setStatusCode(endpointResponse.getStatus());
@@ -97,7 +97,8 @@ public final class OldApiUtils {
         return;
       }
       response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
-      streamEndpointResponse(server, response, (StreamingOutput) endpointResponse.getEntity());
+      streamEndpointResponse(server, routingContext,
+          (StreamingOutput) endpointResponse.getEntity());
     } else {
       if (endpointResponse.getEntity() == null) {
         response.end();
@@ -113,17 +114,33 @@ public final class OldApiUtils {
     }
   }
 
-  private static void streamEndpointResponse(final Server server, final HttpServerResponse response,
+  private static void streamEndpointResponse(final Server server,
+      final RoutingContext routingContext,
       final StreamingOutput streamingOutput) {
     final WorkerExecutor workerExecutor = server.getWorkerExecutor();
     final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(promise -> {
-      try (OutputStream os = new BufferedOutputStream(new ResponseOutputStream(response))) {
-        streamingOutput.write(os);
+      final OutputStream ros = new ResponseOutputStream(routingContext.response());
+      routingContext.request().connection().closeHandler(v -> {
+        // Close the OutputStream on close of the HTTP connection
+        closeOutputStream(ros, promise);
+      });
+      try {
+        streamingOutput.write(new BufferedOutputStream(ros));
       } catch (Exception e) {
         promise.fail(e);
+      } finally {
+        closeOutputStream(ros, promise);
       }
     }, vcf);
+  }
+
+  private static void closeOutputStream(final OutputStream os, final Promise<Void> promise) {
+    try {
+      os.close();
+    } catch (IOException e) {
+      promise.fail(e);
+    }
   }
 
   public static EndpointResponse mapException(final Throwable exception) {

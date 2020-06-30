@@ -259,14 +259,7 @@ public class RollingSumUdaf {
 
         @Override
         public Integer map(List<Integer> intermediate) {
-            Iterator<Integer> it = intermediate.iterator();
-            int k = 0;
-
-            while(it.hasNext()) {
-                k += it.next();
-            }
-
-            return k;
+            return intermediate.stream().reduce(Integer::sum);
         }
 
         @Override

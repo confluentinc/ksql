@@ -140,7 +140,7 @@ public class FormulaUdf implements Configurable {
 Some important points to notice:
 
 
-- The `@UdfDescription` annotation marks the class as a scalar UDF. The `name` parameter gives the function a name so you can refer to it in SQL.
+- The `@UdfDescription` annotation marks the class as a scalar UDF. The `name` parameter gives the function a name so you can refer to it in SQL. You can optionally add a version, which is a string of your choosing. You might find this useful if you evolve a function overtime and want to know which particular version a server is currently using.
 
 - The `@Udf` annotation marks a method as a body of code to invoke when the function is called. Because ksqlDB is strongly typed, you need to supply multiple signatures if you want your function to work with different column types. This UDF has two signatures: one that takes integer parameters and another that takes doubles.
 

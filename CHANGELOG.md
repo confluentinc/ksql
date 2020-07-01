@@ -147,7 +147,8 @@ Will need to be updated to include the definition of the PRIMARY KEY, e.g.
 CREATE TABLE FOO (ID STRING PRIMARY KEY, name STRING) WITH (kafka_topic='foo', value_format='json');
 ```
 
-If using schema inference, i.e. loading the value columns of the topic from the Schema Registry, the primary key can be provided as a partial schema, e.g.
+If using schema inference, i.e. loading the value columns of the topic from the Schema Registry, the primary key can be provided as a partial schema, for example:
+
 
 ```sql
 -- FOO will have value columns loaded from the Schema Registry

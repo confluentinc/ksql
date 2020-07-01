@@ -102,7 +102,9 @@ public class KsqlConfig extends AbstractConfig {
   public static final String FAIL_ON_PRODUCTION_ERROR_CONFIG = "ksql.fail.on.production.error";
 
   public static final String
-      KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
+      SERVICE_ID = "service.id";
+  public static final String
+      KSQL_SERVICE_ID_CONFIG = "ksql." + SERVICE_ID;
   public static final String
       KSQL_SERVICE_ID_DEFAULT = "default_";
 
@@ -780,10 +782,7 @@ public class KsqlConfig extends AbstractConfig {
             + StreamsConfig.APPLICATION_ID_CONFIG,
         applicationId
     );
-    map.putAll(
-        addConfluentMetricsContextConfigsKafka(
-            Collections.emptyMap(),
-            getString(KSQL_SERVICE_ID_CONFIG)));
+    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
     return Collections.unmodifiableMap(map);
   }
 
@@ -798,33 +797,25 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
-    map.putAll(
-        addConfluentMetricsContextConfigsKafka(Collections.emptyMap(),
-        getString(KSQL_SERVICE_ID_CONFIG)));
+    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
-    map.putAll(
-        addConfluentMetricsContextConfigsKafka(Collections.emptyMap(),
-        getString(KSQL_SERVICE_ID_CONFIG)));
+    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> addConfluentMetricsContextConfigsKafka(
-      final Map<String,Object> props,
-      final String ksqlServiceId
+      final Map<String,Object> props
   ) {
     final Map<String, Object> updatedProps = new HashMap<>(props);
     final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+    updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());
-
-    updatedProps.putAll(
-        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServiceId));
-    updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     return updatedProps;
   }
 

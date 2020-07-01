@@ -732,7 +732,7 @@ public class KsqlConfig extends AbstractConfig {
 
   private final Map<String, ConfigValue> ksqlStreamConfigProps;
 
-  public KsqlConfig(final Map<String, ?> props) {
+  public KsqlConfig(final Map<?, ?> props) {
     this(ConfigGeneration.CURRENT, props);
   }
 

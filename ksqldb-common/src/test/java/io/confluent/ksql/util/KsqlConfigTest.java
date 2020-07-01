@@ -575,4 +575,13 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
     assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
   }
+
+  @Test
+  public void shouldDefaultStreamsMinTaskIdleConfig() {
+    // When:
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
+
+    // When:
+    assertThat(ksqlConfig.getKsqlStreamConfigProps(), hasEntry("ksql.streams.max.task.idle.ms", 500L));
+  }
 }

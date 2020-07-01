@@ -213,7 +213,8 @@ CREATE TABLE OUTPUT AS
 ### WITH(KEY) syntax removed
 
 In previous versions, all key columns where called `ROWKEY`. To enable a more
-user-friendly name to be used for the key column in queries it was possible
+user-friendly name for the key column in queries, it was possible
+
 to supply an alias for the key column in the WITH clause, for example:
 
 ```sql

@@ -212,7 +212,8 @@ CREATE TABLE OUTPUT AS
 
 ### WITH(KEY) syntax removed
 
-In previous versions, all key columns where called `ROWKEY`. To enable a more
+In previous versions, all key columns were called `ROWKEY`. To enable using a more
+
 user-friendly name for the key column in queries, it was possible
 
 to supply an alias for the key column in the WITH clause, for example:

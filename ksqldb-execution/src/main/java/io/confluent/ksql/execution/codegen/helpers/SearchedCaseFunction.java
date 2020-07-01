@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.codegen.helpers;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public final class SearchedCaseFunction {
@@ -32,11 +33,17 @@ public final class SearchedCaseFunction {
     if (whenClauses.isEmpty()) {
       throw new KsqlException("When clause cannot be empty.");
     }
-    return whenClauses.stream()
+
+    final Optional<Optional<T>> found = whenClauses.stream()
         .filter(clause -> clause.operand.get())
-        .map(clause -> clause.result.get())
-        .findFirst()
-        .orElseGet(defaultValue);
+        .map(clause -> Optional.ofNullable(clause.result.get()))
+        .findFirst();
+
+    if (found.isPresent()) {
+      return found.get().orElse(null);
+    }
+
+    return defaultValue.get();
   }
 
   public static <T> LazyWhenClause<T> whenClause(

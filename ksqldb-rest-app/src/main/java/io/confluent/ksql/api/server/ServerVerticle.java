@@ -118,7 +118,7 @@ public class ServerVerticle extends AbstractVerticle {
     isInternalListener.ifPresent(isInternal ->
         router.route().handler(new InternalEndpointHandler(isInternal)));
 
-    AuthHandlers.setupAuthHandlers(server, router);
+    AuthHandlers.setupAuthHandlers(server, router, isInternalListener.orElse(false));
 
     router.route().handler(new ServerStateHandler(server.getServerState()));
 
@@ -226,8 +226,6 @@ public class ServerVerticle extends AbstractVerticle {
 
     final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
     routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
-
-    routingContext.response().setWriteQueueMaxSize(200 * 1024);
 
     handleOldApiRequest(server, routingContext, KsqlRequest.class,
         (request, apiSecurityContext) ->

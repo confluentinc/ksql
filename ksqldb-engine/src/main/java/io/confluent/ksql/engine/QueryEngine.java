@@ -27,7 +27,7 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.ServiceContext;
@@ -44,19 +44,16 @@ class QueryEngine {
 
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
-  private final QueryIdGenerator queryIdGenerator;
 
   QueryEngine(
       final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final QueryIdGenerator queryIdGenerator
+      final ProcessingLogContext processingLogContext
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext,
         "processingLogContext"
     );
-    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
   static OutputNode buildQueryLogicalPlan(
@@ -81,7 +78,8 @@ class QueryEngine {
       final LogicalPlanNode logicalPlanNode,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
-      final MutableMetaStore metaStore
+      final MutableMetaStore metaStore,
+      final QueryId queryId
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
@@ -92,10 +90,9 @@ class QueryEngine {
         ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
         serviceContext,
         processingLogContext,
-        metaStore,
-        queryIdGenerator
+        metaStore
     );
 
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId);
   }
 }

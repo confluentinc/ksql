@@ -140,6 +140,10 @@ final class EngineContext {
     return parser.parse(sql);
   }
 
+  QueryIdGenerator idGenerator() {
+    return queryIdGenerator;
+  }
+
   PreparedStatement<?> prepare(final ParsedStatement stmt) {
     try {
       final PreparedStatement<?> preparedStatement = parser.prepare(stmt, metaStore);
@@ -158,8 +162,8 @@ final class EngineContext {
   QueryEngine createQueryEngine(final ServiceContext serviceContext) {
     return new QueryEngine(
         serviceContext,
-        processingLogContext,
-        queryIdGenerator);
+        processingLogContext
+    );
   }
 
   QueryExecutor createQueryExecutor(

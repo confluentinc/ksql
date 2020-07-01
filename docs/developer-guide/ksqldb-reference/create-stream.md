@@ -44,11 +44,15 @@ Each column is defined by:
  * `KEY`: columns that are stored in the Kafka message's key should be marked as `KEY` columns.
    If a column is not marked as a `KEY` column, ksqlDB loads it from the Kafka message's value.
    Unlike a table's `PRIMARY KEY`, a stream's keys can be NULL.
+   
+Each row within the table has a `ROWTIME` pseudo column, which represents the _event time_ 
+of the row. The timestamp has milliseconds accuracy. The timestamp is used by ksqlDB during any
+windowing operations and during joins, where data from each side of a join is generally processed
+in time order.  
 
-ksqlDB adds an implicit `ROWTIME` pseudo column is also available on every
-stream and table, which represents the corresponding Kafka message timestamp. The timestamp has
-milliseconds accuracy, and generally represents the _event time_ of a stream row and the
-_last modified time_ of a table row.
+By default `ROWTIME` is populated from the corresponding Kafka message timestamp. Set `TIMESTAMP` in
+the `WITH` clause to populate `ROWTIME` from a column in the Kafka message key or value.
+
 
 The WITH clause supports the following properties:
 
@@ -79,12 +83,24 @@ Example
 -------
 
 ```sql
-CREATE STREAM pageviews
-  (
+-- stream with a page_id column loaded from the kafka message value:
+CREATE STREAM pageviews (
+    page_id BIGINT,
+    viewtime BIGINT,
+    user_id VARCHAR
+  ) WITH (
+    KAFKA_TOPIC = 'keyless-pageviews-topic',
+    VALUE_FORMAT = 'JSON'
+  );
+
+-- stream with a page_id column loaded from the kafka message key:
+CREATE STREAM pageviews (
     page_id BIGINT KEY,
     viewtime BIGINT,
     user_id VARCHAR
-  )
-  WITH (VALUE_FORMAT = 'JSON', KAFKA_TOPIC = 'my-pageviews-topic');
+  ) WITH (
+    KAFKA_TOPIC = 'keyed-pageviews-topic',
+    VALUE_FORMAT = 'JSON'
+  );
 ```
 

@@ -42,8 +42,6 @@ import java.util.Map;
  */
 public class ServerInternalKsqlClient implements SimpleKsqlClient {
 
-  private static final String KSQL_PATH = "/ksql";
-
   private final KsqlResource ksqlResource;
   private final KsqlSecurityContext securityContext;
 

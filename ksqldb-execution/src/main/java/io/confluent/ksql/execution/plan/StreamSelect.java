@@ -45,6 +45,10 @@ public class StreamSelect<K> implements ExecutionStep<KStreamHolder<K>> {
     this.source = requireNonNull(source, "source");
     this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
+
+    if (selectExpressions.isEmpty()) {
+      throw new IllegalArgumentException("Need at least one select expression");
+    }
   }
 
   /**

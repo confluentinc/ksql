@@ -28,9 +28,10 @@ public class CreateTableAsSelect extends CreateAsSelect {
       final SourceName name,
       final Query query,
       final boolean notExists,
+      final boolean orReplace,
       final CreateSourceAsProperties properties
   ) {
-    this(Optional.empty(), name, query, notExists, properties);
+    this(Optional.empty(), name, query, notExists, orReplace, properties);
   }
 
   public CreateTableAsSelect(
@@ -38,9 +39,10 @@ public class CreateTableAsSelect extends CreateAsSelect {
       final SourceName name,
       final Query query,
       final boolean notExists,
+      final boolean orReplace,
       final CreateSourceAsProperties properties
   ) {
-    super(location, name, query, notExists, properties);
+    super(location, name, query, orReplace, notExists, properties);
   }
 
   private CreateTableAsSelect(
@@ -58,11 +60,6 @@ public class CreateTableAsSelect extends CreateAsSelect {
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateTableAsSelect(this, context);
-  }
-
-  @Override
-  public Sink getSink() {
-    return Sink.of(getName(), true, getProperties());
   }
 
   @Override

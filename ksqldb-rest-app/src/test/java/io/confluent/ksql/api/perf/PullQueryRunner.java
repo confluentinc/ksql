@@ -57,7 +57,7 @@ public class PullQueryRunner extends BasePerfRunner {
   private static final String DEFAULT_PULL_QUERY = "select * from foo where rowkey=123;";
   private static final JsonObject DEFAULT_PULL_QUERY_REQUEST_BODY = new JsonObject()
       .put("sql", DEFAULT_PULL_QUERY)
-      .put("properties", new JsonObject());
+      .put("properties", new JsonObject().put("auto.offset.reset", "earliest"));
   private static final List<GenericRow> DEFAULT_ROWS = generateResults();
   private static final int MAX_CONCURRENT_REQUESTS = 100;
 

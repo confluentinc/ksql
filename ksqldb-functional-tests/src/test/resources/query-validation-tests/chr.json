@@ -1,0 +1,72 @@
+{
+  "comments": [
+    "Tests covering the use of the CHR function."
+  ],
+  "tests": [
+    {
+      "name": "codepoint from decimal code",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, utfcode INTEGER) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT id, chr(utfcode) AS result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"utfcode": 75}},
+        {"topic": "test_topic", "key": "r2", "value": {"utfcode": 22909}},
+        {"topic": "test_topic", "key": "r3", "value": {"utfcode": 99000}},
+        {"topic": "test_topic", "key": "r4", "value": {"utfcode": -1}},
+        {"topic": "test_topic", "key": "r5", "value": {"utfcode": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": "K"}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": "好"}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": "𘊸"}},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": null}}
+      ]
+    },
+    {
+      "name": "codepoint from text code",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, utfcode STRING) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT id, chr(utfcode) AS result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"utfcode": "\\u004b"}},
+        {"topic": "test_topic", "key": "r2", "value": {"utfcode": "\\u597d"}},
+        {"topic": "test_topic", "key": "r3", "value": {"utfcode": "\\ud820\\udeb8"}},
+        {"topic": "test_topic", "key": "r4", "value": {"utfcode": "75"}},
+        {"topic": "test_topic", "key": "r5", "value": {"utfcode": "004b"}},
+        {"topic": "test_topic", "key": "r6", "value": {"utfcode": "bogus"}},
+        {"topic": "test_topic", "key": "r7", "value": {"utfcode": ""}},
+        {"topic": "test_topic", "key": "r8", "value": {"utfcode": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": "K"}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"RESULT": "好"}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"RESULT": "𘊸"}},
+        {"topic": "OUTPUT", "key": "r4", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r5", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r6", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r7", "value": {"RESULT": null}},
+        {"topic": "OUTPUT", "key": "r8", "value": {"RESULT": null}}
+      ]
+    },
+    {
+      "name": "multiple invocations",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, utfcode1 STRING, utfcode2 STRING, utfcode3 INTEGER, utfcode4 INTEGER) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT id, concat(chr(utfcode1), chr(utfcode2), chr(utfcode3), chr(utfcode4)) AS result FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"utfcode1": "\\u004b", "utfcode2": "\\u0053", "utfcode3": 81, "utfcode4": 76}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"RESULT": "KSQL"}}
+      ]
+    }
+    
+  ]
+}

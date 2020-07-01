@@ -420,7 +420,7 @@ public class QueryExecutorTest {
   private void shouldUseProvidedOptimizationConfig(final Object value) {
     // Given:
     final Map<String, Object> properties =
-        Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION, value);
+        Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, value);
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(properties);
 
     // When:
@@ -435,7 +435,7 @@ public class QueryExecutorTest {
 
     // Then:
     final Map<String, Object> captured = capturedStreamsProperties();
-    assertThat(captured.get(StreamsConfig.TOPOLOGY_OPTIMIZATION), equalTo(value));
+    assertThat(captured.get(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG), equalTo(value));
   }
 
   @Test

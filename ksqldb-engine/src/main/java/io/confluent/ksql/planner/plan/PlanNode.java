@@ -103,7 +103,9 @@ public abstract class PlanNode {
       final Optional<SourceName> sourceName
   ) {
     return getSources().stream()
-        .filter(s -> !sourceName.isPresent() || sourceName.equals(s.getSourceName()))
+        .filter(s -> !sourceName.isPresent()
+            || !s.getSourceName().isPresent()
+            || sourceName.equals(s.getSourceName()))
         .flatMap(s -> s.resolveSelectStar(sourceName));
   }
 

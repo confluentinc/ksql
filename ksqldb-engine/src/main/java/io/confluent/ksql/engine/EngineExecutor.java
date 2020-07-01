@@ -203,11 +203,17 @@ final class EngineExecutor {
         statement.getStatementText(),
         Optional.of(outputNode)
     );
+    final QueryId queryId = QueryIdUtil.buildId(
+        engineContext.getMetaStore(),
+        engineContext.idGenerator(),
+        outputNode
+    );
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         ksqlConfig,
         overriddenProperties,
-        engineContext.getMetaStore()
+        engineContext.getMetaStore(),
+        queryId
     );
     return new ExecutorPlans(logicalPlan, physicalPlan);
   }
@@ -228,7 +234,7 @@ final class EngineExecutor {
       final String sql,
       final KsqlStructuredDataOutputNode outputNode
   ) {
-    if (!outputNode.isDoCreateInto()) {
+    if (!outputNode.createInto()) {
       validateExistingSink(outputNode);
       return Optional.empty();
     }

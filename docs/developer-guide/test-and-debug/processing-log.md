@@ -10,17 +10,11 @@ to help you with debugging your SQL queries. As ksqlDB executes a query,
 it writes records to the processing log that detail how it processes
 each row, including any errors it encounters along the way.
 
-Log entries are written with a log level, so you can tune the log to
-emit a verbose trace of every record processed, to log only errors, or
-to disable it completely. Also, log entries are written with a
-hierarchical name that you can use to track back to the query execution
-plan. This way, you can tune the log level for specific queries, and
-even specific steps of a given query.
-
-Log entries are structured events, so in addition to using them to help
-you debug, they should be easy to consume from downstream applications
-and from ksqlDB itself. In fact, ksqlDB supports writing the processing log
-to {{ site.ak }} and consuming it as ksqlDB stream.
+Log entries are written with a hierarchical name that you can use to track
+back to the query execution plan. Log entries are structured events, so in
+addition to using them to help you debug, they should be easy to consume from
+downstream applications and from ksqlDB itself. In fact, ksqlDB supports
+writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
 
 !!! important
 	The processing log is not for server logging, but rather for per-record
@@ -48,7 +42,7 @@ Execution plan
 --------------
 > [ SINK ] | Schema: [VIEWTIME : BIGINT, KSQL_COL_1 : VARCHAR, KSQL_COL_2 : VARCHAR] | Logger: processing.CSAS_PAGEVIEWS_UPPER_0.PAGEVIEWS_UPPER
      > [ PROJECT ] | Schema: [VIEWTIME : BIGINT, KSQL_COL_1 : VARCHAR, KSQL_COL_2 : VARCHAR] | Logger: processing.CSAS_PAGEVIEWS_UPPER_0.Project
-         > [ SOURCE ] | Schema: [PAGEVIEWS_ORIGINAL.ROWTIME : BIGINT, PAGEVIEWS_ORIGINAL.ROWKEY : VARCHAR, PAGEVIEWS_ORIGINAL.VIEWTIME : BIGINT, PAGEVIEWS_ORIGINAL.USERID : VARCHAR, PAGEVIEWS_ORIGINAL.PAGEID : VARCHAR] | Logger: processing.CSAS_PAGEVIEWS_UPPER_0.KsqlTopic
+         > [ SOURCE ] | Schema: [PAGEVIEWS_ORIGINAL.ROWTIME : BIGINT, PAGEVIEWS_ORIGINAL.VIEWTIME : BIGINT, PAGEVIEWS_ORIGINAL.USERID : VARCHAR, PAGEVIEWS_ORIGINAL.PAGEID : VARCHAR] | Logger: processing.CSAS_PAGEVIEWS_UPPER_0.KsqlTopic
 ```
 
 Configuration Using Log4J
@@ -65,16 +59,6 @@ log4j.appender.stdout=org.apache.log4j.ConsoleAppender
 log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
 log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c:%L)%n
 log4j.logger.processing=ERROR, stdout
-log4j.additivity.processing=false
-```
-
-For example, if you want to set the log level to DEBUG for a query named
-`CSAS_PAGEVIEWS_UPPER_0`, you could write the following into your log4j
-properties file:
-
-```properties
-log4j.logger.processing=ERROR, stdout
-log4j.logger.processing.CSAS_PAGEVIEWS_UPPER_0=DEBUG
 log4j.additivity.processing=false
 ```
 
@@ -101,9 +85,9 @@ log4j.logger.processing=OFF
 ```
 
 !!! note
-    To enable security for the KSQL Processing Log, assign log4j properties
+    To enable security for the ksqlDB Processing Log, assign log4j properties
     as shown in
-    [log4j-secure.properties](https://github.com/confluentinc/cp-demo/blob/master/scripts/security/log4j-secure.properties).
+    [log4j-secure.properties](https://github.com/confluentinc/cp-demo/blob/master/scripts/helper/log4j-secure.properties).
 
 Log Schema
 ----------
@@ -240,7 +224,6 @@ ksql> describe PROCESSING_LOG;
 Name                 : PROCESSING_LOG
 Field   | Type
 ---------------------------------------------------------------------------------------------------------------------------
- ROWKEY  | VARCHAR(STRING)  (key)
  LOGGER  | VARCHAR(STRING)
  LEVEL   | VARCHAR(STRING)
  TIME    | BIGINT

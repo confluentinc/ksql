@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.execution.codegen.helpers;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -200,5 +202,23 @@ public class SearchedCaseFunctionTest {
     // Then:
     assertThat(result, equalTo(10));
   }
-  
+
+  @Test
+  public void shouldHandleNullReturnValues() {
+    // Given:
+    final List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> true, () -> null)
+    );
+
+    // When:
+    final Integer result = SearchedCaseFunction.searchedCaseFunction(
+        lazyWhenClauses,
+        () -> {
+          throw new AssertionError("Should not be called");
+        }
+    );
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
 }

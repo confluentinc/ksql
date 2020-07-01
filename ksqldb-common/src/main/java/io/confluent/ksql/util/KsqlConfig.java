@@ -377,7 +377,7 @@ public class KsqlConfig extends AbstractConfig {
       COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of(
           // Turn on optimizations by default, unless the user explicitly disables in config:
           new CompatibilityBreakingStreamsConfig(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION,
+            StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG,
             StreamsConfig.OPTIMIZE,
             StreamsConfig.OPTIMIZE)
   );

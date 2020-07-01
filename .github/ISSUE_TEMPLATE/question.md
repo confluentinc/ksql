@@ -2,7 +2,7 @@
 name: Question
 about: As a question about KSQL
 title: ''
-labels: question
+labels: question, needs-triage
 assignees: ''
 
 ---

@@ -154,7 +154,8 @@ If using schema inference, i.e. loading the value columns of the topic from the 
 CREATE TABLE FOO (ID INT PRIMARY KEY) WITH (kafka_topic='foo', value_format='avro');
 ```
 
-`CREATE STREAM` statements that do not define a `KEY` column will no longer have an implicit `ROWKEY` key column.
+`CREATE STREAM` statements that do not define a `KEY` column no longer have an implicit `ROWKEY` key column.
+
 
 For example:
 

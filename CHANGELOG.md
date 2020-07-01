@@ -238,7 +238,8 @@ CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING) WITH (...);
 ```
 
 Unless the value format is `DELIMITED`, which means the value columns are
-*order dependant*, so dropping the `ID` value column would result in a
+*order dependent*, so dropping the `ID` value column would result in a
+
 deserialization error or the wrong values being loaded. If you're using
 `DELIMITED`, consider rewriting as:
 

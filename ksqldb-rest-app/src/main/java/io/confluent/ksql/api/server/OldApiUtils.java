@@ -26,7 +26,6 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -123,24 +122,25 @@ public final class OldApiUtils {
       final OutputStream ros = new ResponseOutputStream(routingContext.response());
       routingContext.request().connection().closeHandler(v -> {
         // Close the OutputStream on close of the HTTP connection
-        closeOutputStream(ros, promise);
+        try {
+          ros.close();
+        } catch (IOException e) {
+          promise.fail(e);
+        }
       });
       try {
         streamingOutput.write(new BufferedOutputStream(ros));
+        promise.complete();
       } catch (Exception e) {
         promise.fail(e);
       } finally {
-        closeOutputStream(ros, promise);
+        try {
+          ros.close();
+        } catch (IOException ignore) {
+          // Ignore - it might already be closed
+        }
       }
     }, vcf);
-  }
-
-  private static void closeOutputStream(final OutputStream os, final Promise<Void> promise) {
-    try {
-      os.close();
-    } catch (IOException e) {
-      promise.fail(e);
-    }
   }
 
   public static EndpointResponse mapException(final Throwable exception) {

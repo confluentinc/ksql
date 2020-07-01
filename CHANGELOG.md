@@ -162,7 +162,8 @@ For example:
 CREATE STREAM BAR (NAME STRING) WITH (...);
 ```
 
-The above statement would previously have resulted in a stream with two columns: `ROWKEY STRING KEY` and `NAME STRING`.
+Previously, the above statement would have resulted in a stream with two columns: `ROWKEY STRING KEY` and `NAME STRING`.
+
 With this change the above statement will result in a stream with only the `NAME STRING` column.
 
 Streams with no KEY column are serialized to Kafka topics with a `null` key.

@@ -48,7 +48,7 @@ public class UdfLoader {
   private final SqlTypeParser typeParser;
   private final boolean throwExceptionOnLoadFailure;
 
-  UdfLoader(
+  public UdfLoader(
       final MutableFunctionRegistry functionRegistry,
       final Optional<Metrics> metrics,
       final SqlTypeParser typeParser,
@@ -69,7 +69,8 @@ public class UdfLoader {
     }
   }
 
-  void loadUdfFromClass(
+  @VisibleForTesting
+  public void loadUdfFromClass(
       final Class<?> theClass,
       final String path
   ) {

@@ -40,7 +40,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
         engine.configure(
-            "DESCRIBE FUNCTION TRIM;"),
+                "DESCRIBE FUNCTION TEST_UDF_1;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -50,7 +50,7 @@ public class DescribeFunctionExecutorTest {
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
       protected boolean matchesSafely(final FunctionDescriptionList item) {
-        return functionList.getName().equals("TRIM")
+        return functionList.getName().equals("TEST_UDF_1")
             && functionList.getType().equals(FunctionType.SCALAR);
       }
 

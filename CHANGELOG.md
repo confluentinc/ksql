@@ -103,7 +103,8 @@ CREATE TABLE OUTPUT AS
 SELECT USERID AS ID, COUNT(*) FROM USERS GROUP BY ID;
 -- OUTPUT will have a key column named ID.
 ```
-For groupings of multiple expressions there is currently no way to provide a name for the system generated key column. This is a shortcoming that will be fixed shortly when ksqlDB supports more than just a single key column.
+For groupings of multiple expressions, you can't provide a name for the system-generated key column.
+
 For JOIN statements, the name of the key column in the result is determined by the join criteria.
 1. For INNER and LEFT OUTER joins where the join criteria contain at least one column reference, the key column is named based on the left-most source whose join criteria is a column reference. For example:
 

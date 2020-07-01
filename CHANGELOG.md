@@ -79,7 +79,8 @@
 
 #### Any key name
 
-Statements containing PARTITION BY, GROUP BY or JOIN clauses will now produce different output schemas.
+Statements containing PARTITION BY, GROUP BY, or JOIN clauses now produce different output schemas.
+
 For PARTITION BY and GROUP BY statements, the name of the key column in the result is determined by the PARTITION BY or GROUP BY clause:
 1. Where the partitioning or grouping is a single column reference, then the key column will have the same name as this column. For example:
 ```sql

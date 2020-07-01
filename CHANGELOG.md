@@ -182,7 +182,8 @@ CREATE TABLE OUTPUT AS
 
 The key column `productId` is required in the projection. In previous versions of ksqlDB the presence
 of `productId` in the projection would have placed a _copy_ of the data into the value of the underlying 
-Kafka topic's record.  However, as of v0.10 the projection must include the key columns and these columns
+Kafka topic's record.  But starting in version 0.10.0, the projection must include the key columns, and ksqlDB stores these columns
+
 in the _key_ of the underlying Kafka record.  Optionally, you may provide an alias for 
 
 the key column(s). 

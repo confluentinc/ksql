@@ -89,7 +89,8 @@ CREATE STREAM OUTPUT AS
 SELECT * FROM INPUT GROUP BY X;
 -- OUTPUT will have a key column called X;
 ```
-2. Where the partitioning or grouping is a single struct field, then the key column will have the same name as the field. For example:
+2. Where the partitioning or grouping is a single struct field, then the key column has the same name as the field. For example:
+
 ```sql
 CREATE STREAM OUTPUT AS
 SELECT * FROM INPUT GROUP BY X->field1;

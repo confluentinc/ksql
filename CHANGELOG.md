@@ -117,7 +117,8 @@ CREATE TABLE OUTPUT AS
 SELECT I2.ID AS ID, I1.V0, I2.V0, I3.V0 FROM I1 JON I2 ON abs(I1.ID) = I2.ID JOIN I3 ON I2.ID = I3.ID;
 -- OUTPUT will have a key column named ID.
 ```
-2. For FULL OUTER joins and other joins where the join criteria is not on column references, the key column in the output is not equivalent to any column from any source. The key column will have a system generated name in the form `KSQL_COL_n`, where `n` is a positive integer. For example:
+2. For FULL OUTER joins and other joins where the join criteria are not on column references, the key column in the output is not equivalent to any column from any source. The key column has a system-generated name in the form `KSQL_COL_n`, where `n` is a positive integer. For example:
+
 ```sql
 CREATE TABLE OUTPUT AS
 SELECT * FROM I1 FULL OUTER JOIN I2 ON I1.ID = I2.ID;

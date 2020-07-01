@@ -180,7 +180,8 @@ CREATE TABLE OUTPUT AS
    GROUP BY productId;
 ```
 
-The key column `productId` is required in the projection. In previous versions of ksqlDB the presence
+The key column `productId` is required in the projection. In previous versions of ksqlDB, the presence
+
 of `productId` in the projection would have placed a _copy_ of the data into the value of the underlying 
 Kafka topic's record.  But starting in version 0.10.0, the projection must include the key columns, and ksqlDB stores these columns
 

@@ -195,7 +195,8 @@ CREATE TABLE OUTPUT AS
    GROUP BY productId;
 ```
 
-If you require a copy of the key column in the Kafka record's value then you can use the 
+If you need a copy of the key column in the Kafka record's value, use the 
+
 [AS_VALUE](docs/developer-guide/ksqldb-reference/scalar-functions#as_value) function to indicate this
 to ksqlDB. For example, the following statement produces an output inline with the previous version of ksqlDB
 

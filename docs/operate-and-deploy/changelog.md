@@ -6,6 +6,11 @@ description: Lists changes to the ksqlDB codebase
 keywords: ksqldb, changelog
 ---
 
+Version 0.10.0
+--------------
+
+- [ksqlDB v0.10.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0100-2020-06-25)
+
 Version 0.9.0
 -------------
 

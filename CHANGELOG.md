@@ -96,7 +96,8 @@ CREATE STREAM OUTPUT AS
 SELECT * FROM INPUT GROUP BY X->field1;
 -- OUTPUT will have a key column called FIELD1;
 ```
-3. Otherwise, the key column name will be system generated and be in the form `KSQL_COL_n`, where `n` is some positive integer.
+3. Otherwise, the key column name is system-generated and has the form `KSQL_COL_n`, where `n` is a positive integer.
+
 In all cases, except where grouping by more than one column, you can set the new key column's name by defining an alias in the projection. For example:
 
 ```sql

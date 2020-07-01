@@ -227,7 +227,8 @@ of the key.
 [KLIP-24](https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-24-key-column-semantics-in-queries.md)
 removed the restriction that key columns must be named `ROWKEY`, negating the need for the `WITH(KEY)`
 syntax, which has been removed. Also, this change removed the requirement for
-the {{ site.ak }} message value to contain an exact copy of the key.
+the Kafka message value to contain an exact copy of the key.
+
 
 Update your queries by removing the `KEY` from the `WITH` clause and naming
 

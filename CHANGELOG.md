@@ -141,7 +141,8 @@ For example, a statement such as:
 CREATE TABLE FOO (name STRING) WITH (kafka_topic='foo', value_format='json');
 ```
 
-Will need to be updated to include the definition of the PRIMARY KEY, e.g.
+Will need to be updated to include the definition of the PRIMARY KEY, for example:
+
 
 ```sql
 CREATE TABLE FOO (ID STRING PRIMARY KEY, name STRING) WITH (kafka_topic='foo', value_format='json');

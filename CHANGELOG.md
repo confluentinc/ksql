@@ -229,7 +229,8 @@ removed the restriction that key columns must be named `ROWKEY`, negating the ne
 syntax, which has been removed. Also, this change removed the requirement for
 the {{ site.ak }} message value to contain an exact copy of the key.
 
-Update your queries by removing the `KEY` from the `WITH` clause and  naming
+Update your queries by removing the `KEY` from the `WITH` clause and naming
+
 your `KEY` and `PRIMARY KEY` columns appropriately. For example, the previous
 CREATE TABLE statement can now be rewritten as:
 

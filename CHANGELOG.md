@@ -221,7 +221,8 @@ CREATE TABLE INPUT (ROWKEY INT PRIMARY KEY, ID INT, V0 STRING) WITH (key='ID', .
 ```
 
 With the previous query, the `ID` column can be used as an alias for `ROWKEY`.
-This approach required the {{ site.ak }} message value to contain an exact copy
+This approach required the Kafka message value to contain an exact copy
+
 of the key.
 
 [KLIP-24](https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-24-key-column-semantics-in-queries.md)

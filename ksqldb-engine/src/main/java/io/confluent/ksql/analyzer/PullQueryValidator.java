@@ -32,10 +32,6 @@ public class PullQueryValidator implements QueryValidator {
 
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
-          analysis -> analysis.getResultMaterialization().isPresent(),
-          "Pull queries don't support EMIT clauses."
-      ),
-      Rule.of(
           analysis -> !analysis.getInto().isPresent(),
           "Pull queries don't support output to sinks."
       ),
@@ -62,6 +58,10 @@ public class PullQueryValidator implements QueryValidator {
       Rule.of(
           analysis -> !analysis.getLimitClause().isPresent(),
           "Pull queries don't support LIMIT clauses."
+      ),
+      Rule.of(
+          analysis -> !analysis.getResultMaterialization().isPresent(),
+          "Pull queries don't support 'EMIT CHANGES'"
       )
   );
 

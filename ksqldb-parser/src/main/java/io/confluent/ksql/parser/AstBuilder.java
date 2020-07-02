@@ -427,7 +427,7 @@ public class AstBuilder {
             )
             .orElse(ResultMaterialization.CHANGES
             ));
-        // Else must be a push query
+        // Else must be a push query, which must specify a materialization
       } else {
         resultMaterialization = Optional
             .of(context.resultMaterialization().CHANGES() == null

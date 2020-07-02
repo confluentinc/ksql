@@ -70,7 +70,7 @@ public class PullQueryValidatorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Pull queries don't support `EMIT CHANGES`"));
+    assertThat(e.getMessage(), containsString("Pull queries don't support 'EMIT CHANGES'"));
   }
 
   @Test(expected = KsqlException.class)

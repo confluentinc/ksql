@@ -81,6 +81,8 @@ import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -317,7 +319,9 @@ public class KsqlResourceTest {
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
 
-    metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    MutableFunctionRegistry fnRegistry = new InternalFunctionRegistry();
+    UserFunctionLoader.newInstance(ksqlConfig, fnRegistry, ".").load();
+    metaStore = new MetaStoreImpl(fnRegistry);
 
     realEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,

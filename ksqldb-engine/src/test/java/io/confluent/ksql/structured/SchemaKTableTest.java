@@ -60,6 +60,7 @@ import io.confluent.ksql.execution.streams.StreamJoinedFactory;
 import io.confluent.ksql.execution.streams.StreamsFactories;
 import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
@@ -113,8 +114,9 @@ public class SchemaKTableTest {
   private static final ColumnName KEY = ColumnName.of("Bob");
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final MetaStore metaStore = MetaStoreFixture
-      .getNewMetaStore(new InternalFunctionRegistry());
+  private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private final MetaStore metaStore =
+      MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
   private final Grouped<String, String> grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
@@ -124,7 +126,6 @@ public class SchemaKTableTest {
   private KTable secondKTable;
   private KsqlTable<?> ksqlTable;
   private KsqlTable<?> secondKsqlTable;
-  private InternalFunctionRegistry functionRegistry;
   private KTable mockKTable;
   private SchemaKTable firstSchemaKTable;
   private SchemaKTable secondSchemaKTable;
@@ -153,7 +154,7 @@ public class SchemaKTableTest {
 
   @Before
   public void init() {
-    functionRegistry = new InternalFunctionRegistry();
+    UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
     schemaResolver = new StepSchemaResolver(ksqlConfig, functionRegistry);
     ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     final StreamsBuilder builder = new StreamsBuilder();
@@ -285,7 +286,27 @@ public class SchemaKTableTest {
   @Test
   public void testSelectWithExpression() {
     // Given:
-    final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final String selectQuery = "SELECT col0, col3*3+5 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(ImmutableList.of(),
+        projectNode.getSelectExpressions(), childContextStacker, queryBuilder);
+
+    // Then:
+    assertThat(projectedSchemaKStream.getSchema(),
+        is(LogicalSchema.builder().keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.DOUBLE).build()));
+  }
+
+  @Test
+  public void testSelectWithFunctions() {
+    // Given:
+    final String selectQuery =
+        "SELECT col0, LEN(UCASE(col2)) FROM test2 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
@@ -303,7 +324,6 @@ public class SchemaKTableTest {
         .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE)
         .build()
     ));
   }

@@ -66,7 +66,7 @@ import org.apache.kafka.streams.state.KeyValueStore;
 public final class SourceBuilder {
 
   private static final Collection<?> NULL_WINDOWED_KEY_COLUMNS = Collections.unmodifiableList(
-      Arrays.asList(null, null, null)
+      Arrays.asList(null, null)
   );
 
   private SourceBuilder() {
@@ -390,7 +390,7 @@ public final class SourceBuilder {
     final Optional<Field> keyField = getKeySchemaSingleField(schema);
     return key -> {
       if (key == null) {
-        return Collections.singletonList(null);
+        return Collections.emptyList();
       }
 
       return Collections.singletonList(key.get(keyField.orElseThrow(IllegalStateException::new)));

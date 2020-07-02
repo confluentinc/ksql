@@ -133,7 +133,6 @@ public final class SqlFormatter {
               .orElse(ResultMaterialization.CHANGES)
               .toString())
               .append('\n');
-
         }
       }
 

@@ -425,14 +425,14 @@ public class AstBuilder {
                 ? ResultMaterialization.CHANGES
                 : ResultMaterialization.FINAL
             )
-            .orElse(ResultMaterialization.CHANGES
-            ));
+            .orElse(ResultMaterialization.CHANGES));
         // Else must be a push query, which must specify a materialization
       } else {
         resultMaterialization = Optional
             .of(context.resultMaterialization().CHANGES() == null
                 ? ResultMaterialization.FINAL
-                : ResultMaterialization.CHANGES);
+                : ResultMaterialization.CHANGES
+            );
       }
 
 

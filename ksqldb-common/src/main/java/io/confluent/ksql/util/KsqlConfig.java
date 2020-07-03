@@ -285,7 +285,7 @@ public class KsqlConfig extends AbstractConfig {
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
   // Defaults for config NOT defined by this class's ConfigDef:
-  private static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
+  static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
       .<String, Object>builder()
       // Improve join predictability by generally allowing a second poll to ensure both sizes
       // of a join have data. See https://github.com/confluentinc/ksql/issues/5537.

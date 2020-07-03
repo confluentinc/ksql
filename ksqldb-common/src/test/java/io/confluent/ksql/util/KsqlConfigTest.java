@@ -316,11 +316,13 @@ public class KsqlConfigTest {
     ));
 
     // Then:
-    assertThat(cloned.originals(), is(ImmutableMap.of(
-        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, "true",
-        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
-    )));
+    assertThat(cloned.originals(), is(ImmutableMap.builder()
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id")
+        .put(KsqlConfig.KSQL_WRAP_SINGLE_VALUES, "true")
+        .put(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob")
+        .putAll(KsqlConfig.NON_KSQL_DEFAULTS)
+        .build()
+    ));
   }
 
   @Test
@@ -581,7 +583,44 @@ public class KsqlConfigTest {
     // When:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
+    // Then:
+    assertThat(
+        ksqlConfig.getKsqlStreamConfigProps(),
+        hasEntry(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 500L)
+    );
+  }
+
+  @Test
+  public void shouldUsePrefixedStreamsMinTaskIdleConfig() {
+    // Given:
+    final ImmutableMap<String, ?> props = ImmutableMap.of(
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 100L
+    );
+
     // When:
-    assertThat(ksqlConfig.getKsqlStreamConfigProps(), hasEntry("ksql.streams.max.task.idle.ms", 500L));
+    final KsqlConfig ksqlConfig = new KsqlConfig(props);
+
+    // Then:
+    assertThat(
+        ksqlConfig.getKsqlStreamConfigProps(),
+        hasEntry(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 100L)
+    );
+  }
+
+  @Test
+  public void shouldUseNonPrefixedStreamsMinTaskIdleConfig() {
+    // Given:
+    final ImmutableMap<String, ?> props = ImmutableMap.of(
+        StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 1000L
+    );
+
+    // When:
+    final KsqlConfig ksqlConfig = new KsqlConfig(props);
+
+    // Then:
+    assertThat(
+        ksqlConfig.getKsqlStreamConfigProps(),
+        hasEntry(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 1000L)
+    );
   }
 }

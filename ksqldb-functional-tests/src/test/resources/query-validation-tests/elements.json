@@ -907,6 +907,16 @@
           {"name": "OUTPUT", "type": "stream", "schema": "ID INT, F0 INT"}
         ]
       }
+    },
+    {
+      "name": "import windowed stream with no key",
+      "statements": [
+        "CREATE STREAM INPUT (F0 INT) WITH (kafka_topic='input', value_format='JSON', window_type='SESSION');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Windowed sources require a key column."
+      }
     }
   ]
 }

@@ -21,6 +21,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -52,7 +53,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
     this.formats = Objects.requireNonNull(formats, "formats");
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
 
-    validate(schema);
+    validate(schema, windowInfo.isPresent());
   }
 
   public SourceName getSourceName() {
@@ -79,9 +80,13 @@ public abstract class CreateSourceCommand implements DdlCommand {
     return windowInfo;
   }
 
-  private static void validate(final LogicalSchema schema) {
+  private static void validate(final LogicalSchema schema, final boolean windowed) {
     if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
+    }
+
+    if (windowed && schema.key().isEmpty()) {
+      throw new KsqlException("Windowed sources require a key column.");
     }
 
     if (schema.key().size() > 1) {

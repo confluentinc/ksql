@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -42,6 +43,7 @@ import java.util.Optional;
 public final class RecordNode {
 
   private static final ObjectMapper objectMapper = new ObjectMapper()
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
   private final String topicName;

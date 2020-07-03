@@ -1,85 +1,37 @@
 {
   "version" : "6.0.0",
-  "timestamp" : 1588893908853,
+  "timestamp" : 1589330376226,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL"
   },
   "testCase" : {
-    "name" : "JSON scale in data less than scale in type",
+    "name" : "JSON should not trim trailing zeros",
     "inputs" : [ {
       "topic" : "test",
       "key" : "",
       "value" : {
-        "DEC" : 10
+        "DEC" : 10.0
       }
     }, {
       "topic" : "test",
       "key" : "",
       "value" : {
-        "DEC" : 1
-      }
-    }, {
-      "topic" : "test",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.1
-      }
-    }, {
-      "topic" : "test",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.01
-      }
-    }, {
-      "topic" : "test",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.001
-      }
-    }, {
-      "topic" : "test",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.0001
+        "DEC" : 1.0000
       }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 10
+        "DEC" : 10.0
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 1
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.1
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.01
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.001
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.0001
+        "DEC" : 1.0000
       }
     } ],
     "topics" : [ {

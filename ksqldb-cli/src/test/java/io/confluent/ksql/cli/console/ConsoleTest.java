@@ -373,7 +373,7 @@ public class ConsoleTest {
             ImmutableSet.of("sink"),
             "topology",
             "executionPlan",
-            ImmutableMap.of(),
+            ImmutableMap.of("overridden.prop", 42),
             ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
             KsqlQueryType.PERSISTENT,
             ImmutableList.of(new QueryError("error", Type.SYSTEM))
@@ -407,7 +407,9 @@ public class ConsoleTest {
           "    \"sinks\" : [ \"sink\" ],\n" +
           "    \"topology\" : \"topology\",\n" +
           "    \"executionPlan\" : \"executionPlan\",\n" +
-          "    \"overriddenProperties\" : { },\n" +
+          "    \"overriddenProperties\" : {\n" +
+          "      \"overridden.prop\" : 42\n" +
+          "    },\n" +
           "    \"ksqlHostQueryStatus\" : {\n" +
           "      \"foo:123\" : \"ERROR\"\n" +
           "    },\n" +
@@ -452,8 +454,16 @@ public class ConsoleTest {
           "------------------- \n" +
           "topology\n" +
           "\n" +
+          "Overridden Properties\n" +
+          "---------------------\n" +
+          " Property        | Value \n" +
+          "-------------------------\n" +
+          " overridden.prop | 42    \n" +
+          "-------------------------\n" +
+          "\n" +
           "Error Details        : error\n" +
-          "Error Type           : SYSTEM\n"));
+          "Error Type           : SYSTEM\n"
+      ));
     }
   }
 

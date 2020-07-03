@@ -558,7 +558,7 @@ public class Console implements Closeable {
 
     final List<List<String>> rows = overriddenProperties.entrySet().stream()
         .sorted(Entry.comparingByKey())
-        .map(prop -> Arrays.asList(prop.getKey(), "", Objects.toString(prop.getValue())))
+        .map(prop -> Arrays.asList(prop.getKey(), Objects.toString(prop.getValue())))
         .collect(Collectors.toList());
 
     new Builder()

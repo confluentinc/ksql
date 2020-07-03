@@ -98,7 +98,7 @@ public class Record {
     return jsonValue;
   }
 
-  public Record withKey(final Object key) {
+  public Record withKeyValue(final Object key, final Object value) {
     return new Record(
         topicName,
         key,

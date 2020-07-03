@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
@@ -42,6 +44,8 @@ import java.util.Optional;
 public final class RecordNode {
 
   private static final ObjectMapper objectMapper = new ObjectMapper()
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+      .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
   private final String topicName;
@@ -50,7 +54,8 @@ public final class RecordNode {
   private final Optional<Long> timestamp;
   private final Optional<WindowData> window;
 
-  private RecordNode(
+  @VisibleForTesting
+  RecordNode(
       final String topicName,
       final Optional<Object> key,
       final JsonNode value,

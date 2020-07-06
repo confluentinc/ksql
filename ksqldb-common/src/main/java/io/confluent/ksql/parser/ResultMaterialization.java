@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.parser;
 
 /**
  * Controls how the result of a query is materialized.
@@ -39,3 +39,5 @@ public enum ResultMaterialization {
    */
   FINAL;
 }
+
+

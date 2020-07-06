@@ -40,7 +40,6 @@ import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
@@ -420,7 +419,7 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldDefaultToYieldFinalForBareQueries() {
+  public void shouldDefaultToEmptyResultMaterializationForBareQueries() {
     // Given:
     final SingleStatementContext stmt =
         givenQuery("SELECT * FROM TEST1;");
@@ -430,7 +429,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be pull", result.isPullQuery(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
+    assertThat(result.getResultMaterialization(), is(Optional.empty()));
   }
 
   @Test
@@ -444,7 +443,21 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitFinalOnBareQuery() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT * FROM TEST1 EMIT FINAL;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat("Should be push", result.isPullQuery(), is(false));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
   }
 
 
@@ -459,7 +472,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test
@@ -473,7 +486,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test
@@ -487,7 +500,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
   }
 
   @Test
@@ -501,7 +514,21 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitFinalForCsas() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 EMIT FINAL;");
+
+    // When:
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
+
+    // Then:
+    assertThat("Should be push", result.isPullQuery(), is(false));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
   }
 
   @Test
@@ -515,7 +542,21 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitFinalForCtas() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY EMIT FINAL;");
+
+    // When:
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
+
+    // Then:
+    assertThat("Should be push", result.isPullQuery(), is(false));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
   }
 
   @Test
@@ -529,7 +570,21 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitFinalForInsertInto() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2 EMIT FINAL;");
+
+    // When:
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
+
+    // Then:
+    assertThat("Should be push", result.isPullQuery(), is(false));
+    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
   }
 
   @Test

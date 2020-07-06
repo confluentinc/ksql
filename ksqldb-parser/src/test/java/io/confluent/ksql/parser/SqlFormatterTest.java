@@ -1040,6 +1040,23 @@ public class SqlFormatterTest {
         + "EMIT CHANGES"));
   }
 
+  @Test
+  public void shouldFormatSuppression() {
+    // Given:
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW TUMBLING (SIZE 7 DAYS, GRACE PERIOD 1 DAY) GROUP BY ITEMID EMIT FINAL;";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ITEMID,\n"
+        + "  COUNT(*)\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW TUMBLING ( SIZE 7 DAYS , GRACE PERIOD 1 DAYS ) \n"
+        + "GROUP BY ITEMID\n"
+        + "EMIT FINAL"));
+  }
+
   private Statement parseSingle(final String statementString) {
     return KsqlParserTestUtil.buildSingleAst(statementString, metaStore).getStatement();
   }

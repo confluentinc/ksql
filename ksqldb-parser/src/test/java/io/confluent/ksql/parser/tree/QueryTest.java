@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static io.confluent.ksql.parser.tree.ResultMaterialization.CHANGES;
-import static io.confluent.ksql.parser.tree.ResultMaterialization.FINAL;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -26,8 +24,10 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.ResultMaterialization;
 import java.util.Optional;
 import java.util.OptionalInt;
+
 import org.junit.Test;
 
 
@@ -56,6 +56,12 @@ public class QueryTest {
   );
   private static final Optional<Expression> SOME_HAVING = Optional.of(
       mock(Expression.class)
+  );
+  private static final Optional<ResultMaterialization> FINAL = Optional.of(
+      mock(ResultMaterialization.class)
+  );
+  private static final Optional<ResultMaterialization> CHANGES = Optional.of(
+      mock(ResultMaterialization.class)
   );
   private static final OptionalInt SOME_LIMIT = OptionalInt.of(1);
 

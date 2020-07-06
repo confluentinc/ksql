@@ -130,7 +130,7 @@ public final class SqlFormatter {
         if (node.getResultMaterialization().isPresent()) {
           append(indent, "EMIT ");
           append(indent, node.getResultMaterialization()
-              .orElse(ResultMaterialization.CHANGES)
+              .get()
               .toString())
               .append('\n');
         }

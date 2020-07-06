@@ -59,16 +59,14 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.vertx.core.Vertx;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -137,6 +135,9 @@ public class KsqlRestApplicationTest {
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+
+  @Mock
+  private Vertx vertx;
 
   private String logCreateStatement;
   private KsqlRestApplication app;
@@ -471,7 +472,8 @@ public class KsqlRestApplicationTest {
         rocksDBConfigSetterHandler,
         pullQueryExecutor,
         Optional.of(heartbeatAgent),
-        Optional.of(lagReportingAgent)
+        Optional.of(lagReportingAgent),
+        vertx
     );
   }
 

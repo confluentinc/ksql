@@ -1,89 +1,64 @@
 {
-  "version" : "6.0.0",
-  "timestamp" : 1588893908853,
+  "version" : "6.1.0",
+  "timestamp" : 1593789506560,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL"
   },
   "testCase" : {
-    "name" : "JSON scale in data less than scale in type",
+    "name" : "AVRO should not trim trailing zeros",
     "inputs" : [ {
       "topic" : "test",
-      "key" : "",
+      "key" : null,
       "value" : {
-        "DEC" : 10
+        "DEC" : 10.0000
       }
     }, {
       "topic" : "test",
-      "key" : "",
+      "key" : null,
       "value" : {
-        "DEC" : 1
-      }
-    }, {
-      "topic" : "test",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.1
-      }
-    }, {
-      "topic" : "test",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.01
-      }
-    }, {
-      "topic" : "test",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.001
-      }
-    }, {
-      "topic" : "test",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.0001
+        "DEC" : 1.0000
       }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
-        "DEC" : 10
+        "DEC" : 10.0000
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
-        "DEC" : 1
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.1
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.01
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.001
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "",
-      "value" : {
-        "DEC" : 0.0001
+        "DEC" : 1.0000
       }
     } ],
     "topics" : [ {
       "name" : "test",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "DEC",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 4,
+            "precision" : 6,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "4",
+              "connect.decimal.precision" : "6"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
@@ -91,7 +66,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='Avro');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
@@ -111,7 +86,7 @@
             }
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "AVRO"
           },
           "partitions" : 4
         }, {
@@ -122,7 +97,7 @@
             }
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "AVRO"
           },
           "partitions" : 4
         } ]

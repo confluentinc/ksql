@@ -48,7 +48,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 
-@Ignore
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestConfigTest {
 

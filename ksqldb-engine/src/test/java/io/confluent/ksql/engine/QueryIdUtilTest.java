@@ -133,6 +133,7 @@ public class QueryIdUtilTest {
     // Given:
     when(plan.getSinkName()).thenReturn(Optional.of(SINK));
     when(plan.createInto()).thenReturn(true);
+    when(plan.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
 
     // When:

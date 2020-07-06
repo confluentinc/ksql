@@ -528,7 +528,7 @@ public class SqlFormatterTest {
         + "FROM ADDRESS A\nEMIT CHANGES"));
   }
 
-  @Test(expected = ParseFailedException.class)
+  @Test
   public void shouldFormatReplaceSelectQueryCorrectly() {
     final String statementString =
         "CREATE OR REPLACE STREAM S AS SELECT a.address->city FROM address a;";

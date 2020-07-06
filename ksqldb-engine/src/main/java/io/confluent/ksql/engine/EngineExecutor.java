@@ -259,7 +259,8 @@ final class EngineExecutor {
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
           outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-          statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace()
+          Optional.of(
+              statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace())
       );
     } else {
       ddl = new CreateTableCommand(
@@ -269,7 +270,8 @@ final class EngineExecutor {
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
           outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-          statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace()
+          Optional.of(
+              statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace())
       );
     }
 

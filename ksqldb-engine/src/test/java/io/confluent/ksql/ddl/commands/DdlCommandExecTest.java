@@ -302,7 +302,7 @@ public class DdlCommandExecTest {
             VALUE_FORMAT,
             SERDE_OPTIONS),
         Optional.empty(),
-        allowReplace
+        Optional.of(allowReplace)
     );
   }
 
@@ -317,7 +317,7 @@ public class DdlCommandExecTest {
             VALUE_FORMAT,
             SERDE_OPTIONS),
         Optional.of(windowInfo),
-        false
+        Optional.of(false)
     );
   }
 
@@ -333,7 +333,7 @@ public class DdlCommandExecTest {
             SERDE_OPTIONS
         ),
         Optional.of(windowInfo),
-        false
+        Optional.of(false)
     );
   }
 
@@ -349,7 +349,7 @@ public class DdlCommandExecTest {
             SERDE_OPTIONS
         ),
         Optional.empty(),
-        false
+        Optional.of(false)
     );
   }
 }

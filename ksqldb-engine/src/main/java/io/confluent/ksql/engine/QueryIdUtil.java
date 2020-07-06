@@ -66,7 +66,13 @@ final class QueryIdUtil {
           + "multiple queries writing into it: " + queriesForSink);
     } else if (!queriesForSink.isEmpty()) {
       if (!createOrReplaceEnabled) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported");
+        final String type = outputNode.getNodeOutputType().getKsqlType().toLowerCase();
+        throw new UnsupportedOperationException(
+            String.format(
+                "Cannot add %s '%s': A %s with the same name already exists",
+                type,
+                sink.text(),
+                type));
       }
       return new QueryId(Iterables.getOnlyElement(queriesForSink));
     }

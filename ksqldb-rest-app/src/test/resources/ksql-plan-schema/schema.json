@@ -63,6 +63,10 @@
         },
         "windowInfo" : {
           "$ref" : "#/definitions/WindowInfo"
+        },
+        "orReplace" : {
+          "type" : "boolean",
+          "default" : false
         }
       },
       "title" : "createStreamV1",
@@ -157,6 +161,10 @@
         },
         "windowInfo" : {
           "$ref" : "#/definitions/WindowInfo"
+        },
+        "orReplace" : {
+          "type" : "boolean",
+          "default" : false
         }
       },
       "title" : "createTableV1",

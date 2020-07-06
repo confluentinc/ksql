@@ -36,7 +36,7 @@ public class CreateTableCommand extends CreateSourceCommand {
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo,
-      @JsonProperty(value = "orReplace") final boolean orReplace
+      @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace
   ) {
     super(
         sourceName,
@@ -45,7 +45,7 @@ public class CreateTableCommand extends CreateSourceCommand {
         topicName,
         formats,
         windowInfo,
-        orReplace
+        orReplace.orElse(false)
     );
 
     if (schema.key().isEmpty()) {

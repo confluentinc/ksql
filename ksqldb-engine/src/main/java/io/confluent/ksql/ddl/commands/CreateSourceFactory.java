@@ -107,7 +107,7 @@ public final class CreateSourceFactory {
         io.confluent.ksql.execution.plan.Formats
             .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo(),
-        statement.isOrReplace()
+        Optional.of(statement.isOrReplace())
     );
   }
 
@@ -156,7 +156,7 @@ public final class CreateSourceFactory {
         io.confluent.ksql.execution.plan.Formats
             .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo(),
-        statement.isOrReplace()
+        Optional.of(statement.isOrReplace())
     );
   }
 

@@ -37,15 +37,7 @@ final class AdminResponseHandlers {
       final CompletableFuture<List<StreamInfo>> cf
   ) {
     try {
-      final JsonArray streams = streamsListEntity.getJsonArray("streams");
-      cf.complete(streams.stream()
-          .map(o -> (JsonObject) o)
-          .map(o -> new StreamInfoImpl(
-              o.getString("name"),
-              o.getString("topic"),
-              o.getString("format")))
-          .collect(Collectors.toList())
-      );
+      cf.complete(getListStreamsResponse(streamsListEntity).get());
     } catch (Exception e) {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + streamsListEntity));
@@ -57,16 +49,7 @@ final class AdminResponseHandlers {
       final CompletableFuture<List<TableInfo>> cf
   ) {
     try {
-      final JsonArray tables = tablesListEntity.getJsonArray("tables");
-      cf.complete(tables.stream()
-          .map(o -> (JsonObject) o)
-          .map(o -> new TableInfoImpl(
-              o.getString("name"),
-              o.getString("topic"),
-              o.getString("format"),
-              o.getBoolean("isWindowed")))
-          .collect(Collectors.toList())
-      );
+      cf.complete(getListTablesResponse(tablesListEntity).get());
     } catch (Exception e) {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + tablesListEntity));
@@ -78,20 +61,7 @@ final class AdminResponseHandlers {
       final CompletableFuture<List<TopicInfo>> cf
   ) {
     try {
-      final JsonArray topics = kafkaTopicsListEntity.getJsonArray("topics");
-      cf.complete(topics.stream()
-          .map(o -> (JsonObject) o)
-          .map(o -> {
-            final List<Integer> replicaInfo = o.getJsonArray("replicaInfo").stream()
-                .map(v -> (Integer)v)
-                .collect(Collectors.toList());
-            return new TopicInfoImpl(
-                o.getString("name"),
-                replicaInfo.size(),
-                replicaInfo);
-          })
-          .collect(Collectors.toList())
-      );
+      cf.complete(getListTopicsResponse(kafkaTopicsListEntity).get());
     } catch (Exception e) {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + kafkaTopicsListEntity));
@@ -103,8 +73,157 @@ final class AdminResponseHandlers {
       final CompletableFuture<List<QueryInfo>> cf
   ) {
     try {
+      cf.complete(getListQueriesResponse(queriesEntity).get());
+    } catch (Exception e) {
+      cf.completeExceptionally(new IllegalStateException(
+          "Unexpected server response format. Response: " + queriesEntity));
+    }
+  }
+
+  static boolean isListStreamsResponse(final JsonObject ksqlEntity) {
+    return getListStreamsResponse(ksqlEntity).isPresent();
+  }
+
+  static boolean isListTablesResponse(final JsonObject ksqlEntity) {
+    return getListTablesResponse(ksqlEntity).isPresent();
+  }
+
+  static boolean isListTopicsResponse(final JsonObject ksqlEntity) {
+    return getListTopicsResponse(ksqlEntity).isPresent();
+  }
+
+  static boolean isListQueriesResponse(final JsonObject ksqlEntity) {
+    return getListQueriesResponse(ksqlEntity).isPresent();
+  }
+
+  static boolean isDescribeSourceResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getJsonObject("sourceDescription") != null;
+  }
+
+  static boolean isDescribeOrListFunctionResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getJsonArray("functions") != null;
+  }
+
+  static boolean isExplainQueryResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getJsonObject("queryDescription") != null;
+  }
+
+  static boolean isListPropertiesResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getJsonArray("properties") != null;
+  }
+
+  static boolean isListTypesResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getJsonObject("types") != null;
+  }
+
+  static boolean isListConnectorsResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getJsonArray("connectors") != null;
+  }
+
+  static boolean isDescribeConnectorResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getString("connectorClass") != null;
+  }
+
+  static boolean isCreateConnectorResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getJsonObject("info") != null;
+  }
+
+  static boolean isDropConnectorResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getString("connectorName") != null;
+  }
+
+  static boolean isConnectErrorResponse(final JsonObject ksqlEntity) {
+    return ksqlEntity.getString("errorMessage") != null;
+  }
+
+  /**
+   * Attempts to parse the provided response entity as a {@code StreamsListEntity}.
+   *
+   * @param streamsListEntity response entity
+   * @return optional containing parsed result if successful, else empty
+   */
+  private static Optional<List<StreamInfo>> getListStreamsResponse(
+      final JsonObject streamsListEntity
+  ) {
+    try {
+      final JsonArray streams = streamsListEntity.getJsonArray("streams");
+      return Optional.of(streams.stream()
+          .map(o -> (JsonObject) o)
+          .map(o -> new StreamInfoImpl(
+              o.getString("name"),
+              o.getString("topic"),
+              o.getString("format")))
+          .collect(Collectors.toList())
+      );
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Attempts to parse the provided response entity as a {@code TablesListEntity}.
+   *
+   * @param tablesListEntity response entity
+   * @return optional containing parsed result if successful, else empty
+   */
+  private static Optional<List<TableInfo>> getListTablesResponse(
+      final JsonObject tablesListEntity
+  ) {
+    try {
+      final JsonArray tables = tablesListEntity.getJsonArray("tables");
+      return Optional.of(tables.stream()
+          .map(o -> (JsonObject) o)
+          .map(o -> new TableInfoImpl(
+              o.getString("name"),
+              o.getString("topic"),
+              o.getString("format"),
+              o.getBoolean("isWindowed")))
+          .collect(Collectors.toList())
+      );
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Attempts to parse the provided response entity as a {@code KafkaTopicsListEntity}.
+   *
+   * @param kafkaTopicsListEntity response entity
+   * @return optional containing parsed result if successful, else empty
+   */
+  private static Optional<List<TopicInfo>> getListTopicsResponse(
+      final JsonObject kafkaTopicsListEntity
+  ) {
+    try {
+      final JsonArray topics = kafkaTopicsListEntity.getJsonArray("topics");
+      return Optional.of(topics.stream()
+          .map(o -> (JsonObject) o)
+          .map(o -> {
+            final List<Integer> replicaInfo = o.getJsonArray("replicaInfo").stream()
+                .map(v -> (Integer) v)
+                .collect(Collectors.toList());
+            return new TopicInfoImpl(
+                o.getString("name"),
+                replicaInfo.size(),
+                replicaInfo);
+          })
+          .collect(Collectors.toList())
+      );
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Attempts to parse the provided response entity as a {@code QueriesEntity}.
+   *
+   * @param queriesEntity response entity
+   * @return optional containing parsed result if successful, else empty
+   */
+  private static Optional<List<QueryInfo>> getListQueriesResponse(final JsonObject queriesEntity) {
+    try {
       final JsonArray queries = queriesEntity.getJsonArray("queries");
-      cf.complete(queries.stream()
+      return Optional.of(queries.stream()
           .map(o -> (JsonObject) o)
           .map(o -> {
             final QueryType queryType = QueryType.valueOf(o.getString("queryType"));
@@ -139,8 +258,7 @@ final class AdminResponseHandlers {
           .collect(Collectors.toList())
       );
     } catch (Exception e) {
-      cf.completeExceptionally(new IllegalStateException(
-          "Unexpected server response format. Response: " + queriesEntity));
+      return Optional.empty();
     }
   }
 

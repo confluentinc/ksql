@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import org.reactivestreams.Publisher;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -185,6 +186,31 @@ public class ClientImpl implements Client {
         new JsonObject().put("queryId", queryId),
         cf,
         response -> handleCloseQueryResponse(response, cf)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> executeStatement(final String sql) {
+    return executeStatement(sql, Collections.emptyMap());
+  }
+
+  @Override
+  public CompletableFuture<Void> executeStatement(
+      final String sql, final Map<String, Object> properties) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    makeRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", sql).put("streamsProperties", properties),
+        cf,
+        response -> handleSingleEntityResponse(
+            response,
+            cf,
+            DdlDmlResponseHandlers::handleExecuteStatementResponse,
+            numEntities -> new KsqlClientException("executeStatement() may only be used to "
+                + "execute one statement at a time. Found: " + numEntities))
     );
 
     return cf;
@@ -361,12 +387,22 @@ public class ClientImpl implements Client {
       final CompletableFuture<T> cf,
       final SingleEntityResponseHandler<T> responseHandler
   ) {
+    handleSingleEntityResponse(response, cf, responseHandler,
+        numEntities -> new IllegalStateException(
+            "Unexpected number of entities in server response: " + numEntities));
+  }
+
+  private static <T> void handleSingleEntityResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<T> cf,
+      final SingleEntityResponseHandler<T> responseHandler,
+      final Function<Integer, RuntimeException> multipleEntityErrorSupplier
+  ) {
     if (response.statusCode() == OK.code()) {
       response.bodyHandler(buffer -> {
         final JsonArray entities = buffer.toJsonArray();
         if (entities.size() != 1) {
-          cf.completeExceptionally(new IllegalStateException(
-              "Unexpected number of entities in server response: " + entities.size()));
+          cf.completeExceptionally(multipleEntityErrorSupplier.apply(entities.size()));
           return;
         }
 

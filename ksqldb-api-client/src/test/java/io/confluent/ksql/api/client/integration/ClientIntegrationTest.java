@@ -82,6 +82,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
@@ -677,6 +678,84 @@ public class ClientIntegrationTest {
     assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
   }
 
+  @Test
+  public void shouldExecuteDdlDmlStatements() throws Exception {
+    // Given
+    final String streamName = TEST_STREAM + "_COPY";
+    final String csas = "create stream " + streamName + " as select * from " + TEST_STREAM + " emit changes;";
+
+    final int numInitialStreams = 3;
+    final int numInitialQueries = 1;
+    verifyNumStreams(numInitialStreams);
+    verifyNumQueries(numInitialQueries);
+
+    // When: create stream, start persistent query
+    client.executeStatement(csas).get();
+
+    // Then
+    verifyNumStreams(numInitialStreams + 1);
+    verifyNumQueries(numInitialQueries + 1);
+
+    // When: terminate persistent query
+    final String queryId = findQueryIdForSink(streamName);
+    client.executeStatement("terminate " + queryId + ";");
+
+    // Then
+    verifyNumQueries(numInitialQueries);
+
+    // When: drop stream
+    client.executeStatement("drop stream " + streamName + ";").get();
+
+    // Then
+    verifyNumStreams(numInitialStreams);
+  }
+
+  @Test
+  public void shouldHandleInvalidSqlInExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("bad sql").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("mismatched input"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("drop stream NONEXISTENT;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Source NONEXISTENT does not exist"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
+  @Test
+  public void shouldFailOnMultipleEntitiesFromExecuteStatement() {
+  }
+
+  @Test
+  public void shouldFailOnNoEntitiesFromExecuteStatement() {
+
+  }
+
+  @Test
+  public void shouldFailToListStreamsViaExecuteStatement() {
+
+  }
+
+  // TODO: add the other failure checks?
+
   @SuppressWarnings("unchecked")
   @Test
   public void shouldListStreams() throws Exception {
@@ -746,6 +825,35 @@ public class ClientIntegrationTest {
         .setHost("localhost")
         .setPort(REST_APP.getListeners().get(0).getPort());
     return Client.create(clientOptions, vertx);
+  }
+
+  private void verifyNumStreams(final int numStreams) {
+    assertThatEventually(() -> {
+      try {
+        return client.listStreams().get().size();
+      } catch (Exception e) {
+        return -1;
+      }
+    }, is(numStreams));
+  }
+
+  private void verifyNumQueries(final int numQueries) {
+    assertThatEventually(() -> {
+      try {
+        return client.listQueries().get().size();
+      } catch (Exception e) {
+        return -1;
+      }
+    }, is(numQueries));
+  }
+
+  private String findQueryIdForSink(final String sinkName) throws Exception {
+    final List<String> queryIds = client.listQueries().get().stream()
+        .filter(q -> q.getSink().equals(Optional.of(sinkName)))
+        .map(QueryInfo::getId)
+        .collect(Collectors.toList());
+    assertThat(queryIds, hasSize(1));
+    return queryIds.get(0);
   }
 
   private static void makeKsqlRequest(final String sql) {

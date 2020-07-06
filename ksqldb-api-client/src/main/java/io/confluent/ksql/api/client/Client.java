@@ -112,6 +112,10 @@ public interface Client {
    */
   CompletableFuture<Void> terminatePushQuery(String queryId);
 
+  CompletableFuture<Void> executeStatement(String sql);
+
+  CompletableFuture<Void> executeStatement(String sql, Map<String, Object> properties);
+
   /**
    * Returns the list of ksqlDB streams from the ksqlDB server's metastore.
    *

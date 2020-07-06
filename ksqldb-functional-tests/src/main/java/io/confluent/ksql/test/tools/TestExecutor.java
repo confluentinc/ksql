@@ -250,7 +250,7 @@ public class TestExecutor implements Closeable {
 
     int i = 0;
     while (actualIt.hasNext() && expectedIt.hasNext()) {
-      final Record expectedRecord = topicInfo.coerceRecordKey(expectedIt.next(), i);
+      final Record expectedRecord = topicInfo.coerceRecord(expectedIt.next(), i);
       final ProducerRecord<?, ?> actualProducerRecord = actualIt.next();
 
       validateCreatedMessage(
@@ -312,7 +312,7 @@ public class TestExecutor implements Closeable {
 
         final TopicInfo topicInfo = topicInfoCache.get(record.getTopicName());
 
-        final Record coerced = topicInfo.coerceRecordKey(record, inputRecordIndex);
+        final Record coerced = topicInfo.coerceRecord(record, inputRecordIndex);
 
         processSingleRecord(
             coerced.asProducerRecord(),

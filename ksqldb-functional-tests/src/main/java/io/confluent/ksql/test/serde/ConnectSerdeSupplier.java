@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -165,10 +166,19 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
           return struct;
         case BYTES:
           if (DecimalUtil.isDecimal(schema)) {
-            return DecimalUtil.cast(
-                (String) spec,
-                DecimalUtil.precision(schema),
-                DecimalUtil.scale(schema));
+            if (spec instanceof BigDecimal) {
+              return DecimalUtil.ensureFit((BigDecimal) spec, schema);
+            }
+
+            if (spec instanceof String) {
+              // Supported for legacy reasons...
+              return DecimalUtil.cast(
+                  (String) spec,
+                  DecimalUtil.precision(schema),
+                  DecimalUtil.scale(schema));
+            }
+
+            throw new TestFrameworkException("DECIMAL type requires JSON number in test data");
           }
           throw new RuntimeException("Unexpected BYTES type " + schema.name());
         default:

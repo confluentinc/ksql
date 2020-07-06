@@ -273,6 +273,22 @@
       ]
     },
     {
+      "name": "null value preserved",
+      "description": "null values cast to VARCHAR should remain null",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, col0 INT) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUT AS SELECT ID, cast(col0 AS VARCHAR) as VAL FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "value": {"col0": 1}},
+        {"topic":  "test_topic", "value": {"col0": null}}
+      ],
+      "outputs": [
+        {"topic":  "OUT", "value": {"VAL": "1"}},
+        {"topic":  "OUT", "value": {"VAL": null}}
+      ]
+    },
+    {
       "name": "double to int",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, col0 DOUBLE, col1 DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');",

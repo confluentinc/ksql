@@ -235,7 +235,7 @@ public class SqlToJavaVisitorTest {
     );
     assertThat(
         sqlToJavaVisitor.process(castDoubleString),
-        equalTo("String.valueOf(COL3)")
+        equalTo("Objects.toString(COL3, null)")
     );
   }
 

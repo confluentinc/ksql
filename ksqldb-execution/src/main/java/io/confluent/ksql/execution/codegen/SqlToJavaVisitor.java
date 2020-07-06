@@ -116,6 +116,7 @@ public class SqlToJavaVisitor {
       "java.util.HashMap",
       "java.util.Map",
       "java.util.List",
+      "java.util.Objects",
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
       "com.google.common.collect.ImmutableMap",
@@ -932,7 +933,7 @@ public class SqlToJavaVisitor {
         final int scale = decimal.getScale();
         exprStr = String.format("DecimalUtil.format(%d, %d, %s)", precision, scale, expr.getLeft());
       } else {
-        exprStr = "String.valueOf(" + expr.getLeft() + ")";
+        exprStr = "Objects.toString(" + expr.getLeft() + ", null)";
       }
       return new Pair<>(exprStr, returnType);
     }

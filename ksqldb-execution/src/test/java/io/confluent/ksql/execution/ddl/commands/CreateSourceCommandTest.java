@@ -149,7 +149,7 @@ public class CreateSourceCommandTest {
         final Formats formats,
         final Optional<WindowInfo> windowInfo
     ) {
-      super(sourceName, schema, timestampColumn, topicName, formats, windowInfo);
+      super(sourceName, schema, timestampColumn, topicName, formats, windowInfo, false);
     }
 
     @Override

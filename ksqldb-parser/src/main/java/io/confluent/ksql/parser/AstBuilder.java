@@ -253,10 +253,6 @@ public class AstBuilder {
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
-      if (context.REPLACE() != null) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
-      }
-
       return new CreateTable(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -275,10 +271,6 @@ public class AstBuilder {
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
-      if (context.REPLACE() != null) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
-      }
-
       return new CreateStream(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -295,10 +287,6 @@ public class AstBuilder {
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
 
-      if (context.REPLACE() != null) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
-      }
-
       return new CreateStreamAsSelect(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -314,10 +302,6 @@ public class AstBuilder {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
-
-      if (context.REPLACE() != null) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
-      }
 
       return new CreateTableAsSelect(
           getLocation(context),

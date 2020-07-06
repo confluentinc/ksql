@@ -138,7 +138,7 @@ public class SchemaRegisterInjectorTest {
         false,
         sourceTopic
     );
-    metaStore.putSource(source);
+    metaStore.putSource(source, false);
   }
 
   @Test

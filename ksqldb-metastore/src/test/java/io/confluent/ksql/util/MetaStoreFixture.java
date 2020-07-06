@@ -75,7 +75,7 @@ public final class MetaStoreFixture {
         ksqlTopic0
     );
 
-    metaStore.putSource(ksqlStream0);
+    metaStore.putSource(ksqlStream0, false);
 
     final KsqlTopic ksqlTopic1 = new KsqlTopic(
         "test1",
@@ -93,7 +93,7 @@ public final class MetaStoreFixture {
         ksqlTopic1
     );
 
-    metaStore.putSource(ksqlStream1);
+    metaStore.putSource(ksqlStream1, false);
 
     final LogicalSchema test2Schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
@@ -118,7 +118,7 @@ public final class MetaStoreFixture {
         ksqlTopic2
     );
 
-    metaStore.putSource(ksqlTable);
+    metaStore.putSource(ksqlTable, false);
 
     final SqlType addressSchema = SqlTypes.struct()
         .field("NUMBER", SqlTypes.BIGINT)
@@ -166,7 +166,7 @@ public final class MetaStoreFixture {
         ksqlTopicOrders
     );
 
-    metaStore.putSource(ksqlStreamOrders);
+    metaStore.putSource(ksqlStreamOrders, false);
 
     final LogicalSchema testTable3 = LogicalSchema.builder()
         .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
@@ -191,7 +191,7 @@ public final class MetaStoreFixture {
         ksqlTopic3
     );
 
-    metaStore.putSource(ksqlTable3);
+    metaStore.putSource(ksqlTable3, false);
 
     final SqlType nestedOrdersSchema = SqlTypes.struct()
         .field("ORDERTIME", SqlTypes.BIGINT)
@@ -228,7 +228,7 @@ public final class MetaStoreFixture {
         nestedArrayStructMapTopic
     );
 
-    metaStore.putSource(nestedArrayStructMapOrders);
+    metaStore.putSource(nestedArrayStructMapOrders, false);
 
     final KsqlTopic ksqlTopic4 = new KsqlTopic(
         "test4",
@@ -246,7 +246,7 @@ public final class MetaStoreFixture {
         ksqlTopic4
     );
 
-    metaStore.putSource(ksqlStream4);
+    metaStore.putSource(ksqlStream4, false);
 
     final LogicalSchema sensorReadingsSchema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
@@ -271,7 +271,7 @@ public final class MetaStoreFixture {
         ksqlTopicSensorReadings
     );
 
-    metaStore.putSource(ksqlStreamSensorReadings);
+    metaStore.putSource(ksqlStreamSensorReadings, false);
 
     return metaStore;
   }

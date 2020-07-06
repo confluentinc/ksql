@@ -159,7 +159,7 @@ public class TemporaryEngine extends ExternalResource {
       default:
         throw new IllegalArgumentException(type.toString());
     }
-    metaStore.putSource(source);
+    metaStore.putSource(source, false);
 
     return (T) source;
   }

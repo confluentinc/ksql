@@ -58,7 +58,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -111,8 +110,8 @@ public class RequestValidatorTest {
     final KsqlStream<?> sink = mock(KsqlStream.class);
     when(sink.getName()).thenReturn(SourceName.of("SINK"));
 
-    metaStore.putSource(source);
-    metaStore.putSource(sink);
+    metaStore.putSource(source, false);
+    metaStore.putSource(sink, false);
 
     givenRequestValidator(ImmutableMap.of());
   }

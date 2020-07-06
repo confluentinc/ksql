@@ -16,6 +16,8 @@
 package io.confluent.ksql.services;
 
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -39,6 +41,7 @@ import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -460,6 +463,46 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldGetTopicCleanUpPolicyDelete() {
+    // Given:
+    givenTopicConfigs(
+        "foo",
+        overriddenConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_DELETE)
+    );
+
+    // When / Then:
+    assertThat(kafkaTopicClient.getTopicCleanupPolicy("foo"),
+        is(TopicCleanupPolicy.DELETE));
+  }
+
+  @Test
+  public void shouldGetTopicCleanUpPolicyCompact() {
+    // Given:
+    givenTopicConfigs(
+        "foo",
+        overriddenConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT)
+    );
+
+    // When / Then:
+    assertThat(kafkaTopicClient.getTopicCleanupPolicy("foo"),
+        is(TopicCleanupPolicy.COMPACT));
+  }
+
+  @Test
+  public void shouldGetTopicCleanUpPolicyCompactAndDelete() {
+    // Given:
+    givenTopicConfigs(
+        "foo",
+        overriddenConfigEntry(CLEANUP_POLICY_CONFIG,
+            CLEANUP_POLICY_COMPACT + "," + CLEANUP_POLICY_DELETE)
+    );
+
+    // When / Then:
+    assertThat(kafkaTopicClient.getTopicCleanupPolicy("foo"),
+        is(TopicCleanupPolicy.COMPACT_DELETE));
+  }
+
+  @Test
   public void shouldThrowOnNoneRetryableGetTopicConfigError() {
     // Given:
     when(adminClient.describeConfigs(any()))
@@ -517,7 +560,7 @@ public class KafkaTopicClientImplTest {
     );
 
     final Map<String, ?> configOverrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+        CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
     );
 
     // When:
@@ -528,7 +571,7 @@ public class KafkaTopicClientImplTest {
     verify(adminClient).incrementalAlterConfigs(ImmutableMap.of(
         topicResource("peter"),
         ImmutableSet.of(
-            setConfig(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT)
+            setConfig(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT)
         )
     ));
   }
@@ -570,7 +613,7 @@ public class KafkaTopicClientImplTest {
     );
 
     final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+        CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
     );
 
     when(adminClient.incrementalAlterConfigs(any()))
@@ -583,7 +626,7 @@ public class KafkaTopicClientImplTest {
     verify(adminClient).alterConfigs(ImmutableMap.of(
         topicResource("peter"),
         new Config(ImmutableSet.of(
-            new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
+            new ConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
             new ConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "1234")
         ))
     ));
@@ -594,12 +637,12 @@ public class KafkaTopicClientImplTest {
     // Given:
     givenTopicConfigs(
         "peter",
-        overriddenConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
+        overriddenConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
         defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
     );
 
     final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+        CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
     );
 
     // When:
@@ -641,7 +684,7 @@ public class KafkaTopicClientImplTest {
     );
 
     final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
+        CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
     );
 
     when(adminClient.incrementalAlterConfigs(any()))

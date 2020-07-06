@@ -156,7 +156,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 3, resultStream0);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT_DELETE, 3, resultStream0);
   }
 
   @Test
@@ -179,7 +179,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 3, resultStream0);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT_DELETE, 3, resultStream0);
   }
 
   @Test
@@ -210,7 +210,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, mapHasItems(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 2, resultStream0);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT_DELETE, 2, resultStream0);
   }
 
   private void givenTable(final String sql) {

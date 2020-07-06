@@ -351,9 +351,19 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return ExecutorUtil.executeWithRetries(
           () -> adminClient.get().listOffsets(offsetsRequest).all().get(),
           RetryBehaviour.ON_RETRYABLE);
+   } catch (final TopicAuthorizationException e) {
+      final Set<String> topics = partitions.stream()
+          .map(TopicPartition::topic)
+          .collect(Collectors.toSet());
+
+      throw new KsqlTopicAuthorizationException(
+          AclOperation.DESCRIBE, topics);
+    } catch (final ExecutionException e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to get topic offsets. partitions: " + partitions, e.getCause());
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
-          "Failed to get offsets for Kafka Topic " + topicName, e);
+          "Failed to get topic offsets. partitions: " + partitions, e);
     }
   }
 

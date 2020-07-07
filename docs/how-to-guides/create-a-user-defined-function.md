@@ -36,7 +36,7 @@ public class FormulaUdf {
 
 ## Set up a Java project
 
-To implement a user-defined function, start by creating a Java project with a dependency on ksqlDB's UDF library. This library contains the annotations you use to signal that the classes you're implementing are UDFs specifically. You can manage your Java project with any build tool, but this guide demonstrates how it works with Gradle. What matters is that you can put an uberjar in ksqlDB's extension directory.
+To implement a user-defined function, start by creating a Java project with a dependency on ksqlDB's UDF library. This library contains the annotations you use to signal that the classes you're implementing are UDFs specifically. You can manage your Java project with any build tool, but this guide demonstrates how it works with Gradle. If you like, you can use the [Maven archetype](https://github.com/confluentinc/ksql/tree/master/ksqldb-udf-quickstart) instead. What matters is that you can put an uberjar in ksqlDB's extension directory.
 
 In a fresh directory, create the following `build.gradle` file to set up the Java project:
 
@@ -666,11 +666,11 @@ Your output should resemble:
 
  The output from the `rolling_sum` function has changed. In `k1`, the previous three values are now `5`, `7`, and `9`. In `k2`, the elements are now `2`, `1`, and `6`.
  
-## Working with structs
+## Using structs and decimals
 
-Using structs in UDFs requires a more specific type contract with ksqlDB. Structs are different from the other Java types that ksqlDB interfaces with because their typing is more dynamic. Fields can be added and removed, and their types are inferred on the fly. Because of this dynamism, UDFs need to be more explicit in their type contract with ksqlDB.
+Using structs and decimals in UDFs requires a more specific type contract with ksqlDB. Both of these types are different from the other Java types that ksqlDB interfaces with because their typing is more dynamic. In the case of structs, fields can be added and removed, and their types are inferred on the fly. In the case of decimals, their precision and scale can change based off the inputs they are computed against. Because of this dynamism, UDFs need to be more explicit in their type contract with ksqlDB.
 
-For example, create a simple function that maintains simple statistics. This example uses a UDAF, but the concepts are applicable for UDFs and UDTFs. Although the example is a bit contrived, it is useful because it demonstrates using a struct in all possible positions.
+As an example, create a simple function that maintains simple statistics. This example uses a UDAF, but the concepts are applicable for UDFs and UDTFs. Although the example is a bit contrived, it is useful because it demonstrates using a struct in all possible positions.
 
 ### Implement the class
 

@@ -44,6 +44,7 @@ import java.util.List;
     @Type(value = TableGroupBy.class, name = "tableGroupByV1"),
     @Type(value = TableSelect.class, name = "tableSelectV1"),
     @Type(value = TableSink.class, name = "tableSinkV1"),
+    @Type(value = TableSuppress.class, name = "tableSuppressV1"),
     @Type(value = TableTableJoin.class, name = "tableTableJoinV1")
 })
 @Immutable

@@ -42,6 +42,7 @@ import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.planner.JoinTree.Join;
@@ -63,6 +64,7 @@ import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
+import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
@@ -136,6 +138,11 @@ public class LogicalPlanner {
         throw new KsqlException(loc + "WINDOW clause requires a GROUP BY clause.");
       }
       currentNode = buildUserProjectNode(currentNode);
+    }
+
+    if (analysis.getResultMaterialization().isPresent()
+        && analysis.getResultMaterialization().get() == ResultMaterialization.FINAL) {
+      currentNode = buildSuppressNode(currentNode, analysis.getResultMaterialization().get());
     }
 
     return buildOutputNode(currentNode);
@@ -467,6 +474,13 @@ public class LogicalPlanner {
         dataSource.getDataSource(),
         dataSource.getAlias()
     );
+  }
+
+  private SuppressNode buildSuppressNode(
+      final PlanNode sourcePlanNode,
+      final ResultMaterialization resultMaterialization
+  ) {
+    return new SuppressNode(new PlanNodeId("Suppress"), sourcePlanNode, resultMaterialization);
   }
 
   private LogicalSchema buildAggregateSchema(

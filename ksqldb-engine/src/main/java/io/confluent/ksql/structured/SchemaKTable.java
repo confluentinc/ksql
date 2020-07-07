@@ -30,11 +30,13 @@ import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
+import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -239,6 +241,25 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  public SchemaKTable<K> suppress(
+      final ResultMaterialization resultMaterialization,
+      final Stacker contextStacker
+  ) {
+    final TableSuppress<K> step = ExecutionStepFactory.tableSuppress(
+        contextStacker,
+        sourceTableStep,
+        resultMaterialization
+    );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step),
         keyFormat,
         ksqlConfig,
         functionRegistry

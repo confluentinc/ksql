@@ -861,6 +861,29 @@
       "title" : "tableSinkV1",
       "required" : [ "@type", "properties", "source", "formats", "topicName" ]
     },
+    "TableSuppress" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableSuppressV1" ],
+          "default" : "tableSuppressV1"
+        },
+        "properties" : {
+          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "resultMaterialization" : {
+          "type" : "string",
+          "enum" : [ "CHANGES", "FINAL" ]
+        }
+      },
+      "title" : "tableSuppressV1",
+      "required" : [ "@type", "properties", "source", "resultMaterialization" ]
+    },
     "TableTableJoin" : {
       "type" : "object",
       "additionalProperties" : false,
@@ -933,6 +956,8 @@
         "$ref" : "#/definitions/TableSelect"
       }, {
         "$ref" : "#/definitions/TableSink"
+      }, {
+        "$ref" : "#/definitions/TableSuppress"
       }, {
         "$ref" : "#/definitions/TableTableJoin"
       } ]

@@ -45,12 +45,14 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
@@ -404,6 +406,19 @@ public final class ExecutionStepFactory {
         sourceStep,
         format,
         groupingExpressions
+    );
+  }
+
+  public static <K> TableSuppress<K> tableSuppress(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KTableHolder<K>> sourceStep,
+      final ResultMaterialization resultMaterialization
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new TableSuppress<>(
+        new ExecutionStepPropertiesV1(queryContext),
+        sourceStep,
+        resultMaterialization
     );
   }
 }

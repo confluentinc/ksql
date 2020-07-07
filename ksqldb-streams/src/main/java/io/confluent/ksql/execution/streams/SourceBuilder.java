@@ -16,6 +16,7 @@ package io.confluent.ksql.execution.streams;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -371,7 +372,8 @@ public final class SourceBuilder {
   private static Function<Windowed<Struct>, Collection<?>> windowedKeyGenerator(
       final LogicalSchema schema
   ) {
-    final Optional<Field> keyField = getKeySchemaSingleField(schema);
+    final Field keyField = getKeySchemaSingleField(schema)
+        .orElseThrow(() -> new IllegalStateException("Windowed sources require a key column"));
 
     return windowedKey -> {
       if (windowedKey == null) {
@@ -379,7 +381,7 @@ public final class SourceBuilder {
       }
 
       final Window window = windowedKey.window();
-      final Object key = windowedKey.key().get(keyField.orElseThrow(IllegalStateException::new));
+      final Object key = windowedKey.key().get(keyField);
       return Arrays.asList(key, window.start(), window.end());
     };
   }
@@ -389,6 +391,11 @@ public final class SourceBuilder {
   ) {
     final Optional<Field> keyField = getKeySchemaSingleField(schema);
     return key -> {
+      if (!keyField.isPresent()) {
+        // No key columns:
+        return ImmutableList.of();
+      }
+
       if (key == null) {
         return Collections.singletonList(null);
       }

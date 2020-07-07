@@ -163,7 +163,7 @@ public class KsqlParserTest {
         ksqlTopicOrders
     );
 
-    metaStore.putSource(ksqlStreamOrders);
+    metaStore.putSource(ksqlStreamOrders, false);
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
@@ -181,7 +181,7 @@ public class KsqlParserTest {
         ksqlTopicItems
     );
 
-    metaStore.putSource(ksqlTableOrders);
+    metaStore.putSource(ksqlTableOrders, false);
   }
 
   @Test

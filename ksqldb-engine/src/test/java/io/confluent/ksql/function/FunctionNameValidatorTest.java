@@ -43,7 +43,7 @@ public class FunctionNameValidatorTest {
   }
 
   @Test
-  public void shouldNotAllowKsqlReservedWordsExceptSubstringAndConcat() {
+  public void shouldNotAllowKsqlReservedWordsExceptSubstringAndConcatAndReplace() {
     final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
     final int maxTokenType = vocabulary.getMaxTokenType();
     for(int i = 0; i < maxTokenType; i++) {

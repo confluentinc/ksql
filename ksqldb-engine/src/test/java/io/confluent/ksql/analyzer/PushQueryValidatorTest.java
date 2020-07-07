@@ -27,7 +27,7 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -61,7 +61,7 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldThrowOnContinuousQueryThatIsFinal() {
     // Given:
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
+    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.FINAL));
 
     // When:
     final Exception e = assertThrows(
@@ -128,7 +128,7 @@ public class PushQueryValidatorTest {
   }
 
   private void givenPushQuery() {
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
+    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.CHANGES));
   }
 
   private void givenPersistentQuery() {

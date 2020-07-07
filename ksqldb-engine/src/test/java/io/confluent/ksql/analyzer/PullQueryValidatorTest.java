@@ -24,9 +24,9 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -55,13 +55,13 @@ public class PullQueryValidatorTest {
   public void setUp() {
     validator = new PullQueryValidator();
 
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
+    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.FINAL));
   }
 
   @Test
   public void shouldThrowOnPullQueryThatIsNotFinal() {
     // Given:
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
+    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.CHANGES));
 
     // When:
     final Exception e = assertThrows(
@@ -70,7 +70,7 @@ public class PullQueryValidatorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Pull queries don't support `EMIT CHANGES`"));
+    assertThat(e.getMessage(), containsString("Pull queries don't support 'EMIT CHANGES'"));
   }
 
   @Test(expected = KsqlException.class)

@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.ddl.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
@@ -28,6 +29,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -59,6 +61,30 @@ public class CreateSourceCommandTest {
         FORAMTS,
         Optional.empty()
     );
+  }
+
+  @Test
+  public void shouldThrowOnWindowedWithoutKeyColumn() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("V0"), SqlTypes.STRING)
+        .build();
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> new TestCommand(
+            SOURCE_NAME,
+            schema,
+            Optional.empty(),
+            TOPIC_NAME,
+            FORAMTS,
+            Optional.of(mock(WindowInfo.class))
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is(("Windowed sources require a key column.")));
   }
 
   @Test
@@ -123,7 +149,7 @@ public class CreateSourceCommandTest {
         final Formats formats,
         final Optional<WindowInfo> windowInfo
     ) {
-      super(sourceName, schema, timestampColumn, topicName, formats, windowInfo);
+      super(sourceName, schema, timestampColumn, topicName, formats, windowInfo, false);
     }
 
     @Override

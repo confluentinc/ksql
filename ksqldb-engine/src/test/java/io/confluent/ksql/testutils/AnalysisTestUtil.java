@@ -57,7 +57,8 @@ public final class AnalysisTestUtil {
     private final Analysis analysis;
 
     private Analyzer(final String queryStr, final MetaStore metaStore) {
-      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, "", SerdeOption.none());
+      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
+          metaStore, "", SerdeOption.none());
       final Statement statement = parseStatement(queryStr, metaStore);
       final Query query = statement instanceof QueryContainer
           ? ((QueryContainer) statement).getQuery()

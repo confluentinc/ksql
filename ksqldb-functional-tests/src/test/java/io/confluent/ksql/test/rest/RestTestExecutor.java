@@ -208,7 +208,7 @@ public class RestTestExecutor implements Closeable {
         for (int idx = 0; idx < records.size(); idx++) {
           final Record record = records.get(idx);
 
-          final Record coerced = topicInfo.coerceRecordKey(record, idx);
+          final Record coerced = topicInfo.coerceRecord(record, idx);
 
           producer.send(new ProducerRecord<>(
               topicName,

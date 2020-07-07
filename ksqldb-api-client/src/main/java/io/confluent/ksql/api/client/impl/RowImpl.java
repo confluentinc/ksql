@@ -32,7 +32,6 @@ public class RowImpl implements Row {
   private final KsqlArray values;
   private final Map<String, Integer> columnNameToIndex;
 
-  @SuppressWarnings("unchecked")
   public RowImpl(
       final List<String> columnNames,
       final List<ColumnType> columnTypes,
@@ -170,5 +169,33 @@ public class RowImpl implements Row {
       throw new IllegalArgumentException("No column exists with name: " + columnName);
     }
     return index;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final RowImpl row = (RowImpl) o;
+    return columnNames.equals(row.columnNames)
+        && columnTypes.equals(row.columnTypes)
+        && values.equals(row.values);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(columnNames, columnTypes, values);
+  }
+
+  @Override
+  public String toString() {
+    return "Row{"
+        + "columnNames=" + columnNames
+        + ", columnTypes=" + columnTypes
+        + ", values=" + values
+        + '}';
   }
 }

@@ -17,13 +17,11 @@ package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.concurrent.ThreadLocalRandom;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class KsqlBareOutputNode extends OutputNode {
@@ -39,8 +37,8 @@ public class KsqlBareOutputNode extends OutputNode {
   }
 
   @Override
-  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
-    return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
+  public Optional<SourceName> getSinkName() {
+    return Optional.empty();
   }
 
   @Override

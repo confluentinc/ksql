@@ -31,8 +31,11 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
+import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
@@ -42,12 +45,18 @@ import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.PushQueryId;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -57,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -576,6 +586,96 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldStreamInserts() throws Exception {
+    // Given:
+    final InsertsPublisher insertsPublisher = new InsertsPublisher();
+
+    // When:
+    final AcksPublisher acksPublisher = javaClient.streamInserts("test-stream", insertsPublisher).get();
+    for (final KsqlObject row : INSERT_ROWS) {
+      insertsPublisher.accept(row);
+    }
+
+    TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
+    acksSubscriber.getSub().request(INSERT_ROWS.size());
+
+    // Then:
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), hasSize(INSERT_ROWS.size()));
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted().get(i), is(EXPECTED_INSERT_ROWS.get(i)));
+    }
+    assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+
+    assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size()));
+    assertThat(acksSubscriber.getError(), is(nullValue()));
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+    }
+    assertThat(acksSubscriber.isCompleted(), is(false));
+
+    assertThat(acksPublisher.isComplete(), is(false));
+    assertThat(acksPublisher.isFailed(), is(false));
+
+    // When:
+    insertsPublisher.complete();
+
+    // Then:
+    assertThatEventually(acksPublisher::isComplete, is(true));
+    assertThat(acksPublisher.isFailed(), is(false));
+    assertThatEventually(acksSubscriber::isCompleted, is(true));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromStreamInserts() {
+    // Given
+    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    testEndpoints.setCreateInsertsSubscriberException(exception);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.streamInserts("a-table", new InsertsPublisher()).get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+  }
+
+  @Test
+  public void shouldHandleErrorFromStreamInserts() throws Exception {
+    // Given:
+    testEndpoints.setAcksBeforePublisherError(INSERT_ROWS.size() - 1);
+    final InsertsPublisher insertsPublisher = new InsertsPublisher();
+
+    // When:
+    final AcksPublisher acksPublisher = javaClient.streamInserts("test-stream", insertsPublisher).get();
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      insertsPublisher.accept(INSERT_ROWS.get(i));
+    }
+
+    TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
+    acksSubscriber.getSub().request(INSERT_ROWS.size() - 1); // Error is sent even if not requested
+
+    // Then:
+    // No ack is emitted for the row that generates the error, but the row still counts as having been inserted
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), hasSize(INSERT_ROWS.size()));
+    for (int i = 0; i < INSERT_ROWS.size(); i++) {
+      assertThat(testEndpoints.getInsertsSubscriber().getRowsInserted().get(i), is(EXPECTED_INSERT_ROWS.get(i)));
+    }
+    assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+
+    assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size() - 1));
+    for (int i = 0; i < INSERT_ROWS.size() - 1; i++) {
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+    }
+    assertThatEventually(acksSubscriber::getError, is(notNullValue()));
+
+    assertThat(acksPublisher.isFailed(), is(true));
+    assertThat(acksPublisher.isComplete(), is(false));
+  }
+
   public void shouldListStreams() throws Exception {
     // Given
     final List<SourceInfo.Stream> expectedStreams = new ArrayList<>();
@@ -660,6 +760,44 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
     assertThat(e.getCause().getMessage(), containsString("Failed to retrieve Kafka Topic names"));
+  }
+
+  @Test
+  public void shouldListQueries() throws Exception {
+    // Given
+    final List<RunningQuery> expectedQueries = new ArrayList<>();
+    expectedQueries.add(new RunningQuery(
+        "sql1",
+        ImmutableSet.of("sink"),
+        ImmutableSet.of("sink_topic"),
+        new QueryId("a_persistent_query"),
+        new QueryStatusCount(ImmutableMap.of(KsqlQueryStatus.RUNNING, 1)),
+        KsqlQueryType.PERSISTENT));
+    expectedQueries.add(new RunningQuery(
+        "sql2",
+        Collections.emptySet(),
+        Collections.emptySet(),
+        new QueryId("a_push_query"),
+        new QueryStatusCount(),
+        KsqlQueryType.PUSH));
+    final Queries entity = new Queries("list queries;", expectedQueries);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<QueryInfo> queries = javaClient.listQueries().get();
+
+    // Then
+    assertThat(queries, hasSize(expectedQueries.size()));
+    assertThat(queries.get(0).getQueryType(), is(QueryType.PERSISTENT));
+    assertThat(queries.get(0).getId(), is("a_persistent_query"));
+    assertThat(queries.get(0).getSql(), is("sql1"));
+    assertThat(queries.get(0).getSink(), is(Optional.of("sink")));
+    assertThat(queries.get(0).getSinkTopic(), is(Optional.of("sink_topic")));
+    assertThat(queries.get(1).getQueryType(), is(QueryType.PUSH));
+    assertThat(queries.get(1).getId(), is("a_push_query"));
+    assertThat(queries.get(1).getSql(), is("sql2"));
+    assertThat(queries.get(1).getSink(), is(Optional.empty()));
+    assertThat(queries.get(1).getSinkTopic(), is(Optional.empty()));
   }
 
   protected Client createJavaClient() {

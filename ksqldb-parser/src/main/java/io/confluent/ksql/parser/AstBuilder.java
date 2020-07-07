@@ -122,7 +122,6 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -253,10 +252,6 @@ public class AstBuilder {
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
-      if (context.REPLACE() != null) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
-      }
-
       return new CreateTable(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -275,10 +270,6 @@ public class AstBuilder {
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
-      if (context.REPLACE() != null) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
-      }
-
       return new CreateStream(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -295,10 +286,6 @@ public class AstBuilder {
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
 
-      if (context.REPLACE() != null) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
-      }
-
       return new CreateStreamAsSelect(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -314,10 +301,6 @@ public class AstBuilder {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
-
-      if (context.REPLACE() != null) {
-        throw new UnsupportedOperationException("CREATE OR REPLACE is not yet supported.");
-      }
 
       return new CreateTableAsSelect(
           getLocation(context),
@@ -415,16 +398,27 @@ public class AstBuilder {
 
       final boolean pullQuery = context.EMIT() == null && !buildingPersistentQuery;
 
-      final ResultMaterialization resultMaterialization = Optional
-          .ofNullable(context.resultMaterialization())
-          .map(rm -> rm.CHANGES() == null
-              ? ResultMaterialization.FINAL
-              : ResultMaterialization.CHANGES
-          )
-          .orElse(buildingPersistentQuery
-              ? ResultMaterialization.CHANGES
-              : ResultMaterialization.FINAL
-          );
+      final Optional<ResultMaterialization> resultMaterialization;
+
+      if (pullQuery) {
+        resultMaterialization = Optional.empty();
+      } else if (buildingPersistentQuery) {
+        resultMaterialization = Optional.of(Optional
+            .ofNullable(context.resultMaterialization())
+            .map(rm -> rm.FINAL() == null
+                ? ResultMaterialization.CHANGES
+                : ResultMaterialization.FINAL
+            )
+            .orElse(ResultMaterialization.CHANGES));
+        // Else must be a push query, which must specify a materialization
+      } else {
+        resultMaterialization = Optional
+            .of(context.resultMaterialization().CHANGES() == null
+                ? ResultMaterialization.FINAL
+                : ResultMaterialization.CHANGES
+            );
+      }
+
 
       final OptionalInt limit = getLimit(context.limitClause());
 

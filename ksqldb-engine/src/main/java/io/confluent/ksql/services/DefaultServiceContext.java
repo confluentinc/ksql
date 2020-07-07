@@ -33,7 +33,7 @@ public class DefaultServiceContext implements ServiceContext {
 
   private final KafkaClientSupplier kafkaClientSupplier;
   private final MemoizedSupplier<Admin> adminClientSupplier;
-  private final MemoizedSupplier<KafkaTopicClient>  topicClientSupplier;
+  private final MemoizedSupplier<KafkaTopicClient> topicClientSupplier;
   private final Supplier<SchemaRegistryClient> srClientFactorySupplier;
   private final MemoizedSupplier<SchemaRegistryClient> srClient;
   private final MemoizedSupplier<ConnectClient> connectClientSupplier;
@@ -147,7 +147,6 @@ public class DefaultServiceContext implements ServiceContext {
       ksqlClientSupplier.get().close();
     }
   }
-
 
   static final class MemoizedSupplier<T> implements Supplier<T> {
 

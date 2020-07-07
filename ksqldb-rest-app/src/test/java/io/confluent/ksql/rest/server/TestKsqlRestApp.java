@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -32,6 +33,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,6 +44,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
@@ -276,13 +279,19 @@ public class TestKsqlRestApp extends ExternalResource {
 
     try {
 
+      Vertx vertx = Vertx.vertx();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           config,
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
-          MockSchemaRegistryClient::new);
+          MockSchemaRegistryClient::new,
+          vertx,
+          InternalKsqlClientFactory.createInternalClient(
+              KsqlRestApplication.toClientProps(config.originals()),
+              SocketAddress::inetSocketAddress,
+              vertx));
 
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
@@ -483,6 +492,14 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public Builder withEnabledKsqlClient() {
       withEnabledKsqlClient(SocketAddress::inetSocketAddress);
+      return this;
+    }
+
+    public Builder withFaultyKsqlClient(Supplier<Boolean> cutoff) {
+      this.serviceContext =
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
+              () -> new FaultyKsqlClient(TestDefaultKsqlClientFactory.instance(additionalProps),
+                  cutoff));
       return this;
     }
 

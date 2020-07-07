@@ -125,7 +125,7 @@ public class CreateSourceFactoryTest {
 
   private static final String TOPIC_NAME = "some topic";
 
-  private static final Map<String, Literal> MINIMIM_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> MINIMUM_PROPS = ImmutableMap.of(
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
@@ -151,7 +151,7 @@ public class CreateSourceFactoryTest {
   private CreateSourceFactory createSourceFactory;
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private CreateSourceProperties withProperties =
-      CreateSourceProperties.from(MINIMIM_PROPS);
+      CreateSourceProperties.from(MINIMUM_PROPS);
 
   @Before
   public void before() {
@@ -680,7 +680,7 @@ public class CreateSourceFactoryTest {
   public void shouldHandleSessionWindowedKeyForStream() {
     // Given:
     givenProperty("window_type", new StringLiteral("session"));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, STREAM_ELEMENTS, false, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -700,7 +700,7 @@ public class CreateSourceFactoryTest {
         "window_type", new StringLiteral("tumbling"),
         "window_size", new StringLiteral("1 MINUTE")
     ));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, STREAM_ELEMENTS, false, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -723,7 +723,7 @@ public class CreateSourceFactoryTest {
         "window_type", new StringLiteral("Hopping"),
         "window_size", new StringLiteral("2 SECONDS")
     ));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, STREAM_ELEMENTS, false, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(

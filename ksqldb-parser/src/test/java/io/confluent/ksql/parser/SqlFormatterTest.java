@@ -189,7 +189,7 @@ public class SqlFormatterTest {
         ksqlTopicOrders
     );
 
-    metaStore.putSource(ksqlStreamOrders);
+    metaStore.putSource(ksqlStreamOrders, false);
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
@@ -206,7 +206,7 @@ public class SqlFormatterTest {
         ksqlTopicItems
     );
 
-    metaStore.putSource(ksqlTableOrders);
+    metaStore.putSource(ksqlTableOrders, false);
 
     final KsqlTable<String> ksqlTableTable = new KsqlTable<>(
         "sqlexpression",
@@ -218,7 +218,7 @@ public class SqlFormatterTest {
         ksqlTopicItems
     );
 
-    metaStore.putSource(ksqlTableTable);
+    metaStore.putSource(ksqlTableTable, false);
   }
 
   @Test
@@ -528,7 +528,7 @@ public class SqlFormatterTest {
         + "FROM ADDRESS A\nEMIT CHANGES"));
   }
 
-  @Test(expected = ParseFailedException.class)
+  @Test
   public void shouldFormatReplaceSelectQueryCorrectly() {
     final String statementString =
         "CREATE OR REPLACE STREAM S AS SELECT a.address->city FROM address a;";
@@ -1038,6 +1038,23 @@ public class SqlFormatterTest {
     assertThat(result, is("CREATE STREAM X AS SELECT ITEMID\n"
         + "FROM ORDERS ORDERS\n"
         + "EMIT CHANGES"));
+  }
+
+  @Test
+  public void shouldFormatSuppression() {
+    // Given:
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW TUMBLING (SIZE 7 DAYS, GRACE PERIOD 1 DAY) GROUP BY ITEMID EMIT FINAL;";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ITEMID,\n"
+        + "  COUNT(*)\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW TUMBLING ( SIZE 7 DAYS , GRACE PERIOD 1 DAYS ) \n"
+        + "GROUP BY ITEMID\n"
+        + "EMIT FINAL"));
   }
 
   private Statement parseSingle(final String statementString) {

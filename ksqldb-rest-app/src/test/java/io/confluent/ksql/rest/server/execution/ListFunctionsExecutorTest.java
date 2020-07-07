@@ -49,7 +49,7 @@ public class ListFunctionsExecutorTest {
     // Then:
     final Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
     assertThat(functions, hasItems(
-        new SimpleFunctionInfo("TRIM", FunctionType.SCALAR),
+        new SimpleFunctionInfo("TEST_UDF_1", FunctionType.SCALAR),
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
         new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE),
         new SimpleFunctionInfo("TEST_UDTF1", FunctionType.TABLE),

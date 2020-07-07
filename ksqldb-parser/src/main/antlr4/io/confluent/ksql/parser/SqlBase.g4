@@ -84,6 +84,7 @@ query
 
 resultMaterialization
     : CHANGES
+    | FINAL
     ;
 
 tableElements
@@ -335,12 +336,14 @@ nonReserved
     | PRIMARY | KEY
     | EMIT
     | CHANGES
+    | FINAL
     | ESCAPE
     | REPLACE
     ;
 
 EMIT: 'EMIT';
 CHANGES: 'CHANGES';
+FINAL: 'FINAL';
 SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';

@@ -22,12 +22,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
@@ -35,6 +37,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
+import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -269,14 +272,18 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
-    final TableRows entity = pullQueryExecutor
+    final PullQueryResult result = pullQueryExecutor
         .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
+    final TableRows tableRows = result.getTableRows();
+    final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
+        .map(KsqlNode::location)
+        .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));
 
-    final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
+    final StreamedRow header = StreamedRow.header(tableRows.getQueryId(), tableRows.getSchema());
 
-    final List<StreamedRow> rows = entity.getRows().stream()
+    final List<StreamedRow> rows = tableRows.getRows().stream()
         .map(StreamedQueryResource::toGenericRow)
-        .map(StreamedRow::row)
+        .map(row -> StreamedRow.row(row, host))
         .collect(Collectors.toList());
 
     rows.add(0, header);

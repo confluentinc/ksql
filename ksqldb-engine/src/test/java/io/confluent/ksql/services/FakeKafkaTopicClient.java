@@ -200,7 +200,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(String topicName,
+  public Map<TopicPartition, ListOffsetsResultInfo> listTopicsOffsets(Collection<String> topicNames,
       OffsetSpec offsetSpec) {
     return Collections.emptyMap();
   }

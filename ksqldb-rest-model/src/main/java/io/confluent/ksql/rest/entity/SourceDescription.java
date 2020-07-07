@@ -68,7 +68,7 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
-      @JsonProperty("consumerOffsets")
+      @JsonProperty("consumerGroupsOffsets")
       final List<SourceConsumerGroupOffsets> consumerGroupsOffsets) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
@@ -91,7 +91,7 @@ public class SourceDescription {
     this.replication = replication;
     this.statement = Objects.requireNonNull(statement, "statement");
     this.consumerGroupsOffsets = Collections.unmodifiableList(
-            Objects.requireNonNull(consumerGroupsOffsets, "consumerOffsets"));
+            Objects.requireNonNull(consumerGroupsOffsets, "consumerGroupsOffsets"));
   }
 
   public String getStatement() {

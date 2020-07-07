@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -203,16 +204,18 @@ public interface KafkaTopicClient {
    */
   void deleteInternalTopics(String applicationId);
 
-  Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(
-      String topicName,
+  Map<TopicPartition, ListOffsetsResultInfo> listTopicsOffsets(
+      Collection<String> topicNames,
       OffsetSpec offsetSpec
   );
 
-  default Map<TopicPartition, ListOffsetsResultInfo> listTopicStartOffsets(String topicName) {
-    return listTopicOffsets(topicName, OffsetSpec.earliest());
+  default Map<TopicPartition, ListOffsetsResultInfo> listTopicsStartOffsets(
+      Collection<String> topicNames) {
+    return listTopicsOffsets(topicNames, OffsetSpec.earliest());
   }
 
-  default Map<TopicPartition, ListOffsetsResultInfo> listTopicEndOffsets(String topicName) {
-    return listTopicOffsets(topicName, OffsetSpec.latest());
+  default Map<TopicPartition, ListOffsetsResultInfo> listTopicsEndOffsets(
+      Collection<String> topicName) {
+    return listTopicsOffsets(topicName, OffsetSpec.latest());
   }
 }

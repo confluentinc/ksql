@@ -633,6 +633,8 @@ public class Console implements Closeable {
           "Consumer Group", sourceConsumerGroupOffsets.getGroupId()));
       writer().println(String.format("%-20s : %s",
           "Kafka topic", sourceConsumerGroupOffsets.getKafkaTopic()));
+      writer().println(String.format("%-20s : %s",
+          "Max lag", sourceConsumerGroupOffsets.getMaxLag()));
       writer().println("");
       final Table taskTable = new Table.Builder()
           .withColumnHeaders(

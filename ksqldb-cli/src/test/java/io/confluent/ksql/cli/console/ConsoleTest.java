@@ -1183,6 +1183,7 @@ public class ConsoleTest {
                     new SourceConsumerGroupOffsets(
                         "consumer1",
                         "kadka-topic",
+                        100L,
                         ImmutableList.of(
                             new SourceConsumerGroupOffset(0, 100, 900, 800),
                             new SourceConsumerGroupOffset(1, 50, 900, 900)
@@ -1258,6 +1259,7 @@ public class ConsoleTest {
           + "    \"consumerGroupsOffsets\" : [ {" + NEWLINE
           + "      \"groupId\" : \"consumer1\"," + NEWLINE
           + "      \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
+          + "      \"maxLag\" : 100," + NEWLINE
           + "      \"offsets\" : [ {" + NEWLINE
           + "        \"partition\" : 0," + NEWLINE
           + "        \"logStartOffset\" : 100," + NEWLINE
@@ -1309,6 +1311,7 @@ public class ConsoleTest {
           + NEWLINE
           + "Consumer Group       : consumer1" + NEWLINE
           + "Kafka topic          : kadka-topic" + NEWLINE
+          + "Max lag              : 100" + NEWLINE
           + NEWLINE
           + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
           + "------------------------------------------------------" + NEWLINE

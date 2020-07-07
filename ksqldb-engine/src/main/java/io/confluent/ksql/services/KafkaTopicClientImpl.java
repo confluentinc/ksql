@@ -30,7 +30,6 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,7 +53,6 @@ import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
@@ -337,33 +335,29 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(
-      final String topicName,
+  public Map<TopicPartition, ListOffsetsResultInfo> listTopicsOffsets(
+      final Collection<String> topicNames,
       final OffsetSpec offsetSpec
   ) {
-    final TopicDescription topicDescription = describeTopic(topicName);
-    final Map<TopicPartition, OffsetSpec> offsetsRequest = new HashMap<>();
-    for (TopicPartitionInfo tpInfo : topicDescription.partitions()) {
-      final TopicPartition tp = new TopicPartition(topicName, tpInfo.partition());
-      offsetsRequest.put(tp, offsetSpec);
-    }
+    final Map<TopicPartition, OffsetSpec> offsetsRequest =
+        describeTopics(topicNames).entrySet().stream()
+            .flatMap(entry ->
+                entry.getValue().partitions()
+                    .stream()
+                    .map(tpInfo -> new TopicPartition(entry.getKey(), tpInfo.partition())))
+            .collect(Collectors.toMap(tp -> tp, tp -> offsetSpec));
     try {
       return ExecutorUtil.executeWithRetries(
           () -> adminClient.get().listOffsets(offsetsRequest).all().get(),
           RetryBehaviour.ON_RETRYABLE);
-   } catch (final TopicAuthorizationException e) {
-      final Set<String> topics = partitions.stream()
-          .map(TopicPartition::topic)
-          .collect(Collectors.toSet());
-
-      throw new KsqlTopicAuthorizationException(
-          AclOperation.DESCRIBE, topics);
+    } catch (final TopicAuthorizationException e) {
+      throw new KsqlTopicAuthorizationException(AclOperation.DESCRIBE, e.unauthorizedTopics());
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(
-          "Failed to get topic offsets. partitions: " + partitions, e.getCause());
+          "Failed to get topic offsets. partitions: " + offsetsRequest.keySet(), e.getCause());
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
-          "Failed to get topic offsets. partitions: " + partitions, e);
+          "Failed to get topic offsets. partitions: " + offsetsRequest.keySet(), e);
     }
   }
 

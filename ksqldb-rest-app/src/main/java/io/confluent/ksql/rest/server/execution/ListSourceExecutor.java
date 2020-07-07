@@ -50,10 +50,14 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
@@ -213,18 +217,22 @@ public final class ListSourceExecutor {
     final List<RunningQuery> sinkQueries = getQueries(ksqlEngine,
         q -> q.getSinkName().equals(dataSource.getName()));
 
-    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescriptionOptional = Optional
-        .empty();
+    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescriptionOptional =
+        Optional.empty();
     final List<SourceConsumerGroupOffsets> sourceConsumerOffsets = new ArrayList<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
         final String kafkaTopicName = dataSource.getKafkaTopicName();
         final TopicDescription topicDescription = serviceContext.getTopicClient()
-                .describeTopic(kafkaTopicName);
+            .describeTopic(kafkaTopicName);
         topicDescriptionOptional = Optional.of(topicDescription);
-        for (RunningQuery sourceQuery : sourceQueries) {
-          final QueryId queryId = sourceQuery.getId();
+        final Map<String, Map<TopicPartition, OffsetAndMetadata>> offsetsPerQuery =
+            new HashMap<>(sinkQueries.size());
+        final Map<String, Set<String>> topicsPerQuery = new HashMap<>();
+        final Set<String> allTopics = new HashSet<>();
+        for (RunningQuery query : sinkQueries) {
+          final QueryId queryId = query.getId();
           final String persistenceQueryPrefix =
               ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
           final String applicationId = getQueryApplicationId(
@@ -234,19 +242,35 @@ public final class ListSourceExecutor {
           );
           final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets =
               serviceContext.getConsumerGroupClient().listConsumerGroupOffsets(applicationId);
-          final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
-              serviceContext.getTopicClient().listTopicStartOffsets(kafkaTopicName);
-          final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
-              serviceContext.getTopicClient().listTopicEndOffsets(kafkaTopicName);
-          sourceConsumerOffsets.add(
-              new SourceConsumerGroupOffsets(
-                  applicationId,
-                  topicDescription.name(),
-                  consumerOffsets(
-                      topicDescription,
-                      topicAndStartOffsets,
-                      topicAndEndOffsets,
-                      topicAndConsumerOffsets)));
+          offsetsPerQuery.put(applicationId, topicAndConsumerOffsets);
+          final Set<String> topics = topicAndConsumerOffsets.keySet().stream()
+              .map(TopicPartition::topic)
+              .collect(Collectors.toSet());
+          topicsPerQuery.put(applicationId, topics);
+          allTopics.addAll(topics);
+        }
+        final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
+            serviceContext.getTopicClient().listTopicsStartOffsets(allTopics);
+        final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
+            serviceContext.getTopicClient().listTopicsEndOffsets(allTopics);
+        final Map<String, TopicDescription> sourceTopicDescriptions =
+            serviceContext.getTopicClient().describeTopics(allTopics);
+        for (Entry<String, Set<String>> entry : topicsPerQuery.entrySet()) {
+          for (String topic : entry.getValue()) {
+            final List<SourceConsumerGroupOffset> offsets = consumerOffsets(
+                sourceTopicDescriptions.get(topic),
+                topicAndStartOffsets,
+                topicAndEndOffsets,
+                offsetsPerQuery.get(entry.getKey()));
+            sourceConsumerOffsets.add(
+                new SourceConsumerGroupOffsets(
+                    entry.getKey(),
+                    topic,
+                    offsets.stream().mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
+                        .max()
+                        .orElse(-1),
+                    offsets));
+          }
         }
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));

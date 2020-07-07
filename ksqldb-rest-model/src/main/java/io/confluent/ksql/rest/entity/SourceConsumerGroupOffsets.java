@@ -25,16 +25,19 @@ import java.util.Objects;
 public class SourceConsumerGroupOffsets {
   private final String groupId;
   private final String kafkaTopic;
+  private final Long maxLag;
   private final List<SourceConsumerGroupOffset> offsets;
 
   @JsonCreator
   public SourceConsumerGroupOffsets(
       @JsonProperty("groupId") final String groupId,
       @JsonProperty("kafkaTopic") final String kafkaTopic,
+      @JsonProperty("maxLag") final Long maxLag,
       @JsonProperty("offsets") final List<SourceConsumerGroupOffset> offsets
   ) {
     this.groupId = groupId;
     this.kafkaTopic = kafkaTopic;
+    this.maxLag = maxLag;
     this.offsets = offsets;
   }
 
@@ -44,6 +47,10 @@ public class SourceConsumerGroupOffsets {
 
   public String getKafkaTopic() {
     return kafkaTopic;
+  }
+
+  public Long getMaxLag() {
+    return maxLag;
   }
 
   public List<SourceConsumerGroupOffset> getOffsets() {
@@ -61,11 +68,12 @@ public class SourceConsumerGroupOffsets {
     final SourceConsumerGroupOffsets that = (SourceConsumerGroupOffsets) o;
     return Objects.equals(groupId, that.groupId)
         && Objects.equals(kafkaTopic, that.kafkaTopic)
+        && Objects.equals(maxLag, that.maxLag)
         && Objects.equals(offsets, that.offsets);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupId, kafkaTopic, offsets);
+    return Objects.hash(groupId, kafkaTopic, maxLag, offsets);
   }
 }

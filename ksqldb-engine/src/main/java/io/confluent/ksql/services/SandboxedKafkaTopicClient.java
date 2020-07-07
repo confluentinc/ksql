@@ -59,8 +59,8 @@ final class SandboxedKafkaTopicClient {
         .forward("describeTopic", methodParams(String.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
         .forward("deleteTopics", methodParams(Collection.class), sandbox)
-        .forward("listTopicStartOffsets", methodParams(String.class), sandbox)
-        .forward("listTopicEndOffsets", methodParams(String.class), sandbox)
+        .forward("listTopicsStartOffsets", methodParams(Collection.class), sandbox)
+        .forward("listTopicsEndOffsets", methodParams(Collection.class), sandbox)
         .build();
   }
 
@@ -158,11 +158,13 @@ final class SandboxedKafkaTopicClient {
         .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
   }
 
-  private Map<TopicPartition, ListOffsetsResultInfo> listTopicStartOffsets(final String topic) {
-    return delegate.listTopicStartOffsets(topic);
+  private Map<TopicPartition, ListOffsetsResultInfo> listTopicsStartOffsets(
+      final Collection<String> topics) {
+    return delegate.listTopicsStartOffsets(topics);
   }
 
-  private Map<TopicPartition, ListOffsetsResultInfo> listTopicEndOffsets(final String topic) {
-    return delegate.listTopicEndOffsets(topic);
+  private Map<TopicPartition, ListOffsetsResultInfo> listTopicsEndOffsets(
+      final Collection<String> topics) {
+    return delegate.listTopicsEndOffsets(topics);
   }
 }

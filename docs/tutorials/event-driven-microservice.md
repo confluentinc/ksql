@@ -261,8 +261,9 @@ CREATE TABLE possible_anomalies WITH (
     kafka_topic = 'possible_anomalies',
     VALUE_AVRO_SCHEMA_FULL_NAME = 'io.ksqldb.tutorial.PossibleAnomaly'
 )   AS
-    SELECT latest_by_offset(email_address) AS `email_address`,
-           card_number AS `card_number`,
+    SELECT card_number AS `card_number_key`,
+           as_value(card_number) AS `card_number`,
+           latest_by_offset(email_address) AS `email_address`,
            count(*) AS `n_attempts`,
            sum(amount) AS `total_amount`,
            collect_list(tx_id) AS `tx_ids`,
@@ -278,6 +279,7 @@ CREATE TABLE possible_anomalies WITH (
 Here's what this statement does:
 
 - For each credit card number, 30 second [tumbling windows](../../concepts/time-and-windows-in-ksqldb-queries/#tumbling-window) are created to group activity. A new row is inserted into the table when at least 3 transactions take place inside a given window.
+- The credit card number is selected twice. In the first instance, it becomes part of the underlying Kafka record key (since it is present in the `group by` clause, which is used for sharding). In the second instance, the `as_value` function is used to make it available in the value, too. This is generally for convenience.
 - The individual transaction IDs and amounts that make up the window are collected as lists.
 - The last transaction's email address is "carried forward" with `latest_by_offset`.
 - Column aliases are surrounded by backticks, which tells ksqlDB to use exactly that case. ksqlDB uppercases identity names by default.
@@ -293,16 +295,15 @@ SELECT * FROM possible_anomalies EMIT CHANGES;
 This should yield a single row. Three transactions for card number `358579699410099` were recorded with timestamps within a single 30-second tumbling window:
 
 ```
-+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+
-|ROWTIME           |card_number       |WINDOWSTART       |WINDOWEND         |email_address     |n_attempts        |total_amount      |tx_ids            |start_boundary    |end_boundary      |
-+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+------------------+
-|1587525598000     |358579699410099   |1587525570000     |1587525600000     |michael@example.co|3                 |232.41            |[044530c0-b15d-464|1587525570000     |1587525600000     |
-|                  |                  |                  |                  |m                 |                  |                  |8-8f05-940acc321eb|                  |                  |
-|                  |                  |                  |                  |                  |                  |                  |7, f88c5ebb-699c-4|                  |                  |
-|                  |                  |                  |                  |                  |                  |                  |a7b-b544-45b30681c|                  |                  |
-|                  |                  |                  |                  |                  |                  |                  |c39, c5719d20-8d4a|                  |                  |
-|                  |                  |                  |                  |                  |                  |                  |-47d4-8cd3-52ed784|                  |                  |
-|                  |                  |                  |                  |                  |                  |                  |c89dc]            |                  |                  |
++--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+
+|card_number_key     |WINDOWSTART         |WINDOWEND           |card_number         |email_address       |n_attempts          |total_amount        |tx_ids              |start_boundary      |end_boundary        |
++--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+--------------------+
+|358579699410099     |1587525570000       |1587525600000       |358579699410099     |michael@example.com |3                   |232.41              |[f88c5ebb-699c-4a7b-|1587525570000       |1587525600000       |
+|                    |                    |                    |                    |                    |                    |                    |b544-45b30681cc39, c|                    |                    |
+|                    |                    |                    |                    |                    |                    |                    |5719d20-8d4a-47d4-8c|                    |                    |
+|                    |                    |                    |                    |                    |                    |                    |d3-52ed784c89dc, 044|                    |                    |
+|                    |                    |                    |                    |                    |                    |                    |530c0-b15d-4648-8f05|                    |                    |
+|                    |                    |                    |                    |                    |                    |                    |-940acc321eb7]      |                    |                    |
 ```
 
 You can also print out the contents of the underlying {{ site.ak }} topic for this table, which you will programmatically access in the microservice:

@@ -279,7 +279,7 @@ CREATE TABLE possible_anomalies WITH (
 Here's what this statement does:
 
 - For each credit card number, 30 second [tumbling windows](../../concepts/time-and-windows-in-ksqldb-queries/#tumbling-window) are created to group activity. A new row is inserted into the table when at least 3 transactions take place inside a given window.
-- The credit card number is selected twice. In the first instance, it becomes part of the underlying Kafka record key (since it is present in the `group by` clause, which is used for sharding). In the second instance, the `as_value` function is used to make it available in the value, too. This is generally for convenience.
+- The credit card number is selected twice. In the first instance, it becomes part of the underlying {{ site.ak }} record key, because it's present in the `group by` clause, which is used for sharding. In the second instance, the `as_value` function is used to make it available in the value, too. This is generally for convenience.
 - The individual transaction IDs and amounts that make up the window are collected as lists.
 - The last transaction's email address is "carried forward" with `latest_by_offset`.
 - Column aliases are surrounded by backticks, which tells ksqlDB to use exactly that case. ksqlDB uppercases identity names by default.

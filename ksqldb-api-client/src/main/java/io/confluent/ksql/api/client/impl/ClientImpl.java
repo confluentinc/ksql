@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import static io.confluent.ksql.api.client.impl.DdlDmlRequestValidators.validateExecuteStatementRequest;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
@@ -201,6 +202,10 @@ public class ClientImpl implements Client {
       final String sql, final Map<String, Object> properties) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
+    if (!validateExecuteStatementRequest(sql, cf)) {
+      return cf;
+    }
+
     makeRequest(
         KSQL_ENDPOINT,
         new JsonObject().put("ksql", sql).put("streamsProperties", properties),
@@ -209,8 +214,7 @@ public class ClientImpl implements Client {
             response,
             cf,
             DdlDmlResponseHandlers::handleExecuteStatementResponse,
-            numEntities -> new KsqlClientException("executeStatement() may only be used to "
-                + "execute one statement at a time. Found: " + numEntities))
+            DdlDmlResponseHandlers::handleUnexpectedNumResponseEntities)
     );
 
     return cf;

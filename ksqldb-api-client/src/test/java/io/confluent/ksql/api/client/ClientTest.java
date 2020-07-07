@@ -114,6 +114,9 @@ public class ClientTest extends BaseApiTest {
   protected static final List<KsqlObject> INSERT_ROWS = generateInsertRows();
   protected static final List<JsonObject> EXPECTED_INSERT_ROWS = convertToJsonRows(INSERT_ROWS);
 
+  protected static final String EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC =
+      "The ksqlDB server accepted the statement issued via executeStatement(), but the response "
+          + "received is of an unexpected format. ";
   protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
@@ -722,11 +725,10 @@ public class ClientTest extends BaseApiTest {
     assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
   }
 
-  // TODO: verify the same thing happens on bad statement
   @Test
   public void shouldHandleErrorResponseFromExecuteStatement() {
     // Given
-    io.confluent.ksql.util.KsqlException exception = new io.confluent.ksql.util.KsqlException("bad request");
+    io.confluent.ksql.util.KsqlException exception = new io.confluent.ksql.util.KsqlException("something bad");
     testEndpoints.setExecuteKsqlRequestException(exception);
 
     // When
@@ -737,27 +739,12 @@ public class ClientTest extends BaseApiTest {
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
-    assertThat(e.getCause().getMessage(), containsString("Received 500 response from server")); // TODO: check?
-    assertThat(e.getCause().getMessage(), containsString("bad request"));
+    assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("something bad"));
   }
 
   @Test
-  public void shouldFailOnMultipleEntitiesFromExecuteStatement() {
-    // Given
-    final CommandStatusEntity entity1 = new CommandStatusEntity(
-        "CSAS;",
-        new CommandId("STREAM", "FOO", "CREATE"),
-        new CommandStatus(CommandStatus.Status.SUCCESS, "Success"),
-        0L
-    );
-    final CommandStatusEntity entity2 = new CommandStatusEntity(
-        "CTAS;",
-        new CommandId("TABLE", "FOO_TABLE", "CREATE"),
-        new CommandStatus(CommandStatus.Status.SUCCESS, "Success"),
-        1L
-    );
-    testEndpoints.setKsqlEndpointResponse(ImmutableList.of(entity1, entity2));
-
+  public void shouldRejectMultipleRequestsFromExecuteStatement() {
     // When
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
@@ -768,7 +755,20 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(),
         containsString("executeStatement() may only be used to execute one statement at a time"));
-    assertThat(e.getCause().getMessage(), containsString("Found: 2"));
+  }
+
+  @Test
+  public void shouldRejectRequestWithMissingSemicolonFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("missing semicolon").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(),
+        containsString("Missing semicolon in SQL for executeStatement() request"));
   }
 
   @Test
@@ -784,9 +784,8 @@ public class ClientTest extends BaseApiTest {
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
-    assertThat(e.getCause().getMessage(),
-        containsString("executeStatement() may only be used to execute one statement at a time"));
-    assertThat(e.getCause().getMessage(), containsString("Found: 0"));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
   }
 
   @Test
@@ -1053,6 +1052,7 @@ public class ClientTest extends BaseApiTest {
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
         containsString("does not currently support 'CREATE CONNECTOR' statements"));
@@ -1072,6 +1072,7 @@ public class ClientTest extends BaseApiTest {
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
         containsString("does not currently support 'DROP CONNECTOR' statements"));

@@ -21,7 +21,10 @@ import java.util.concurrent.CompletableFuture;
 
 final class DdlDmlResponseHandlers {
 
-  private static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
+  public static final String EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC =
+      "The ksqlDB server accepted the statement issued via executeStatement(), but the response "
+      + "received is of an unexpected format. ";
+  public static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
 
@@ -38,6 +41,16 @@ final class DdlDmlResponseHandlers {
     }
 
     cf.complete(null);
+  }
+
+  static RuntimeException handleUnexpectedNumResponseEntities(final int numEntities) {
+    if (numEntities == 0) {
+      return new KsqlClientException(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC
+          + EXECUTE_STATEMENT_USAGE_DOC);
+    }
+
+    throw new IllegalStateException(
+        "Unexpected number of entities in server response: " + numEntities);
   }
 
   private static boolean isCommandStatusEntity(final JsonObject ksqlEntity) {
@@ -92,12 +105,12 @@ final class DdlDmlResponseHandlers {
               + "'DESCRIBE <CONNECTOR>' statements."));
     } else if (AdminResponseHandlers.isCreateConnectorResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
-          EXECUTE_STATEMENT_USAGE_DOC + "The client does not currently support "
-              + "'CREATE CONNECTOR' statements."));
+          EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC + EXECUTE_STATEMENT_USAGE_DOC
+              + "The client does not currently support 'CREATE CONNECTOR' statements."));
     } else if (AdminResponseHandlers.isDropConnectorResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
-          EXECUTE_STATEMENT_USAGE_DOC + "The client does not currently support "
-              + "'DROP CONNECTOR' statements."));
+          EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC + EXECUTE_STATEMENT_USAGE_DOC
+              + "The client does not currently support 'DROP CONNECTOR' statements."));
     } else if (AdminResponseHandlers.isConnectErrorResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
           EXECUTE_STATEMENT_USAGE_DOC + "The client does not currently support "

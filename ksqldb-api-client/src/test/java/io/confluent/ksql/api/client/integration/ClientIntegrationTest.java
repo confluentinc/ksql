@@ -156,6 +156,13 @@ public class ClientIntegrationTest {
   private static final KsqlObject EXPECTED_COMPLEX_FIELD_VALUE = COMPLEX_FIELD_VALUE.copy()
       .put("DECIMAL", 1.1d); // Expect raw decimal value, whereas put(BigDecimal) serializes as string to avoid loss of precision
 
+  protected static final String EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC =
+      "The ksqlDB server accepted the statement issued via executeStatement(), but the response "
+          + "received is of an unexpected format. ";
+  protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
+      + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
+      + "SELECT' statements. ";
+
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
@@ -715,7 +722,7 @@ public class ClientIntegrationTest {
     // When
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> client.executeStatement("bad sql").get()
+        () -> client.executeStatement("bad sql;").get()
     );
 
     // Then
@@ -741,20 +748,60 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldFailOnMultipleEntitiesFromExecuteStatement() {
+  public void shouldRejectMultipleRequestsFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("drop stream S1; drop stream S2;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(
+        "executeStatement() may only be used to execute one statement at a time"));
+  }
+
+  @Test
+  public void shouldRejectRequestWithMissingSemicolonFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("sql missing semicolon").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(
+        "Missing semicolon in SQL for executeStatement() request"));
   }
 
   @Test
   public void shouldFailOnNoEntitiesFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("set 'auto.offset.reset' = 'earliest';").get()
+    );
 
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
   }
 
   @Test
   public void shouldFailToListStreamsViaExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("list streams;").get()
+    );
 
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(), containsString("Use the listStreams() method instead"));
   }
-
-  // TODO: add the other failure checks?
 
   @SuppressWarnings("unchecked")
   @Test

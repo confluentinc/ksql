@@ -115,7 +115,8 @@ public final class ExecutionStepFactory {
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        Optional.of(true)
     );
   }
 

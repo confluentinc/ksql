@@ -502,7 +502,8 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        SCHEMA
+        SCHEMA,
+        Optional.of(true)
     );
 
     // When:

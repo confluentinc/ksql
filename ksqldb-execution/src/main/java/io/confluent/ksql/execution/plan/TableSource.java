@@ -26,15 +26,23 @@ import org.apache.kafka.connect.data.Struct;
 @Immutable
 public final class TableSource extends SourceStep<KTableHolder<Struct>> {
 
+  private final Boolean forceChangelog;
+
   public TableSource(
       @JsonProperty(value = "properties", required = true)
       final ExecutionStepPropertiesV1 properties,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty(value = "forceChangelog") final Optional<Boolean> forceChangelog
   ) {
     super(properties, topicName, formats, timestampColumn, sourceSchema);
+    this.forceChangelog = forceChangelog.orElse(false);
+  }
+
+  public Boolean isForceChangelog() {
+    return forceChangelog;
   }
 
   @Override
@@ -55,11 +63,13 @@ public final class TableSource extends SourceStep<KTableHolder<Struct>> {
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema);
+        && Objects.equals(sourceSchema, that.sourceSchema)
+        && Objects.equals(forceChangelog, that.forceChangelog);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, topicName, formats, timestampColumn, sourceSchema);
+    return Objects.hash(
+        properties, topicName, formats, timestampColumn, sourceSchema, forceChangelog);
   }
 }

@@ -115,7 +115,7 @@ public class KsqlServerMain {
         throw new KsqlServerException("Could not create the kafka streams state directory: "
             + streamsStateDir.getPath()
             + "\n Make sure the directory exists and is writable for KSQL server "
-            + "\n or its parend directory is writbale by KSQL server"
+            + "\n or its parent directory is writable by KSQL server"
             + "\n or change it to a writable directory by setting '"
             + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
             + "' config in the properties file."
@@ -126,7 +126,7 @@ public class KsqlServerMain {
       throw new KsqlServerException(streamsStateDir.getPath()
           + " is not a directory."
           + "\n Make sure the directory exists and is writable for KSQL server "
-          + "\n or its parend directory is writbale by KSQL server"
+          + "\n or its parent directory is writable by KSQL server"
           + "\n or change it to a writable directory by setting '"
           + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
           + "' config in the properties file."

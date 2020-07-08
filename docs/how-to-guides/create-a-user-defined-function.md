@@ -672,7 +672,6 @@ Working with structs and decimals in UDFs requires a more specific type contract
 
 ksqlDB has two mechanisms handling these situations: explicitly provided schemas and dynamic schemas. The former is generally used for working with structs, and the latter is generally used for working with decimals. This guide only uses explicitly provided schemas, but you can read more about dynamic schema returns using the `@UdfSchemaProvider` in the [concepts section](../../concepts/functions/#dynamic-return-type).
 
-
 As an example of explicitly provided schemas, create a simple function that maintains simple statistics. This example uses a UDAF, but the concepts are applicable for UDFs and UDTFs. Although the example is a bit contrived, it is useful because it demonstrates using a struct in all possible positions.
 
 ### Implement the class
@@ -831,7 +830,7 @@ There are a few important things to call out in this class:
 
 - The field names in the descriptors must match their declared field names in ksqlDB exactly, including their casing. By default, ksqlDB uppercases all field names, which is why the descriptors are also uppercased. If you use backticks for your field names to preserve casing, you must also use backticks in the descriptors, too.
 
-- Explictly declaring schemas is *only* needed when using structs. But because this example makes use of structs in all possible places (input, intermediate, and output values), schemas are declared for all of them.
+- Explicitly declaring schemas is *only* needed when using structs and decimals. But because this example makes use of structs in all possible places (input, intermediate, and output values), schemas are declared for all of them.
 
 !!! info
     If you're using a struct with a UDF or UDTF, you can set the schema using the `Udf`, `Udtf`, and `UdfParameter` annotations. Each provides the option to supply a schema for various positions.

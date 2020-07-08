@@ -97,6 +97,40 @@
       }
     },
     {
+      "name": "PROTOBUF does not yet support DECIMAL",
+      "comment": "Adding support covered by https://github.com/confluentinc/ksql/issues/5762",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='PROTOBUF');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'PROTOBUF' format does not support type 'DECIMAL'. See https://github.com/confluentinc/ksql/issues/5762."
+      }
+    },
+    {
+      "enabled": false,
+      "name": "PROTOBUF should not trim trailing zeros",
+      "comment": "Enable once https://github.com/confluentinc/ksql/issues/5762 fixed",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"DEC": 10.0}},
+        {"topic": "test", "value": {"DEC": 1.0000}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"DEC": 10.0}},
+        {"topic": "OUTPUT", "value": {"DEC": 1.0000}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"}
+        ]
+      }
+    },
+    {
       "name": "negation",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(7,5)) WITH (kafka_topic='test', value_format='AVRO');",

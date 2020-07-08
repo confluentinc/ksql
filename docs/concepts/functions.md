@@ -64,7 +64,7 @@ Follow these steps to create your custom functions:
       FUNCTION statement to display details about your custom functions.
 
 For a detailed walkthrough on creating a UDF, see
-[Implement a User-defined Function (UDF and UDAF)](../developer-guide/implement-a-udf.md).
+[the how-to guide for creating a user-defined function](../../how-to-guides/create-a-user-defined-function).
 
 ### Creating UDFs, UDAFs, and UDTFs
 

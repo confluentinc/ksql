@@ -284,6 +284,11 @@ public class KsqlConfig extends AbstractConfig {
       + " and the regex pattern will be matched against the error class name and message of any "
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
+  public static final String KSQL_CREATE_OR_REPLACE_ENABLED = "ksql.create.or.replace.enabled";
+  public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = false;
+  public static final String KSQL_CREATE_OR_REPLACE_ENABLED_DOC =
+      "Feature flag for CREATE OR REPLACE";
+
   // Defaults for config NOT defined by this class's ConfigDef:
   static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
       .<String, Object>builder()
@@ -660,6 +665,13 @@ public class KsqlConfig extends AbstractConfig {
             "",
             Importance.LOW,
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC
+        )
+        .define(
+            KSQL_CREATE_OR_REPLACE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_CREATE_OR_REPLACE_ENABLED_DOC
         )
         .withClientSslSupport();
 

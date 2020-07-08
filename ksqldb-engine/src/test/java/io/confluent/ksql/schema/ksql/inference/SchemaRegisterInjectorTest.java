@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -137,7 +138,7 @@ public class SchemaRegisterInjectorTest {
         false,
         sourceTopic
     );
-    metaStore.putSource(source);
+    metaStore.putSource(source, false);
   }
 
   @Test
@@ -176,6 +177,38 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     verify(schemaRegistryClient).register("expectedName-value", AVRO_SCHEMA);
+  }
+
+  @Test
+  public void shouldNotReplaceExistingSchemaForSchemaRegistryEnabledFormatCreateSource()
+      throws IOException, RestClientException {
+    // Given:
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
+    when(schemaRegistryClient.testCompatibility(eq("expectedName-value"), any(ParsedSchema.class))).thenReturn(true);
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).getAllSubjects();
+    verify(schemaRegistryClient).testCompatibility(eq("expectedName-value"), any(ParsedSchema.class));
+    verifyNoMoreInteractions(schemaRegistryClient);
+  }
+
+  @Test
+  public void shouldThrowOnExistingSchemaForSchemaRegistryEnabledFormatCreateSourceIncompatible()
+      throws IOException, RestClientException {
+    // Given:
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
+    when(schemaRegistryClient.testCompatibility(eq("expectedName-value"), any(ParsedSchema.class))).thenReturn(false);
+
+    // When:
+    final KsqlStatementException e = assertThrows(KsqlStatementException.class, () -> injector.inject(statement));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Could not register schema for subject 'expectedName-value' because it is incompatible with existing schema."));
   }
 
   @Test

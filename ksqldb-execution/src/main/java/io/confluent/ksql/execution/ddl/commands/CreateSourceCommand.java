@@ -21,6 +21,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -35,6 +36,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
   private final String topicName;
   private final Formats formats;
   private final Optional<WindowInfo> windowInfo;
+  private final Boolean orReplace;
 
   CreateSourceCommand(
       final SourceName sourceName,
@@ -42,7 +44,8 @@ public abstract class CreateSourceCommand implements DdlCommand {
       final Optional<TimestampColumn> timestampColumn,
       final String topicName,
       final Formats formats,
-      final Optional<WindowInfo> windowInfo
+      final Optional<WindowInfo> windowInfo,
+      final Boolean orReplace
   ) {
     this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
     this.schema = Objects.requireNonNull(schema, "schema");
@@ -51,8 +54,9 @@ public abstract class CreateSourceCommand implements DdlCommand {
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
+    this.orReplace = orReplace;
 
-    validate(schema);
+    validate(schema, windowInfo.isPresent());
   }
 
   public SourceName getSourceName() {
@@ -79,9 +83,17 @@ public abstract class CreateSourceCommand implements DdlCommand {
     return windowInfo;
   }
 
-  private static void validate(final LogicalSchema schema) {
+  public Boolean isOrReplace() {
+    return orReplace;
+  }
+
+  private static void validate(final LogicalSchema schema, final boolean windowed) {
     if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
+    }
+
+    if (windowed && schema.key().isEmpty()) {
+      throw new KsqlException("Windowed sources require a key column.");
     }
 
     if (schema.key().size() > 1) {

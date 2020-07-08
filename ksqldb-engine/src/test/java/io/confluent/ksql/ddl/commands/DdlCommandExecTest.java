@@ -1,8 +1,10 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
@@ -18,6 +20,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -26,6 +29,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +49,12 @@ public class DdlCommandExecTest {
       .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("F1"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
+      .build();
+  private static final LogicalSchema SCHEMA2 = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("F1"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("F3"), SqlTypes.STRING)
       .build();
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
   private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
@@ -90,6 +100,20 @@ public class DdlCommandExecTest {
 
     // Then:
     assertThat(metaStore.getSource(STREAM_NAME).getSqlExpression(), is(SQL_TEXT));
+  }
+
+  @Test
+  public void shouldAddStreamWithReplace() {
+    // Given:
+    givenCreateStream();
+    cmdExec.execute(SQL_TEXT, createStream, false);
+
+    // When:
+    givenCreateStream(SCHEMA2, true);
+    cmdExec.execute(SQL_TEXT, createStream, false);
+
+    // Then:
+    assertThat(metaStore.getSource(STREAM_NAME).getSchema(), is(SCHEMA2));
   }
 
   @Test
@@ -204,7 +228,7 @@ public class DdlCommandExecTest {
   @Test
   public void shouldDropSource() {
     // Given:
-    metaStore.putSource(source);
+    metaStore.putSource(source, false);
     givenDropSourceCommand(STREAM_NAME);
 
     // When:
@@ -245,21 +269,40 @@ public class DdlCommandExecTest {
     assertThat(result.getMessage(), is("Type 'type' does not exist"));
   }
 
+  @Test
+  public void shouldFailAddDuplicateStreamWithoutReplace() {
+    // Given:
+    givenCreateStream();
+    cmdExec.execute(SQL_TEXT, createStream, false);
+
+    // When:
+    givenCreateStream(SCHEMA2, false);
+    final KsqlException e = assertThrows(KsqlException.class, () -> cmdExec.execute(SQL_TEXT, createStream, false));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("A stream with the same name already exists"));
+  }
+
   private void givenDropSourceCommand(final SourceName name) {
     dropSource = new DropSourceCommand(name);
   }
 
   private void givenCreateStream() {
+    givenCreateStream(SCHEMA, false);
+  }
+
+  private void givenCreateStream(final LogicalSchema schema, final boolean allowReplace) {
     createStream = new CreateStreamCommand(
         STREAM_NAME,
-        SCHEMA,
+        schema,
         Optional.of(timestampColumn),
         "topic",
         io.confluent.ksql.execution.plan.Formats.of(
             KEY_FORMAT,
             VALUE_FORMAT,
             SERDE_OPTIONS),
-        Optional.empty()
+        Optional.empty(),
+        Optional.of(allowReplace)
     );
   }
 
@@ -273,7 +316,8 @@ public class DdlCommandExecTest {
             KEY_FORMAT,
             VALUE_FORMAT,
             SERDE_OPTIONS),
-        Optional.of(windowInfo)
+        Optional.of(windowInfo),
+        Optional.of(false)
     );
   }
 
@@ -288,7 +332,8 @@ public class DdlCommandExecTest {
             VALUE_FORMAT,
             SERDE_OPTIONS
         ),
-        Optional.of(windowInfo)
+        Optional.of(windowInfo),
+        Optional.of(false)
     );
   }
 
@@ -303,7 +348,8 @@ public class DdlCommandExecTest {
             VALUE_FORMAT,
             SERDE_OPTIONS
         ),
-        Optional.empty()
+        Optional.empty(),
+        Optional.of(false)
     );
   }
 }

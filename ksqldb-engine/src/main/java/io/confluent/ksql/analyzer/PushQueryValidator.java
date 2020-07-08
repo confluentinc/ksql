@@ -17,14 +17,15 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.util.KsqlException;
 
 public class PushQueryValidator implements QueryValidator {
 
   @Override
   public void validate(final Analysis analysis) {
-    if (analysis.getResultMaterialization() != ResultMaterialization.CHANGES) {
+    if (analysis.getResultMaterialization().isPresent()
+        && analysis.getResultMaterialization().get() == ResultMaterialization.FINAL) {
       throw new IllegalArgumentException("Push queries don't support `EMIT FINAL`.");
     }
 

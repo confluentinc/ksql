@@ -42,13 +42,14 @@ final class QueryIdUtil {
    * @param metaStore   the meta store representing the current state of the engine
    * @param idGenerator generates query ids
    * @param outputNode  the logical plan
+   * @param createOrReplaceEnabled whether or not the queryID can replace an existing one
    * @return the {@link QueryId} to be used
    */
   static QueryId buildId(
       final MetaStore metaStore,
       final QueryIdGenerator idGenerator,
-      final OutputNode outputNode
-  ) {
+      final OutputNode outputNode,
+      final boolean createOrReplaceEnabled) {
     if (!outputNode.getSinkName().isPresent()) {
       return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
     }
@@ -64,6 +65,15 @@ final class QueryIdUtil {
       throw new KsqlException("REPLACE for sink " + sink + " is not supported because there are "
           + "multiple queries writing into it: " + queriesForSink);
     } else if (!queriesForSink.isEmpty()) {
+      if (!createOrReplaceEnabled) {
+        final String type = outputNode.getNodeOutputType().getKsqlType().toLowerCase();
+        throw new UnsupportedOperationException(
+            String.format(
+                "Cannot add %s '%s': A %s with the same name already exists",
+                type,
+                sink.text(),
+                type));
+      }
       return new QueryId(Iterables.getOnlyElement(queriesForSink));
     }
 

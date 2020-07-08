@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,7 +37,7 @@ public class Query extends Statement {
   private final Optional<GroupBy> groupBy;
   private final Optional<PartitionBy> partitionBy;
   private final Optional<Expression> having;
-  private final ResultMaterialization resultMaterialization;
+  private final Optional<ResultMaterialization> resultMaterialization;
   private final boolean pullQuery;
   private final OptionalInt limit;
 
@@ -51,7 +52,7 @@ public class Query extends Statement {
       final Optional<GroupBy> groupBy,
       final Optional<PartitionBy> partitionBy,
       final Optional<Expression> having,
-      final ResultMaterialization resultMaterialization,
+      final Optional<ResultMaterialization> resultMaterialization,
       final boolean pullQuery,
       final OptionalInt limit
   ) {
@@ -100,7 +101,7 @@ public class Query extends Statement {
     return having;
   }
 
-  public ResultMaterialization getResultMaterialization() {
+  public Optional<ResultMaterialization> getResultMaterialization() {
     return resultMaterialization;
   }
 

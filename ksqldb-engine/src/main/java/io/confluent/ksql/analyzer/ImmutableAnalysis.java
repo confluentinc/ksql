@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
@@ -53,6 +54,8 @@ public interface ImmutableAnalysis {
   ColumnReferenceExp getDefaultArgument();
 
   Optional<GroupBy> getGroupBy();
+
+  Optional<ResultMaterialization> getResultMaterialization();
 
   Optional<PartitionBy> getPartitionBy();
 

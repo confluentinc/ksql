@@ -240,7 +240,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
     final String policy = getTopicConfig(topicName)
-        .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "");
+        .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "")
+        .toLowerCase();
 
     if (policy.equals("compact")) {
       return TopicCleanupPolicy.COMPACT;

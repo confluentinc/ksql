@@ -34,7 +34,6 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -126,8 +125,8 @@ public class TopicCreateInjector implements Injector {
             properties.getPartitions(),
             properties.getReplicas());
 
-    final Optional<String> topicCleanUpPolicy = createSource instanceof CreateTable
-        ? Optional.of(TopicConfig.CLEANUP_POLICY_COMPACT) : Optional.empty();
+    final String topicCleanUpPolicy = createSource instanceof CreateTable
+        ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
 
     createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
 
@@ -160,14 +159,13 @@ public class TopicCreateInjector implements Injector {
             properties.getPartitions(),
             properties.getReplicas());
 
-    final Optional<String> topicCleanUpPolicy;
+    final String topicCleanUpPolicy;
     if (createAsSelect instanceof CreateStreamAsSelect) {
-      topicCleanUpPolicy = Optional.empty();
+      topicCleanUpPolicy = TopicConfig.CLEANUP_POLICY_DELETE;
     } else {
-      final String policy = createAsSelect.getQuery().getWindow().isPresent()
+      topicCleanUpPolicy = createAsSelect.getQuery().getWindow().isPresent()
           ? TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE
           : TopicConfig.CLEANUP_POLICY_COMPACT;
-      topicCleanUpPolicy = Optional.of(policy);
     }
 
     final TopicProperties info = createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
@@ -185,13 +183,12 @@ public class TopicCreateInjector implements Injector {
 
   private TopicProperties createTopic(
       final Builder topicPropertiesBuilder,
-      final Optional<String> topicCleanUpPolicy
+      final String topicCleanUpPolicy
   ) {
     final TopicProperties info = topicPropertiesBuilder.build();
 
-    final Map<String, ?> config = topicCleanUpPolicy.isPresent()
-        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, topicCleanUpPolicy.get())
-        : Collections.emptyMap();
+    final Map<String, ?> config =
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, topicCleanUpPolicy);
 
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 

@@ -54,7 +54,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -346,7 +345,7 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        Collections.emptyMap());
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE));
   }
 
   @Test
@@ -363,7 +362,7 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        Collections.emptyMap());
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE));
   }
 
   @Test

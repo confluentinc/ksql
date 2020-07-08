@@ -105,7 +105,7 @@ public class UdtfLoader {
           final KsqlTableFunction tableFunction =
               createTableFunction(method, FunctionName.of(functionName), returnType,
                   parameters,
-                  udtfDescriptionAnnotation.description(),
+                  annotation.description(),
                   annotation
               );
           factory.addFunction(tableFunction);

@@ -192,12 +192,12 @@ public class TemporaryEngine extends ExternalResource {
   @UdtfDescription(name = "test_udtf1", description = "test_udtf1 description")
   public static class TestUdtf1 {
 
-    @Udtf
+    @Udtf(description = "test_udtf1 int")
     public List<Integer> foo1(@UdfParameter(value = "foo") final int foo) {
       return ImmutableList.of(1);
     }
 
-    @Udtf
+    @Udtf(description = "test_udtf1 double")
     public List<Double> foo2(@UdfParameter(value = "foo") final double foo) {
       return ImmutableList.of(1.0d);
     }

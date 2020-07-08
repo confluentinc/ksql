@@ -80,7 +80,8 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     } catch (final GroupAuthorizationException e) {
       throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
     } catch (final Exception e) {
-      throw new KafkaResponseGetFailedException("Failed to describe Kafka consumer groups: " + group, e);
+      throw new KafkaResponseGetFailedException(
+          "Failed to describe Kafka consumer groups: " + group, e);
     }
   }
 

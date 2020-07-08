@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.exception;
 
-import java.util.Collection;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.TopicAuthorizationException;

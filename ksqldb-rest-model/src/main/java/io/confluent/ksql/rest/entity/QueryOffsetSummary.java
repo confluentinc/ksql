@@ -36,7 +36,7 @@ public class QueryOffsetSummary {
   ) {
     this.groupId = groupId;
     this.kafkaTopic = kafkaTopic;
-    this.partitionLags = partitionLags;
+    this.partitionLags =
         ImmutableList.copyOf(Objects.requireNonNull(partitionLags, "partitionLags"));
   }
 

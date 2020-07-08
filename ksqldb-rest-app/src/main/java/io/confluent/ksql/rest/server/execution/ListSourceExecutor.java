@@ -31,8 +31,8 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.SourceConsumerGroupOffset;
-import io.confluent.ksql.rest.entity.SourceConsumerGroupOffsets;
+import io.confluent.ksql.rest.entity.PartitionLag;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
@@ -48,6 +48,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryApplicationId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -219,59 +220,13 @@ public final class ListSourceExecutor {
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescriptionOptional =
         Optional.empty();
-    final List<SourceConsumerGroupOffsets> sourceConsumerOffsets = new ArrayList<>();
+    List<QueryOffsetSummary> sourceConsumerOffsets = new ArrayList<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
-        final String kafkaTopicName = dataSource.getKafkaTopicName();
-        final TopicDescription topicDescription = serviceContext.getTopicClient()
-            .describeTopic(kafkaTopicName);
-        topicDescriptionOptional = Optional.of(topicDescription);
-        final Map<String, Map<TopicPartition, OffsetAndMetadata>> offsetsPerQuery =
-            new HashMap<>(sinkQueries.size());
-        final Map<String, Set<String>> topicsPerQuery = new HashMap<>();
-        final Set<String> allTopics = new HashSet<>();
-        for (RunningQuery query : sinkQueries) {
-          final QueryId queryId = query.getId();
-          final String persistenceQueryPrefix =
-              ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-          final String applicationId = getQueryApplicationId(
-              KsqlConfig.getServiceId(ksqlConfig),
-              persistenceQueryPrefix,
-              queryId
-          );
-          final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets =
-              serviceContext.getConsumerGroupClient().listConsumerGroupOffsets(applicationId);
-          offsetsPerQuery.put(applicationId, topicAndConsumerOffsets);
-          final Set<String> topics = topicAndConsumerOffsets.keySet().stream()
-              .map(TopicPartition::topic)
-              .collect(Collectors.toSet());
-          topicsPerQuery.put(applicationId, topics);
-          allTopics.addAll(topics);
-        }
-        final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
-            serviceContext.getTopicClient().listTopicsStartOffsets(allTopics);
-        final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
-            serviceContext.getTopicClient().listTopicsEndOffsets(allTopics);
-        final Map<String, TopicDescription> sourceTopicDescriptions =
-            serviceContext.getTopicClient().describeTopics(allTopics);
-        for (Entry<String, Set<String>> entry : topicsPerQuery.entrySet()) {
-          for (String topic : entry.getValue()) {
-            final List<SourceConsumerGroupOffset> offsets = consumerOffsets(
-                sourceTopicDescriptions.get(topic),
-                topicAndStartOffsets,
-                topicAndEndOffsets,
-                offsetsPerQuery.get(entry.getKey()));
-            sourceConsumerOffsets.add(
-                new SourceConsumerGroupOffsets(
-                    entry.getKey(),
-                    topic,
-                    offsets.stream().mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
-                        .max()
-                        .orElse(-1),
-                    offsets));
-          }
-        }
+        topicDescriptionOptional = Optional.of(
+            serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName()));
+        sourceConsumerOffsets = offsetsSummary(ksqlConfig, serviceContext, sinkQueries);
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
@@ -290,28 +245,76 @@ public final class ListSourceExecutor {
     );
   }
 
-  private static List<SourceConsumerGroupOffset> consumerOffsets(
+  private static List<QueryOffsetSummary> offsetsSummary(
+      final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
+      final List<RunningQuery> sinkQueries
+  ) {
+    final List<QueryOffsetSummary> sourceConsumerOffsets = new ArrayList<>();
+    final Map<String, Map<TopicPartition, OffsetAndMetadata>> offsetsPerQuery =
+        new HashMap<>(sinkQueries.size());
+    final Map<String, Set<String>> topicsPerQuery = new HashMap<>();
+    final Set<String> allTopics = new HashSet<>();
+    // Get topics and offsets per running query
+    for (RunningQuery query : sinkQueries) {
+      final QueryId queryId = query.getId();
+      final String applicationId =
+          QueryApplicationId.build(ksqlConfig, true, queryId);
+      final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets =
+          serviceContext.getConsumerGroupClient().listConsumerGroupOffsets(applicationId);
+      offsetsPerQuery.put(applicationId, topicAndConsumerOffsets);
+      final Set<String> topics = topicAndConsumerOffsets.keySet().stream()
+          .map(TopicPartition::topic)
+          .collect(Collectors.toSet());
+      topicsPerQuery.put(applicationId, topics);
+      allTopics.addAll(topics);
+    }
+    // Get topics descriptions and start/end offsets
+    final Map<String, TopicDescription> sourceTopicDescriptions =
+        serviceContext.getTopicClient().describeTopics(allTopics);
+    final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
+        serviceContext.getTopicClient().listTopicsStartOffsets(allTopics);
+    final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
+        serviceContext.getTopicClient().listTopicsEndOffsets(allTopics);
+    // Build consumer offsets summary
+    for (Entry<String, Set<String>> entry : topicsPerQuery.entrySet()) {
+      for (String topic : entry.getValue()) {
+        sourceConsumerOffsets.add(
+            new QueryOffsetSummary(
+                entry.getKey(),
+                topic,
+                partitionLags(
+                    sourceTopicDescriptions.get(topic),
+                    topicAndStartOffsets,
+                    topicAndEndOffsets,
+                    offsetsPerQuery.get(entry.getKey()))));
+      }
+    }
+    return sourceConsumerOffsets;
+  }
+
+  private static List<PartitionLag> partitionLags(
       final TopicDescription topicDescription,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
       final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
-    final List<SourceConsumerGroupOffset> sourceConsumerGroupOffsets = new ArrayList<>();
+    final List<PartitionLag> partitionLags = new ArrayList<>();
     for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
       final TopicPartition tp = new TopicPartition(topicDescription.name(),
           topicPartitionInfo.partition());
       final ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
       final ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
       final OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
-      sourceConsumerGroupOffsets.add(
-          new SourceConsumerGroupOffset(
+      partitionLags.add(
+          new PartitionLag(
               topicPartitionInfo.partition(),
               startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
               endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
               offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
           ));
     }
-    return sourceConsumerGroupOffsets;
+    return partitionLags;
   }
 
   private static String getQueryApplicationId(

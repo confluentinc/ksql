@@ -183,8 +183,8 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<TopicPartition, ListOffsetsResultInfo> listTopicOffsets(
-      final String topicName,
+  public Map<TopicPartition, ListOffsetsResultInfo> listTopicsOffsets(
+      final Collection<String> topicNames,
       final OffsetSpec offsetSpec) {
     return Collections.emptyMap();
   }

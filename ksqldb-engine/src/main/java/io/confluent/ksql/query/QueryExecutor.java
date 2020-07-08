@@ -46,6 +46,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
@@ -152,11 +153,8 @@ public final class QueryExecutor {
   ) {
     final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
-    final String applicationId = addTimeSuffix(getQueryApplicationId(
-        KsqlConfig.getServiceId(ksqlConfig),
-        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
-        queryId
-    ));
+    final String applicationId = addTimeSuffix(
+        QueryApplicationId.build(ksqlConfig, false, queryId));
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
@@ -196,13 +194,7 @@ public final class QueryExecutor {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     final Object result = physicalPlan.build(planBuilder);
-    final String persistenceQueryPrefix =
-        ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String applicationId = getQueryApplicationId(
-        KsqlConfig.getServiceId(ksqlConfig),
-        persistenceQueryPrefix,
-        queryId
-    );
+    final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
@@ -347,13 +339,6 @@ public final class QueryExecutor {
       }
     }
     return ImmutableSet.copyOf(usedTopics);
-  }
-
-  private static String getQueryApplicationId(
-      final String serviceId,
-      final String queryPrefix,
-      final QueryId queryId) {
-    return serviceId + queryPrefix + queryId;
   }
 
   private static void updateListProperty(

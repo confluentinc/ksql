@@ -67,8 +67,8 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
-import io.confluent.ksql.rest.entity.SourceConsumerGroupOffset;
-import io.confluent.ksql.rest.entity.SourceConsumerGroupOffsets;
+import io.confluent.ksql.rest.entity.PartitionLag;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -660,7 +660,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement\"," + NEWLINE
-          + "    \"consumerGroupsOffsets\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummary\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -799,7 +799,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"statement\"," + NEWLINE
-          + "    \"consumerGroupsOffsets\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummary\" : [ ]" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -1180,13 +1180,12 @@ public class ConsoleTest {
                 2, 1,
                 "sql statement text",
                 ImmutableList.of(
-                    new SourceConsumerGroupOffsets(
+                    new QueryOffsetSummary(
                         "consumer1",
                         "kadka-topic",
-                        100L,
                         ImmutableList.of(
-                            new SourceConsumerGroupOffset(0, 100, 900, 800),
-                            new SourceConsumerGroupOffset(1, 50, 900, 900)
+                            new PartitionLag(0, 100, 900, 800),
+                            new PartitionLag(1, 50, 900, 900)
                         ))
                 )),
             Collections.emptyList()
@@ -1256,11 +1255,10 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
-          + "    \"consumerGroupsOffsets\" : [ {" + NEWLINE
+          + "    \"queryOffsetSummary\" : [ {" + NEWLINE
           + "      \"groupId\" : \"consumer1\"," + NEWLINE
           + "      \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
-          + "      \"maxLag\" : 100," + NEWLINE
-          + "      \"offsets\" : [ {" + NEWLINE
+          + "      \"partitionLags\" : [ {" + NEWLINE
           + "        \"partition\" : 0," + NEWLINE
           + "        \"logStartOffset\" : 100," + NEWLINE
           + "        \"logEndOffset\" : 900," + NEWLINE
@@ -1418,7 +1416,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
-          + "    \"consumerGroupsOffsets\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummary\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));

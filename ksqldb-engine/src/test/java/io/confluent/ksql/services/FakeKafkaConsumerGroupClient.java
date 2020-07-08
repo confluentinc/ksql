@@ -2,7 +2,7 @@ package io.confluent.ksql.services;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,10 @@ public class FakeKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
       );
       return new ConsumerGroupSummary(instances);
     } else {
-      return null;
+      throw new KafkaResponseGetFailedException(
+          "Failed to retrieve Kafka consumer group",
+          new RuntimeException()
+      );
     }
   }
 
@@ -40,7 +43,10 @@ public class FakeKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
       offsets.put(new TopicPartition("topic1", 1), new OffsetAndMetadata(11));
       return offsets;
     } else {
-      return Collections.emptyMap();
+      throw new KafkaResponseGetFailedException(
+          "Failed to list Kafka consumer groups",
+          new RuntimeException()
+      );
     }
   }
 }

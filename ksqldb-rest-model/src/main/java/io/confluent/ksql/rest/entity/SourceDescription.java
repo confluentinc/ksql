@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.model.WindowType;
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +48,7 @@ public class SourceDescription {
   private final int partitions;
   private final int replication;
   private final String statement;
-  private final List<SourceConsumerGroupOffsets> consumerGroupsOffsets;
+  private final List<QueryOffsetSummary> queryOffsetSummary;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -68,17 +69,16 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
-      @JsonProperty("consumerGroupsOffsets")
-      final List<SourceConsumerGroupOffsets> consumerGroupsOffsets) {
+      @JsonProperty("queryOffsetSummary") final List<QueryOffsetSummary> queryOffsetSummary) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
     this.readQueries =
-        Collections.unmodifiableList(Objects.requireNonNull(readQueries, "readQueries"));
+        ImmutableList.copyOf(Objects.requireNonNull(readQueries, "readQueries"));
     this.writeQueries =
-        Collections.unmodifiableList(Objects.requireNonNull(writeQueries, "writeQueries"));
+        ImmutableList.copyOf(Objects.requireNonNull(writeQueries, "writeQueries"));
     this.fields =
-        Collections.unmodifiableList(Objects.requireNonNull(fields, "fields"));
+        ImmutableList.copyOf(Objects.requireNonNull(fields, "fields"));
     this.type = Objects.requireNonNull(type, "type");
     this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.statistics = Objects.requireNonNull(statistics, "statistics");
@@ -90,8 +90,8 @@ public class SourceDescription {
     this.partitions = partitions;
     this.replication = replication;
     this.statement = Objects.requireNonNull(statement, "statement");
-    this.consumerGroupsOffsets = Collections.unmodifiableList(
-            Objects.requireNonNull(consumerGroupsOffsets, "consumerGroupsOffsets"));
+    this.queryOffsetSummary = Collections.unmodifiableList(
+            Objects.requireNonNull(queryOffsetSummary, "queryOffsetSummary"));
   }
 
   public String getStatement() {
@@ -158,8 +158,8 @@ public class SourceDescription {
     return errorStats;
   }
 
-  public List<SourceConsumerGroupOffsets> getConsumerGroupsOffsets() {
-    return consumerGroupsOffsets;
+  public List<QueryOffsetSummary> getQueryOffsetSummary() {
+    return queryOffsetSummary;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -189,7 +189,7 @@ public class SourceDescription {
         && Objects.equals(valueFormat, that.valueFormat)
         && Objects.equals(topic, that.topic)
         && Objects.equals(statement, that.statement)
-        && Objects.equals(consumerGroupsOffsets, that.consumerGroupsOffsets);
+        && Objects.equals(queryOffsetSummary, that.queryOffsetSummary);
   }
 
   @Override
@@ -211,7 +211,7 @@ public class SourceDescription {
         partitions,
         replication,
         statement,
-        consumerGroupsOffsets
+        queryOffsetSummary
     );
   }
 }

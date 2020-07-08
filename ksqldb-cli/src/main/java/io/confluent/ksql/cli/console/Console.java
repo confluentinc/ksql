@@ -71,7 +71,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.SourceConsumerGroupOffsets;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
@@ -626,20 +626,22 @@ public class Console implements Closeable {
         "Statistics of the local KSQL server interaction with the Kafka topic "
             + source.getTopic()
     ));
-    for (SourceConsumerGroupOffsets sourceConsumerGroupOffsets :
-            source.getConsumerGroupsOffsets()) {
+    for (QueryOffsetSummary queryOffsetSummary : source.getQueryOffsetSummary()) {
       writer().println();
       writer().println(String.format("%-20s : %s",
-          "Consumer Group", sourceConsumerGroupOffsets.getGroupId()));
+          "Consumer Group", queryOffsetSummary.getGroupId()));
       writer().println(String.format("%-20s : %s",
-          "Kafka topic", sourceConsumerGroupOffsets.getKafkaTopic()));
+          "Kafka topic", queryOffsetSummary.getKafkaTopic()));
       writer().println(String.format("%-20s : %s",
-          "Max lag", sourceConsumerGroupOffsets.getMaxLag()));
+          "Max lag", queryOffsetSummary.getPartitionLags().stream()
+              .mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
+              .max()
+              .orElse(-1)));
       writer().println("");
       final Table taskTable = new Table.Builder()
           .withColumnHeaders(
               ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
-          .withRows(sourceConsumerGroupOffsets.getOffsets()
+          .withRows(queryOffsetSummary.getPartitionLags()
               .stream()
               .map(offset -> ImmutableList.of(
                   String.valueOf(offset.getPartition()),

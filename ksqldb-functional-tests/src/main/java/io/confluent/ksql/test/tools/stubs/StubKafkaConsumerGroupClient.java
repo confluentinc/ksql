@@ -17,8 +17,8 @@ package io.confluent.ksql.test.tools.stubs;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +44,10 @@ public class StubKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
       );
       return new ConsumerGroupSummary(instances);
     } else {
-      return null;
+      throw new KafkaResponseGetFailedException(
+          "Failed to retrieve Kafka consumer groups",
+          new RuntimeException()
+      );
     }
   }
 
@@ -56,7 +59,10 @@ public class StubKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
       offsets.put(new TopicPartition("topic1", 1), new OffsetAndMetadata(11));
       return offsets;
     } else {
-      return Collections.emptyMap();
+      throw new KafkaResponseGetFailedException(
+          "Failed to retrieve Kafka consumer groups",
+          new RuntimeException()
+      );
     }
   }
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.services;
 
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KsqlGroupAuthorizationException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
 import java.util.Collections;
@@ -29,6 +30,8 @@ import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.errors.GroupAuthorizationException;
 
 public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
@@ -52,9 +55,8 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   }
 
   public ConsumerGroupSummary describeConsumerGroup(final String group) {
-
     try {
-      final Map<String, ConsumerGroupDescription> groups = ExecutorUtil
+      final Map<String, ConsumerGroupDescription> groupDescriptions = ExecutorUtil
           .executeWithRetries(
               () -> adminClient.get()
                   .describeConsumerGroups(Collections.singleton(group))
@@ -62,7 +64,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
                   .get(),
               RetryBehaviour.ON_RETRYABLE);
 
-      final Set<ConsumerSummary> results = groups
+      final Set<ConsumerSummary> results = groupDescriptions
           .values()
           .stream()
           .flatMap(g ->
@@ -75,9 +77,10 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
                   })).collect(Collectors.toSet());
 
       return new ConsumerGroupSummary(results);
-
+    } catch (final GroupAuthorizationException e) {
+      throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
     } catch (final Exception e) {
-      throw new KafkaResponseGetFailedException("Failed to describe Kafka consumer groups", e);
+      throw new KafkaResponseGetFailedException("Failed to describe Kafka consumer groups: " + group, e);
     }
   }
 
@@ -90,6 +93,8 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
               .partitionsToOffsetAndMetadata()
               .get(),
           RetryBehaviour.ON_RETRYABLE);
+    } catch (final GroupAuthorizationException e) {
+      throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka consumer groups", e);
     }

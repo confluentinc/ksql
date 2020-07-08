@@ -18,27 +18,26 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SourceConsumerGroupOffsets {
+public class QueryOffsetSummary {
   private final String groupId;
   private final String kafkaTopic;
-  private final Long maxLag;
-  private final List<SourceConsumerGroupOffset> offsets;
+  private final List<PartitionLag> partitionLags;
 
   @JsonCreator
-  public SourceConsumerGroupOffsets(
+  public QueryOffsetSummary(
       @JsonProperty("groupId") final String groupId,
       @JsonProperty("kafkaTopic") final String kafkaTopic,
-      @JsonProperty("maxLag") final Long maxLag,
-      @JsonProperty("offsets") final List<SourceConsumerGroupOffset> offsets
+      @JsonProperty("partitionLags") final List<PartitionLag> partitionLags
   ) {
     this.groupId = groupId;
     this.kafkaTopic = kafkaTopic;
-    this.maxLag = maxLag;
-    this.offsets = offsets;
+    this.partitionLags = partitionLags;
+        ImmutableList.copyOf(Objects.requireNonNull(partitionLags, "partitionLags"));
   }
 
   public String getGroupId() {
@@ -49,12 +48,8 @@ public class SourceConsumerGroupOffsets {
     return kafkaTopic;
   }
 
-  public Long getMaxLag() {
-    return maxLag;
-  }
-
-  public List<SourceConsumerGroupOffset> getOffsets() {
-    return offsets;
+  public List<PartitionLag> getPartitionLags() {
+    return partitionLags;
   }
 
   @Override
@@ -65,15 +60,14 @@ public class SourceConsumerGroupOffsets {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final SourceConsumerGroupOffsets that = (SourceConsumerGroupOffsets) o;
+    final QueryOffsetSummary that = (QueryOffsetSummary) o;
     return Objects.equals(groupId, that.groupId)
         && Objects.equals(kafkaTopic, that.kafkaTopic)
-        && Objects.equals(maxLag, that.maxLag)
-        && Objects.equals(offsets, that.offsets);
+        && Objects.equals(partitionLags, that.partitionLags);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupId, kafkaTopic, maxLag, offsets);
+    return Objects.hash(groupId, kafkaTopic, partitionLags);
   }
 }

@@ -247,3 +247,11 @@ In external mode, ksqlDB communicates with an external {{ site.kconnectlong }} c
 External mode essentially works the same way as embedded mode, except connectors run outside of ksqlDB's servers. All that is needed is to configure ksqlDB server with the `ksql.connect.url` property, indicating the address of the {{ site.kconnect }} server. Beyond that, you can manage connectors exactly as you would in embedded mode. No other configuration is needed.
 
 This guide omits an example of setting up an external {{ site.kconnectlong }} cluster. Many great examples, [like Apache Kafka's](https://kafka.apache.org/documentation/#connect), have already been published.
+
+## Tear down the stack
+
+When you're done, tear down the stack by running:
+
+```bash
+docker-compose down
+```

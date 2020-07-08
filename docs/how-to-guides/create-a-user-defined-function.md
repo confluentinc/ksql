@@ -668,9 +668,12 @@ Your output should resemble:
  
 ## Using structs and decimals
 
-Using structs and decimals in UDFs requires a more specific type contract with ksqlDB. Both of these types are different from the other Java types that ksqlDB interfaces with because their typing is more dynamic. In the case of structs, fields can be added and removed, and their types are inferred on the fly. In the case of decimals, their precision and scale can change based off the inputs they are computed against. Because of this dynamism, UDFs need to be more explicit in their type contract with ksqlDB.
+Working with structs and decimals in UDFs requires a more specific type contract with ksqlDB. Both of these types are different from the other Java types that ksqlDB interfaces with because their typing is more dynamic. In the case of structs, fields can be added and removed, and their types are inferred on the fly. In the case of decimals, their precision and scale can change based off the inputs they are computed against. Because of this dynamism, UDFs need to be more explicit in their type contract with ksqlDB.
 
-As an example, create a simple function that maintains simple statistics. This example uses a UDAF, but the concepts are applicable for UDFs and UDTFs. Although the example is a bit contrived, it is useful because it demonstrates using a struct in all possible positions.
+ksqlDB has two mechanisms handling these situations: explicitly provided schemas and dynamic schemas. The former is generally used for working with structs, and the latter is generally used for working with decimals. This guide only uses explicitly provided schemas, but you can read more about dynamic schema returns using the `@UdfSchemaProvider` in the [concepts section](../../concepts/functions/#dynamic-return-type).
+
+
+As an example of explicitly provided schemas, create a simple function that maintains simple statistics. This example uses a UDAF, but the concepts are applicable for UDFs and UDTFs. Although the example is a bit contrived, it is useful because it demonstrates using a struct in all possible positions.
 
 ### Implement the class
 

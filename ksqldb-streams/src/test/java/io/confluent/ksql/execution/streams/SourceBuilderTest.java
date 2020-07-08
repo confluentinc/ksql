@@ -192,7 +192,9 @@ public class SourceBuilderTest {
     when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
+    when(streamsBuilder.table(anyString(), any(Consumed.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
+    when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
     when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
@@ -292,7 +294,27 @@ public class SourceBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToSourceTable() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
+
+    // When:
+    final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
+
+    // Then:
+    assertThat(builtKTable.getTable(), is(kTable));
+    final InOrder validator = inOrder(streamsBuilder, kTable);
+    validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
+    validator.verify(kTable).mapValues(any(ValueMapper.class), any(Materialized.class));
+    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldApplyCorrectTransformationsToSourceTableWithoutForcingChangelog() {
+    // Given:
+    givenUnwindowedSourceTable(false);
 
     // When:
     final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
@@ -302,16 +324,18 @@ public class SourceBuilderTest {
     final InOrder validator = inOrder(streamsBuilder, kTable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed), any());
     validator.verify(kTable, never()).mapValues(any(ValueMapper.class));
+    validator.verify(kTable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
     validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
   }
 
+
   @Test
   public void shouldUseOffsetResetEarliestForTable() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
 
     // When
     tableSource.build(planBuilder);
@@ -338,7 +362,7 @@ public class SourceBuilderTest {
     when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(
         ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
     ));
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
 
     // When
     tableSource.build(planBuilder);
@@ -362,7 +386,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldReturnCorrectSchemaForUnwindowedSourceTable() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
 
     // When:
     final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
@@ -464,7 +488,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldAddRowTimeAndRowKeyColumnsToNonWindowedTable() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
         getTransformerFromTableSource(tableSource);
 
@@ -635,7 +659,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldBuildTableWithCorrectStoreName() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
 
     // When:
     tableSource.build(planBuilder);
@@ -705,7 +729,7 @@ public class SourceBuilderTest {
     );
   }
 
-  private void givenUnwindowedSourceTable() {
+  private void givenUnwindowedSourceTable(final Boolean forceChangelog) {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
@@ -713,7 +737,8 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        Optional.of(forceChangelog)
     );
   }
 

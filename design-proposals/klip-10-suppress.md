@@ -1,6 +1,6 @@
 # KLIP 10 - Add Suppress To KSQL
 
-**Author**: agavra | 
+**Author**: agavra, nae701 | 
 **Release Target**: 5.5 | 
 **Status**: _In Discussion_ | 
 **Discussion**: _link to the design discussion PR_
@@ -50,9 +50,10 @@ value), and would send three emails when none should be sent.
 - Outline the features of suppress that need to be represented in KSQL
 - Syntax for suppress functionality
 - Grace periods for windows
+- Outline of potential implementation
 
 **Out of Scope**:
-- Outline of potential implementation
+-Future extensions such as designing syntax to implement buffered and rate control refinement
 
 ## Value/Return
 
@@ -123,7 +124,30 @@ this in one of three ways:
 This KLIP proposes to punt this discussion and choose the first option as it is backwards compatible
 with what exists today.
 
-   
+## Design
+#### Adding syntax
+The first thing to do is add support for the keyword `EMIT FINAL` as described in the above discussion.
+As stated above, this KLIP goes on to use the first definition in determining whether a query is persistent
+push, or pull. We updated the grammar and the `AstBuilder` to incorporate this new syntax.
+
+#### Adding a suppress node
+Other Kafka streams operations such as filter or aggregate for example each have their own node in the logical plan,
+so the most natural thing to do was to also add a `SuppressNode` to the logical plan.
+We only build the `SuppressNode` if the result materialization was specified in the KSQL query as `EMIT FINAL`. 
+A key use case of suppress is to only send the final 
+aggregation result of each window, so the suppress node needs to be added at the end of the logical 
+plan right before we build the output node, so that previous steps such as `aggregate` and `groupby` 
+are executed first when we generate the physical plan.
+
+#### Adding the streams suppress operator
+After adding the suppress node to the logical plan, we can then build and execute the physical plan.
+This means we add the corresponding `suppress` method to `SchemaKTable`. This method requires 
+creating a new `ExecutionStep` called `TableSuppress` and the corresponding builder `TableSuppressBuilder`.
+Inside `TableSuppressBuilder` is where we will actually call the Streams API's actual suppress operator.
+All of this is initiated by calling `visitTableSuppress` in `KSPlanBuilder`.
+
+
+  
 ## Test plan
 
 - Add corresponding QTTs will cover this functionality 

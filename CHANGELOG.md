@@ -9,7 +9,7 @@
 * make sure old query stream doesn't block on close ([#5730](https://github.com/confluentinc/ksql/pull/5730)) ([663a67b](https://github.com/confluentinc/ksql/commit/663a67b0078d8d97fecdf7cbaa5c7c5d80b434d2))
 * query w/ scoped all columns, join and where clause ([#5684](https://github.com/confluentinc/ksql/pull/5684)) ([304eb0c](https://github.com/confluentinc/ksql/commit/304eb0c48530068c02839f216aca0f71fc84f7ca))
 * support CASE statements returning NULL ([#5703](https://github.com/confluentinc/ksql/pull/5703)) ([5062942](https://github.com/confluentinc/ksql/commit/506294245d83dc741e8da3046a584e47c7b05a99))
-* explode() doesn't return null on keyless stream ([#5761](https://github.com/confluentinc/ksql/pull/5761)) ([190f9e2](https://github.com/confluentinc/ksql/commit/190f9e265a6360c6308cc4e39a378e12e9ad1cbb))
+* UDTF don't return null on keyless stream ([#5761](https://github.com/confluentinc/ksql/pull/5761)) ([190f9e2](https://github.com/confluentinc/ksql/commit/190f9e265a6360c6308cc4e39a378e12e9ad1cbb))
 
 ## [0.10.0](https://github.com/confluentinc/ksql/releases/tag/v0.10.0-ksqldb) (2020-06-25)
 

@@ -58,7 +58,6 @@ nav:
     - Create a Stream: developer-guide/create-a-stream.md
     - Create a Table: developer-guide/create-a-table.md
     - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
-    - Implement a User-defined Function (UDF, UDAF, and UDTF): developer-guide/implement-a-udf.md
     - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
     - Example Queries: tutorials/examples.md
     - Test and Debug:
@@ -72,6 +71,7 @@ nav:
       - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
       - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
       - Use connector management: how-to-guides/use-connector-management.md
+      - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:
@@ -166,6 +166,9 @@ plugins:
     - search
     - git-revision-date # Must come before the macros plugin
     - macros
+    - redirects:
+        redirect_maps:
+            developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
 
 extra:
     site:

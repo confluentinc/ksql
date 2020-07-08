@@ -138,7 +138,7 @@ public class WindowingIntTest {
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
     assertTableCanBeUsedAsSource(expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT, 4, resultStream0, resultStream1);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT, 5, resultStream0, resultStream1);
   }
 
   @Test

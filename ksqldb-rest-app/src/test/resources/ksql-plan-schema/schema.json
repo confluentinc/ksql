@@ -671,6 +671,9 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "forceChangelog" : {
+          "type" : "boolean"
         }
       },
       "title" : "tableSourceV1",

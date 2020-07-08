@@ -294,8 +294,25 @@ public final class SourceBuilder {
       final Function<K, Collection<?>> keyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
   ) {
-    final KTable<K, GenericRow> table = queryBuilder.getStreamsBuilder()
-        .table(streamSource.getTopicName(), consumed, materialized);
+    final boolean forceChangelog = streamSource instanceof TableSource
+        && ((TableSource) streamSource).isForceChangelog();
+
+    final KTable<K, GenericRow> table;
+    if (!forceChangelog) {
+      table = queryBuilder
+          .getStreamsBuilder()
+          .table(streamSource.getTopicName(), consumed, materialized);
+    } else {
+      final KTable<K, GenericRow> source = queryBuilder
+          .getStreamsBuilder()
+          .table(streamSource.getTopicName(), consumed);
+      // add this identity mapValues call to prevent the source-changelog
+      // optimization in kafka streams - we don't want this optimization to
+      // be enabled because we cannot require symmetric serialization between
+      // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
+      // and https://github.com/confluentinc/ksql/issues/5673 for more details)
+      table = source.mapValues(row -> row, materialized);
+    }
 
     return table
         .transformValues(new AddKeyAndTimestampColumns<>(keyGenerator));

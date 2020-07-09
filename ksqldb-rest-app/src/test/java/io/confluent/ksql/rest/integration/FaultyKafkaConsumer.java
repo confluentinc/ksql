@@ -10,14 +10,18 @@ import org.apache.kafka.common.TopicPartition;
 public class FaultyKafkaConsumer<K, V> implements ConsumerInterceptor<K, V> {
   public FaultyKafkaConsumer() {}
 
-  public boolean isDisabled() {
+  public boolean isPaused() {
     return false;
   }
 
   @Override
   public ConsumerRecords<K, V> onConsume(ConsumerRecords<K, V> consumerRecords) {
-    if (isDisabled()) {
-      return ConsumerRecords.empty();
+    while (isPaused()) {
+      try {
+        Thread.sleep(200);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
     }
     return consumerRecords;
   }
@@ -35,38 +39,38 @@ public class FaultyKafkaConsumer<K, V> implements ConsumerInterceptor<K, V> {
   }
 
   public static class FaultyKafkaConsumer0<K, V> extends FaultyKafkaConsumer<K, V> {
-    private static Supplier<Boolean> DISABLE = () -> false;
+    private static Supplier<Boolean> PAUSE = () -> false;
 
-    public static void setDisable(Supplier<Boolean> disable) {
-      DISABLE = disable;
+    public static void setPause(Supplier<Boolean> pause) {
+      PAUSE = pause;
     }
 
-    public boolean isDisabled() {
-      return DISABLE.get();
+    public boolean isPaused() {
+      return PAUSE.get();
     }
   }
 
   public static class FaultyKafkaConsumer1<K, V> extends FaultyKafkaConsumer<K, V> {
-    private static Supplier<Boolean> DISABLE = () -> false;
+    private static Supplier<Boolean> PAUSE = () -> false;
 
-    public static void setDisable(Supplier<Boolean> disable) {
-      DISABLE = disable;
+    public static void setPause(Supplier<Boolean> pause) {
+      PAUSE = pause;
     }
 
-    public boolean isDisabled() {
-      return DISABLE.get();
+    public boolean isPaused() {
+      return PAUSE.get();
     }
   }
 
   public static class FaultyKafkaConsumer2<K, V> extends FaultyKafkaConsumer<K, V> {
-    private static Supplier<Boolean> DISABLE = () -> false;
+    private static Supplier<Boolean> PAUSE = () -> false;
 
-    public static void setDisable(Supplier<Boolean> disable) {
-      DISABLE = disable;
+    public static void setPause(Supplier<Boolean> pause) {
+      PAUSE = pause;
     }
 
-    public boolean isDisabled() {
-      return DISABLE.get();
+    public boolean isPaused() {
+      return PAUSE.get();
     }
   }
 }

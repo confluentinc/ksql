@@ -240,17 +240,17 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
     final String policy = getTopicConfig(topicName)
-        .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "");
+        .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "")
+        .toLowerCase();
 
-    switch (policy) {
-      case "compact":
-        return TopicCleanupPolicy.COMPACT;
-      case "delete":
-        return TopicCleanupPolicy.DELETE;
-      case "compact+delete":
-        return TopicCleanupPolicy.COMPACT_DELETE;
-      default:
-        throw new KsqlException("Could not get the topic configs for : " + topicName);
+    if (policy.equals("compact")) {
+      return TopicCleanupPolicy.COMPACT;
+    } else if (policy.equals("delete")) {
+      return TopicCleanupPolicy.DELETE;
+    } else if (policy.contains("compact") && policy.contains("delete")) {
+      return TopicCleanupPolicy.COMPACT_DELETE;
+    } else {
+      throw new KsqlException("Could not get the topic configs for : " + topicName);
     }
   }
 

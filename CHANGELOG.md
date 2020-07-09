@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.10.1](https://github.com/confluentinc/ksql/releases/tag/v0.10.1-ksqldb) (2020-07-08)
+## [0.10.1](https://github.com/confluentinc/ksql/releases/tag/v0.10.1-ksqldb) (2020-07-09)
 
 ### Bug Fixes
 

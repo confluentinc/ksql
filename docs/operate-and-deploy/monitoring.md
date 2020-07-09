@@ -57,7 +57,7 @@ With respect to monitoring, here it what this does:
   and you can set these however you like.
 
 - Port `1099` is exposed, which corresponds to the JMX port set in the
-  `KSQL_JMX_OPTS` configuration. This allows remote monitoring tools
+  `KSQL_JMX_OPTS` configuration. This enables remote monitoring tools
   to communicate into ksqlDB's process.
 
 ## Verifying your monitoring setup

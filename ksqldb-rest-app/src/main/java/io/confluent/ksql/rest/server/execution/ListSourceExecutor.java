@@ -27,9 +27,9 @@ import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
-import io.confluent.ksql.rest.entity.PartitionLag;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -293,28 +293,28 @@ public final class ListSourceExecutor {
     return sourceConsumerOffsets;
   }
 
-  private static List<PartitionLag> partitionLags(
+  private static List<ConsumerPartitionOffsets> partitionLags(
       final TopicDescription topicDescription,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
       final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
-    final List<PartitionLag> partitionLags = new ArrayList<>();
+    final List<ConsumerPartitionOffsets> consumerPartitionOffsets = new ArrayList<>();
     for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
       final TopicPartition tp = new TopicPartition(topicDescription.name(),
           topicPartitionInfo.partition());
       final ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
       final ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
       final OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
-      partitionLags.add(
-          new PartitionLag(
+      consumerPartitionOffsets.add(
+          new ConsumerPartitionOffsets(
               topicPartitionInfo.partition(),
               startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
               endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
               offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
           ));
     }
-    return partitionLags;
+    return consumerPartitionOffsets;
   }
 
   private static String getQueryApplicationId(

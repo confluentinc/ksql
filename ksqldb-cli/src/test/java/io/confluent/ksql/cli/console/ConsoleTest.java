@@ -67,7 +67,7 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
-import io.confluent.ksql.rest.entity.PartitionLag;
+import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -1184,8 +1184,8 @@ public class ConsoleTest {
                         "consumer1",
                         "kadka-topic",
                         ImmutableList.of(
-                            new PartitionLag(0, 100, 900, 800),
-                            new PartitionLag(1, 50, 900, 900)
+                            new ConsumerPartitionOffsets(0, 100, 900, 800),
+                            new ConsumerPartitionOffsets(1, 50, 900, 900)
                         ))
                 )),
             Collections.emptyList()
@@ -1258,7 +1258,7 @@ public class ConsoleTest {
           + "    \"queryOffsetSummary\" : [ {" + NEWLINE
           + "      \"groupId\" : \"consumer1\"," + NEWLINE
           + "      \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
-          + "      \"partitionLags\" : [ {" + NEWLINE
+          + "      \"offsets\" : [ {" + NEWLINE
           + "        \"partition\" : 0," + NEWLINE
           + "        \"logStartOffset\" : 100," + NEWLINE
           + "        \"logEndOffset\" : 900," + NEWLINE

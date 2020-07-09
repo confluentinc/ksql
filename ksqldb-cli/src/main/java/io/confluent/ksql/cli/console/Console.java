@@ -633,7 +633,7 @@ public class Console implements Closeable {
       writer().println(String.format("%-20s : %s",
           "Kafka topic", queryOffsetSummary.getKafkaTopic()));
       writer().println(String.format("%-20s : %s",
-          "Max lag", queryOffsetSummary.getPartitionLags().stream()
+          "Max lag", queryOffsetSummary.getOffsets().stream()
               .mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
               .max()
               .orElse(-1)));
@@ -641,7 +641,7 @@ public class Console implements Closeable {
       final Table taskTable = new Table.Builder()
           .withColumnHeaders(
               ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
-          .withRows(queryOffsetSummary.getPartitionLags()
+          .withRows(queryOffsetSummary.getOffsets()
               .stream()
               .map(offset -> ImmutableList.of(
                   String.valueOf(offset.getPartition()),

@@ -26,18 +26,18 @@ import java.util.Objects;
 public class QueryOffsetSummary {
   private final String groupId;
   private final String kafkaTopic;
-  private final List<PartitionLag> partitionLags;
+  private final List<ConsumerPartitionOffsets> offsets;
 
   @JsonCreator
   public QueryOffsetSummary(
       @JsonProperty("groupId") final String groupId,
       @JsonProperty("kafkaTopic") final String kafkaTopic,
-      @JsonProperty("partitionLags") final List<PartitionLag> partitionLags
+      @JsonProperty("offsets") final List<ConsumerPartitionOffsets> offsets
   ) {
     this.groupId = groupId;
     this.kafkaTopic = kafkaTopic;
-    this.partitionLags =
-        ImmutableList.copyOf(Objects.requireNonNull(partitionLags, "partitionLags"));
+    this.offsets =
+        ImmutableList.copyOf(Objects.requireNonNull(offsets, "offsets"));
   }
 
   public String getGroupId() {
@@ -48,8 +48,8 @@ public class QueryOffsetSummary {
     return kafkaTopic;
   }
 
-  public List<PartitionLag> getPartitionLags() {
-    return partitionLags;
+  public List<ConsumerPartitionOffsets> getOffsets() {
+    return offsets;
   }
 
   @Override
@@ -63,11 +63,11 @@ public class QueryOffsetSummary {
     final QueryOffsetSummary that = (QueryOffsetSummary) o;
     return Objects.equals(groupId, that.groupId)
         && Objects.equals(kafkaTopic, that.kafkaTopic)
-        && Objects.equals(partitionLags, that.partitionLags);
+        && Objects.equals(offsets, that.offsets);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupId, kafkaTopic, partitionLags);
+    return Objects.hash(groupId, kafkaTopic, offsets);
   }
 }

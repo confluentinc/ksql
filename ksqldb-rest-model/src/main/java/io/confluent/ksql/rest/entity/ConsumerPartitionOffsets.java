@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PartitionLag {
+public class ConsumerPartitionOffsets {
 
   private final int partition;
   private final long logStartOffset;
@@ -29,7 +29,7 @@ public class PartitionLag {
   private final long consumerOffset;
 
   @JsonCreator
-  public PartitionLag(
+  public ConsumerPartitionOffsets(
       @JsonProperty("partition") final int partition,
       @JsonProperty("logStartOffset") final long logStartOffset,
       @JsonProperty("logEndOffset") final long logEndOffset,
@@ -65,7 +65,7 @@ public class PartitionLag {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final PartitionLag that = (PartitionLag) o;
+    final ConsumerPartitionOffsets that = (ConsumerPartitionOffsets) o;
     return partition == that.partition
         && logStartOffset == that.logStartOffset
         && logEndOffset == that.logEndOffset

@@ -8,18 +8,17 @@ which help you monitor what is happening inside of ksqlDB's servers. A
 comprehensive [set of metrics](../reference/metrics.md) are published, including number of rows
 processed, throughput, throughput distribution, and error rate.
 
-## Enabling monitoring
+## Enable monitoring
 
 You must explictly enable monitoring on each ksqlDB server. To enable
 it in a Docker-based deployment, export an environment variable named
 `KSQL_JMX_OPTS` with your JMX configuration and expose the port that
 JMX will communicate over.
 
-To illustrate how that should look, take a look at this Docker Compose
-snippet. This is an example of how ksqlDB server can be configured for
-monitoring. The surrounding components, like the broker and CLI, are
-omitted for brevity. You can see an example of a complete setup in the
-[quickstart](https://ksqldb.io/quickstart.html).
+The following Docker Compose example shows how you can configure
+monitoring for ksqlDB server. The surrounding components, like the
+broker and CLI, are omitted for brevity. You can see an example of a
+complete setup in the [quickstart](https://ksqldb.io/quickstart.html).
 
 ```yaml
 ksqldb-server:

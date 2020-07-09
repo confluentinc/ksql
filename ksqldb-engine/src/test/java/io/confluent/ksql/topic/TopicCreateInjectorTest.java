@@ -345,7 +345,7 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of());
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE));
   }
 
   @Test
@@ -362,7 +362,7 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of());
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE));
   }
 
   @Test
@@ -401,7 +401,7 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
-  public void shouldCreateMissingTopicWithDefaultCleanupPolicyForWindowedTables() {
+  public void shouldCreateMissingTopicWithCompactAndDeleteCleanupPolicyForWindowedTables() {
     // Given:
     givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
         + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS);");
@@ -415,7 +415,8 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of());
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG,
+            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE));
   }
 
   @Test

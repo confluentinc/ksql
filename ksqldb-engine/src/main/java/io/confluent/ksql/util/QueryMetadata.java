@@ -61,7 +61,6 @@ public abstract class QueryMetadata {
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
   private final QueryId queryId;
-  private final QueryError[] queryErrorRef = new QueryError[]{null};
   private final QueryErrorClassifier errorClassifier;
   private final Set<QueryError> queryErrors = new HashSet<>();
 
@@ -118,6 +117,22 @@ public abstract class QueryMetadata {
     this.sourceNames = other.sourceNames;
     this.logicalSchema = other.logicalSchema;
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
+    this.closeTimeout = other.closeTimeout;
+    this.queryId = other.queryId;
+    this.errorClassifier = other.errorClassifier;
+  }
+
+  protected QueryMetadata(final QueryMetadata other, final KafkaStreams kafkaStreams) {
+    this.statementString = other.statementString;
+    this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
+    this.executionPlan = other.executionPlan;
+    this.queryApplicationId = other.queryApplicationId;
+    this.topology = other.topology;
+    this.streamsProperties = other.streamsProperties;
+    this.overriddenProperties = other.overriddenProperties;
+    this.sourceNames = other.sourceNames;
+    this.logicalSchema = other.logicalSchema;
+    this.closeCallback = other.closeCallback;
     this.closeTimeout = other.closeTimeout;
     this.queryId = other.queryId;
     this.errorClassifier = other.errorClassifier;

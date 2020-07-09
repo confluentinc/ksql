@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
@@ -46,13 +47,18 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+
+import org.apache.kafka.streams.KafkaClientSupplier;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.Topology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -250,6 +256,39 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return statement instanceof ExecutableDdlStatement
         || statement instanceof QueryContainer
         || statement instanceof Query;
+  }
+
+  /**
+   * Resets a query internal KafkaStreams so it can be restarted.
+   * </p>
+   * When a KafkaStreams has been stopped, it cannot be started again. To allow a restart,
+   * the rest creates a new new KafkaStreams with the same topology and configs.
+   *
+   * @param queryId the queryId to reset.
+   */
+  public void resetQuery(final QueryId queryId) {
+    if (primaryContext.getPersistentQueries().containsKey(queryId)) {
+      final PersistentQueryMetadata query = primaryContext.getPersistentQueries().get(queryId);
+      if (query.getState() != State.NOT_RUNNING) {
+        throw new IllegalStateException(
+            String.format("Cannot reset query with application id: %s because is in %s state",
+                query.getQueryApplicationId(), query.getState()));
+      }
+
+      // Unregister the query to replace it with a new PersistentQueryMetadata
+      primaryContext.unregisterQuery(query);
+      // this.unregisterQuery() is called from withing primaryContext.unregisterQuery()
+
+      final Topology topology = query.getTopology();
+      final Properties props = PropertiesUtil.asProperties(query.getStreamsProperties());
+      final KafkaClientSupplier clientSupplier = getServiceContext().getKafkaClientSupplier();
+      final KafkaStreams kafkaStreams = new KafkaStreams(topology, props, clientSupplier);
+      final PersistentQueryMetadata newQuery = query.copyWith(kafkaStreams);
+
+      // Registers the  new PersistentQueryMetadata that has a new KafkaStreams
+      primaryContext.registerQuery(newQuery);
+      this.registerQuery(newQuery);
+    }
   }
 
   private void registerQuery(final QueryMetadata query) {

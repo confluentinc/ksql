@@ -111,8 +111,25 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.physicalPlan = other.physicalPlan;
   }
 
+  private PersistentQueryMetadata(
+      final PersistentQueryMetadata other,
+      final KafkaStreams kafkaStreams
+  ) {
+    super(other, kafkaStreams);
+    this.resultTopic = other.resultTopic;
+    this.sinkName = other.sinkName;
+    this.schemas = other.schemas;
+    this.resultSchema = other.resultSchema;
+    this.materializationProvider = other.materializationProvider;
+    this.dataSourceType = other.dataSourceType;
+  }
+
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
     return new PersistentQueryMetadata(this, closeCallback);
+  }
+
+  public PersistentQueryMetadata copyWith(final KafkaStreams kafkaStreams) {
+    return new PersistentQueryMetadata(this, kafkaStreams);
   }
 
   public DataSourceType getDataSourceType() {

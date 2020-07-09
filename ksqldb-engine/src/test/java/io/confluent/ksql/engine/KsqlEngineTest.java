@@ -81,6 +81,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.streams.KafkaStreams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -130,6 +131,53 @@ public class KsqlEngineTest {
   public void closeEngine() {
     ksqlEngine.close();
     serviceContext.close();
+  }
+
+  @Test
+  public void shouldResetQueryInNotRunningState() {
+    // Given:
+    final QueryMetadata oldQuery = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table bar as select * from test2;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    ).get(0);
+    oldQuery.stop();
+
+    // When:
+    ksqlEngine.resetQuery(oldQuery.getQueryId());
+    final QueryMetadata newQuery = ksqlEngine.getPersistentQueries().get(0);
+
+    // Then:
+    assertThat(oldQuery.getState(), is(KafkaStreams.State.NOT_RUNNING));
+    assertThat(newQuery.getQueryId(), is(oldQuery.getQueryId()));
+    assertThat(newQuery.getTopology(), is(oldQuery.getTopology()));
+    assertThat(newQuery.getState(), is(KafkaStreams.State.CREATED));
+    assertThat(newQuery.getStreamsProperties(), is(oldQuery.getStreamsProperties()));
+  }
+
+  @Test
+  public void shouldNotResetQueryNotInNotRunningState() {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table bar as select * from test2;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    ).get(0);
+
+    // When:
+    final Exception e = assertThrows(
+        IllegalStateException.class,
+        () -> ksqlEngine.resetQuery(query.getQueryId())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot reset query with application id: "
+            + "_confluent-ksql-default_query_CTAS_BAR_0 because is in CREATED state"));
   }
 
   @Test

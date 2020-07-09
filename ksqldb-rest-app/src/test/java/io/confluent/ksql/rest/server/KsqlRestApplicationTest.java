@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryMonitor;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
@@ -132,6 +133,8 @@ public class KsqlRestApplicationTest {
   private LagReportingAgent lagReportingAgent;
   @Mock
   private EndpointResponse response;
+  @Mock
+  private QueryMonitor queryMonitor;
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
@@ -218,6 +221,15 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
+  public void shouldCloseQueryMonitorOnClose() {
+    // When:
+    app.triggerShutdown();
+
+    // then:
+    verify(queryMonitor).close();
+  }
+
+  @Test
   public void shouldAddConfigurableMetricsReportersIfPresentInKsqlConfig() {
     // When:
     final MetricsReporter mockReporter = mock(MetricsReporter.class);
@@ -301,6 +313,15 @@ public class KsqlRestApplicationTest {
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
+  }
+
+  @Test
+  public void shouldStartQueryMonitor() {
+    // When:
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    verify(queryMonitor).start();
   }
 
   @Test
@@ -473,7 +494,8 @@ public class KsqlRestApplicationTest {
         pullQueryExecutor,
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),
-        vertx
+        vertx,
+        queryMonitor
     );
   }
 

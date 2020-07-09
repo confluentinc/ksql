@@ -81,7 +81,6 @@ CHANGES | FINAL
 And behaves in the following ways:
 - If `CHANGES` is specified, then all intermediate changes will be materialized
 - If `FINAL` is specified, then output will be emitted only when the aggregation window has closed
-    - the `AFTER` clause allows the user to specify the grace period as part of the syntax
     
 Since the default grace period in Kafka Streams is 24 hours, the default `EMIT FINAL` behavior will
 only omit data 24 hours after the query starts. Since this is unlikely to be good user experience,
@@ -145,6 +144,35 @@ This means we add the corresponding `suppress` method to `SchemaKTable`. This me
 creating a new `ExecutionStep` called `TableSuppress` and the corresponding builder `TableSuppressBuilder`.
 Inside `TableSuppressBuilder` is where we will actually call the Streams API's actual suppress operator.
 All of this is initiated by calling `visitTableSuppress` in `KSPlanBuilder`.
+
+#### Alternatives
+An alternate approach was to add suppression wherever we might need it, for example in the `AggregateNode`.
+However, this approach does not allow for much flexibility in terms of future enhancements or different
+types of suppression. Instead, by introducing a suppress node, we give ourselves the flexibility to 
+perform suppression on not only aggregations on windowed tables, but for instance time-based suppression
+that could work on any table. 
+
+A brief overview of what it would look like to add time-based suppression is as follows. 
+
+1. Add a keyword such as `WAIT` to the syntax to indicate how long to suppress results for
+2. We can add a parameter to the `SuppressNode` to indicate what type of suppression we are performing 
+whether it is windowed or timed or any future type of suppression we add.
+3. Since we can just use the existing wiring in place, all we would need to do is add a new section
+in `TableSuppressBuilder` that executes the time-based suppression.
+
+If we did not use a suppress node, we would have to add a lot more code to add different types of suppression
+since each would need to be wired individually.
+
+#### Trouble spots
+A problem that often came up during the prototype implementation of suppress, was that by the time we
+had reached the suppress node, the correct serdes were not being passed along properly. This was because
+any time we had called the method `transformValues` on a `KTable`, unless we had explicitly specified
+a `materialized` with the correctly made serdes. This led us on a bit of goose chase where we tried to
+find the last `transformValues` call before suppression, until Almog suggested that we just have a dummy
+`transformValues` call in `TableSuppressBuilder` itself so that we can guarantee that we pass on the correct
+serdes. This solution is efficient in this case since it was easy to implement, but as a result does not help fix
+the larger issue of serdes being passed on correctly, which may happen again as more functionality is 
+added to ksqlDB.  
 
 
   

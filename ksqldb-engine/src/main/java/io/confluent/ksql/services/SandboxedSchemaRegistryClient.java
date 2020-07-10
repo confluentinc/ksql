@@ -40,6 +40,9 @@ final class SandboxedSchemaRegistryClient {
     return LimitedProxyBuilder.forClass(SchemaRegistryClient.class)
         .swallow("register", anyParams(), 123)
         .forward("getAllSubjects", methodParams(), delegate)
+        .forward("getAllVersions", methodParams(String.class), delegate)
+        .forward("getByVersion", methodParams(String.class, int.class, boolean.class), delegate)
+        .forward("getSchemaById", methodParams(int.class), delegate)
         .forward("getLatestSchemaMetadata", methodParams(String.class), delegate)
         .forward("getSchemaBySubjectAndId", methodParams(String.class, int.class), delegate)
         .forward("testCompatibility",

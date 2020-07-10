@@ -63,6 +63,9 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("testCompatibility", String.class, ParsedSchema.class)
           .ignore("deleteSubject", String.class)
           .ignore("getAllSubjects")
+          .ignore("getAllVersions", String.class)
+          .ignore("getByVersion", String.class, int.class, boolean.class)
+          .ignore("getSchemaById", int.class)
           .build();
     }
 

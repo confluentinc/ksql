@@ -30,7 +30,12 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -48,13 +53,18 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -87,6 +97,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
@@ -170,6 +181,12 @@ public class SourceBuilderTest {
   private Materialized<Object, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private SchemaRegistryClient srClient;
+  @Mock
+  private KafkaTopicClient topicClient;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
@@ -200,6 +217,10 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
+    when(queryBuilder.getServiceContext()).thenReturn(serviceContext);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(topicClient.isTopicExists(any())).thenReturn(false);
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
@@ -666,6 +687,51 @@ public class SourceBuilderTest {
 
     // Then:
     verify(materializationFactory).create(keySerde, valueSerde, "base-Reduce");
+  }
+
+  @Test
+  public void shouldRegisterSourceSchemaOnChangelogTopicWhenChangelogIsNotForced() throws IOException, RestClientException {
+    // Given:
+    final ParsedSchema mockSchema = mock(ParsedSchema.class);
+    final String sourceSubject = TOPIC_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+    when(queryBuilder.getKsqlConfig())
+        .thenReturn(KSQL_CONFIG.cloneWithPropertyOverwrite(
+            ImmutableMap.of(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "localhost:1234")));
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("ID"));
+    when(srClient.getAllVersions(sourceSubject)).thenReturn(ImmutableList.of(1));
+    when(srClient.getByVersion(sourceSubject, 1, false))
+        .thenReturn(new io.confluent.kafka.schemaregistry.client.rest.entities.Schema(sourceSubject, 1, 1, null, null, "schema"));
+    when(srClient.getSchemaById(1)).thenReturn(mockSchema);
+    when(srClient.getAllSubjects()).thenReturn(ImmutableSet.of(sourceSubject));
+    givenUnwindowedSourceTable(false);
+
+    // When:
+    tableSource.build(planBuilder);
+
+    // Then:
+    verify(srClient).register("_confluent-ksql-default_query_ID-base-Reduce-changelog-value", mockSchema);
+  }
+
+  @Test
+  public void shouldNotRegisterSourceSchemaOnChangelogTopicWhenChangelogIsNotForcedButChangelogSubjectExists()
+      throws IOException, RestClientException
+  {
+    // Given:
+    final String sourceSubject = TOPIC_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+    final String changelogTopic = "_confluent-ksql-default_query_ID-base-Reduce-changelog";
+    when(queryBuilder.getKsqlConfig())
+        .thenReturn(KSQL_CONFIG.cloneWithPropertyOverwrite(
+            ImmutableMap.of(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "localhost:1234")));
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("ID"));
+    when(srClient.getAllSubjects()).thenReturn(ImmutableSet.of(sourceSubject));
+    when(topicClient.isTopicExists(changelogTopic)).thenReturn(true);
+    givenUnwindowedSourceTable(false);
+
+    // When:
+    tableSource.build(planBuilder);
+
+    // Then:
+    verify(srClient, Mockito.never()).register(anyString(), any(ParsedSchema.class));
   }
 
   @SuppressWarnings("unchecked")

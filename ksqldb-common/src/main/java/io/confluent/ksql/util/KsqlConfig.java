@@ -64,7 +64,8 @@ public class KsqlConfig extends AbstractConfig {
   static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
 
-  public static final String METRIC_REPORTER_CLASSES_CONFIG = "ksql.metric.reporters";
+  public static final String METRIC_REPORTER_CLASSES_CONFIG =
+      CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG;
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;

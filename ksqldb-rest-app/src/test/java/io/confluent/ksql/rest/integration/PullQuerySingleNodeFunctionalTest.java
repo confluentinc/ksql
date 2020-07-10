@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -335,7 +336,7 @@ public class PullQuerySingleNodeFunctionalTest {
       for (Path path : children) {
         Files.walk(path)
             .map(Path::toFile)
-            .sorted((o1, o2) -> -o1.compareTo(o2))
+            .sorted(Comparator.reverseOrder())
             .forEach(File::delete);
       }
 

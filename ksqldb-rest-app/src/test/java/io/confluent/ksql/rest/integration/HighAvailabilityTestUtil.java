@@ -307,26 +307,23 @@ class HighAvailabilityTestUtil {
   // there's just one state store.
   static BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean>
   lagsReported(
-      final int clusterSize,
       final KsqlHostInfoEntity server,
       final Optional<Long> currentOffset,
       final long endOffset
   ) {
     return (remote, clusterStatus) -> {
-      if (clusterStatus.size() == clusterSize) {
-        HostStatusEntity hostStatusEntity = clusterStatus.get(server);
-        if (hostStatusEntity == null) {
-          LOG.info("Didn't find {}", server.toString());
-          return false;
-        }
-        Pair<Long, Long> pair = getOffsets(server,clusterStatus);
-        long current = pair.left;
-        long end = pair.right;
-        if ((!currentOffset.isPresent() || current >= currentOffset.get()) && end >= endOffset) {
-          LOG.info("Found expected end offset {} for {}: {}", endOffset, server,
-              clusterStatus.toString());
-          return true;
-        }
+      HostStatusEntity hostStatusEntity = clusterStatus.get(server);
+      if (hostStatusEntity == null) {
+        LOG.info("Didn't find {}", server.toString());
+        return false;
+      }
+      Pair<Long, Long> pair = getOffsets(server,clusterStatus);
+      long current = pair.left;
+      long end = pair.right;
+      if ((!currentOffset.isPresent() || current >= currentOffset.get()) && end >= endOffset) {
+        LOG.info("Found expected current offset {} end offset {} for {}: {}", current, endOffset,
+            server, clusterStatus.toString());
+        return true;
       }
       LOG.info("Didn't yet find expected end offset {} for {}: {}", endOffset, server,
           clusterStatus.toString());

@@ -358,7 +358,7 @@ public class PullQueryRoutingFunctionalTest {
 
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
-        HighAvailabilityTestUtil.lagsReported(3, clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil.lagsReported(clusterFormation.standBy.getHost(),
             Optional.empty(), 5));
 
     // Cut off standby from Kafka to simulate lag
@@ -376,7 +376,7 @@ public class PullQueryRoutingFunctionalTest {
     // Make sure that the lags get reported before we kill active
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
-        HighAvailabilityTestUtil.lagsReported(3, clusterFormation.active.getHost(), Optional.empty(),
+        HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.empty(),
             10));
 
     // Partition active off

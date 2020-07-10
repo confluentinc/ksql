@@ -209,7 +209,7 @@ public class PullQuerySingleNodeFunctionalTest {
   public void restoreAfterClearState() throws Exception {
     waitForStreamsMetadataToInitialize(REST_APP_0, ImmutableList.of(host0), queryId);
     waitForRemoteServerToChangeStatus(REST_APP_0, host0, HighAvailabilityTestUtil
-        .lagsReported(1, host0, Optional.empty(), 5));
+        .lagsReported(host0, Optional.empty(), 5));
 
     // When:
     final List<StreamedRow> rows_0 = makePullQueryRequest(
@@ -238,7 +238,7 @@ public class PullQuerySingleNodeFunctionalTest {
 
     waitForStreamsMetadataToInitialize(REST_APP_0, ImmutableList.of(host0), queryId);
     waitForRemoteServerToChangeStatus(REST_APP_0, host0, HighAvailabilityTestUtil
-        .lagsReported(1, host0, Optional.of(2L), 5));
+        .lagsReported(host0, Optional.of(2L), 5));
 
     ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil
         .sendClusterStatusRequest(REST_APP_0);
@@ -265,7 +265,7 @@ public class PullQuerySingleNodeFunctionalTest {
     APP_SHUTOFFS_0.setKafkaPauseOffset(-1);
 
     waitForRemoteServerToChangeStatus(REST_APP_0, host0, HighAvailabilityTestUtil
-        .lagsReported(1, host0, Optional.of(5L), 5));
+        .lagsReported(host0, Optional.of(5L), 5));
 
     clusterStatusResponse = HighAvailabilityTestUtil
         .sendClusterStatusRequest(REST_APP_0);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.util.KsqlException;
 
 public final class TableSuppressBuilder {
 
@@ -26,6 +27,6 @@ public final class TableSuppressBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table
   ) {
-    return table;
+    throw new KsqlException("EMIT FINAL is not yet supported");
   }
 }

@@ -17,17 +17,27 @@ package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import java.util.Collections;
 import java.util.Objects;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+
+import io.confluent.ksql.util.KsqlException;
 
 
-
-public class SuppressNode extends SingleSourcePlanNode {
+/**
+ The suppress node is a plan node that is added to the logical plan if the user specifies in their
+ ksqlDB query that the result materialization should be EMIT FINAL. The physical plan is then built
+ and executed using the logical plan, and executes all of the plan nodes that were added from the
+ logical plan including the suppress node if it was added. Currently the suppress node needs to be
+ added at the end of the logical plan right before we build the output node, this is so that we can
+ suppress results that may need to be aggregated or altered somehow. Using a suppress node also
+ allows for more flexibility in the future in terms of enhancements or different types of
+ suppression being supported.
+ */
+public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode {
 
   private final ResultMaterialization resultMaterialization;
 
@@ -55,13 +65,12 @@ public class SuppressNode extends SingleSourcePlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
     final SchemaKStream<?> schemaKStream = getSource().buildStream(
-        builder.withKsqlConfig(builder.getKsqlConfig()
-            .cloneWithPropertyOverwrite(Collections.singletonMap(
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
+        builder.withKsqlConfig(builder.getKsqlConfig())
     );
 
     if (!(schemaKStream instanceof SchemaKTable)) {
-      throw new RuntimeException("Expected to find a Table, found a stream instead.");
+      throw new KsqlException("Failed to build suppress node. Expected to find a Table, but "
+          + "found a stream named " + schemaKStream.toString() + " instead.");
     }
 
     return (((SchemaKTable<?>) schemaKStream)
@@ -69,5 +78,9 @@ public class SuppressNode extends SingleSourcePlanNode {
             resultMaterialization,
             contextStacker
         ));
+  }
+
+  @Override
+  public void validateKeyPresent(final SourceName sinkName) {
   }
 }

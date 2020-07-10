@@ -140,7 +140,8 @@ public class LogicalPlanner {
       currentNode = buildUserProjectNode(currentNode);
     }
 
-    if (analysis.getResultMaterialization().get() == ResultMaterialization.FINAL) {
+    if (analysis.getResultMaterialization().isPresent()
+        && analysis.getResultMaterialization().get() == ResultMaterialization.FINAL) {
       currentNode = buildSuppressNode(currentNode, analysis.getResultMaterialization().get());
     }
 

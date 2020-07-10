@@ -32,10 +32,12 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
+import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -132,6 +134,17 @@ public class LogicalPlannerTest {
     assertThat(rightSource.getSources().get(0), instanceOf(RepartitionNode.class));
   }
 
+  @Test
+  public void testSimpleSuppressLogicalPlan() {
+    final String simpleQuery = "SELECT * FROM test2 EMIT FINAL;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    assertThat(logicalPlan.getSources().get(0), instanceOf(SuppressNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(ProjectNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0), instanceOf(DataSourceNode.class));
+    assertThat(logicalPlan.getSchema().value().size(), equalTo( 5));
+    Assert.assertNotNull(((SuppressNode) logicalPlan.getSources().get(0)).getResultMaterialization());
+  }
   private static SelectExpression selectCol(final String column, final String alias) {
     return SelectExpression.of(
         ColumnName.of(alias),
@@ -282,6 +295,13 @@ public class LogicalPlannerTest {
   @Test
   public void shouldCreateTableOutputForTableTableJoin() {
     final String simpleQuery = "SELECT * FROM TEST2 INNER JOIN TEST3 ON TEST2.COL0=TEST3.COL0 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
+  }
+
+  @Test
+  public void shouldCreateTableOutputForTableSuppress() {
+    final String simpleQuery =  "SELECT * FROM test2 EMIT FINAL;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }

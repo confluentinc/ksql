@@ -303,6 +303,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_METASTORE_BACKUP_LOCATION_DOC = "Specify the directory where "
       + "KSQL metastore backup files are located.";
 
+  public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
+  public static final String KSQL_SUPPRESS_ENABLED_DOC =
+      "Feature flag for suppression, specifically EMIT FINAL";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -703,6 +708,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_METASTORE_BACKUP_LOCATION_DEFAULT,
             Importance.LOW,
             KSQL_METASTORE_BACKUP_LOCATION_DOC
+        )
+        .define(
+            KSQL_SUPPRESS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_SUPPRESS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_SUPPRESS_ENABLED_DOC
         )
         .withClientSslSupport();
 

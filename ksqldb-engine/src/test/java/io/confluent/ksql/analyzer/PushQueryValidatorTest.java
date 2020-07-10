@@ -59,18 +59,13 @@ public class PushQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnContinuousQueryThatIsFinal() {
+  public void shouldNotThrowOnContinuousQueryThatIsFinal() {
     // Given:
     when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.FINAL));
 
-    // When:
-    final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> validator.validate(analysis)
-    );
+    // When/Then:
+    validator.validate(analysis);
 
-    // Then:
-    assertThat(e.getMessage(), containsString("Push queries don't support `EMIT FINAL`."));
   }
 
   @Test

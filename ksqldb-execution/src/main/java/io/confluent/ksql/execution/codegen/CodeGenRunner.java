@@ -101,7 +101,8 @@ public class CodeGenRunner {
       final String javaCode = SqlToJavaVisitor.of(
           schema,
           functionRegistry,
-          spec
+          spec,
+          ksqlConfig
       ).process(expression);
 
       final IExpressionEvaluator ee =

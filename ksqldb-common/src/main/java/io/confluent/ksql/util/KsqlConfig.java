@@ -215,8 +215,10 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
       + "queries. Once the limit is hit, queries will fail immediately";
 
-  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
-      = ImmutableList.of();
+  public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.string.case.toggle";
+  public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
+      "When casting a SQLType to string, if false, use String.valueof(), else if true use"
+          + "Objects.toString()";
 
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
       "ksql.streams.shutdown.timeout.ms";
@@ -293,6 +295,17 @@ public class KsqlConfig extends AbstractConfig {
     LEGACY,
     CURRENT
   }
+
+  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
+      = ImmutableList.of(new CompatibilityBreakingConfigDef(
+          KSQL_STRING_CASE_CONFIG_TOGGLE,
+          Type.BOOLEAN,
+          false,
+          true,
+          Importance.LOW,
+          Optional.empty(),
+          KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
+      ));
 
   public static class CompatibilityBreakingConfigDef {
 

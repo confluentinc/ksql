@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -262,6 +264,23 @@ class HighAvailabilityTestUtil {
             return null;
           })
           .get();
+    }
+  }
+
+  private static class Shutoffs {
+    private final AtomicBoolean ksqlOutgoing = new AtomicBoolean(false);
+    private final AtomicBoolean kafkaIncoming = new AtomicBoolean(false);
+    private final AtomicInteger kafkaPauseAfterNextN = new AtomicInteger(-1);
+
+    public void shutOffAll() {
+      ksqlOutgoing.set(true);
+      kafkaIncoming.set(true);
+    }
+
+    public void reset() {
+      ksqlOutgoing.set(false);
+      kafkaIncoming.set(false);
+      kafkaPauseAfterNextN.set(-1);
     }
   }
 }

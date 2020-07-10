@@ -255,7 +255,7 @@ public class PullQueryRoutingFunctionalTest {
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsExist(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
 
     waitForRemoteServerToChangeStatus(
         clusterFormation.standBy.getApp(),
@@ -282,7 +282,7 @@ public class PullQueryRoutingFunctionalTest {
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsExist(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
 
     // Partition off the standby
     clusterFormation.standBy.getShutoffs().shutOffAll();
@@ -314,7 +314,7 @@ public class PullQueryRoutingFunctionalTest {
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsExist(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
 
     // Partition off the active
     clusterFormation.active.getShutoffs().shutOffAll();
@@ -346,7 +346,7 @@ public class PullQueryRoutingFunctionalTest {
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsExist(3));
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.active.getHost(),
@@ -358,7 +358,8 @@ public class PullQueryRoutingFunctionalTest {
 
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
-        HighAvailabilityTestUtil.lagsExist(3, clusterFormation.standBy.getHost(), -1, 5));
+        HighAvailabilityTestUtil.lagsReported(3, clusterFormation.standBy.getHost(),
+            Optional.empty(), 5));
 
     // Cut off standby from Kafka to simulate lag
     clusterFormation.standBy.getShutoffs().setKafkaPauseOffset(0);
@@ -375,7 +376,8 @@ public class PullQueryRoutingFunctionalTest {
     // Make sure that the lags get reported before we kill active
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
-        HighAvailabilityTestUtil.lagsExist(3, clusterFormation.active.getHost(), -1, 10));
+        HighAvailabilityTestUtil.lagsReported(3, clusterFormation.active.getHost(), Optional.empty(),
+            10));
 
     // Partition active off
     clusterFormation.active.getShutoffs().shutOffAll();

@@ -279,10 +279,10 @@ class HighAvailabilityTestUtil {
     return matcher.group(1);
   }
 
-  // Ensures that lags exist for the cluster.  Makes the simplified assumption that there's just one
-  // state store.
+  // Ensures that lags have been reported for the cluster.  Makes the simplified assumption that
+  // there's just one state store.
   static BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean>
-  lagsExist(
+  lagsReported(
       final int expectedClusterSize
   ) {
     return (remoteServer, clusterStatus) -> {
@@ -303,13 +303,13 @@ class HighAvailabilityTestUtil {
     };
   }
 
-  // Ensures that lags exist for the given host.  Makes the simplified assumption that there's just
-  // one state store.
+  // Ensures that lags have been reported for the given host.  Makes the simplified assumption that
+  // there's just one state store.
   static BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean>
-  lagsExist(
+  lagsReported(
       final int clusterSize,
       final KsqlHostInfoEntity server,
-      final long currentOffset,
+      final Optional<Long> currentOffset,
       final long endOffset
   ) {
     return (remote, clusterStatus) -> {
@@ -322,7 +322,7 @@ class HighAvailabilityTestUtil {
         Pair<Long, Long> pair = getOffsets(server,clusterStatus);
         long current = pair.left;
         long end = pair.right;
-        if ((currentOffset < 0 || current >= currentOffset) && end >= endOffset) {
+        if ((!currentOffset.isPresent() || current >= currentOffset.get()) && end >= endOffset) {
           LOG.info("Found expected end offset {} for {}: {}", endOffset, server,
               clusterStatus.toString());
           return true;

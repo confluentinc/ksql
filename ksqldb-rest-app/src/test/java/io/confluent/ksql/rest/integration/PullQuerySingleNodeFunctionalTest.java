@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.getOffsets;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.lagsExist;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
@@ -117,9 +116,7 @@ public class PullQuerySingleNodeFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TemporaryFolder TMP = new TemporaryFolder();
   private static final int INT_PORT_0 = TestUtils.findFreeLocalPort();
-  private static final int INT_PORT_1 = TestUtils.findFreeLocalPort();
   private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", INT_PORT_0);
-  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", INT_PORT_1);
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
 
   @Rule
@@ -211,7 +208,8 @@ public class PullQuerySingleNodeFunctionalTest {
   @Test
   public void restoreAfterClearState() throws Exception {
     waitForStreamsMetadataToInitialize(REST_APP_0, ImmutableList.of(host0), queryId);
-    waitForRemoteServerToChangeStatus(REST_APP_0, host0, lagsExist(1, host0, -1, 5));
+    waitForRemoteServerToChangeStatus(REST_APP_0, host0, HighAvailabilityTestUtil
+        .lagsReported(1, host0, Optional.empty(), 5));
 
     // When:
     final List<StreamedRow> rows_0 = makePullQueryRequest(
@@ -226,6 +224,7 @@ public class PullQuerySingleNodeFunctionalTest {
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
 
     // Stop the server and blow away the state
+    LOG.info("Shutting down the server " + host0.toString());
     REST_APP_0.stop();
     String stateDir = (String)REST_APP_0.getBaseConfig()
         .get(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG);
@@ -234,10 +233,12 @@ public class PullQuerySingleNodeFunctionalTest {
     // Pause incoming kafka consumption
     APP_SHUTOFFS_0.setKafkaPauseOffset(2);
 
+    LOG.info("Restarting the server " + host0.toString());
     REST_APP_0.start();
 
     waitForStreamsMetadataToInitialize(REST_APP_0, ImmutableList.of(host0), queryId);
-    waitForRemoteServerToChangeStatus(REST_APP_0, host0, lagsExist(1, host0, 2, 5));
+    waitForRemoteServerToChangeStatus(REST_APP_0, host0, HighAvailabilityTestUtil
+        .lagsReported(1, host0, Optional.of(2L), 5));
 
     ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil
         .sendClusterStatusRequest(REST_APP_0);
@@ -263,7 +264,8 @@ public class PullQuerySingleNodeFunctionalTest {
     // Unpause incoming kafka consumption. We then expect active to catch back up.
     APP_SHUTOFFS_0.setKafkaPauseOffset(-1);
 
-    waitForRemoteServerToChangeStatus(REST_APP_0, host0, lagsExist(1, host0, 5, 5));
+    waitForRemoteServerToChangeStatus(REST_APP_0, host0, HighAvailabilityTestUtil
+        .lagsReported(1, host0, Optional.of(5L), 5));
 
     clusterStatusResponse = HighAvailabilityTestUtil
         .sendClusterStatusRequest(REST_APP_0);
@@ -324,6 +326,7 @@ public class PullQuerySingleNodeFunctionalTest {
   }
 
   private static void clearDir(String stateDir) {
+    LOG.info("Deleting tmp dir " + stateDir);
     try {
       List<Path> children = Files.list(Paths.get(stateDir)).collect(Collectors.toList());
       for (Path path : children) {

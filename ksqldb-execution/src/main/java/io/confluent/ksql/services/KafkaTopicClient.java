@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
-import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartition;
@@ -208,13 +207,11 @@ public interface KafkaTopicClient {
       OffsetSpec offsetSpec
   );
 
-  default Map<TopicPartition, Long> listTopicsStartOffsets(
-      Collection<String> topicNames) {
+  default Map<TopicPartition, Long> listTopicsStartOffsets(Collection<String> topicNames) {
     return listTopicsOffsets(topicNames, OffsetSpec.earliest());
   }
 
-  default Map<TopicPartition, Long> listTopicsEndOffsets(
-      Collection<String> topicName) {
+  default Map<TopicPartition, Long> listTopicsEndOffsets(Collection<String> topicName) {
     return listTopicsOffsets(topicName, OffsetSpec.latest());
   }
 }

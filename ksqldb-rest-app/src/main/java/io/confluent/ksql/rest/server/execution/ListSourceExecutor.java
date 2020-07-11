@@ -218,13 +218,13 @@ public final class ListSourceExecutor {
     final List<RunningQuery> sinkQueries = getQueries(ksqlEngine,
         q -> q.getSinkName().equals(dataSource.getName()));
 
-    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescriptionOptional =
+    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
         Optional.empty();
     List<QueryOffsetSummary> sourceConsumerOffsets = new ArrayList<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
-        topicDescriptionOptional = Optional.of(
+        topicDescription = Optional.of(
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName()));
         sourceConsumerOffsets = offsetsSummary(ksqlConfig, serviceContext, sinkQueries);
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
@@ -239,7 +239,7 @@ public final class ListSourceExecutor {
             extended,
             sourceQueries,
             sinkQueries,
-            topicDescriptionOptional,
+            topicDescription,
             sourceConsumerOffsets
         )
     );

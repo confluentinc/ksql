@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf;
 
+import io.confluent.ksql.function.FunctionCategory;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -54,9 +55,20 @@ public @interface UdfDescription {
   String description();
 
   /**
+   * The category or type of the function.
+   *
+   * <p>
+   * This text is used to group functions displayed when the user calls {@code SHOW FUNCTIONS ...}.
+   *
+   * @return function category.
+   */
+  FunctionCategory category() default FunctionCategory.OTHER;
+
+  /**
    * The author of the function.
    *
-   * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   * <p>
+   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
    *
    * @return function author.
    */

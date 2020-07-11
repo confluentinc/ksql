@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -29,6 +30,7 @@ import java.util.List;
 
 @UdfDescription(
     name = "extractjsonfield",
+    category = FunctionCategory.JSON,
     description = "Given a STRING that contains JSON data, extract the value at the specified "
         + " JSONPath or NULL if the specified path does not exist.")
 public class JsonExtractString {

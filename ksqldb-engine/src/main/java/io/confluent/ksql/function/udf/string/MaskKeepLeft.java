@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -22,6 +23,7 @@ import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
     name = MaskKeepLeft.NAME,
+    category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns a version of the input string with all but the"
         + " specified number of left-most characters masked out."

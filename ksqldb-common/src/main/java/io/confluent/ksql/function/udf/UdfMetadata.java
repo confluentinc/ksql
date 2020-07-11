@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf;
 
+import io.confluent.ksql.function.FunctionCategory;
 import java.util.Objects;
 
 public class UdfMetadata {
@@ -23,17 +24,20 @@ public class UdfMetadata {
   private final String author;
   private final String version;
   private final String path;
+  private final FunctionCategory category;
 
   public UdfMetadata(final String name,
                      final String description,
                      final String author,
                      final String version,
+                     final FunctionCategory category,
                      final String path
   ) {
     this.name = Objects.requireNonNull(name, "name cant be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
     this.author = Objects.requireNonNull(author, "author can't be null");
     this.version = Objects.requireNonNull(version, "version can't be null");
+    this.category = Objects.requireNonNull(category, "category can't be null");
     this.path = Objects.requireNonNull(path, "path can't be null");
   }
 
@@ -57,6 +61,10 @@ public class UdfMetadata {
     return path;
   }
 
+  public FunctionCategory getCategory() {
+    return category;
+  }
+
   @Override
   public String toString() {
     return "UdfMetadata{"
@@ -64,7 +72,8 @@ public class UdfMetadata {
         + ", description='" + description + '\''
         + ", author='" + author + '\''
         + ", version='" + version + '\''
-        + ", path='" + path + "'"
+        + ", path='" + path + '\''
+        + ", category='" + category.name() + "'"
         + '}';
   }
 
@@ -81,11 +90,12 @@ public class UdfMetadata {
         && Objects.equals(description, that.description)
         && Objects.equals(author, that.author)
         && Objects.equals(version, that.version)
-        && Objects.equals(path, that.path);
+        && Objects.equals(path, that.path)
+        && Objects.equals(category, that.category);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, description, author, version, path);
+    return Objects.hash(name, description, author, version, path, category);
   }
 }

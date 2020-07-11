@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.map;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -26,6 +27,7 @@ import java.util.stream.Stream;
 
 @UdfDescription(
     name = "map_union",
+    category = FunctionCategory.MAP,
     description = "Returns a new map containing the union of all entries from both input maps. "
         + "If a key is present in both input maps then the value from map2 is the one which "
         + "appears in the result. Returns NULL if all of the input maps are NULL.")

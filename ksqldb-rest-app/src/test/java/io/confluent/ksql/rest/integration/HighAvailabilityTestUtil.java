@@ -15,16 +15,20 @@
 
 package io.confluent.ksql.rest.integration;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.Pair;
 import java.util.List;
 import java.util.Map;
@@ -382,6 +386,31 @@ class HighAvailabilityTestUtil {
       return kafkaPauseOffset.get();
     }
 
+  }
+
+  public static void makeAdminRequest(TestKsqlRestApp restApp, final String sql) {
+    RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
+  }
+
+  public static List<KsqlEntity> makeAdminRequestWithResponse(
+      TestKsqlRestApp restApp, final String sql) {
+    return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
+  }
+
+  public static List<StreamedRow> makePullQueryRequest(
+      final TestKsqlRestApp target,
+      final String sql
+  ) {
+    return makePullQueryRequest(target, sql, null);
+  }
+
+  public static List<StreamedRow> makePullQueryRequest(
+      final TestKsqlRestApp target,
+      final String sql,
+      final Map<String, ?> properties
+  ) {
+    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(),
+        properties, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
   }
 }
 

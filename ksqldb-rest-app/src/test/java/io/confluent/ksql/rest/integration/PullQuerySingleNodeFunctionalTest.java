@@ -16,6 +16,9 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.getOffsets;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
@@ -48,7 +51,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.File;
@@ -126,7 +128,7 @@ public class PullQuerySingleNodeFunctionalTest {
   @Rule
   public final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir(TMP))
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_0)
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_0)
@@ -294,27 +296,9 @@ public class PullQuerySingleNodeFunctionalTest {
     return matcher.group(1);
   }
 
-  private static void makeAdminRequest(TestKsqlRestApp restApp, final String sql) {
-    RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
-  }
-
-  private static List<KsqlEntity> makeAdminRequestWithResponse(
-      TestKsqlRestApp restApp, final String sql) {
-    return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
-  }
-
-  private static List<StreamedRow> makePullQueryRequest(
-      final TestKsqlRestApp target,
-      final String sql,
-      final Map<String, ?> properties
-  ) {
-    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(),
-        properties, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
-  }
-
-  private static String getNewStateDir(TemporaryFolder tmp) {
+  private static String getNewStateDir() {
     try {
-      return tmp.newFolder().getAbsolutePath();
+      return TMP.newFolder().getAbsolutePath();
     } catch (final IOException e) {
       throw new AssertionError("Failed to create new state dir", e);
     }

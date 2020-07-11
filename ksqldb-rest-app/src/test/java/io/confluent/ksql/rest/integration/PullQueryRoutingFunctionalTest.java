@@ -16,6 +16,9 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
@@ -53,7 +56,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;
@@ -409,32 +411,6 @@ public class PullQueryRoutingFunctionalTest {
     Assert.assertEquals(40001, errorMessage.getErrorCode());
     Assert.assertTrue(
         errorMessage.getMessage().contains("All nodes are dead or exceed max allowed lag."));
-  }
-
-  private static List<StreamedRow> makePullQueryRequest(
-      final TestKsqlRestApp target,
-      final String sql
-  ) {
-    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(),
-        null, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
-  }
-
-  private static void makeAdminRequest(TestKsqlRestApp restApp, final String sql) {
-    RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
-  }
-
-  private static List<KsqlEntity> makeAdminRequestWithResponse(
-      TestKsqlRestApp restApp, final String sql) {
-    return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
-  }
-
-  private static List<StreamedRow> makePullQueryRequest(
-      final TestKsqlRestApp target,
-      final String sql,
-      final Map<String, ?> properties
-  ) {
-    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(),
-        properties, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
   }
 
   private static KsqlErrorMessage makePullQueryRequestWithError(

@@ -97,7 +97,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
     } catch (final GroupAuthorizationException e) {
       throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
     } catch (final Exception e) {
-      throw new KafkaResponseGetFailedException("Failed to retrieve Kafka consumer groups", e);
+      throw new KafkaResponseGetFailedException("Failed to list Kafka consumer groups offsets", e);
     }
   }
 }

@@ -61,7 +61,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
@@ -274,9 +273,9 @@ public final class ListSourceExecutor {
     // Get topics descriptions and start/end offsets
     final Map<String, TopicDescription> sourceTopicDescriptions =
         serviceContext.getTopicClient().describeTopics(allTopics);
-    final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets =
+    final Map<TopicPartition, Long> topicAndStartOffsets =
         serviceContext.getTopicClient().listTopicsStartOffsets(allTopics);
-    final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets =
+    final Map<TopicPartition, Long> topicAndEndOffsets =
         serviceContext.getTopicClient().listTopicsEndOffsets(allTopics);
     // Build consumer offsets summary
     for (Entry<String, Set<String>> entry : topicsPerQuery.entrySet()) {
@@ -297,33 +296,26 @@ public final class ListSourceExecutor {
 
   private static List<ConsumerPartitionOffsets> consumerPartitionOffsets(
       final TopicDescription topicDescription,
-      final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
-      final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,
+      final Map<TopicPartition, Long> topicAndStartOffsets,
+      final Map<TopicPartition, Long> topicAndEndOffsets,
       final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
   ) {
     final List<ConsumerPartitionOffsets> consumerPartitionOffsets = new ArrayList<>();
     for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
       final TopicPartition tp = new TopicPartition(topicDescription.name(),
           topicPartitionInfo.partition());
-      final ListOffsetsResultInfo startOffsetResultInfo = topicAndStartOffsets.get(tp);
-      final ListOffsetsResultInfo endOffsetResultInfo = topicAndEndOffsets.get(tp);
+      final Long startOffsetResultInfo = topicAndStartOffsets.get(tp);
+      final Long endOffsetResultInfo = topicAndEndOffsets.get(tp);
       final OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
       consumerPartitionOffsets.add(
           new ConsumerPartitionOffsets(
               topicPartitionInfo.partition(),
-              startOffsetResultInfo != null ? startOffsetResultInfo.offset() : 0,
-              endOffsetResultInfo != null ? endOffsetResultInfo.offset() : 0,
+              startOffsetResultInfo,
+              endOffsetResultInfo,
               offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
           ));
     }
     return consumerPartitionOffsets;
-  }
-
-  private static String getQueryApplicationId(
-      final String serviceId,
-      final String queryPrefix,
-      final QueryId queryId) {
-    return serviceId + queryPrefix + queryId;
   }
 
   private static List<RunningQuery> getQueries(

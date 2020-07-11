@@ -31,7 +31,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
-import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
@@ -200,7 +199,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<TopicPartition, ListOffsetsResultInfo> listTopicsOffsets(Collection<String> topicNames,
+  public Map<TopicPartition, Long> listTopicsOffsets(Collection<String> topicNames,
       OffsetSpec offsetSpec) {
     return Collections.emptyMap();
   }

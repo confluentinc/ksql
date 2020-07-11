@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
@@ -158,12 +157,12 @@ final class SandboxedKafkaTopicClient {
         .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
   }
 
-  private Map<TopicPartition, ListOffsetsResultInfo> listTopicsStartOffsets(
+  private Map<TopicPartition, Long> listTopicsStartOffsets(
       final Collection<String> topics) {
     return delegate.listTopicsStartOffsets(topics);
   }
 
-  private Map<TopicPartition, ListOffsetsResultInfo> listTopicsEndOffsets(
+  private Map<TopicPartition, Long> listTopicsEndOffsets(
       final Collection<String> topics) {
     return delegate.listTopicsEndOffsets(topics);
   }

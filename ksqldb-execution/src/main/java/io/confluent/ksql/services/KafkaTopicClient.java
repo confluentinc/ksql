@@ -203,17 +203,17 @@ public interface KafkaTopicClient {
    */
   void deleteInternalTopics(String applicationId);
 
-  Map<TopicPartition, ListOffsetsResultInfo> listTopicsOffsets(
+  Map<TopicPartition, Long> listTopicsOffsets(
       Collection<String> topicNames,
       OffsetSpec offsetSpec
   );
 
-  default Map<TopicPartition, ListOffsetsResultInfo> listTopicsStartOffsets(
+  default Map<TopicPartition, Long> listTopicsStartOffsets(
       Collection<String> topicNames) {
     return listTopicsOffsets(topicNames, OffsetSpec.earliest());
   }
 
-  default Map<TopicPartition, ListOffsetsResultInfo> listTopicsEndOffsets(
+  default Map<TopicPartition, Long> listTopicsEndOffsets(
       Collection<String> topicName) {
     return listTopicsOffsets(topicName, OffsetSpec.latest());
   }

@@ -33,7 +33,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
-import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
@@ -183,7 +182,7 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<TopicPartition, ListOffsetsResultInfo> listTopicsOffsets(
+  public Map<TopicPartition, Long> listTopicsOffsets(
       final Collection<String> topicNames,
       final OffsetSpec offsetSpec) {
     return Collections.emptyMap();

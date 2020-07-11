@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -47,7 +48,6 @@ import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
-import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -335,7 +335,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public Map<TopicPartition, ListOffsetsResultInfo> listTopicsOffsets(
+  public Map<TopicPartition, Long> listTopicsOffsets(
       final Collection<String> topicNames,
       final OffsetSpec offsetSpec
   ) {
@@ -348,7 +348,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
             .collect(Collectors.toMap(tp -> tp, tp -> offsetSpec));
     try {
       return ExecutorUtil.executeWithRetries(
-          () -> adminClient.get().listOffsets(offsetsRequest).all().get(),
+          () -> adminClient.get().listOffsets(offsetsRequest).all().get()
+              .entrySet()
+              .stream()
+              .collect(Collectors.toMap(
+                  Entry::getKey,
+                  entry -> entry.getValue().offset())),
           RetryBehaviour.ON_RETRYABLE);
     } catch (final TopicAuthorizationException e) {
       throw new KsqlTopicAuthorizationException(AclOperation.DESCRIBE, e.unauthorizedTopics());

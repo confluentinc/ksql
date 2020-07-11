@@ -48,7 +48,7 @@ public class SourceDescription {
   private final int partitions;
   private final int replication;
   private final String statement;
-  private final List<QueryOffsetSummary> queryOffsetSummary;
+  private final List<QueryOffsetSummary> queryOffsetSummaries;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -69,7 +69,7 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
-      @JsonProperty("queryOffsetSummary") final List<QueryOffsetSummary> queryOffsetSummary) {
+      @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
@@ -90,8 +90,8 @@ public class SourceDescription {
     this.partitions = partitions;
     this.replication = replication;
     this.statement = Objects.requireNonNull(statement, "statement");
-    this.queryOffsetSummary = Collections.unmodifiableList(
-            Objects.requireNonNull(queryOffsetSummary, "queryOffsetSummary"));
+    this.queryOffsetSummaries = Collections.unmodifiableList(
+            Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
   }
 
   public String getStatement() {
@@ -158,8 +158,8 @@ public class SourceDescription {
     return errorStats;
   }
 
-  public List<QueryOffsetSummary> getQueryOffsetSummary() {
-    return queryOffsetSummary;
+  public List<QueryOffsetSummary> getQueryOffsetSummaries() {
+    return queryOffsetSummaries;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -189,7 +189,7 @@ public class SourceDescription {
         && Objects.equals(valueFormat, that.valueFormat)
         && Objects.equals(topic, that.topic)
         && Objects.equals(statement, that.statement)
-        && Objects.equals(queryOffsetSummary, that.queryOffsetSummary);
+        && Objects.equals(queryOffsetSummaries, that.queryOffsetSummaries);
   }
 
   @Override
@@ -211,7 +211,7 @@ public class SourceDescription {
         partitions,
         replication,
         statement,
-        queryOffsetSummary
+        queryOffsetSummaries
     );
   }
 }

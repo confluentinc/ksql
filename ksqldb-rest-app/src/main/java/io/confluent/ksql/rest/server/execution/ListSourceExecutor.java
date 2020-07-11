@@ -72,7 +72,8 @@ import org.apache.kafka.common.TopicPartitionInfo;
 public final class ListSourceExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private ListSourceExecutor() { }
+  private ListSourceExecutor() {
+  }
 
   private static Optional<KsqlEntity> sourceDescriptionList(
       final ConfiguredStatement<?> statement,
@@ -225,8 +226,9 @@ public final class ListSourceExecutor {
     if (extended) {
       try {
         topicDescription = Optional.of(
-            serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName()));
-        sourceConsumerOffsets = offsetsSummary(ksqlConfig, serviceContext, sinkQueries);
+            serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
+        );
+        sourceConsumerOffsets = offsetSummaries(ksqlConfig, serviceContext, sinkQueries);
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
@@ -245,7 +247,7 @@ public final class ListSourceExecutor {
     );
   }
 
-  private static List<QueryOffsetSummary> offsetsSummary(
+  private static List<QueryOffsetSummary> offsetSummaries(
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final List<RunningQuery> sinkQueries
@@ -283,7 +285,7 @@ public final class ListSourceExecutor {
             new QueryOffsetSummary(
                 entry.getKey(),
                 topic,
-                partitionLags(
+                consumerPartitionOffsets(
                     sourceTopicDescriptions.get(topic),
                     topicAndStartOffsets,
                     topicAndEndOffsets,
@@ -293,7 +295,7 @@ public final class ListSourceExecutor {
     return sourceConsumerOffsets;
   }
 
-  private static List<ConsumerPartitionOffsets> partitionLags(
+  private static List<ConsumerPartitionOffsets> consumerPartitionOffsets(
       final TopicDescription topicDescription,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndStartOffsets,
       final Map<TopicPartition, ListOffsetsResultInfo> topicAndEndOffsets,

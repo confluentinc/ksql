@@ -626,7 +626,7 @@ public class Console implements Closeable {
         "Statistics of the local KSQL server interaction with the Kafka topic "
             + source.getTopic()
     ));
-    for (QueryOffsetSummary queryOffsetSummary : source.getQueryOffsetSummary()) {
+    for (QueryOffsetSummary queryOffsetSummary : source.getQueryOffsetSummaries()) {
       writer().println();
       writer().println(String.format("%-20s : %s",
           "Consumer Group", queryOffsetSummary.getGroupId()));

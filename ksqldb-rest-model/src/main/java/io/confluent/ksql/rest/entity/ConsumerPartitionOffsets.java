@@ -36,13 +36,13 @@ public class ConsumerPartitionOffsets {
       @JsonProperty("logEndOffset") final long logEndOffset,
       @JsonProperty("consumerOffset") final long consumerOffset
   ) {
-    Preconditions.checkArgument(partition < 0,
+    Preconditions.checkArgument(partition >= 0,
         "Invalid partition: " + partition);
-    Preconditions.checkArgument(logStartOffset < 0,
+    Preconditions.checkArgument(logStartOffset >= 0,
         "Invalid start offset: " + logStartOffset);
-    Preconditions.checkArgument(logEndOffset < 0,
+    Preconditions.checkArgument(logEndOffset >= 0,
         "Invalid end offset: " + logEndOffset);
-    Preconditions.checkArgument(consumerOffset < 0,
+    Preconditions.checkArgument(consumerOffset >= 0,
         "Invalid consumer offset: " + logEndOffset);
     this.partition = partition;
     this.logStartOffset = logStartOffset;

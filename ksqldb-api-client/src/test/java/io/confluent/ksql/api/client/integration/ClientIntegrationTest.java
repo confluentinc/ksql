@@ -41,6 +41,7 @@ import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.InsertsPublisher;
 import io.confluent.ksql.api.client.KsqlArray;
@@ -697,24 +698,29 @@ public class ClientIntegrationTest {
     verifyNumQueries(numInitialQueries);
 
     // When: create stream, start persistent query
-    client.executeStatement(csas).get();
+    final ExecuteStatementResult csasResult = client.executeStatement(csas).get();
 
     // Then
     verifyNumStreams(numInitialStreams + 1);
     verifyNumQueries(numInitialQueries + 1);
+    assertThat(csasResult.queryId(), is(Optional.of(findQueryIdForSink(streamName))));
 
     // When: terminate persistent query
-    final String queryId = findQueryIdForSink(streamName);
-    client.executeStatement("terminate " + queryId + ";");
+    final String queryId = csasResult.queryId().get();
+    final ExecuteStatementResult terminateResult =
+        client.executeStatement("terminate " + queryId + ";").get();
 
     // Then
     verifyNumQueries(numInitialQueries);
+    assertThat(terminateResult.queryId(), is(Optional.empty()));
 
     // When: drop stream
-    client.executeStatement("drop stream " + streamName + ";").get();
+    final ExecuteStatementResult dropStreamResult =
+        client.executeStatement("drop stream " + streamName + ";").get();
 
     // Then
     verifyNumStreams(numInitialStreams);
+    assertThat(dropStreamResult.queryId(), is(Optional.empty()));
   }
 
   @Test

@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.json.JsonObject;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 final class DdlDmlResponseHandlers {
@@ -33,14 +35,24 @@ final class DdlDmlResponseHandlers {
 
   static void handleExecuteStatementResponse(
       final JsonObject ksqlEntity,
-      final CompletableFuture<Void> cf
+      final CompletableFuture<ExecuteStatementResult> cf
   ) {
     if (!isCommandStatusEntity(ksqlEntity)) {
       handleUnexpectedEntity(ksqlEntity, cf);
       return;
     }
 
-    cf.complete(null);
+    try {
+      final JsonObject commandStatus = ksqlEntity.getJsonObject("commandStatus");
+      final Optional<String> queryId = commandStatus.getString("queryId") != null
+          ? Optional.of(commandStatus.getString("queryId"))
+          : Optional.empty();
+      cf.complete(new ExecuteStatementResultImpl(queryId));
+    } catch (Exception e) {
+      cf.completeExceptionally(new IllegalStateException(
+          "Unexpected server response format. Response: " + ksqlEntity
+      ));
+    }
   }
 
   static RuntimeException handleUnexpectedNumResponseEntities(final int numEntities) {
@@ -61,7 +73,7 @@ final class DdlDmlResponseHandlers {
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static void handleUnexpectedEntity(
       final JsonObject ksqlEntity,
-      final CompletableFuture<Void> cf) {
+      final CompletableFuture<ExecuteStatementResult> cf) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (AdminResponseHandlers.isListStreamsResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(

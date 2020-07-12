@@ -23,6 +23,7 @@ import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.StreamInfo;
@@ -193,14 +194,14 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public CompletableFuture<Void> executeStatement(final String sql) {
+  public CompletableFuture<ExecuteStatementResult> executeStatement(final String sql) {
     return executeStatement(sql, Collections.emptyMap());
   }
 
   @Override
-  public CompletableFuture<Void> executeStatement(
+  public CompletableFuture<ExecuteStatementResult> executeStatement(
       final String sql, final Map<String, Object> properties) {
-    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final CompletableFuture<ExecuteStatementResult> cf = new CompletableFuture<>();
 
     if (!validateExecuteStatementRequest(sql, cf)) {
       return cf;

@@ -215,7 +215,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
       + "queries. Once the limit is hit, queries will fail immediately";
 
-  public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.string.case.toggle";
+  public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
           + "Objects.toString()";

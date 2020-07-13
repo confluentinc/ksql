@@ -58,8 +58,7 @@ public @interface UdtfDescription {
   /**
    * The category or type of the table function.
    *
-   * <p>
-   * This text is used to group functions displayed when the user calls {@code SHOW FUNCTIONS ...}.
+   * <p>This text is used to group functions displayed when invoking {@code SHOW FUNCTIONS ...}.
    *
    * @return function category.
    */
@@ -68,8 +67,7 @@ public @interface UdtfDescription {
   /**
    * The author of the table function.
    *
-   * <p>
-   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
    *
    * @return function author.
    */

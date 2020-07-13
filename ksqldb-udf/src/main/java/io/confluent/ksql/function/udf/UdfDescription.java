@@ -57,8 +57,7 @@ public @interface UdfDescription {
   /**
    * The category or type of the function.
    *
-   * <p>
-   * This text is used to group functions displayed when the user calls {@code SHOW FUNCTIONS ...}.
+   * <p>This text is used to group functions displayed when invoking {@code SHOW FUNCTIONS ...}.
    *
    * @return function category.
    */
@@ -67,8 +66,7 @@ public @interface UdfDescription {
   /**
    * The author of the function.
    *
-   * <p>
-   * This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
+   * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
    *
    * @return function author.
    */

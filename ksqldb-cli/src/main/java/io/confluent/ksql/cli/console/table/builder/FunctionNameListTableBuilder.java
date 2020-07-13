@@ -33,10 +33,10 @@ public class FunctionNameListTableBuilder implements TableBuilder<FunctionNameLi
   @Override
   public Table buildTable(final FunctionNameList functionNameList) {
 
-    Builder builder = new Builder().withColumnHeaders(HEADERS);
+    final Builder builder = new Builder().withColumnHeaders(HEADERS);
 
     // poor mans version check for the case we are running against an older ksqlDB server
-    Iterator<SimpleFunctionInfo> funcs = functionNameList.getFunctions().iterator();
+    final Iterator<SimpleFunctionInfo> funcs = functionNameList.getFunctions().iterator();
     if (!funcs.hasNext() || funcs.next().getCategory().isEmpty()) {
       final Stream<List<String>> rows = functionNameList.getFunctions()
           .stream()

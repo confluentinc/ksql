@@ -28,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -713,7 +714,20 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldNotRegisterSourceSchemaOnChangelogTopicWhenChangelogIsNotForcedButChangelogSubjectExists()
+  public void shouldNotRegisterSourceSchemaOnChangelogTopicWhenSchemaRegistryIsDisabled() throws IOException, RestClientException {
+    // Given:
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("ID"));
+    givenUnwindowedSourceTable(false);
+
+    // When:
+    tableSource.build(planBuilder);
+
+    // Then:
+    verifyZeroInteractions(srClient);
+  }
+
+  @Test
+  public void shouldNotRegisterSourceSchemaOnChangelogTopicWhenChangelogTopicExists()
       throws IOException, RestClientException
   {
     // Given:

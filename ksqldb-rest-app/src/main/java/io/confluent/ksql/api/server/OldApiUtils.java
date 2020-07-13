@@ -17,7 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
-import static org.apache.http.HttpHeaders.TRANSFER_ENCODING;
+import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;

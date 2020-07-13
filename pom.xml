@@ -95,7 +95,7 @@
     <properties>
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
-        <apache.httpcomponents.version>4.5.9</apache.httpcomponents.version>
+        <apache.httpcomponents.version>5.0.1</apache.httpcomponents.version>
         <confluent.maven.repo>https://packages.confluent.io/maven/</confluent.maven.repo>
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <podam.version>6.0.2.RELEASE</podam.version>
@@ -390,12 +390,6 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-csv</artifactId>
                 <version>${csv.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>fluent-hc</artifactId>
-                <version>${apache.httpcomponents.version}</version>
             </dependency>
 
             <dependency>

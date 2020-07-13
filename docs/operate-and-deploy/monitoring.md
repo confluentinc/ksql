@@ -38,6 +38,7 @@ ksqldb-server:
     KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
     KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
     KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+    KSQL_KSQL_QUERY_PULL_METRICS_ENABLED: "true"
     KSQL_JMX_OPTS: >
       -Djava.rmi.server.hostname=localhost
       -Dcom.sun.management.jmxremote

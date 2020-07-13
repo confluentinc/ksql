@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.util.KeystoreUtil;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ClientAuth;
@@ -92,6 +93,10 @@ public class Server {
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
     this.maxPushQueryCount = config.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
+    if (!OpenSsl.isAvailable()) {
+      log.warn("OpenSSL does not appear to be installed. ksqlDB will fall back to using the JDK "
+          + "TLS implementation. OpenSSL is recommended for better performance.");
+    }
   }
 
   public synchronized void start() {

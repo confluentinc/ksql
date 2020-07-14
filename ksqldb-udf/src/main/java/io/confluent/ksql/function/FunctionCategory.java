@@ -15,6 +15,11 @@
 package io.confluent.ksql.function;
 
 public class FunctionCategory {
+
+  private FunctionCategory() {
+    // extra code for style adherence
+  }
+
   public static final String CONDITIONAL = "CONDITIONAL";
   public static final String MATHEMATICAL = "OTHER";
   public static final String STRING = "OTHER";

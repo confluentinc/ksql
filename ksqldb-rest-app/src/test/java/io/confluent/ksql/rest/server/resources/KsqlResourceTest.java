@@ -80,6 +80,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
@@ -462,9 +463,12 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(functionList.getFunctions(), hasItems(
-        new SimpleFunctionInfo("TRIM", FunctionType.SCALAR),
-        new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
-        new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE)
+        new SimpleFunctionInfo("TRIM", FunctionType.SCALAR, 
+            FunctionCategory.STRING),
+        new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE,
+            FunctionCategory.AGGREGATE),
+        new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE,
+            FunctionCategory.AGGREGATE)
     ));
   }
 

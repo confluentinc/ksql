@@ -388,7 +388,7 @@ public class InternalFunctionRegistryTest {
 
   private TableFunctionFactory createTableFunctionFactory() {
     return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
-        "", "", "", "")) {
+        "", "", "", FunctionCategory.OTHER, "")) {
       @Override
       public KsqlTableFunction createTableFunction(final List<SqlType> argTypeList) {
         return tableFunction;

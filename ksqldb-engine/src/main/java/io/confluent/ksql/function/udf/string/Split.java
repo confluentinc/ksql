@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.string;
 
 import com.google.common.base.Splitter;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -27,6 +28,7 @@ import java.util.regex.Pattern;
 
 @UdfDescription(
     name = Split.NAME,
+    category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Splits a string into an array of substrings based on a delimiter. "
         + "If the delimiter is found at the beginning of the string, end of the string, or there "

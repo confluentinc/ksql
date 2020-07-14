@@ -784,7 +784,7 @@ public class CliTest {
   @Test
   public void shouldListFunctions() {
     assertRunListCommand("functions", hasRows(
-        row("TIMESTAMPTOSTRING", "DATE_TIME"),
+        row("TIMESTAMPTOSTRING", "DATE / TIME"),
         row("EXTRACTJSONFIELD", "JSON"),
         row("TOPK", "AGGREGATE")
     ));

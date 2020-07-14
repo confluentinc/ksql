@@ -21,11 +21,11 @@ public final class FunctionCategory {
   }
 
   public static final String CONDITIONAL = "CONDITIONAL";
-  public static final String MATHEMATICAL = "OTHER";
-  public static final String STRING = "OTHER";
-  public static final String REGULAR_EXPRESSION = "OTHER";
-  public static final String JSON = "OTHER";
-  public static final String DATE_TIME = "OTHER";
+  public static final String MATHEMATICAL = "MATHEMATICAL";
+  public static final String STRING = "STRING";
+  public static final String REGULAR_EXPRESSION = "REGULAR EXPRESSION";
+  public static final String JSON = "JSON";
+  public static final String DATE_TIME = "DATE / TIME";
   public static final String ARRAY = "ARRAY";
   public static final String MAP = "MAP";
   public static final String URL = "URL";

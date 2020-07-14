@@ -14,8 +14,8 @@
 
 package io.confluent.ksql.function.udf;
 
+import static io.confluent.ksql.function.FunctionCategory.MAP;
 import static io.confluent.ksql.function.FunctionCategory.OTHER;
-import static io.confluent.ksql.function.FunctionCategory.STRING;
 
 import com.google.common.testing.EqualsTester;
 import org.junit.Test;
@@ -32,7 +32,7 @@ public class UdfMetadataTest {
         .addEqualityGroup(new UdfMetadata("name", "DIF", "auth", "ver", OTHER, "path"))
         .addEqualityGroup(new UdfMetadata("name", "desc", "DIF", "ver", OTHER, "path"))
         .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "DIF", OTHER, "path"))
-        .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "ver", STRING, "path"))
+        .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "ver", MAP, "path"))
         .addEqualityGroup(new UdfMetadata("name", "desc", "auth", "ver", OTHER, "DIF"))
         .testEquals();
   }

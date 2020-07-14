@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.function;
 
-public class FunctionCategory {
+public final class FunctionCategory {
 
   private FunctionCategory() {
     // extra code for style adherence

@@ -464,11 +464,11 @@ public class KsqlResourceTest {
     // Then:
     assertThat(functionList.getFunctions(), hasItems(
         new SimpleFunctionInfo("TRIM", FunctionType.SCALAR, 
-            FunctionCategory.STRING.toString()),
+            FunctionCategory.STRING),
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE,
-            FunctionCategory.AGGREGATE.toString()),
+            FunctionCategory.AGGREGATE),
         new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE,
-            FunctionCategory.AGGREGATE.toString())
+            FunctionCategory.AGGREGATE)
     ));
   }
 

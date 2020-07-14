@@ -51,15 +51,15 @@ public class ListFunctionsExecutorTest {
     final Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
     assertThat(functions, hasItems(
         new SimpleFunctionInfo("TEST_UDF_1", FunctionType.SCALAR,
-            FunctionCategory.OTHER.toString()),
+            FunctionCategory.OTHER),
         new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE,
-            FunctionCategory.AGGREGATE.toString()),
+            FunctionCategory.AGGREGATE),
         new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE,
-            FunctionCategory.AGGREGATE.toString()),
+            FunctionCategory.AGGREGATE),
         new SimpleFunctionInfo("TEST_UDTF1", FunctionType.TABLE, 
-            FunctionCategory.TABLE.toString()),
+            FunctionCategory.TABLE),
         new SimpleFunctionInfo("TEST_UDTF2", FunctionType.TABLE,
-            FunctionCategory.TABLE.toString())
+            FunctionCategory.TABLE)
     ));
   }
 }

@@ -61,7 +61,7 @@ public class SimpleFunctionInfo implements Comparable<SimpleFunctionInfo> {
     final SimpleFunctionInfo that = (SimpleFunctionInfo) o;
     return Objects.equals(name, that.name)
         && type == that.type
-        && category == that.category;
+        && Objects.equals(category, that.category);
   }
 
   @Override

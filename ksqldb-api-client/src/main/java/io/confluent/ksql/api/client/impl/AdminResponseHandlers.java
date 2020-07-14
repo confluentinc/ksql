@@ -36,9 +36,10 @@ final class AdminResponseHandlers {
       final JsonObject streamsListEntity,
       final CompletableFuture<List<StreamInfo>> cf
   ) {
-    try {
-      cf.complete(getListStreamsResponse(streamsListEntity).get());
-    } catch (Exception e) {
+    final Optional<List<StreamInfo>> streams = getListStreamsResponse(streamsListEntity);
+    if (streams.isPresent()) {
+      cf.complete(streams.get());
+    } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + streamsListEntity));
     }
@@ -48,9 +49,10 @@ final class AdminResponseHandlers {
       final JsonObject tablesListEntity,
       final CompletableFuture<List<TableInfo>> cf
   ) {
-    try {
-      cf.complete(getListTablesResponse(tablesListEntity).get());
-    } catch (Exception e) {
+    final Optional<List<TableInfo>> tables = getListTablesResponse(tablesListEntity);
+    if (tables.isPresent()) {
+      cf.complete(tables.get());
+    } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + tablesListEntity));
     }
@@ -60,9 +62,10 @@ final class AdminResponseHandlers {
       final JsonObject kafkaTopicsListEntity,
       final CompletableFuture<List<TopicInfo>> cf
   ) {
-    try {
-      cf.complete(getListTopicsResponse(kafkaTopicsListEntity).get());
-    } catch (Exception e) {
+    final Optional<List<TopicInfo>> topics = getListTopicsResponse(kafkaTopicsListEntity);
+    if (topics.isPresent()) {
+      cf.complete(topics.get());
+    } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + kafkaTopicsListEntity));
     }
@@ -72,9 +75,10 @@ final class AdminResponseHandlers {
       final JsonObject queriesEntity,
       final CompletableFuture<List<QueryInfo>> cf
   ) {
-    try {
-      cf.complete(getListQueriesResponse(queriesEntity).get());
-    } catch (Exception e) {
+    final Optional<List<QueryInfo>> queries = getListQueriesResponse(queriesEntity);
+    if (queries.isPresent()) {
+      cf.complete(queries.get());
+    } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + queriesEntity));
     }

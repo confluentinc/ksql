@@ -58,8 +58,6 @@ public final class MetricCollectors {
       RESOURCE_LABEL_PREFIX + "cluster.id";
   public static final String RESOURCE_LABEL_KAFKA_CLUSTER_ID =
       RESOURCE_LABEL_PREFIX + "kafka.cluster.id";
-  public static final String RESOURCE_LABEL_KSQL_SERVICE_ID =
-      RESOURCE_LABEL_PREFIX + KsqlConfig.SERVICE_ID;
 
   private static Map<String, MetricCollector> collectorMap;
   private static Metrics metrics;
@@ -148,7 +146,6 @@ public final class MetricCollectors {
     final Map<String, Object> updatedProps = new HashMap<>();
     updatedProps.put(RESOURCE_LABEL_TYPE, KSQL_RESOURCE_TYPE);
     updatedProps.put(RESOURCE_LABEL_CLUSTER_ID, ksqlServiceId);
-    updatedProps.put(RESOURCE_LABEL_KSQL_SERVICE_ID, ksqlServiceId);
     updatedProps.put(RESOURCE_LABEL_KAFKA_CLUSTER_ID, kafkaClusterId);
     updatedProps.put(RESOURCE_LABEL_VERSION, AppInfo.getVersion());
     updatedProps.put(RESOURCE_LABEL_COMMIT_ID, AppInfo.getCommitId());

@@ -62,7 +62,7 @@ public final class StandaloneExecutorFactory {
         serviceContextFactory.apply(tempConfig);
 
     final String kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(tempServiceContext);
-    final String ksqlServerId = tempConfig.getString(KsqlConfig.SERVICE_ID);
+    final String ksqlServerId = tempConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final Map<String, Object> updatedProperties = tempConfig.originals();
     updatedProperties.putAll(
         MetricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));

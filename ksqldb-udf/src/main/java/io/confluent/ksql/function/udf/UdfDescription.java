@@ -61,7 +61,7 @@ public @interface UdfDescription {
    *
    * @return function category.
    */
-  FunctionCategory category() default FunctionCategory.OTHER;
+  String category() default FunctionCategory.OTHER;
 
   /**
    * The author of the function.

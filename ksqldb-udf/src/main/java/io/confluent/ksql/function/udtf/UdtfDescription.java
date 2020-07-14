@@ -62,7 +62,7 @@ public @interface UdtfDescription {
    *
    * @return function category.
    */
-  FunctionCategory category() default FunctionCategory.TABLE;
+  String category() default FunctionCategory.TABLE;
 
   /**
    * The author of the table function.

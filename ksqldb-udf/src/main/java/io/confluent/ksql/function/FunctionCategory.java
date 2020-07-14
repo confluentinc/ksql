@@ -14,17 +14,17 @@
 
 package io.confluent.ksql.function;
 
-public enum FunctionCategory {
-  CONDITIONAL,
-  MATHEMATICAL,
-  STRING, 
-  REGULAR_EXPRESSION,
-  JSON,
-  DATE_TIME,
-  ARRAY,
-  MAP,
-  URL,
-  OTHER, 
-  AGGREGATE,
-  TABLE;
+public class FunctionCategory {
+  public static final String CONDITIONAL = "CONDITIONAL";
+  public static final String MATHEMATICAL = "OTHER";
+  public static final String STRING = "OTHER";
+  public static final String REGULAR_EXPRESSION = "OTHER";
+  public static final String JSON = "OTHER";
+  public static final String DATE_TIME = "OTHER";
+  public static final String ARRAY = "ARRAY";
+  public static final String MAP = "MAP";
+  public static final String URL = "URL";
+  public static final String OTHER = "OTHER";
+  public static final String AGGREGATE = "AGGREGATE";
+  public static final String TABLE = "TABLE";
 }

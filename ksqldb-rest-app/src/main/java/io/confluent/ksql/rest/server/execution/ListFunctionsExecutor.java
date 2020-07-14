@@ -45,7 +45,7 @@ public final class ListFunctionsExecutor {
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
             FunctionType.SCALAR, 
-            factory.getMetadata().getCategory().toString()
+            factory.getMetadata().getCategory()
         ))
         .collect(Collectors.toList());
 
@@ -53,7 +53,7 @@ public final class ListFunctionsExecutor {
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
             FunctionType.TABLE, 
-            factory.getMetadata().getCategory().toString()
+            factory.getMetadata().getCategory()
         ))
         .forEach(all::add);
 
@@ -61,7 +61,7 @@ public final class ListFunctionsExecutor {
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
             FunctionType.AGGREGATE, 
-            factory.getMetadata().getCategory().toString()
+            factory.getMetadata().getCategory()
         ))
         .forEach(all::add);
 

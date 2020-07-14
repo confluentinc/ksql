@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function.udf;
 
-import io.confluent.ksql.function.FunctionCategory;
 import java.util.Objects;
 
 public class UdfMetadata {
@@ -24,13 +23,13 @@ public class UdfMetadata {
   private final String author;
   private final String version;
   private final String path;
-  private final FunctionCategory category;
+  private final String category;
 
   public UdfMetadata(final String name,
                      final String description,
                      final String author,
                      final String version,
-                     final FunctionCategory category,
+      final String category,
                      final String path
   ) {
     this.name = Objects.requireNonNull(name, "name cant be null");
@@ -61,7 +60,7 @@ public class UdfMetadata {
     return path;
   }
 
-  public FunctionCategory getCategory() {
+  public String getCategory() {
     return category;
   }
 
@@ -73,7 +72,7 @@ public class UdfMetadata {
         + ", author='" + author + '\''
         + ", version='" + version + '\''
         + ", path='" + path + '\''
-        + ", category='" + category.name() + "'"
+        + ", category='" + category + "'"
         + '}';
   }
 

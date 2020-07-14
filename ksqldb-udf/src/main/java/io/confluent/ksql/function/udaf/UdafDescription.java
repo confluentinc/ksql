@@ -33,7 +33,7 @@ public @interface UdafDescription {
 
   String description();
 
-  FunctionCategory category() default FunctionCategory.AGGREGATE;
+  String category() default FunctionCategory.AGGREGATE;
 
   String author() default "";
 

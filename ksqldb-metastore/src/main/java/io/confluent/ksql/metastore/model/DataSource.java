@@ -102,4 +102,11 @@ public interface DataSource {
    * @return returns whether this stream/table was created by a C(T|S)AS
    */
   boolean isCasTarget();
+
+  /**
+   * @param other the other data source
+   * @return an optional, empty if compatible or an explanation if incompatible
+   */
+  Optional<String> canUpgradeTo(DataSource other);
+
 }

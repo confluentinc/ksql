@@ -125,5 +125,10 @@ public class ProtobufSerdeFactory implements KsqlSerdeFactory {
       }
       return null;
     }
+
+    @Override
+    public Void visitSchema(final Schema schema) {
+      return null;
+    }
   }
 }

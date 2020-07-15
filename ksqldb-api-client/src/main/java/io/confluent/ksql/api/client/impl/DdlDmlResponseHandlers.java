@@ -43,10 +43,8 @@ final class DdlDmlResponseHandlers {
     }
 
     try {
-      final JsonObject commandStatus = ksqlEntity.getJsonObject("commandStatus");
-      final Optional<String> queryId = commandStatus.getString("queryId") != null
-          ? Optional.of(commandStatus.getString("queryId"))
-          : Optional.empty();
+      final Optional<String> queryId = Optional.ofNullable(
+          ksqlEntity.getJsonObject("commandStatus").getString("queryId"));
       cf.complete(new ExecuteStatementResultImpl(queryId));
     } catch (Exception e) {
       cf.completeExceptionally(new IllegalStateException(

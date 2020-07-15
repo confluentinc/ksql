@@ -54,6 +54,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -417,6 +418,29 @@ public class TopicCreateInjectorTest {
         (short) 10,
         ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG,
             TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE));
+  }
+
+  @Test
+  public void shouldCreateMissingTopicWithSpecifiedRetentionForWindowedTables() {
+    // Given:
+    givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
+        + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 4 DAYS);");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(topicClient).createTopic(
+        "expectedName",
+        10,
+        (short) 10,
+        ImmutableMap.of(
+            TopicConfig.CLEANUP_POLICY_CONFIG,
+            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE,
+            TopicConfig.RETENTION_MS_CONFIG,
+            Duration.ofDays(4).toMillis()
+        ));
   }
 
   @Test

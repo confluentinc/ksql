@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.array;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -36,6 +37,7 @@ import org.apache.kafka.connect.data.Struct;
  */
 @UdfDescription(
     name = "ENTRIES",
+    category = FunctionCategory.MAP,
     description =
         "Construct an array from the entries in a map."
             + "The array can be optionally sorted on the keys.",

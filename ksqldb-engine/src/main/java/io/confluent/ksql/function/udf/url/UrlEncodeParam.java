@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.url;
 
 import com.google.common.escape.Escaper;
 import com.google.common.net.UrlEscapers;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -24,6 +25,7 @@ import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
     name = "url_encode_param",
+    category = FunctionCategory.URL,
     description = "Returns a version of the input with all URL sensitive characters encoded "
         + "using the application/x-www-form-urlencoded standard.",
     author = KsqlConstants.CONFLUENT_AUTHOR

@@ -258,6 +258,7 @@ commands.
 |-------------|----------------------------------------------------------------------|----------|
 | name        | The case-insensitive name of the UDF(s) represented by this class.   | Yes      |
 | description | A string describing generally what the function(s) in this class do. | Yes      |
+| category    | For grouping similar functions in the output of SHOW FUNCTIONS.      | No       |
 | author      | The author of the UDF.                                               | No       |
 | version     | The version of the UDF.                                              | No       |
 

@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.array;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -29,6 +30,7 @@ import java.util.StringJoiner;
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
 @UdfDescription(
     name = "ARRAY_JOIN",
+    category = FunctionCategory.ARRAY,
     description = "joins the array elements into a flat string representation",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

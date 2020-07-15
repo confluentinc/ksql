@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Map;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 
 /**
  * Supplies {@link ConnectClient}s to use that do not make any

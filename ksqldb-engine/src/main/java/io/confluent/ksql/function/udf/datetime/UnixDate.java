@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.util.KsqlConstants;
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 
 @UdfDescription(
     name = "unix_date",
+    category = FunctionCategory.DATE_TIME,
     description = "Gets an integer representing days since epoch.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

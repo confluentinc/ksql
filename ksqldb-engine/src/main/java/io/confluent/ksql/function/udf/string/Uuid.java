@@ -14,11 +14,13 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
 @UdfDescription(
     name = "UUID",
+    category = FunctionCategory.STRING,
     description = "Create a Universally Unique Identifier (UUID) generated according to RFC 4122. "
         + "A call to UUID() returns a value conforming to UUID version 4, sometimes called "
         + "\"random UUID\", as described in RFC 4122. The value is a 128-bit number represented "

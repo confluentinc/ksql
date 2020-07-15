@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -22,6 +23,7 @@ import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
     name = "mask",
+    category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns a version of the input string with every character replaced by a mask."
         + " Default masking rules will replace all upper-case characters with 'X', all lower-case"

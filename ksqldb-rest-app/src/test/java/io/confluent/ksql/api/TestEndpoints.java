@@ -115,7 +115,7 @@ public class TestEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
     this.lastSql = request.getKsql();
-    this.lastProperties = new JsonObject(request.getRequestProperties());
+    this.lastProperties = new JsonObject(request.getConfigOverrides());
     this.lastApiSecurityContext = apiSecurityContext;
     CompletableFuture<EndpointResponse> cf = new CompletableFuture<>();
 

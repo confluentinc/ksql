@@ -43,7 +43,6 @@ import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -94,7 +93,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InteractiveStatementExecutorTest {
-  private static final String CREATE_STREAM_FOO_STATMENT = "CREATE STREAM foo ("
+  private static final String CREATE_STREAM_FOO_STATEMENT = "CREATE STREAM foo ("
       + "biz bigint,"
       + " baz varchar) "
       + "WITH (kafka_topic = 'foo', "
@@ -114,8 +113,6 @@ public class InteractiveStatementExecutorTest {
   private SpecificQueryIdGenerator mockQueryIdGenerator;
   @Mock
   private KsqlEngine mockEngine;
-  @Mock
-  private MetaStore mockMetaStore;
   @Mock
   private PersistentQueryMetadata mockQueryMetadata;
   @Mock
@@ -166,7 +163,7 @@ public class InteractiveStatementExecutorTest {
     statementExecutorWithMocks.configure(ksqlConfig);
 
     plannedCommand = new Command(
-        CREATE_STREAM_FOO_STATMENT,
+        CREATE_STREAM_FOO_STATEMENT,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
         Optional.of(plan)
@@ -307,7 +304,7 @@ public class InteractiveStatementExecutorTest {
   public void shouldCompleteFutureOnSuccess() {
     // Given:
     final Command command = new Command(
-        CREATE_STREAM_FOO_STATMENT,
+        CREATE_STREAM_FOO_STATEMENT,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty()
@@ -338,7 +335,9 @@ public class InteractiveStatementExecutorTest {
     handleStatement(statementExecutorWithMocks, plannedCommand, COMMAND_ID, Optional.empty(), 0L);
 
     // Then:
-    verify(mockEngine).execute(serviceContext, ConfiguredKsqlPlan.of(plan, emptyMap(), ksqlConfig));
+    final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
+        plannedCommand.getOriginalProperties());
+    verify(mockEngine).execute(serviceContext, ConfiguredKsqlPlan.of(plan, emptyMap(), expectedConfig));
   }
 
   @Test
@@ -373,7 +372,7 @@ public class InteractiveStatementExecutorTest {
         new CommandStatus(Status.EXECUTING, "Executing statement"));
     inOrder.verify(mockEngine).execute(any(), any(ConfiguredKsqlPlan.class));
     inOrder.verify(status).setFinalStatus(
-        new CommandStatus(Status.SUCCESS, "Created query with ID qid"));
+        new CommandStatus(Status.SUCCESS, "Created query with ID qid", Optional.of(QUERY_ID)));
   }
 
   @Test
@@ -413,7 +412,7 @@ public class InteractiveStatementExecutorTest {
     // Given:
     final Map<String, String> savedConfigs = ImmutableMap.of("biz", "baz");
     plannedCommand = new Command(
-        CREATE_STREAM_FOO_STATMENT,
+        CREATE_STREAM_FOO_STATEMENT,
         emptyMap(),
         savedConfigs,
         Optional.of(plan)
@@ -440,7 +439,7 @@ public class InteractiveStatementExecutorTest {
     shouldCompleteFutureOnSuccess();
 
     final Command command = new Command(
-        CREATE_STREAM_FOO_STATMENT,
+        CREATE_STREAM_FOO_STATEMENT,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty()
@@ -453,7 +452,7 @@ public class InteractiveStatementExecutorTest {
     } catch (final KsqlStatementException e) {
       // Then:
       assertEquals("Cannot add stream 'FOO': A stream with the same name already exists\n" +
-              "Statement: " + CREATE_STREAM_FOO_STATMENT,
+              "Statement: " + CREATE_STREAM_FOO_STATEMENT,
           e.getMessage());
     }
     final InOrder inOrder = Mockito.inOrder(status);

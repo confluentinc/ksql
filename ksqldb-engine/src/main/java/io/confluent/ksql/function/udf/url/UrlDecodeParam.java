@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.url;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -28,6 +29,7 @@ import java.net.URLDecoder;
 
 @UdfDescription(
     name = "url_decode_param",
+    category = FunctionCategory.URL,
     description = "Decodes a previously encoded application/x-www-form-urlencoded String",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.function.udf.math;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
 @UdfDescription(
     name = "random",
+    category = FunctionCategory.MATHEMATICAL,
     description = "Returns a random number greater than or equal to 0.0 and less than 1.0.")
 public class Random {
 

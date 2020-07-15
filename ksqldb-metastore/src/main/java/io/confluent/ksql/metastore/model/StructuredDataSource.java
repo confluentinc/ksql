@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -188,8 +189,11 @@ abstract class StructuredDataSource<K> implements DataSource {
     return Optional.empty();
   }
 
+  @Immutable
   private static class Property<T> {
+
     final String name;
+    @EffectivelyImmutable
     final Function<DataSource, T> getter;
 
     Property(final String name, final Function<DataSource, T> getter) {

@@ -254,7 +254,7 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Schema registry fetch for topic topic-without-schema request failed"));
+        "Schema for message values on topic topic-without-schema does not exist in the Schema Registry"));
   }
 
   @Test

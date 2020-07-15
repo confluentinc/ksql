@@ -419,7 +419,7 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldDefaultToEmptyResultMaterializationForBareQueries() {
+  public void shouldDefaultToEmptyRefinementForBareQueries() {
     // Given:
     final SingleStatementContext stmt =
         givenQuery("SELECT * FROM TEST1;");
@@ -429,7 +429,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be pull", result.isPullQuery(), is(true));
-    assertThat(result.getResultMaterialization(), is(Optional.empty()));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.empty()));
   }
 
   @Test
@@ -443,7 +443,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
   }
 
   @Test
@@ -457,9 +457,8 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
   }
-
 
   @Test
   public void shouldDefaultToEmitChangesForCsas() {
@@ -472,7 +471,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
   }
 
   @Test
@@ -486,7 +485,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
   }
 
   @Test
@@ -500,7 +499,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
   }
 
   @Test
@@ -514,7 +513,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
   }
 
   @Test
@@ -528,7 +527,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
   }
 
   @Test
@@ -542,7 +541,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
   }
 
   @Test
@@ -556,7 +555,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
   }
 
   @Test
@@ -570,7 +569,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
   }
 
   @Test
@@ -584,9 +583,25 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getResultMaterialization(), is(Optional.of(ResultMaterialization.FINAL)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
   }
 
+//  @Test
+//  public void shouldCreateRefinementExpressionOnBareQuery() {
+//    // Given:
+//    final SingleStatementContext stmt =
+//        givenQuery("SELECT * FROM TEST1;");
+//
+//    // When:
+//    final Query result = (Query) builder.buildStatement(stmt);
+//
+//    // Then:
+//    assertThat("Should be pull", result.isPullQuery(), is(true));
+//    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.empty()));
+//    assertThat(result.getRefinement().get().getLocation().get().getLineNumber(),is(stmt.stop.getLine()));
+//    assertThat(result.getRefinement().get().getLocation().get().getColumnNumber(),is(stmt.stop.getCharPositionInLine()));
+//
+//  }
   @Test
   public void shouldSupportQuotedExplainStatements() {
     // Given:
@@ -598,6 +613,8 @@ public class AstBuilderTest {
     // Then:
     assertThat(explain.getQueryId(), is(Optional.of("CSAS_FOO-BAR")));
   }
+
+
 
   private static SingleStatementContext givenQuery(final String sql) {
     final List<ParsedStatement> statements = KsqlParserTestUtil.parse(sql);

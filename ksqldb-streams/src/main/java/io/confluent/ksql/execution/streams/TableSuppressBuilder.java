@@ -23,7 +23,6 @@ public final class TableSuppressBuilder {
   private TableSuppressBuilder() {
   }
 
-  @SuppressWarnings("unchecked")
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table
   ) {

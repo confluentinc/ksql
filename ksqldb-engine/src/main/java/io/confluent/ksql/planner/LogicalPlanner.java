@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -42,7 +43,7 @@ import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.ResultMaterialization;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.planner.JoinTree.Join;
@@ -73,6 +74,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.GrammaticalJoiner;
@@ -140,9 +142,13 @@ public class LogicalPlanner {
       currentNode = buildUserProjectNode(currentNode);
     }
 
-    if (analysis.getResultMaterialization().isPresent()
-        && analysis.getResultMaterialization().get() == ResultMaterialization.FINAL) {
-      currentNode = buildSuppressNode(currentNode, analysis.getResultMaterialization().get());
+    if (analysis.getRefinementInfo().isPresent()
+        && analysis.getRefinementInfo().get()
+        .getOutputRefinement().get() == OutputRefinement.FINAL) {
+      if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
+        throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
+      }
+      currentNode = buildSuppressNode(currentNode, analysis.getRefinementInfo().get());
     }
 
     return buildOutputNode(currentNode);
@@ -478,9 +484,9 @@ public class LogicalPlanner {
 
   private SuppressNode buildSuppressNode(
       final PlanNode sourcePlanNode,
-      final ResultMaterialization resultMaterialization
+      final RefinementInfo refinementInfo
   ) {
-    return new SuppressNode(new PlanNodeId("Suppress"), sourcePlanNode, resultMaterialization);
+    return new SuppressNode(new PlanNodeId("Suppress"), sourcePlanNode, refinementInfo);
   }
 
   private LogicalSchema buildAggregateSchema(

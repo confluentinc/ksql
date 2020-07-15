@@ -24,10 +24,11 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.parser.ResultMaterialization;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -55,13 +56,13 @@ public class PullQueryValidatorTest {
   public void setUp() {
     validator = new PullQueryValidator();
 
-    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.FINAL));
+    when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(Optional.of(OutputRefinement.FINAL))));
   }
 
   @Test
   public void shouldThrowOnPullQueryThatIsNotFinal() {
     // Given:
-    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.CHANGES));
+    when(analysis.getRefinementInfo().get().getOutputRefinement()).thenReturn(Optional.of(OutputRefinement.CHANGES));
 
     // When:
     final Exception e = assertThrows(

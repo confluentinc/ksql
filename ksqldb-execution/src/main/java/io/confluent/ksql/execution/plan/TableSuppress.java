@@ -17,7 +17,9 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.parser.ResultMaterialization;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.RefinementExpression;
+import io.confluent.ksql.serde.RefinementInfo;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,18 +30,18 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
 
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
-  private final ResultMaterialization resultMaterialization;
+  private final RefinementInfo refinementInfo;
 
   public TableSuppress(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "resultMaterialization",
-          required = true) final ResultMaterialization resultMaterialization
+      @JsonProperty(value = "refinementInfo",
+          required = true) final RefinementInfo refinementInfo
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
-    this.resultMaterialization = Objects.requireNonNull(
-        resultMaterialization, "resultMaterialization");
+    this.refinementInfo = Objects.requireNonNull(
+        refinementInfo, "refinementInfo");
   }
 
   @Override
@@ -53,8 +55,8 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
     return Collections.singletonList(source);
   }
 
-  public ResultMaterialization getResultMaterialization() {
-    return resultMaterialization;
+  public RefinementInfo getRefinementInfo() {
+    return refinementInfo;
   }
 
   public ExecutionStep<KTableHolder<K>> getSource() {
@@ -77,12 +79,12 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
     final TableSuppress<?> that = (TableSuppress<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(resultMaterialization, that.resultMaterialization);
+        && Objects.equals(refinementInfo, that.refinementInfo);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, resultMaterialization);
+    return Objects.hash(properties, source, refinementInfo);
   }
 }

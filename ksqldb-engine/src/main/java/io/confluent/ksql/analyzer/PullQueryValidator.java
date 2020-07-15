@@ -60,7 +60,7 @@ public class PullQueryValidator implements QueryValidator {
           "Pull queries don't support LIMIT clauses."
       ),
       Rule.of(
-          analysis -> !analysis.getResultMaterialization().isPresent(),
+          analysis -> !analysis.getRefinementInfo().isPresent(),
           "Pull queries don't support 'EMIT CHANGES'"
       )
   );

@@ -204,7 +204,7 @@ public final class StatementRewriter<C> {
           groupBy,
           partitionBy,
           having,
-          node.getResultMaterialization(),
+          node.getRefinement(),
           node.isPullQuery(),
           node.getLimit()
       );

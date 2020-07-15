@@ -21,13 +21,14 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Optional;
@@ -55,7 +56,7 @@ public interface ImmutableAnalysis {
 
   Optional<GroupBy> getGroupBy();
 
-  Optional<ResultMaterialization> getResultMaterialization();
+  Optional<RefinementInfo> getRefinementInfo();
 
   Optional<PartitionBy> getPartitionBy();
 

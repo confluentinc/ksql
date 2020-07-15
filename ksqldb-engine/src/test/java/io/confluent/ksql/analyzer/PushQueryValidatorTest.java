@@ -27,8 +27,9 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.parser.ResultMaterialization;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
@@ -50,18 +51,22 @@ public class PushQueryValidatorTest {
   private KsqlTopic topic;
   @Mock
   private KeyFormat keyFormat;
+  @Mock
+  private RefinementInfo refinementInfo;
 
   private QueryValidator validator;
 
   @Before
   public void setUp() {
     validator = new PushQueryValidator();
+//    when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(Optional.of(OutputRefinement.FINAL))));
+
   }
 
   @Test
   public void shouldNotThrowOnContinuousQueryThatIsFinal() {
     // Given:
-    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.FINAL));
+//    when(analysis.getRefinementInfo().get().getOutputRefinement()).thenReturn(Optional.of(OutputRefinement.FINAL));
 
     // When/Then:
     validator.validate(analysis);
@@ -123,7 +128,10 @@ public class PushQueryValidatorTest {
   }
 
   private void givenPushQuery() {
-    when(analysis.getResultMaterialization()).thenReturn(Optional.of(ResultMaterialization.CHANGES));
+//    when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(Optional.of(OutputRefinement.CHANGES))));
+//    when(analysis.getRefinementInfo().get().getOutputRefinement()).thenReturn(Optional.of(OutputRefinement.CHANGES));
+//  when(analysis.getRefinementInfo()).thenReturn(Optional.of(refinementInfo));
+//  when(refinementInfo.getOutputRefinement()).thenReturn(Optional.of(OutputRefinement.CHANGES));
   }
 
   private void givenPersistentQuery() {

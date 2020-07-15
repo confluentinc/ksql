@@ -70,6 +70,12 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
+  public Void visitRefinementExpression(final RefinementExpression node, final C context) {
+    process(node, context);
+    return null;
+  }
+
+  @Override
   public Void visitComparisonExpression(final ComparisonExpression node, final C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);

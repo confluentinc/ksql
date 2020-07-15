@@ -25,12 +25,12 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
@@ -41,6 +41,7 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,7 +58,7 @@ import java.util.stream.Collectors;
 
 public class Analysis implements ImmutableAnalysis {
 
-  private final Optional<ResultMaterialization> resultMaterialization;
+  private final Optional<RefinementInfo> refinementInfo;
   private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> allDataSources = new ArrayList<>();
@@ -73,21 +74,17 @@ public class Analysis implements ImmutableAnalysis {
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
 
-  public Analysis(final Optional<ResultMaterialization> resultMaterialization) {
-    this(resultMaterialization, SourceSchemas::new);
+  public Analysis(final Optional<RefinementInfo> refinementInfo) {
+    this(refinementInfo, SourceSchemas::new);
   }
 
   @VisibleForTesting
   Analysis(
-      final Optional<ResultMaterialization> resultMaterialization,
+      final Optional<RefinementInfo> refinementInfo,
       final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory
   ) {
-    this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
+    this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
-  }
-
-  public Optional<ResultMaterialization> getResultMaterialization() {
-    return resultMaterialization;
   }
 
   void addSelectItem(final SelectItem selectItem) {
@@ -147,6 +144,11 @@ public class Analysis implements ImmutableAnalysis {
   @Override
   public Optional<GroupBy> getGroupBy() {
     return groupBy;
+  }
+
+  @Override
+  public Optional<RefinementInfo> getRefinementInfo() {
+    return refinementInfo;
   }
 
   void setGroupBy(final GroupBy groupBy) {

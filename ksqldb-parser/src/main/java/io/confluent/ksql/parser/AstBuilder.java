@@ -48,6 +48,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -140,6 +141,7 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
@@ -398,26 +400,43 @@ public class AstBuilder {
 
       final boolean pullQuery = context.EMIT() == null && !buildingPersistentQuery;
 
-      final Optional<ResultMaterialization> resultMaterialization;
+      final Optional<OutputRefinement> outputRefinement;
 
       if (pullQuery) {
-        resultMaterialization = Optional.empty();
+        outputRefinement = Optional.empty();
       } else if (buildingPersistentQuery) {
-        resultMaterialization = Optional.of(Optional
+        outputRefinement = Optional.of(Optional
             .ofNullable(context.resultMaterialization())
             .map(rm -> rm.FINAL() == null
-                ? ResultMaterialization.CHANGES
-                : ResultMaterialization.FINAL
+                ? OutputRefinement.CHANGES
+                : OutputRefinement.FINAL
             )
-            .orElse(ResultMaterialization.CHANGES));
+            .orElse(OutputRefinement.CHANGES));
         // Else must be a push query, which must specify a materialization
       } else {
-        resultMaterialization = Optional
+        outputRefinement = Optional
             .of(context.resultMaterialization().CHANGES() == null
-                ? ResultMaterialization.FINAL
-                : ResultMaterialization.CHANGES
+                ? OutputRefinement.FINAL
+                : OutputRefinement.CHANGES
             );
       }
+
+      final RefinementInfo refinementInfo =  RefinementInfo.of(outputRefinement);
+//      final RefinementExpression refinementExpression;
+
+      /* No result materialization in the query means we cannot get the node location
+      so we add it manually at the end of the query so we can create the refinement expression
+       */
+//      if (context.resultMaterialization() == null) {
+//        final Optional<NodeLocation> nodeLocation = Optional.of(new NodeLocation(
+//            context.stop.getLine(),
+//            context.stop.getStopIndex()
+//        ));
+//        refinementExpression = new RefinementExpression(nodeLocation, outputRefinement);
+//      } else {
+//        refinementExpression =
+//            new RefinementExpression(getLocation(context.resultMaterialization()), outputRefinement);
+//      }
 
 
       final OptionalInt limit = getLimit(context.limitClause());
@@ -425,7 +444,6 @@ public class AstBuilder {
       final Optional<PartitionBy> partitionBy =
           visitIfPresent(context.partitionBy, Expression.class)
               .map(e -> new PartitionBy(getLocation(context.PARTITION()), e));
-
       return new Query(
           getLocation(context),
           select,
@@ -435,7 +453,7 @@ public class AstBuilder {
           visitIfPresent(context.groupBy(), GroupBy.class),
           partitionBy,
           visitIfPresent(context.having, Expression.class),
-          resultMaterialization,
+          Optional.of(refinementInfo),
           pullQuery,
           limit
       );

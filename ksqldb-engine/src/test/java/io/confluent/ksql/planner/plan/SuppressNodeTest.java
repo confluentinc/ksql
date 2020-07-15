@@ -21,16 +21,15 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.parser.ResultMaterialization;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.parser.OutputRefinement;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -42,11 +41,9 @@ public class SuppressNodeTest {
   private static final PlanNodeId NODE_ID = new PlanNodeId("nodeid");
 
   @Mock
-  private ResultMaterialization resultMaterialization;
+  private RefinementInfo refinementInfo;
   @Mock
   private PlanNode sourceNode;
-  @Mock
-  private SchemaKStream schemaKStream;
   @Mock
   private SchemaKTable schemaKTable;
   @Mock
@@ -63,25 +60,38 @@ public class SuppressNodeTest {
   @SuppressWarnings("unchecked")
   public void shouldThrowOnSuppressOnStream() {
 
-    // When:
-    when(sourceNode.getSchema()).thenReturn(LogicalSchema.builder().build());
-    when(sourceNode.buildStream(any()))
-        .thenReturn(schemaKStream);
+    // Given:
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(schemaKTable.suppress(any(), any()))
-        .thenReturn(schemaKTable);
-
     when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
 
-    node = new SuppressNode(NODE_ID, sourceNode, resultMaterialization);
+    node = new SuppressNode(NODE_ID, sourceNode, refinementInfo);
 
+    // When:
     final Exception e = assertThrows(
         KsqlException.class,
         () -> node.buildStream(ksqlStreamBuilder)
     );
 
     // Then
-    assertThat(e.getMessage(), containsString("Failed to build suppress node. Expected to find a Table"));
+    assertThat(e.getMessage(), containsString("Failed in suppress node. Expected to find a Table, but found a stream instead"));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldSuppressOnSchemaKTable() {
+
+    // Given:
+    when(sourceNode.buildStream(any())).thenReturn(schemaKTable);
+    when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
+    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
+
+    node = new SuppressNode(NODE_ID, sourceNode, refinementInfo);
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then
+    verify(schemaKTable).suppress(refinementInfo, stacker);
   }
 }
 

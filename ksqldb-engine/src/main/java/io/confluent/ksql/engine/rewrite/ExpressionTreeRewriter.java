@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -363,6 +364,11 @@ public final class ExpressionTreeRewriter<C> {
       final Expression result = rewriter.apply(node.getResult(), context);
 
       return new WhenClause(node.getLocation(), operand, result);
+    }
+
+    @Override
+    public Expression visitRefinementExpression(RefinementExpression exp, C context) {
+      return exp;
     }
 
     @Override

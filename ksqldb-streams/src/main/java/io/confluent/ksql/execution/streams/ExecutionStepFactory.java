@@ -18,6 +18,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
@@ -52,8 +53,8 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.List;
@@ -412,13 +413,13 @@ public final class ExecutionStepFactory {
   public static <K> TableSuppress<K> tableSuppress(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> sourceStep,
-      final ResultMaterialization resultMaterialization
+      final RefinementInfo refinementInfo
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSuppress<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
-        resultMaterialization
+        refinementInfo
     );
   }
 }

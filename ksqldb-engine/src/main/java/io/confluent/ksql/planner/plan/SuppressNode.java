@@ -17,9 +17,10 @@ package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import java.util.Objects;
@@ -39,21 +40,21 @@ import io.confluent.ksql.util.KsqlException;
  */
 public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode {
 
-  private final ResultMaterialization resultMaterialization;
+  private final RefinementInfo refinementInfo;
 
   public SuppressNode(
       final PlanNodeId id,
       final PlanNode source,
-      final ResultMaterialization resultMaterialization
+      final RefinementInfo refinementInfo
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
 
-    this.resultMaterialization = Objects.requireNonNull(
-        resultMaterialization, "resultMaterialization");
+    this.refinementInfo = Objects.requireNonNull(
+        refinementInfo, "refinementInfo");
   }
 
-  public ResultMaterialization getResultMaterialization() {
-    return resultMaterialization;
+  public RefinementInfo getRefinementInfo() {
+    return refinementInfo;
   }
 
   @Override
@@ -64,23 +65,28 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
-    final SchemaKStream<?> schemaKStream = getSource().buildStream(
-        builder.withKsqlConfig(builder.getKsqlConfig())
-    );
+    final SchemaKStream<?> schemaKStream = getSource().buildStream(builder);
 
     if (!(schemaKStream instanceof SchemaKTable)) {
-      throw new KsqlException("Failed to build suppress node. Expected to find a Table, but "
-          + "found a stream named " + schemaKStream.toString() + " instead.");
+      throw new KsqlException("Failed in suppress node. Expected to find a Table, but "
+          + "found a stream instead.");
     }
+
 
     return (((SchemaKTable<?>) schemaKStream)
         .suppress(
-            resultMaterialization,
+            refinementInfo,
             contextStacker
         ));
   }
 
   @Override
   public void validateKeyPresent(final SourceName sinkName) {
+    if (!(this.getSource() instanceof VerifiableNode)) {
+      throw new IllegalArgumentException("VerifiableNode required");
+    }
+
+    ((VerifiableNode) this.getSource())
+        .validateKeyPresent(sinkName);
   }
 }

@@ -705,12 +705,16 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldExecuteStatement() throws Exception {
+  public void shouldExecuteStatementWithQueryId() throws Exception {
     // Given
     final CommandStatusEntity entity = new CommandStatusEntity(
         "CSAS;",
         new CommandId("STREAM", "FOO", "CREATE"),
-        new CommandStatus(CommandStatus.Status.SUCCESS, "Success"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success",
+            Optional.of(new QueryId("CSAS_0"))
+        ),
         0L
     );
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
@@ -718,11 +722,37 @@ public class ClientTest extends BaseApiTest {
     final Map<String, Object> properties = ImmutableMap.of("auto.offset.reset", "earliest");
 
     // When
-    javaClient.executeStatement("CSAS;", properties).get();
+    final ExecuteStatementResult result = javaClient.executeStatement("CSAS;", properties).get();
 
     // Then
     assertThat(testEndpoints.getLastSql(), is("CSAS;"));
     assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+    assertThat(result.queryId(), is(Optional.of("CSAS_0")));
+  }
+
+  @Test
+  public void shouldExecuteStatementWithoutQueryId() throws Exception {
+    // Given
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CSAS;",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success"
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    final Map<String, Object> properties = ImmutableMap.of("auto.offset.reset", "earliest");
+
+    // When
+    final ExecuteStatementResult result = javaClient.executeStatement("CSAS;", properties).get();
+
+    // Then
+    assertThat(testEndpoints.getLastSql(), is("CSAS;"));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+    assertThat(result.queryId(), is(Optional.empty()));
   }
 
   @Test

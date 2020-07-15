@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import java.util.concurrent.CompletableFuture;
 
@@ -25,7 +26,7 @@ final class DdlDmlRequestValidators {
 
   static boolean validateExecuteStatementRequest(
       final String sql,
-      final CompletableFuture<Void> cf
+      final CompletableFuture<ExecuteStatementResult> cf
   ) {
     if (!sql.contains(";")) {
       cf.completeExceptionally(new KsqlClientException(

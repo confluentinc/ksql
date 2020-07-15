@@ -128,9 +128,10 @@ public interface Client {
    * failed.
    *
    * @param sql the request to be executed
-   * @return a future that completes once the server response is received
+   * @return a future that completes once the server response is received, and contains the query ID
+   *         for statements that start new persistent queries
    */
-  CompletableFuture<Void> executeStatement(String sql);
+  CompletableFuture<ExecuteStatementResult> executeStatement(String sql);
 
   /**
    * Sends a SQL request with the specified properties to the ksqlDB server. This method supports
@@ -150,9 +151,11 @@ public interface Client {
    *
    * @param sql the request to be executed
    * @param properties properties associated with the request
-   * @return a future that completes once the server response is received
+   * @return a future that completes once the server response is received, and contains the query ID
+   *         for statements that start new persistent queries
    */
-  CompletableFuture<Void> executeStatement(String sql, Map<String, Object> properties);
+  CompletableFuture<ExecuteStatementResult>
+      executeStatement(String sql, Map<String, Object> properties);
 
   /**
    * Returns the list of ksqlDB streams from the ksqlDB server's metastore.

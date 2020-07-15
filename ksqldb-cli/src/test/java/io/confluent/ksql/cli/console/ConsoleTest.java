@@ -232,7 +232,11 @@ public class ConsoleTest {
         new CommandStatusEntity(
             "e",
             CommandId.fromString("topic/1/create"),
-            new CommandStatus(CommandStatus.Status.SUCCESS, "Success Message"),
+            new CommandStatus(
+                CommandStatus.Status.SUCCESS,
+                "Success Message",
+                Optional.of(new QueryId("CSAS_0"))
+            ),
             0L)
     ));
 
@@ -248,7 +252,8 @@ public class ConsoleTest {
           + "  \"commandId\" : \"topic/1/create\"," + NEWLINE
           + "  \"commandStatus\" : {" + NEWLINE
           + "    \"status\" : \"SUCCESS\"," + NEWLINE
-          + "    \"message\" : \"Success Message\"" + NEWLINE
+          + "    \"message\" : \"Success Message\"," + NEWLINE
+          + "    \"queryId\" : \"CSAS_0\"" + NEWLINE
           + "  }," + NEWLINE
           + "  \"commandSequenceNumber\" : 0," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE

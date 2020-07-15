@@ -87,6 +87,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -549,6 +550,7 @@ public final class KsqlRestApplication implements Executable {
   }
 
   public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {
+    final Map<String, Object> updatedRestProps = restConfig.getOriginals();
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final Vertx vertx = Vertx.vertx(
         new VertxOptions()
@@ -563,12 +565,26 @@ public final class KsqlRestApplication implements Executable {
     );
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
-    final ServiceContext serviceContext = new LazyServiceContext(() ->
+
+    final ServiceContext tempServiceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
             schemaRegistryClientFactory, sharedClient));
+    final String kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(tempServiceContext);
+    final String ksqlServerId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    updatedRestProps.putAll(
+        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));
+    final KsqlRestConfig updatedRestConfig = new KsqlRestConfig(updatedRestProps);
+
+    final ServiceContext serviceContext = new LazyServiceContext(() ->
+        RestServiceContextFactory.create(
+            new KsqlConfig(updatedRestConfig.getKsqlConfigProperties()),
+            Optional.empty(),
+            schemaRegistryClientFactory,
+            sharedClient));
+
     return buildApplication(
         "",
-        restConfig,
+        updatedRestConfig,
         KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE,
         serviceContext,
@@ -619,17 +635,14 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
-    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopicName,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandConsumerProperties(),
-            serviceId),
+            restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandProducerProperties(),
-            serviceId)
+            restConfig.getCommandProducerProperties())
     );
 
     final InteractiveStatementExecutor statementExecutor =

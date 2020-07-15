@@ -292,6 +292,18 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED_DOC =
       "Feature flag for CREATE OR REPLACE";
 
+  public static final String KSQL_ENABLE_METASTORE_BACKUP = "ksql.enable.metastore.backup";
+  public static final Boolean KSQL_ENABLE_METASTORE_BACKUP_DEFAULT = false;
+  public static final String KSQL_ENABLE_METASTORE_BACKUP_DOC = "Enable the KSQL metastore "
+      + "backup service. The backup replays the KSQL command_topic to a file located in the "
+      + "same KSQL node. By default, the backup files are located in the private KSQL "
+      + "directories.";
+
+  public static final String KSQL_METASTORE_BACKUP_LOCATION = "ksql.metastore.backup.location";
+  public static final String KSQL_METASTORE_BACKUP_LOCATION_DEFAULT = "";
+  public static final String KSQL_METASTORE_BACKUP_LOCATION_DOC = "Specify the directory where "
+      + "KSQL metastore backup files are located.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -678,6 +690,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_CREATE_OR_REPLACE_ENABLED_DOC
+        )
+        .define(
+            KSQL_ENABLE_METASTORE_BACKUP,
+            Type.BOOLEAN,
+            KSQL_ENABLE_METASTORE_BACKUP_DEFAULT,
+            Importance.LOW,
+            KSQL_ENABLE_METASTORE_BACKUP_DOC
+        )
+        .define(
+            KSQL_METASTORE_BACKUP_LOCATION,
+            Type.STRING,
+            KSQL_METASTORE_BACKUP_LOCATION_DEFAULT,
+            Importance.LOW,
+            KSQL_METASTORE_BACKUP_LOCATION_DOC
         )
         .withClientSslSupport();
 

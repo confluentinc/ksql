@@ -48,7 +48,6 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -420,23 +419,13 @@ public class AstBuilder {
                 : OutputRefinement.CHANGES
             );
       }
+      final Optional<RefinementInfo> refinementInfo;
+      if (!pullQuery) {
+        refinementInfo = Optional.of(RefinementInfo.of(outputRefinement));
+      } else {
+        refinementInfo = Optional.empty();
 
-      final RefinementInfo refinementInfo =  RefinementInfo.of(outputRefinement);
-//      final RefinementExpression refinementExpression;
-
-      /* No result materialization in the query means we cannot get the node location
-      so we add it manually at the end of the query so we can create the refinement expression
-       */
-//      if (context.resultMaterialization() == null) {
-//        final Optional<NodeLocation> nodeLocation = Optional.of(new NodeLocation(
-//            context.stop.getLine(),
-//            context.stop.getStopIndex()
-//        ));
-//        refinementExpression = new RefinementExpression(nodeLocation, outputRefinement);
-//      } else {
-//        refinementExpression =
-//            new RefinementExpression(getLocation(context.resultMaterialization()), outputRefinement);
-//      }
+      }
 
 
       final OptionalInt limit = getLimit(context.limitClause());
@@ -453,7 +442,7 @@ public class AstBuilder {
           visitIfPresent(context.groupBy(), GroupBy.class),
           partitionBy,
           visitIfPresent(context.having, Expression.class),
-          Optional.of(refinementInfo),
+          refinementInfo,
           pullQuery,
           limit
       );

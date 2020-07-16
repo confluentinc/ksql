@@ -49,6 +49,8 @@ public class PullQueryValidatorTest {
   private WindowExpression windowExpression;
   @Mock
   private Into into;
+  @Mock
+  private RefinementInfo refinementInfo;
 
   private QueryValidator validator;
 
@@ -60,9 +62,9 @@ public class PullQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnPullQueryThatIsNotFinal() {
+  public void shouldThrowOnPullQueryThatHasRefinement() {
     // Given:
-    when(analysis.getRefinementInfo().get().getOutputRefinement()).thenReturn(Optional.of(OutputRefinement.CHANGES));
+    when(analysis.getRefinementInfo()).thenReturn(Optional.of(refinementInfo));
 
     // When:
     final Exception e = assertThrows(
@@ -71,7 +73,7 @@ public class PullQueryValidatorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Pull queries don't support 'EMIT CHANGES'"));
+    assertThat(e.getMessage(), containsString("Pull queries don't support EMIT clauses."));
   }
 
   @Test(expected = KsqlException.class)

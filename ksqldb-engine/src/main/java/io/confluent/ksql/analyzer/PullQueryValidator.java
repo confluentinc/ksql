@@ -61,7 +61,7 @@ public class PullQueryValidator implements QueryValidator {
       ),
       Rule.of(
           analysis -> !analysis.getRefinementInfo().isPresent(),
-          "Pull queries don't support 'EMIT CHANGES'"
+          "Pull queries don't support EMIT clauses."
       )
   );
 

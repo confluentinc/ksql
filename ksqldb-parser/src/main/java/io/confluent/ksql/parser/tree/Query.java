@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlPreconditions;

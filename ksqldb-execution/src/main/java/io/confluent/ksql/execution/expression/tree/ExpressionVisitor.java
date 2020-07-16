@@ -87,5 +87,4 @@ public interface ExpressionVisitor<R, C> {
 
   R visitWhenClause(WhenClause exp, C context);
 
-  R visitRefinementExpression(RefinementExpression exp, C context);
 }

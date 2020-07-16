@@ -46,7 +46,6 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -361,11 +360,6 @@ public final class ExpressionFormatter {
     public String visitWhenClause(final WhenClause node, final Context context) {
       return "WHEN " + process(node.getOperand(), context) + " THEN " + process(
           node.getResult(), context);
-    }
-
-    @Override
-    public String visitRefinementExpression(RefinementExpression exp, Context context) {
-      return "EMIT " + exp.getOutputRefinement().get().toString();
     }
 
     @Override

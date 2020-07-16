@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
-import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -211,11 +210,6 @@ public class CodeGenRunner {
           .toConnectSchema(expressionTypeManager.getExpressionSqlType(exp));
 
       spec.addStructSchema(exp, schema);
-      return null;
-    }
-
-    @Override
-    public Void visitRefinementExpression(RefinementExpression exp, Void context) {
       return null;
     }
 

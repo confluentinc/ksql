@@ -429,7 +429,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be pull", result.isPullQuery(), is(true));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.empty()));
+    assertThat(result.getRefinement(), is(Optional.empty()));
   }
 
   @Test
@@ -586,22 +586,6 @@ public class AstBuilderTest {
     assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
   }
 
-//  @Test
-//  public void shouldCreateRefinementExpressionOnBareQuery() {
-//    // Given:
-//    final SingleStatementContext stmt =
-//        givenQuery("SELECT * FROM TEST1;");
-//
-//    // When:
-//    final Query result = (Query) builder.buildStatement(stmt);
-//
-//    // Then:
-//    assertThat("Should be pull", result.isPullQuery(), is(true));
-//    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.empty()));
-//    assertThat(result.getRefinement().get().getLocation().get().getLineNumber(),is(stmt.stop.getLine()));
-//    assertThat(result.getRefinement().get().getLocation().get().getColumnNumber(),is(stmt.stop.getCharPositionInLine()));
-//
-//  }
   @Test
   public void shouldSupportQuotedExplainStatements() {
     // Given:

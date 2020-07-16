@@ -18,10 +18,8 @@ package io.confluent.ksql.serde;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.OutputRefinement;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 

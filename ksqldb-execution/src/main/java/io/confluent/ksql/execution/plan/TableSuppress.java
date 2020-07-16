@@ -17,8 +17,6 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.serde.RefinementInfo;
 
 import java.util.Collections;

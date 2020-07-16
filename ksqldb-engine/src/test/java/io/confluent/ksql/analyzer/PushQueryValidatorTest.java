@@ -27,9 +27,7 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
@@ -51,8 +49,6 @@ public class PushQueryValidatorTest {
   private KsqlTopic topic;
   @Mock
   private KeyFormat keyFormat;
-  @Mock
-  private RefinementInfo refinementInfo;
 
   private QueryValidator validator;
 

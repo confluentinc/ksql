@@ -42,7 +42,6 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -565,11 +564,6 @@ public class ExpressionTypeManager {
         final WhenClause whenClause, final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.illegalState(this, whenClause);
-    }
-
-    @Override
-    public Void visitRefinementExpression(RefinementExpression exp, ExpressionTypeContext context) {
-      return null;
     }
 
     private Optional<SqlType> validateWhenClauses(

@@ -17,15 +17,14 @@ package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.RefinementExpression;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
-import io.confluent.ksql.util.KsqlException;
 
 
 /**

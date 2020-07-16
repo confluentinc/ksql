@@ -15,7 +15,6 @@
 package io.confluent.ksql.topic;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -34,6 +33,8 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -160,15 +161,26 @@ public class TopicCreateInjector implements Injector {
             properties.getReplicas());
 
     final String topicCleanUpPolicy;
+    final Map<String, Object> additionalTopicConfigs = new HashMap<>();
     if (createAsSelect instanceof CreateStreamAsSelect) {
       topicCleanUpPolicy = TopicConfig.CLEANUP_POLICY_DELETE;
     } else {
-      topicCleanUpPolicy = createAsSelect.getQuery().getWindow().isPresent()
-          ? TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE
-          : TopicConfig.CLEANUP_POLICY_COMPACT;
+      if (createAsSelect.getQuery().getWindow().isPresent()) {
+        topicCleanUpPolicy =
+            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE;
+
+        createAsSelect.getQuery().getWindow().get().getKsqlWindowExpression().getRetention()
+            .ifPresent(retention -> additionalTopicConfigs.put(
+                TopicConfig.RETENTION_MS_CONFIG,
+                retention.toDuration().toMillis()
+            ));
+      } else {
+        topicCleanUpPolicy = TopicConfig.CLEANUP_POLICY_COMPACT;
+      }
     }
 
-    final TopicProperties info = createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
+    final TopicProperties info
+        = createTopic(topicPropertiesBuilder, topicCleanUpPolicy, additionalTopicConfigs);
 
     final T withTopic = (T) createAsSelect.copyWith(properties.withTopic(
         info.getTopicName(),
@@ -185,10 +197,19 @@ public class TopicCreateInjector implements Injector {
       final Builder topicPropertiesBuilder,
       final String topicCleanUpPolicy
   ) {
+    return createTopic(topicPropertiesBuilder, topicCleanUpPolicy, Collections.emptyMap());
+  }
+
+  private TopicProperties createTopic(
+      final Builder topicPropertiesBuilder,
+      final String topicCleanUpPolicy,
+      final Map<String, Object> additionalTopicConfigs
+  ) {
     final TopicProperties info = topicPropertiesBuilder.build();
 
-    final Map<String, ?> config =
-        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, topicCleanUpPolicy);
+    final Map<String, Object> config = new HashMap<>();
+    config.put(TopicConfig.CLEANUP_POLICY_CONFIG, topicCleanUpPolicy);
+    config.putAll(additionalTopicConfigs);
 
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -41,10 +41,12 @@ public class CommandTopic {
 
   private Consumer<CommandId, Command> commandConsumer = null;
   private final String commandTopicName;
+  private CommandTopicBackup commandTopicBackup;
 
   public CommandTopic(
       final String commandTopicName,
-      final Map<String, Object> kafkaConsumerProperties
+      final Map<String, Object> kafkaConsumerProperties,
+      final CommandTopicBackup commandTopicBackup
   ) {
     this(
         commandTopicName,
@@ -52,17 +54,20 @@ public class CommandTopic {
             Objects.requireNonNull(kafkaConsumerProperties, "kafkaClientProperties"),
             InternalTopicSerdes.deserializer(CommandId.class),
             InternalTopicSerdes.deserializer(Command.class)
-        )
+        ),
+        commandTopicBackup
     );
   }
 
   CommandTopic(
       final String commandTopicName,
-      final Consumer<CommandId, Command> commandConsumer
+      final Consumer<CommandId, Command> commandConsumer,
+      final CommandTopicBackup commandTopicBackup
   ) {
     this.commandTopicPartition = new TopicPartition(commandTopicName, 0);
     this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
+    this.commandTopicBackup = Objects.requireNonNull(commandTopicBackup, "commandTopicBackup");
   }
 
   public String getCommandTopicName() {
@@ -70,11 +75,18 @@ public class CommandTopic {
   }
 
   public void start() {
+    commandTopicBackup.initialize();
     commandConsumer.assign(Collections.singleton(commandTopicPartition));
   }
 
   public Iterable<ConsumerRecord<CommandId, Command>> getNewCommands(final Duration timeout) {
-    return commandConsumer.poll(timeout);
+    final Iterable<ConsumerRecord<CommandId, Command>> iterable = commandConsumer.poll(timeout);
+
+    if (iterable != null) {
+      iterable.forEach(record -> backupRecord(record));
+    }
+
+    return iterable;
   }
 
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
@@ -89,6 +101,8 @@ public class CommandTopic {
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
       for (final ConsumerRecord<CommandId, Command> record : records) {
+        backupRecord(record);
+
         if (record.value() == null) {
           continue;
         }
@@ -119,5 +133,10 @@ public class CommandTopic {
 
   public void close() {
     commandConsumer.close();
+    commandTopicBackup.close();
+  }
+
+  private void backupRecord(final ConsumerRecord<CommandId, Command> record) {
+    commandTopicBackup.writeRecord(record);
   }
 }

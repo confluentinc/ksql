@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,24 +29,25 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
+
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Future;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -58,8 +60,7 @@ public class CommandTopicTest {
   private CommandTopic commandTopic;
 
   @Mock
-  private Future<RecordMetadata> future;
-
+  private CommandTopicBackup commandTopicBackup;
   @Mock
   private CommandId commandId1;
   @Mock
@@ -83,7 +84,7 @@ public class CommandTopicTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer);
+    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, commandTopicBackup);
   }
 
   @Test
@@ -244,6 +245,66 @@ public class CommandTopicTest {
         new QueuedCommand(commandId2, command2, Optional.empty(), 1L),
         new QueuedCommand(commandId3, command3, Optional.empty(), 2L)
     )));
+  }
+
+  @Test
+  public void shouldInitializeCommandTopicBackup() {
+    // When
+    commandTopic.start();
+
+    // Then
+    verify(commandTopicBackup, times(1)).initialize();
+  }
+
+  @Test
+  public void shouldCloseCommandTopicBackup() {
+    // When
+    commandTopic.close();
+
+    // Then
+    verify(commandTopicBackup, times(1)).close();
+  }
+
+  @Test
+  public void shouldBackupRestoreCommands() {
+    // Given
+    final ConsumerRecord<CommandId, Command> record1 =
+        new ConsumerRecord<>("topic", 0, 0, commandId1, command1);
+    final ConsumerRecord<CommandId, Command> record2 =
+        new ConsumerRecord<>("topic", 0, 0, commandId2, command2);
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords(record1, record2))
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    commandTopic.start();
+
+    // When
+    commandTopic.getRestoreCommands(Duration.ofHours(1));
+
+    // Then
+    final InOrder inOrder = Mockito.inOrder(commandTopicBackup);
+    inOrder.verify(commandTopicBackup, times(1)).writeRecord(record1);
+    inOrder.verify(commandTopicBackup, times(1)).writeRecord(record2);
+  }
+
+  @Test
+  public void shouldBackupNewCommands() {
+    // Given
+    final ConsumerRecord<CommandId, Command> record1 =
+        new ConsumerRecord<>("topic", 0, 0, commandId1, command1);
+    final ConsumerRecord<CommandId, Command> record2 =
+        new ConsumerRecord<>("topic", 0, 1, commandId2, command2);
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords(record1, record2))
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    commandTopic.start();
+
+    // When
+    commandTopic.getNewCommands(Duration.ofHours(1));
+
+    // Then
+    final InOrder inOrder = Mockito.inOrder(commandTopicBackup);
+    inOrder.verify(commandTopicBackup, times(1)).writeRecord(record1);
+    inOrder.verify(commandTopicBackup, times(1)).writeRecord(record2);
   }
 
   @Test

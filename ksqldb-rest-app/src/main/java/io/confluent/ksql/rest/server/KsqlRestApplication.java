@@ -636,8 +636,8 @@ public final class KsqlRestApplication implements Executable {
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
     final CommandStore commandStore = CommandStore.Factory.create(
+        ksqlConfig,
         commandTopicName,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
             restConfig.getCommandConsumerProperties()),

@@ -16,6 +16,11 @@ ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/bin
 ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/etc/* /etc/ksqldb/
 ADD --chown=appuser:appuser target/${ARTIFACT_ID}-${PROJECT_VERSION}-package/share/doc/* /usr/share/doc/${ARTIFACT_ID}/
 
+RUN echo "===> Installing confluent-hub..." \
+    && wget http://client.hub.confluent.io/confluent-hub-client-latest.tar.gz \
+    && tar xf confluent-hub-client-latest.tar.gz \
+    && rm confluent-hub-client-latest.tar.gz
+
 RUN chmod +x /usr/bin/docker/configure
 RUN chmod +x /usr/bin/docker/run
 

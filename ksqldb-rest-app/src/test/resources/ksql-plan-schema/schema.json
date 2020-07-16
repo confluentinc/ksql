@@ -876,13 +876,12 @@
         "source" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
-        "resultMaterialization" : {
-          "type" : "string",
-          "enum" : [ "CHANGES", "FINAL" ]
+        "refinementInfo" : {
+          "$ref" : "#/definitions/RefinementInfo"
         }
       },
       "title" : "tableSuppressV1",
-      "required" : [ "@type", "properties", "source", "resultMaterialization" ]
+      "required" : [ "@type", "properties", "source", "refinementInfo" ]
     },
     "TableTableJoin" : {
       "type" : "object",
@@ -912,6 +911,17 @@
       },
       "title" : "tableTableJoinV1",
       "required" : [ "@type", "properties", "joinType", "leftSource", "rightSource" ]
+    },
+    "RefinementInfo" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "outputRefinement" : {
+          "type" : "string",
+          "enum" : [ "CHANGES", "FINAL" ]
+        }
+      },
+      "required" : [ "outputRefinement" ]
     },
     "ExecutionStep" : {
       "oneOf" : [ {

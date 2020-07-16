@@ -41,12 +41,12 @@ public class CommandTopic {
 
   private Consumer<CommandId, Command> commandConsumer = null;
   private final String commandTopicName;
-  private Optional<CommandTopicBackup> commandTopicBackup;
+  private CommandTopicBackup commandTopicBackup;
 
   public CommandTopic(
       final String commandTopicName,
       final Map<String, Object> kafkaConsumerProperties,
-      final Optional<CommandTopicBackup> commandTopicBackup
+      final CommandTopicBackup commandTopicBackup
   ) {
     this(
         commandTopicName,
@@ -62,7 +62,7 @@ public class CommandTopic {
   CommandTopic(
       final String commandTopicName,
       final Consumer<CommandId, Command> commandConsumer,
-      final Optional<CommandTopicBackup> commandTopicBackup
+      final CommandTopicBackup commandTopicBackup
   ) {
     this.commandTopicPartition = new TopicPartition(commandTopicName, 0);
     this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
@@ -75,7 +75,7 @@ public class CommandTopic {
   }
 
   public void start() {
-    commandTopicBackup.ifPresent(backup -> backup.initialize());
+    commandTopicBackup.initialize();
     commandConsumer.assign(Collections.singleton(commandTopicPartition));
   }
 
@@ -133,10 +133,10 @@ public class CommandTopic {
 
   public void close() {
     commandConsumer.close();
-    commandTopicBackup.ifPresent(backup -> backup.close());
+    commandTopicBackup.close();
   }
 
   private void backupRecord(final ConsumerRecord<CommandId, Command> record) {
-    commandTopicBackup.ifPresent(backup -> backup.writeRecord(record));
+    commandTopicBackup.writeRecord(record);
   }
 }

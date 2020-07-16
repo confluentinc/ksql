@@ -84,7 +84,7 @@ public class CommandTopicTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, Optional.empty());
+    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, commandTopicBackup);
   }
 
   @Test
@@ -248,11 +248,7 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldInitializeBackupIfEnabled() {
-    // Given
-    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME,
-        commandConsumer, Optional.of(commandTopicBackup));
-
+  public void shouldInitializeCommandTopicBackup() {
     // When
     commandTopic.start();
 
@@ -261,11 +257,7 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldCloseBackupIfEnabled() {
-    // Given
-    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME,
-        commandConsumer, Optional.of(commandTopicBackup));
-
+  public void shouldCloseCommandTopicBackup() {
     // When
     commandTopic.close();
 
@@ -283,9 +275,6 @@ public class CommandTopicTest {
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(record1, record2))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
-
-    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME,
-        commandConsumer, Optional.of(commandTopicBackup));
     commandTopic.start();
 
     // When
@@ -307,9 +296,6 @@ public class CommandTopicTest {
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(record1, record2))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
-
-    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME,
-        commandConsumer, Optional.of(commandTopicBackup));
     commandTopic.start();
 
     // When

@@ -64,7 +64,7 @@ public class BackupReplayFileTest {
   }
 
   @Test
-  public void shouldWriteRecordToFile() throws IOException {
+  public void shouldWriteRecord() throws IOException {
     // Given
     final Pair<CommandId, Command> record = newStreamRecord("stream1");
 
@@ -76,12 +76,12 @@ public class BackupReplayFileTest {
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), is(
         "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
-            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1\"}"
+            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\"}"
     ));
   }
 
   @Test
-  public void shouldWriteListOfRecordsTofile() throws IOException {
+  public void shouldWriteListOfRecords() throws IOException {
     // Given
     final Pair<CommandId, Command> record1 = newStreamRecord("stream1");
     final Pair<CommandId, Command> record2 = newStreamRecord("stream2");
@@ -94,11 +94,34 @@ public class BackupReplayFileTest {
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0), is(
         "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
-            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1\"}"
+            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\"}"
     ));
     assertThat(commands.get(1), is(
         "\"stream/stream2/create\"" + KEY_VALUE_SEPARATOR
-            + "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2\"}"
+            + "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\"}"
+    ));
+  }
+
+  @Test
+  public void shouldWriteRecordWithNewLineCharacterInCommand() throws IOException {
+    // Given
+    final CommandId commandId1 = new CommandId(
+        CommandId.Type.STREAM, "stream1", CommandId.Action.CREATE);
+    final Command command1 = new Command(
+        "CREATE STREAM stream1 (id INT, f\n1 INT) WITH (kafka_topic='topic1)",
+        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()
+    );
+
+    // When
+    replayFile.write(commandId1, command1);
+
+    // Then
+    final List<String> commands = Files.readAllLines(internalReplayFile.toPath());
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), is(
+        "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
+            + "{\"statement\":"
+            + "\"CREATE STREAM stream1 (id INT, f\\n1 INT) WITH (kafka_topic='topic1)\"}"
     ));
   }
 
@@ -112,7 +135,7 @@ public class BackupReplayFileTest {
   }
 
   @Test
-  public void shouldReadCommandsFromFile() throws IOException {
+  public void shouldReadCommands() throws IOException {
     // Given
     final Pair<CommandId, Command> record1 = newStreamRecord("stream1");
     final Pair<CommandId, Command> record2 = newStreamRecord("stream2");
@@ -120,10 +143,10 @@ public class BackupReplayFileTest {
         String.format("%s%s%s%n%s%s%s",
             "\"stream/stream1/create\"",
             KEY_VALUE_SEPARATOR,
-            "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1\"}",
+            "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\"}",
             "\"stream/stream2/create\"",
             KEY_VALUE_SEPARATOR,
-            "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2\"}"
+            "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\"}"
             ).getBytes(StandardCharsets.UTF_8));
 
     // When
@@ -141,7 +164,7 @@ public class BackupReplayFileTest {
     final CommandId commandId = new CommandId(
         CommandId.Type.STREAM, streamName, CommandId.Action.CREATE);
     final Command command = new Command(
-        String.format("CREATE STREAM %s (id INT) WITH (kafka_topic='%s", streamName, streamName),
+        String.format("CREATE STREAM %s (id INT) WITH (kafka_topic='%s')", streamName, streamName),
         Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()
     );
 

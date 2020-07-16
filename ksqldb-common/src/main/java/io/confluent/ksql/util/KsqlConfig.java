@@ -296,8 +296,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final Boolean KSQL_ENABLE_METASTORE_BACKUP_DEFAULT = false;
   public static final String KSQL_ENABLE_METASTORE_BACKUP_DOC = "Enable the KSQL metastore "
       + "backup service. The backup replays the KSQL command_topic to a file located in the "
-      + "same KSQL node. By default, the backup files are located in the private KSQL "
-      + "directories.";
+      + "same KSQL node.";
 
   public static final String KSQL_METASTORE_BACKUP_LOCATION = "ksql.metastore.backup.location";
   public static final String KSQL_METASTORE_BACKUP_LOCATION_DEFAULT = "";

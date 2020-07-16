@@ -42,7 +42,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CommandTopicBackupTest {
+public class CommandTopicBackupImplTest {
   private static final String COMMAND_TOPIC_NAME = "command_topic";
 
   private Pair<CommandId, Command> command1 = newStreamRecord("stream1");
@@ -55,11 +55,11 @@ public class CommandTopicBackupTest {
   @Rule
   public TemporaryFolder backupLocation = new TemporaryFolder();
 
-  private CommandTopicBackup commandTopicBackup;
+  private CommandTopicBackupImpl commandTopicBackup;
 
   @Before
   public void setup() {
-    commandTopicBackup = new CommandTopicBackup(
+    commandTopicBackup = new CommandTopicBackupImpl(
         backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker);
   }
 
@@ -82,7 +82,7 @@ public class CommandTopicBackupTest {
     // When
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new CommandTopicBackup(file.getAbsolutePath(), COMMAND_TOPIC_NAME)
+        () -> new CommandTopicBackupImpl(file.getAbsolutePath(), COMMAND_TOPIC_NAME)
     );
 
     // Then
@@ -97,7 +97,7 @@ public class CommandTopicBackupTest {
     // When
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new CommandTopicBackup("/not-existing-directory", COMMAND_TOPIC_NAME)
+        () -> new CommandTopicBackupImpl("/not-existing-directory", COMMAND_TOPIC_NAME)
     );
 
     // Then

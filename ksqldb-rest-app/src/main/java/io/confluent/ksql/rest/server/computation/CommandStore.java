@@ -20,6 +20,8 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.CommandTopicBackup;
+import io.confluent.ksql.rest.server.CommandTopicBackupImpl;
+import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -90,7 +92,7 @@ public class CommandStore implements CommandQueue, Closeable {
           "all"
       );
 
-      Optional<CommandTopicBackup> commandTopicBackup = Optional.empty();
+      CommandTopicBackup commandTopicBackup = new CommandTopicBackupNoOp();
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ENABLE_METASTORE_BACKUP)) {
         if (ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION).isEmpty()) {
           throw new KsqlException(String.format("Metastore backups is enabled, but location "
@@ -98,10 +100,10 @@ public class CommandStore implements CommandQueue, Closeable {
               KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION));
         }
 
-        commandTopicBackup = Optional.of(new CommandTopicBackup(
+        commandTopicBackup = new CommandTopicBackupImpl(
             ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION),
             commandTopicName)
-        );
+        ;
       }
 
       return new CommandStore(

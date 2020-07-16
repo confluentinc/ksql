@@ -19,10 +19,19 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-public interface CommandTopicBackup {
-  void initialize();
+public class CommandTopicBackupNoOp implements CommandTopicBackup {
+  @Override
+  public void initialize() {
+    // no-op
+  }
 
-  void writeRecord(ConsumerRecord<CommandId, Command> record);
+  @Override
+  public void writeRecord(final ConsumerRecord<CommandId, Command> record) {
+    // no-op
+  }
 
-  void close();
+  @Override
+  public void close() {
+    // no-op
+  }
 }

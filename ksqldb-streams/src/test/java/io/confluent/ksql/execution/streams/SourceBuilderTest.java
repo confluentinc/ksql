@@ -18,8 +18,10 @@ package io.confluent.ksql.execution.streams;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -48,12 +51,16 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashSet;
 import java.util.Optional;
@@ -170,10 +177,16 @@ public class SourceBuilderTest {
   private Materialized<Object, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private SchemaRegistryClient srClient;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
+  @Captor
+  private ArgumentCaptor<StaticTopicSerde<GenericRow>> serdeCaptor;
   private final GenericRow row = genericRow("baz", 123);
   private PlanBuilder planBuilder;
 
@@ -199,12 +212,16 @@ public class SourceBuilderTest {
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(queryBuilder.getServiceContext()).thenReturn(serviceContext);
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("id"));
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
     when(materializationFactory.create(any(), any(), any()))
         .thenReturn((Materialized) materialized);
+    when(valueFormatInfo.getFormat()).thenReturn(FormatFactory.AVRO.name());
 
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -315,6 +332,7 @@ public class SourceBuilderTest {
   public void shouldApplyCorrectTransformationsToSourceTableWithoutForcingChangelog() {
     // Given:
     givenUnwindowedSourceTable(false);
+    when(consumed.withValueSerde(any())).thenReturn(consumed);
 
     // When:
     final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
@@ -329,6 +347,28 @@ public class SourceBuilderTest {
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+
+    verify(consumed).withValueSerde(serdeCaptor.capture());
+    final StaticTopicSerde<GenericRow> value = serdeCaptor.getValue();
+    assertThat(value.getTopic(), is("_confluent-ksql-default_query_id-base-Reduce-changelog"));
+  }
+
+  @Test
+  public void shouldApplyCreateSchemaRegistryCallbackIfSchemaRegistryIsEnabled() {
+    // Given:
+    when(queryBuilder.getKsqlConfig()).thenReturn(
+        KSQL_CONFIG.cloneWithPropertyOverwrite(
+            ImmutableMap.of(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "foo")));
+    givenUnwindowedSourceTable(false);
+    when(consumed.withValueSerde(any())).thenReturn(consumed);
+
+    // When:
+    tableSource.build(planBuilder);
+
+    // Then:
+    verify(consumed).withValueSerde(serdeCaptor.capture());
+    final StaticTopicSerde<GenericRow> value = serdeCaptor.getValue();
+    assertThat(value.getOnFailure(), instanceOf(RegisterSchemaCallback.class));
   }
 
 

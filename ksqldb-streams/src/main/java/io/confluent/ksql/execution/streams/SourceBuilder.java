@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
@@ -36,8 +38,13 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.StaticTopicSerde;
+import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,9 +70,12 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SourceBuilder {
 
+  private static final Logger LOG = LoggerFactory.getLogger(SourceBuilder.class);
   private static final Collection<?> NULL_WINDOWED_KEY_COLUMNS = Collections.unmodifiableList(
       Arrays.asList(null, null, null)
   );
@@ -176,11 +186,12 @@ public final class SourceBuilder {
         consumedFactory
     );
 
+    final String stateStoreName = tableChangeLogOpName(source.getProperties());
     final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         materializedFactory.create(
             keySerde,
             valueSerde,
-            tableChangeLogOpName(source.getProperties())
+            stateStoreName
         );
 
     final KTable<Struct, GenericRow> ktable = buildKTable(
@@ -188,7 +199,9 @@ public final class SourceBuilder {
         queryBuilder,
         consumed,
         nonWindowedKeyGenerator(source.getSourceSchema()),
-        materialized
+        materialized,
+        valueSerde,
+        stateStoreName
     );
 
     return KTableHolder.unmaterialized(
@@ -225,11 +238,12 @@ public final class SourceBuilder {
         consumedFactory
     );
 
+    final String stateStoreName = tableChangeLogOpName(source.getProperties());
     final Materialized<Windowed<Struct>, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         materializedFactory.create(
             keySerde,
             valueSerde,
-            tableChangeLogOpName(source.getProperties())
+            stateStoreName
         );
 
     final KTable<Windowed<Struct>, GenericRow> ktable = buildKTable(
@@ -237,7 +251,9 @@ public final class SourceBuilder {
         queryBuilder,
         consumed,
         windowedKeyGenerator(source.getSourceSchema()),
-        materialized
+        materialized,
+        valueSerde,
+        stateStoreName
     );
 
     return KTableHolder.unmaterialized(
@@ -292,16 +308,26 @@ public final class SourceBuilder {
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, Collection<?>> keyGenerator,
-      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
+      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      final Serde<GenericRow> valueSerde,
+      final String stateStoreName
   ) {
     final boolean forceChangelog = streamSource instanceof TableSource
         && ((TableSource) streamSource).isForceChangelog();
 
     final KTable<K, GenericRow> table;
     if (!forceChangelog) {
+      final String changelogTopic = changelogTopic(queryBuilder, stateStoreName);
+      final Callback onFailure = getRegisterCallback(
+          queryBuilder, streamSource.getFormats().getValueFormat());
+
       table = queryBuilder
           .getStreamsBuilder()
-          .table(streamSource.getTopicName(), consumed, materialized);
+          .table(
+              streamSource.getTopicName(),
+              consumed.withValueSerde(StaticTopicSerde.wrap(changelogTopic, valueSerde, onFailure)),
+              materialized
+          );
     } else {
       final KTable<K, GenericRow> source = queryBuilder
           .getStreamsBuilder()
@@ -316,6 +342,46 @@ public final class SourceBuilder {
 
     return table
         .transformValues(new AddKeyAndTimestampColumns<>(keyGenerator));
+  }
+
+  private static StaticTopicSerde.Callback getRegisterCallback(
+      final KsqlQueryBuilder builder,
+      final FormatInfo valueFormat
+  ) {
+    final boolean schemaRegistryEnabled = !builder
+        .getKsqlConfig()
+        .getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
+        .isEmpty();
+
+    final boolean useSR = FormatFactory
+        .fromName(valueFormat.getFormat())
+        .supportsSchemaInference();
+
+    if (!schemaRegistryEnabled || !useSR) {
+      return (t1, t2, data) -> { };
+    }
+
+    return new RegisterSchemaCallback(builder.getServiceContext().getSchemaRegistryClient());
+  }
+
+  /**
+   * This code mirrors the logic that generates the name for changelog topics
+   * in kafka streams, which follows the pattern:
+   * <pre>
+   *    applicationID + "-" + stateStoreName + "-changelog".
+   * </pre>
+   */
+  private static String changelogTopic(
+      final KsqlQueryBuilder queryBuilder,
+      final String stateStoreName
+  ) {
+    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+        + queryBuilder.getKsqlConfig().getString(KSQL_SERVICE_ID_CONFIG)
+        + queryBuilder.getKsqlConfig().getString(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG)
+        + queryBuilder.getQueryId().toString()
+        + "-"
+        + stateStoreName
+        + "-changelog";
   }
 
   private static TimestampExtractor timestampExtractor(

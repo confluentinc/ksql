@@ -15,11 +15,10 @@
 
 package io.confluent.ksql.rest.server.services;
 
+import static io.confluent.ksql.rest.server.services.InternalKsqlClientFactory.createInternalClient;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlTarget;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -30,12 +29,14 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.Vertx;
+import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,26 +46,33 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
+  private final boolean ownSharedClient;
 
-  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps) {
+  @VisibleForTesting
+  DefaultKsqlClient(final Optional<String> authHeader, final Map<String, Object> clientProps,
+      final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
     this(
         authHeader,
-        new KsqlClient(
-            toClientProps(clientProps),
-            Optional.empty(),
-            new LocalProperties(ImmutableMap.of()),
-            createClientOptions()
-        )
+        createInternalClient(toClientProps(clientProps), socketAddressFactory, Vertx.vertx()),
+        true
     );
   }
 
-  @VisibleForTesting
   DefaultKsqlClient(
       final Optional<String> authHeader,
       final KsqlClient sharedClient
   ) {
+    this(authHeader, sharedClient, false);
+  }
+
+  DefaultKsqlClient(
+      final Optional<String> authHeader,
+      final KsqlClient sharedClient,
+      final boolean ownSharedClient
+  ) {
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.sharedClient = requireNonNull(sharedClient, "sharedClient");
+    this.ownSharedClient = ownSharedClient;
   }
 
   @Override
@@ -143,17 +151,15 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
   @Override
   public void close() {
-    sharedClient.close();
+    if (ownSharedClient) {
+      sharedClient.close();
+    }
   }
 
   private KsqlTarget getTarget(final KsqlTarget target, final Optional<String> authHeader) {
     return authHeader
         .map(target::authorizationHeader)
         .orElse(target);
-  }
-
-  private static HttpClientOptions createClientOptions() {
-    return new HttpClientOptions().setMaxPoolSize(100);
   }
 
   private static Map<String, String> toClientProps(final Map<String, Object> config) {
@@ -163,6 +169,4 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     }
     return clientProps;
   }
-
-
 }

@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.TestDefaultKsqlClientFactory;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,6 +43,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.vertx.core.Vertx;
+import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -274,13 +277,19 @@ public class TestKsqlRestApp extends ExternalResource {
 
     try {
 
+      Vertx vertx = Vertx.vertx();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           config,
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
-          MockSchemaRegistryClient::new);
+          MockSchemaRegistryClient::new,
+          vertx,
+          InternalKsqlClientFactory.createInternalClient(
+              KsqlRestApplication.toClientProps(config.originals()),
+              SocketAddress::inetSocketAddress,
+              vertx));
 
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);

@@ -276,6 +276,22 @@ Array entries are compared according to their natural sort order, which sorts th
 
 If the array field is NULL, or contains only NULLs, then NULL is returned.
 
+### `ARRAY_REMOVE`
+
+```sql
+ARRAY_REMOVE(array, element)
+```
+
+Removes all elements from the input array equal to `element`.
+
+Examples:
+```sql
+- array_remove([1, 2, 3, 2, 1], 2) -> [1, 3, 1]
+- array_remove([false, NULL, true, true], false) -> [NULL, true, true]
+- array_remove(['Foo', 'Bar', NULL, 'baz'], null) -> ['Foo', 'Bar', 'baz']
+```
+If the array field is NULL then NULL is returned.
+
 ### `ARRAY_SORT`
 
 ```sql

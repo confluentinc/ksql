@@ -21,7 +21,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.OutputRefinement;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Immutable pojo for storing info about a refinement.
@@ -29,21 +28,21 @@ import java.util.Optional;
 @Immutable
 public final class RefinementInfo {
 
-  private final Optional<OutputRefinement> outputRefinement;
+  private final OutputRefinement outputRefinement;
 
   @JsonCreator
   public static RefinementInfo of(
       @JsonProperty(value = "outputRefinement", required = true)
-      final Optional<OutputRefinement> outputRefinement
+      final OutputRefinement outputRefinement
   ) {
     return new RefinementInfo(outputRefinement);
   }
 
-  private RefinementInfo(final Optional<OutputRefinement> outputRefinement) {
+  private RefinementInfo(final OutputRefinement outputRefinement) {
     this.outputRefinement = Objects.requireNonNull(outputRefinement, "outputRefinement");
   }
 
-  public Optional<OutputRefinement> getOutputRefinement() {
+  public OutputRefinement getOutputRefinement() {
     return outputRefinement;
   }
 

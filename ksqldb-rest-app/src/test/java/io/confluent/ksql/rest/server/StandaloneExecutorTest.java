@@ -130,7 +130,7 @@ public class StandaloneExecutorTest {
   private static final String SOME_TOPIC = "some-topic";
 
   private static final RefinementInfo REFINEMENT_INFO =
-      RefinementInfo.of(Optional.of(OutputRefinement.CHANGES));
+      RefinementInfo.of(OutputRefinement.CHANGES);
 
   private static final CreateSourceProperties JSON_PROPS = CreateSourceProperties.from(
       ImmutableMap.of(

@@ -38,16 +38,11 @@ public class RefinementInfoTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            RefinementInfo.of(Optional.of(OutputRefinement.FINAL)),
-            RefinementInfo.of(Optional.of(OutputRefinement.FINAL))
+            RefinementInfo.of(OutputRefinement.FINAL),
+            RefinementInfo.of(OutputRefinement.FINAL)
         )
         .addEqualityGroup(
-            RefinementInfo.of(Optional.of(OutputRefinement.CHANGES)),
-            RefinementInfo.of(Optional.of(OutputRefinement.CHANGES))
-        )
-        .addEqualityGroup(
-            RefinementInfo.of(Optional.empty()),
-            RefinementInfo.of(Optional.empty())
+            RefinementInfo.of(OutputRefinement.CHANGES)
         )
         .testEquals();
   }
@@ -55,24 +50,12 @@ public class RefinementInfoTest {
   @Test
   public void shouldImplementToString() {
     // Given:
-    final RefinementInfo refinementInfo = RefinementInfo.of(Optional.of(OutputRefinement.FINAL));
+    final RefinementInfo refinementInfo = RefinementInfo.of(OutputRefinement.FINAL);
 
     // When:
     final String result = refinementInfo.toString();
 
     // Then:
     assertThat(result, containsString("FINAL"));
-  }
-
-  @Test
-  public void shouldGetOutputRefinement() {
-    // Given:
-    final RefinementInfo refinementInfo = RefinementInfo.of(Optional.of(OutputRefinement.FINAL));
-
-    // When:
-    final OutputRefinement result = refinementInfo.getOutputRefinement().get();
-
-    // Then:
-    assertThat(result, is(OutputRefinement.FINAL));
   }
 }

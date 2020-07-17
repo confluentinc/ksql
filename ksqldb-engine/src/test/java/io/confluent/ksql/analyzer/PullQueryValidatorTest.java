@@ -58,7 +58,7 @@ public class PullQueryValidatorTest {
   public void setUp() {
     validator = new PullQueryValidator();
 
-    when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(Optional.of(OutputRefinement.FINAL))));
+    when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.FINAL)));
   }
 
   @Test

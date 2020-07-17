@@ -443,7 +443,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.CHANGES));
   }
 
   @Test
@@ -457,7 +457,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.FINAL));
   }
 
   @Test
@@ -471,7 +471,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.CHANGES));
   }
 
   @Test
@@ -485,7 +485,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.CHANGES));
   }
 
   @Test
@@ -499,7 +499,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.CHANGES));
   }
 
   @Test
@@ -513,7 +513,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.CHANGES));
   }
 
   @Test
@@ -527,7 +527,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.FINAL));
   }
 
   @Test
@@ -541,7 +541,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.CHANGES));
   }
 
   @Test
@@ -555,7 +555,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.FINAL));
   }
 
   @Test
@@ -569,7 +569,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.CHANGES)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.CHANGES));
   }
 
   @Test
@@ -583,7 +583,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
-    assertThat(result.getRefinement().get().getOutputRefinement(), is(Optional.of(OutputRefinement.FINAL)));
+    assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.FINAL));
   }
 
   @Test

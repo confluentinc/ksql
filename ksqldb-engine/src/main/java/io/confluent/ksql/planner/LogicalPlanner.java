@@ -142,8 +142,7 @@ public class LogicalPlanner {
     }
 
     if (analysis.getRefinementInfo().isPresent()
-        && analysis.getRefinementInfo().get()
-        .getOutputRefinement().get() == OutputRefinement.FINAL) {
+        && analysis.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL) {
       if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
         throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
       }

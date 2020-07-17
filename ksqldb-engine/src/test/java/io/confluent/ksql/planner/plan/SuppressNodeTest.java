@@ -24,17 +24,21 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+
+import java.util.Optional;
 
 public class SuppressNodeTest {
 
@@ -55,6 +59,11 @@ public class SuppressNodeTest {
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
+  
+  @Before
+  public void setUp() {
+    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
+  }
 
   @Test
   @SuppressWarnings("unchecked")
@@ -62,7 +71,6 @@ public class SuppressNodeTest {
 
     // Given:
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
 
     node = new SuppressNode(NODE_ID, sourceNode, refinementInfo);
 
@@ -83,7 +91,6 @@ public class SuppressNodeTest {
     // Given:
     when(sourceNode.buildStream(any())).thenReturn(schemaKTable);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
-    when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
 
     node = new SuppressNode(NODE_ID, sourceNode, refinementInfo);
 

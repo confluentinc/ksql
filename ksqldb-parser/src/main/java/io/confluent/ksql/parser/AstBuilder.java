@@ -419,13 +419,7 @@ public class AstBuilder {
                 : OutputRefinement.CHANGES
             );
       }
-      final Optional<RefinementInfo> refinementInfo;
-      if (!pullQuery) {
-        refinementInfo = Optional.of(RefinementInfo.of(outputRefinement));
-      } else {
-        refinementInfo = Optional.empty();
-
-      }
+      final Optional<RefinementInfo> refinementInfo = outputRefinement.map(RefinementInfo::of);
 
 
       final OptionalInt limit = getLimit(context.limitClause());

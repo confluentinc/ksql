@@ -82,7 +82,7 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
   @Override
   public void validateKeyPresent(final SourceName sinkName) {
     if (!(this.getSource() instanceof VerifiableNode)) {
-      throw new IllegalArgumentException("VerifiableNode required");
+      throw new IllegalStateException("VerifiableNode required");
     }
 
     ((VerifiableNode) this.getSource())

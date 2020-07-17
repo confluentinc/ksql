@@ -401,7 +401,7 @@ client.insertInto("ORDERS", row).get();
 Insert new rows in a streaming fashion (streamInserts())<a name="stream-inserts"></a>
 -------------------------------------------------------------------------------------
 
-Starting with ksqlDB 0.11.0, the `streamInserts()` method allows client apps to insert new rows of
+Starting with ksqlDB 0.11.0, the `streamInserts()` method enables client apps to insert new rows of
 data into an existing ksqlDB stream in a streaming fashion. This is in contrast to the
 [`insertInto()`](#insert-into) method which inserts a single row per request.
 
@@ -514,7 +514,7 @@ acksPublisher.subscribe(new AcksSubscriber());
 Create and manage new streams, tables, and persistent queries (executeStatement())<a name="execute-statement"></a>
 ------------------------------------------------------------------------------------------------------------------
 
-Starting with ksqlDB 0.11.0, the `executeStatement()` method allows client apps to:
+Starting with ksqlDB 0.11.0, the `executeStatement()` method enables client apps to:
 - Create new ksqlDB streams and tables
 - Drop existing ksqlDB streams and tables
 - Create new persistent queries, i.e., `CREATE ... AS SELECT` and `INSERT INTO ... AS SELECT` statements

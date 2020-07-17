@@ -358,7 +358,7 @@ If anyone has any suggestions on how we can support this in a compatible manner,
 - Removal of non-standard GROUP BY, PARTITION BY and JOIN aliasing syntax,
   in favour of standard aliasing of the key column in the projection.
 - removal of duplicate left join column on 'select *' joins.
-- Addition of a `AV_VALUE` function to allow users to copy key column into value columns.
+- Addition of a `AS_VALUE` function to allow users to copy key column into value columns.
 - Exposure of synthetic key columns in some joins, and ability to define an alias for it.
 
 ## What is not in scope

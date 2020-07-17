@@ -756,7 +756,7 @@ String sql = "CREATE TABLE possible_anomalies WITH ("
              + "           WINDOWSTART as `start_boundary`,"
              + "           WINDOWEND as `end_boundary`"
              + "    FROM transactions"
-             + "    WINDOW TUMBLING (SIZE 30 SECONDS)"
+             + "    WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)"
              + "    GROUP BY card_number"
              + "    HAVING count(*) >= 3"
              + "    EMIT CHANGES;";

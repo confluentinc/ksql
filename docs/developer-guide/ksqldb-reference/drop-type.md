@@ -19,7 +19,7 @@ DROP TYPE <type_name> AS <type>;
 Description
 -----------
 
-Removes a type alias from KSQL. This statement doesn't fail if the type is in
+Removes a type alias from ksqlDB. This statement doesn't fail if the type is in
 use in active queries or user-defined functions, because the DROP TYPE
 statement doesn't track whether queries are using the type. This means that you
 can drop a type any time, and old queries continue to work. Also, old queries

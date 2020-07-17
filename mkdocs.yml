@@ -53,6 +53,7 @@ nav:
     - Processing Guarantees: concepts/processing-guarantees.md
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
   - Developer Guide:
+    - SQL quick reference: developer-guide/quick-reference.md
     - Develop ksqlDB Applications: developer-guide/index.md
     - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md
     - Create a Stream: developer-guide/create-a-stream.md

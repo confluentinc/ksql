@@ -42,6 +42,7 @@ import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.planner.JoinTree.Join;
@@ -63,6 +64,7 @@ import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
+import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
@@ -71,6 +73,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.GrammaticalJoiner;
@@ -136,6 +139,14 @@ public class LogicalPlanner {
         throw new KsqlException(loc + "WINDOW clause requires a GROUP BY clause.");
       }
       currentNode = buildUserProjectNode(currentNode);
+    }
+
+    if (analysis.getRefinementInfo().isPresent()
+        && analysis.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL) {
+      if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
+        throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
+      }
+      currentNode = buildSuppressNode(currentNode, analysis.getRefinementInfo().get());
     }
 
     return buildOutputNode(currentNode);
@@ -467,6 +478,13 @@ public class LogicalPlanner {
         dataSource.getDataSource(),
         dataSource.getAlias()
     );
+  }
+
+  private SuppressNode buildSuppressNode(
+      final PlanNode sourcePlanNode,
+      final RefinementInfo refinementInfo
+  ) {
+    return new SuppressNode(new PlanNodeId("Suppress"), sourcePlanNode, refinementInfo);
   }
 
   private LogicalSchema buildAggregateSchema(

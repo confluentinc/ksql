@@ -598,8 +598,6 @@ public class AstBuilderTest {
     assertThat(explain.getQueryId(), is(Optional.of("CSAS_FOO-BAR")));
   }
 
-
-
   private static SingleStatementContext givenQuery(final String sql) {
     final List<ParsedStatement> statements = KsqlParserTestUtil.parse(sql);
     assertThat(statements, hasSize(1));

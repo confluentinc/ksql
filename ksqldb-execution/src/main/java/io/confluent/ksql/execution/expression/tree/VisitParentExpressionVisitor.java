@@ -194,7 +194,6 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
     return visitLiteral(node, context);
   }
 
-
   @Override
   public R visitIntegerLiteral(final IntegerLiteral node, final C context) {
     return visitLiteral(node, context);

@@ -55,24 +55,11 @@ public class PushQueryValidatorTest {
   @Before
   public void setUp() {
     validator = new PushQueryValidator();
-//    when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(Optional.of(OutputRefinement.FINAL))));
-
-  }
-
-  @Test
-  public void shouldNotThrowOnContinuousQueryThatIsFinal() {
-    // Given:
-//    when(analysis.getRefinementInfo().get().getOutputRefinement()).thenReturn(Optional.of(OutputRefinement.FINAL));
-
-    // When/Then:
-    validator.validate(analysis);
-
   }
 
   @Test
   public void shouldThrowOnPersistentPushQueryOnWindowedTable() {
     // Given:
-    givenPushQuery();
     givenPersistentQuery();
     givenSourceTable();
     givenWindowedSource();
@@ -90,7 +77,6 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldNotThrowOnTransientPushQueryOnWindowedTable() {
     // Given:
-    givenPushQuery();
     givenTransientQuery();
     givenSourceTable();
     givenWindowedSource();
@@ -102,7 +88,6 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldNotThrowOnPersistentPushQueryOnWindowedStream() {
     // Given:
-    givenPushQuery();
     givenPersistentQuery();
     givenSourceStream();
     givenWindowedSource();
@@ -114,20 +99,12 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldNotThrowOnPersistentPushQueryOnUnwindowedTable() {
     // Given:
-    givenPushQuery();
     givenPersistentQuery();
     givenSourceTable();
     givenUnwindowedSource();
 
     // When/Then(don't throw):
     validator.validate(analysis);
-  }
-
-  private void givenPushQuery() {
-//    when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(Optional.of(OutputRefinement.CHANGES))));
-//    when(analysis.getRefinementInfo().get().getOutputRefinement()).thenReturn(Optional.of(OutputRefinement.CHANGES));
-//  when(analysis.getRefinementInfo()).thenReturn(Optional.of(refinementInfo));
-//  when(refinementInfo.getOutputRefinement()).thenReturn(Optional.of(OutputRefinement.CHANGES));
   }
 
   private void givenPersistentQuery() {

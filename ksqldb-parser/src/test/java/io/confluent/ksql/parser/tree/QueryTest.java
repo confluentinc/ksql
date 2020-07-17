@@ -24,11 +24,11 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.serde.RefinementInfo;
 
 import java.util.Optional;
 import java.util.OptionalInt;
 
-import io.confluent.ksql.serde.RefinementInfo;
 import org.junit.Test;
 
 

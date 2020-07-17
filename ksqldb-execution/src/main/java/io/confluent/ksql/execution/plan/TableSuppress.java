@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.serde.RefinementInfo;
 
 import java.util.Collections;
@@ -29,17 +30,22 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final RefinementInfo refinementInfo;
+  private final Formats internalFormats;
+  private final KsqlWindowExpression windowExpression;
 
   public TableSuppress(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "refinementInfo",
-          required = true) final RefinementInfo refinementInfo
+      @JsonProperty(value = "refinementInfo", required = true) final RefinementInfo refinementInfo,
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
+      @JsonProperty(value = "windowExpression", required = true)
+      final KsqlWindowExpression windowExpression
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
-    this.refinementInfo = Objects.requireNonNull(
-        refinementInfo, "refinementInfo");
+    this.refinementInfo = Objects.requireNonNull(refinementInfo, "refinementInfo");
+    this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
+    this.windowExpression = Objects.requireNonNull(windowExpression, "windowExpression");
   }
 
   @Override
@@ -55,6 +61,14 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
 
   public RefinementInfo getRefinementInfo() {
     return refinementInfo;
+  }
+
+  public Formats getInternalFormats() {
+    return internalFormats;
+  }
+
+  public KsqlWindowExpression getWindowExpression() {
+    return windowExpression;
   }
 
   public ExecutionStep<KTableHolder<K>> getSource() {
@@ -77,12 +91,20 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
     final TableSuppress<?> that = (TableSuppress<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(refinementInfo, that.refinementInfo);
+        && Objects.equals(refinementInfo, that.refinementInfo)
+        && Objects.equals(internalFormats, that.internalFormats)
+        && Objects.equals(windowExpression, that.windowExpression);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, refinementInfo);
+    return Objects.hash(
+        properties,
+        source,
+        refinementInfo,
+        internalFormats,
+        windowExpression
+    );
   }
 }

@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.ValueFormat;
@@ -44,7 +45,6 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
   private final RefinementInfo refinementInfo;
   private final ValueFormat valueFormat;
   private final KsqlWindowExpression windowExpression;
-
 
   public SuppressNode(
       final PlanNodeId id,

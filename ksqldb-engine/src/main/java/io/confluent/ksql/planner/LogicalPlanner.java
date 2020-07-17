@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.JoinTree.Join;
 import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -146,7 +147,11 @@ public class LogicalPlanner {
       if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
         throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
       }
-      currentNode = buildSuppressNode(currentNode, analysis.getRefinementInfo().get());
+      currentNode = buildSuppressNode(
+          currentNode,
+          analysis.getRefinementInfo().get(),
+          analysis.getWindowExpression().get()
+      );
     }
 
     return buildOutputNode(currentNode);
@@ -482,7 +487,8 @@ public class LogicalPlanner {
 
   private SuppressNode buildSuppressNode(
       final PlanNode sourcePlanNode,
-      final RefinementInfo refinementInfo
+      final RefinementInfo refinementInfo,
+      final WindowExpression windowExpression
   ) {
     return new SuppressNode(
         new PlanNodeId("Suppress"),

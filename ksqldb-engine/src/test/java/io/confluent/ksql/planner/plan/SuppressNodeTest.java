@@ -92,8 +92,6 @@ public class SuppressNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     node = new SuppressNode(NODE_ID, sourceNode, refinementInfo, ksqlWindowExpression);
 
-
-
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
@@ -113,12 +111,11 @@ public class SuppressNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
     node = new SuppressNode(NODE_ID, sourceNode, refinementInfo, ksqlWindowExpression);
 
-
     // When:
     node.buildStream(ksqlStreamBuilder);
 
     // Then
-    verify(schemaKTable).suppress(refinementInfo, stacker);
+    verify(schemaKTable).suppress(refinementInfo, ksqlWindowExpression, valueFormat, stacker);
   }
 }
 

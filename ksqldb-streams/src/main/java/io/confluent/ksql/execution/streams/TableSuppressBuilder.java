@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -35,7 +34,6 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Suppressed;
 import org.apache.kafka.streams.state.KeyValueStore;
-
 
 
 public final class TableSuppressBuilder {

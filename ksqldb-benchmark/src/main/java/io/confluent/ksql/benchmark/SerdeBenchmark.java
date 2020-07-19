@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -94,7 +95,7 @@ public class SerdeBenchmark {
       // choose arbitrary key
       final String key = generator.schema().getFields().get(0).name();
 
-      final RowGenerator rowGenerator = new RowGenerator(generator, key);
+      final RowGenerator rowGenerator = new RowGenerator(generator, key, Optional.empty());
 
       final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
       row = genericRowPair.getRight();

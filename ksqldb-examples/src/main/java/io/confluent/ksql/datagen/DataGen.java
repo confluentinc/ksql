@@ -114,6 +114,9 @@ public final class DataGen {
           generator,
           arguments.topicName,
           arguments.keyName,
+          arguments.timestampColumnName != null
+              ? Optional.of(arguments.timestampColumnName)
+              : Optional.empty(),
           arguments.iterations,
           arguments.printRows,
           rateLimiter
@@ -175,6 +178,7 @@ public final class DataGen {
     private final String valueDelimiter;
     private final String topicName;
     private final String keyName;
+    private final String timestampColumnName;
     private final int iterations;
     private final String schemaRegistryUrl;
     private final InputStream propertiesFile;
@@ -192,6 +196,7 @@ public final class DataGen {
         final String valueDelimiter,
         final String topicName,
         final String keyName,
+        final String timestampColumnName,
         final int iterations,
         final String schemaRegistryUrl,
         final InputStream propertiesFile,
@@ -208,6 +213,7 @@ public final class DataGen {
       this.valueDelimiter = valueDelimiter;
       this.topicName = topicName;
       this.keyName = keyName;
+      this.timestampColumnName = timestampColumnName;
       this.iterations = iterations;
       this.schemaRegistryUrl = schemaRegistryUrl;
       this.propertiesFile = propertiesFile;
@@ -238,6 +244,7 @@ public final class DataGen {
                   (builder, argVal) -> builder.valueDelimiter = parseValueDelimiter(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
+              .put("timestamp", (builder, argVal) -> builder.timestampColumnName = argVal)
               .put("iterations", (builder, argVal) -> builder.iterations = parseInt(argVal, 1))
               .put("maxInterval", (builder, argVal) -> printMaxIntervalIsDeprecatedMessage())
               .put("schemaRegistryUrl", (builder, argVal) -> builder.schemaRegistryUrl = argVal)
@@ -266,6 +273,7 @@ public final class DataGen {
       private String valueDelimiter;
       private String topicName;
       private String keyName;
+      private String timestampColumnName;
       private int iterations;
       private String schemaRegistryUrl;
       private InputStream propertiesFile;
@@ -283,6 +291,7 @@ public final class DataGen {
         valueDelimiter = null;
         topicName = null;
         keyName = null;
+        timestampColumnName = null;
         iterations = -1;
         schemaRegistryUrl = "http://localhost:8081";
         propertiesFile = null;
@@ -335,6 +344,7 @@ public final class DataGen {
               null,
               null,
               null,
+              null,
               0,
               null,
               null,
@@ -350,6 +360,7 @@ public final class DataGen {
           valueFormat = Optional.ofNullable(valueFormat).orElse(FormatFactory.JSON);
           topicName = Optional.ofNullable(topicName).orElse(quickstart.getTopicName(valueFormat));
           keyName = Optional.ofNullable(keyName).orElse(quickstart.getKeyName());
+          timestampColumnName = Optional.ofNullable(timestampColumnName).orElse(null);
         }
 
         try {
@@ -370,6 +381,7 @@ public final class DataGen {
             valueDelimiter,
             topicName,
             keyName,
+            timestampColumnName,
             iterations,
             schemaRegistryUrl,
             propertiesFile,

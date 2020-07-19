@@ -159,6 +159,7 @@ public final class DataGen {
             + "or 'TAB'. Defaults to ',')" + newLine
             + "topic=<kafka topic name> " + newLine
             + "key=<name of key column> " + newLine
+            + "timestamp=<name of timestamp column> " + newLine
             + "[iterations=<number of rows> (if no value is specified, datagen will produce "
             + "indefinitely)] " + newLine
             + "[propertiesFile=<file specifying Kafka client properties>] " + newLine

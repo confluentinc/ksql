@@ -1,9 +1,7 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.base.Ticker;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
@@ -46,11 +44,7 @@ public class QueryMonitorTest {
 
   @Before
   public void setup() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 1000
-    ));
-
-    queryMonitor = new QueryMonitor(ksqlConfig, ksqlEngine, executor, ticker);
+    queryMonitor = new QueryMonitor(ksqlEngine, executor, 1000, 1000, ticker);
   }
 
   @Test

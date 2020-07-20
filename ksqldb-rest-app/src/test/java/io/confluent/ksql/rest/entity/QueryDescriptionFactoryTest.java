@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -100,6 +100,8 @@ public class QueryDescriptionFactoryTest {
   private KsqlTopic sinkTopic;
   @Mock
   private ExecutionStep<?> physicalPlan;
+  @Mock
+  private DataSource sinkDataSource;
 
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -111,6 +113,8 @@ public class QueryDescriptionFactoryTest {
     when(topology.describe()).thenReturn(topologyDescription);
 
     when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+    when(sinkDataSource.getKsqlTopic()).thenReturn(sinkTopic);
+    when(sinkDataSource.getName()).thenReturn(SourceName.of("sink name"));
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,
@@ -133,13 +137,11 @@ public class QueryDescriptionFactoryTest {
         queryStreams,
         PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeOption.none()),
         SOURCE_NAMES,
-        SourceName.of("sink Name"),
+        sinkDataSource,
         "execution plan",
         QUERY_ID,
-        DataSourceType.KSTREAM,
         Optional.empty(),
         APPLICATION_ID,
-        sinkTopic,
         topology,
         QuerySchemas.of(new LinkedHashMap<>()),
         STREAMS_PROPS,

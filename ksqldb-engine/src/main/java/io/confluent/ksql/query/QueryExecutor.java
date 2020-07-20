@@ -196,7 +196,7 @@ public final class QueryExecutor {
     return Optional.empty();
   }
 
-  public PersistentQueryMetadata buildQuery(
+  public PersistentQueryMetadata buildPersistentQuery(
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,
@@ -245,13 +245,11 @@ public final class QueryExecutor {
         built.kafkaStreams,
         querySchema,
         sources,
-        sinkDataSource.getName(),
+        sinkDataSource,
         planSummary,
         queryId,
-        sinkDataSource.getDataSourceType(),
         materializationBuilder,
         applicationId,
-        sinkDataSource.getKsqlTopic(),
         built.topology,
         ksqlQueryBuilder.getSchemas(),
         streamsProperties,

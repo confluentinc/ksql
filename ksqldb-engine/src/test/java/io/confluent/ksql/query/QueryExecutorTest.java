@@ -242,7 +242,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldBuildPersistentQueryCorrectly() {
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -268,7 +268,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldBuildPersistentQueryWithCorrectStreamsApp() {
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -285,7 +285,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldBuildPersistentQueryWithCorrectMaterializationProvider() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -304,7 +304,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldCreateKSMaterializationCorrectly() {
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -330,7 +330,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldMaterializeCorrectly() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -356,7 +356,7 @@ public class QueryExecutorTest {
     // Given:
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.empty());
 
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -375,7 +375,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldCreateExpectedServiceId() {
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -395,7 +395,7 @@ public class QueryExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldAddMetricsInterceptorsToStreamsConfig() {
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -424,7 +424,7 @@ public class QueryExecutorTest {
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(properties);
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -482,7 +482,7 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -506,7 +506,7 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -531,7 +531,7 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -560,7 +560,7 @@ public class QueryExecutorTest {
     when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,

@@ -22,13 +22,13 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -40,11 +40,9 @@ import org.apache.kafka.streams.Topology;
  */
 public class PersistentQueryMetadata extends QueryMetadata {
 
-  private final KsqlTopic resultTopic;
-  private final SourceName sinkName;
+  private final DataSource sinkDataSource;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
-  private final DataSourceType dataSourceType;
   private final Optional<MaterializationProvider> materializationProvider;
   private final ExecutionStep<?> physicalPlan;
 
@@ -54,13 +52,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final KafkaStreams kafkaStreams,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
-      final SourceName sinkName,
+      final DataSource sinkDataSource,
       final String executionPlan,
       final QueryId id,
-      final DataSourceType dataSourceType,
       final Optional<MaterializationProvider> materializationProvider,
       final String queryApplicationId,
-      final KsqlTopic resultTopic,
       final Topology topology,
       final QuerySchemas schemas,
       final Map<String, Object> streamsProperties,
@@ -87,13 +83,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
         errorClassifier
     );
 
-    this.resultTopic = requireNonNull(resultTopic, "resultTopic");
-    this.sinkName = Objects.requireNonNull(sinkName, "sinkName");
+    this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
     this.resultSchema = requireNonNull(schema, "schema");
     this.materializationProvider =
         requireNonNull(materializationProvider, "materializationProvider");
-    this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
     this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
   }
 
@@ -102,12 +96,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final Consumer<QueryMetadata> closeCallback
   ) {
     super(other, closeCallback);
-    this.resultTopic = other.resultTopic;
-    this.sinkName = other.sinkName;
+    this.sinkDataSource = other.sinkDataSource;
     this.schemas = other.schemas;
     this.resultSchema = other.resultSchema;
     this.materializationProvider = other.materializationProvider;
-    this.dataSourceType = other.dataSourceType;
     this.physicalPlan = other.physicalPlan;
   }
 
@@ -116,12 +108,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final KafkaStreams kafkaStreams
   ) {
     super(other, kafkaStreams);
-    this.resultTopic = other.resultTopic;
-    this.sinkName = other.sinkName;
+    this.sinkDataSource = other.sinkDataSource;
     this.schemas = other.schemas;
     this.resultSchema = other.resultSchema;
     this.materializationProvider = other.materializationProvider;
-    this.dataSourceType = other.dataSourceType;
+    this.physicalPlan = getPhysicalPlan();
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
@@ -133,15 +124,15 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   public DataSourceType getDataSourceType() {
-    return dataSourceType;
+    return sinkDataSource.getDataSourceType();
   }
 
   public KsqlTopic getResultTopic() {
-    return resultTopic;
+    return sinkDataSource.getKsqlTopic();
   }
 
   public SourceName getSinkName() {
-    return sinkName;
+    return sinkDataSource.getName();
   }
 
   public Map<String, String> getSchemasDescription() {

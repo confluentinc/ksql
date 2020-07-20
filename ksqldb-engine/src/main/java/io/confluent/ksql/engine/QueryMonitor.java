@@ -45,10 +45,10 @@ public class QueryMonitor implements Closeable {
     }
   };
 
-  private static final long BASE_WAITING_TIME_MS = 10000;
   private static final int SHUTDOWN_TIMEOUT_MS = 5000;
 
   private final Ticker ticker;
+  private final long retryBackoffInitialMs;
   private final long retryBackoffMaxMs;
   private final KsqlEngine ksqlEngine;
   private final ExecutorService executor;
@@ -58,21 +58,24 @@ public class QueryMonitor implements Closeable {
 
   public QueryMonitor(final KsqlConfig ksqlConfig, final KsqlEngine ksqlEngine) {
     this(
-        ksqlConfig,
         ksqlEngine,
-        Executors.newSingleThreadExecutor(r -> new Thread(r, "QueryMonitor")),
+        Executors.newSingleThreadExecutor(r -> new Thread(r, QueryMonitor.class.getName())),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         CURRENT_TIME_MILLIS_TICKER
     );
   }
 
   @VisibleForTesting
   QueryMonitor(
-      final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final ExecutorService executor,
+      final long retryBackoffInitialMs,
+      final long retryBackoffMaxMs,
       final Ticker ticker
   ) {
-    this.retryBackoffMaxMs = ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS);
+    this.retryBackoffInitialMs = retryBackoffInitialMs;
+    this.retryBackoffMaxMs = retryBackoffMaxMs;
     this.ksqlEngine = ksqlEngine;
     this.executor = executor;
     this.ticker = ticker;
@@ -120,7 +123,7 @@ public class QueryMonitor implements Closeable {
           } else if (queryState == KafkaStreams.State.ERROR) {
             // Restart new query in ERROR state, and add it to the list of retries.
             final RetryEvent retryEvent = new RetryEvent(
-                ksqlEngine, queryId, BASE_WAITING_TIME_MS, retryBackoffMaxMs, ticker);
+                ksqlEngine, queryId, retryBackoffInitialMs, retryBackoffMaxMs, ticker);
 
             queriesRetries.put(queryId, retryEvent);
             retryEvent.restart();

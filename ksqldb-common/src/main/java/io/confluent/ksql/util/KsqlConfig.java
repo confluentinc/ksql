@@ -316,8 +316,14 @@ public class KsqlConfig extends AbstractConfig {
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 500L)
       .build();
 
+  public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS
+      = "ksql.query.retry.backoff.initial.ms";
+  public static final Long KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT = 60000L;
+  public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC = "The initial amount of time "
+      + "to wait before attempting to retry a persistent query in ERROR state.";
+
   public static final String KSQL_QUERY_RETRY_BACKOFF_MAX_MS = "ksql.query.retry.backoff.max.ms";
-  public static final Long KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT = 120000L;
+  public static final Long KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT = 900000L;
   public static final String KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC = "The maximum amount of time "
       + "to wait before attempting to retry a persistent query in ERROR state.";
 
@@ -728,6 +734,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SUPPRESS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_SUPPRESS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS,
+            Type.LONG,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC
         )
         .define(
             KSQL_QUERY_RETRY_BACKOFF_MAX_MS,

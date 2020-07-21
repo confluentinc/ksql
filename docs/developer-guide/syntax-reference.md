@@ -3,44 +3,58 @@ layout: page
 title: ksqlDB Syntax Reference
 tagline:  Syntax for ksqlDB queries and statements
 description: Syntax Reference for statements and queries in ksqlDB
-keywords: ksqldb, syntax, api
+keywords: ksqldb, sql, syntax, query, api
 ---
 
-ksqlDB SQL has similar semantics to ANSI SQL:
+The ksqlDB SQL language enables queries, transforms, aggregations, joins, and
+other operations on streaming data. ksqlDB SQL has a familiar syntax that's similar to
+[ANSI SQL](https://blog.ansi.org/2018/10/sql-standard-iso-iec-9075-2016-ansi-x3-135/).
+
+### SQL quick reference
+
+For a summary of supported SQL statements and keywords, see the
+[ksqlDB SQL quick reference](../ksqldb-reference/quick-reference).
+
+### Syntax notes
 
 -   Terminate SQL statements with a semicolon `;`.
 -   Escape single-quote characters (`'`) inside string literals by using
     two successive single quotes (`''`). For example, to escape `'T'`,
     write `''T''`.
 
-Terminology
------------
+### Terminology
 
-When using ksqlDB, the following terminology is used.
+ksqlDB SQL uses standard relational database terminology and extends it for
+stream processing.
 
 ### Stream
 
-A stream is an unbounded sequence of structured data ("facts"). For
-example, we could have a stream of financial transactions such as "Alice
-sent $100 to Bob, then Charlie sent $50 to Bob". Facts in a stream are
-immutable, which means new facts can be inserted to a stream, but
-existing facts can never be updated or deleted. Streams can be created
-from an {{ site.aktm }} topic or derived from an existing stream. A
-stream's underlying data is durably stored (persisted) within a Kafka
-topic on the Kafka brokers.
+A ksqlDB stream is an unbounded sequence of structured data. Each individual
+unit of data represents a _fact_ and may be referred to as a "record", "message",
+or "event". For example, a stream could be a sequence of financial transactions,
+like "Alice sent $100 to Bob, then Charlie sent $50 to Bob".
+
+Facts in a stream are _immutable_, which means that new facts can be inserted
+into a stream, but existing facts can never be updated or deleted.
+
+Streams can be created from an {{ site.aktm }} topic or derived from an
+existing stream. A stream's underlying data is durably stored, or _persisted_,
+in a topic on the {{ site.ak }} brokers.
 
 ### Table
 
-A table is a view of a stream, or another table, and represents a
-collection of evolving facts. For example, we could have a table that
-contains the latest financial information such as "Bob's current account
-balance is $150". It is the equivalent of a traditional database table
-but enriched by streaming semantics such as windowing. Facts in a table
-are mutable, which means new facts can be inserted to the table, and
-existing facts can be updated or deleted. Tables can be created from a
-Kafka topic or derived from existing streams and tables. In both cases,
-a table's underlying data is durably stored (persisted) within a Kafka
-topic on the Kafka brokers.
+A ksqlDB table is a view of a stream or another table. A table represents a
+collection of evolving facts. For example, a table might contain the latest
+financial information for an account, like "Bob's current balance is $150".
+A ksqlDB table is the equivalent of a traditional database table, enriched
+with streaming semantics, like windowing.
+
+Facts in a table are _mutable_, which means that new facts can be inserted to
+the table, and existing facts can be updated and deleted.
+
+Tables can be created from a {{ site.ak }} topic or derived from existing
+streams and tables. In both cases, a table's underlying data is durably
+persisted in a topic on the {{ site.ak }} brokers.
 
 ### STRUCT
 

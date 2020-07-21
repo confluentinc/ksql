@@ -75,6 +75,7 @@ nav:
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:
+      - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
       - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
       - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md

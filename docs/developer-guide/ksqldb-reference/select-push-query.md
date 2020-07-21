@@ -116,7 +116,7 @@ SET 'auto.offset.reset' = 'earliest';
 #### WINDOW
 
 !!! note
-  You can use the WINDOW clause only if the `from_item` is a stream.
+    You can use the WINDOW clause only if the `from_item` is a stream.
 
 
 The WINDOW clause lets you control how to group input records *that have
@@ -126,9 +126,11 @@ or joins. Windows are tracked per record key.
 Windowing adds two additional system columns to the data, which provide
 the window bounds: `WINDOWSTART` and `WINDOWEND`.
 
-ksqlDB supports the following WINDOW types:
+ksqlDB supports the following WINDOW types.
 
-**TUMBLING**: Tumbling windows group input records into fixed-sized,
+#### TUMBLING window
+
+Tumbling windows group input records into fixed-sized,
 non-overlapping windows based on the records' timestamps. You must
 specify the *window size* for tumbling windows. Tumbling windows are a
 special case of hopping windows, where the window size is equal to the
@@ -145,7 +147,9 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
-**HOPPING**: Hopping windows group input records into fixed-sized,
+#### HOPPING window
+
+Hopping windows group input records into fixed-sized,
 (possibly) overlapping windows based on the records' timestamps. You
 must specify the *window size* and the *advance interval* for
 hopping windows.
@@ -161,7 +165,9 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
-**SESSION**: Session windows group input records into so-called
+#### SESSION window
+
+Session windows group input records into so-called
 sessions. You must specify the *session inactivity gap* parameter
 for session windows. For example, imagine you set the inactivity gap
 to 5 minutes. If, for a given record key such as "alice", no new

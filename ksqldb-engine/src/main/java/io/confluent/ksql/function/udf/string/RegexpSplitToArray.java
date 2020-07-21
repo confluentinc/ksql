@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.string;
 
 import com.google.common.base.Splitter;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -28,6 +29,7 @@ import java.util.regex.PatternSyntaxException;
 
 @UdfDescription(name = "regexp_split_to_array",
     author = KsqlConstants.CONFLUENT_AUTHOR,
+    category = FunctionCategory.REGULAR_EXPRESSION,
     description = "Splits a string into an array of substrings based on a regexp. "
         + "If the regexp is found at the beginning of the string, end of the string, or there "
         + "are contiguous matches in the string, then empty strings are added to the array. "

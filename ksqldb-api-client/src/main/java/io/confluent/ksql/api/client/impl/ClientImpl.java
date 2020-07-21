@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import static io.confluent.ksql.api.client.impl.DdlDmlRequestValidators.validateExecuteStatementRequest;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
@@ -22,6 +23,7 @@ import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.StreamInfo;
@@ -51,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import org.reactivestreams.Publisher;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -185,6 +188,34 @@ public class ClientImpl implements Client {
         new JsonObject().put("queryId", queryId),
         cf,
         response -> handleCloseQueryResponse(response, cf)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<ExecuteStatementResult> executeStatement(final String sql) {
+    return executeStatement(sql, Collections.emptyMap());
+  }
+
+  @Override
+  public CompletableFuture<ExecuteStatementResult> executeStatement(
+      final String sql, final Map<String, Object> properties) {
+    final CompletableFuture<ExecuteStatementResult> cf = new CompletableFuture<>();
+
+    if (!validateExecuteStatementRequest(sql, cf)) {
+      return cf;
+    }
+
+    makeRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", sql).put("streamsProperties", properties),
+        cf,
+        response -> handleSingleEntityResponse(
+            response,
+            cf,
+            DdlDmlResponseHandlers::handleExecuteStatementResponse,
+            DdlDmlResponseHandlers::handleUnexpectedNumResponseEntities)
     );
 
     return cf;
@@ -361,12 +392,22 @@ public class ClientImpl implements Client {
       final CompletableFuture<T> cf,
       final SingleEntityResponseHandler<T> responseHandler
   ) {
+    handleSingleEntityResponse(response, cf, responseHandler,
+        numEntities -> new IllegalStateException(
+            "Unexpected number of entities in server response: " + numEntities));
+  }
+
+  private static <T> void handleSingleEntityResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<T> cf,
+      final SingleEntityResponseHandler<T> responseHandler,
+      final Function<Integer, RuntimeException> multipleEntityErrorSupplier
+  ) {
     if (response.statusCode() == OK.code()) {
       response.bodyHandler(buffer -> {
         final JsonArray entities = buffer.toJsonArray();
         if (entities.size() != 1) {
-          cf.completeExceptionally(new IllegalStateException(
-              "Unexpected number of entities in server response: " + entities.size()));
+          cf.completeExceptionally(multipleEntityErrorSupplier.apply(entities.size()));
           return;
         }
 

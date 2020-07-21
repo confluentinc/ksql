@@ -46,15 +46,32 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.CommandId;
+import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ConnectorDescription;
+import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
+import io.confluent.ksql.rest.entity.DropConnectorEntity;
+import io.confluent.ksql.rest.entity.ErrorEntity;
+import io.confluent.ksql.rest.entity.FunctionDescriptionList;
+import io.confluent.ksql.rest.entity.FunctionNameList;
+import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.vertx.core.json.JsonArray;
@@ -71,6 +88,10 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -92,6 +113,13 @@ public class ClientTest extends BaseApiTest {
 
   protected static final List<KsqlObject> INSERT_ROWS = generateInsertRows();
   protected static final List<JsonObject> EXPECTED_INSERT_ROWS = convertToJsonRows(INSERT_ROWS);
+
+  protected static final String EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC =
+      "The ksqlDB server accepted the statement issued via executeStatement(), but the response "
+          + "received is of an unexpected format. ";
+  protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
+      + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
+      + "SELECT' statements. ";
 
   protected Client javaClient;
 
@@ -676,6 +704,431 @@ public class ClientTest extends BaseApiTest {
     assertThat(acksPublisher.isComplete(), is(false));
   }
 
+  @Test
+  public void shouldExecuteStatementWithQueryId() throws Exception {
+    // Given
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CSAS;",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success",
+            Optional.of(new QueryId("CSAS_0"))
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    final Map<String, Object> properties = ImmutableMap.of("auto.offset.reset", "earliest");
+
+    // When
+    final ExecuteStatementResult result = javaClient.executeStatement("CSAS;", properties).get();
+
+    // Then
+    assertThat(testEndpoints.getLastSql(), is("CSAS;"));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+    assertThat(result.queryId(), is(Optional.of("CSAS_0")));
+  }
+
+  @Test
+  public void shouldExecuteStatementWithoutQueryId() throws Exception {
+    // Given
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CSAS;",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success"
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    final Map<String, Object> properties = ImmutableMap.of("auto.offset.reset", "earliest");
+
+    // When
+    final ExecuteStatementResult result = javaClient.executeStatement("CSAS;", properties).get();
+
+    // Then
+    assertThat(testEndpoints.getLastSql(), is("CSAS;"));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+    assertThat(result.queryId(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromExecuteStatement() {
+    // Given
+    io.confluent.ksql.util.KsqlException exception = new io.confluent.ksql.util.KsqlException("something bad");
+    testEndpoints.setExecuteKsqlRequestException(exception);
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("CSAS;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("something bad"));
+  }
+
+  @Test
+  public void shouldRejectMultipleRequestsFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("CSAS; CTAS;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(),
+        containsString("executeStatement() may only be used to execute one statement at a time"));
+  }
+
+  @Test
+  public void shouldRejectRequestWithMissingSemicolonFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("missing semicolon").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(),
+        containsString("Missing semicolon in SQL for executeStatement() request"));
+  }
+
+  @Test
+  public void shouldFailOnNoEntitiesFromExecuteStatement() {
+    // Given
+    testEndpoints.setKsqlEndpointResponse(Collections.emptyList());
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("set property;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+  }
+
+  @Test
+  public void shouldFailToListStreamsViaExecuteStatement() {
+    // Given
+    final StreamsList entity = new StreamsList("list streams;", Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("list streams;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("Use the listStreams() method instead"));
+  }
+
+  @Test
+  public void shouldFailToListTablesViaExecuteStatement() {
+    // Given
+    final TablesList entity = new TablesList("list tables;", Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("list tables;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("Use the listTables() method instead"));
+  }
+
+  @Test
+  public void shouldFailToListTopicsViaExecuteStatement() {
+    // Given
+    final KafkaTopicsList entity = new KafkaTopicsList("list topics;", Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("list topics;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("Use the listTopics() method instead"));
+  }
+
+  @Test
+  public void shouldFailToListQueriesViaExecuteStatement() {
+    // Given
+    final Queries entity = new Queries("list queries;", Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("list queries;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("Use the listQueries() method instead"));
+  }
+
+  @Test
+  public void shouldFailToDescribeSourceViaExecuteStatement() {
+    // Given
+    final SourceDescriptionEntity entity = new SourceDescriptionEntity(
+        "describe source;",
+        new SourceDescription("name", Optional.empty(), Collections.emptyList(), Collections.emptyList(),
+            Collections.emptyList(), "type", "timestamp", "statistics", "errorStats",
+            false, "keyFormat", "valueFormat", "topic", 4, 1, "statement"),
+        Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("describe source;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support 'DESCRIBE <STREAM/TABLE>' statements"));
+  }
+
+  @Test
+  public void shouldFailToListFunctionsViaExecuteStatement() {
+    // Given
+    final FunctionNameList entity = new FunctionNameList("list functions;", Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("list functions;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support 'DESCRIBE <FUNCTION>' statements or listing functions"));
+  }
+
+  @Test
+  public void shouldFailToDescribeFunctionViaExecuteStatement() {
+    // Given
+    final FunctionDescriptionList entity = new FunctionDescriptionList(
+        "describe function;", "SUM", "sum", "Confluent",
+        "version", "path", Collections.emptyList(), FunctionType.AGGREGATE);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("describe function;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support 'DESCRIBE <FUNCTION>' statements or listing functions"));
+  }
+
+  @Test
+  public void shouldFailToExplainQueryViaExecuteStatement() {
+    // Given
+    final QueryDescriptionEntity entity = new QueryDescriptionEntity(
+        "explain query;",
+        new QueryDescription(new QueryId("id"), "sql", Optional.empty(),
+            Collections.emptyList(), Collections.emptySet(), Collections.emptySet(), "topology",
+            "executionPlan", Collections.emptyMap(), Collections.emptyMap(),
+            KsqlQueryType.PERSISTENT, Collections.emptyList()));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("explain query;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support 'EXPLAIN <QUERY_ID>' statements"));
+  }
+
+  @Test
+  public void shouldFailToListPropertiesViaExecuteStatement() {
+    // Given
+    final PropertiesList entity = new PropertiesList("list properties;",
+        Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("list properties;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support listing properties"));
+  }
+
+  @Test
+  public void shouldFailToListTypesViaExecuteStatement() {
+    // Given
+    final TypeList entity = new TypeList("list types;", Collections.emptyMap());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("list types;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support listing custom types"));
+  }
+
+  @Test
+  public void shouldFailToListConnectorsViaExecuteStatement() {
+    // Given
+    final ConnectorList entity = new ConnectorList(
+        "list connectors;", Collections.emptyList(), Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("list connectors;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support listing connectors"));
+  }
+
+  @Test
+  public void shouldFailToDescribeConnectorViaExecuteStatement() {
+    // Given
+    final ConnectorDescription entity = new ConnectorDescription("describe connector;",
+        "connectorClass",
+        new ConnectorStateInfo(
+            "name",
+            new ConnectorState("state", "worker", "msg"),
+            Collections.emptyList(),
+            ConnectorType.SOURCE),
+        Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("describe connector;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support 'DESCRIBE <CONNECTOR>' statements"));
+  }
+
+  @Test
+  public void shouldFailToCreateConnectorViaExecuteStatement() {
+    // Given
+    final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), ConnectorType.SOURCE));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("create connector;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support 'CREATE CONNECTOR' statements"));
+  }
+
+  @Test
+  public void shouldFailToDropConnectorViaExecuteStatement() {
+    // Given
+    final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("drop connector;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support 'DROP CONNECTOR' statements"));
+  }
+
+  @Test
+  public void shouldFailOnErrorEntityFromExecuteStatement() {
+    // Given
+    final ErrorEntity entity = new ErrorEntity("create connector;", "error msg");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> javaClient.executeStatement("create connector;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(),
+        containsString("does not currently support statements for creating, dropping, "
+            + "listing, or describing connectors"));
+  }
+
+  @Test
   public void shouldListStreams() throws Exception {
     // Given
     final List<SourceInfo.Stream> expectedStreams = new ArrayList<>();

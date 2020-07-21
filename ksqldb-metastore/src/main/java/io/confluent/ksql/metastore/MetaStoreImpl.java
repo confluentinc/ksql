@@ -87,6 +87,10 @@ public final class MetaStoreImpl implements MutableMetaStore {
       throw new KsqlException(String.format(
           "Cannot add %s '%s': A %s with the same name already exists",
           newType, name.text(), existingType));
+    } else if (existing != null) {
+      existing.source.canUpgradeTo(dataSource).ifPresent(msg -> {
+        throw new KsqlException("Cannot REPLACE data source: " + msg);
+      });
     }
 
     dataSources.put(dataSource.getName(), new SourceInfo(dataSource));

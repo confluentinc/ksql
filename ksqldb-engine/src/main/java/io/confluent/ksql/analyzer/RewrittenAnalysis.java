@@ -25,13 +25,14 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.serde.RefinementInfo;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -139,8 +140,8 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   }
 
   @Override
-  public Optional<ResultMaterialization> getResultMaterialization() {
-    return original.getResultMaterialization();
+  public Optional<RefinementInfo> getRefinementInfo() {
+    return original.getRefinementInfo();
   }
 
   @Override

@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udf.datetime;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -30,6 +31,7 @@ import java.util.concurrent.ExecutionException;
 
 @UdfDescription(
     name = "timestamptostring",
+    category = FunctionCategory.DATE_TIME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts a BIGINT millisecond timestamp value into"
         + " the string representation of the timestamp in the given format."

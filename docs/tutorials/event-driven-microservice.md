@@ -270,7 +270,7 @@ CREATE TABLE possible_anomalies WITH (
            WINDOWSTART as `start_boundary`,
            WINDOWEND as `end_boundary`
     FROM transactions
-    WINDOW TUMBLING (SIZE 30 SECONDS)
+    WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)
     GROUP BY card_number
     HAVING count(*) >= 3
     EMIT CHANGES;
@@ -279,6 +279,7 @@ CREATE TABLE possible_anomalies WITH (
 Here's what this statement does:
 
 - For each credit card number, 30 second [tumbling windows](../../concepts/time-and-windows-in-ksqldb-queries/#tumbling-window) are created to group activity. A new row is inserted into the table when at least 3 transactions take place inside a given window.
+- The window retains data for the last `1000` days based on each row's timestamp. In general, you should choose your retention carefully. It is a trade-off between storing data longer and having larger state sizes. The very long retention period used in this tutorial is useful because the timestamps are fixed at the time of writing this and won't need to be adjusted often to account for retention.
 - The credit card number is selected twice. In the first instance, it becomes part of the underlying {{ site.ak }} record key, because it's present in the `group by` clause, which is used for sharding. In the second instance, the `as_value` function is used to make it available in the value, too. This is generally for convenience.
 - The individual transaction IDs and amounts that make up the window are collected as lists.
 - The last transaction's email address is "carried forward" with `latest_by_offset`.

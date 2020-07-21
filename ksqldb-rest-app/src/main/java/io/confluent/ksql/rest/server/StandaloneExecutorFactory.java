@@ -24,11 +24,13 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.DisabledKsqlClient;
+import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.Injector;
@@ -52,11 +54,24 @@ public final class StandaloneExecutorFactory {
       final String queriesFile,
       final String installDir
   ) {
+    final KsqlConfig tempConfig = new KsqlConfig(properties);
+    
+    final Function<KsqlConfig, ServiceContext> serviceContextFactory = 
+        config -> ServiceContextFactory.create(config, DisabledKsqlClient::instance);
+    final ServiceContext tempServiceContext =
+        serviceContextFactory.apply(tempConfig);
+
+    final String kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(tempServiceContext);
+    final String ksqlServerId = tempConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    final Map<String, Object> updatedProperties = tempConfig.originals();
+    updatedProperties.putAll(
+        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));
+
     return create(
-        properties,
+        updatedProperties,
         queriesFile,
         installDir,
-        config -> ServiceContextFactory.create(config, DisabledKsqlClient::instance),
+        serviceContextFactory,
         KafkaConfigStore::new,
         KsqlVersionCheckerAgent::new,
         StandaloneExecutor::new
@@ -80,7 +95,7 @@ public final class StandaloneExecutorFactory {
 
   @VisibleForTesting
   static StandaloneExecutor create(
-      final Map<String, String> properties,
+      final Map<String, Object> properties,
       final String queriesFile,
       final String installDir,
       final Function<KsqlConfig, ServiceContext> serviceContextFactory,

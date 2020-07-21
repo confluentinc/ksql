@@ -74,6 +74,7 @@ public class UdtfLoader {
         udtfDescriptionAnnotation.description(),
         udtfDescriptionAnnotation.author(),
         udtfDescriptionAnnotation.version(),
+        udtfDescriptionAnnotation.category(),
         path
     );
 

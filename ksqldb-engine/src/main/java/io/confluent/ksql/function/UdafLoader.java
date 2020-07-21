@@ -102,6 +102,7 @@ class UdafLoader {
             udafAnnotation.description(),
             udafAnnotation.author(),
             udafAnnotation.version(),
+            udafAnnotation.category(),
             path
         ),
         invokers

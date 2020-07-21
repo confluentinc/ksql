@@ -23,8 +23,8 @@ Description
 -----------
 
 Pulls the current value from the materialized table and terminates. The result
-of this statement isn't persisted in a Kafka topic and is printed out only in
-the console.
+of this statement isn't persisted in a {{ site.ak }} topic and is printed out
+only in the console.
 
 Pull queries enable you to fetch the current state of a materialized view.
 Because materialized views are incrementally updated as new events arrive,

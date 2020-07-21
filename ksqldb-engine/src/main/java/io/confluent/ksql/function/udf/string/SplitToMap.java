@@ -15,6 +15,7 @@
 package io.confluent.ksql.function.udf.string;
 
 import com.google.common.base.Splitter;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -24,10 +25,11 @@ import java.util.stream.StreamSupport;
 
 @UdfDescription(
     name = "split_to_map",
+    category = FunctionCategory.STRING,
     description = "Splits a string into key-value pairs and creates a map from them. The "
         + "'entryDelimiter' splits the string into key-value pairs which are then split by "
         + "'kvDelimiter'. If the same key is present multiple times in the input, the latest "
-        + "value for that key is returned. Returns NULL f the input text or either of the "
+        + "value for that key is returned. Returns NULL if the input text or either of the "
         + "delimiters is NULL.")
 public class SplitToMap {
   @Udf

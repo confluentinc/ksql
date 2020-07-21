@@ -61,4 +61,11 @@ public final class TimestampColumn {
   public int hashCode() {
     return Objects.hash(column, format);
   }
+
+  @Override
+  public String toString() {
+    return "TimestampColumn{" + "column=" + column
+        + ", format=" + format
+        + '}';
+  }
 }

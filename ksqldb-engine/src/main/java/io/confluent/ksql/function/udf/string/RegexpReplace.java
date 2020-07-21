@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -24,6 +25,7 @@ import java.util.regex.PatternSyntaxException;
 
 @UdfDescription(name = "regexp_replace",
     author = KsqlConstants.CONFLUENT_AUTHOR,
+    category = FunctionCategory.REGULAR_EXPRESSION,
     description = "Replaces all matches of a regexp in a string with a new substring.")
 public class RegexpReplace {
 

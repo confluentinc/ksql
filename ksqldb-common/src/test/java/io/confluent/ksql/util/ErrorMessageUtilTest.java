@@ -40,7 +40,7 @@ public class ErrorMessageUtilTest {
   public void shouldUseCustomMsgForConnectException() {
     assertThat(
         buildErrorMessage(new ConnectException("asdf")),
-        is("Could not connect to the server.")
+        is("Could not connect to the server. Please check the server details are correct and that the server is running.")
     );
   }
 
@@ -71,7 +71,8 @@ public class ErrorMessageUtilTest {
   @Test
   public void shouldDeduplicateMessage() {
     final Throwable cause = new TestException("Something went wrong");
-    final Throwable subLevel2 = new TestException("Msg that matches", cause);
+    final Throwable subLevel3 = new TestException("Something went wrong", cause);
+    final Throwable subLevel2 = new TestException("Msg that matches", subLevel3);
     final Throwable subLevel1 = new TestException("Msg that matches", subLevel2);
     final Throwable e = new TestException("Msg that matches", subLevel1);
 

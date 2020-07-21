@@ -18,7 +18,7 @@ package io.confluent.ksql.parser;
 /**
  * Controls how the result of a query is materialized.
  */
-public enum ResultMaterialization {
+public enum OutputRefinement {
 
   /**
    * All intermediate results should be materialized.

@@ -15,6 +15,7 @@
 package io.confluent.ksql.function.udf.map;
 
 import com.google.common.collect.Lists;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.Map;
 
 @UdfDescription(
     name = "map_keys",
+    category = FunctionCategory.MAP,
     description = "Returns an array of all the keys from the specified map, "
         + "or NULL if the input map is NULL.")
 public class MapKeys {

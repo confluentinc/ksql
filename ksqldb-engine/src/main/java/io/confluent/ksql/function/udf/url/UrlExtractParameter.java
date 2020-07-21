@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.url;
 
 import com.google.common.base.Splitter;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -25,6 +26,7 @@ import java.util.List;
 
 @UdfDescription(
     name = "url_extract_parameter",
+    category = FunctionCategory.URL,
     description = "Extracts a parameter with a specified name encoded inside an "
         + "application/x-www-form-urlencoded String.",
     author = KsqlConstants.CONFLUENT_AUTHOR

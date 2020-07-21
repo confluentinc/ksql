@@ -205,8 +205,8 @@ extra:
         # Build-related string tokens
         kafkaversion: 2.5
         kafkarelease: 5.5.0-ccs
-        ksqldbversion: 0.10.1
-        release: 0.10.1
+        ksqldbversion: 0.11.0
+        release: 0.11.0
         cprelease: 5.5.0
         releasepostbranch: 5.5.0-post
         scalaversion: 2.12

@@ -49,7 +49,7 @@ public class MissingTopicClassifier implements QueryErrorClassifier {
   @Override
   public Type classify(final Throwable e) {
     LOG.info(
-        "Attempting to classify error for {} as missing topic error. Required topics: {}",
+        "Attempting to classify missing topic error. Query ID: {} Required topics: {}",
         queryId,
         requiredTopics
     );

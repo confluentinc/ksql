@@ -19,7 +19,7 @@ SHOW | LIST [ALL] TOPICS [EXTENDED];
 Description
 -----------
 
-SHOW TOPICS lists the available topics in the Kafka cluster that ksqlDB is
+SHOW TOPICS lists the available topics in the {{ site.ak }} cluster that ksqlDB is
 configured to connect to (default setting for `bootstrap.servers`:
 `localhost:9092`). SHOW TOPICS EXTENDED also displays consumer groups
 and their active consumer counts.

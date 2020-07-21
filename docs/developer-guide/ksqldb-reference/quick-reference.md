@@ -7,9 +7,9 @@ keywords: ksqldb, sql, syntax, query, stream, table
 ---
 
 For detailed descriptions of ksqlDB SQL statements and keywords, see the 
-[ksqlDB API reference](./ksqldb-reference).
+[ksqlDB API reference](../../ksqldb-reference).
 
-For details on SQL syntax, see [ksqlDB syntax reference](../../syntax-reference/index).
+For details on SQL syntax, see [ksqlDB syntax reference](../../syntax-reference).
 
 
 ## ADVANCE BY

@@ -234,7 +234,7 @@ Total number of pull query requests.
 
 `pull-query-requests-rate`
 
-Rate of pull query requests.
+Rate of pull query requests per second.
 
 **Pull query requests error count**
 
@@ -246,7 +246,7 @@ Total number of erroneous pull query requests.
 
 `pull-query-requests-error-rate`
 
-Rate of erroneous pull query requests.
+Rate of erroneous pull query requests per second.
 
 **Local pull query requests count**
 
@@ -258,7 +258,7 @@ Count of local pull query requests.
 
 `pull-query-requests-local-rate`
 
-Rate of local pull query requests.
+Rate of local pull query requests per second.
 
 **Remote pull query requests count**
 
@@ -270,7 +270,7 @@ Count of remote pull query requests.
 
 `pull-query-requests-remote-rate`
 
-Rate of remote pull query requests.
+Rate of remote pull query requests per second.
 
 **Pull query minimum request latency**
 

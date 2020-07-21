@@ -114,7 +114,7 @@ The number of messages produced per second across all queries.
 
 `_confluent-ksql-default_error-rate`
 
-The number of messages which were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternately, a consumed messages may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
+The number of messages that were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternately, a consumed message may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
 
 **Liveness indicator**
 
@@ -219,7 +219,7 @@ io.confluent.ksql.metrics:type=_confluent-ksql-default_pull-query
 ```
 
 !!! info
-    Note that pull query metrics must explicitly be enabled by setting
+    Pull query metrics must be enabled explicitly by setting
     the `ksql.query.pull.metrics.enabled` server configuration to `true`.
 
 ### Attributes
@@ -316,7 +316,7 @@ Latency distribution of the 99th percentile.
 
 ## Command runner
 
-Metrics that describe the health of the CommandRunner thread, which
+Metrics that describe the health of the `CommandRunner` thread, which
 enables each node to participate in distributed computation.
 
 ```

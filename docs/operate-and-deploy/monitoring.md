@@ -4,14 +4,14 @@
 
 ksqlDB publishes metrics via JMX ([Java Management
 Extensions](https://www.oracle.com/java/technologies/javase/javamanagement.html))
-which help you monitor what is happening inside of ksqlDB's servers. A
+which help you monitor what is happening inside of ksqlDB's servers. For a
 comprehensive [set of metrics](../reference/metrics.md) are published,
 including number of rows processed, throughput,
 throughput distribution, and error rate.
 
 ## Enable monitoring
 
-You must explictly enable monitoring on each ksqlDB server. To enable
+You must enable monitoring explicitly on each ksqlDB server. To enable
 it in a Docker-based deployment, export an environment variable named
 `KSQL_JMX_OPTS` with your JMX configuration and expose the port that
 JMX will communicate over.

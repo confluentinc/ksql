@@ -10,7 +10,7 @@ Synopsis
 --------
 
 ```sql
-CREATE TABLE table_name ( { column_name data_type (PRIMARY KEY) } [, ...] )
+CREATE TABLE table_name ( { column_name data_type [PRIMARY KEY] } [, ...] )
   WITH ( property_name = expression [, ...] );
 ```
 
@@ -42,7 +42,7 @@ Each column is defined by:
    [data types](../syntax-reference.md#ksqldb-data-types) supported by ksqlDB.
  * `PRIMARY KEY`: columns that are stored in the Kafka message's key should be marked as
    `PRIMARY KEY` columns. If a column is not marked as a `PRIMARY KEY` column ksqlDB loads it
-   from the Kafka message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column(s)
+   from the {{ site.ak }} message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column(s)
    are NON NULL. Any records in the Kafka topic with NULL key columns are dropped.
    
 Each row within the table has a `ROWTIME` pseudo column, which represents the _last modified time_ 

@@ -5,8 +5,7 @@
 ksqlDB publishes metrics via JMX ([Java Management
 Extensions](https://www.oracle.com/java/technologies/javase/javamanagement.html))
 which help you monitor what is happening inside of ksqlDB's servers. For a
-comprehensive list of metrics, including number of rows processed, throughput,
-including number of rows processed, throughput,
+comprehensive list of metrics, see [the reference section](../reference/metrics.md).
 
 ## Enable monitoring
 

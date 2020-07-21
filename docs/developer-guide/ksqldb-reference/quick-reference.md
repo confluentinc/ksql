@@ -87,7 +87,7 @@ Register a stream on a {{ site.ak }} topic. For more information, see
 [CREATE STREAM](../../ksqldb-reference/create-stream).
 
 ```sql
-CREATE STREAM stream_name ( { column_name data_type (KEY) } [, ...] 
+CREATE STREAM stream_name ( { column_name data_type [KEY] } [, ...] 
   WITH ( property_name = expression [, ...] );            
 ```
 

@@ -7,14 +7,14 @@ keywords: ksqldb, sql, syntax, query, stream, table
 ---
 
 For detailed descriptions of ksqlDB SQL statements and keywords, see the 
-[ksqlDB API reference](../ksqldb-reference).
+[ksqlDB API reference](./ksqldb-reference).
 
-For details on SQL syntax, see [ksqlDB syntax reference](../syntax-reference).
+For details on SQL syntax, see [ksqlDB syntax reference](../../syntax-reference/index).
 
 
 ## ADVANCE BY
 Specify the duration of a "hop" in a HOPPING window. For more information,
-see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries).
+see [Time and Windows in ksqlDB](../../../concepts/time-and-windows-in-ksqldb-queries).
 
 ```sql
 SELECT [...], aggregate_function
@@ -23,7 +23,7 @@ SELECT [...], aggregate_function
 
 ## AND / OR
 Logical AND/OR operators in a WHERE clause. For more information, see
-[SELECT](../ksqldb-reference/select-push-query/#example).
+[SELECT](../../ksqldb-reference/select-push-query/#example).
 
 ```sql hl_lines="4"
 SELECT column_name(s)
@@ -34,7 +34,7 @@ SELECT column_name(s)
 
 ## AS
 Alias a column, expression, or type. For more information, see
-[Create a table](../create-a-table/#create-a-ksqldb-table-from-a-ksqldb-stream).
+[Create a table](../../create-a-table/#create-a-ksqldb-table-from-a-ksqldb-stream).
 
 ```sql hl_lines="1"
 SELECT column_name AS column_alias
@@ -43,7 +43,7 @@ SELECT column_name AS column_alias
 
 ## BETWEEN
 Constrain a value to a specified range in a WHERE clause. For more information, see
-[BETWEEN](../ksqldb-reference/select-push-query/#between).
+[BETWEEN](../../ksqldb-reference/select-push-query/#between).
 
 ```sql
 WHERE expression [NOT] BETWEEN start_expression AND end_expression;            
@@ -51,7 +51,7 @@ WHERE expression [NOT] BETWEEN start_expression AND end_expression;
 
 ## CASE
 Select a condition from one or more expressions. For more information, see
-[CASE](../ksqldb-reference/select-push-query/#case).
+[CASE](../../ksqldb-reference/select-push-query/#case).
 
 ```sql
 SELECT
@@ -67,7 +67,7 @@ FROM stream_name | table_name;
 
 ## CAST
 Change the type of an expression to a different type. For more information, see
-[CAST](../ksqldb-reference/select-push-query/#cast).
+[CAST](../../ksqldb-reference/select-push-query/#cast).
 
 ```sql
 CAST (expression AS data_type);
@@ -75,7 +75,7 @@ CAST (expression AS data_type);
 
 ## CREATE CONNECTOR
 Create a new connector in the {{ site.kconnectlong }} cluster. For more
-information, see [CREATE CONNECTOR](../ksqldb-reference/create-connector).
+information, see [CREATE CONNECTOR](../../ksqldb-reference/create-connector).
 
 ```sql
 CREATE SOURCE | SINK CONNECTOR connector_name
@@ -84,7 +84,7 @@ CREATE SOURCE | SINK CONNECTOR connector_name
 
 ## CREATE STREAM
 Register a stream on a {{ site.ak }} topic. For more information, see
-[CREATE STREAM](../ksqldb-reference/create-stream).
+[CREATE STREAM](../../ksqldb-reference/create-stream).
 
 ```sql
 CREATE STREAM stream_name ( { column_name data_type (KEY) } [, ...] 
@@ -94,7 +94,7 @@ CREATE STREAM stream_name ( { column_name data_type (KEY) } [, ...]
 ## CREATE STREAM AS SELECT
 Create a new materialized stream and corresponding {{ site.ak }} topic, and
 stream the result of the query into the topic. For more information, see
-[CREATE STREAM AS SELECT](../ksqldb-reference/create-stream-as-select).
+[CREATE STREAM AS SELECT](../../ksqldb-reference/create-stream-as-select).
 
 ```sql
 CREATE STREAM stream_name
@@ -111,7 +111,7 @@ CREATE STREAM stream_name
 
 ## CREATE TABLE
 Register a stream on a {{ site.ak }} topic. For more information, see
-[CREATE TABLE](../ksqldb-reference/create-table).
+[CREATE TABLE](../../ksqldb-reference/create-table).
 
 ```sql
 CREATE TABLE table_name ( { column_name data_type (PRIMARY KEY) } [, ...] )
@@ -121,7 +121,7 @@ CREATE TABLE table_name ( { column_name data_type (PRIMARY KEY) } [, ...] )
 ## CREATE TABLE AS SELECT
 Create a new materialized table and corresponding {{ site.ak }} topic, and
 stream the result of the query as a changelog into the topic. For more
-information, see [CREATE TABLE AS SELECT](../ksqldb-reference/create-table-as-select). 
+information, see [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select). 
 
 ```sql
 CREATE TABLE table_name
@@ -138,7 +138,7 @@ CREATE TABLE table_name
 
 ## CREATE TYPE
 Alias a complex type declaration. For more information, see
-[CREATE TYPE](../ksqldb-reference/create-type).
+[CREATE TYPE](../../ksqldb-reference/create-type).
 
 ```sql
 CREATE TYPE <type_name> AS <type>;
@@ -146,7 +146,7 @@ CREATE TYPE <type_name> AS <type>;
 
 ## DESCRIBE
 List columns in a stream or table along with their data types and other
-attributes. For more information, see [DESCRIBE](../ksqldb-reference/describe).
+attributes. For more information, see [DESCRIBE](../../ksqldb-reference/describe).
 
 ```sql
 DESCRIBE [EXTENDED] (stream_name | table_name);
@@ -154,7 +154,7 @@ DESCRIBE [EXTENDED] (stream_name | table_name);
 
 ## DESCRIBE CONNECTOR
 List details about a connector. For more information, see
-[DESCRIBE CONNECTOR](../ksqldb-reference/describe-connector).
+[DESCRIBE CONNECTOR](../../ksqldb-reference/describe-connector).
 
 ```sql
 DESCRIBE CONNECTOR connector_name;
@@ -162,7 +162,7 @@ DESCRIBE CONNECTOR connector_name;
 
 ## DESCRIBE FUNCTION
 List details about a function, including input parameters and return type.
-For more information, see [DESCRIBE FUNCTION](../ksqldb-reference/describe-function).
+For more information, see [DESCRIBE FUNCTION](../../ksqldb-reference/describe-function).
 
 ```sql
 DESCRIBE FUNCTION function_name;
@@ -170,7 +170,7 @@ DESCRIBE FUNCTION function_name;
 
 ## DROP CONNECTOR
 Delete a connector from the {{ site.kconnect }} cluster. For more information,
-see [DROP CONNECTOR](../ksqldb-reference/drop-connector).
+see [DROP CONNECTOR](../../ksqldb-reference/drop-connector).
 
 ```sql
 DROP CONNECTOR connector_name;
@@ -178,7 +178,7 @@ DROP CONNECTOR connector_name;
 
 ## DROP STREAM
 Drop an existing stream and optionally mark the stream's source topic for
-deletion. For more information, see [DROP STREAM](../ksqldb-reference/drop-stream).
+deletion. For more information, see [DROP STREAM](../../ksqldb-reference/drop-stream).
 
 ```sql
 DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
@@ -186,7 +186,7 @@ DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 
 ## DROP TABLE
 Drop an existing table and optionally mark the table's source topic for
-deletion. For more information, see [DROP TABLE](../ksqldb-reference/drop-table).
+deletion. For more information, see [DROP TABLE](../../ksqldb-reference/drop-table).
 
 ```sql
 DROP TABLE [IF EXISTS] table_name [DELETE TOPIC];
@@ -194,7 +194,7 @@ DROP TABLE [IF EXISTS] table_name [DELETE TOPIC];
 
 ## DROP TYPE
 Remove a type alias from ksqlDB. For more information, see
-[DROP TYPE](../ksqldb-reference/drop-type).
+[DROP TYPE](../../ksqldb-reference/drop-type).
 
 ```sql
 DROP TYPE <type_name> AS <type>;
@@ -213,7 +213,7 @@ CREATE STREAM stream_name
 
 ## EXPLAIN
 Show the execution plan for a SQL expression or running query. For more
-information, see [EXPLAIN](../ksqldb-reference/explain).
+information, see [EXPLAIN](../../ksqldb-reference/explain).
 
 ```sql
 EXPLAIN (sql_expression | query_id);
@@ -256,7 +256,7 @@ SELECT column_name, aggregate_function(column_name)
 ## HOPPING
 Group input records into fixed-sized, possibly overlapping windows,
 based on the timestamps of the records. For more information, see
-[HOPPING](../ksqldb-reference/select-push-query/#hopping-window).
+[HOPPING](../../ksqldb-reference/select-push-query/#hopping-window).
 
 ```sql hl_lines="3"
 SELECT WINDOWSTART, WINDOWEND, aggregate_function
@@ -297,7 +297,7 @@ SELECT column_name(s)
 
 ## INSERT INTO
 Stream the result of a SELECT query into an existing stream and its underlying
-{{ site.ak }} topic. For more information, see [INSERT INTO](../ksqldb-reference/insert-into).
+{{ site.ak }} topic. For more information, see [INSERT INTO](../../ksqldb-reference/insert-into).
 
 ```sql
 INSERT INTO stream_name
@@ -314,7 +314,7 @@ INSERT INTO stream_name
 ## INSERT VALUES
 Produce a row into an existing stream or table and its underlying {{ site.ak }}
 topic based on explicitly specified values. For more information, see
-[INSERT VALUES](../ksqldb-reference/insert-values).
+[INSERT VALUES](../../ksqldb-reference/insert-values).
 
 ```sql
 INSERT INTO stream_name|table_name [(column_name [, ...]])]
@@ -335,7 +335,7 @@ SELECT column_name(s)
 
 ## LIKE
 Match a string with the specified pattern. For more information, see
-[LIKE](../ksqldb-reference/select-push-query/#like).
+[LIKE](../../ksqldb-reference/select-push-query/#like).
 
 ```sql hl_lines="3"
   SELECT select_expr [., ...]
@@ -359,7 +359,7 @@ CREATE STREAM stream_name
 
 ## PRINT
 Print the contents of {{ site.ak }} topics to the ksqlDB CLI. For more
-information, see [PRINT](../ksqldb-reference/print).
+information, see [PRINT](../../ksqldb-reference/print).
 
 ```sql
 PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
@@ -367,7 +367,7 @@ PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
 
 ## RUN SCRIPT
 Execute predefined queries and commands from a file. For more
-information, see [RUN SCRIPT](../ksqldb-reference/run-script).
+information, see [RUN SCRIPT](../../ksqldb-reference/run-script).
 
 ```sql
 RUN SCRIPT <path-to-query-file>;
@@ -375,7 +375,7 @@ RUN SCRIPT <path-to-query-file>;
 
 ## SELECT (Pull Query)
 Pull the current value from a materialized table and terminate. For more
-information, see [SELECT (Pull Query)](../ksqldb-reference/select-pull-query).
+information, see [SELECT (Pull Query)](../../ksqldb-reference/select-pull-query).
 
 ```sql
 SELECT select_expr [, ...]
@@ -386,7 +386,7 @@ SELECT select_expr [, ...]
 
 ## SELECT (Push Query)
 Push a continuous stream of updates to a stream or table. For more
-information, see [SELECT (Push Query)](../ksqldb-reference/select-push-query).
+information, see [SELECT (Push Query)](../../ksqldb-reference/select-push-query).
 
 ```sql
 SELECT select_expr [, ...]
@@ -402,7 +402,7 @@ SELECT select_expr [, ...]
 
 ## SESSION
 Group input records into a session window. For more information, see
-[SELECT (Push Query)](../ksqldb-reference/select-push-query/#session-window).
+[SELECT (Push Query)](../../ksqldb-reference/select-push-query/#session-window).
 
 ```sql hl_lines="3"
 SELECT WINDOWSTART, WINDOWEND, aggregate_function
@@ -413,7 +413,7 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 
 ## SHOW CONNECTORS
 List all connectors in the {{ site.kconnect }} cluster. For more information,
-see [SHOW CONNECTORS](../ksqldb-reference/show-connectors).
+see [SHOW CONNECTORS](../../ksqldb-reference/show-connectors).
 
 ```sql
 SHOW | LIST CONNECTORS;
@@ -421,15 +421,15 @@ SHOW | LIST CONNECTORS;
 
 ## SHOW FUNCTIONS
 List available scalar and aggregate functions available. For more information,
-see [SHOW FUNCTIONS](../ksqldb-reference/show-functions).
+see [SHOW FUNCTIONS](../../ksqldb-reference/show-functions).
 
 ```sql
 SHOW | LIST FUNCTIONS;
 ```
 
 ## SHOW PROPERTIES
-List the [configuration settings](../operate-and-deploy/installation/server-config/config-reference.md)
-that are currently in effect. For more information, see [SHOW PROPERTIES](../ksqldb-reference/show-properties).
+List the [configuration settings](../../operate-and-deploy/installation/server-config/config-reference.md)
+that are currently in effect. For more information, see [SHOW PROPERTIES](../../ksqldb-reference/show-properties).
 
 ```sql
 SHOW PROPERTIES;
@@ -437,7 +437,7 @@ SHOW PROPERTIES;
 
 ## SHOW QUERIES
 List queries that are currently running in the cluster. For more information,
-see [SHOW QUERIES](../ksqldb-reference/show-queries).
+see [SHOW QUERIES](../../ksqldb-reference/show-queries).
 
 ```sql
 SHOW | LIST QUERIES [EXTENDED];
@@ -445,7 +445,7 @@ SHOW | LIST QUERIES [EXTENDED];
 
 ## SHOW STREAMS
 List the currently defined streams. For more information,
-see [SHOW STREAMS](../ksqldb-reference/show-streams).
+see [SHOW STREAMS](../../ksqldb-reference/show-streams).
 
 ```sql
 SHOW | LIST STREAMS [EXTENDED];
@@ -453,7 +453,7 @@ SHOW | LIST STREAMS [EXTENDED];
 
 ## SHOW TABLES
 List the currently defined tables. For more information,
-see [SHOW TABLES](../ksqldb-reference/show-tables).
+see [SHOW TABLES](../../ksqldb-reference/show-tables).
 
 ```sql
 SHOW | LIST TABLES [EXTENDED];
@@ -462,7 +462,7 @@ SHOW | LIST TABLES [EXTENDED];
 ## SHOW TOPICS
 List the available topics in the {{ site.ak }} cluster that ksqlDB is
 configured to connect to. For more information, see
-[SHOW TOPICS](../ksqldb-reference/show-topics).
+[SHOW TOPICS](../../ksqldb-reference/show-topics).
 
 ```sql
 SHOW | LIST [ALL] TOPICS [EXTENDED];
@@ -470,7 +470,7 @@ SHOW | LIST [ALL] TOPICS [EXTENDED];
 
 ## SHOW TYPES
 List all custom types and their type definitions. For more information,
-see [SHOW TYPES](../ksqldb-reference/show-types).
+see [SHOW TYPES](../../ksqldb-reference/show-types).
 
 ```sql
 SHOW | LIST TYPES;
@@ -489,14 +489,14 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 
 ## SPOOL
 Store issued commands and their results in a file. For more information,
-see [SPOOL](../ksqldb-reference/show-spool).
+see [SPOOL](../../ksqldb-reference/show-spool).
 
 ```sql
 SPOOL <file_name|OFF>
 ```
 
 ## TERMINATE
-End a persistent query. For more information, see [SPOOL](../ksqldb-reference/terminate).
+End a persistent query. For more information, see [SPOOL](../../ksqldb-reference/terminate).
 
 ```sql
 TERMINATE query_id;
@@ -505,7 +505,7 @@ TERMINATE query_id;
 ## TUMBLING
 Group input records into fixed-sized, non-overlapping windows based on the
 timestamps of the records. For more information, see
-[TUMBLING](../ksqldb-reference/select-push-query/#tumbling-window).
+[TUMBLING](../../ksqldb-reference/select-push-query/#tumbling-window).
 
 ```sql hl_lines="3"
 SELECT WINDOWSTART, WINDOWEND, aggregate_function
@@ -516,7 +516,7 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 
 ## WHERE
 Extract records that fulfill a specified condition. For more information, see
-[SELECT](../ksqldb-reference/select-push-query/#example).  
+[SELECT](../../ksqldb-reference/select-push-query/#example).  
 
 ```sql hl_lines="3"
 SELECT column_name(s)
@@ -527,7 +527,7 @@ SELECT column_name(s)
 ## WINDOW
 Group input records that have the same key into a window, for operations like
 aggregations and joins. For more information, see
-[WINDOW](../ksqldb-reference/select-push-query/#window).
+[WINDOW](../../ksqldb-reference/select-push-query/#window).
 
 ```sql hl_lines="3"
 SELECT WINDOWSTART, WINDOWEND, aggregate_function
@@ -538,7 +538,7 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 
 ## WINDOWSTART / WINDOWEND
 Specify the beginning and end bounds a window. For more information, see
-[WINDOW](../ksqldb-reference/select-push-query/#window).
+[WINDOW](../../ksqldb-reference/select-push-query/#window).
 
 ```sql hl_lines="1"
 SELECT WINDOWSTART, WINDOWEND, aggregate_function

@@ -13,7 +13,7 @@ other operations on streaming data. ksqlDB SQL has a familiar syntax that's simi
 ### SQL quick reference
 
 For a summary of supported SQL statements and keywords, see the
-[ksqlDB SQL quick reference](../quick-reference).
+[ksqlDB SQL quick reference](../ksqldb-reference/quick-reference).
 
 ### Syntax notes
 

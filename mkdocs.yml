@@ -53,7 +53,6 @@ nav:
     - Processing Guarantees: concepts/processing-guarantees.md
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
   - Developer Guide:
-    - SQL quick reference: developer-guide/quick-reference.md
     - Develop ksqlDB Applications: developer-guide/index.md
     - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md
     - Create a Stream: developer-guide/create-a-stream.md
@@ -76,6 +75,7 @@ nav:
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:
+      - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
       - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
       - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md

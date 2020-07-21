@@ -24,8 +24,9 @@ JSON Parameters:
 
 - **ksql** (string): A semicolon-delimited sequence of SQL statements to run.
 - **streamsProperties** (map): Property overrides to run the statements with.
-  Refer to the :ref:`Config Reference <ksql-param-reference>` for details on
-  properties that can be set.
+  Refer to the
+  [Configuration Parameter Reference](../../../operate-and-deploy/installation/server-config/config-reference)
+  for details on properties that can be set.
 - **streamsProperties[``property-name``]** (string): The value of the property
 - named by ``property-name``. Both the value and ``property-name`` should be
   strings.

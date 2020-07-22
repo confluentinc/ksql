@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -698,6 +699,31 @@ public class KafkaTopicClientImplTest {
     verify(adminClient, times(2)).incrementalAlterConfigs(any());
   }
 
+  @Test
+  public void shouldNotListAllTopicsWhenCallingIsTopicExists() {
+    // Given
+    givenTopicExists("foobar", 1, 1);
+
+    // When
+    kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    verify(adminClient, never()).listTopics();
+  }
+
+  @Test
+  public void shouldNotShowTopicWithAclError() {
+    // Given
+    when(adminClient.describeTopics(any(), any()))
+        .thenAnswer(describeTopicsResult(new TopicAuthorizationException("meh")));
+
+    // When
+    final boolean exists = kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    assertThat(exists, is(false));
+  }
+
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {
     final ConfigEntry config = mock(ConfigEntry.class);
     when(config.name()).thenReturn(key);
@@ -770,6 +796,8 @@ public class KafkaTopicClientImplTest {
           .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
 
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+      when(describeTopicsResult.values())
+          .thenReturn(Maps.transformValues(result, KafkaFuture::completedFuture));
       when(describeTopicsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
       return describeTopicsResult;
     };
@@ -777,7 +805,17 @@ public class KafkaTopicClientImplTest {
 
   private static Answer<DescribeTopicsResult> describeTopicsResult(final Exception e) {
     return inv -> {
+      final Collection<String> topicNames = inv.getArgument(0);
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+
+      Map<String, KafkaFuture<TopicDescription>> map = new HashMap<>();
+      for (String name : topicNames) {
+        if (map.put(name, failedFuture(e)) != null) {
+          throw new IllegalStateException("Duplicate key");
+        }
+      }
+      when(describeTopicsResult.values()).thenReturn(map);
+
       final KafkaFuture<Map<String, TopicDescription>> f = failedFuture(e);
       when(describeTopicsResult.all()).thenReturn(f);
       return describeTopicsResult;
@@ -912,7 +950,7 @@ public class KafkaTopicClientImplTest {
       doThrow(new ExecutionException(cause)).when(future).get(anyLong(), any());
       return future;
     } catch (final Exception e) {
-      throw new AssertionError("invalid test");
+      throw new AssertionError("invalid test", e);
     }
   }
 

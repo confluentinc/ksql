@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.ExecutorUtil;
+import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -44,6 +47,7 @@ import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
+import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
@@ -161,7 +165,26 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public boolean isTopicExists(final String topic) {
     LOG.trace("Checking for existence of topic '{}'", topic);
-    return listTopicNames().contains(topic);
+    try {
+      final DescribeTopicsResult describe = ExecutorUtil.executeWithRetries(
+          () -> adminClient.get().describeTopics(
+              ImmutableList.of(topic),
+              new DescribeTopicsOptions().includeAuthorizedOperations(true)),
+          RetryBehaviour.ON_RETRYABLE
+      );
+      describe.values().get(topic).get();
+      return true;
+    } catch (final Exception e) {
+      if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
+        return false;
+      }
+
+      if (Throwables.getRootCause(e) instanceof TopicAuthorizationException) {
+        return false;
+      }
+
+      throw new KafkaResponseGetFailedException("Failed to check if exists for topic: " + topic, e);
+    }
   }
 
   @Override

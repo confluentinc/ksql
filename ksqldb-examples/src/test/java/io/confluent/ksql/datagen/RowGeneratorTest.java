@@ -78,8 +78,6 @@ public class RowGeneratorTest {
     final Generator generator = new Generator(new File("./src/main/resources/pageviews_schema.avro"), new Random());
     final RowGenerator rowGenerator = new RowGenerator(generator, "viewtime", Optional.of("viewtime"));
 
-    final Pair<Struct, GenericRow> rowPair = rowGenerator.generateRow();
-
     assertThat("incorrect timestamp column index.", rowGenerator.getTimestampFieldIndex().get(), is(0));
 
   }

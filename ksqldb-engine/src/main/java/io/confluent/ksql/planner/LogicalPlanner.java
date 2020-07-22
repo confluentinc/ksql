@@ -484,7 +484,12 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode,
       final RefinementInfo refinementInfo
   ) {
-    return new SuppressNode(new PlanNodeId("Suppress"), sourcePlanNode, refinementInfo);
+    return new SuppressNode(
+        new PlanNodeId("Suppress"),
+        sourcePlanNode,
+        refinementInfo,
+        windowExpression.getKsqlWindowExpression()
+    );
   }
 
   private LogicalSchema buildAggregateSchema(

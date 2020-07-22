@@ -17,9 +17,11 @@ package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
@@ -40,16 +42,24 @@ import java.util.Objects;
 public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode {
 
   private final RefinementInfo refinementInfo;
+  private final ValueFormat valueFormat;
+  private final KsqlWindowExpression windowExpression;
+
 
   public SuppressNode(
       final PlanNodeId id,
       final PlanNode source,
-      final RefinementInfo refinementInfo
+      final RefinementInfo refinementInfo,
+      final KsqlWindowExpression windowExpression
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
 
-    this.refinementInfo = Objects.requireNonNull(
-        refinementInfo, "refinementInfo");
+    this.refinementInfo = Objects.requireNonNull(refinementInfo, "refinementInfo");
+    this.windowExpression = Objects.requireNonNull(windowExpression, "windowExpression");
+    this.valueFormat = source.getLeftmostSourceNode()
+        .getDataSource()
+        .getKsqlTopic()
+        .getValueFormat();
   }
 
   public RefinementInfo getRefinementInfo() {
@@ -71,10 +81,11 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
           + "found a stream instead.");
     }
 
-
     return (((SchemaKTable<?>) schemaKStream)
         .suppress(
             refinementInfo,
+            windowExpression,
+            valueFormat,
             contextStacker
         ));
   }

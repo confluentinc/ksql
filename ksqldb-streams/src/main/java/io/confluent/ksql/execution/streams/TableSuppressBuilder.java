@@ -15,17 +15,100 @@
 
 package io.confluent.ksql.execution.streams;
 
+
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.TableSuppress;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
+import java.util.Set;
+import java.util.function.BiFunction;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Suppressed;
+import org.apache.kafka.streams.state.KeyValueStore;
+
+
 
 public final class TableSuppressBuilder {
 
-  private TableSuppressBuilder() {
+  public TableSuppressBuilder() {
   }
 
-  public static <K> KTableHolder<K> build(
-      final KTableHolder<K> table
+
+  public <K> KTableHolder<K> build(
+      final KTableHolder<K> table,
+      final TableSuppress<K> step,
+      final KsqlQueryBuilder queryBuilder,
+      final KeySerdeFactory keySerdeFactory,
+      final MaterializedFactory materializedFactory
   ) {
-    throw new KsqlException("EMIT FINAL is not yet supported");
+    return build(
+        table,
+        step,
+        queryBuilder,
+        keySerdeFactory,
+        materializedFactory,
+        PhysicalSchema::from
+    );
+  }
+
+  @VisibleForTesting
+  @SuppressWarnings("unchecked")
+  <K> KTableHolder<K> build(
+      final KTableHolder<K> table,
+      final TableSuppress<K> step,
+      final KsqlQueryBuilder queryBuilder,
+      final KeySerdeFactory keySerdeFactory,
+      final MaterializedFactory materializedFactory,
+      final BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory
+  ) {
+    final PhysicalSchema physicalSchema = physicalSchemaFactory.apply(
+        table.getSchema(),
+        step.getInternalFormats().getOptions()
+    );
+    final QueryContext queryContext = QueryContext.Stacker.of(
+        step.getProperties().getQueryContext())
+        .push("Suppress").getQueryContext();
+
+    final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
+        step.getInternalFormats().getValueFormat(),
+        physicalSchema,
+        queryContext
+    );
+
+    final Serde<K> keySerde = keySerdeFactory.buildKeySerde(
+        step.getInternalFormats().getKeyFormat(),
+        physicalSchema,
+        queryContext
+    );
+
+    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+        materializedFactory.create(
+            keySerde,
+            valueSerde,
+            "materializedInternalSuppress"
+        );
+
+    final KTable<K, GenericRow> suppressed = table.getTable().transformValues(
+        (() -> new KsTransformer<>((k, v, ctx) -> v)),
+        materialized
+    ).suppress(
+        (Suppressed<? super K>) Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded())
+    );
+
+    return table
+        .withTable(
+            suppressed,
+            table.getSchema()
+        );
   }
 }

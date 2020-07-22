@@ -26,7 +26,12 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
@@ -50,6 +55,18 @@ public class SuppressNodeTest {
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private Stacker stacker;
+  @Mock
+  private WindowExpression windowExpression;
+  @Mock
+  private KsqlWindowExpression ksqlWindowExpression;
+  @Mock
+  private DataSourceNode dataSourceNode;
+  @Mock
+  private DataSource dataSource;
+  @Mock
+  private KsqlTopic ksqlTopic;
+  @Mock
+  private ValueFormat valueFormat;
 
   private SuppressNode node;
 
@@ -59,6 +76,12 @@ public class SuppressNodeTest {
   @Before
   public void setUp() {
     when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
+    when(sourceNode.getLeftmostSourceNode()).thenReturn(dataSourceNode);
+    when(dataSourceNode.getDataSource()).thenReturn(dataSource);
+    when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
+    when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
+
+
   }
 
   @Test
@@ -67,8 +90,9 @@ public class SuppressNodeTest {
 
     // Given:
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
+    node = new SuppressNode(NODE_ID, sourceNode, refinementInfo, ksqlWindowExpression);
 
-    node = new SuppressNode(NODE_ID, sourceNode, refinementInfo);
+
 
     // When:
     final Exception e = assertThrows(
@@ -87,8 +111,8 @@ public class SuppressNodeTest {
     // Given:
     when(sourceNode.buildStream(any())).thenReturn(schemaKTable);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
+    node = new SuppressNode(NODE_ID, sourceNode, refinementInfo, ksqlWindowExpression);
 
-    node = new SuppressNode(NODE_ID, sourceNode, refinementInfo);
 
     // When:
     node.buildStream(ksqlStreamBuilder);

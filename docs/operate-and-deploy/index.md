@@ -51,46 +51,6 @@ Troubleshooting
 If ksqlDB isn't behaving as expected, see
 [Troubleshoot ksqlDB issues](../troubleshoot-ksqldb.md)
 
-Monitoring and Metrics
-----------------------
-
-ksqlDB includes JMX (Java Management Extensions) metrics which give
-insights into what is happening inside your ksqlDB servers. These metrics
-include the number of messages, the total throughput, throughput
-distribution, error rate, and more.
-
-To enable JMX metrics, set `JMX_PORT` before starting the ksqlDB server:
-
-```bash
-export JMX_PORT=1099 && \
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
-```
-
-The `ksql-print-metrics` command line utility collects these metrics and
-prints them to the console. You can invoke this utility from your
-terminal:
-
-```bash
-<path-to-confluent>/bin/ksql-print-metrics
-```
-
-Your output should resemble:
-
-```
-messages-consumed-avg: 96416.96196183885
-messages-consumed-min: 88900.3329377909
-error-rate: 0.0
-num-persistent-queries: 2.0
-messages-consumed-per-sec: 193024.78294586178
-messages-produced-per-sec: 193025.4730374501
-num-active-queries: 2.0
-num-idle-queries: 0.0
-messages-consumed-max: 103397.81191436431
-```
-
-For more information about {{ site.kstreams }} metrics, see
-[Monitoring Streams Applications](https://docs.confluent.io/current/streams/monitoring.html).
-
 Next Steps
 ----------
 

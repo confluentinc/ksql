@@ -714,19 +714,6 @@ public class KafkaTopicClientImplTest {
     verify(adminClient, never()).listTopics();
   }
 
-  @Test
-  public void shouldNotShowTopicWithAclError() {
-    // Given
-    when(adminClient.describeTopics(any(), any()))
-        .thenAnswer(describeTopicsResult(new TopicAuthorizationException("meh")));
-
-    // When
-    final boolean exists = kafkaTopicClient.isTopicExists("foobar");
-
-    // Then
-    assertThat(exists, is(false));
-  }
-
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {
     final ConfigEntry config = mock(ConfigEntry.class);
     when(config.name()).thenReturn(key);

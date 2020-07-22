@@ -178,10 +178,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
         return false;
       }
 
-      if (Throwables.getRootCause(e) instanceof TopicAuthorizationException) {
-        return false;
-      }
-
       throw new KafkaResponseGetFailedException("Failed to check if exists for topic: " + topic, e);
     }
   }

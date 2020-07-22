@@ -36,7 +36,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
@@ -191,13 +190,15 @@ public class KafkaTopicClientImplTest {
 
     when(adminClient.describeTopics(any(), any()))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+        .thenAnswer(describeTopicsResult()); // The second and third time, return the right response.
 
     // When:
     kafkaTopicClient.createTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(2)).describeTopics(any(), any());
+    // first two times are in the `isTopicExists` call and the second is in `describeTopic` when
+    // confirming the number of partitions
+    verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
   @Test
@@ -276,13 +277,15 @@ public class KafkaTopicClientImplTest {
 
     when(adminClient.describeTopics(any(), any()))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+        .thenAnswer(describeTopicsResult()); // The second/third time, return the right response.
 
     // When:
     kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(2)).describeTopics(any(), any());
+    // first two times are in the `isTopicExists` call and the second is in `describeTopic` when
+    // confirming the number of partitions
+    verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
   @Test
@@ -795,9 +798,15 @@ public class KafkaTopicClientImplTest {
           .map(name -> new TopicDescription(name, false, topicPartitionInfo.get(name)))
           .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
 
+      Map<String, KafkaFuture<TopicDescription>> describe = new HashMap<>();
+      for (String name : topicNames) {
+        describe.put(name, result.containsKey(name)
+            ? KafkaFuture.completedFuture(result.get(name))
+            : failedFuture(new UnknownTopicOrPartitionException()));
+      }
+
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
-      when(describeTopicsResult.values())
-          .thenReturn(Maps.transformValues(result, KafkaFuture::completedFuture));
+      when(describeTopicsResult.values()).thenReturn(describe );
       when(describeTopicsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
       return describeTopicsResult;
     };

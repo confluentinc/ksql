@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -44,6 +46,7 @@ public class QueryMonitorTest {
 
   @Before
   public void setup() {
+    when(ticker.read()).thenReturn(Long.MAX_VALUE);
     queryMonitor = new QueryMonitor(ksqlEngine, executor, 1000, 1000, ticker);
   }
 
@@ -107,9 +110,7 @@ public class QueryMonitorTest {
     // Then:
     assertThat(retryEvent.getNumRetries(), is(1));
     assertThat(retryEvent.nextRestartTimeMs(), is(currentTime + baseTime * 2));
-    verify(queryMetadata).stop();
-    verify(ksqlEngine).resetQuery(queryId);
-    verify(queryMetadata).start();
+    verify(queryMetadata).restart();
   }
 
   @Test
@@ -131,6 +132,25 @@ public class QueryMonitorTest {
     // Then:
     assertThat(retryEvent.getNumRetries(), is(2));
     assertThat(retryEvent.nextRestartTimeMs(), greaterThanOrEqualTo(currentTime + maxTime));
+  }
+
+  @Test
+  public void shouldRetryEventNotThrowIfRestartThrowsException() {
+    // Given:
+    final long baseTime = 20;
+    final long currentTime = 20;
+    final QueryId queryId = new QueryId("id-1");
+    when(ticker.read()).thenReturn(currentTime);
+    when(ksqlEngine.getPersistentQuery(queryId)).thenReturn(Optional.of(queryMetadata));
+    doThrow(IllegalStateException.class).when(queryMetadata).restart();
+
+    // When:
+    final QueryMonitor.RetryEvent retryEvent =
+        new QueryMonitor.RetryEvent(ksqlEngine, queryId, baseTime, 50, ticker);
+    retryEvent.restart();
+
+    // Then:
+    verify(queryMetadata).restart();
   }
 
   @Test
@@ -161,10 +181,7 @@ public class QueryMonitorTest {
     queryMonitor.restartFailedQueries();
 
     // Then:
-    final InOrder inOrder = inOrder(query, ksqlEngine);
-    inOrder.verify(query, times(1)).stop();
-    inOrder.verify(ksqlEngine, times(1)).resetQuery(new QueryId("id-1"));
-    inOrder.verify(query, times(1)).start();
+    verify(query).restart();
   }
 
   @Test
@@ -180,9 +197,7 @@ public class QueryMonitorTest {
     queryMonitor.restartFailedQueries();
 
     // Then:
-    verify(query, times(2)).stop();
-    verify(ksqlEngine, times(2)).resetQuery(new QueryId("id-1"));
-    verify(query, times(2)).start();
+    verify(query, times(2)).restart();
   }
 
   @Test
@@ -195,12 +210,10 @@ public class QueryMonitorTest {
 
     // When:
     queryMonitor.restartFailedQueries();
-    queryMonitor.restartFailedQueries(); // 2nd round should not restart before backoff time
+    queryMonitor.restartFailedQueries();
 
     // Then:
-    verify(query, times(1)).stop();
-    verify(ksqlEngine, times(1)).resetQuery(new QueryId("id-1"));
-    verify(query, times(1)).start();
+    verify(query, never()).restart();
   }
 
   @Test
@@ -217,9 +230,7 @@ public class QueryMonitorTest {
     queryMonitor.restartFailedQueries(); // 2nd round should not restart before backoff time
 
     // Then:
-    verify(query, times(1)).stop();
-    verify(ksqlEngine, times(1)).resetQuery(new QueryId("id-1"));
-    verify(query, times(1)).start();
+    verify(query, times(1)).restart();
   }
 
   private PersistentQueryMetadata mockPersistentQueryMetadata(

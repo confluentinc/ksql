@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -61,6 +62,8 @@ public class QueryMetadataTest {
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
+  private KafkaStreamsBuilder kafkaStreamsBuilder;
+  @Mock
   private Topology topoplogy;
   @Mock
   private KafkaStreams kafkaStreams;
@@ -73,15 +76,17 @@ public class QueryMetadataTest {
 
   @Before
   public void setup() {
+    when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
+
     cleanUp = false;
     query = new QueryMetadata(
         "foo",
-        kafkaStreams,
         SOME_SCHEMA,
         SOME_SOURCES,
         "bar",
         QUERY_APPLICATION_ID,
         topoplogy,
+        kafkaStreamsBuilder,
         Collections.emptyMap(),
         Collections.emptyMap(),
         closeCallback,
@@ -100,7 +105,7 @@ public class QueryMetadataTest {
     when(kafkaStreams.state()).thenReturn(State.CREATED);
 
     // When:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // Then:
     verify(listener).onChange(State.CREATED, State.CREATED);
@@ -109,7 +114,7 @@ public class QueryMetadataTest {
   @Test
   public void shouldConnectAnyListenerToStreamAppOnStart() {
     // Given:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // When:
     query.start();
@@ -121,7 +126,7 @@ public class QueryMetadataTest {
   @Test
   public void shouldCloseAnyListenerOnClose() {
     // Given:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // When:
     query.close();

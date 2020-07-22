@@ -55,6 +55,7 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -391,17 +392,19 @@ public class StreamedQueryResourceTest {
         .thenReturn(query);
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
+    final KafkaStreamsBuilder kafkaStreamsBuilder = mock(KafkaStreamsBuilder.class);
+    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(mockKafkaStreams);
 
     final TransientQueryMetadata transientQueryMetadata =
         new TransientQueryMetadata(
             queryString,
-            mockKafkaStreams,
             SOME_SCHEMA,
             Collections.emptySet(),
             "",
             new TestRowQueue(rowQueue),
             "",
             mock(Topology.class),
+            kafkaStreamsBuilder,
             Collections.emptyMap(),
             Collections.emptyMap(),
             queryCloseCallback,

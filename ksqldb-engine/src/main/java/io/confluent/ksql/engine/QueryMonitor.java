@@ -19,9 +19,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ticker;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -102,33 +107,42 @@ public class QueryMonitor implements Closeable {
   }
 
   void restartFailedQueries() {
+    // Collect a list of new queries in ERROR state
     ksqlEngine.getPersistentQueries().stream()
-        .forEach(query -> {
-          final QueryId queryId = query.getQueryId();
-          final KafkaStreams.State queryState = query.getState();
+        .filter(query -> query.getState() == KafkaStreams.State.ERROR)
+        .filter(query -> !queriesRetries.containsKey(query.getQueryId()))
+        .map(QueryMetadata::getQueryId)
+        .forEach(queryId -> queriesRetries.put(queryId, newRetryEvent(queryId)));
 
-          // If the query was restarted previously, check if it needs another restart; or if the
-          // query is now up and running, then remove it from the restart list.
-          if (queriesRetries.containsKey(queryId)) {
-            final RetryEvent retryEvent = queriesRetries.get(queryId);
-            if (ticker.read() > retryEvent.nextRestartTimeMs()) {
-              if (queryState == KafkaStreams.State.ERROR) {
-                // Retry again if it's still in ERROR state
-                retryEvent.restart();
-              } else {
-                // Query is not in ERROR state anymore.
-                queriesRetries.remove(queryId);
-              }
+    // Restart queries that has passed the waiting timeout
+    final List<QueryId> deleteRetryEvents = new ArrayList<>();
+    queriesRetries.entrySet().stream()
+        .forEach(mapEntry -> {
+          final QueryId queryId = mapEntry.getKey();
+          final RetryEvent retryEvent = mapEntry.getValue();
+          final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId);
+
+          // Query was terminated manually if no present
+          if (!query.isPresent()) {
+            deleteRetryEvents.add(queryId);
+          } else if (ticker.read() > retryEvent.nextRestartTimeMs()) {
+            if (query.get().getState() == KafkaStreams.State.ERROR) {
+              // Retry again if it's still in ERROR state
+              retryEvent.restart();
+            } else {
+              // Delete if query is not in ERROR state anymore
+              deleteRetryEvents.add(queryId);
             }
-          } else if (queryState == KafkaStreams.State.ERROR) {
-            // Restart new query in ERROR state, and add it to the list of retries.
-            final RetryEvent retryEvent = new RetryEvent(
-                ksqlEngine, queryId, retryBackoffInitialMs, retryBackoffMaxMs, ticker);
-
-            queriesRetries.put(queryId, retryEvent);
-            retryEvent.restart();
           }
         });
+
+    deleteRetryEvents.stream().forEach(queryId -> {
+      queriesRetries.remove(queryId);
+    });
+  }
+
+  private RetryEvent newRetryEvent(final QueryId queryId) {
+    return new RetryEvent(ksqlEngine, queryId, retryBackoffInitialMs, retryBackoffMaxMs, ticker);
   }
 
   private class Runner implements Runnable {
@@ -137,10 +151,12 @@ public class QueryMonitor implements Closeable {
       LOG.info("KSQL query monitor started.");
 
       while (!closed) {
+        restartFailedQueries();
+
         try {
-          restartFailedQueries();
+          Thread.sleep(500);
         } catch (final Exception e) {
-          LOG.warn("KSQL query monitor found an error attempting to restart failed queries.", e);
+          // ignore.
         }
       }
     }
@@ -186,22 +202,16 @@ public class QueryMonitor implements Closeable {
       numRetries++;
 
       LOG.info("Restarting query {} (attempt #{})", queryId, numRetries);
-
-      // Stop the queryId using the current QueryMetadata
-      ksqlEngine.getPersistentQuery(queryId).ifPresent(q -> q.stop());
-
-      // Reset the internal KafkaStreams query. This creates a new QueryMetadata.
-      ksqlEngine.resetQuery(queryId);
-
-      // Start the queryId using the new QueryMetadata created during the reset.
-      ksqlEngine.getPersistentQuery(queryId).ifPresent(q -> q.start());
+      ksqlEngine.getPersistentQuery(queryId).ifPresent(q -> {
+        try {
+          q.restart();
+        } catch (final Exception e) {
+          LOG.warn("Failed restarting query {}. Error = {}", queryId, e.getMessage());
+        }
+      });
 
       this.waitingTimeMs = getWaitingTimeMs();
       this.expiryTimeMs = ticker.read() + waitingTimeMs;
-
-      LOG.info(
-          "Query {} restarted. If the error persists, the query will be restarted again in {} ms",
-          queryId, waitingTimeMs);
     }
 
     private long getWaitingTimeMs() {

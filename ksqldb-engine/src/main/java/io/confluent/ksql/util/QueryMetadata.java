@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
@@ -50,10 +51,10 @@ public abstract class QueryMetadata {
   private static final Logger LOG = LoggerFactory.getLogger(QueryMetadata.class);
 
   private final String statementString;
-  private final KafkaStreams kafkaStreams;
   private final String executionPlan;
   private final String queryApplicationId;
   private final Topology topology;
+  private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
   private final Consumer<QueryMetadata> closeCallback;
@@ -66,17 +67,20 @@ public abstract class QueryMetadata {
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
+  private boolean closed = false;
+  private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
+  private KafkaStreams kafkaStreams;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   QueryMetadata(
       final String statementString,
-      final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
       final String executionPlan,
       final String queryApplicationId,
       final Topology topology,
+      final KafkaStreamsBuilder kafkaStreamsBuilder,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
@@ -86,10 +90,10 @@ public abstract class QueryMetadata {
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
-    this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
+    this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
     this.streamsProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(streamsProperties, "streamsPropeties"));
@@ -103,6 +107,8 @@ public abstract class QueryMetadata {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
 
+    // initialize the first KafkaStreams
+    this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
     kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
@@ -112,6 +118,7 @@ public abstract class QueryMetadata {
     this.executionPlan = other.executionPlan;
     this.queryApplicationId = other.queryApplicationId;
     this.topology = other.topology;
+    this.kafkaStreamsBuilder = other.kafkaStreamsBuilder;
     this.streamsProperties = other.streamsProperties;
     this.overriddenProperties = other.overriddenProperties;
     this.sourceNames = other.sourceNames;
@@ -120,29 +127,15 @@ public abstract class QueryMetadata {
     this.closeTimeout = other.closeTimeout;
     this.queryId = other.queryId;
     this.errorClassifier = other.errorClassifier;
+    this.uncaughtExceptionHandler = other.uncaughtExceptionHandler;
+    this.queryStateListener = other.queryStateListener;
+    this.everStarted = other.everStarted;
   }
 
-  protected QueryMetadata(final QueryMetadata other, final KafkaStreams kafkaStreams) {
-    this.statementString = other.statementString;
-    this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
-    this.executionPlan = other.executionPlan;
-    this.queryApplicationId = other.queryApplicationId;
-    this.topology = other.topology;
-    this.streamsProperties = other.streamsProperties;
-    this.overriddenProperties = other.overriddenProperties;
-    this.sourceNames = other.sourceNames;
-    this.logicalSchema = other.logicalSchema;
-    this.closeCallback = other.closeCallback;
-    this.closeTimeout = other.closeTimeout;
-    this.queryId = other.queryId;
-    this.errorClassifier = other.errorClassifier;
-  }
-
-  public void registerQueryStateListener(final QueryStateListener queryStateListener) {
+  public void setQueryStateListener(final QueryStateListener queryStateListener) {
     this.queryStateListener = Optional.of(queryStateListener);
+    kafkaStreams.setStateListener(queryStateListener);
     queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
-
-    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   private void uncaughtHandler(final Thread t, final Throwable e) {
@@ -162,6 +155,7 @@ public abstract class QueryMetadata {
   }
 
   public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
+    this.uncaughtExceptionHandler = handler;
     kafkaStreams.setUncaughtExceptionHandler(handler);
   }
 
@@ -223,6 +217,37 @@ public abstract class QueryMetadata {
     return KsqlQueryType.PERSISTENT;
   }
 
+  public String getTopologyDescription() {
+    return topology.describe().toString();
+  }
+
+  public List<QueryError> getQueryErrors() {
+    return ImmutableList.copyOf(queryErrors);
+  }
+
+  protected boolean isClosed() {
+    return closed;
+  }
+
+  protected KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
+
+  protected void resetKafkaStreams(final KafkaStreams kafkaStreams) {
+    this.kafkaStreams = kafkaStreams;
+    queryErrors.clear();
+    setUncaughtExceptionHandler(uncaughtExceptionHandler);
+    queryStateListener.ifPresent(this::setQueryStateListener);
+  }
+
+  protected void closeKafkaStreams() {
+    kafkaStreams.close(Duration.ofMillis(closeTimeout));
+  }
+
+  protected KafkaStreams buildKafkaStreams() {
+    return kafkaStreamsBuilder.build(topology, streamsProperties);
+  }
+
   /**
    * Stops the query without cleaning up the external resources
    * so that it can be resumed when we call {@link #start()}.
@@ -248,7 +273,8 @@ public abstract class QueryMetadata {
   }
 
   protected void doClose(final boolean cleanUp) {
-    kafkaStreams.close(Duration.ofMillis(closeTimeout));
+    closed = true;
+    closeKafkaStreams();
 
     if (cleanUp) {
       kafkaStreams.cleanUp();
@@ -260,15 +286,6 @@ public abstract class QueryMetadata {
   public void start() {
     LOG.info("Starting query with application id: {}", queryApplicationId);
     everStarted = true;
-    queryStateListener.ifPresent(kafkaStreams::setStateListener);
     kafkaStreams.start();
-  }
-
-  public String getTopologyDescription() {
-    return topology.describe().toString();
-  }
-
-  public List<QueryError> getQueryErrors() {
-    return ImmutableList.copyOf(queryErrors);
   }
 }

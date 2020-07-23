@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
@@ -113,6 +114,10 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public Optional<WindowExpression> getWindowExpression() {
+    if (original.getRefinementInfo().isPresent()
+    && original.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL) {
+      
+    }
     return original.getWindowExpression();
   }
 

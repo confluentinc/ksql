@@ -110,7 +110,7 @@ public class SchemaRegisterInjector implements Injector {
       final FormatInfo formatInfo,
       final KsqlConfig config,
       final String statementText,
-      final boolean overwriteExisting
+      final boolean registerIfSchemaExists
   ) {
     final Format format = FormatFactory.of(formatInfo);
     if (!format.supportsSchemaInference()) {
@@ -125,16 +125,7 @@ public class SchemaRegisterInjector implements Injector {
         final ParsedSchema parsedSchema =
             format.toParsedSchema(schema.withoutPseudoAndKeyColsInValue().value(), formatInfo);
 
-        if (!overwriteExisting && srClient.getAllSubjects().contains(subject)) {
-          if (!srClient.testCompatibility(subject, parsedSchema)) {
-            throw new KsqlStatementException(
-                String.format(
-                    "Could not register schema for subject "
-                        + "'%s' because it is incompatible with existing schema.",
-                    subject),
-                statementText);
-          }
-        } else {
+        if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
           srClient.register(subject, parsedSchema);
         }
       } catch (IOException | RestClientException e) {

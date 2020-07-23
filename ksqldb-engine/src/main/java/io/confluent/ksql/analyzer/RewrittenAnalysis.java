@@ -24,7 +24,13 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.windows.HoppingWindowExpression;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
+import io.confluent.ksql.execution.windows.SessionWindowExpression;
+import io.confluent.ksql.execution.windows.TumblingWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
@@ -33,12 +39,14 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.util.KsqlException;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -49,8 +57,9 @@ import java.util.stream.Collectors;
  * planning queries to allow the planner to transform expressions as needed it builds up the
  * transformations needed to execute the query.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class RewrittenAnalysis implements ImmutableAnalysis {
-
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final ImmutableAnalysis original;
   private final BiFunction<Expression, Context<Void>, Optional<Expression>> rewriter;
 
@@ -115,10 +124,48 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   @Override
   public Optional<WindowExpression> getWindowExpression() {
     if (original.getRefinementInfo().isPresent()
-    && original.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL) {
-      
+        && original.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL
+        && !original.getWindowExpression().get()
+        .getKsqlWindowExpression().getGracePeriod().isPresent()) {
+      final KsqlWindowExpression ksqlWindowNew;
+      final KsqlWindowExpression ksqlWindowOld =
+          original.getWindowExpression().get().getKsqlWindowExpression();
+      final WindowTimeClause zeroGracePeriod = new WindowTimeClause(0L, TimeUnit.MILLISECONDS);
+      final Optional<NodeLocation> location = ksqlWindowOld.getLocation();
+      final Optional<WindowTimeClause> retention = ksqlWindowOld.getRetention();
+
+      if (ksqlWindowOld instanceof HoppingWindowExpression) {
+        ksqlWindowNew = new HoppingWindowExpression(
+            location,
+            ((HoppingWindowExpression) ksqlWindowOld).getSize(),
+            ((HoppingWindowExpression) ksqlWindowOld).getAdvanceBy(),
+            retention,
+            Optional.of(zeroGracePeriod)
+        );
+      } else if (ksqlWindowOld instanceof TumblingWindowExpression) {
+        ksqlWindowNew = new TumblingWindowExpression(
+            location,
+            ((TumblingWindowExpression) ksqlWindowOld).getSize(),
+            retention,
+            Optional.of(zeroGracePeriod)
+        );
+      } else if (ksqlWindowOld instanceof SessionWindowExpression) {
+        ksqlWindowNew = new SessionWindowExpression(
+            location,
+            ((SessionWindowExpression) ksqlWindowOld).getGap(),
+            retention,
+            Optional.of(zeroGracePeriod)
+        );
+      } else {
+        throw new KsqlException("WINDOW type must be HOPPING, TUMBLING, or SESSION");
+      }
+      return Optional.of(new WindowExpression(
+          original.getWindowExpression().get().getWindowName(),
+          ksqlWindowNew
+      ));
+    } else {
+      return original.getWindowExpression();
     }
-    return original.getWindowExpression();
   }
 
   @Override

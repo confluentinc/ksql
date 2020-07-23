@@ -129,9 +129,11 @@ public class SchemaRegisterInjector implements Injector {
           if (!srClient.testCompatibility(subject, parsedSchema)) {
             throw new KsqlStatementException(
                 String.format(
-                    "Could not register schema for subject "
-                        + "'%s' because it is incompatible with existing schema.",
-                    subject),
+                    "Could not create source from topic with subject "
+                        + "'%s' because the ksql generated schema %s is incompatible with existing "
+                        + "registered schema.",
+                    subject,
+                    parsedSchema.canonicalString()),
                 statementText);
           }
         } else {

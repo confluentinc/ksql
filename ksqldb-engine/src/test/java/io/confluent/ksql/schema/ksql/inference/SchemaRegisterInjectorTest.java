@@ -208,7 +208,11 @@ public class SchemaRegisterInjectorTest {
     final KsqlStatementException e = assertThrows(KsqlStatementException.class, () -> injector.inject(statement));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Could not register schema for subject 'expectedName-value' because it is incompatible with existing schema."));
+    assertThat(e.getMessage(), containsString("" +
+        "Could not create source from topic with subject 'expectedName-value' because the ksql "
+        + "generated schema {\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\",\"namespace\":\"io.confluent.ksql.avro_schemas\","
+        + "\"fields\":[{\"name\":\"F1\",\"type\":[\"null\",\"string\"],\"default\":null}],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"} "
+        + "is incompatible with existing registered schema."));
   }
 
   @Test

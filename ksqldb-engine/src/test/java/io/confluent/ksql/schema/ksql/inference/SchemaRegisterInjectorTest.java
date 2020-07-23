@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -63,6 +64,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Optional;
+import org.apache.avro.Schema;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -167,7 +169,7 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateSource()
+  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateSourceIfSubjectDoesntExist()
       throws IOException, RestClientException {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
@@ -179,6 +181,7 @@ public class SchemaRegisterInjectorTest {
     verify(schemaRegistryClient).register("expectedName-value", AVRO_SCHEMA);
   }
 
+  @SuppressWarnings("deprecation") // make sure deprecated method is not called
   @Test
   public void shouldNotReplaceExistingSchemaForSchemaRegistryEnabledFormatCreateSource()
       throws IOException, RestClientException {
@@ -191,24 +194,8 @@ public class SchemaRegisterInjectorTest {
     injector.inject(statement);
 
     // Then:
-    verify(schemaRegistryClient).getAllSubjects();
-    verify(schemaRegistryClient).testCompatibility(eq("expectedName-value"), any(ParsedSchema.class));
-    verifyNoMoreInteractions(schemaRegistryClient);
-  }
-
-  @Test
-  public void shouldThrowOnExistingSchemaForSchemaRegistryEnabledFormatCreateSourceIncompatible()
-      throws IOException, RestClientException {
-    // Given:
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
-    when(schemaRegistryClient.testCompatibility(eq("expectedName-value"), any(ParsedSchema.class))).thenReturn(false);
-
-    // When:
-    final KsqlStatementException e = assertThrows(KsqlStatementException.class, () -> injector.inject(statement));
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Could not register schema for subject 'expectedName-value' because it is incompatible with existing schema."));
+    verify(schemaRegistryClient, never()).register(any(), any(ParsedSchema.class));
+    verify(schemaRegistryClient, never()).register(any(), any(Schema.class));
   }
 
   @Test

@@ -190,13 +190,15 @@ public class KafkaTopicClientImplTest {
 
     when(adminClient.describeTopics(any(), any()))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+        .thenAnswer(describeTopicsResult()); // The second and third time, return the right response.
 
     // When:
     kafkaTopicClient.createTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(2)).describeTopics(any(), any());
+    // first two times are in the `isTopicExists` call and the second is in `describeTopic` when
+    // confirming the number of partitions
+    verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
   @Test
@@ -275,13 +277,15 @@ public class KafkaTopicClientImplTest {
 
     when(adminClient.describeTopics(any(), any()))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+        .thenAnswer(describeTopicsResult()); // The second/third time, return the right response.
 
     // When:
     kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(2)).describeTopics(any(), any());
+    // first two times are in the `isTopicExists` call and the second is in `describeTopic` when
+    // confirming the number of partitions
+    verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
   @Test
@@ -698,6 +702,18 @@ public class KafkaTopicClientImplTest {
     verify(adminClient, times(2)).incrementalAlterConfigs(any());
   }
 
+  @Test
+  public void shouldNotListAllTopicsWhenCallingIsTopicExists() {
+    // Given
+    givenTopicExists("foobar", 1, 1);
+
+    // When
+    kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    verify(adminClient, never()).listTopics();
+  }
+
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {
     final ConfigEntry config = mock(ConfigEntry.class);
     when(config.name()).thenReturn(key);
@@ -769,7 +785,15 @@ public class KafkaTopicClientImplTest {
           .map(name -> new TopicDescription(name, false, topicPartitionInfo.get(name)))
           .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
 
+      Map<String, KafkaFuture<TopicDescription>> describe = new HashMap<>();
+      for (String name : topicNames) {
+        describe.put(name, result.containsKey(name)
+            ? KafkaFuture.completedFuture(result.get(name))
+            : failedFuture(new UnknownTopicOrPartitionException()));
+      }
+
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+      when(describeTopicsResult.values()).thenReturn(describe );
       when(describeTopicsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
       return describeTopicsResult;
     };
@@ -777,7 +801,17 @@ public class KafkaTopicClientImplTest {
 
   private static Answer<DescribeTopicsResult> describeTopicsResult(final Exception e) {
     return inv -> {
+      final Collection<String> topicNames = inv.getArgument(0);
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+
+      Map<String, KafkaFuture<TopicDescription>> map = new HashMap<>();
+      for (String name : topicNames) {
+        if (map.put(name, failedFuture(e)) != null) {
+          throw new IllegalStateException("Duplicate key");
+        }
+      }
+      when(describeTopicsResult.values()).thenReturn(map);
+
       final KafkaFuture<Map<String, TopicDescription>> f = failedFuture(e);
       when(describeTopicsResult.all()).thenReturn(f);
       return describeTopicsResult;
@@ -912,7 +946,7 @@ public class KafkaTopicClientImplTest {
       doThrow(new ExecutionException(cause)).when(future).get(anyLong(), any());
       return future;
     } catch (final Exception e) {
-      throw new AssertionError("invalid test");
+      throw new AssertionError("invalid test", e);
     }
   }
 

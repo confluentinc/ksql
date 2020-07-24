@@ -34,8 +34,3 @@ removal from brokers may take some time to complete.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the
 table doesn't exist.
-
-Example
--------
-
-TODO: example

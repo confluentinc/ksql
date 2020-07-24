@@ -19,11 +19,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ticker;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -66,10 +69,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       final Ticker ticker
   ) {
     final File dir = new File(Objects.requireNonNull(location, "location"));
-    if (!dir.exists() || !dir.isDirectory()) {
-      throw new KsqlException(String.format(
-          "Backup location '%s' does not exist or it is not a directory.", location));
-    }
+    ensureDirectoryExists(dir);
 
     this.backupLocation = dir;
     this.topicName = Objects.requireNonNull(topicName, "topicName");
@@ -221,5 +221,51 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     return (latestBakFile != null)
         ? Optional.of(new BackupReplayFile(latestBakFile))
         : Optional.empty();
+  }
+
+  private void ensureDirectoryExists(final File backupsDir) {
+    if (!backupsDir.exists()) {
+      if (!backupsDir.mkdirs()) {
+        throw new KsqlServerException("Couldn't create the backups directory: "
+            + backupsDir.getPath()
+            + "\n Make sure the directory exists and is readable/writable for KSQL server "
+            + "\n or its parent directory is readable/writable by KSQL server"
+            + "\n or change it to a readable/writable directory by setting '"
+            + KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION
+            + "' config in the properties file."
+        );
+      }
+
+      try {
+        Files.setPosixFilePermissions(backupsDir.toPath(),
+            PosixFilePermissions.fromString("rwx------"));
+      } catch (final IOException e) {
+        throw new KsqlServerException(String.format(
+            "Couldn't set POSIX permissions on the backups directory: %s. Error = %s",
+            backupsDir.getPath(), e.getMessage()));
+      }
+    }
+
+    if (!backupsDir.isDirectory()) {
+      throw new KsqlServerException(backupsDir.getPath()
+          + " is not a directory."
+          + "\n Make sure the directory exists and is readable/writable for KSQL server "
+          + "\n or its parent directory is readable/writable by KSQL server"
+          + "\n or change it to a readable/writable directory by setting '"
+          + KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION
+          + "' config in the properties file."
+      );
+    }
+
+    if (!backupsDir.canWrite() || !backupsDir.canRead() || !backupsDir.canExecute()) {
+      throw new KsqlServerException("The backups directory is not readable/writable "
+          + "for KSQL server: "
+          + backupsDir.getPath()
+          + "\n Make sure the directory exists and is readable/writable for KSQL server "
+          + "\n or change it to a readable/writable directory by setting '"
+          + KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION
+          + "' config in the properties file."
+      );
+    }
   }
 }

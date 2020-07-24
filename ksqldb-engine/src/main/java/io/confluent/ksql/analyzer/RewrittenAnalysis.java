@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
@@ -124,9 +125,13 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public Optional<WindowExpression> getWindowExpression() {
+    /* Rewrites window expression to have 0 grace period if none is specified during a suppression
+     Otherwise return the original window expression
+     */
     if (!original.getRefinementInfo().isPresent() || !original.getWindowExpression().isPresent()
         || original.getWindowExpression().get().getKsqlWindowExpression()
         .getGracePeriod().isPresent()
+        || original.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.CHANGES
     ) {
       return original.getWindowExpression();
     }

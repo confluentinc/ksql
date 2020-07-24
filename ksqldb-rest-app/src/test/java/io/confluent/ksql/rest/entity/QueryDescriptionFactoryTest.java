@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -97,6 +98,9 @@ public class QueryDescriptionFactoryTest {
   private BlockingRowQueue queryQueue;
   @Mock
   private KsqlTopic sinkTopic;
+  @Mock
+  private ExecutionStep<?> physicalPlan;
+
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
   private QueryDescription transientQueryDescription;
@@ -142,7 +146,9 @@ public class QueryDescriptionFactoryTest {
         PROP_OVERRIDES,
         queryCloseCallback,
         closeTimeout,
-        QueryErrorClassifier.DEFAULT_CLASSIFIER);
+        QueryErrorClassifier.DEFAULT_CLASSIFIER,
+        physicalPlan
+    );
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);
   }

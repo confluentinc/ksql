@@ -216,6 +216,8 @@ final class EngineContext {
       // queries
       final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
       if (oldQuery != null) {
+        oldQuery.getPhysicalPlan()
+            .validateUpgrade(((PersistentQueryMetadata) query).getPhysicalPlan());
         oldQuery.close();
       }
 

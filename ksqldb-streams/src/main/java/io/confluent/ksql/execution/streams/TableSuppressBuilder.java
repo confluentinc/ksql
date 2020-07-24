@@ -43,7 +43,6 @@ public final class TableSuppressBuilder {
   public TableSuppressBuilder() {
   }
 
-
   public <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSuppress<K> step,

@@ -14,8 +14,6 @@
 * Replay command topic to local file to backup KSQL Metastore ([#5831](https://github.com/confluentinc/ksql/pull/5831)) ([8523051](https://github.com/confluentinc/ksql/commit/8523051))
 * organize UDFs by category ([#5813](https://github.com/confluentinc/ksql/pull/5813)) ([7f5b843](https://github.com/confluentinc/ksql/commit/7f5b843))
 * expose query ID in CommandStatusEntity (MINOR) ([#5814](https://github.com/confluentinc/ksql/pull/5814)) ([bb29185](https://github.com/confluentinc/ksql/commit/bb29185))
-* support CREATE OR REPLACE w/ config guard but w/o restrictions ([#5766](https://github.com/confluentinc/ksql/pull/5766)) ([e7ff81a](https://github.com/confluentinc/ksql/commit/e7ff81a))
-* add syntax for suppression ([#5739](https://github.com/confluentinc/ksql/pull/5739)) ([31573c6](https://github.com/confluentinc/ksql/commit/31573c6))
 
 ### Bug Fixes
 

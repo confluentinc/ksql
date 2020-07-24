@@ -124,7 +124,10 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public Optional<WindowExpression> getWindowExpression() {
-    if (!original.getRefinementInfo().isPresent() || !original.getWindowExpression().isPresent()) {
+    if (!original.getRefinementInfo().isPresent() || !original.getWindowExpression().isPresent()
+        || original.getWindowExpression().get().getKsqlWindowExpression()
+        .getGracePeriod().isPresent()
+    ) {
       return original.getWindowExpression();
     }
     final WindowExpression window = original.getWindowExpression().get();

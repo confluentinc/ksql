@@ -207,6 +207,7 @@ extra:
         kafkaversion: 2.5
         kafkarelease: 5.5.0-ccs
         ksqldbversion: 0.11.0
+        ksqldbcpversion: 6.1.0-beta200715032424
         release: 0.11.0
         cprelease: 5.5.0
         releasepostbranch: 5.5.0-post

@@ -62,6 +62,8 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final ImmutableAnalysis original;
   private final BiFunction<Expression, Context<Void>, Optional<Expression>> rewriter;
+  static final WindowTimeClause zeroGracePeriod =
+      new WindowTimeClause(0L, TimeUnit.MILLISECONDS);
 
   public RewrittenAnalysis(
       final ImmutableAnalysis original,
@@ -123,49 +125,46 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public Optional<WindowExpression> getWindowExpression() {
-    if (original.getRefinementInfo().isPresent()
-        && original.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL
-        && !original.getWindowExpression().get()
-        .getKsqlWindowExpression().getGracePeriod().isPresent()) {
-      final KsqlWindowExpression ksqlWindowNew;
-      final KsqlWindowExpression ksqlWindowOld =
-          original.getWindowExpression().get().getKsqlWindowExpression();
-      final WindowTimeClause zeroGracePeriod = new WindowTimeClause(0L, TimeUnit.MILLISECONDS);
-      final Optional<NodeLocation> location = ksqlWindowOld.getLocation();
-      final Optional<WindowTimeClause> retention = ksqlWindowOld.getRetention();
-
-      if (ksqlWindowOld instanceof HoppingWindowExpression) {
-        ksqlWindowNew = new HoppingWindowExpression(
-            location,
-            ((HoppingWindowExpression) ksqlWindowOld).getSize(),
-            ((HoppingWindowExpression) ksqlWindowOld).getAdvanceBy(),
-            retention,
-            Optional.of(zeroGracePeriod)
-        );
-      } else if (ksqlWindowOld instanceof TumblingWindowExpression) {
-        ksqlWindowNew = new TumblingWindowExpression(
-            location,
-            ((TumblingWindowExpression) ksqlWindowOld).getSize(),
-            retention,
-            Optional.of(zeroGracePeriod)
-        );
-      } else if (ksqlWindowOld instanceof SessionWindowExpression) {
-        ksqlWindowNew = new SessionWindowExpression(
-            location,
-            ((SessionWindowExpression) ksqlWindowOld).getGap(),
-            retention,
-            Optional.of(zeroGracePeriod)
-        );
-      } else {
-        throw new KsqlException("WINDOW type must be HOPPING, TUMBLING, or SESSION");
-      }
-      return Optional.of(new WindowExpression(
-          original.getWindowExpression().get().getWindowName(),
-          ksqlWindowNew
-      ));
-    } else {
+    if (!original.getRefinementInfo().isPresent() || !original.getWindowExpression().isPresent()) {
       return original.getWindowExpression();
     }
+    final WindowExpression window = original.getWindowExpression().get();
+
+    final KsqlWindowExpression ksqlWindowNew;
+    final KsqlWindowExpression ksqlWindowOld = window.getKsqlWindowExpression();
+
+    final Optional<NodeLocation> location = ksqlWindowOld.getLocation();
+    final Optional<WindowTimeClause> retention = ksqlWindowOld.getRetention();
+
+    if (ksqlWindowOld instanceof HoppingWindowExpression) {
+      ksqlWindowNew = new HoppingWindowExpression(
+          location,
+          ((HoppingWindowExpression) ksqlWindowOld).getSize(),
+          ((HoppingWindowExpression) ksqlWindowOld).getAdvanceBy(),
+          retention,
+          Optional.of(zeroGracePeriod)
+      );
+    } else if (ksqlWindowOld instanceof TumblingWindowExpression) {
+      ksqlWindowNew = new TumblingWindowExpression(
+          location,
+          ((TumblingWindowExpression) ksqlWindowOld).getSize(),
+          retention,
+          Optional.of(zeroGracePeriod)
+      );
+    } else if (ksqlWindowOld instanceof SessionWindowExpression) {
+      ksqlWindowNew = new SessionWindowExpression(
+          location,
+          ((SessionWindowExpression) ksqlWindowOld).getGap(),
+          retention,
+          Optional.of(zeroGracePeriod)
+      );
+    } else {
+      throw new KsqlException("WINDOW type must be HOPPING, TUMBLING, or SESSION");
+    }
+    return Optional.of(new WindowExpression(
+        original.getWindowExpression().get().getWindowName(),
+        ksqlWindowNew
+    ));
   }
 
   @Override

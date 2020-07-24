@@ -19,6 +19,7 @@ import com.google.common.base.Ticker;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Before;
@@ -31,6 +32,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Optional;
 
@@ -81,29 +86,67 @@ public class CommandTopicBackupImplTest {
 
     // When
     final Exception e = assertThrows(
-        KsqlException.class,
+        KsqlServerException.class,
         () -> new CommandTopicBackupImpl(file.getAbsolutePath(), COMMAND_TOPIC_NAME)
     );
 
     // Then
     assertThat(e.getMessage(), containsString(String.format(
-        "Backup location '%s' does not exist or it is not a directory.",
+        "%s is not a directory.",
         file.getAbsolutePath()
     )));
   }
 
   @Test
-  public void shouldThrowWhenBackupLocationDoesNotExist() {
+  public void shouldThrowWhenBackupLocationIsNotWritable() throws IOException {
+    // Given
+    final File file = backupLocation.newFolder();
+    Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("r-x------"));
+
     // When
     final Exception e = assertThrows(
-        KsqlException.class,
-        () -> new CommandTopicBackupImpl("/not-existing-directory", COMMAND_TOPIC_NAME)
+        KsqlServerException.class,
+        () -> new CommandTopicBackupImpl(file.getAbsolutePath(), COMMAND_TOPIC_NAME)
     );
 
     // Then
     assertThat(e.getMessage(), containsString(String.format(
-        "Backup location '/not-existing-directory' does not exist or it is not a directory."
+        "The backups directory is not readable/writable for KSQL server: %s",
+        file.getAbsolutePath()
     )));
+  }
+
+  @Test
+  public void shouldThrowWhenBackupLocationIsNotReadable() throws IOException {
+    // Given
+    final File dir = backupLocation.newFolder();
+    Files.setPosixFilePermissions(dir.toPath(), PosixFilePermissions.fromString("-wx------"));
+
+    // When
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> new CommandTopicBackupImpl(dir.getAbsolutePath(), COMMAND_TOPIC_NAME)
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString(String.format(
+        "The backups directory is not readable/writable for KSQL server: %s",
+        dir.getAbsolutePath()
+    )));
+  }
+
+
+  @Test
+  public void shouldCreateBackupLocationWhenDoesNotExist() throws IOException {
+    // Given
+    final Path dir = Paths.get(backupLocation.newFolder().getAbsolutePath(), "ksql-backups");
+    assertThat(Files.exists(dir), is(false));
+
+    // When
+    new CommandTopicBackupImpl(dir.toString(), COMMAND_TOPIC_NAME);
+
+    // Then
+    assertThat(Files.exists(dir), is(true));
   }
 
   @Test

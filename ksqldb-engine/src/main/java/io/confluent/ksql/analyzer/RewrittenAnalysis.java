@@ -125,13 +125,18 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
 
   @Override
   public Optional<WindowExpression> getWindowExpression() {
-    /* Rewrites window expression to have 0 grace period if none is specified during a suppression
-     Otherwise return the original window expression
-     */
-    if (!original.getRefinementInfo().isPresent() || !original.getWindowExpression().isPresent()
-        || original.getWindowExpression().get().getKsqlWindowExpression()
-        .getGracePeriod().isPresent()
-        || original.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.CHANGES
+    final Optional<WindowExpression> windowExpression = original.getWindowExpression();
+    final Optional<RefinementInfo> refinementInfo = original.getRefinementInfo();
+
+    /* Return the original window expression, unless there is no grace period provided during a
+    suppression, in which case we rewrite the window expression to have a default grace period
+    of zero.
+    */
+    if (!(windowExpression.isPresent()
+        && !windowExpression.get().getKsqlWindowExpression().getGracePeriod().isPresent()
+        && refinementInfo.isPresent()
+        && refinementInfo.get().getOutputRefinement() == OutputRefinement.FINAL
+         )
     ) {
       return original.getWindowExpression();
     }

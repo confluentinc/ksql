@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
@@ -72,7 +73,11 @@ public class RewrittenAnalysisTest {
   @Mock
   private WindowExpression windowExpression;
   @Mock
-  private Optional<RefinementInfo> refinementInfo;
+  private Optional<RefinementInfo> refinementInfoOptional;
+  @Mock
+  private RefinementInfo refinementInfo;
+  @Mock
+  private Optional<WindowTimeClause> gracePeriodOptional;
 
   private RewrittenAnalysis rewrittenAnalysis;
   private String windowName = "windowName";
@@ -84,21 +89,26 @@ public class RewrittenAnalysisTest {
   public void setUp() {
     rewrittenAnalysis = new RewrittenAnalysis(analysis, rewriter);
 
-    when(analysis.getRefinementInfo()).thenReturn(refinementInfo);
-    when(refinementInfo.isPresent()).thenReturn(true);
+    when(analysis.getRefinementInfo()).thenReturn(refinementInfoOptional);
+    when(refinementInfoOptional.isPresent()).thenReturn(true);
+    when(refinementInfoOptional.get()).thenReturn(refinementInfo);
+    when(refinementInfo.getOutputRefinement()).thenReturn(OutputRefinement.FINAL);
     when(analysis.getWindowExpression()).thenReturn(windowExpressionOptional);
     when(windowExpressionOptional.isPresent()).thenReturn(true);
     when(windowExpressionOptional.get()).thenReturn(windowExpression);
-    when(windowExpression.getWindowName()).thenReturn(windowName);
   }
 
   @Test
   public void shouldCreateNewTumblingWindowWithZeroGracePeriodDefault() {
     // Given:
     when(windowExpression.getKsqlWindowExpression()).thenReturn(tumblingWindow);
+    when(tumblingWindow.getGracePeriod()).thenReturn(gracePeriodOptional);
+    when(gracePeriodOptional.isPresent()).thenReturn(false);
     when(tumblingWindow.getLocation()).thenReturn(location);
     when(tumblingWindow.getRetention()).thenReturn(retention);
     when(tumblingWindow.getSize()).thenReturn(size);
+    when(windowExpression.getWindowName()).thenReturn(windowName);
+
 
     // When:
     Optional<WindowExpression> result = rewrittenAnalysis.getWindowExpression();
@@ -111,10 +121,13 @@ public class RewrittenAnalysisTest {
   public void shouldCreateNewHoppingWindowWithZeroGracePeriodDefault() {
     // Given:
     when(windowExpression.getKsqlWindowExpression()).thenReturn(hoppingWindow);
+    when(hoppingWindow.getGracePeriod()).thenReturn(gracePeriodOptional);
+    when(gracePeriodOptional.isPresent()).thenReturn(false);
     when(hoppingWindow.getLocation()).thenReturn(location);
     when(hoppingWindow.getRetention()).thenReturn(retention);
     when(hoppingWindow.getSize()).thenReturn(size);
     when(hoppingWindow.getAdvanceBy()).thenReturn(advanceBy);
+    when(windowExpression.getWindowName()).thenReturn(windowName);
 
     // When:
     Optional<WindowExpression> result = rewrittenAnalysis.getWindowExpression();
@@ -127,9 +140,12 @@ public class RewrittenAnalysisTest {
   public void shouldCreateNewSessionWindowWithZeroGracePeriodDefault() {
     // Given:
     when(windowExpression.getKsqlWindowExpression()).thenReturn(sessionWindow);
+    when(sessionWindow.getGracePeriod()).thenReturn(gracePeriodOptional);
+    when(gracePeriodOptional.isPresent()).thenReturn(false);
     when(sessionWindow.getLocation()).thenReturn(location);
     when(sessionWindow.getRetention()).thenReturn(retention);
     when(sessionWindow.getGap()).thenReturn(gap);
+    when(windowExpression.getWindowName()).thenReturn(windowName);
 
     // When:
     Optional<WindowExpression> result = rewrittenAnalysis.getWindowExpression();
@@ -142,6 +158,8 @@ public class RewrittenAnalysisTest {
   public void shouldThrowIfUnsupportedWindowType() {
     // Given:
     when(windowExpression.getKsqlWindowExpression()).thenReturn(unsupportedWindowType);
+    when(unsupportedWindowType.getGracePeriod()).thenReturn(gracePeriodOptional);
+    when(gracePeriodOptional.isPresent()).thenReturn(false);
 
     // When:
     final Exception e = assertThrows(

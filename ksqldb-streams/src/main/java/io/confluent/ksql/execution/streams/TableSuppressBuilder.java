@@ -40,6 +40,8 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 public final class TableSuppressBuilder {
 
+  private static final String SUPPRESS_OP_NAME = "Suppress";
+
   public TableSuppressBuilder() {
   }
 
@@ -77,32 +79,31 @@ public final class TableSuppressBuilder {
     );
     final QueryContext queryContext = QueryContext.Stacker.of(
         step.getProperties().getQueryContext())
-        .push("Suppress").getQueryContext();
-
+        .push(SUPPRESS_OP_NAME).getQueryContext();
     final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
         step.getInternalFormats().getValueFormat(),
         physicalSchema,
         queryContext
     );
-
     final Serde<K> keySerde = keySerdeFactory.buildKeySerde(
         step.getInternalFormats().getKeyFormat(),
         physicalSchema,
         queryContext
     );
-
     final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         materializedFactory.create(
             keySerde,
             valueSerde,
-            "materializedInternalSuppress"
+            SUPPRESS_OP_NAME
         );
 
     final KTable<K, GenericRow> suppressed = table.getTable().transformValues(
         (() -> new KsTransformer<>((k, v, ctx) -> v)),
         materialized
     ).suppress(
-        (Suppressed<? super K>) Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded())
+        (Suppressed<? super K>) Suppressed
+            .untilWindowCloses(Suppressed.BufferConfig.unbounded())
+            .withName(SUPPRESS_OP_NAME)
     );
 
     return table

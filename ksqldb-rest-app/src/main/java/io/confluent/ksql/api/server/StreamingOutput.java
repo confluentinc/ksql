@@ -22,6 +22,6 @@ public interface StreamingOutput {
 
   void write(OutputStream output) throws IOException;
 
-  void closeWithoutWrite();
+  void close();
 
 }

@@ -18,7 +18,11 @@ package io.confluent.ksql.api.server;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public interface StreamingOutput {
+public interface StreamingOutput extends AutoCloseable {
 
   void write(OutputStream output) throws IOException;
+
+  @Override
+  void close();
+
 }

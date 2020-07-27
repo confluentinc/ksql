@@ -143,7 +143,7 @@ public class TopicStreamWriter implements StreamingOutput {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
     if (!closed) {
       topicConsumer.close();
       closed = true;

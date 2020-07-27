@@ -94,7 +94,7 @@ public final class OldApiUtils {
         // The old /query endpoint uses chunked encoding which is not supported in HTTP2
         routingContext.response().setStatusCode(METHOD_NOT_ALLOWED.code())
             .setStatusMessage("The /query endpoint is not available using HTTP2").end();
-        streamingOutput.closeWithoutWrite();
+        streamingOutput.close();
         return;
       }
       response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);

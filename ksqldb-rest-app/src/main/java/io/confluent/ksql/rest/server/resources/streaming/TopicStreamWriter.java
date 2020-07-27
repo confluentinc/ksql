@@ -141,6 +141,11 @@ public class TopicStreamWriter implements StreamingOutput {
     }
   }
 
+  @Override
+  public void closeWithoutWrite() {
+    topicConsumer.close();
+  }
+
   private static void outputException(final OutputStream out, final Exception exception) {
     try {
       out.write(exception.getMessage().getBytes(UTF_8));

@@ -21,4 +21,7 @@ import java.io.OutputStream;
 public interface StreamingOutput {
 
   void write(OutputStream output) throws IOException;
+
+  void closeWithoutWrite();
+
 }

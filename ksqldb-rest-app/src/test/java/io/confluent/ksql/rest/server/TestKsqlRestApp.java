@@ -42,6 +42,7 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
@@ -212,6 +213,12 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
+  public Set<String> getTransientQueries() {
+    try (final KsqlRestClient client = buildKsqlClient()) {
+      return getTransientQueries(client);
+    }
+  }
+
   public void closePersistentQueries() {
     try (final KsqlRestClient client = buildKsqlClient()) {
       terminateQueries(getPersistentQueries(client), client);
@@ -328,6 +335,14 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   private static Set<String> getPersistentQueries(final KsqlRestClient client) {
+    return getQueries(client, KsqlQueryType.PERSISTENT);
+  }
+
+  private static Set<String> getTransientQueries(final KsqlRestClient client) {
+    return getQueries(client, KsqlQueryType.PUSH);
+  }
+
+  private static Set<String> getQueries(final KsqlRestClient client, final KsqlQueryType queryType) {
     final RestResponse<KsqlEntityList> response = client.makeKsqlRequest("SHOW QUERIES;");
     if (response.isErroneous()) {
       throw new AssertionError("Failed to get persistent queries."
@@ -336,7 +351,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     final Queries queries = (Queries) response.getResponse().get(0);
     return queries.getQueries().stream()
-        .filter(query -> query.getQueryType() == KsqlConstants.KsqlQueryType.PERSISTENT)
+        .filter(query -> query.getQueryType() == queryType)
         .map(RunningQuery::getId)
         .map(QueryId::toString)
         .collect(Collectors.toSet());

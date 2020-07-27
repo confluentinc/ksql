@@ -114,6 +114,11 @@ class QueryStreamWriter implements StreamingOutput {
     output.flush();
   }
 
+  @Override
+  public void closeWithoutWrite() {
+    queryMetadata.close();
+  }
+
   private StreamedRow buildHeader() {
     // Push queries only return value columns, but query metadata schema includes key and meta:
     final LogicalSchema storedSchema = queryMetadata.getLogicalSchema();

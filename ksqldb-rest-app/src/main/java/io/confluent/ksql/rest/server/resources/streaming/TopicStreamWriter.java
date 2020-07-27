@@ -50,6 +50,7 @@ public class TopicStreamWriter implements StreamingOutput {
   private long messagesWritten;
   private long messagesPolled;
   private volatile boolean connectionClosed;
+  private boolean closed;
 
   public static TopicStreamWriter create(
       final ServiceContext serviceContext,
@@ -137,7 +138,15 @@ public class TopicStreamWriter implements StreamingOutput {
       log.error("Exception encountered while writing to output stream", exception);
       outputException(out, exception);
     } finally {
+      close();
+    }
+  }
+
+  @Override
+  public synchronized void close() {
+    if (!closed) {
       topicConsumer.close();
+      closed = true;
     }
   }
 

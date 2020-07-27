@@ -121,7 +121,7 @@ custom struct. The first two fields override the default behavior. The
 last uses the default casing. That means that when you work with the
 data returned from the UDF in ksqlDB, all select statements must use
 this exact casing (see the example above). For more information on
-working with structs in UDFs, see the struct section of the [wow to
+working with structs in UDFs, see the struct section of the [how to
 create a user-defined function
 guide](create-a-user-defined-function.md#using-structs-and-decimals).
 

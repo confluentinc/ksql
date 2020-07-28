@@ -72,6 +72,7 @@ nav:
       - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
       - Use connector management: how-to-guides/use-connector-management.md
       - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
+      - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:

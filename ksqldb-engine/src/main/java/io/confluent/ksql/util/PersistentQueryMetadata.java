@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -45,6 +46,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final PhysicalSchema resultSchema;
   private final DataSourceType dataSourceType;
   private final Optional<MaterializationProvider> materializationProvider;
+  private final ExecutionStep<?> physicalPlan;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
@@ -65,7 +67,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
-      final QueryErrorClassifier errorClassifier
+      final QueryErrorClassifier errorClassifier,
+      final ExecutionStep<?> physicalPlan
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -91,6 +94,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.materializationProvider =
         requireNonNull(materializationProvider, "materializationProvider");
     this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
+    this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
   }
 
   private PersistentQueryMetadata(
@@ -104,6 +108,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultSchema = other.resultSchema;
     this.materializationProvider = other.materializationProvider;
     this.dataSourceType = other.dataSourceType;
+    this.physicalPlan = other.physicalPlan;
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
@@ -132,6 +137,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public PhysicalSchema getPhysicalSchema() {
     return resultSchema;
+  }
+
+  public ExecutionStep<?> getPhysicalPlan() {
+    return physicalPlan;
   }
 
   public Optional<Materialization> getMaterialization(

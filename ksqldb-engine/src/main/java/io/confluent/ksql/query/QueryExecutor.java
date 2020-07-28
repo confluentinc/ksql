@@ -258,7 +258,8 @@ public final class QueryExecutor {
         overrides,
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-        classifier
+        classifier,
+        physicalPlan
     );
   }
 

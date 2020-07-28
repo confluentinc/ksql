@@ -942,7 +942,8 @@ Metric collection can be enabled by setting the config
 `ksql.udf.collect.metrics` to `true`. This defaults to `false` and is
 generally not recommended for production usage, as metrics are
 collected on each invocation and introduce some overhead to
-processing time.
+processing time. See more details in the
+[UDF metrics reference section](../../reference/metrics/#user-defined-functions).
 
 ### Suggested Reading
 

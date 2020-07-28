@@ -93,7 +93,9 @@ public final class TableSuppressBuilder {
             valueSerde,
             SUPPRESS_OP_NAME
         );
-
+    /* This is a dummy transformValues() call, we do this to ensure that the correct materialized
+    with the correct key and val serdes is passed on when we call suppress
+     */
     final KTable<K, GenericRow> suppressed = table.getTable().transformValues(
         (() -> new KsTransformer<>((k, v, ctx) -> v)),
         materialized

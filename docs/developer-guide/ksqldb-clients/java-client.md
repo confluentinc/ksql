@@ -130,6 +130,7 @@ public class ExampleApp {
     
     // Send requests with the client by following the other examples
     
+    // Terminate any open connections and close the client
     client.close();
   }
 }

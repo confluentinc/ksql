@@ -34,7 +34,7 @@ SET 'auto.offset.reset' = 'earliest';
 Declare a new stream named `s2`. In this example, you override
 ksqlDB's default behavior to uppercase all identifiers. Use backticks
 to control the casing of the stream name and column names. To contrast
-this behavior, `quz` is declared without backticks to demonstrate
+this behavior, `qux` is declared without backticks to demonstrate
 the default behavior of uppercasing.
 
 ```sql

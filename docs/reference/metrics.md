@@ -314,6 +314,52 @@ Latency distribution of the 90th percentile.
 
 Latency distribution of the 99th percentile.
 
+## User-defined functions
+
+Metrics that describe the activity of user-defined functions, both in-built and custom added.
+
+```
+io.confluent.ksql.metrics:type=ksql-udf
+```
+
+!!! info
+    UDF metrics must be enabled explicitly by setting
+    the `ksql.udf.collect.metrics` server configuration to `true`.
+
+### Attributes
+
+ksqlDB creates a series of attributes per user-defined function.
+The general form is:
+
+```
+ksql-(udf | udtf | udaf)-<function name>-(avg | count | max | rate)
+```
+
+For example, if you had a UDF named formula, you would see these attributes:
+
+- `ksql-udf-formula-avg`
+- `ksql-udf-formula-count`
+- `ksql-udf-formula-max`
+- `ksql-udf-formula-rate`
+
+Here are what each of these suffixes mean.
+
+**avg**
+
+Average time for an invocation of the function.
+
+**count**
+
+Total number of invocations of the function.
+
+**max**
+
+Max time for an invocation of the function.
+
+**rate**
+
+The average number of invocations per second of the function.
+
 ## Command runner
 
 Metrics that describe the health of the `CommandRunner` thread, which

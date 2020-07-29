@@ -104,10 +104,10 @@ Start by creating a `pom.xml` for your Java application:
 ```
 
 !!! note
-      If you’re using ksqlDB for Confluent Platform (CP), use the CP-specific modules,
-      available at `http://packages.confluent.io/maven/`, by replacing the repositories
-      in the example POM above with a repository with this URL instead. Also update
-      `ksqldb.version` to be a CP version, such as `6.0.0`, instead.
+      If you’re using ksqlDB for Confluent Platform (CP), use the CP-specific modules
+      from [http://packages.confluent.io/maven/](http://packages.confluent.io/maven/)
+      by replacing the repositories in the example POM above with a repository with this
+      URL instead. Also update `ksqldb.version` to be a CP version, such as `6.0.0`, instead.
 
 Create your example app at `src/main/java/my/ksqldb/app/ExampleApp.java`:
 

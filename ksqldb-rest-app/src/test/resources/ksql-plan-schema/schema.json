@@ -881,13 +881,10 @@
         },
         "internalFormats" : {
           "$ref" : "#/definitions/Formats"
-        },
-        "windowExpression" : {
-          "type" : "string"
         }
       },
       "title" : "tableSuppressV1",
-      "required" : [ "@type", "properties", "source", "refinementInfo", "internalFormats", "windowExpression" ]
+      "required" : [ "@type", "properties", "source", "refinementInfo", "internalFormats" ]
     },
     "TableTableJoin" : {
       "type" : "object",

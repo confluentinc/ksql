@@ -10,19 +10,26 @@ The ksqlDB SQL language enables queries, transforms, aggregations, joins, and
 other operations on streaming data. ksqlDB SQL has a familiar syntax that's similar to
 [ANSI SQL](https://blog.ansi.org/2018/10/sql-standard-iso-iec-9075-2016-ansi-x3-135/).
 
-### SQL quick reference
+## SQL quick reference
 
 For a summary of supported SQL statements and keywords, see the
 [ksqlDB SQL quick reference](../ksqldb-reference/quick-reference).
 
-### Syntax notes
+## SQL statements
 
--   Terminate SQL statements with a semicolon `;`.
--   Escape single-quote characters (`'`) inside string literals by using
-    two successive single quotes (`''`). For example, to escape `'T'`,
-    write `''T''`.
+- Terminate SQL statements with a semicolon character (`;`).
+- Statements can span multiple lines.
+- The hyphen character (`-`) isn't supported in names for streams,
+  tables, topics, and columns.
+- Don't use quotes around stream names or table names when you CREATE them.
+- Escape single-quote characters (`'`) inside string literals by using
+  two successive single quotes (`''`). For example, to escape `'T'`,
+  write `''T''`.
+- Use backticks around column and source names with characters that are
+  unparseable by ksqlDB or when you want to control case. For more information,
+  see [How to control the case of identifiers](../how-to-guides/control-the-case-of-identifiers.md).
 
-### Terminology
+## Terminology
 
 ksqlDB SQL uses standard relational database terminology and extends it for
 stream processing.
@@ -37,9 +44,12 @@ like "Alice sent $100 to Bob, then Charlie sent $50 to Bob".
 Facts in a stream are _immutable_, which means that new facts can be inserted
 into a stream, but existing facts can never be updated or deleted.
 
-Streams can be created from an {{ site.aktm }} topic or derived from an
+You can create a stream from an {{ site.aktm }} topic or derive one from an
 existing stream. A stream's underlying data is durably stored, or _persisted_,
 in a topic on the {{ site.ak }} brokers.
+
+Create a stream by using the [CREATE STREAM](./ksqldb-reference/create-stream.md)
+or [CREATE STREAM AS SELECT](./ksqldb-reference/create-stream-as-select.md) statements. 
 
 ### Table
 
@@ -52,68 +62,12 @@ with streaming semantics, like windowing.
 Facts in a table are _mutable_, which means that new facts can be inserted to
 the table, and existing facts can be updated and deleted.
 
-Tables can be created from a {{ site.ak }} topic or derived from existing
-streams and tables. In both cases, a table's underlying data is durably
-persisted in a topic on the {{ site.ak }} brokers.
+You can create a table from a {{ site.ak }} topic or derive one from an existing
+stream or table. In both cases, a table's underlying data is durably persisted
+in a topic on the {{ site.ak }} brokers.
 
-### STRUCT
-
-You can read nested data, in Avro, Protobuf, JSON, and JSON_SR
-formats, by using the `STRUCT` type in CREATE STREAM and CREATE TABLE
-statements. You can use the `STRUCT` type in these SQL statements:
-
--   CREATE STREAM/TABLE (from a topic)
--   CREATE STREAM/TABLE AS SELECT (from existing streams/tables)
--   SELECT (non-persistent query)
-
-Use the following syntax to declare nested data:
-
-```sql
-STRUCT<FieldName FieldType, ...>
-```
-
-!!! note
-    ksqlDB doesn't support reading nested data from CSV-formatted data.
-
-The `STRUCT` type requires you to specify a list of fields. For each
-field, you specify the field name and field type. The field type can be
-any of the supported ksqlDB types, including the complex types `MAP`,
-`ARRAY`, and `STRUCT`.
-
-!!! note
-		`Properties` is not a valid field name.
-
-Here's an example CREATE STREAM statement that uses a `STRUCT` to
-encapsulate a street address and a postal code:
-
-```sql
-CREATE STREAM orders (
-  ID BIGINT KEY,
-  address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
-```
-
-Access the fields in a `STRUCT` by using the dereference operator
-(`->`):
-
-```sql
-SELECT address->city, address->zip FROM orders;
-```
-
-For more info, see [Operators](ksqldb-reference/operators.md).
-
-You can create a `STRUCT` in a query by specifying the names of the columns
-and expressions that construct the values, separated by commas. The following
-example SELECT statement creates a schema that has a `STRUCT`.
-
-```sql
-SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals
-```
-
-If `col0` is a string and `col1` is an integer, the resulting schema is:
-
-```sql
-col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>
-```
+Create a table by using the [CREATE TABLE](./ksqldb-reference/create-table.md)
+or [CREATE TABLE AS SELECT](./ksqldb-reference/create-table-as-select.md) statements.
 
 ### ksqlDB Time Units
 
@@ -182,8 +136,7 @@ CREATE STREAM TEST (id BIGINT KEY, event_timestamp VARCHAR)
 For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
-ksqlDB CLI Commands
------------------
+## ksqlDB CLI Commands
 
 The ksqlDB CLI commands can be run after
 [starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli).
@@ -242,10 +195,10 @@ OPTIONS
             This option may occur a maximum of 1 times
 ```
 
-ksqlDB data types
----------------
+## ksqlDB data types
 
-ksqlDB supports the following data types.
+ksqlDB supports the following data types. For information on how ksqlDB
+serializes different data types, see [ksqlDB Serialization](serialization.md).
 
 ### Primitive Types
 
@@ -259,7 +212,9 @@ ksqlDB supports the following primitive data types:
 
 ### Array
 
-`ARRAY<ElementType>`
+```sql
+ARRAY<ElementType>
+```
 
 !!! note
 		The `DELIMITED` format doesn't support arrays.
@@ -300,7 +255,9 @@ CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL1, ABS(col3) V
 
 ### Map
 
-`MAP<KeyType, ValueType>`
+```sql
+MAP<KeyType, ValueType>
+```
 
 !!! note
 		The `DELIMITED` format doesn't support maps.
@@ -328,34 +285,81 @@ SELECT MAP(k1:=v1, k2:=v1*2) FROM s1 EMIT CHANGES;
 
 ### Struct
 
-`STRUCT<FieldName FieldType, ...>`
+```sql
+STRUCT<FieldName FieldType, ...>
+```
+
+ksqlDB supports fields that are structs. A struct represents strongly typed
+structured, or nested, data. A struct is an ordered collection of named fields
+that have a specific type. The field types can be any valid SQL type.
+
+Access the fields of a struct by using the `->` operator. For example,
+`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field.
+
+You can define a struct within a `CREATE TABLE` or `CREATE STREAM`
+statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For
+example, the following statement defines a struct with
+three fields, with the supplied names and types.
+
+```sql
+STRUCT<ID BIGINT, NAME STRING, AGE INT>
+```
+
+You can read structured data in Avro, Protobuf, JSON, and JSON_SR
+formats by using the `STRUCT` type in CREATE STREAM and CREATE TABLE
+statements.
 
 !!! note
 		The `DELIMITED` format doesn't support structs.
 
-ksqlDB supports fields that are structs. A struct represents strongly
-typed structured data. A struct is an ordered collection of named fields
-that have a specific type. The field types can be any valid SQL type.
+You can use the `STRUCT` type in these SQL statements:
 
-Access the fields of a struct by using the `->` operator. For example,
-`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
-more information, see [Operators](ksqldb-reference/operators.md).
+-   CREATE STREAM/TABLE (from a topic)
+-   CREATE STREAM/TABLE AS SELECT (from existing streams/tables)
+-   SELECT (non-persistent query)
 
-You can define a structs within a `CREATE TABLE` or `CREATE STREAM`
-statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For
-example, `STRUCT<ID BIGINT, NAME STRING, AGE INT>` defines a struct with
-three fields, with the supplied name and type.
+The `STRUCT` type requires a list of fields. For each field, you specify the
+field name and field type. The field type can be any of the supported ksqlDB
+types, including the complex types `MAP`, `ARRAY`, and `STRUCT`.
 
-Also, you can output a struct from a query by using a SELECT statement.
-The following example creates a struct from a stream named `s1`.
+!!! note
+		`Properties` is not a valid field name.
+
+The following example CREATE STREAM statement uses a `STRUCT` to
+encapsulate a street address and a postal code.
 
 ```sql
-SELECT STRUCT(f1 := v1, f2 := v2) FROM s1 EMIT CHANGES;
+CREATE STREAM orders (
+  ID BIGINT KEY,
+  address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
+```
+
+Access the fields in `address` by using the dereference operator
+(`->`):
+
+```sql
+SELECT address->city, address->zip FROM orders;
+```
+
+You can create a `STRUCT` in a query by specifying the names of the columns
+and expressions that construct the values, separated by commas. The following
+example SELECT statement creates a schema that has a `STRUCT`.
+
+```sql
+SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals
+```
+
+If `col0` is a string and `col1` is an integer, the resulting schema is:
+
+```sql
+col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>
 ```
 
 ### Decimal
 
-`DECIMAL(Precision, Scale)`
+```sql
+DECIMAL(Precision, Scale)
+```
 
 ksqlDB supports fields that are numeric data types with fixed precision and scale:
 
@@ -384,19 +388,7 @@ will be `DECIMAL(p, s)` where `p` is the total number of numeric characters in t
 - **Boolean constants** are the unquoted strings that are exactly (case-insensitive) `TRUE`
 or `FALSE`.
 
-SQL statements
---------------
-
-- SQL statements must be terminated with a semicolon (`;`).
-- Statements can be spread over multiple lines.
-- The hyphen character, `-`, isn't supported in names for streams,
-  tables, topics, and columns.
-- Don't use quotes around stream names or table names when you CREATE them.
-- Use backticks around column and source names with characters that are
-  unparseable by ksqlDB or when you want to control case.
-
-Quoted identifiers for source and column names
-----------------------------------------------
+## Quoted identifiers for source and column names
 
 Quoted identifiers in column names and source names are supported. If you have
 names that ksqlDB can't parse, or if you need to control the case of your
@@ -441,10 +433,10 @@ CREATE STREAM `foo-too` AS SELECT * FROM `foo-bar`;
 !!! note
     By default, ksqlDB converts source and column names automatically to all
     capital letters. Use quoted identifiers to override this behavior and
-    fully control your source and column names.
+    fully control your source and column names. For more information, see
+    [How to control the case of identifiers](../how-to-guides/control-the-case-of-identifiers.md). 
 
-Key Requirements
-----------------
+## Key Requirements
 
 ### Message Keys
 
@@ -455,7 +447,7 @@ respectively.
 
 Example:
 
-```sql
+```sql hl_lines="2,3"
 CREATE TABLE users (
     userId INT PRIMARY KEY, -- userId will be read from the Kafka message key 
     registertime BIGINT,    -- all other columns from the value
@@ -480,7 +472,7 @@ column require an internal repartition, but joins on the stream's `KEY` column d
     messages. The use case will determine if these ordering guarantees are
     acceptable.
 
-### What To Do If Your Key Is Not Set or Is In A Different Format
+### What to do if your key is not set or is in a different format
 
 ### Streams
 

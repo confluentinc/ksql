@@ -212,7 +212,7 @@ public class KsqlResource implements KsqlConfigurable {
           securityContext,
           TERMINATE_CLUSTER,
           new SessionProperties(
-              request.getStreamsProperties(),
+              streamsProperties,
               localHost,
               localUrl,
               false

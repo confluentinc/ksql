@@ -382,7 +382,8 @@ public class StreamedQueryResourceTest {
         StreamsConfig.NUM_STREAM_THREADS_CONFIG);
     testResource.configure(new KsqlConfig(props));
     when(errorsHandler.generateResponse(any(), any()))
-        .thenReturn(badRequest("Cannot override property 'num.stream.threads'"));
+        .thenReturn(badRequest("A property override was set locally for a property that the "
+            + "server prohibits overrides for: 'num.stream.threads'"));
 
     // When:
     final EndpointResponse response = testResource.streamQuery(
@@ -400,7 +401,8 @@ public class StreamedQueryResourceTest {
     // Then:
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
-        is("Cannot override property '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
+        is("A property override was set locally for a property that the server prohibits "
+            + "overrides for: '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
   }
 
   @Test

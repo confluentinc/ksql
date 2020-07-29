@@ -48,8 +48,10 @@ public class DenyListPropertyValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot override property 'immutable-property'"
+        "A property override was set locally for a property that the server prohibits "
+            + "overrides for: 'immutable-property'"
     ));
+
   }
 
   @Test

@@ -2214,7 +2214,8 @@ public class KsqlResourceTest {
     // Then:
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
-        is("Cannot override property '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
+        is("A property override was set locally for a property that the server prohibits "
+            + "overrides for: '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
   }
 
   @Test
@@ -2251,7 +2252,8 @@ public class KsqlResourceTest {
     // Then:
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
-        is("Cannot override property '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
+        is("A property override was set locally for a property that the server prohibits "
+            + "overrides for: '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

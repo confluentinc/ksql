@@ -214,3 +214,4 @@ extra:
         releasepostbranch: 5.5.0-post
         scalaversion: 2.12
         version: 5.5
+        voluble_version: 0.3.1

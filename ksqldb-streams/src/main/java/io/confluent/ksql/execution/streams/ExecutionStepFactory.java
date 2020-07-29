@@ -413,16 +413,14 @@ public final class ExecutionStepFactory {
       final Stacker stacker,
       final ExecutionStep<KTableHolder<K>> sourceStep,
       final RefinementInfo refinementInfo,
-      final Formats formats,
-      final KsqlWindowExpression windowExpression
+      final Formats formats
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSuppress<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         refinementInfo,
-        formats,
-        windowExpression
+        formats
     );
   }
 }

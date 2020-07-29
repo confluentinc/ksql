@@ -250,7 +250,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> suppress(
       final RefinementInfo refinementInfo,
-      final KsqlWindowExpression windowExpression,
       final ValueFormat valueFormat,
       final Stacker contextStacker
   ) {
@@ -258,8 +257,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         contextStacker,
         sourceTableStep,
         refinementInfo,
-        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-        windowExpression
+        Formats.of(keyFormat, valueFormat, SerdeOption.none())
     );
 
     return new SchemaKTable<>(

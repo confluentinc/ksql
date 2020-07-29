@@ -292,8 +292,7 @@ public final class KSPlanBuilder implements PlanBuilder {
         source,
         tableSuppress,
         queryBuilder,
-        source.getKeySerdeFactory(),
-        streamsFactories.getMaterializedFactory()
+        source.getKeySerdeFactory()
     );
   }
 

@@ -47,16 +47,15 @@ public final class TableSuppressBuilder {
       final KTableHolder<K> table,
       final TableSuppress<K> step,
       final KsqlQueryBuilder queryBuilder,
-      final KeySerdeFactory keySerdeFactory,
-      final MaterializedFactory materializedFactory
+      final KeySerdeFactory keySerdeFactory
   ) {
     return build(
         table,
         step,
         queryBuilder,
         keySerdeFactory,
-        materializedFactory,
-        PhysicalSchema::from
+        PhysicalSchema::from,
+        Materialized::with
     );
   }
 
@@ -67,8 +66,8 @@ public final class TableSuppressBuilder {
       final TableSuppress<K> step,
       final KsqlQueryBuilder queryBuilder,
       final KeySerdeFactory keySerdeFactory,
-      final MaterializedFactory materializedFactory,
-      final BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory
+      final BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory,
+      final BiFunction<Serde<K>, Serde<GenericRow>, Materialized> materializedFactory
   ) {
     final PhysicalSchema physicalSchema = physicalSchemaFactory.apply(
         table.getSchema(),
@@ -77,21 +76,20 @@ public final class TableSuppressBuilder {
     final QueryContext queryContext = QueryContext.Stacker.of(
         step.getProperties().getQueryContext())
         .push(SUPPRESS_OP_NAME).getQueryContext();
-    final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
-        step.getInternalFormats().getValueFormat(),
-        physicalSchema,
-        queryContext
-    );
     final Serde<K> keySerde = keySerdeFactory.buildKeySerde(
         step.getInternalFormats().getKeyFormat(),
         physicalSchema,
         queryContext
     );
+    final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
+        step.getInternalFormats().getValueFormat(),
+        physicalSchema,
+        queryContext
+    );
     final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        materializedFactory.create(
+        materializedFactory.apply(
             keySerde,
-            valueSerde,
-            SUPPRESS_OP_NAME
+            valueSerde
         );
     /* This is a dummy transformValues() call, we do this to ensure that the correct materialized
     with the correct key and val serdes is passed on when we call suppress

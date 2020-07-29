@@ -149,8 +149,7 @@ public class LogicalPlanner {
       }
       currentNode = buildSuppressNode(
           currentNode,
-          analysis.getRefinementInfo().get(),
-          analysis.getWindowExpression().get()
+          analysis.getRefinementInfo().get()
       );
     }
 
@@ -487,14 +486,12 @@ public class LogicalPlanner {
 
   private SuppressNode buildSuppressNode(
       final PlanNode sourcePlanNode,
-      final RefinementInfo refinementInfo,
-      final WindowExpression windowExpression
+      final RefinementInfo refinementInfo
   ) {
     return new SuppressNode(
         new PlanNodeId("Suppress"),
         sourcePlanNode,
-        refinementInfo,
-        windowExpression.getKsqlWindowExpression()
+        refinementInfo
     );
   }
 

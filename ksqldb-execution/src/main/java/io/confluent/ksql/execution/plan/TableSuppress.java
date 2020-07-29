@@ -31,21 +31,17 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStep<KTableHolder<K>> source;
   private final RefinementInfo refinementInfo;
   private final Formats internalFormats;
-  private final KsqlWindowExpression windowExpression;
 
   public TableSuppress(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "refinementInfo", required = true) final RefinementInfo refinementInfo,
-      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
-      @JsonProperty(value = "windowExpression", required = true)
-      final KsqlWindowExpression windowExpression
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
     this.refinementInfo = Objects.requireNonNull(refinementInfo, "refinementInfo");
     this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
-    this.windowExpression = Objects.requireNonNull(windowExpression, "windowExpression");
   }
 
   @Override
@@ -65,10 +61,6 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
 
   public Formats getInternalFormats() {
     return internalFormats;
-  }
-
-  public KsqlWindowExpression getWindowExpression() {
-    return windowExpression;
   }
 
   public ExecutionStep<KTableHolder<K>> getSource() {
@@ -92,8 +84,7 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(refinementInfo, that.refinementInfo)
-        && Objects.equals(internalFormats, that.internalFormats)
-        && Objects.equals(windowExpression, that.windowExpression);
+        && Objects.equals(internalFormats, that.internalFormats);
   }
 
   @Override
@@ -103,8 +94,7 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
         properties,
         source,
         refinementInfo,
-        internalFormats,
-        windowExpression
+        internalFormats
     );
   }
 }

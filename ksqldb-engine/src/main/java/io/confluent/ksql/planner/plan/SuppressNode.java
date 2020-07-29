@@ -43,18 +43,15 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
 
   private final RefinementInfo refinementInfo;
   private final ValueFormat valueFormat;
-  private final KsqlWindowExpression windowExpression;
 
   public SuppressNode(
       final PlanNodeId id,
       final PlanNode source,
-      final RefinementInfo refinementInfo,
-      final KsqlWindowExpression windowExpression
+      final RefinementInfo refinementInfo
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
 
     this.refinementInfo = Objects.requireNonNull(refinementInfo, "refinementInfo");
-    this.windowExpression = Objects.requireNonNull(windowExpression, "windowExpression");
     this.valueFormat = source.getLeftmostSourceNode()
         .getDataSource()
         .getKsqlTopic()
@@ -83,7 +80,6 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
     return (((SchemaKTable<?>) schemaKStream)
         .suppress(
             refinementInfo,
-            windowExpression,
             valueFormat,
             contextStacker
         ));

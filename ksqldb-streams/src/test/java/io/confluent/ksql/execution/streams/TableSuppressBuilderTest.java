@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,10 +46,14 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Predicate;
+import org.apache.kafka.streams.kstream.internals.suppress.FinalResultsSuppressionBuilder;
 import org.apache.kafka.streams.processor.StateStore;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -70,11 +75,7 @@ public class TableSuppressBuilderTest {
   @Mock
   private Formats internalFormats;
   @Mock
-  private KsqlWindowExpression windowExpression;
-  @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
-  @Mock
-  private MaterializedFactory materializedFactory;
   @Mock
   private  PhysicalSchema physicalSchema;
   @Mock
@@ -87,12 +88,15 @@ public class TableSuppressBuilderTest {
   private KTableHolder<Struct> tableHolder;
   @Mock
   private KTableHolder<Struct> suppressedtable;
+  @Captor
+  private ArgumentCaptor<FinalResultsSuppressionBuilder> suppressionCaptor;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
       .getQueryContext();
   private TableSuppress<Struct> tableSuppress;
   private BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory;
+  private BiFunction<Serde<Struct>, Serde<GenericRow>, Materialized> materializedFactory;
   private TableSuppressBuilder builder;
 
   @Rule
@@ -104,16 +108,16 @@ public class TableSuppressBuilderTest {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
 
     physicalSchemaFactory = (a,b) -> physicalSchema;
+    materializedFactory = (a,b) -> materialized;
+
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
-
     when(tableHolder.getTable()).thenReturn(sourceKTable);
     when(sourceKTable.transformValues(any(), any(Materialized.class))).thenReturn(preKTable);
     when(preKTable.suppress(any())).thenReturn(suppressedKTable);
     when(tableHolder.withTable(any(),any())).thenReturn(suppressedtable);
 
-    tableSuppress = new TableSuppress<>(properties, sourceStep, refinementInfo, internalFormats, windowExpression);
+    tableSuppress = new TableSuppress<>(properties, sourceStep, refinementInfo, internalFormats);
     builder = new TableSuppressBuilder();
   }
 
@@ -121,12 +125,14 @@ public class TableSuppressBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldSuppressSourceTable() {
     // When:
-    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, queryBuilder, keySerdeFactory, materializedFactory, physicalSchemaFactory);
+    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, queryBuilder, keySerdeFactory, physicalSchemaFactory, materializedFactory);
 
     // Then:
     assertThat(result, is(suppressedtable));
     verify(sourceKTable).transformValues(any(),any(Materialized.class));
-    verify(preKTable).suppress(any());
+    verify(preKTable).suppress(suppressionCaptor.capture());
+    final FinalResultsSuppressionBuilder suppression = suppressionCaptor.getValue();
+    assertThat(suppression, isA(FinalResultsSuppressionBuilder.class));
   }
 }
 

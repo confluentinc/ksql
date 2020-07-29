@@ -62,9 +62,9 @@ with streaming semantics, like windowing.
 Facts in a table are _mutable_, which means that new facts can be inserted to
 the table, and existing facts can be updated and deleted.
 
-You can create a tables from a {{ site.ak }} topic or derive one from existing
-streams and tables. In both cases, a table's underlying data is durably
-persisted in a topic on the {{ site.ak }} brokers.
+You can create a table from a {{ site.ak }} topic or derive one from an existing
+stream or table. In both cases, a table's underlying data is durably persisted
+in a topic on the {{ site.ak }} brokers.
 
 Create a table by using the [CREATE TABLE](./ksqldb-reference/create-table.md)
 or [CREATE TABLE AS SELECT](./ksqldb-reference/create-table-as-select.md) statements.

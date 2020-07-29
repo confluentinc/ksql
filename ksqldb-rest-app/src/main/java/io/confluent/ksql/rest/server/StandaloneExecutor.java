@@ -129,12 +129,17 @@ public class StandaloneExecutor implements Executable {
       versionChecker.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
-      triggerShutdown();
       throw e;
     }
   }
 
-  public void triggerShutdown() {
+  @Override
+  public void notifyTerminated() {
+    shutdownLatch.countDown();
+  }
+
+  @Override
+  public void shutdown() {
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -145,7 +150,6 @@ public class StandaloneExecutor implements Executable {
     } catch (final Exception e) {
       log.warn("Failed to cleanly shutdown services", e);
     }
-    shutdownLatch.countDown();
   }
 
   @Override

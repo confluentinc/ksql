@@ -52,7 +52,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.FixMethodOrder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
@@ -131,7 +130,7 @@ public class StandaloneExecutorFunctionalTest {
 
   @After
   public void tearDown() throws Exception {
-    standalone.triggerShutdown();
+    standalone.shutdown();
     standalone.awaitTerminated();
   }
 

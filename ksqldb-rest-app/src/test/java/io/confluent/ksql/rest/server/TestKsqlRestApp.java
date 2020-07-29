@@ -268,7 +268,7 @@ public class TestKsqlRestApp extends ExternalResource {
     listeners.clear();
     internalListener = null;
     try {
-      ksqlRestApplication.triggerShutdown();
+      ksqlRestApplication.shutdown();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }

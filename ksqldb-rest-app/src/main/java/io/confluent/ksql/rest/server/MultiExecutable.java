@@ -43,8 +43,13 @@ public final class MultiExecutable implements Executable  {
   }
 
   @Override
-  public void triggerShutdown() throws Exception {
-    doAction(Executable::triggerShutdown);
+  public void shutdown() throws Exception {
+    doAction(Executable::shutdown);
+  }
+
+  @Override
+  public void notifyTerminated() {
+    doAction(Executable::notifyTerminated);
   }
 
   @Override

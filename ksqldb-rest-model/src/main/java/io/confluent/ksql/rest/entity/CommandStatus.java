@@ -20,7 +20,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
+import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("commandStatus")
@@ -30,13 +32,20 @@ public class CommandStatus {
 
   private final Status status;
   private final String message;
+  private final Optional<QueryId> queryId;
+
+  public CommandStatus(final Status status, final String message) {
+    this(status, message, Optional.empty());
+  }
 
   @JsonCreator
   public CommandStatus(
       @JsonProperty("status") final Status status,
-      @JsonProperty("message") final String message) {
+      @JsonProperty("message") final String message,
+      @JsonProperty("queryId") final Optional<QueryId> queryId) {
     this.status = status;
     this.message = message;
+    this.queryId = queryId;
   }
 
   public Status getStatus() {
@@ -45,6 +54,10 @@ public class CommandStatus {
 
   public String getMessage() {
     return message;
+  }
+
+  public Optional<QueryId> getQueryId() {
+    return queryId;
   }
 
   @Override
@@ -57,16 +70,18 @@ public class CommandStatus {
     }
     final CommandStatus that = (CommandStatus) o;
     return getStatus() == that.getStatus()
-        && Objects.equals(getMessage(), that.getMessage());
+        && Objects.equals(getMessage(), that.getMessage())
+        && Objects.equals(getQueryId(), that.getQueryId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStatus(), getMessage());
+    return Objects.hash(getStatus(), getMessage(), getQueryId());
   }
 
   @Override
   public String toString() {
-    return status.name() + ": " + message;
+    return status.name() + ": " + message + ". "
+        + "Query ID: " + (queryId.isPresent() ? queryId.toString() : "<empty>");
   }
 }

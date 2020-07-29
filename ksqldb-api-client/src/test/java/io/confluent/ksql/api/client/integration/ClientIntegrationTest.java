@@ -41,18 +41,19 @@ import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.InsertsPublisher;
 import io.confluent.ksql.api.client.KsqlArray;
+import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
-import io.confluent.ksql.api.client.exception.KsqlClientException;
-import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -82,6 +83,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
@@ -154,6 +156,13 @@ public class ClientIntegrationTest {
       .put("MAP_STRUCT", new KsqlObject().put("k", new KsqlObject().put("F1", "baz")));
   private static final KsqlObject EXPECTED_COMPLEX_FIELD_VALUE = COMPLEX_FIELD_VALUE.copy()
       .put("DECIMAL", 1.1d); // Expect raw decimal value, whereas put(BigDecimal) serializes as string to avoid loss of precision
+
+  protected static final String EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC =
+      "The ksqlDB server accepted the statement issued via executeStatement(), but the response "
+          + "received is of an unexpected format. ";
+  protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
+      + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
+      + "SELECT' statements. ";
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -677,6 +686,129 @@ public class ClientIntegrationTest {
     assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
   }
 
+  @Test
+  public void shouldExecuteDdlDmlStatements() throws Exception {
+    // Given
+    final String streamName = TEST_STREAM + "_COPY";
+    final String csas = "create stream " + streamName + " as select * from " + TEST_STREAM + " emit changes;";
+
+    final int numInitialStreams = 3;
+    final int numInitialQueries = 1;
+    verifyNumStreams(numInitialStreams);
+    verifyNumQueries(numInitialQueries);
+
+    // When: create stream, start persistent query
+    final ExecuteStatementResult csasResult = client.executeStatement(csas).get();
+
+    // Then
+    verifyNumStreams(numInitialStreams + 1);
+    verifyNumQueries(numInitialQueries + 1);
+    assertThat(csasResult.queryId(), is(Optional.of(findQueryIdForSink(streamName))));
+
+    // When: terminate persistent query
+    final String queryId = csasResult.queryId().get();
+    final ExecuteStatementResult terminateResult =
+        client.executeStatement("terminate " + queryId + ";").get();
+
+    // Then
+    verifyNumQueries(numInitialQueries);
+    assertThat(terminateResult.queryId(), is(Optional.empty()));
+
+    // When: drop stream
+    final ExecuteStatementResult dropStreamResult =
+        client.executeStatement("drop stream " + streamName + ";").get();
+
+    // Then
+    verifyNumStreams(numInitialStreams);
+    assertThat(dropStreamResult.queryId(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldHandleInvalidSqlInExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("bad sql;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("mismatched input"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("drop stream NONEXISTENT;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Source NONEXISTENT does not exist"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
+  @Test
+  public void shouldRejectMultipleRequestsFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("drop stream S1; drop stream S2;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(
+        "executeStatement() may only be used to execute one statement at a time"));
+  }
+
+  @Test
+  public void shouldRejectRequestWithMissingSemicolonFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("sql missing semicolon").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(
+        "Missing semicolon in SQL for executeStatement() request"));
+  }
+
+  @Test
+  public void shouldFailOnNoEntitiesFromExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("set 'auto.offset.reset' = 'earliest';").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+  }
+
+  @Test
+  public void shouldFailToListStreamsViaExecuteStatement() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("list streams;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
+    assertThat(e.getCause().getMessage(), containsString("Use the listStreams() method instead"));
+  }
+
   @SuppressWarnings("unchecked")
   @Test
   public void shouldListStreams() throws Exception {
@@ -746,6 +878,35 @@ public class ClientIntegrationTest {
         .setHost("localhost")
         .setPort(REST_APP.getListeners().get(0).getPort());
     return Client.create(clientOptions, vertx);
+  }
+
+  private void verifyNumStreams(final int numStreams) {
+    assertThatEventually(() -> {
+      try {
+        return client.listStreams().get().size();
+      } catch (Exception e) {
+        return -1;
+      }
+    }, is(numStreams));
+  }
+
+  private void verifyNumQueries(final int numQueries) {
+    assertThatEventually(() -> {
+      try {
+        return client.listQueries().get().size();
+      } catch (Exception e) {
+        return -1;
+      }
+    }, is(numQueries));
+  }
+
+  private String findQueryIdForSink(final String sinkName) throws Exception {
+    final List<String> queryIds = client.listQueries().get().stream()
+        .filter(q -> q.getSink().equals(Optional.of(sinkName)))
+        .map(QueryInfo::getId)
+        .collect(Collectors.toList());
+    assertThat(queryIds, hasSize(1));
+    return queryIds.get(0);
   }
 
   private static void makeKsqlRequest(final String sql) {

@@ -16,7 +16,10 @@
 package io.confluent.ksql.logging.processing;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.LoggingDeserializer.DelayedResult;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -99,6 +103,20 @@ public class LoggingDeserializerTest {
     verify(delegate).deserialize("some topic", SOME_BYTES);
   }
 
+  @Test
+  public void shouldTryDeserializeWithDelegate() {
+    // Given:
+    when(delegate.deserialize(any(), any())).thenReturn(SOME_ROW);
+
+    // When:
+    final DelayedResult<GenericRow> result = deserializer.tryDeserialize("some topic", SOME_BYTES);
+
+    // Then:
+    verify(delegate).deserialize("some topic", SOME_BYTES);
+    assertThat(result.isError(), is(false));
+    assertThat(result.get(), is(SOME_ROW));
+  }
+
   @Test(expected = ArithmeticException.class)
   public void shouldThrowIfDelegateThrows() {
     // Given:
@@ -125,5 +143,22 @@ public class LoggingDeserializerTest {
 
     // Then:
     verify(processingLogger).error(new DeserializationError(e, Optional.of(SOME_BYTES), "t"));
+  }
+
+  @Test
+  public void shouldDelayLogOnException() {
+    // Given:
+    when(delegate.deserialize(any(), any()))
+        .thenThrow(new RuntimeException("outer",
+            new RuntimeException("inner", new RuntimeException("cause"))));
+
+    // When:
+    final DelayedResult<GenericRow> result = deserializer.tryDeserialize("t", SOME_BYTES);
+
+    // Then:
+    assertTrue(result.isError());
+    assertThrows(RuntimeException.class, result::get);
+    verify(processingLogger)
+        .error(new DeserializationError(result.getError(), Optional.of(SOME_BYTES), "t"));
   }
 }

@@ -106,7 +106,7 @@ public class KsqlServerMainTest {
     assertThat(e.getMessage(), containsString(
         "Could not create the kafka streams state directory: /var/lib/kafka-streams\n"
         + " Make sure the directory exists and is writable for KSQL server \n"
-        + " or its parend directory is writbale by KSQL server\n"
+        + " or its parent directory is writable by KSQL server\n"
         + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
         + " the properties file."));
   }
@@ -126,7 +126,7 @@ public class KsqlServerMainTest {
     assertThat(e.getMessage(), containsString(
         "/var/lib/kafka-streams is not a directory.\n"
             + " Make sure the directory exists and is writable for KSQL server \n"
-            + " or its parend directory is writbale by KSQL server\n"
+            + " or its parent directory is writable by KSQL server\n"
             + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
             + " the properties file."));
   }

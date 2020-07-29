@@ -64,7 +64,7 @@ Follow these steps to create your custom functions:
       FUNCTION statement to display details about your custom functions.
 
 For a detailed walkthrough on creating a UDF, see
-[Implement a User-defined Function (UDF and UDAF)](../developer-guide/implement-a-udf.md).
+[the how-to guide for creating a user-defined function](../../how-to-guides/create-a-user-defined-function).
 
 ### Creating UDFs, UDAFs, and UDTFs
 
@@ -258,6 +258,7 @@ commands.
 |-------------|----------------------------------------------------------------------|----------|
 | name        | The case-insensitive name of the UDF(s) represented by this class.   | Yes      |
 | description | A string describing generally what the function(s) in this class do. | Yes      |
+| category    | For grouping similar functions in the output of SHOW FUNCTIONS.      | No       |
 | author      | The author of the UDF.                                               | No       |
 | version     | The version of the UDF.                                              | No       |
 
@@ -941,7 +942,8 @@ Metric collection can be enabled by setting the config
 `ksql.udf.collect.metrics` to `true`. This defaults to `false` and is
 generally not recommended for production usage, as metrics are
 collected on each invocation and introduce some overhead to
-processing time.
+processing time. See more details in the
+[UDF metrics reference section](../../reference/metrics/#user-defined-functions).
 
 ### Suggested Reading
 

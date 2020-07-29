@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -48,12 +50,16 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashSet;
 import java.util.Optional;
@@ -170,10 +176,16 @@ public class SourceBuilderTest {
   private Materialized<Object, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private SchemaRegistryClient srClient;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
+  @Captor
+  private ArgumentCaptor<StaticTopicSerde<GenericRow>> serdeCaptor;
   private final GenericRow row = genericRow("baz", 123);
   private PlanBuilder planBuilder;
 
@@ -192,17 +204,23 @@ public class SourceBuilderTest {
     when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
+    when(streamsBuilder.table(anyString(), any(Consumed.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
+    when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
     when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(queryBuilder.getServiceContext()).thenReturn(serviceContext);
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("id"));
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
     when(materializationFactory.create(any(), any(), any()))
         .thenReturn((Materialized) materialized);
+    when(valueFormatInfo.getFormat()).thenReturn(FormatFactory.AVRO.name());
 
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -292,7 +310,28 @@ public class SourceBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToSourceTable() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
+
+    // When:
+    final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
+
+    // Then:
+    assertThat(builtKTable.getTable(), is(kTable));
+    final InOrder validator = inOrder(streamsBuilder, kTable);
+    validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
+    validator.verify(kTable).mapValues(any(ValueMapper.class), any(Materialized.class));
+    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldApplyCorrectTransformationsToSourceTableWithoutForcingChangelog() {
+    // Given:
+    givenUnwindowedSourceTable(false);
+    when(consumed.withValueSerde(any())).thenReturn(consumed);
 
     // When:
     final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
@@ -302,16 +341,40 @@ public class SourceBuilderTest {
     final InOrder validator = inOrder(streamsBuilder, kTable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed), any());
     validator.verify(kTable, never()).mapValues(any(ValueMapper.class));
+    validator.verify(kTable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
     validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+
+    verify(consumed).withValueSerde(serdeCaptor.capture());
+    final StaticTopicSerde<GenericRow> value = serdeCaptor.getValue();
+    assertThat(value.getTopic(), is("_confluent-ksql-default_query_id-base-Reduce-changelog"));
   }
+
+  @Test
+  public void shouldApplyCreateSchemaRegistryCallbackIfSchemaRegistryIsEnabled() {
+    // Given:
+    when(queryBuilder.getKsqlConfig()).thenReturn(
+        KSQL_CONFIG.cloneWithPropertyOverwrite(
+            ImmutableMap.of(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "foo")));
+    givenUnwindowedSourceTable(false);
+    when(consumed.withValueSerde(any())).thenReturn(consumed);
+
+    // When:
+    tableSource.build(planBuilder);
+
+    // Then:
+    verify(consumed).withValueSerde(serdeCaptor.capture());
+    final StaticTopicSerde<GenericRow> value = serdeCaptor.getValue();
+    assertThat(value.getOnFailure(), instanceOf(RegisterSchemaCallback.class));
+  }
+
 
   @Test
   public void shouldUseOffsetResetEarliestForTable() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
 
     // When
     tableSource.build(planBuilder);
@@ -338,7 +401,7 @@ public class SourceBuilderTest {
     when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(
         ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
     ));
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
 
     // When
     tableSource.build(planBuilder);
@@ -362,7 +425,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldReturnCorrectSchemaForUnwindowedSourceTable() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
 
     // When:
     final KTableHolder<Struct> builtKTable = tableSource.build(planBuilder);
@@ -464,7 +527,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldAddRowTimeAndRowKeyColumnsToNonWindowedTable() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
         getTransformerFromTableSource(tableSource);
 
@@ -635,7 +698,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldBuildTableWithCorrectStoreName() {
     // Given:
-    givenUnwindowedSourceTable();
+    givenUnwindowedSourceTable(true);
 
     // When:
     tableSource.build(planBuilder);
@@ -705,7 +768,7 @@ public class SourceBuilderTest {
     );
   }
 
-  private void givenUnwindowedSourceTable() {
+  private void givenUnwindowedSourceTable(final Boolean forceChangelog) {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
@@ -713,7 +776,8 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, SERDE_OPTIONS),
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        Optional.of(forceChangelog)
     );
   }
 

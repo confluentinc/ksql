@@ -143,7 +143,7 @@ class Analyzer {
     private boolean isGroupBy = false;
 
     Visitor(final Query query, final boolean persistent) {
-      this.analysis = new Analysis(query.getResultMaterialization());
+      this.analysis = new Analysis(query.getRefinement());
       this.persistent = persistent;
     }
 

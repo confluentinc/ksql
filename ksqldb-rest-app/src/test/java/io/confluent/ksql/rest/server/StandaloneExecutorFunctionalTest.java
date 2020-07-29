@@ -52,7 +52,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.FixMethodOrder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
@@ -254,7 +253,7 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Schema registry fetch for topic topic-without-schema request failed"));
+        "Schema for message values on topic topic-without-schema does not exist in the Schema Registry"));
   }
 
   @Test

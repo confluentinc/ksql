@@ -77,7 +77,9 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
@@ -98,17 +100,20 @@ public class SqlToJavaVisitorTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   private SqlToJavaVisitor sqlToJavaVisitor;
+  private KsqlConfig ksqlConfig;
 
   @Before
   public void init() {
     final AtomicInteger funCounter = new AtomicInteger();
     final AtomicInteger structCounter = new AtomicInteger();
+    ksqlConfig = new KsqlConfig(Collections.emptyMap());
     sqlToJavaVisitor = new SqlToJavaVisitor(
         SCHEMA,
         functionRegistry,
         ref -> ref.text().replace(".", "_"),
         name -> name.text() + "_" + funCounter.getAndIncrement(),
-        struct -> "schema" + structCounter.getAndIncrement()
+        struct -> "schema" + structCounter.getAndIncrement(),
+        ksqlConfig
     );
   }
 
@@ -233,6 +238,32 @@ public class SqlToJavaVisitorTest {
         sqlToJavaVisitor.process(castDoubleBigint),
         equalTo("(new Double(COL3).longValue())")
     );
+    assertThat(
+        sqlToJavaVisitor.process(castDoubleString),
+        equalTo("Objects.toString(COL3, null)")
+    );
+  }
+
+  @Test
+  public void shouldUseStringValueOfIfConfigSet() {
+    // Given:
+    final Expression castDoubleString = new Cast(
+        COL3,
+        new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("VARCHAR"))
+    );
+    ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE, false));
+    final AtomicInteger funCounter = new AtomicInteger();
+    final AtomicInteger structCounter = new AtomicInteger();
+    sqlToJavaVisitor = new SqlToJavaVisitor(
+        SCHEMA,
+        functionRegistry,
+        ref -> ref.text().replace(".", "_"),
+        name -> name.text() + "_" + funCounter.getAndIncrement(),
+        struct -> "schema" + structCounter.getAndIncrement(),
+        ksqlConfig
+    );
+    
+    // Then:
     assertThat(
         sqlToJavaVisitor.process(castDoubleString),
         equalTo("String.valueOf(COL3)")

@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.ExecutorUtil;
+import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -161,7 +164,22 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public boolean isTopicExists(final String topic) {
     LOG.trace("Checking for existence of topic '{}'", topic);
-    return listTopicNames().contains(topic);
+    try {
+      ExecutorUtil.executeWithRetries(
+          () -> adminClient.get().describeTopics(
+              ImmutableList.of(topic),
+              new DescribeTopicsOptions().includeAuthorizedOperations(true)
+          ).values().get(topic).get(),
+          RetryBehaviour.ON_RETRYABLE
+      );
+      return true;
+    } catch (final Exception e) {
+      if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
+        return false;
+      }
+
+      throw new KafkaResponseGetFailedException("Failed to check if exists for topic: " + topic, e);
+    }
   }
 
   @Override
@@ -240,17 +258,17 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   @Override
   public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
     final String policy = getTopicConfig(topicName)
-        .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "");
+        .getOrDefault(TopicConfig.CLEANUP_POLICY_CONFIG, "")
+        .toLowerCase();
 
-    switch (policy) {
-      case "compact":
-        return TopicCleanupPolicy.COMPACT;
-      case "delete":
-        return TopicCleanupPolicy.DELETE;
-      case "compact+delete":
-        return TopicCleanupPolicy.COMPACT_DELETE;
-      default:
-        throw new KsqlException("Could not get the topic configs for : " + topicName);
+    if (policy.equals("compact")) {
+      return TopicCleanupPolicy.COMPACT;
+    } else if (policy.equals("delete")) {
+      return TopicCleanupPolicy.DELETE;
+    } else if (policy.contains("compact") && policy.contains("delete")) {
+      return TopicCleanupPolicy.COMPACT_DELETE;
+    } else {
+      throw new KsqlException("Could not get the topic configs for : " + topicName);
     }
   }
 

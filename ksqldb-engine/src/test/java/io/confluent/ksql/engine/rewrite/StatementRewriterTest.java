@@ -32,7 +32,6 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.ResultMaterialization;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -60,6 +59,7 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.serde.RefinementInfo;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.BiFunction;
@@ -117,7 +117,7 @@ public class StatementRewriterTest {
   @Mock
   private CreateSourceAsProperties csasProperties;
   @Mock
-  private ResultMaterialization resultMaterialization;
+  private RefinementInfo refinementInfo;
   @Captor
   private ArgumentCaptor<Context<Object>> contextCaptor;
 
@@ -183,7 +183,7 @@ public class StatementRewriterTest {
         groupBy,
         partitionBy,
         having,
-        Optional.of(resultMaterialization),
+        Optional.of(refinementInfo),
         false,
         optionalInt
     );
@@ -208,7 +208,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(resultMaterialization),
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -245,7 +245,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(resultMaterialization),
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -273,7 +273,7 @@ public class StatementRewriterTest {
         Optional.of(rewrittenGroupBy),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(resultMaterialization),
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -304,7 +304,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.of(rewrittenPartitionBy),
         Optional.empty(),
-        Optional.of(resultMaterialization),
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -333,7 +333,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(resultMaterialization),
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -359,7 +359,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.of(rewrittenExpression),
-        Optional.of(resultMaterialization),
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );

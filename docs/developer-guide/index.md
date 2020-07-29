@@ -7,6 +7,7 @@ description: Learn to create ksqlDB applications
 
 These topics show how to develop ksqlDB applications.
 
+- [ksqlDB SQL quick reference](ksqldb-reference/quick-reference.md)
 - [Develop with ksqlDB clients](ksqldb-clients/index.md)
 - [Configure ksqlDB CLI](../operate-and-deploy/installation/cli-config.md) 
 - [Create a ksqlDB Stream](create-a-stream.md)

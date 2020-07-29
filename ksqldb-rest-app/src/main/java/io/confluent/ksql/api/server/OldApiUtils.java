@@ -17,7 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
-import static org.apache.http.HttpHeaders.TRANSFER_ENCODING;
+import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
@@ -89,15 +89,16 @@ public final class OldApiUtils {
     // a plain String, other times it's an object that needs to be JSON encoded, other times
     // it represents a stream.
     if (endpointResponse.getEntity() instanceof StreamingOutput) {
+      final StreamingOutput streamingOutput = (StreamingOutput) endpointResponse.getEntity();
       if (routingContext.request().version() == HttpVersion.HTTP_2) {
         // The old /query endpoint uses chunked encoding which is not supported in HTTP2
         routingContext.response().setStatusCode(METHOD_NOT_ALLOWED.code())
             .setStatusMessage("The /query endpoint is not available using HTTP2").end();
+        streamingOutput.close();
         return;
       }
       response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
-      streamEndpointResponse(server, routingContext,
-          (StreamingOutput) endpointResponse.getEntity());
+      streamEndpointResponse(server, routingContext, streamingOutput);
     } else {
       if (endpointResponse.getEntity() == null) {
         response.end();

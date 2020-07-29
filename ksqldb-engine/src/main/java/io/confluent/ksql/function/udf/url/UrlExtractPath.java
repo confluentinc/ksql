@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.url;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -23,6 +24,7 @@ import java.net.URI;
 
 @UdfDescription(
     name = "url_extract_path",
+    category = FunctionCategory.URL,
     description = "Extracts the path of an application/x-www-form-urlencoded encoded String input",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

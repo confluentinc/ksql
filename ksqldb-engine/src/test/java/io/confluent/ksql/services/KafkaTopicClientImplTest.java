@@ -16,6 +16,8 @@
 package io.confluent.ksql.services;
 
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
+import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -39,6 +41,7 @@ import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -187,13 +190,15 @@ public class KafkaTopicClientImplTest {
 
     when(adminClient.describeTopics(any(), any()))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+        .thenAnswer(describeTopicsResult()); // The second and third time, return the right response.
 
     // When:
     kafkaTopicClient.createTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(2)).describeTopics(any(), any());
+    // first two times are in the `isTopicExists` call and the second is in `describeTopic` when
+    // confirming the number of partitions
+    verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
   @Test
@@ -272,13 +277,15 @@ public class KafkaTopicClientImplTest {
 
     when(adminClient.describeTopics(any(), any()))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+        .thenAnswer(describeTopicsResult()); // The second/third time, return the right response.
 
     // When:
     kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(2)).describeTopics(any(), any());
+    // first two times are in the `isTopicExists` call and the second is in `describeTopic` when
+    // confirming the number of partitions
+    verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
   @Test
@@ -460,6 +467,46 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldGetTopicCleanUpPolicyDelete() {
+    // Given:
+    givenTopicConfigs(
+        "foo",
+        overriddenConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_DELETE)
+    );
+
+    // When / Then:
+    assertThat(kafkaTopicClient.getTopicCleanupPolicy("foo"),
+        is(TopicCleanupPolicy.DELETE));
+  }
+
+  @Test
+  public void shouldGetTopicCleanUpPolicyCompact() {
+    // Given:
+    givenTopicConfigs(
+        "foo",
+        overriddenConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT)
+    );
+
+    // When / Then:
+    assertThat(kafkaTopicClient.getTopicCleanupPolicy("foo"),
+        is(TopicCleanupPolicy.COMPACT));
+  }
+
+  @Test
+  public void shouldGetTopicCleanUpPolicyCompactAndDelete() {
+    // Given:
+    givenTopicConfigs(
+        "foo",
+        overriddenConfigEntry(CLEANUP_POLICY_CONFIG,
+            CLEANUP_POLICY_COMPACT + "," + CLEANUP_POLICY_DELETE)
+    );
+
+    // When / Then:
+    assertThat(kafkaTopicClient.getTopicCleanupPolicy("foo"),
+        is(TopicCleanupPolicy.COMPACT_DELETE));
+  }
+
+  @Test
   public void shouldThrowOnNoneRetryableGetTopicConfigError() {
     // Given:
     when(adminClient.describeConfigs(any()))
@@ -517,7 +564,7 @@ public class KafkaTopicClientImplTest {
     );
 
     final Map<String, ?> configOverrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+        CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
     );
 
     // When:
@@ -528,7 +575,7 @@ public class KafkaTopicClientImplTest {
     verify(adminClient).incrementalAlterConfigs(ImmutableMap.of(
         topicResource("peter"),
         ImmutableSet.of(
-            setConfig(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT)
+            setConfig(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT)
         )
     ));
   }
@@ -570,7 +617,7 @@ public class KafkaTopicClientImplTest {
     );
 
     final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+        CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
     );
 
     when(adminClient.incrementalAlterConfigs(any()))
@@ -583,7 +630,7 @@ public class KafkaTopicClientImplTest {
     verify(adminClient).alterConfigs(ImmutableMap.of(
         topicResource("peter"),
         new Config(ImmutableSet.of(
-            new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
+            new ConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
             new ConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "1234")
         ))
     ));
@@ -594,12 +641,12 @@ public class KafkaTopicClientImplTest {
     // Given:
     givenTopicConfigs(
         "peter",
-        overriddenConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
+        overriddenConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
         defaultConfigEntry(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy")
     );
 
     final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
+        CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT
     );
 
     // When:
@@ -641,7 +688,7 @@ public class KafkaTopicClientImplTest {
     );
 
     final Map<String, ?> overrides = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
+        CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT
     );
 
     when(adminClient.incrementalAlterConfigs(any()))
@@ -653,6 +700,18 @@ public class KafkaTopicClientImplTest {
 
     // Then:
     verify(adminClient, times(2)).incrementalAlterConfigs(any());
+  }
+
+  @Test
+  public void shouldNotListAllTopicsWhenCallingIsTopicExists() {
+    // Given
+    givenTopicExists("foobar", 1, 1);
+
+    // When
+    kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    verify(adminClient, never()).listTopics();
   }
 
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {
@@ -726,7 +785,15 @@ public class KafkaTopicClientImplTest {
           .map(name -> new TopicDescription(name, false, topicPartitionInfo.get(name)))
           .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
 
+      Map<String, KafkaFuture<TopicDescription>> describe = new HashMap<>();
+      for (String name : topicNames) {
+        describe.put(name, result.containsKey(name)
+            ? KafkaFuture.completedFuture(result.get(name))
+            : failedFuture(new UnknownTopicOrPartitionException()));
+      }
+
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+      when(describeTopicsResult.values()).thenReturn(describe );
       when(describeTopicsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
       return describeTopicsResult;
     };
@@ -734,7 +801,17 @@ public class KafkaTopicClientImplTest {
 
   private static Answer<DescribeTopicsResult> describeTopicsResult(final Exception e) {
     return inv -> {
+      final Collection<String> topicNames = inv.getArgument(0);
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+
+      Map<String, KafkaFuture<TopicDescription>> map = new HashMap<>();
+      for (String name : topicNames) {
+        if (map.put(name, failedFuture(e)) != null) {
+          throw new IllegalStateException("Duplicate key");
+        }
+      }
+      when(describeTopicsResult.values()).thenReturn(map);
+
       final KafkaFuture<Map<String, TopicDescription>> f = failedFuture(e);
       when(describeTopicsResult.all()).thenReturn(f);
       return describeTopicsResult;
@@ -869,7 +946,7 @@ public class KafkaTopicClientImplTest {
       doThrow(new ExecutionException(cause)).when(future).get(anyLong(), any());
       return future;
     } catch (final Exception e) {
-      throw new AssertionError("invalid test");
+      throw new AssertionError("invalid test", e);
     }
   }
 

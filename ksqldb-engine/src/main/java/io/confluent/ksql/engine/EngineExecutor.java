@@ -102,17 +102,20 @@ final class EngineExecutor {
     return new EngineExecutor(engineContext, serviceContext, ksqlConfig, overriddenProperties);
   }
 
-  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   ExecuteResult execute(final KsqlPlan plan) {
-    final Optional<String> ddlResult = plan.getDdlCommand()
-        .map(ddl -> executeDdl(ddl, plan.getStatementText(), plan.getQueryPlan().isPresent()));
+    if (!plan.getQueryPlan().isPresent()) {
+      final String ddlResult = plan
+          .getDdlCommand()
+          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false))
+          .orElseThrow(
+              () -> new IllegalStateException(
+                  "DdlResult should be present if there is no physical plan."));
+      return ExecuteResult.of(ddlResult);
+    }
 
-    final Optional<PersistentQueryMetadata> queryMetadata = plan.getQueryPlan()
-        .map(qp -> executePersistentQuery(qp, plan.getStatementText()));
-
-    return queryMetadata
-        .map(ExecuteResult::of)
-        .orElseGet(() -> ExecuteResult.of(ddlResult.get()));
+    final QueryPlan queryPlan = plan.getQueryPlan().get();
+    plan.getDdlCommand().map(ddl -> executeDdl(ddl, plan.getStatementText(), true));
+    return ExecuteResult.of(executePersistentQuery(queryPlan, plan.getStatementText()));
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty

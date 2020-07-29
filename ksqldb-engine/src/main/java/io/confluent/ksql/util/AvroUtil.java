@@ -25,7 +25,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import java.io.IOException;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 
 public final class AvroUtil {
 

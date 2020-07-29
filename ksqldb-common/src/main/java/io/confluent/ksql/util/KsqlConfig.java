@@ -64,7 +64,8 @@ public class KsqlConfig extends AbstractConfig {
   static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
 
-  public static final String METRIC_REPORTER_CLASSES_CONFIG = "ksql.metric.reporters";
+  public static final String METRIC_REPORTER_CLASSES_CONFIG =
+      CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG;
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
@@ -215,8 +216,10 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
       + "queries. Once the limit is hit, queries will fail immediately";
 
-  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
-      = ImmutableList.of();
+  public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
+  public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
+      "When casting a SQLType to string, if false, use String.valueof(), else if true use"
+          + "Objects.toString()";
 
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
       "ksql.streams.shutdown.timeout.ms";
@@ -289,6 +292,22 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED_DOC =
       "Feature flag for CREATE OR REPLACE";
 
+  public static final String KSQL_ENABLE_METASTORE_BACKUP = "ksql.enable.metastore.backup";
+  public static final Boolean KSQL_ENABLE_METASTORE_BACKUP_DEFAULT = false;
+  public static final String KSQL_ENABLE_METASTORE_BACKUP_DOC = "Enable the KSQL metastore "
+      + "backup service. The backup replays the KSQL command_topic to a file located in the "
+      + "same KSQL node.";
+
+  public static final String KSQL_METASTORE_BACKUP_LOCATION = "ksql.metastore.backup.location";
+  public static final String KSQL_METASTORE_BACKUP_LOCATION_DEFAULT = "";
+  public static final String KSQL_METASTORE_BACKUP_LOCATION_DOC = "Specify the directory where "
+      + "KSQL metastore backup files are located.";
+
+  public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
+  public static final String KSQL_SUPPRESS_ENABLED_DOC =
+      "Feature flag for suppression, specifically EMIT FINAL";
+
   // Defaults for config NOT defined by this class's ConfigDef:
   static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
       .<String, Object>builder()
@@ -301,6 +320,17 @@ public class KsqlConfig extends AbstractConfig {
     LEGACY,
     CURRENT
   }
+
+  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
+      = ImmutableList.of(new CompatibilityBreakingConfigDef(
+          KSQL_STRING_CASE_CONFIG_TOGGLE,
+          Type.BOOLEAN,
+          false,
+          true,
+          Importance.LOW,
+          Optional.empty(),
+          KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
+      ));
 
   public static class CompatibilityBreakingConfigDef {
 
@@ -673,6 +703,27 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_CREATE_OR_REPLACE_ENABLED_DOC
         )
+        .define(
+            KSQL_ENABLE_METASTORE_BACKUP,
+            Type.BOOLEAN,
+            KSQL_ENABLE_METASTORE_BACKUP_DEFAULT,
+            Importance.LOW,
+            KSQL_ENABLE_METASTORE_BACKUP_DOC
+        )
+        .define(
+            KSQL_METASTORE_BACKUP_LOCATION,
+            Type.STRING,
+            KSQL_METASTORE_BACKUP_LOCATION_DEFAULT,
+            Importance.LOW,
+            KSQL_METASTORE_BACKUP_LOCATION_DOC
+        )
+        .define(
+            KSQL_SUPPRESS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_SUPPRESS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_SUPPRESS_ENABLED_DOC
+        )
         .withClientSslSupport();
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
@@ -806,10 +857,7 @@ public class KsqlConfig extends AbstractConfig {
             + StreamsConfig.APPLICATION_ID_CONFIG,
         applicationId
     );
-    map.putAll(
-        addConfluentMetricsContextConfigsKafka(
-            Collections.emptyMap(),
-            getString(KSQL_SERVICE_ID_CONFIG)));
+    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
     return Collections.unmodifiableMap(map);
   }
 
@@ -824,33 +872,25 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
-    map.putAll(
-        addConfluentMetricsContextConfigsKafka(Collections.emptyMap(),
-        getString(KSQL_SERVICE_ID_CONFIG)));
+    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
-    map.putAll(
-        addConfluentMetricsContextConfigsKafka(Collections.emptyMap(),
-        getString(KSQL_SERVICE_ID_CONFIG)));
+    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> addConfluentMetricsContextConfigsKafka(
-      final Map<String,Object> props,
-      final String ksqlServiceId
+      final Map<String,Object> props
   ) {
     final Map<String, Object> updatedProps = new HashMap<>(props);
     final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+    updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());
-
-    updatedProps.putAll(
-        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServiceId));
-    updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     return updatedProps;
   }
 

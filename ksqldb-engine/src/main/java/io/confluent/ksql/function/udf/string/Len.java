@@ -14,12 +14,14 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 
 @UdfDescription(
     name = "len",
+    category = FunctionCategory.STRING,
     description = "Returns the length of the input string.")
 public class Len {
 

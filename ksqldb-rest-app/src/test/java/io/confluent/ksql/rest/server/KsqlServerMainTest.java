@@ -102,6 +102,7 @@ public class KsqlServerMainTest {
     final Capture<Runnable> captureShutdownHandler = newCapture();
     shutdownHandler.execute(capture(captureShutdownHandler));
     executable.notifyTerminated();
+    expectLastCall();
     replay(shutdownHandler, executable);
     main.tryStartApp();
     final Runnable handler = captureShutdownHandler.getValue();

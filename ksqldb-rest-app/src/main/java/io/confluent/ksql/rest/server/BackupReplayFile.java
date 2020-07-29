@@ -21,7 +21,6 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;

@@ -23,7 +23,6 @@ import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.utils.CustomerIdExamples;
 import io.confluent.support.metrics.utils.StringUtils;
 import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.HttpResponse;
 import org.junit.Test;
 
 public class ConfluentSubmitterTest {

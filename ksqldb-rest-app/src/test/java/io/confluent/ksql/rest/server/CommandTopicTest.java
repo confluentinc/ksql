@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
-
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;

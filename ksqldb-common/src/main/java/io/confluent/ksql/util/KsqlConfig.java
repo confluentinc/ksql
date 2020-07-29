@@ -308,6 +308,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
+  // Defaults for config NOT defined by this class's ConfigDef:
+  static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
+      .<String, Object>builder()
+      // Improve join predictability by generally allowing a second poll to ensure both sizes
+      // of a join have data. See https://github.com/confluentinc/ksql/issues/5537.
+      .put(KSQL_STREAMS_PREFIX + StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 500L)
+      .build();
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -792,7 +800,7 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
-    super(configDef(generation), props);
+    super(configDef(generation), addNonKsqlDefaults(props));
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
@@ -819,6 +827,12 @@ public class KsqlConfig extends AbstractConfig {
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+  }
+
+  private static Map<?, ?> addNonKsqlDefaults(final Map<?, ?> props) {
+    final Map<Object, Object> withDefaults = new HashMap<>(props);
+    NON_KSQL_DEFAULTS.forEach(withDefaults::putIfAbsent);
+    return withDefaults;
   }
 
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {

@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.errors.RetriableException;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.Test;
 
 public class ExecutorUtilTest {
@@ -81,7 +82,7 @@ public class ExecutorUtilTest {
 
   @Test
   public void shouldNotRetryOnNonRetriableException() throws Exception {
-    // Expect
+    // Given:
     final AtomicBoolean firstCall = new AtomicBoolean(true);
     final Callable<Object> throwsException = () -> {
       if (firstCall.get()) {
@@ -96,6 +97,30 @@ public class ExecutorUtilTest {
     final RuntimeException e = assertThrows(
         RuntimeException.class,
         () -> ExecutorUtil.executeWithRetries(throwsException, ON_RETRYABLE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("First non-retry exception"));
+  }
+
+  @Test
+  public void shouldNotRetryOnCustomRetryableDenied() throws Exception {
+    // Given:
+    final AtomicBoolean firstCall = new AtomicBoolean(true);
+    final Callable<Object> throwsException = () -> {
+      if (firstCall.get()) {
+        firstCall.set(false);
+        // this is a retryable exception usually
+        throw new UnknownTopicOrPartitionException("First non-retry exception");
+      } else {
+        throw new RuntimeException("Test should not retry");
+      }
+    };
+
+    // When:
+    final RuntimeException e = assertThrows(
+        UnknownTopicOrPartitionException.class,
+        () -> ExecutorUtil.executeWithRetries(throwsException, e2 -> !(e2 instanceof UnknownTopicOrPartitionException))
     );
 
     // Then:

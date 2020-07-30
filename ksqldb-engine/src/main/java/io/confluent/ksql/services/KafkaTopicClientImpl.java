@@ -170,7 +170,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
               ImmutableList.of(topic),
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
           ).values().get(topic).get(),
-          RetryBehaviour.ON_RETRYABLE
+          RetryBehaviour.ON_RETRYABLE.and(e -> !(e instanceof UnknownTopicOrPartitionException))
       );
       return true;
     } catch (final Exception e) {

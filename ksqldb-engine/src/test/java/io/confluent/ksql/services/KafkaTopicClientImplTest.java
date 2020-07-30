@@ -189,15 +189,14 @@ public class KafkaTopicClientImplTest {
     givenTopicExists("topicName", 1, 2);
 
     when(adminClient.describeTopics(any(), any()))
-        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second and third time, return the right response.
+        .thenAnswer(describeTopicsResult()) // checks that topic exists
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
+        .thenAnswer(describeTopicsResult()); // succeeds the third time
 
     // When:
     kafkaTopicClient.createTopic("topicName", 1, (short) 2);
 
     // Then:
-    // first two times are in the `isTopicExists` call and the second is in `describeTopic` when
-    // confirming the number of partitions
     verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
@@ -276,15 +275,14 @@ public class KafkaTopicClientImplTest {
     givenTopicExists("topicName", 1, 2);
 
     when(adminClient.describeTopics(any(), any()))
-        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second/third time, return the right response.
+        .thenAnswer(describeTopicsResult()) // checks that topic exists
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
+        .thenAnswer(describeTopicsResult()); // succeeds the third time
 
     // When:
     kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2);
 
     // Then:
-    // first two times are in the `isTopicExists` call and the second is in `describeTopic` when
-    // confirming the number of partitions
     verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
@@ -712,6 +710,15 @@ public class KafkaTopicClientImplTest {
 
     // Then
     verify(adminClient, never()).listTopics();
+  }
+
+  @Test
+  public void shouldNotRetryIsTopicExistsOnUnknownTopicException() {
+    // When
+    kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    verify(adminClient, times(1)).describeTopics(any(), any());
   }
 
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {

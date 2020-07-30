@@ -131,7 +131,6 @@ public class StandaloneExecutorFunctionalTest {
   @After
   public void tearDown() throws Exception {
     standalone.shutdown();
-    standalone.awaitTerminated();
   }
 
   @Test

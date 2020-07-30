@@ -268,6 +268,7 @@ class KafkaEmbedded {
     return config.getProperty(KafkaConfig.LogDirProp());
   }
 
+  @SuppressWarnings("deprecation")
   private AdminClient adminClient() {
     final ImmutableMap<String, Object> props = ImmutableMap.of(
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),

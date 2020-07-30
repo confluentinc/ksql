@@ -246,6 +246,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    *
    * @return base set of producer properties.
    */
+  @SuppressWarnings("deprecation")
   public Map<String, Object> producerConfig() {
     final Map<String, Object> config = new HashMap<>(getClientProperties());
     config.put(ProducerConfig.ACKS_CONFIG, "all");
@@ -623,6 +624,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     Configuration.setConfiguration(null);
   }
 
+  @SuppressWarnings("deprecation")
   private AdminClient adminClient() {
     final Map<String, Object> props = new HashMap<>(getClientProperties());
     props.put(AdminClientConfig.RETRIES_CONFIG, 5);

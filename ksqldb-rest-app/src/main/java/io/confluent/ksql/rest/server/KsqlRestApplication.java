@@ -128,7 +128,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -169,7 +169,6 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<HeartbeatAgent> heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
   private final PullQueryExecutor pullQueryExecutor;
-  private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
   private final ServerInfoResource serverInfoResource;
   private final Optional<HeartbeatResource> heartbeatResource;
   private final Optional<ClusterStatusResource> clusterStatusResource;
@@ -185,7 +184,7 @@ public final class KsqlRestApplication implements Executable {
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
-  private volatile Thread startAsyncThread;
+  private AtomicReference<Thread> startAsyncThreadRef = new AtomicReference<>(null);
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -305,7 +304,7 @@ public final class KsqlRestApplication implements Executable {
         pullQueryExecutor
     );
 
-    startAsyncThread = Thread.currentThread();
+    startAsyncThreadRef.set(Thread.currentThread());
     try {
       final Endpoints endpoints = new KsqlServerEndpoints(
           ksqlEngine,
@@ -340,7 +339,7 @@ public final class KsqlRestApplication implements Executable {
     } catch (AbortApplicationStartException e) {
       log.error("Aborting application start", e);
     } finally {
-      startAsyncThread = null;
+      startAsyncThreadRef.set(null);
     }
   }
 
@@ -392,14 +391,14 @@ public final class KsqlRestApplication implements Executable {
           1000,
           30000,
           this::checkPreconditions,
-          shuttingDown::get,
+          terminatedFuture::isDone,
           predicates
       );
     } catch (KsqlFailedPrecondition e) {
       log.error("Failed to meet preconditions. Exiting...", e);
     }
 
-    if (shuttingDown.get()) {
+    if (terminatedFuture.isDone()) {
       throw new AbortApplicationStartException(
           "Shutting down application during waitForPreconditions");
     }
@@ -441,17 +440,19 @@ public final class KsqlRestApplication implements Executable {
     serverState.setReady();
   }
 
-  @SuppressWarnings("checkstyle:NPathComplexity")
   @Override
-  public void triggerShutdown() {
-    log.debug("ksqlDB triggerShutdown called");
-    // First, make sure the server wasn't stuck in startup.  Set the shutdown flag and interrupt the
-    // startup thread if it's been hanging.
-    shuttingDown.set(true);
+  public void notifyTerminated() {
+    terminatedFuture.complete(null);
+    final Thread startAsyncThread = startAsyncThreadRef.get();
     if (startAsyncThread != null) {
       startAsyncThread.interrupt();
     }
+  }
 
+  @SuppressWarnings("checkstyle:NPathComplexity")
+  @Override
+  public void shutdown() {
+    log.info("ksqlDB shutdown called");
     try {
       streamedQueryResource.closeMetrics();
     } catch (final Exception e) {
@@ -496,9 +497,7 @@ public final class KsqlRestApplication implements Executable {
 
     shutdownAdditionalAgents();
 
-    log.debug("ksqlDB triggerShutdown complete");
-
-    terminatedFuture.complete(null);
+    log.info("ksqlDB shutdown complete");
   }
 
   @Override

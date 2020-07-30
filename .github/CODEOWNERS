@@ -1,6 +1,6 @@
 # assign ksql team as reviewers for all PRs:
-*       @confluentinc/ksql
+*          @confluentinc/ksql
 
 # Docs also need a review by Jim:
-docs/   @confluentinc/ksql @JimGalasyn
-docs-md/   @confluentinc/ksql @JimGalasyn
+docs/      @confluentinc/ksql @JimGalasyn
+mkdocs.yml @confluentinc/ksql @JimGalasyn

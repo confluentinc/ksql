@@ -43,7 +43,7 @@ mkdir confluent-hub-components
 Run the following command to get the [Voluble](https://github.com/MichaelDrogalis/voluble) data generator connector:
 
 ```
-confluent-hub install --component-dir confluent-hub-components --no-prompt mdrogalis/voluble:0.3.0
+confluent-hub install --component-dir confluent-hub-components --no-prompt mdrogalis/voluble:{{ site.voluble_version }}
 ```
 
 After running this command, `confluent-hub-components` should contain the Voluble jars. If you are running in clustered mode, you must install the connector on every server.

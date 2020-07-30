@@ -32,6 +32,7 @@
 * configure topic retention based on retention clause for windowed tables ([#5835](https://github.com/confluentinc/ksql/pull/5835)) ([b509c99](https://github.com/confluentinc/ksql/commit/b509c99))
 * set Schema Registry port in tutorials docker compose ([f46d358](https://github.com/confluentinc/ksql/commit/f46d358))
 * close query on invalid use of HTTP/2 with /query endpoint ([#5883](https://github.com/confluentinc/ksql/pull/5883)) ([bcab116](https://github.com/confluentinc/ksql/commit/bcab116))
+* adds a handler to gracefully shutdown ([#5895](https://github.com/confluentinc/ksql/pull/5895)) ([5fbf171](https://github.com/confluentinc/ksql/commit/5fbf171))
 
 ### BREAKING CHANGES
 

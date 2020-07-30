@@ -1,7 +1,7 @@
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.11.0"  // next version to be released
+    ksql_db_version = "0.12.0"  // next version to be released
     cp_version = "6.1.0-beta200715032424"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master'
@@ -27,7 +27,7 @@ def defaultParams = [
         description: 'Promote images to production (DockerHub) for release build images only.'),
     string(name: 'KSQLDB_VERSION',
         defaultValue: '',
-        description: 'KSQLDB version to promote to production.'),
+        description: 'If PROMOTE_TO_PRODUCTION, ksqlDB version to promote to production. Else, override the ksql_db_version defined in the Jenkinsfile, representing the next version to be released.'),
     booleanParam(name: 'UPDATE_LATEST_TAG',
         defaultValue: false,
         description: 'Should the latest tag on docker hub be updated to point at this new image version. Only relevant if PROMOTE_TO_PRODUCTION is true.')
@@ -66,6 +66,11 @@ def job = {
     }
 
     config.release = params.RELEASE_BUILD
+
+    // Use ksqlDB version param if provided
+    if (params.KSQLDB_VERSION != '') {
+        config.ksql_db_version = params.KSQLDB_VERSION
+    }
 
     if (config.release) {
         // For a release build check out the provided git sha instead of the master branch.

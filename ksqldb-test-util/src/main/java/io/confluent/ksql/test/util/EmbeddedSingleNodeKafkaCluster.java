@@ -246,11 +246,10 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    *
    * @return base set of producer properties.
    */
-  @SuppressWarnings("deprecation")
   public Map<String, Object> producerConfig() {
     final Map<String, Object> config = new HashMap<>(getClientProperties());
     config.put(ProducerConfig.ACKS_CONFIG, "all");
-    config.put(ProducerConfig.RETRIES_CONFIG, 10);
+    config.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 60_000);
     return config;
   }
 
@@ -624,10 +623,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     Configuration.setConfiguration(null);
   }
 
-  @SuppressWarnings("deprecation")
   private AdminClient adminClient() {
     final Map<String, Object> props = new HashMap<>(getClientProperties());
-    props.put(AdminClientConfig.RETRIES_CONFIG, 5);
+    props.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 60_000);
     props.putAll(SecureKafkaHelper.getSecureCredentialsConfig(INTER_BROKER_USER));
 
     return AdminClient.create(props);

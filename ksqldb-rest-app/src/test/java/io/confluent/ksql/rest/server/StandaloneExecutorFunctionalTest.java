@@ -130,8 +130,7 @@ public class StandaloneExecutorFunctionalTest {
 
   @After
   public void tearDown() throws Exception {
-    standalone.triggerShutdown();
-    standalone.awaitTerminated();
+    standalone.shutdown();
   }
 
   @Test

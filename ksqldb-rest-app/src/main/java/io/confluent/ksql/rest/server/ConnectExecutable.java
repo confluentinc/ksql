@@ -21,6 +21,7 @@ import java.net.BindException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.cli.ConnectDistributed;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -35,6 +36,7 @@ public final class ConnectExecutable implements Executable {
   private final ConnectDistributed connectDistributed;
   private final Map<String, String> workerProps;
   private Connect connect;
+  private final CountDownLatch terminateLatch = new CountDownLatch(1);
 
   public static ConnectExecutable of(final String configFile) throws IOException {
     final Map<String, String> workerProps = !configFile.isEmpty()
@@ -64,16 +66,19 @@ public final class ConnectExecutable implements Executable {
   }
 
   @Override
-  public void triggerShutdown() {
+  public void shutdown() {
     if (connect != null) {
       connect.stop();
     }
   }
 
   @Override
-  public void awaitTerminated() {
-    if (connect != null) {
-      connect.awaitStop();
-    }
+  public void notifyTerminated() {
+    terminateLatch.countDown();
+  }
+
+  @Override
+  public void awaitTerminated() throws InterruptedException {
+    terminateLatch.await();
   }
 }

@@ -363,8 +363,7 @@ public class StandaloneExecutorTest {
     // Then:
     verify(versionChecker).start(eq(KsqlModuleType.SERVER), captor.capture());
     assertThat(captor.getValue().getProperty("confluent.support.metrics.enable"), equalTo("false"));
-    standaloneExecutor.triggerShutdown();
-    standaloneExecutor.awaitTerminated();
+    standaloneExecutor.shutdown();
   }
 
   @Test
@@ -714,7 +713,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldCloseEngineOnStop() {
     // When:
-    standaloneExecutor.triggerShutdown();
+    standaloneExecutor.shutdown();
 
     // Then:
     verify(ksqlEngine).close();
@@ -723,7 +722,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldCloseServiceContextOnStop() {
     // When:
-    standaloneExecutor.triggerShutdown();
+    standaloneExecutor.shutdown();
 
     // Then:
     verify(serviceContext).close();

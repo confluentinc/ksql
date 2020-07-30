@@ -21,19 +21,24 @@ package io.confluent.ksql.rest.server;
 public interface Executable {
 
   /**
-   * Starts the executable asynchronously.
+   * Starts the executable asynchronously. Guaranteed to be called before shutdown.
    */
   default void startAsync() throws Exception {}
 
   /**
-   * Triggers a shutdown asynchronously, in order to ensure that the shutdown
-   * has finished use {@link #awaitTerminated()}
+   * Called to notify threads awaiting termination (see #awaitTerminated)
+   * that it's time to shutdown.
    */
-  default void triggerShutdown() throws Exception {}
+  default void notifyTerminated() {}
 
   /**
-   * Awaits the {@link #triggerShutdown()} to finish. This is a blocking
-   * operation.
+   * Shutdown the service.
+   */
+  default void shutdown() throws Exception {}
+
+  /**
+   * Awaits the {@link #notifyTerminated()} notification. This is a blocking
+   * operation. Guaranteed to be called before shutdown.
    */
   default void awaitTerminated() throws InterruptedException {}
 }

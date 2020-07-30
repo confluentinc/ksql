@@ -82,7 +82,7 @@ public class ExecutorUtilTest {
 
   @Test
   public void shouldNotRetryOnNonRetriableException() throws Exception {
-    // Expect
+    // Given:
     final AtomicBoolean firstCall = new AtomicBoolean(true);
     final Callable<Object> throwsException = () -> {
       if (firstCall.get()) {
@@ -105,7 +105,7 @@ public class ExecutorUtilTest {
 
   @Test
   public void shouldNotRetryOnCustomRetryableDenied() throws Exception {
-    // Expect
+    // Given:
     final AtomicBoolean firstCall = new AtomicBoolean(true);
     final Callable<Object> throwsException = () -> {
       if (firstCall.get()) {
@@ -119,7 +119,7 @@ public class ExecutorUtilTest {
 
     // When:
     final RuntimeException e = assertThrows(
-        RuntimeException.class,
+        UnknownTopicOrPartitionException.class,
         () -> ExecutorUtil.executeWithRetries(throwsException, e2 -> !(e2 instanceof UnknownTopicOrPartitionException))
     );
 

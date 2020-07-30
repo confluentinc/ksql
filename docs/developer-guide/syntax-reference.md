@@ -29,6 +29,16 @@ For a summary of supported SQL statements and keywords, see the
   unparseable by ksqlDB or when you want to control case. For more information,
   see [How to control the case of identifiers](../how-to-guides/control-the-case-of-identifiers.md).
 
+### Statement parser
+
+The ksqlDB statement parser is based on [ANTLR](https://www.antlr.org/)
+and is implemented in the
+[io.confluent.ksql.parser](https://github.com/confluentinc/ksql/tree/master/ksqldb-parser/src/main)
+package. The grammar is defined in
+[SqlBase.g4](https://github.com/confluentinc/ksql/blob/master/ksqldb-parser/src/main/antlr4/io/confluent/ksql/parser/SqlBase.g4).
+For more information, see
+[ANTLR Grammar Structure](https://github.com/antlr/antlr4/blob/master/doc/grammars.md).
+
 ## Terminology
 
 ksqlDB SQL uses standard relational database terminology and extends it for

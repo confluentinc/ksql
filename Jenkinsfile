@@ -17,7 +17,7 @@ def baseConfig = {
 
 def defaultParams = [
     booleanParam(name: 'RELEASE_BUILD',
-        description: 'Is this a release build. If so, GIT_REVISION must be specified, and the downstream CCloud job will not be triggered.',
+        description: 'Is this a release build. If so, GIT_REVISION and KSQLDB_VERSION must be specified, and the downstream CCloud job will not be triggered.',
         defaultValue: false),
     string(name: 'GIT_REVISION',
         description: 'The git SHA to build ksqlDB from.',
@@ -58,6 +58,11 @@ def job = {
     if (params.RELEASE_BUILD && params.GIT_REVISION == '') {
         currentBuild.result = 'ABORTED'
         error("You must provide the GIT_REVISION when doing a release build.")
+    }
+
+    if (params.RELEASE_BUILD && params.KSQLDB_VERSION == '') {
+        currentBuild.result = 'ABORTED'
+        error("You must provide the KSQLDB_VERSION when doing a release build.")
     }
 
     if (params.PROMOTE_TO_PRODUCTION && params.KSQLDB_VERSION == '') {

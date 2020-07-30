@@ -53,6 +53,7 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
@@ -170,7 +171,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
               ImmutableList.of(topic),
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
           ).values().get(topic).get(),
-          RetryBehaviour.ON_RETRYABLE
+          RetryBehaviour.ON_RETRYABLE.and(e -> !(e instanceof UnknownTopicOrPartitionException))
       );
       return true;
     } catch (final Exception e) {

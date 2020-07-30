@@ -714,6 +714,15 @@ public class KafkaTopicClientImplTest {
     verify(adminClient, never()).listTopics();
   }
 
+  @Test
+  public void shouldNotRetryIsTopicExistsOnUnknownTopicException() {
+    // When
+    kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    verify(adminClient, times(1)).describeTopics(any(), any());
+  }
+
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {
     final ConfigEntry config = mock(ConfigEntry.class);
     when(config.name()).thenReturn(key);

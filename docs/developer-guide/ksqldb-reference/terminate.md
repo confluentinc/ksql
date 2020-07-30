@@ -27,9 +27,3 @@ they are explicitly terminated.
     queries.
 
 To terminate a non-persistent query, use Ctrl+C in the CLI.
-
-Example
--------
-
-TODO: example
-

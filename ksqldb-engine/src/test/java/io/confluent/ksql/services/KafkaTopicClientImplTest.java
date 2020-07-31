@@ -721,6 +721,19 @@ public class KafkaTopicClientImplTest {
     verify(adminClient, times(1)).describeTopics(any(), any());
   }
 
+  @Test
+  public void shouldNotThrowIsTopicExistsOnAuthorizationException() {
+    // Given
+    when(adminClient.describeTopics(eq(ImmutableList.of("foobar")), any()))
+        .thenAnswer(describeTopicsResult(new TopicAuthorizationException("foobar")));
+
+    // When
+    final boolean topicExists = kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    assertThat(topicExists, is(false));
+  }
+
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {
     final ConfigEntry config = mock(ConfigEntry.class);
     when(config.name()).thenReturn(key);

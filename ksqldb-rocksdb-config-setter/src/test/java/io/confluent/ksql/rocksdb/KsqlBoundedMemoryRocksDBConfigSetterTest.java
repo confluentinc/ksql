@@ -56,13 +56,16 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
   private static final long CACHE_SIZE = 16 * 1024 * 1024 * 1024L;
   private static final long WRITE_BUFFER_SIZE = 8 * 1024 * 1024 * 1024L;
   private static final int NUM_BACKGROUND_THREADS = 4;
+  private static final int STATS_DUMP_PERIOD_SECONDS = 123;
 
-  private static final Map<String, Object> CONFIG_PROPS = new HashMap<>(ImmutableMap.of(
-      "ksql.plugins.rocksdb.cache.size", CACHE_SIZE,
-      "ksql.plugins.rocksdb.write.buffer.size", WRITE_BUFFER_SIZE,
-      "ksql.plugins.rocksdb.write.buffer.cache.use", true,
-      "ksql.plugns.rocksdb.cache.limit.strict", false,
-      "ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS)
+  private static final Map<String, Object> CONFIG_PROPS = new HashMap<>(ImmutableMap.<String, Object>builder()
+      .put("ksql.plugins.rocksdb.cache.size", CACHE_SIZE)
+      .put("ksql.plugins.rocksdb.write.buffer.size", WRITE_BUFFER_SIZE)
+      .put("ksql.plugins.rocksdb.write.buffer.cache.use", true)
+      .put("ksql.plugns.rocksdb.cache.limit.strict", false)
+      .put("ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS)
+      .put("ksql.plugins.rocksdb.stats.dump.period.seconds", 123)
+      .build()
   );
 
   @Mock
@@ -170,7 +173,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
 
     // Then:
     verify(rocksOptions).setWriteBufferManager(bufferManager);
-    verify(rocksOptions).setStatsDumpPeriodSec(0);
+    verify(rocksOptions).setStatsDumpPeriodSec(123);
     verify(rocksOptions).setTableFormatConfig(tableConfig);
 
     verify(tableConfig).setBlockCache(blockCache);

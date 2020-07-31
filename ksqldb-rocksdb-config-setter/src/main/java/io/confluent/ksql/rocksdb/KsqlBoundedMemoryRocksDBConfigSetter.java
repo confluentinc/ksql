@@ -37,6 +37,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
   private static org.rocksdb.Cache cache;
   private static org.rocksdb.WriteBufferManager writeBufferManager;
   private static final AtomicBoolean configured = new AtomicBoolean(false);
+  private static int statsDumpPeriodSec;
 
   @Override
   public void configure(final Map<String, ?> config) {
@@ -65,6 +66,8 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
 
       limitTotalMemory(pluginConfig, cacheFactory, bufferManagerFactory);
       configureNumThreads(pluginConfig, options);
+      statsDumpPeriodSec = pluginConfig.getInt(
+          KsqlBoundedMemoryRocksDBConfig.STATS_DUMP_PERIOD_CONFIG);
     } catch (final IllegalArgumentException e) {
       reset();
       throw e;
@@ -139,7 +142,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
     tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
     tableConfig.setPinTopLevelIndexAndFilter(true);
 
-    options.setStatsDumpPeriodSec(0);
+    options.setStatsDumpPeriodSec(statsDumpPeriodSec);
 
     options.setTableFormatConfig(tableConfig);
   }

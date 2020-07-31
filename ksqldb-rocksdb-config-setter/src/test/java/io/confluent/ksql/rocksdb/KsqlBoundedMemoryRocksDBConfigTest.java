@@ -106,4 +106,20 @@ public class KsqlBoundedMemoryRocksDBConfigTest {
         pluginConfig.getDouble(KsqlBoundedMemoryRocksDBConfig.INDEX_FILTER_BLOCK_RATIO_CONFIG),
         is(0.0));
   }
+
+  @Test
+  public void shouldDefaultStatsDumpRatioConfig() {
+    // Given:
+    final Map<String, Object> configs = ImmutableMap.of(
+        "ksql.plugins.rocksdb.cache.size", CACHE_SIZE
+    );
+
+    // When:
+    final KsqlBoundedMemoryRocksDBConfig pluginConfig = new KsqlBoundedMemoryRocksDBConfig(configs);
+
+    // Then:
+    assertThat(
+        pluginConfig.getDouble(KsqlBoundedMemoryRocksDBConfig.STATS_DUMP_PERIOD_CONFIG),
+        is(0));
+  }
 }

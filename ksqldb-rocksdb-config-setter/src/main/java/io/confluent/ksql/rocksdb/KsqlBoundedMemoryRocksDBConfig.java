@@ -56,6 +56,13 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
       "Percentage of the RocksDB block cache to set aside for high-priority entries, i.e., "
       + "index and filter blocks.";
 
+  public static final String STATS_DUMP_PERIOD_CONFIG =
+      CONFIG_PREFIX + "stats.dump.period.seconds";
+  private static final int STATS_DUMP_PERIOD_DEFAULT = 0;
+  private static final String STATS_DUMP_PERIOD_DOC =
+      "Frequency at which to dump stats to the rocksdb log. Defaults to 0, which disables"
+          + "dumping stats.";
+
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
           BLOCK_CACHE_SIZE,
@@ -92,7 +99,13 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
           Type.DOUBLE,
           INDEX_FILTER_BLOCK_RATIO_DEFAULT,
           Importance.LOW,
-          INDEX_FILTER_BLOCK_RATIO_DOC
+          INDEX_FILTER_BLOCK_RATIO_DOC)
+      .define(
+          STATS_DUMP_PERIOD_CONFIG,
+          Type.INT,
+          STATS_DUMP_PERIOD_DEFAULT,
+          Importance.LOW,
+          STATS_DUMP_PERIOD_DOC
       );
 
   public KsqlBoundedMemoryRocksDBConfig(final Map<?, ?> properties) {

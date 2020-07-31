@@ -158,8 +158,10 @@ public class QueryMonitor implements Closeable {
 
         try {
           Thread.sleep(500);
-        } catch (final Exception e) {
-          // ignore.
+        } catch (final InterruptedException e) {
+          LOG.info("QueryMonitor sleep thread interrupted. Terminating QueryMonitor. Error = {}",
+              e.getMessage());
+          break;
         }
       }
     }

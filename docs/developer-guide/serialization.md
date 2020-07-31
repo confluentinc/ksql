@@ -63,7 +63,7 @@ ksqlDB splits a value of `120, bob, 49` into the three fields with `ID` of
 `120`, `NAME` of `bob` and `AGE` of `49`.
 
 This data format supports all SQL
-[data types](syntax-reference.md#ksqldb-data-types) except `ARRAY`, `MAP` and
+[data types](syntax-reference.md#data-types) except `ARRAY`, `MAP` and
 `STRUCT`.
 
 ### JSON
@@ -71,7 +71,7 @@ This data format supports all SQL
 The `JSON` format supports JSON values.
 
 The JSON format supports all SQL
-[data types](syntax-reference.md#ksqldb-data-types).
+[data types](syntax-reference.md#data-types).
 As JSON doesn't itself support a map type, ksqlDB serializes `MAP` types as
 JSON objects. Because of this the JSON format can only support `MAP` objects
 that have `STRING` keys.
@@ -146,7 +146,7 @@ used.
 ### Avro
 
 The `AVRO` format supports Avro binary serialization of all SQL
-[data types](syntax-reference.md#ksqldb-data-types), including records and
+[data types](syntax-reference.md#data-types), including records and
 top-level primitives, arrays, and maps.
 
 The format requires ksqlDB to be configured to store and retrieve the Avro

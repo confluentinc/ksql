@@ -19,6 +19,15 @@ import io.confluent.ksql.util.ErrorMessageUtil;
 
 public class DefaultErrorMessages implements ErrorMessages {
 
+  static String COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE =
+      "DDL command failed to be sent to command topic,"
+          + " the CommandRunner is in a DEGRADED state currently."
+          + System.lineSeparator()
+          + "This can happen when it encounters an incompatible command "
+          + "when processing the command topic."
+          + System.lineSeparator()
+          + "Check the server logs for more details.";
+
   @Override
   public String kafkaAuthorizationErrorMessage(final Exception e) {
     return ErrorMessageUtil.buildErrorMessage(e);
@@ -41,5 +50,10 @@ public class DefaultErrorMessages implements ErrorMessages {
   @Override
   public String schemaRegistryUnconfiguredErrorMessage(final Exception e) {
     return ErrorMessageUtil.buildErrorMessage(e);
+  }
+
+  @Override
+  public String commandRunnerDegradedErrorMessage() {
+    return COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE;
   }
 }

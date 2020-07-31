@@ -107,6 +107,8 @@ public class DistributingExecutorTest {
   @Mock
   private CommandQueue queue;
   @Mock
+  private CommandRunner commandRunner;
+  @Mock
   private QueuedCommandStatus status;
   @Mock
   private ServiceContext serviceContext;
@@ -140,6 +142,7 @@ public class DistributingExecutorTest {
     scnCounter = new AtomicLong();
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(commandRunner.getCommandQueue()).thenReturn(queue);
     when(queue.enqueueCommand(any(), any(), any())).thenReturn(status);
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
@@ -155,7 +158,7 @@ public class DistributingExecutorTest {
 
     distributor = new DistributingExecutor(
         KSQL_CONFIG,
-        queue,
+        commandRunner,
         DURATION_10_MS,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         Optional.of(authorizationValidator),
@@ -223,6 +226,18 @@ public class DistributingExecutorTest {
     // Then:
     assertThat(commandStatusEntity,
         equalTo(new CommandStatusEntity("", CS_COMMAND, SUCCESS_STATUS, 1L)));
+  }
+
+  @Test
+  public void shouldNotInitTransactionWhenCommandRunnerDegraded() {
+    // When:
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.DEGRADED);
+
+    // Then:
+    assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
   }
 
   @Test

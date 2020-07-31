@@ -227,7 +227,7 @@ public class RecoveryTest {
 
       this.ksqlResource = new KsqlResource(
           ksqlEngine,
-          fakeCommandQueue,
+          commandRunner,
           Duration.ofMillis(0),
           ()->{},
           Optional.of((sc, metastore, statement) -> { }),

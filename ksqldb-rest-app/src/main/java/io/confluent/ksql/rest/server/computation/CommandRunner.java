@@ -341,6 +341,10 @@ public class CommandRunner implements Closeable {
     return compatibleCommands;
   }
 
+  public CommandQueue getCommandQueue() {
+    return commandStore;
+  }
+
   private class Runner implements Runnable {
 
     @Override

@@ -51,6 +51,7 @@ import org.apache.kafka.common.errors.TimeoutException;
  */
 public class DistributingExecutor {
   private final CommandQueue commandQueue;
+  private final CommandRunner commandRunner;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
@@ -61,14 +62,15 @@ public class DistributingExecutor {
 
   public DistributingExecutor(
       final KsqlConfig ksqlConfig,
-      final CommandQueue commandQueue,
+      final CommandRunner commandRunner,
       final Duration distributedCmdResponseTimeout,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final ValidatedCommandFactory validatedCommandFactory,
       final Errors errorHandler
   ) {
-    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
+    this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");;
+    this.commandQueue = commandRunner.getCommandQueue();
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
@@ -99,6 +101,9 @@ public class DistributingExecutor {
       final KsqlExecutionContext executionContext,
       final KsqlSecurityContext securityContext
   ) {
+    if (commandRunner.checkCommandRunnerStatus() == CommandRunner.CommandRunnerStatus.DEGRADED) {
+      throw new KsqlServerException(errorHandler.commandRunnerDegradedErrorMessage());
+    }
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, securityContext.getServiceContext())
         .inject(statement);

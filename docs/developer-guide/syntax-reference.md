@@ -29,7 +29,7 @@ For a summary of supported SQL statements and keywords, see the
   unparseable by ksqlDB or when you want to control case. For more information,
   see [How to control the case of identifiers](../how-to-guides/control-the-case-of-identifiers.md).
 
-### Statement parser
+### Statement parser and grammar
 
 The ksqlDB statement parser is based on [ANTLR](https://www.antlr.org/)
 and is implemented in the
@@ -79,7 +79,39 @@ in a topic on the {{ site.ak }} brokers.
 Create a table by using the [CREATE TABLE](./ksqldb-reference/create-table.md)
 or [CREATE TABLE AS SELECT](./ksqldb-reference/create-table-as-select.md) statements.
 
-### ksqlDB Time Units
+### Join
+
+You can use ksqlDB to merge streams of events in real time by using the JOIN
+statement, which has a SQL join syntax. A ksqlDB join and a relational
+database join are similar in that they both combine data from two or more sources
+based on common values. The result of a ksqlDB join is a new stream or table
+that's populated with the column values that you specify in a SELECT statement.
+
+For more information, see [Joins](joins/index.md).
+
+### Aggregation
+
+ksqlDB supports several aggregate functions, like COUNT and SUM. You can
+use these to build stateful aggregates on streaming data. For the full
+list, see [Aggregate functions](ksqldb-reference/aggregate-functions.md).
+
+You can create your own aggregation logic by implementing a User Defined
+Aggregation Function (UDAF). For more information, see
+[UDAFs](../concepts/functions.md#udafs).
+
+### Window
+
+The WINDOW clause controls how to group input records that have the same key
+into a *window*, for operations like aggregations or joins. Windows are tracked
+per record key.
+
+Windowing adds two additional system columns to the data, which provide
+the window bounds: `WINDOWSTART` and `WINDOWEND`.
+
+For more information, see
+[Time and Windows](../concepts/time-and-windows-in-ksqldb-queries.md).
+
+### Time units
 
 The following list shows valid time units for the SIZE, ADVANCE BY,
 SESSION, and WITHIN clauses.
@@ -91,9 +123,9 @@ SESSION, and WITHIN clauses.
 -   MILLISECOND, MILLISECONDS
 
 For more information, see
-[Windows in ksqlDB Queries](../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
+[Windows in SQL Queries](../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
 
-### ksqlDB Timestamp Formats
+### Timestamp formats
 
 Time-based operations, like windowing, process records according to the
 timestamp in `ROWTIME`. By default, the implicit `ROWTIME` pseudo column is the
@@ -146,71 +178,12 @@ CREATE STREAM TEST (id BIGINT KEY, event_timestamp VARCHAR)
 For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
-## ksqlDB CLI Commands
-
-The ksqlDB CLI commands can be run after
-[starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli).
-You can view the ksqlDB CLI help by running
-`<path-to-confluent>/bin/ksql --help`.
-
-!!! tip
-      You can search and browse your command history in the ksqlDB CLI
-      with `Ctrl-R`. After pressing `Ctrl-R`, start typing the command or any
-      part of the command to show an auto-complete of past commands.
-
-```
-NAME
-        ksql - KSQL CLI
-
-SYNOPSIS
-        ksql [ --config-file <configFile> ] [ {-h | --help} ]
-                [ --output <outputFormat> ]
-                [ --query-row-limit <streamedQueryRowLimit> ]
-                [ --query-timeout <streamedQueryTimeoutMs> ] [--] <server>
-
-OPTIONS
-        --config-file <configFile>
-            A file specifying configs for Ksql and its underlying Kafka Streams
-            instance(s). Refer to KSQL documentation for a list of available
-            configs.
-
-        -h, --help
-            Display help information
-
-        --output <outputFormat>
-            The output format to use (either 'JSON' or 'TABULAR'; can be changed
-            during REPL as well; defaults to TABULAR)
-
-        --query-row-limit <streamedQueryRowLimit>
-            An optional maximum number of rows to read from streamed queries
-
-            This options value must fall in the following range: value >= 1
-
-
-        --query-timeout <streamedQueryTimeoutMs>
-            An optional time limit (in milliseconds) for streamed queries
-
-            This options value must fall in the following range: value >= 1
-
-
-        --
-            This option can be used to separate command-line options from the
-            list of arguments (useful when arguments might be mistaken for
-            command-line options)
-
-        <server>
-            The address of the Ksql server to connect to (ex:
-            http://confluent.io:9098)
-
-            This option may occur a maximum of 1 times
-```
-
-## ksqlDB data types
+## Data types
 
 ksqlDB supports the following data types. For information on how ksqlDB
 serializes different data types, see [ksqlDB Serialization](serialization.md).
 
-### Primitive Types
+### Primitive types
 
 ksqlDB supports the following primitive data types:
 
@@ -448,7 +421,7 @@ CREATE STREAM `foo-too` AS SELECT * FROM `foo-bar`;
 
 ## Key Requirements
 
-### Message Keys
+### Message keys
 
 The `CREATE STREAM` and `CREATE TABLE` statements define streams and tables over data in 
 {{ site.ak }} topics. They allow you to specify which columns should be read from the Kafka message
@@ -503,17 +476,14 @@ the value data, and *one* of the following statements is true:
 -   It's acceptable for the messages in the topic to be re-ordered before
     being inserted into the table.
 
-First create a stream which you'll use to have ksqlDB write the message
-key, and then declare the table on the output topic of this stream.
+Create a stream that writes the message key, and declare the table on the
+output topic of this stream.
 
-Example:
-
--   Goal: You want to create a table from a topic, which is keyed by
-    userid of type INT.
--   Problem: The required key is present as a column (aptly named
-    `userid`) in the message value as a string containing the integer,
-    but the actual message key in {{ site.ak }} contains the userId in
-    a format ksqlDB does not recognise.
+For example, imagine that you need to create a table from a topic that's keyed
+by a `userid` of type INT. But the required key is in the message _value_ as a
+column named `userid`, which is a string containing the integer, and the
+_actual_ message key in {{ site.ak }} contains the `userId` in a format that
+ksqlDB doesn't recognize.
 
 ```sql
 -- Create a stream on the original topic without a KEY columns:
@@ -579,3 +549,62 @@ CREATE TABLE users_table_2 (
 
 For more information, see
 [Partition Data to Enable Joins](joins/partition-data.md).
+
+## ksqlDB CLI commands
+
+The ksqlDB CLI commands can be run after
+[starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli).
+You can view the ksqlDB CLI help by running
+`<path-to-confluent>/bin/ksql --help`.
+
+!!! tip
+      You can search and browse your command history in the ksqlDB CLI
+      with `Ctrl-R`. After pressing `Ctrl-R`, start typing the command or any
+      part of the command to show an auto-complete of past commands.
+
+```
+NAME
+        ksql - KSQL CLI
+
+SYNOPSIS
+        ksql [ --config-file <configFile> ] [ {-h | --help} ]
+                [ --output <outputFormat> ]
+                [ --query-row-limit <streamedQueryRowLimit> ]
+                [ --query-timeout <streamedQueryTimeoutMs> ] [--] <server>
+
+OPTIONS
+        --config-file <configFile>
+            A file specifying configs for Ksql and its underlying Kafka Streams
+            instance(s). Refer to KSQL documentation for a list of available
+            configs.
+
+        -h, --help
+            Display help information
+
+        --output <outputFormat>
+            The output format to use (either 'JSON' or 'TABULAR'; can be changed
+            during REPL as well; defaults to TABULAR)
+
+        --query-row-limit <streamedQueryRowLimit>
+            An optional maximum number of rows to read from streamed queries
+
+            This options value must fall in the following range: value >= 1
+
+
+        --query-timeout <streamedQueryTimeoutMs>
+            An optional time limit (in milliseconds) for streamed queries
+
+            This options value must fall in the following range: value >= 1
+
+
+        --
+            This option can be used to separate command-line options from the
+            list of arguments (useful when arguments might be mistaken for
+            command-line options)
+
+        <server>
+            The address of the Ksql server to connect to (ex:
+            http://confluent.io:9098)
+
+            This option may occur a maximum of 1 times
+```

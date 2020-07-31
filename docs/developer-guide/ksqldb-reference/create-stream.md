@@ -40,7 +40,7 @@ Each column is defined by:
    The name can be quoted if case needs to be preserved or if the name is not a valid SQL
    identifier, for example ``` `mixedCaseId` ``` or ``` `$with@invalid!chars` ```.
  * `data_type`: the SQL type of the column. Columns can be any of the
-   [data types](../syntax-reference.md#ksqldb-data-types) supported by ksqlDB.
+   [data types](../syntax-reference.md#data-types) supported by ksqlDB.
  * `KEY`: columns that are stored in the Kafka message's key should be marked as `KEY` columns.
    If a column is not marked as a `KEY` column, ksqlDB loads it from the Kafka message's value.
    Unlike a table's `PRIMARY KEY`, a stream's keys can be NULL.

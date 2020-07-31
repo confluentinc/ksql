@@ -1,5 +1,43 @@
 # Change Log
 
+## [0.11.0](https://github.com/confluentinc/ksql/releases/tag/v0.11.0-ksqldb) (TBD)
+
+### Features
+
+* **client:** support streaming inserts in Java client ([#5641](https://github.com/confluentinc/ksql/pull/5641)) ([1e109bf](https://github.com/confluentinc/ksql/commit/1e109bf))
+* **client:** support admin operations in Java client ([#5671](https://github.com/confluentinc/ksql/pull/5671)) ([7d0079a](https://github.com/confluentinc/ksql/commit/7d0079a))
+* **client:** support list queries in Java client ([#5682](https://github.com/confluentinc/ksql/pull/5682)) ([4d860f8](https://github.com/confluentinc/ksql/commit/4d860f8))
+* **client:** support DDL/DML statements in Java client ([#5775](https://github.com/confluentinc/ksql/pull/5775)) ([53ca76f](https://github.com/confluentinc/ksql/commit/53ca76f))
+* support WINDOWEND in WHERE of pull queries ([#5680](https://github.com/confluentinc/ksql/pull/5680)) ([40f2f13](https://github.com/confluentinc/ksql/commit/40f2f13))
+* Adds SSL mutual auth support to intra-cluster requests ([#5482](https://github.com/confluentinc/ksql/pull/5482)) ([82b137f](https://github.com/confluentinc/ksql/commit/82b137f))
+* new array_remove UDF ([#5843](https://github.com/confluentinc/ksql/pull/5843)) ([4ebeff2](https://github.com/confluentinc/ksql/commit/4ebeff2))
+* Replay command topic to local file to backup KSQL Metastore ([#5831](https://github.com/confluentinc/ksql/pull/5831)) ([8523051](https://github.com/confluentinc/ksql/commit/8523051))
+* organize UDFs by category ([#5813](https://github.com/confluentinc/ksql/pull/5813)) ([7f5b843](https://github.com/confluentinc/ksql/commit/7f5b843))
+* expose query ID in CommandStatusEntity (MINOR) ([#5814](https://github.com/confluentinc/ksql/pull/5814)) ([bb29185](https://github.com/confluentinc/ksql/commit/bb29185))
+
+### Bug Fixes
+
+* circumvent KAFKA-10179 by forcing changelog topics for tables ([#5781](https://github.com/confluentinc/ksql/pull/5781)) ([ef8fa4f](https://github.com/confluentinc/ksql/commit/ef8fa4f))
+* always use the changelog subject in table state stores ([#5823](https://github.com/confluentinc/ksql/pull/5823)) ([e69acb4](https://github.com/confluentinc/ksql/commit/e69acb4))
+* remove schema compat check if schema exists ([#5872](https://github.com/confluentinc/ksql/pull/5872)) ([6338270](https://github.com/confluentinc/ksql/commit/6338270))
+* ensure null values cast to varchar/string remain null ([#5769](https://github.com/confluentinc/ksql/pull/5769)) ([530eb7f](https://github.com/confluentinc/ksql/commit/530eb7f))
+* ksqlDB should not truncate decimals ([#5763](https://github.com/confluentinc/ksql/pull/5763)) ([ba833f7](https://github.com/confluentinc/ksql/commit/ba833f7))
+* Make sure UDTF describe shows actual function description ([#5744](https://github.com/confluentinc/ksql/pull/5744)) ([afe85d9](https://github.com/confluentinc/ksql/commit/afe85d9))
+* Reuse KsqlClient instance for inter node requests ([#5742](https://github.com/confluentinc/ksql/pull/5742)) ([cd7f540](https://github.com/confluentinc/ksql/commit/cd7f540))
+* SEC-1034: log4j migration to confluent repackaged version ([#5783](https://github.com/confluentinc/ksql/pull/5783)) ([4563d02](https://github.com/confluentinc/ksql/commit/4563d02))
+* show overridden props in CLI ([#5750](https://github.com/confluentinc/ksql/pull/5750)) ([f6fd2ee](https://github.com/confluentinc/ksql/commit/f6fd2ee))
+* simplify pull query error message ([#5672](https://github.com/confluentinc/ksql/pull/5672)) ([9bc4755](https://github.com/confluentinc/ksql/commit/9bc4755))
+* Upgrade to Vert.x 3.9.1 which depends on version of Netty which allows backported ALPN in JDK 1.8.0_252 to be used, and provide warning if openSSL is not installed ([#5818](https://github.com/confluentinc/ksql/pull/5818)) ([36e44a6](https://github.com/confluentinc/ksql/commit/36e44a6))
+* windowed tables now have cleanup policy compact+delete ([#5743](https://github.com/confluentinc/ksql/pull/5743)) ([2038770](https://github.com/confluentinc/ksql/commit/2038770))
+* configure topic retention based on retention clause for windowed tables ([#5835](https://github.com/confluentinc/ksql/pull/5835)) ([b509c99](https://github.com/confluentinc/ksql/commit/b509c99))
+* set Schema Registry port in tutorials docker compose ([f46d358](https://github.com/confluentinc/ksql/commit/f46d358))
+* close query on invalid use of HTTP/2 with /query endpoint ([#5883](https://github.com/confluentinc/ksql/pull/5883)) ([bcab116](https://github.com/confluentinc/ksql/commit/bcab116))
+* adds a handler to gracefully shutdown ([#5895](https://github.com/confluentinc/ksql/pull/5895)) ([5fbf171](https://github.com/confluentinc/ksql/commit/5fbf171))
+
+### BREAKING CHANGES
+
+* ksqlDB now creates windowed tables with cleanup policy "compact,delete", rather than "compact". Also, topics that back streams are always created with cleanup policy "delete", rather than the broker default (by default, "delete").
+
 ## [0.10.1](https://github.com/confluentinc/ksql/releases/tag/v0.10.1-ksqldb) (2020-07-09)
 
 ### Bug Fixes
@@ -45,7 +83,6 @@
     * INSTR function [#881](https://github.com/confluentinc/ksql/issues/881) ([#5385](https://github.com/confluentinc/ksql/pull/5385)) ([ca86bbf](https://github.com/confluentinc/ksql/commit/ca86bbfad51e479d6847f84a0c7928f31d8a2b26))
     * add CHR UDF ([#5559](https://github.com/confluentinc/ksql/pull/5559)) ([5a746e8](https://github.com/confluentinc/ksql/commit/5a746e85502235753cf11bfa507ab69e1e19064c))
     * implements ARRAY_JOIN as requested in ([#5028](https://github.com/confluentinc/ksql/pull/5028)) ([#5474](https://github.com/confluentinc/ksql/issues/5474)) ([#5638](https://github.com/confluentinc/ksql/issues/5638)) ([6c67866](https://github.com/confluentinc/ksql/commit/6c678665cee4a67e7737460710eac2875bc8c2e2))
-    * new split_to_map udf ([#5563](https://github.com/confluentinc/ksql/pull/5563)) ([a68b9ad](https://github.com/confluentinc/ksql/commit/a68b9add94ddb9f97e1cff51fb57dddd1c9458eb))
     * Add encode udf ([#5523](https://github.com/confluentinc/ksql/pull/5523)) ([b02f1ce](https://github.com/confluentinc/ksql/commit/b02f1ce8ae564688eda385268a51b1217dc9e277))
 
 
@@ -82,7 +119,6 @@
 * /inserts-stream endpoint now supports nested types ([#5621](https://github.com/confluentinc/ksql/pull/5621)) ([866ae34](https://github.com/confluentinc/ksql/commit/866ae3499a9d59068461d17ed15e1353759a0334))
 * don't fail if broker does not support AuthorizedOperations ([#5617](https://github.com/confluentinc/ksql/pull/5617)) ([0feb081](https://github.com/confluentinc/ksql/commit/0feb081c89d00f326e151035ac5616d19f610307))
 * ensure only deserializable cmds are written to command topic ([#5645](https://github.com/confluentinc/ksql/pull/5645)) ([4ad2bde](https://github.com/confluentinc/ksql/commit/4ad2bde44f31ea3c15fdd898ce12d50a595013d1))
-* fail AVRO/Protobuf/JSON Schema statements if SR is missing ([#5597](https://github.com/confluentinc/ksql/pull/5597)) ([85a0320](https://github.com/confluentinc/ksql/commit/85a0320e774d236bda4898f82eb5d5c2f7b42cec))
 * support GROUP BY with no source columns used ([#5644](https://github.com/confluentinc/ksql/pull/5644)) ([a8e6630](https://github.com/confluentinc/ksql/commit/a8e66304081879335c62948d5a8dd5f5531766be))
 
 

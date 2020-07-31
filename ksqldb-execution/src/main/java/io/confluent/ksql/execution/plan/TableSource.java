@@ -16,17 +16,29 @@
 package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public final class TableSource extends SourceStep<KTableHolder<Struct>> {
 
   private final Boolean forceChangelog;
+
+  private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
+      new Property("class", Object::getClass),
+      new Property("properties", ExecutionStep::getProperties),
+      new Property("topicName", s -> ((TableSource) s).topicName),
+      new Property("formats", s -> ((TableSource) s).formats),
+      new Property("timestampColumn", s -> ((TableSource) s).timestampColumn),
+      new Property("forceChangelog", s -> ((TableSource) s).forceChangelog)
+  );
 
   public TableSource(
       @JsonProperty(value = "properties", required = true)
@@ -48,6 +60,27 @@ public final class TableSource extends SourceStep<KTableHolder<Struct>> {
   @Override
   public KTableHolder<Struct> build(final PlanBuilder builder) {
     return builder.visitTableSource(this);
+  }
+
+  @Override
+  public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
+    ExecutionStep<?> source = to;
+    while (!(source instanceof TableSource)) {
+      if (to.getSources().isEmpty()) {
+        throw new KsqlException("Query is not upgradeable. The root source node of "
+            + "the upgrade tree must be TableSource, but was " + source.getClass());
+      } else if (to.getSources().size() > 1) {
+        throw new KsqlException("Query is not upgradeable. Cannot change a non-join source "
+            + "into a join source.");
+      } else if (to.type() != StepType.PASSIVE) {
+        throw new KsqlException("Query is not upgradeable. Cannot add a " + to.getClass()
+            + " step that is not in the original query plan.");
+      }
+
+      source = to.getSources().get(0);
+    }
+
+    mustMatch(source, MUST_MATCH);
   }
 
   @Override

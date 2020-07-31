@@ -182,7 +182,7 @@ public class QueryMonitorTest {
     queryMonitor.restartFailedQueries(); // 1st restart
 
     // Mock the query is in ERROR state, but then terminated manually
-    when(query.getState()).thenReturn(ERROR);
+    when(query.isError()).thenReturn(true);
     when(ksqlEngine.getPersistentQuery(query.getQueryId())).thenReturn(Optional.empty());
 
     // Internally, the query is found as ERROR because getPersistentQueries() returns it, but
@@ -250,7 +250,7 @@ public class QueryMonitorTest {
     // When:
     queryMonitor.restartFailedQueries();
     when(ticker.read()).thenReturn(10000L);
-    when(query.getState()).thenReturn(RUNNING);
+    when(query.isError()).thenReturn(false);
     queryMonitor.restartFailedQueries(); // 2nd round should not restart before backoff time
 
     // Then:
@@ -263,7 +263,7 @@ public class QueryMonitorTest {
   ) {
     final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
     when(query.getQueryId()).thenReturn(new QueryId(queryId));
-    when(query.getState()).thenReturn(queryState);
+    when(query.isError()).thenReturn(queryState == ERROR);
     return query;
   }
 }

@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.kafka.streams.KafkaStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +108,7 @@ public class QueryMonitor implements Closeable {
   void restartFailedQueries() {
     // Collect a list of new queries in ERROR state
     ksqlEngine.getPersistentQueries().stream()
-        .filter(query -> query.getState() == KafkaStreams.State.ERROR)
+        .filter(QueryMetadata::isError)
         .filter(query -> !queriesRetries.containsKey(query.getQueryId()))
         .map(QueryMetadata::getQueryId)
         .forEach(queryId -> queriesRetries.put(queryId, newRetryEvent(queryId)));
@@ -118,6 +117,8 @@ public class QueryMonitor implements Closeable {
   }
 
   private void maybeRestartQueries() {
+    final long now = ticker.read();
+
     // Restart queries that has passed the waiting timeout
     final List<QueryId> deleteRetryEvents = new ArrayList<>();
     queriesRetries.entrySet().stream()
@@ -129,16 +130,14 @@ public class QueryMonitor implements Closeable {
           // Query was terminated manually if no present
           if (!query.isPresent()) {
             deleteRetryEvents.add(queryId);
-          } else if (ticker.read() > retryEvent.nextRestartTimeMs()) {
-            if (query.get().getState() == KafkaStreams.State.ERROR) {
-              // Retry again if it's still in ERROR state
-              retryEvent.restart();
-            } else {
-              // Clean the errors queue & delete the query from future retries now the query is
-              // up and running
-              query.ifPresent(QueryMetadata::clearErrors);
-              deleteRetryEvents.add(queryId);
-            }
+          } else if (query.get().isError() && now > retryEvent.nextRestartTimeMs()) {
+            // Retry again if it's still in ERROR state
+            retryEvent.restart();
+          } else if (now > retryEvent.queryHealthyTime()) {
+            // Clean the errors queue & delete the query from future retries now the query is
+            // healthy
+            query.ifPresent(QueryMetadata::clearErrors);
+            deleteRetryEvents.add(queryId);
           }
         });
 
@@ -200,6 +199,12 @@ public class QueryMonitor implements Closeable {
 
     public int getNumRetries() {
       return numRetries;
+    }
+
+    public long queryHealthyTime() {
+      // Return same value as nextRestartTimeMs for now. QueryHealthyTime may be configured in
+      // the future to return a time when a running query is considered healthy.
+      return expiryTimeMs;
     }
 
     public void restart() {

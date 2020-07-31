@@ -223,7 +223,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCloseQueryMonitorOnClose() {
     // When:
-    app.triggerShutdown();
+    app.shutdown();
 
     // then:
     verify(queryMonitor).close();

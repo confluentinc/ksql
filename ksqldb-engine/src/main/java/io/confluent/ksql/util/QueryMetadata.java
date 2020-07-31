@@ -167,6 +167,10 @@ public abstract class QueryMetadata {
     return kafkaStreams.state();
   }
 
+  public boolean isError() {
+    return getState() == State.ERROR;
+  }
+
   public String getExecutionPlan() {
     return executionPlan;
   }

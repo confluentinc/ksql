@@ -114,6 +114,10 @@ public class QueryMonitor implements Closeable {
         .map(QueryMetadata::getQueryId)
         .forEach(queryId -> queriesRetries.put(queryId, newRetryEvent(queryId)));
 
+    maybeRestartQueries();
+  }
+
+  private void maybeRestartQueries() {
     // Restart queries that has passed the waiting timeout
     final List<QueryId> deleteRetryEvents = new ArrayList<>();
     queriesRetries.entrySet().stream()
@@ -130,15 +134,15 @@ public class QueryMonitor implements Closeable {
               // Retry again if it's still in ERROR state
               retryEvent.restart();
             } else {
-              // Delete if query is not in ERROR state anymore
+              // Clean the errors queue & delete the query from future retries now the query is
+              // up and running
+              query.ifPresent(QueryMetadata::clearErrors);
               deleteRetryEvents.add(queryId);
             }
           }
         });
 
-    deleteRetryEvents.stream().forEach(queryId -> {
-      queriesRetries.remove(queryId);
-    });
+    deleteRetryEvents.stream().forEach(queriesRetries::remove);
   }
 
   private RetryEvent newRetryEvent(final QueryId queryId) {

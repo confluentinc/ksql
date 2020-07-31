@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -82,6 +83,8 @@ public class PersistentQueryMetadataTest {
   private Consumer<QueryMetadata> closeCallback;
   @Mock
   private QueryErrorClassifier queryErrorClassifier;
+  @Mock
+  private ExecutionStep<?> physicalPlan;
 
   private PersistentQueryMetadata query;
 
@@ -108,7 +111,9 @@ public class PersistentQueryMetadataTest {
         overrides,
         closeCallback,
         CLOSE_TIMEOUT,
-        queryErrorClassifier
+        queryErrorClassifier,
+        physicalPlan,
+        10
     );
   }
 

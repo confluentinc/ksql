@@ -91,7 +91,8 @@ public class QueryMetadataTest {
         Collections.emptyMap(),
         closeCallback,
         closeTimeout,
-        QUERY_ID, QueryErrorClassifier.DEFAULT_CLASSIFIER) {
+        QUERY_ID, QueryErrorClassifier.DEFAULT_CLASSIFIER,
+        10) {
       @Override
       public void stop() {
         doClose(cleanUp);

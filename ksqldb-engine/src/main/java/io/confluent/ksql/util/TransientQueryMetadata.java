@@ -51,7 +51,9 @@ public class TransientQueryMetadata extends QueryMetadata {
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
-      final long closeTimeout) {
+      final long closeTimeout,
+      final int maxQueryErrorsQueueSize
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
@@ -66,7 +68,9 @@ public class TransientQueryMetadata extends QueryMetadata {
         closeCallback,
         closeTimeout,
         new QueryId(queryApplicationId),
-        QueryErrorClassifier.DEFAULT_CLASSIFIER);
+        QueryErrorClassifier.DEFAULT_CLASSIFIER,
+        maxQueryErrorsQueueSize
+    );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
   }
 

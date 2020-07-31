@@ -51,7 +51,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
 
-  private Optional<MaterializationProvider> materializationProvider = Optional.empty();
+  private Optional<MaterializationProvider> materializationProvider;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
@@ -72,7 +72,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
       final QueryErrorClassifier errorClassifier,
-      final ExecutionStep<?> physicalPlan
+      final ExecutionStep<?> physicalPlan,
+      final int maxQueryErrorsQueueSize
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -88,7 +89,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
         closeCallback,
         closeTimeout,
         id,
-        errorClassifier
+        errorClassifier,
+        maxQueryErrorsQueueSize
     );
 
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");

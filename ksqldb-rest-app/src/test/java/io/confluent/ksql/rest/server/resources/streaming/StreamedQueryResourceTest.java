@@ -408,7 +408,8 @@ public class StreamedQueryResourceTest {
             Collections.emptyMap(),
             Collections.emptyMap(),
             queryCloseCallback,
-            closeTimeout);
+            closeTimeout,
+            10);
 
     when(mockKsqlEngine.executeQuery(serviceContext,
         ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))

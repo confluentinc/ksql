@@ -318,7 +318,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS
       = "ksql.query.retry.backoff.initial.ms";
-  public static final Long KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT = 60000L;
+  public static final Long KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT = 15000L;
   public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC = "The initial amount of time "
       + "to wait before attempting to retry a persistent query in ERROR state.";
 
@@ -326,6 +326,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final Long KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT = 900000L;
   public static final String KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC = "The maximum amount of time "
       + "to wait before attempting to retry a persistent query in ERROR state.";
+
+  public static final String KSQL_QUERY_ERROR_MAX_QUEUE_SIZE = "ksql.query.error.max.queue.size";
+  public static final Integer KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT = 10;
+  public static final String KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC = "The maximum number of "
+      + "error messages (per query) to hold in the internal query errors queue and display"
+      + "in the query description when executing the `EXPLAIN <query>` command.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -748,6 +754,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE,
+            Type.INT,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC
         )
         .withClientSslSupport();
 

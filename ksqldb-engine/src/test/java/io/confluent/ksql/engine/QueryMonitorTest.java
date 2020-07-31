@@ -20,6 +20,7 @@ import static org.apache.kafka.streams.KafkaStreams.State.RUNNING;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
@@ -168,6 +169,29 @@ public class QueryMonitorTest {
     verify(query1, never()).start();
     verify(query2, never()).stop();
     verify(query2, never()).start();
+  }
+
+  @Test
+  public void shouldNoRestartQueryThatWasManuallyTerminated() {
+    // Given:
+    final PersistentQueryMetadata query = mockPersistentQueryMetadata("id-1", ERROR);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(Arrays.asList(query));
+    when(ksqlEngine.getPersistentQuery(query.getQueryId())).thenReturn(Optional.of(query));
+
+    // When
+    queryMonitor.restartFailedQueries(); // 1st restart
+
+    // Mock the query is in ERROR state, but then terminated manually
+    when(query.getState()).thenReturn(ERROR);
+    when(ksqlEngine.getPersistentQuery(query.getQueryId())).thenReturn(Optional.empty());
+
+    // Internally, the query is found as ERROR because getPersistentQueries() returns it, but
+    // it will never be restarted because getPersistentQuery() does not return it.
+    queryMonitor.restartFailedQueries(); // 2nd restart will not restart a non-present query
+
+
+    // Then:
+    verify(query, times(1)).restart();
   }
 
   @Test

@@ -174,7 +174,8 @@ public final class QueryExecutor {
         streamsProperties,
         overrides,
         queryCloseCallback,
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG)
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );
   }
 
@@ -246,7 +247,8 @@ public final class QueryExecutor {
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         classifier,
-        physicalPlan
+        physicalPlan,
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );
   }
 

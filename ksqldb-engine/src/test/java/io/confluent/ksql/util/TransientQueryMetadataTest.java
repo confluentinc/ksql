@@ -83,7 +83,8 @@ public class TransientQueryMetadataTest {
         props,
         overrides,
         closeCallback,
-        CLOSE_TIMEOUT
+        CLOSE_TIMEOUT,
+        10
     );
   }
 

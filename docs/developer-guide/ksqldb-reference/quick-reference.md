@@ -42,16 +42,28 @@ SELECT column_name AS column_alias
 ```
 
 ## BETWEEN
-Constrain a value to a specified range in a WHERE clause. For more information, see
-[BETWEEN](../../ksqldb-reference/select-push-query/#between).
+Constrain a value to a specified range in a WHERE clause.
 
 ```sql
 WHERE expression [NOT] BETWEEN start_expression AND end_expression;            
 ```
 
+The BETWEEN operator is used to indicate that a certain value must be
+within a specified range, including boundaries. ksqlDB supports any
+expression that resolves to a numeric or string value for comparison.
+
+The following push query uses the BETWEEN clause to select only records
+that have an `event_id` between 10 and 20.
+
+```sql
+SELECT event
+  FROM events
+  WHERE event_id BETWEEN 10 AND 20
+  EMIT CHANGES;
+```
+
 ## CASE
-Select a condition from one or more expressions. For more information, see
-[CASE](../../ksqldb-reference/select-push-query/#case).
+Select a condition from one or more expressions.
 
 ```sql
 SELECT
@@ -65,12 +77,46 @@ SELECT
 FROM stream_name | table_name;
 ```
 
+ksqlDB supports a `searched` form of CASE expression. In this form, CASE
+evaluates each boolean `condition` in WHEN clauses, from left to right.
+If a condition is true, CASE returns the corresponding result. If none of
+the conditions is true, CASE returns the result from the ELSE clause. If
+none of the conditions is true and there is no ELSE clause, CASE returns null.
+
+The schema for all results must be the same, otherwise ksqlDB rejects the
+statement.
+
+The following example push query uses a CASE expression.
+
+```sql
+SELECT
+ CASE
+   WHEN orderunits < 2.0 THEN 'small'
+   WHEN orderunits < 4.0 THEN 'medium'
+   ELSE 'large'
+ END AS case_result
+FROM orders
+EMIT CHANGES;
+```
+
 ## CAST
-Change the type of an expression to a different type. For more information, see
-[CAST](../../ksqldb-reference/select-push-query/#cast).
+Change the type of an expression to a different type.
 
 ```sql
 CAST (expression AS data_type);
+```
+
+You can cast an expression's type to a new type by using CAST.
+
+The following example query converts a numerical count, which is a BIGINT, into
+a suffixed string, which is a VARCHAR. For example, the integer `5` becomes
+`5_HELLO`.
+
+```sql
+SELECT page_id, CONCAT(CAST(COUNT(*) AS VARCHAR), '_HELLO')
+  FROM pageviews_enriched
+  WINDOW TUMBLING (SIZE 20 SECONDS)
+  GROUP BY page_id;
 ```
 
 ## CREATE CONNECTOR
@@ -334,13 +380,25 @@ SELECT column_name(s)
 ```
 
 ## LIKE
-Match a string with the specified pattern. For more information, see
-[LIKE](../../ksqldb-reference/select-push-query/#like).
+Match a string with the specified pattern.
 
 ```sql hl_lines="3"
   SELECT select_expr [., ...]
     FROM from_stream | from_table
     WHERE condition LIKE pattern_string;
+```
+
+The LIKE operator is used for prefix or suffix matching. ksqlDB supports
+the `%` wildcard, which represents zero or more characters.
+
+The following push query uses the `%` wildcard to match any `user_id` that
+starts with "santa".
+
+```sql
+SELECT user_id
+  FROM users
+  WHERE user_id LIKE 'santa%'
+  EMIT CHANGES;
 ```
 
 ## PARTITION BY

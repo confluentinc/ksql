@@ -471,7 +471,7 @@ public class LogicalPlanner {
         final UnqualifiedColumnReferenceExp node,
         final Context<Void> ctx
     ) {
-      if (sourceSchemas.isJoin()) {
+      if (sourceSchemas.isJoin() && !node.getReference().isAggregate()) {
         final SourceName sourceName =
             sourceSchemas.sourcesWithField(Optional.empty(), node.getReference()).iterator().next();
         return Optional.of(new UnqualifiedColumnReferenceExp(

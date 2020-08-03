@@ -257,6 +257,12 @@ public class QueryAnalyzer {
       return ImmutableSet.copyOf(analysis.getGroupByExpressions());
     }
 
+    if (analysis.isJoin()) {
+      // Window bounds are not yet supported in the projection of windowed aggregates with joins.
+      // See https://github.com/confluentinc/ksql/issues/5931
+      return ImmutableSet.copyOf(analysis.getGroupByExpressions());
+    }
+
     // Add in window bounds columns as implicit group by columns:
     final AliasedDataSource source = Iterables.getOnlyElement(analysis.getFromDataSources());
 

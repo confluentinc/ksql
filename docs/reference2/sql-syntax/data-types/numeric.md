@@ -5,6 +5,8 @@
 | `double`  | 8 bytes         | variable-precision, inexact     | [`java.lang.Double`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Double.html)
 | `decimal` | value dependent | user-specified precision, exact | [`java.math.BigDecimal`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigDecimal.html)
 
+TODO: what are the range of allowable values for each of these types?
+
 ## Integer types
 
 The types `int` and `bigint` store integers, which are numbers without decimals. Storing values outside their bounds of capacity will result in an error.

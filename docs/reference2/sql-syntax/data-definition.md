@@ -1,3 +1,5 @@
+- DDL: how to structure data
+
 ##  Basics
 
 - two collections: streams and tables

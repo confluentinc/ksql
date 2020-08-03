@@ -116,7 +116,6 @@ nav:
         - Numeric types: reference2/data-types/numeric.md
         - Character types: reference2/data-types/character.md
         - Boolean type: reference2/data-types/boolean.md
-        - Date/time types: reference2/data-types/date-time.md
         - Compound types: reference2/data-types/compound.md
       - Functions and operators:
         - Logical operators: xx.md

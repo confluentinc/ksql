@@ -1,9 +1,13 @@
+| name     | description                          | backing Java type
+|----------|--------------------------------------|------------------
+| `array`  | sequence of values of a single type | [Java native array](https://docs.oracle.com/javase/specs/jls/se11/html/jls-10.html)
+| `struct` | map of string keys to values of any type | [`org.apache.kafka.connect.data.Struct`](https://downloads.apache.org/kafka/2.5.0/javadoc/index.html?org/apache/kafka/connect/data/Struct.html)
+| `map`    | map of varying typed keys and values | [`java.util.map`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)
+
+
 ## Array
 
 `ARRAY<ElementType>`
-
-!!! note
-		The `DELIMITED` format doesn't support arrays.
 
 ksqlDB supports fields that are arrays of another type. All the elements
 in the array must be of the same type. The element type can be any valid
@@ -39,12 +43,12 @@ With this query:
 CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL1, ABS(col3) VAL2 FROM TEST;
 ```
 
+!!! note
+		The `DELIMITED` format doesn't support arrays.
+
 ## Struct
 
 `STRUCT<FieldName FieldType, ...>`
-
-!!! note
-		The `DELIMITED` format doesn't support structs.
 
 ksqlDB supports fields that are structs. A struct represents strongly
 typed structured data. A struct is an ordered collection of named fields
@@ -66,12 +70,12 @@ The following example creates a struct from a stream named `s1`.
 SELECT STRUCT(f1 := v1, f2 := v2) FROM s1 EMIT CHANGES;
 ```
 
+!!! note
+		The `DELIMITED` format doesn't support structs.
+
 ## Map
 
 `MAP<KeyType, ValueType>`
-
-!!! note
-		The `DELIMITED` format doesn't support maps.
 
 ksqlDB supports fields that are maps. A map has a key and value type. All
 of the keys must be of the same type, and all of the values must be also
@@ -93,3 +97,6 @@ The following example creates a map from a stream named `s1`.
 ```sql
 SELECT MAP(k1:=v1, k2:=v1*2) FROM s1 EMIT CHANGES;
 ```
+
+!!! note
+		The `DELIMITED` format doesn't support maps.

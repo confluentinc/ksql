@@ -18,9 +18,7 @@ package io.confluent.ksql.test.planned;
 import io.confluent.ksql.test.loader.TestLoader;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.tools.TestCase;
-import io.confluent.ksql.test.tools.TopologyAndConfigs;
 import io.confluent.ksql.test.tools.VersionedTest;
-import java.nio.file.Path;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -44,13 +42,15 @@ public class PlannedTestLoader implements TestLoader<VersionedTest> {
 
   @Override
   public Stream<VersionedTest> load() {
-    return innerLoader.load().flatMap(this::buildHistoricalTestCases);
+    return innerLoader.load().flatMap(PlannedTestLoader::buildHistoricalTestCases);
   }
 
-  private Stream<VersionedTest> buildHistoricalTestCases(final TestCase testCase) {
+  private static Stream<VersionedTest> buildHistoricalTestCases(final TestCase testCase) {
     if (PlannedTestUtils.isPlannedTestCase(testCase)) {
-      return TestCasePlanLoader.allForTestCase(testCase).stream()
+      final Stream<VersionedTest> versionedTests = TestCasePlanLoader.allForTestCase(testCase)
+          .stream()
           .map(plan -> PlannedTestUtils.buildPlannedTestCase(testCase, plan));
+      return Stream.concat(Stream.of(testCase), versionedTests);
     } else if (testCase.getVersionBounds().contains(KsqlVersion.current())) {
       return Stream.of(testCase);
     } else {

@@ -174,8 +174,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       );
       return true;
     } catch (final TopicAuthorizationException e) {
-      LOG.debug("Topic {} has denied authorization. Marking topic as not existing.", topic);
-      return false;
+      throw new KsqlTopicAuthorizationException(
+          AclOperation.DESCRIBE, Collections.singleton(topic));
     } catch (final Exception e) {
       if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
         return false;

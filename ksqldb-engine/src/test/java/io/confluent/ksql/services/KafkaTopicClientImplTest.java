@@ -722,16 +722,20 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
-  public void shouldNotThrowIsTopicExistsOnAuthorizationException() {
+  public void shouldThrowIsTopicExistsOnAuthorizationException() {
     // Given
     when(adminClient.describeTopics(eq(ImmutableList.of("foobar")), any()))
         .thenAnswer(describeTopicsResult(new TopicAuthorizationException("foobar")));
 
     // When
-    final boolean topicExists = kafkaTopicClient.isTopicExists("foobar");
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.isTopicExists("foobar")
+    );
 
     // Then
-    assertThat(topicExists, is(false));
+    assertThat(e.getMessage(),
+        containsString("Authorization denied to Describe on topic(s): [foobar]"));
   }
 
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {

@@ -2203,6 +2203,38 @@
       ]
     },
     {
+      "name": "windowed join",
+      "statements": [
+        "CREATE TABLE A (id varchar primary key, regionid varchar) WITH (kafka_topic='a', value_format='json');",
+        "CREATE STREAM B (id varchar) WITH (kafka_topic='b', value_format='json');",
+        "CREATE TABLE test AS SELECT a.id, COUNT(*) as count FROM B LEFT JOIN A ON a.id = b.id WINDOW TUMBLING (SIZE 1 MINUTE) GROUP BY a.id HAVING COUNT(*) > 2;"
+      ],
+      "inputs": [
+        {"topic": "a", "key": "1", "value": {"id": "1", "regionid": "one"}},
+        {"topic": "b", "value": {"Id": "1"}},
+        {"topic": "b", "value": {"Id": "1"}},
+        {"topic": "b", "value": {"Id": "1"}}
+      ],
+      "outputs": [
+        {"topic": "TEST", "key": "1", "value": null, "window": {"start": 0, "end": 60000, "type": "time"}},
+        {"topic": "TEST", "key": "1", "value": null, "window": {"start": 0, "end": 60000, "type": "time"}},
+        {"topic": "TEST", "key": "1", "value": {"COUNT": 3}, "window":  {"start": 0, "end": 60000, "type": "time"}}
+      ]
+    },
+    {
+      "name": "windowed join with window bounds",
+      "tracked by": "https://github.com/confluentinc/ksql/issues/5931",
+      "statements": [
+        "CREATE STREAM A (ID VARCHAR, col1 VARCHAR) WITH (kafka_topic='a', value_format='JSON');",
+        "CREATE TABLE B (ID VARCHAR PRIMARY KEY, col1 VARCHAR) WITH (kafka_topic='b', value_format='JSON');",
+        "CREATE TABLE C AS SELECT A.ID, COUNT(*), WINDOWSTART as WSTART, WINDOWEND AS WEND FROM A JOIN B on A.ID = B.ID WINDOW TUMBLING (SIZE 10 MILLISECONDS) GROUP BY a.ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "SELECT column 'WINDOWSTART' cannot be resolved."
+      }
+    },
+    {
       "name": "zero non-agg columns (stream)",
       "statements": [
         "CREATE STREAM INPUT (VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",

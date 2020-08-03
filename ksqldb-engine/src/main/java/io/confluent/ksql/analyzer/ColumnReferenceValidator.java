@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.schema.ksql.SystemColumns.isWindowBound;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.Iterables;
@@ -102,6 +103,12 @@ class ColumnReferenceValidator {
 
       final SourceName source = colRef.maybeQualifier()
           .orElseGet(() -> {
+            if (isWindowBound(colRef.getColumnName()) && sourcesWithField.size() > 1) {
+              // Window bounds are not yet supported in the projection of windowed aggregates with
+              // joins. See https://github.com/confluentinc/ksql/issues/5931
+              throw new UnknownColumnException(clauseType, colRef);
+            }
+
             // AstSanitizer catches ambiguous columns
             return Iterables.getOnlyElement(sourcesWithField);
           });

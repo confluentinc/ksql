@@ -276,7 +276,7 @@ public class KsqlEngineMetricsTest {
     engineMetrics.registerQuery(query1);
 
     // Then:
-    verify(query1).registerQueryStateListener(any());
+    verify(query1).setQueryStateListener(any());
   }
 
   private double getMetricValue(final String metricName) {

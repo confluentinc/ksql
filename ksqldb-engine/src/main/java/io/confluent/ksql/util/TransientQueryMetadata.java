@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
@@ -27,7 +28,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
 /**
@@ -41,32 +41,36 @@ public class TransientQueryMetadata extends QueryMetadata {
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TransientQueryMetadata(
       final String statementString,
-      final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
       final String executionPlan,
       final BlockingRowQueue rowQueue,
       final String queryApplicationId,
       final Topology topology,
+      final KafkaStreamsBuilder kafkaStreamsBuilder,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
-      final long closeTimeout) {
+      final long closeTimeout,
+      final int maxQueryErrorsQueueSize
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
-        kafkaStreams,
         logicalSchema,
         sourceNames,
         executionPlan,
         queryApplicationId,
         topology,
+        kafkaStreamsBuilder,
         streamsProperties,
         overriddenProperties,
         closeCallback,
         closeTimeout,
         new QueryId(queryApplicationId),
-        QueryErrorClassifier.DEFAULT_CLASSIFIER);
+        QueryErrorClassifier.DEFAULT_CLASSIFIER,
+        maxQueryErrorsQueueSize
+    );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
   }
 

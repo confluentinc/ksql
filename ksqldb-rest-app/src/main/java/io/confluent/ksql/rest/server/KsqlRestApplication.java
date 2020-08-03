@@ -35,6 +35,7 @@ import io.confluent.ksql.api.impl.MonitoredEndpoints;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryMonitor;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
@@ -181,6 +182,7 @@ public final class KsqlRestApplication implements Executable {
   private final Vertx vertx;
   private Server apiServer = null;
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
+  private final QueryMonitor queryMonitor;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -215,7 +217,8 @@ public final class KsqlRestApplication implements Executable {
       final PullQueryExecutor pullQueryExecutor,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent,
-      final Vertx vertx
+      final Vertx vertx,
+      final QueryMonitor ksqlQueryMonitor
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -262,6 +265,7 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         this.restConfig,
         this.ksqlConfigNoPort);
+    this.queryMonitor = requireNonNull(ksqlQueryMonitor, "ksqlQueryMonitor");
     MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     log.debug("ksqlDB API server instance created");
   }
@@ -426,6 +430,8 @@ public final class KsqlRestApplication implements Executable {
         serviceContext
     );
 
+    queryMonitor.start();
+
     if (heartbeatAgent.isPresent()) {
       heartbeatAgent.get().setLocalAddress((String)configWithApplicationServer
           .getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG));
@@ -468,6 +474,12 @@ public final class KsqlRestApplication implements Executable {
       commandRunner.close();
     } catch (final Exception e) {
       log.error("Exception while waiting for CommandRunner thread to complete", e);
+    }
+
+    try {
+      queryMonitor.close();
+    } catch (final Exception e) {
+      log.error("Exception while waiting for QueryMonitor thread to complete", e);
     }
 
     try {
@@ -722,6 +734,8 @@ public final class KsqlRestApplication implements Executable {
         metricsPrefix
     );
 
+    final QueryMonitor queryMonitor = new QueryMonitor(ksqlConfig, ksqlEngine);
+
     final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
         KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
         KsqlServerPrecondition.class
@@ -758,7 +772,9 @@ public final class KsqlRestApplication implements Executable {
         pullQueryExecutor,
         heartbeatAgent,
         lagReportingAgent,
-        vertx);
+        vertx,
+        queryMonitor
+    );
   }
 
   private static Optional<HeartbeatAgent> initializeHeartbeatAgent(

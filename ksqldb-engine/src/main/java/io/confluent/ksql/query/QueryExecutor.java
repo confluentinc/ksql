@@ -31,22 +31,17 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
-import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
-import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.KafkaStreamsBuilder.BuildResult;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.GenericKeySerDe;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -67,9 +62,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -90,9 +82,8 @@ public final class QueryExecutor {
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Consumer<QueryMetadata> queryCloseCallback;
-  private final KsMaterializationFactory ksMaterializationFactory;
-  private final KsqlMaterializationFactory ksqlMaterializationFactory;
   private final StreamsBuilder streamsBuilder;
+  private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
 
   public QueryExecutor(
       final KsqlConfig ksqlConfig,
@@ -111,8 +102,12 @@ public final class QueryExecutor {
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
         new StreamsBuilder(),
-        new KsqlMaterializationFactory(processingLogContext),
-        new KsMaterializationFactory()
+        new MaterializationProviderBuilderFactory(
+            ksqlConfig,
+            serviceContext,
+            new KsMaterializationFactory(),
+            new KsqlMaterializationFactory(processingLogContext)
+        )
     );
   }
 
@@ -125,8 +120,8 @@ public final class QueryExecutor {
       final Consumer<QueryMetadata> queryCloseCallback,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
-      final KsqlMaterializationFactory ksqlMaterializationFactory,
-      final KsMaterializationFactory ksMaterializationFactory) {
+      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
+  ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.overrides = Objects.requireNonNull(overrides, "overrides");
     this.processingLogContext = Objects.requireNonNull(
@@ -139,16 +134,12 @@ public final class QueryExecutor {
         queryCloseCallback,
         "queryCloseCallback"
     );
-    this.ksMaterializationFactory = Objects.requireNonNull(
-        ksMaterializationFactory,
-        "ksMaterializationFactory"
+    this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
+    this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "streamsBuilder");
+    this.materializationProviderBuilderFactory = Objects.requireNonNull(
+        materializationProviderBuilderFactory,
+        "materializationProviderBuilderFactory"
     );
-    this.ksqlMaterializationFactory = Objects.requireNonNull(
-        ksqlMaterializationFactory,
-        "ksqlMaterializationFactory"
-    );
-    this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder);
-    this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "builder");
   }
 
   public TransientQueryMetadata buildTransientQuery(
@@ -169,23 +160,22 @@ public final class QueryExecutor {
     ));
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
-
-    final BuildResult built =
-        kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
+    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     return new TransientQueryMetadata(
         statementText,
-        built.kafkaStreams,
         schema,
         sources,
         planSummary,
         queue,
         applicationId,
-        built.topology,
+        topology,
+        kafkaStreamsBuilder,
         streamsProperties,
         overrides,
         queryCloseCallback,
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG)
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );
   }
 
@@ -196,7 +186,7 @@ public final class QueryExecutor {
     return Optional.empty();
   }
 
-  public PersistentQueryMetadata buildQuery(
+  public PersistentQueryMetadata buildPersistentQuery(
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,
@@ -215,26 +205,26 @@ public final class QueryExecutor {
         queryId
     );
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
-    final BuildResult built =
-        kafkaStreamsBuilder.buildKafkaStreams(streamsBuilder, streamsProperties);
+    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final PhysicalSchema querySchema = PhysicalSchema.from(
         sinkDataSource.getSchema(),
         sinkDataSource.getSerdeOptions()
     );
-    final Optional<MaterializationProvider> materializationBuilder = getMaterializationInfo(result)
-        .flatMap(info -> buildMaterializationProvider(
-            info,
-            built.kafkaStreams,
-            querySchema,
-            sinkDataSource.getKsqlTopic().getKeyFormat(),
-            streamsProperties,
-            applicationId
-        ));
+
+    final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
+        materializationProviderBuilder = getMaterializationInfo(result).map(info ->
+            materializationProviderBuilderFactory.materializationProviderBuilder(
+                info,
+                querySchema,
+                sinkDataSource.getKsqlTopic().getKeyFormat(),
+                streamsProperties,
+                applicationId
+            ));
 
     final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(
         applicationId,
-        extractTopics(built.topology),
+        extractTopics(topology),
         serviceContext.getTopicClient());
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(topicClassifier::and)
@@ -242,24 +232,23 @@ public final class QueryExecutor {
 
     return new PersistentQueryMetadata(
         statementText,
-        built.kafkaStreams,
         querySchema,
         sources,
-        sinkDataSource.getName(),
+        sinkDataSource,
         planSummary,
         queryId,
-        sinkDataSource.getDataSourceType(),
-        materializationBuilder,
+        materializationProviderBuilder,
         applicationId,
-        sinkDataSource.getKsqlTopic(),
-        built.topology,
+        topology,
+        kafkaStreamsBuilder,
         ksqlQueryBuilder.getSchemas(),
         streamsProperties,
         overrides,
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         classifier,
-        physicalPlan
+        physicalPlan,
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );
   }
 
@@ -400,43 +389,5 @@ public final class QueryExecutor {
 
   private static String addTimeSuffix(final String original) {
     return String.format("%s_%d", original, System.currentTimeMillis());
-  }
-
-  private Optional<MaterializationProvider> buildMaterializationProvider(
-      final MaterializationInfo info,
-      final KafkaStreams kafkaStreams,
-      final PhysicalSchema schema,
-      final KeyFormat keyFormat,
-      final Map<String, Object> streamsProperties,
-      final String applicationId
-  ) {
-    final Serializer<Struct> keySerializer = new GenericKeySerDe().create(
-        keyFormat.getFormatInfo(),
-        schema.keySchema(),
-        ksqlConfig,
-        serviceContext.getSchemaRegistryClientFactory(),
-        "",
-        NoopProcessingLogContext.INSTANCE
-    ).serializer();
-
-    final Optional<KsMaterialization> ksMaterialization = ksMaterializationFactory
-        .create(
-            info.stateStoreName(),
-            kafkaStreams,
-            info.getStateStoreSchema(),
-            keySerializer,
-            keyFormat.getWindowInfo(),
-            streamsProperties,
-            ksqlConfig,
-            applicationId
-        );
-
-    return ksMaterialization.map(ksMat -> (queryId, contextStacker) -> ksqlMaterializationFactory
-        .create(
-            ksMat,
-            info,
-            queryId,
-            contextStacker
-        ));
   }
 }

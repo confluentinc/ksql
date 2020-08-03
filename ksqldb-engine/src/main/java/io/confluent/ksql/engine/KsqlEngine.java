@@ -52,6 +52,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

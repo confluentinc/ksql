@@ -73,6 +73,74 @@ nav:
       - Use connector management: how-to-guides/use-connector-management.md
       - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
       - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
+  - Reference2:
+    - Synopsis: reference2/index.md
+    - The SQL language:
+      - SQL syntax:
+        - Lexical structure:
+          - Identifiers and keywords: xx.md
+          - Constants: xx.md
+          - Operators: xx.md
+          - Special characters: xx.md
+          - Comments: xx.md
+        - Value statements:
+          - Column references: xx.md
+          - Subscripts: xx.md
+          - Field selection: xx.md
+          - Operator invocations: xx.md
+          - Function calls: xx.md
+          - Aggregate expressions: xx.md
+          - Window function calls: xx.md
+          - Type conversions: xx.md
+          - Array constructors: xx.md
+          - Expression evaluation rules: xx.md
+      - Data definition:
+        - Basics: xx.md
+        - Constraints:
+          - Primary keys: xx.md
+        - Partitioning: xx.md
+        - Modifying streams and tables: xx.md
+      - Data manipulation:
+        - Inserting data: xx.md
+        - Updating data: xx.md
+        - Deleting data: xx.md
+      - Queries:
+        - Expressions:
+          - The FROM clause: xx.md
+          - The WHERE clause: xx.md
+          - The GROUP BY and HAVING clauses: xx.md
+        - LIMIT: xx.md
+        - Modifying persistent queries: xx.md
+      - Data types:
+        - Synopsis: reference2/data-types/index.md
+        - Numeric types: reference2/data-types/numeric.md
+        - Character types: reference2/data-types/character.md
+        - Boolean type: reference2/data-types/boolean.md
+        - Date/time types: reference2/data-types/date-time.md
+        - Compound types: reference2/data-types/compound.md
+      - Functions and operators:
+        - Logical operators: xx.md
+        - Comparison operators: xx.md
+        - Mathematical operators and functions: xx.md
+        - String functions and operators: xx.md
+        - Network address functions and operators: xx.md
+        - Pattern matching: xx.md
+        - Data type formatting functions: xx.md
+        - Date/time functions and operators: xx.md
+        - Conditional expressions:
+          - CASE: xx.md
+          - COALESCE: xx.md
+          - IFNULL: xx.md
+        - Array functions and operators: xx.md
+        - Aggregation functions: xx.md
+        - Window functions: xx.md
+      - Type conversion: xx.md
+      - SQL commands: xx.md
+    - Configuration: xx.md
+    - Metrics: xx.md
+    - Serialization: xx.md
+    - Clients: xx.md
+
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:
@@ -166,6 +234,7 @@ markdown_extensions:
     - mdx_gh_links:
         user: confluentinc
         repo: ksqldb
+    - mdx_truly_sane_lists
 
 plugins:
     - search

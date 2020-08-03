@@ -249,12 +249,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> suppress(
       final RefinementInfo refinementInfo,
+      final ValueFormat valueFormat,
       final Stacker contextStacker
   ) {
     final TableSuppress<K> step = ExecutionStepFactory.tableSuppress(
         contextStacker,
         sourceTableStep,
-        refinementInfo
+        refinementInfo,
+        Formats.of(keyFormat, valueFormat, SerdeOption.none())
     );
 
     return new SchemaKTable<>(

@@ -146,7 +146,10 @@ public class LogicalPlanner {
       if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
         throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
       }
-      currentNode = buildSuppressNode(currentNode, analysis.getRefinementInfo().get());
+      currentNode = buildSuppressNode(
+          currentNode,
+          analysis.getRefinementInfo().get()
+      );
     }
 
     return buildOutputNode(currentNode);
@@ -484,7 +487,11 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode,
       final RefinementInfo refinementInfo
   ) {
-    return new SuppressNode(new PlanNodeId("Suppress"), sourcePlanNode, refinementInfo);
+    return new SuppressNode(
+        new PlanNodeId("Suppress"),
+        sourcePlanNode,
+        refinementInfo
+    );
   }
 
   private LogicalSchema buildAggregateSchema(

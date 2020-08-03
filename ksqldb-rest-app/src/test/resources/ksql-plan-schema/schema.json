@@ -878,10 +878,13 @@
         },
         "refinementInfo" : {
           "$ref" : "#/definitions/RefinementInfo"
+        },
+        "internalFormats" : {
+          "$ref" : "#/definitions/Formats"
         }
       },
       "title" : "tableSuppressV1",
-      "required" : [ "@type", "properties", "source", "refinementInfo" ]
+      "required" : [ "@type", "properties", "source", "refinementInfo", "internalFormats" ]
     },
     "TableTableJoin" : {
       "type" : "object",

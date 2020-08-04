@@ -84,7 +84,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final PullQueryExecutor pullQueryExecutor;
   private Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Time time;
-  private DenyListPropertyValidator denyListPropertyValidator;
+  private final DenyListPropertyValidator denyListPropertyValidator;
 
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
@@ -94,7 +94,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(
         ksqlEngine,
@@ -105,7 +106,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         activenessRegistrar,
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
   }
 
@@ -121,7 +123,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -135,6 +138,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.authorizationValidator = authorizationValidator;
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
+    this.denyListPropertyValidator =
+        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.time = Time.SYSTEM;
   }
 
@@ -152,9 +157,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
         ksqlEngine.getServiceId(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
         : empty();
-
-    this.denyListPropertyValidator = new DenyListPropertyValidator(
-        config.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
   }
 
   public EndpointResponse streamQuery(
@@ -219,9 +221,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
               statement.getStatement())
       );
 
-      final Map<String, Object> requestProperties = request.getRequestProperties();
-      denyListPropertyValidator.validateAll(requestProperties);
-
       final Map<String, Object> configProperties = request.getConfigOverrides();
       denyListPropertyValidator.validateAll(configProperties);
 
@@ -233,7 +232,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               securityContext.getServiceContext(),
               queryStmt,
               configProperties,
-              requestProperties,
+              request.getRequestProperties(),
               isInternalRequest
           );
           if (pullQueryMetrics.isPresent()) {

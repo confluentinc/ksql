@@ -31,7 +31,8 @@ public class DenyListPropertyValidatorTest {
   @Before
   public void setUp() {
     validator = new DenyListPropertyValidator(Arrays.asList(
-        "immutable-property"
+        "immutable-property-1",
+        "immutable-property-2"
     ));
   }
 
@@ -41,21 +42,23 @@ public class DenyListPropertyValidatorTest {
     final KsqlException e = assertThrows(
         KsqlException.class,
         () -> validator.validateAll(ImmutableMap.of(
-            "immutable-property", "v1",
-            "anything", "v2"
+            "immutable-property-1", "v1",
+            "anything", "v2",
+            "immutable-property-2", "v3"
         ))
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "A property override was set locally for a property that the server prohibits "
-            + "overrides for: 'immutable-property'"
+        "One or more properties overrides set locally are prohibited by the KSQL server "
+            + "(use UNSET to reset their default value): "
+            + "[immutable-property-1, immutable-property-2]"
     ));
 
   }
 
   @Test
-  public void shouldNotThrowOnConfigurableProp() {
+  public void shouldNotThrowOnAllowedProp() {
     validator.validateAll(ImmutableMap.of(
         "mutable-1", "v1",
         "anything", "v2"

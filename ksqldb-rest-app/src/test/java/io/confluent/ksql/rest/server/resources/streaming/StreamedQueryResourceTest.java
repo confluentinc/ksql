@@ -55,6 +55,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
@@ -76,6 +77,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -159,6 +161,8 @@ public class StreamedQueryResourceTest {
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
   private Errors errorsHandler;
+  @Mock
+  private DenyListPropertyValidator denyListPropertyValidator;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -193,7 +197,8 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
 
     testResource.configure(VALID_CONFIG);
@@ -220,7 +225,8 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
 
     // When:
@@ -373,7 +379,8 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
@@ -381,6 +388,10 @@ public class StreamedQueryResourceTest {
     props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
         StreamsConfig.NUM_STREAM_THREADS_CONFIG);
     testResource.configure(new KsqlConfig(props));
+    final Map<String, Object> overrides =
+        ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
+        .validateAll(overrides);
     when(errorsHandler.generateResponse(any(), any()))
         .thenReturn(badRequest("A property override was set locally for a property that the "
             + "server prohibits overrides for: 'num.stream.threads'"));
@@ -390,8 +401,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(
             PULL_QUERY_STRING,
-            ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, "1"), // stream properties
-            Collections.emptyMap(), // config properties
+            overrides, // stream properties
+            Collections.emptyMap(),
             null
         ),
         new CompletableFuture<>(),
@@ -399,6 +410,7 @@ public class StreamedQueryResourceTest {
     );
 
     // Then:
+    verify(denyListPropertyValidator).validateAll(overrides);
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
         is("A property override was set locally for a property that the server prohibits "

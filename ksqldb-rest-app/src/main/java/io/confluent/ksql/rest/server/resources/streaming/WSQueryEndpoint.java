@@ -69,9 +69,9 @@ public class WSQueryEndpoint {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
   private final PullQueryExecutor pullQueryExecutor;
+  private final DenyListPropertyValidator denyListPropertyValidator;
 
   private WebSocketSubscriber<?> subscriber;
-  private DenyListPropertyValidator denyListPropertyValidator;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
@@ -85,7 +85,8 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(ksqlConfig,
         statementParser,
@@ -99,7 +100,8 @@ public class WSQueryEndpoint {
         commandQueueCatchupTimeout,
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
   }
 
@@ -118,7 +120,8 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -137,9 +140,8 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(authorizationValidator, "authorizationValidator");
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
-
-    this.denyListPropertyValidator = new DenyListPropertyValidator(
-        ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
+    this.denyListPropertyValidator =
+        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
@@ -250,7 +252,6 @@ public class WSQueryEndpoint {
 
   private void handleQuery(final RequestContext info, final Query query) {
     final Map<String, Object> clientLocalProperties = info.request.getConfigOverrides();
-    denyListPropertyValidator.validateAll(clientLocalProperties);
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
         new WebSocketSubscriber<>(info.websocket);

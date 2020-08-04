@@ -16,6 +16,7 @@
 package io.confluent.ksql.properties;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import io.confluent.ksql.util.KsqlException;
 
 import java.util.Collection;
@@ -37,14 +38,14 @@ public class DenyListPropertyValidator {
 
   /**
    * Validates if a list of properties are part of the list of denied properties.
-   * @throws if a property is part of the denied list.
+   * @throws if at least one property is part of the denied list.
    */
   public void validateAll(final Map<String, Object> properties) {
-    properties.forEach((name ,v) -> {
-      if (immutableProps.contains(name)) {
-        throw new KsqlException(String.format("A property override was set locally for a "
-            + "property that the server prohibits overrides for: '%s'", name));
-      }
-    });
+    final Set<String> propsDenied = Sets.intersection(immutableProps, properties.keySet());
+    if (!propsDenied.isEmpty()) {
+      throw new KsqlException(String.format("One or more properties overrides set locally are "
+          + "prohibited by the KSQL server (use UNSET to reset their default value): %s",
+          propsDenied));
+    }
   }
 }

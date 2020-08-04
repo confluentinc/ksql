@@ -335,8 +335,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
       "ksql.properties.overrides.denylist";
-  public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DEFAULT = "";
-  public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
+  private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
       + "properties that KSQL users cannot override.";
 
   private enum ConfigGeneration {
@@ -771,7 +770,7 @@ public class KsqlConfig extends AbstractConfig {
         .define(
             KSQL_PROPERTIES_OVERRIDES_DENYLIST,
             Type.LIST,
-            KSQL_PROPERTIES_OVERRIDES_DENYLIST_DEFAULT,
+            "",
             Importance.LOW,
             KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
         )

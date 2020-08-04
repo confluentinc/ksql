@@ -98,12 +98,12 @@ public class KsqlResource implements KsqlConfigurable {
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
+  private final DenyListPropertyValidator denyListPropertyValidator;
   private RequestValidator validator;
   private RequestHandler handler;
   private final Errors errorHandler;
   private KsqlHostInfo localHost;
   private URL localUrl;
-  private DenyListPropertyValidator denyListPropertyValidator;
 
   public KsqlResource(
       final KsqlEngine ksqlEngine,
@@ -111,7 +111,8 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(
         ksqlEngine,
@@ -120,7 +121,8 @@ public class KsqlResource implements KsqlConfigurable {
         activenessRegistrar,
         Injectors.DEFAULT,
         authorizationValidator,
-        errorHandler
+        errorHandler,
+        denyListPropertyValidator
     );
   }
 
@@ -131,7 +133,8 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -143,6 +146,8 @@ public class KsqlResource implements KsqlConfigurable {
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.denyListPropertyValidator =
+        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
   }
 
   @Override
@@ -190,9 +195,6 @@ public class KsqlResource implements KsqlConfigurable {
             distributedCmdResponseTimeout
         )
     );
-
-    this.denyListPropertyValidator = new DenyListPropertyValidator(
-        config.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
   }
 
   public EndpointResponse terminateCluster(
@@ -241,13 +243,11 @@ public class KsqlResource implements KsqlConfigurable {
           request,
           distributedCmdResponseTimeout);
 
-      final Map<String, Object> requestProperties = request.getRequestProperties();
-      denyListPropertyValidator.validateAll(requestProperties);
-
       final Map<String, Object> configProperties = request.getConfigOverrides();
       denyListPropertyValidator.validateAll(configProperties);
 
-      final KsqlRequestConfig requestConfig = new KsqlRequestConfig(requestProperties);
+      final KsqlRequestConfig requestConfig =
+          new KsqlRequestConfig(request.getRequestProperties());
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
 
       validator.validate(

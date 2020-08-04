@@ -1,3 +1,11 @@
+---
+layout: page
+title: Value Statements
+tagline: Syntax for accessing values in ksqlDB
+description: How to get data from data types, functions, and windows in ksqlDB 
+keywords: ksqldb, sql, value, dereference, aggregate, function, operator, cast
+---
+
 ## Column references
 
 - dot to get the column of a targeted collection

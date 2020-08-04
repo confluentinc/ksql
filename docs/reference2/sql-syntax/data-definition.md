@@ -1,3 +1,11 @@
+---
+layout: page
+title: Data definition
+tagline: Use DDL to structure data 
+description: How to use DDL to structure data in ksqlDB
+keywords: ksqldb, sql, ddl
+---
+
 This section covers how you create the structures that store your events. ksqlDB has two abstractions for that: streams and tables.
 
 ## Basics
@@ -50,12 +58,12 @@ Under the covers, streams correspond to Kafka topics with registered schemas. Cr
 
 - Not implemented yet, point to GH issue
 
-## Partitioning
+## Partition data
 
 - Kafka keys control partitioning/sharding
 - General requirements
 - Different key formats
 
-## Modifying streams and tables
+## Modify streams and tables
 
 - Future work in 0.12

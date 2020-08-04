@@ -1,3 +1,11 @@
+---
+layout: page
+title: Lexical structure data
+tagline: Structure of SQL commands and statements in ksqlDB 
+description: Details about SQL commands and statements in ksqlDB 
+keywords: ksqldb, sql, keyword, identifier, constant, operator
+---
+
 - ksqlDB SQL is SQL extended for streaming
 - commands
   - tokens

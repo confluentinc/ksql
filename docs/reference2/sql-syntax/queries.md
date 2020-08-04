@@ -1,3 +1,11 @@
+---
+layout: page
+title: Queries
+tagline: How to ask questions about data in ksqlDB 
+description: How to ask questions about data with SQL queries in ksqlDB 
+keywords: ksqldb, sql, query, persistent query, pull query, push query
+---
+
 - Queries: how to ask questions about data
 
 ## Query types

@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
@@ -62,6 +63,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -258,6 +260,9 @@ public final class TestExecutorUtil {
 
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
+   * @return a list of persistent queries that should be run by the test executor, if a
+   *         query was replaced via a CREATE OR REPLACE statement it will only appear once
+   *         in the output list
    */
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   private static List<PersistentQueryAndSources> execute(
@@ -268,7 +273,8 @@ public final class TestExecutorUtil {
       final StubKafkaService stubKafkaService,
       final TestExecutionListener listener
   ) {
-    final ImmutableList.Builder<PersistentQueryAndSources> queriesBuilder = new Builder<>();
+    final Map<QueryId, PersistentQueryAndSources> queries = new LinkedHashMap<>();
+
     for (final ConfiguredKsqlPlan plan
         : planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService)) {
 
@@ -284,9 +290,11 @@ public final class TestExecutorUtil {
 
       listener.acceptQuery(query);
 
-      queriesBuilder.add(new PersistentQueryAndSources(query, result.getSources().get()));
+      queries.put(
+          query.getQueryId(),
+          new PersistentQueryAndSources(query, result.getSources().get()));
     }
-    return queriesBuilder.build();
+    return ImmutableList.copyOf(queries.values());
   }
 
   private static ExecuteResultAndSources executePlan(

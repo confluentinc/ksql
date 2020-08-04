@@ -1,4 +1,10 @@
-- DDL: how to structure data
+---
+layout: page
+title: How to structure data
+tagline: Use DDL to structure data 
+description: How to use DDL to structure data in ksqlDB
+keywords: ksqldb, sql, ddl
+---
 
 ##  Basics
 
@@ -27,12 +33,12 @@
 
 - Not implemented yet, point to GH issue
 
-## Partitioning
+## Partition data
 
 - Kafka keys control partitioning/sharding
 - General requirements
 - Different key formats
 
-## Modifying streams and tables
+## Modify streams and tables
 
 - Future work in 0.12

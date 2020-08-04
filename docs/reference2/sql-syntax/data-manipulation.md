@@ -1,6 +1,12 @@
-DML: how to change data
+---
+layout: page
+title: How to change data
+tagline: Use DML to change data 
+description: How to use DML to change data in ksqlDB
+keywords: ksqldb, sql, dml
+---
 
-## Inserting data
+## Insert data
 
 - It's just a Kafka topic
 - Using the insert statement
@@ -12,13 +18,13 @@ DML: how to change data
 - Make sure keys are correct and serialization/schema is right.
 - Otherwise will go into processing log.
 
-## Updating data
+## Update data
 
 - Unlike standard SQL in this regard
 - Streams are immutable, so there is no updating
 - But tables are. This is how persistent queries work
 
-## Deleting data
+## Delete data
 
 - No deletes on streams
 - Tombstones for tables

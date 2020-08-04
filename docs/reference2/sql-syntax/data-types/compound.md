@@ -1,15 +1,23 @@
-| name     | description                          | backing Java type
-|----------|--------------------------------------|------------------
-| `array`  | sequence of values of a single type | [Java native array](https://docs.oracle.com/javase/specs/jls/se11/html/jls-10.html)
+---
+layout: page
+title: Compound Data Types
+tagline: Array, map, and struct data types
+description: Syntax Reference for array, map, and struct data types in ksqlDB
+keywords: ksqldb, sql, syntax, array, map, struct, data type
+---
+
+| name     | description                              | backing Java type
+|----------|------------------------------------------|------------------
+| `array`  | sequence of values of a single type      | [Java native array](https://docs.oracle.com/javase/specs/jls/se11/html/jls-10.html)
 | `struct` | map of string keys to values of any type | [`org.apache.kafka.connect.data.Struct`](https://downloads.apache.org/kafka/2.5.0/javadoc/index.html?org/apache/kafka/connect/data/Struct.html)
-| `map`    | map of varying typed keys and values | [`java.util.map`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)
+| `map`    | map of varying typed keys and values     | [`java.util.map`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)
 
 
 ## Array
 
 `ARRAY<ElementType>`
 
-ksqlDB supports fields that are arrays of another type. All the elements
+ksqlDB supports fields that are arrays of another type. All of the elements
 in the array must be of the same type. The element type can be any valid
 SQL type.
 

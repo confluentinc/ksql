@@ -34,11 +34,11 @@ CREATE STREAM s1 (
 ) WITH (
     kafka_topic = 's1',
     partitions = 3,
-    value_format = ‘json’
+    value_format = 'json'
 );
 ```
 
-This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls how partitioning happens.
+This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls how partitioning happens. The backing data is serialized in the JSON format.
 
 Under the covers, streams correspond to Kafka topics with registered schemas. Creating a new stream creates a new Kafka topic. All data inserted into a stream resides in a topic on a Kafka broker. In addition to creating streams from scratch, you can also create a stream on an existing topic.
 

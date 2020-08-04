@@ -241,9 +241,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final ExecuteResult result = ksqlEngine.execute(serviceContext, configured);
     if (result.getQuery().isPresent()) {
       queryIdGenerator.setNextId(offset + 1);
-      if (mode == Mode.EXECUTE) {
-        result.getQuery().get().start();
-      }
+      result.getQuery().get().start();
     }
     final String successMessage = getSuccessMessage(result);
     final Optional<QueryId> queryId = result.getQuery().map(QueryMetadata::getQueryId);
@@ -345,9 +343,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     }
 
     final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-    if (mode == Mode.EXECUTE) {
-      persistentQueryMd.start();
-    }
+    persistentQueryMd.start();
     return persistentQueryMd;
   }
 

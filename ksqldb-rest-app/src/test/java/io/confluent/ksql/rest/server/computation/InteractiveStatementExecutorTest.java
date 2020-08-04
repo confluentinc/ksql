@@ -600,28 +600,6 @@ public class InteractiveStatementExecutorTest {
     verify(mockQueryIdGenerator).setNextId(3L);
   }
 
-  @Test
-  public void shouldSkipStartWhenReplayingLog() {
-    // Given:
-    final QueryId queryId = new QueryId("csas-query-id");
-    final String name = "foo";
-    final PersistentQueryMetadata mockQuery = mockReplayCSAS(queryId);
-
-    // When:
-    statementExecutorWithMocks.handleRestore(
-        new QueuedCommand(
-            new CommandId(Type.STREAM, name, Action.CREATE),
-            new Command("CSAS", emptyMap(), emptyMap(), Optional.empty()),
-            Optional.empty(),
-            0L
-        )
-    );
-
-    // Then:
-    verify(mockQueryIdGenerator, times(1)).setNextId(anyLong());
-    verify(mockQuery, times(0)).start();
-  }
-
   private <T extends Statement> ConfiguredStatement<T> eqConfiguredStatement(
       final PreparedStatement<T> preparedStatement) {
     return argThat(new ConfiguredStatementMatcher<>(preparedStatement));

@@ -1,18 +1,41 @@
-- DDL: how to structure data
+This section covers how you create the structures that store your events. ksqlDB has two abstractions for that: streams and tables.
 
-##  Basics
+## Basics
 
-- two collections: streams and tables
-- what is a stream
-  - kafka topic + schema
-- what is a table
-  - materialized stream
-- both have columns
-  - those columns have data types
+Streams and tables help you model collections of events that accrete over time. Both are represented as a series of rows and columns with a schema, much like a relational database table. Rows represent individual events. Columns represent attributes of those events.
 
-- [ example ]
+Each column has a data type. The data type limits the span of permissible values that it can take on. For example, if a column is declared as type `INT`, it cannot take on the value of string `'foo'`.
 
-- How derivation works: you dont need to declare a new schema when you derive a new stream/table, its implicit.
+There is no theoretical limit on the number of columns in a stream or table. In practice, the limit is determined by the maximum message size that Kafka can store and the resources dedicated to ksqlDB.
+
+## Streams
+
+Streams are partitioned, immutable, append-only collections. They represent a series of historical facts. For example, the rows of a stream could model a sequence of financial transactions, like "Alice sent $100 to Bob”, then “Charlie sent $50 to Bob".
+
+Rows in a stream cannot change. New rows can be inserted at the end of the stream, but existing rows can never be updated or deleted.
+
+Streams are partitioned. All rows, implicitly or explicitly, have a key that represents the identity of the row. All rows of the same key are stored in the same partition.
+
+To create a stream, use the `CREATE STREAM` command. In this command, you specify a name for the new stream, the names of the columns, and the data type of each column.
+
+```sql
+CREATE STREAM s1 (
+    k VARCHAR KEY,
+    v1 INT,
+    v2 VARCHAR
+) WITH (
+    kafka_topic = 's1',
+    partitions = 3,
+    value_format = ‘json’
+);
+```
+
+This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls how partitioning happens.
+
+Under the covers, streams correspond to Kafka topics with registered schemas. Creating a new stream creates a new Kafka topic. All data inserted into a stream resides in a topic on a Kafka broker. In addition to creating streams from scratch, you can also create a stream on an existing topic.
+
+## Tables
+
 
 ## Constraints
 

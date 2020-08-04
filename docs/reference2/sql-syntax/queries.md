@@ -1,4 +1,4 @@
-Queries: how to ask questions about data
+- Queries: how to ask questions about data
 
 ## Query types
 

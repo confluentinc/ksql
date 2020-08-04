@@ -198,6 +198,17 @@ public interface Client {
   CompletableFuture<List<QueryInfo>> listQueries();
 
   /**
+   * Returns metadata about the ksqlDB stream or table of the provided name.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param sourceName stream or table name
+   * @return metadata for stream or table
+   */
+  CompletableFuture<SourceDescription> describeSource(String sourceName);
+
+  /**
    * Closes the underlying HTTP client.
    */
   void close();

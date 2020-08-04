@@ -26,6 +26,7 @@ import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
+import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
@@ -276,6 +277,21 @@ public class ClientImpl implements Client {
         cf,
         response -> handleSingleEntityResponse(
             response, cf, AdminResponseHandlers::handleListQueriesResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<SourceDescription> describeSource(final String sourceName) {
+    final CompletableFuture<SourceDescription> cf = new CompletableFuture<>();
+
+    makeRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "describe " + sourceName + ";"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AdminResponseHandlers::handleDescribeSourceResponse)
     );
 
     return cf;

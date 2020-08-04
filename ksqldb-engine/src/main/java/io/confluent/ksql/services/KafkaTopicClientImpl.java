@@ -173,6 +173,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           RetryBehaviour.ON_RETRYABLE.and(e -> !(e instanceof UnknownTopicOrPartitionException))
       );
       return true;
+    } catch (final TopicAuthorizationException e) {
+      throw new KsqlTopicAuthorizationException(
+          AclOperation.DESCRIBE, Collections.singleton(topic));
     } catch (final Exception e) {
       if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
         return false;

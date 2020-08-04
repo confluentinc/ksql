@@ -62,8 +62,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -273,7 +273,7 @@ public final class TestExecutorUtil {
       final StubKafkaService stubKafkaService,
       final TestExecutionListener listener
   ) {
-    final Map<QueryId, PersistentQueryAndSources> queries = new HashMap<>();
+    final Map<QueryId, PersistentQueryAndSources> queries = new LinkedHashMap<>();
 
     for (final ConfiguredKsqlPlan plan
         : planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService)) {
@@ -294,7 +294,7 @@ public final class TestExecutorUtil {
           query.getQueryId(),
           new PersistentQueryAndSources(query, result.getSources().get()));
     }
-    return new ArrayList<>(queries.values());
+    return ImmutableList.copyOf(queries.values());
   }
 
   private static ExecuteResultAndSources executePlan(

@@ -29,7 +29,7 @@
   <artifactId>ksqldb-api</artifactId>
 
   <properties>
-    <vertx.version>3.8.4</vertx.version>
+    <vertx.version>3.9.1</vertx.version>
     <reactive-streams.version>1.0.3</reactive-streams.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>

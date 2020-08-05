@@ -10,7 +10,7 @@ This section covers how you create the structures that store your events. ksqlDB
 
 ## Basics
 
-Streams and tables help you model collections of events that accrete over time. Both are represented as a series of rows and columns with a schema, much like a relational database table. Rows represent individual events. Columns represent attributes of those events.
+Streams and tables help you model collections of events that accrete over time. Both are represented as a series of rows and columns with a schema, much like a relational database table. Rows represent individual events. Columns represent the attributes of those events.
 
 Each column has a data type. The data type limits the span of permissible values that it can take on. For example, if a column is declared as type `INT`, it cannot take on the value of string `'foo'`.
 
@@ -38,11 +38,11 @@ CREATE STREAM s1 (
 );
 ```
 
-This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls how partitioning happens. The backing data is serialized in the JSON format.
+This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls how partitioning happens. When the data is stored, it will be serialized in the JSON format.
 
-Under the covers, each stream corresponds to Kafka topic with a registered schema. If the backing topic for a stream doesn't exist when you declare it, ksqlDB creates it on your behalf. All data inserted into a stream resides in a topic on a Kafka broker.
+Under the covers, each stream corresponds to Kafka topic with a registered schema. If the backing topic for a stream doesn't exist when you declare it, ksqlDB creates it on your behalf, as in the example above.
 
-You can also declare a stream on top of an existing topic. When you do that, ksqlDB simply registers its associated schema. It does not make a second copy of the data. If topic `s2` already exists, this command will register a new stream over it:
+You can also declare a stream on top of an existing topic. When you do that, ksqlDB simply registers its associated schema. If topic `s2` already exists, this command will register a new stream over it:
 
 ```sql
 CREATE STREAM s2 (
@@ -58,6 +58,26 @@ Note that when you create a stream on an existing topic, you don't need to decla
 
 ## Tables
 
+Tables are mutable, partitioned collections that models change over time. By contrast to streams, which represent a historical sequence of events, tables represent what is true as of "now". For example, you might use a table to model the locations that someone has lived at as a stream: first Miami, then New York, then London, and so forth.
+
+Tables work by leveraging the keys of each row. Recall from the streams section that keys denote identity. If a sequence of rows shares a key, the last row for a given key represents the most up-to-date information. A background process runs that periodically deletes all but the newest events for each key.
+
+Here is what that looks like in code.
+
+```sql
+CREATE TABLE current_location (
+    person VARCHAR PRIMARY KEY,
+    location VARCHAR
+) WITH (
+    kafka_topic = 'current_location',
+    partitions = 3,
+    value_format = 'json'
+);
+```
+
+As with streams, tables can also be declared directly ontop of an existing Kafka topic.
+
+## Default values
 
 ## Constraints
 
@@ -68,11 +88,7 @@ Note that when you create a stream on an existing topic, you don't need to decla
 - Sole identifier for an entity with multiple rows
 - Only used in tables
 
-### Not null constraints
-
-- Not implemented yet, point to GH issue
-
-## Partition data
+## Partitioning
 
 - Kafka keys control partitioning/sharding
 - General requirements

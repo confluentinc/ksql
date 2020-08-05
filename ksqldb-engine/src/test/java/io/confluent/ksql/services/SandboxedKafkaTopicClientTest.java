@@ -326,8 +326,8 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertEquals(2, offsets.keySet().size());
-      assertEquals(new Long(9L), offsets.get(new TopicPartition("some topic", 0)));
-      assertEquals(new Long(10L), offsets.get(new TopicPartition("some topic", 1)));
+      assertEquals(Long.valueOf(9L), offsets.get(new TopicPartition("some topic", 0)));
+      assertEquals(Long.valueOf(10L), offsets.get(new TopicPartition("some topic", 1)));
     }
 
     @Test
@@ -344,8 +344,8 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertEquals(2, offsets.keySet().size());
-      assertEquals(new Long(99L), offsets.get(new TopicPartition("some topic", 0)));
-      assertEquals(new Long(100L), offsets.get(new TopicPartition("some topic", 1)));
+      assertEquals(Long.valueOf(99L), offsets.get(new TopicPartition("some topic", 0)));
+      assertEquals(Long.valueOf(100L), offsets.get(new TopicPartition("some topic", 1)));
     }
 
     @SuppressWarnings("SameParameterValue")

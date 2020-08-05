@@ -31,8 +31,6 @@ nav:
     - Events: concepts/events.md
     - Collections:
       - Collections Overview: concepts/collections/index.md
-      - Streams: concepts/collections/streams.md
-      - Tables: concepts/collections/tables.md
       - Inserting events: concepts/collections/inserting-events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
@@ -213,6 +211,8 @@ plugins:
     - redirects:
         redirect_maps:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
+            concepts/collections/streams.md: reference2/sql-syntax/data-definition.md
+            concepts/collections/tables.md: reference2/sql-syntax/data-definition.md
 
 extra:
     site:

@@ -79,14 +79,28 @@ As with streams, tables can also be declared directly ontop of an existing Kafka
 
 ## Default values
 
+If a column is declared in a schema, but no attribute is present in the underlying Kafka record, the value for the row's column is populated as `null`.
+
 ## Constraints
 
-- Limit the way that you can put data into a stream/table
+Although data types help limit the range of values that can be accepted by ksqlDB, sometimes it is useful to have more sophisticated restrictions. Constraints allow you to exercise that type of logic directly in your schema.
 
 ### Primary key constraints
 
-- Sole identifier for an entity with multiple rows
-- Only used in tables
+A primary key constraint indicates that a column will be used as a unique identifier across all rows in a table. Primary keys cannot be null, and they must be used in all declared tables. In this example, `id` acts as the primary key for table `users`:
+
+```sql
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY
+    name VARCHAR
+  ) WITH (
+    kafka_topic = 'users',
+    partitions = 3,
+    value_format = 'json'
+  );
+```
+
+Because ksqlDB is an event streaming database, primary keys behave somewhat ifferently than compared to a relational database in two ways. First, only tables can have primary keys. Streams do not support them. Second, adding multiple rows to a table with the same primary key doesn't cause the subsequent rows to be rejected. The reason for both of these behaviors is the same: the purpose of tables are to model change of particular identities, whereas streams are used to accrete facts.
 
 ## Partitioning
 

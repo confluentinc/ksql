@@ -312,7 +312,7 @@ public final class ListSourceExecutor {
               topicPartitionInfo.partition(),
               startOffsetResultInfo,
               endOffsetResultInfo,
-              offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
+              offsetAndMetadata != null ? offsetAndMetadata.offset() : 0 // null when consumer has not poll yet from a topic-partition
           ));
     }
     return consumerPartitionOffsets;

@@ -6,6 +6,8 @@ description: How to ask questions about data with SQL queries in ksqlDB
 keywords: ksqldb, sql, query, persistent query, pull query, push query
 ---
 
+- Queries: how to ask questions about data
+
 ## Query types
 
 - Three kinds of queries: persistent, push, pull. Former two can be swapped from one to the another. Full SQL doesn't apply to all.

@@ -6,6 +6,8 @@ description: How to use DML to change data in ksqlDB
 keywords: ksqldb, sql, dml
 ---
 
+- DML: how to change data
+
 ## Insert data
 
 - It's just a Kafka topic

@@ -213,21 +213,21 @@ public final class ListSourceExecutor {
       ), statementText);
     }
 
-    final List<RunningQuery> sourceQueries = getQueries(ksqlEngine,
+    final List<RunningQuery> readQueries = getQueries(ksqlEngine,
         q -> q.getSourceNames().contains(dataSource.getName()));
-    final List<RunningQuery> sinkQueries = getQueries(ksqlEngine,
+    final List<RunningQuery> writeQueries = getQueries(ksqlEngine,
         q -> q.getSinkName().equals(dataSource.getName()));
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
         Optional.empty();
-    List<QueryOffsetSummary> sourceConsumerOffsets = new ArrayList<>();
+    List<QueryOffsetSummary> queryOffsetSummaries = new ArrayList<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
         topicDescription = Optional.of(
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
-        sourceConsumerOffsets = offsetSummaries(ksqlConfig, serviceContext, sinkQueries);
+        queryOffsetSummaries = offsetSummaries(ksqlConfig, serviceContext, writeQueries);
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
@@ -238,10 +238,10 @@ public final class ListSourceExecutor {
         SourceDescriptionFactory.create(
             dataSource,
             extended,
-            sourceQueries,
-            sinkQueries,
+            readQueries,
+            writeQueries,
             topicDescription,
-            sourceConsumerOffsets
+            queryOffsetSummaries
         )
     );
   }
@@ -251,7 +251,7 @@ public final class ListSourceExecutor {
       final ServiceContext serviceContext,
       final List<RunningQuery> sinkQueries
   ) {
-    final List<QueryOffsetSummary> sourceConsumerOffsets = new ArrayList<>();
+    final List<QueryOffsetSummary> queryOffsetSummaries = new ArrayList<>();
     final Map<String, Map<TopicPartition, OffsetAndMetadata>> offsetsPerQuery =
         new HashMap<>(sinkQueries.size());
     final Map<String, Set<String>> topicsPerQuery = new HashMap<>();
@@ -280,7 +280,7 @@ public final class ListSourceExecutor {
     // Build consumer offsets summary
     for (Entry<String, Set<String>> entry : topicsPerQuery.entrySet()) {
       for (String topic : entry.getValue()) {
-        sourceConsumerOffsets.add(
+        queryOffsetSummaries.add(
             new QueryOffsetSummary(
                 entry.getKey(),
                 topic,
@@ -291,7 +291,7 @@ public final class ListSourceExecutor {
                     offsetsPerQuery.get(entry.getKey()))));
       }
     }
-    return sourceConsumerOffsets;
+    return queryOffsetSummaries;
   }
 
   private static List<ConsumerPartitionOffsets> consumerPartitionOffsets(

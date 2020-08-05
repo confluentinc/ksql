@@ -636,7 +636,7 @@ public class Console implements Closeable {
           "Max lag", queryOffsetSummary.getOffsets().stream()
               .mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
               .max()
-              .orElse(-1)));
+              .orElse(0)));
       writer().println("");
       final Table taskTable = new Table.Builder()
           .withColumnHeaders(

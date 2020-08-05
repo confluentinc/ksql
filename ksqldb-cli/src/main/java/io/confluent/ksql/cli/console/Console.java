@@ -93,6 +93,9 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Timestamp;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -574,7 +577,14 @@ public class Console implements Closeable {
 
   private void printQueryError(final QueryDescription query) {
     writer().println();
+
+    final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss.SSS");
     for (final QueryError error : query.getQueryErrors()) {
+      final Timestamp timestamp = new Timestamp(error.getTimestamp());
+      final String errorDate = timestamp.toInstant()
+          .atZone(ZoneId.systemDefault()).format(dateFormatter);
+
+      writer().println(String.format("%-20s : %s", "Error Date", errorDate));
       writer().println(String.format("%-20s : %s", "Error Details", error.getErrorMessage()));
       writer().println(String.format("%-20s : %s", "Error Type", error.getType()));
     }

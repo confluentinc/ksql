@@ -145,7 +145,12 @@ public abstract class QueryMetadata {
   private void uncaughtHandler(final Thread t, final Throwable e) {
     LOG.error("Unhandled exception caught in streams thread {}.", t.getName(), e);
     final QueryError queryError =
-        new QueryError(Throwables.getStackTraceAsString(e), errorClassifier.classify(e));
+        new QueryError(
+            System.currentTimeMillis(),
+            Throwables.getStackTraceAsString(e),
+            errorClassifier.classify(e)
+        );
+
     queryStateListener.ifPresent(lis -> lis.onError(queryError));
     queryErrors.add(queryError);
   }

@@ -206,8 +206,8 @@ ksqlDB supports fields that are arrays of another type. All the elements
 in the array must be of the same type. The element type can be any valid
 SQL type.
 
-The elements of an array are zero-indexed and can be accessed by using
-the `[]` operator passing in the index. For example, `SOME_ARRAY[0]`
+The elements of an array are one-indexed and can be accessed by using
+the `[]` operator passing in the index. For example, `SOME_ARRAY[1]`
 retrieves the first element from the array. For more information, see
 [Operators](ksqldb-reference/operators.md).
 

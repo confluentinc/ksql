@@ -175,6 +175,19 @@ public class SourceDescriptionTest {
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     "diff", summaries)
             )
+            .addEqualityGroup(
+                new SourceDescription(
+                    SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
+                    SOME_STRING,
+                    ImmutableList.of(
+                        new QueryOffsetSummary(
+                            "g1",
+                            "t1",
+                            ImmutableList.of(
+                                new ConsumerPartitionOffsets(0, 1L, 100L, 99L)))))
+            )
             .testEquals();
     }
   }

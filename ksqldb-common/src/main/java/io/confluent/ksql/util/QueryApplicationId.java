@@ -42,8 +42,11 @@ public final class QueryApplicationId {
         + serviceId
         + queryPrefix
         + queryId;
-    if (persistent) return queryAppId;
-    else return addTimeSuffix(queryAppId);
+    if (persistent) {
+      return queryAppId;
+    } else {
+      return addTimeSuffix(queryAppId);
+    }
   }
 
   private static String addTimeSuffix(final String original) {

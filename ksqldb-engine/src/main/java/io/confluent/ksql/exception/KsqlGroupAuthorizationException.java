@@ -17,12 +17,12 @@ package io.confluent.ksql.exception;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.common.errors.GroupAuthorizationException;
 
 /**
  * Used to return custom error messages when TopicAuthorizationException returned from Kafka
  */
-public class KsqlGroupAuthorizationException extends TopicAuthorizationException {
+public class KsqlGroupAuthorizationException extends GroupAuthorizationException {
 
   public KsqlGroupAuthorizationException(
       final AclOperation operation,

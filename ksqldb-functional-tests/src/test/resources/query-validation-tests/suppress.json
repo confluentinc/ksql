@@ -19,7 +19,7 @@
       "name": "should not emit final result before window end if grace is specified as zero",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 0 MILLISECONDS) GROUP BY ID EMIT CHANGES;"
+        "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 0 MILLISECONDS) GROUP BY ID EMIT FINAL;"
       ],
       "inputs": [
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 0},

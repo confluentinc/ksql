@@ -67,9 +67,10 @@ Next KLIP number: **32**
 | [KLIP-24: KEY column semantics in queries](klip-24-key-column-semantics-in-queries.md)               | Merged         | 0.10.0            | 6.0.0      |               |
 | [KLIP-25: Removal of `WITH(KEY)` syntax](klip-25-removal-of-with-key-syntax.md)                      | Merged         | 0.10.0            | 6.0.0      |               |
 | [KLIP-26: Java client interfaces](klip-26-java-client-interfaces.md)                                 | Merged         | 0.10.0            | 6.0.0      |               |
-| [KLIP-27: Enhanced UDF Configuration Options](klip-27-enhanced-udf-configuration-options.md)                                                          | Proposal       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/5269) |
-| KLIP-28: Introduce 'CREATE OR REPLACE' for Query Upgrades                                            | Proposal       |                   |            |               |
+| [KLIP-27: Enhanced UDF Configuration Options](klip-27-enhanced-udf-configuration-options.md)         | Proposal       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/5269) |
+| [KLIP-28: Introduce 'CREATE OR REPLACE' for Query Upgrades](klip-28-create-or-replace.md)            | Approved       |  0.12.0           |            | [Discussion](https://github.com/confluentinc/ksql/pull/5611)              |
 | [KLIP-29: Explicit Table Primary Keys and Key-less Streams]( klip-29-explicit-keys.md)               | Merged         | 0.10.0            | 6.0.0      | [Discussion](https://github.com/confluentinc/ksql/pull/5530) |
-| KLIP-30: Lambda Functions               | Proposal         |             |       | N/A |
-| KLIP-31: Metastore Backups              | Proposal         |             |       | N/A |
+| KLIP-30: Lambda Functions                                                                            | Proposal         |             |       | [Discussion](https://github.com/confluentinc/ksql/pull/5661) |
+| [KLIP-31: Metastore Backups](klip-31-metastore-backups.md)              | Merged |  0.11.0           |  6.0.0     | [Discussion](https://github.com/confluentinc/ksql/pull/5741)|
+| [KLIP-32: SQL-based testing tool](klip-32-sql-testing-tool.md)                                      | Proposal | | | |
 

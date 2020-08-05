@@ -38,9 +38,15 @@ public final class QueryApplicationId {
 
     final String queryPrefix = config.getString(configName);
 
-    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+    final String queryAppId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + serviceId
         + queryPrefix
         + queryId;
+    if (persistent) return queryAppId;
+    else return addTimeSuffix(queryAppId);
+  }
+
+  private static String addTimeSuffix(final String original) {
+    return String.format("%s_%d", original, System.currentTimeMillis());
   }
 }

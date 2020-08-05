@@ -153,8 +153,7 @@ public final class QueryExecutor {
   ) {
     final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
-    final String applicationId = addTimeSuffix(
-        QueryApplicationId.build(ksqlConfig, false, queryId));
+    final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
@@ -364,9 +363,5 @@ public final class QueryExecutor {
     }
     valueList.add(value);
     properties.put(key, valueList);
-  }
-
-  private static String addTimeSuffix(final String original) {
-    return String.format("%s_%d", original, System.currentTimeMillis());
   }
 }

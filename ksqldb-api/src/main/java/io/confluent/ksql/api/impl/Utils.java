@@ -37,7 +37,7 @@ public final class Utils {
    * @param <T>     The type of the result
    */
   public static <T> void connectPromise(final Future<T> future, final Promise<T> promise) {
-    future.setHandler(ar -> {
+    future.onComplete(ar -> {
       if (ar.succeeded()) {
         promise.complete(ar.result());
       } else {

@@ -22,7 +22,7 @@ Streams are partitioned, immutable, append-only collections. They represent a se
 
 Rows in a stream cannot change. New rows can be inserted at the end of the stream, but existing rows can never be updated or deleted.
 
-Streams are partitioned. All rows, implicitly or explicitly, have a key that represents the identity of the row. All rows of the same key are stored in the same partition.
+Each row is stored in a particular partition. Every row, implicitly or explicitly, has a key that represents its identity. All rows with the same key are stored in the same partition.
 
 To create a stream, use the `CREATE STREAM` command. In this command, you specify a name for the new stream, the names of the columns, and the data type of each column.
 
@@ -40,7 +40,21 @@ CREATE STREAM s1 (
 
 This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls how partitioning happens. The backing data is serialized in the JSON format.
 
-Under the covers, streams correspond to Kafka topics with registered schemas. Creating a new stream creates a new Kafka topic. All data inserted into a stream resides in a topic on a Kafka broker. In addition to creating streams from scratch, you can also create a stream on an existing topic.
+Under the covers, each stream corresponds to Kafka topic with a registered schema. If the backing topic for a stream doesn't exist when you declare it, ksqlDB creates it on your behalf. All data inserted into a stream resides in a topic on a Kafka broker.
+
+You can also declare a stream on top of an existing topic. When you do that, ksqlDB simply registers its associated schema. It does not make a second copy of the data. If topic `s2` already exists, this command will register a new stream over it:
+
+```sql
+CREATE STREAM s2 (
+    k1 VARCHAR KEY,
+    v1 VARCHAR
+) WITH (
+    kafka_topic = 's2',
+    value_format = 'json'
+);
+```
+
+Note that when you create a stream on an existing topic, you don't need to declare the number of partitions in it. ksqlDB simply infers the partition count from the existing topic.
 
 ## Tables
 

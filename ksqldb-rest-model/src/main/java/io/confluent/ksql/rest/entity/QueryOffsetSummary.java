@@ -34,10 +34,9 @@ public class QueryOffsetSummary {
       @JsonProperty("kafkaTopic") final String kafkaTopic,
       @JsonProperty("offsets") final List<ConsumerPartitionOffsets> offsets
   ) {
-    this.groupId = groupId;
-    this.kafkaTopic = kafkaTopic;
-    this.offsets =
-        ImmutableList.copyOf(Objects.requireNonNull(offsets, "offsets"));
+    this.groupId = Objects.requireNonNull(groupId);
+    this.kafkaTopic = Objects.requireNonNull(kafkaTopic);
+    this.offsets = ImmutableList.copyOf(Objects.requireNonNull(offsets, "offsets"));
   }
 
   public String getGroupId() {

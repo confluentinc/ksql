@@ -9,7 +9,7 @@ keywords: ksqldb, sql, syntax, int, integer, double, decimal, data type
 | name      | storage size    | description                     | backing Java type
 |-----------|-----------------|---------------------------------|------------------
 | `int`     | 4 bytes         | typical choice for integer      | [`java.lang.Integer`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Integer.html)
-| `bigint`  | value dependent | large-range integer             | [`java.math.BigInteger`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigInteger.html)
+| `bigint`  | 8 bytes         | large-range integer             | [`java.lang.Long`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/Long.html)
 | `double`  | 8 bytes         | variable-precision, inexact     | [`java.lang.Double`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Double.html)
 | `decimal` | value dependent | user-specified precision, exact | [`java.math.BigDecimal`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigDecimal.html)
 

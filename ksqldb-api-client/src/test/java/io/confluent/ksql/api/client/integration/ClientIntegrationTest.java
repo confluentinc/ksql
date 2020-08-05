@@ -918,6 +918,21 @@ public class ClientIntegrationTest {
             + "(kafka_topic='" + TEST_TOPIC + "', value_format='json');"));
   }
 
+  @Test
+  public void shouldHandleErrorResponseFromDescribeSource() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.describeSource("NONEXISTENT").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Could not find STREAM/TABLE 'NONEXISTENT' in the Metastore"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")

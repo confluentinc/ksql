@@ -872,10 +872,6 @@ public class KafkaTopicClientImplTest {
       final ListOffsetsResult result = mock(ListOffsetsResult.class);
       final KafkaFuture<Map<TopicPartition, ListOffsetsResultInfo>> f = failedFuture(e);
       when(result.all()).thenReturn(f);
-//      return new ListOffsetsResult(
-//          ImmutableMap.of(
-//              new TopicPartition("topicA", 0),
-//              new ListOffsetsResultInfo(100L, 0L, Optional.empty())));
       return result;
     };
   }

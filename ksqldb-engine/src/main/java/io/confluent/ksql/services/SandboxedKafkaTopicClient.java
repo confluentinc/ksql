@@ -157,13 +157,11 @@ final class SandboxedKafkaTopicClient {
         .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
   }
 
-  private Map<TopicPartition, Long> listTopicsStartOffsets(
-      final Collection<String> topics) {
+  private Map<TopicPartition, Long> listTopicsStartOffsets(final Collection<String> topics) {
     return delegate.listTopicsStartOffsets(topics);
   }
 
-  private Map<TopicPartition, Long> listTopicsEndOffsets(
-      final Collection<String> topics) {
+  private Map<TopicPartition, Long> listTopicsEndOffsets(final Collection<String> topics) {
     return delegate.listTopicsEndOffsets(topics);
   }
 }

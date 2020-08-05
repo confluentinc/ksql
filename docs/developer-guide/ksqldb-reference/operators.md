@@ -83,7 +83,7 @@ The subscript operator (`[subscript_expr]`) is used to
 reference the value at an array index or a map key.
 
 ```sql
-SELECT USERID, NICKNAMES[0] FROM USERS EMIT CHANGES;
+SELECT USERID, NICKNAMES[1] FROM USERS EMIT CHANGES;
 ```
 
 STRUCT dereference

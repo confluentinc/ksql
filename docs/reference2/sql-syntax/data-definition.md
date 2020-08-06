@@ -6,7 +6,7 @@ description: How to use DDL to structure data in ksqlDB
 keywords: ksqldb, sql, ddl
 ---
 
-This section covers how you create the structures that store your events. ksqlDB has two abstractions for that: streams and tables.
+This section covers how you create the structures that store your events. ksqlDB abstracts events as rows with columns, and stores them in  streams and tables.
 
 ## Rows and columns
 

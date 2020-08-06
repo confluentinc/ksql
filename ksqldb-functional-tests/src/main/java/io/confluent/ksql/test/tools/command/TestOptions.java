@@ -20,6 +20,7 @@ import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import java.io.IOException;
+import java.util.Optional;
 
 @Command(name = "ksql-test-runner", description = "The KSQL testing tool")
 public class TestOptions {
@@ -45,6 +46,12 @@ public class TestOptions {
       description = "A SQL file containing KSQL statements to be tested.")
   private String statementsFile;
 
+  @Once
+  @Option(
+      name = {"--extension-dir", "-e"},
+      description = "A directory containting extensions.")
+  private String extensionDir;
+
   public static TestOptions parse(final String... args) throws IOException {
     return TestOptionsParser.parse(args, TestOptions.class);
   }
@@ -60,5 +67,9 @@ public class TestOptions {
 
   public String getStatementsFile() {
     return statementsFile;
+  }
+
+  public Optional<String> getExtensionDir() {
+    return Optional.ofNullable(extensionDir);
   }
 }

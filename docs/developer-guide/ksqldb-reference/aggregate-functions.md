@@ -8,6 +8,8 @@ keywords: ksqlDB, function, aggregate
 
 ## `AVG`
 
+Since: 0.6.0
+
 ```sql
 AVG(col1)
 ```
@@ -17,6 +19,8 @@ Stream, Table
 Return the average value for a given column.
 
 ## `COLLECT_LIST`
+
+Since: -
 
 ```sql
 COLLECT_LIST(col1)
@@ -37,8 +41,9 @@ first considering all the records from the first window, then the
 late-arriving record, then the records from the second window in
 the order they were originally processed.
 
-
 ## `COLLECT_SET`
+
+Since: -
 
 ```sql
 COLLECT_SET(col1)
@@ -59,8 +64,9 @@ first considering all the records from the first window, then the
 late-arriving record, then the records from the second window in
 the order they were originally processed.
 
-
 ## `COUNT`
+
+Since: -
 
 ```sql
 COUNT(col1)
@@ -79,6 +85,8 @@ number of rows.
 
 ## `COUNT_DISTINCT`
 
+Since: 0.7.0
+
 ```sql
 COUNT_DISTINCT(col1)
 ```
@@ -91,6 +99,8 @@ to estimate cardinalities of 10^9 with a typical standard error of 2%.
 
 ## `EARLIEST_BY_OFFSET`
 
+Since: 0.10.0
+
 ```sql
 EARLIEST_BY_OFFSET(col1)
 ```
@@ -100,8 +110,9 @@ Stream
 Return the earliest value for a given column. Earliest here is defined as the value in the partition
 with the lowest offset. Rows that have `col1` set to null are ignored.
 
-
 ## `HISTOGRAM`
+
+Since: -
 
 ```sql
 HISTOGRAM(col1)
@@ -123,6 +134,8 @@ the order they were originally processed.
 
 ## `LATEST_BY_OFFSET`
 
+Since: 0.8.0
+
 ```sql
 LATEST_BY_OFFSET(col1)
 ```
@@ -133,6 +146,8 @@ Return the latest value for a given column. Latest here is defined as the value 
 with the greatest offset. Rows that have `col1` set to null are ignored.
 
 ## `MAX`
+
+Since: -
 
 ```sql
 MAX(col1)
@@ -145,6 +160,8 @@ Rows that have `col1` set to null are ignored.
 
 ## `MIN`
 
+Since: -
+
 ```sql
 MIN(col1)
 ```
@@ -155,6 +172,8 @@ Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
 ## `SUM`
+
+Since: -
 
 ```sql
 SUM(col1)
@@ -167,6 +186,8 @@ Rows that have `col1` set to null are ignored.
 
 ## `TOPK`
 
+Since: -
+
 ```sql
 TOPK(col1, k)
 ```
@@ -177,6 +198,8 @@ Return the Top *K* values for the given column and window
 Rows that have `col1` set to null are ignored.
 
 ## `TOPKDISTINCT`
+
+Since: -
 
 ```sql
 TOPKDISTINCT(col1, k)

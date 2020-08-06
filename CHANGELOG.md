@@ -124,6 +124,8 @@
 
 ### BREAKING CHANGES
 
+An associated [blog post](An associated blog post also covers many of these breaking changes: https://www.confluent.io/blog/ksqldb-0-10-updates-key-columns/) also covers many of these breaking changes.
+
 #### Any key name
 
 Statements containing PARTITION BY, GROUP BY, or JOIN clauses now produce different output schemas.

@@ -30,136 +30,136 @@ keywords: ksqldb, sql, keyword, identifier, constant, operator
 The following table shows all keywords in ksqlDB SQL.
 
 
-| keyword     | description                   | example 
-|-------------|-------------------------------|----------------------------
-| ADVANCE     | use with BY                   | `ADVANCE BY`
-| ALL         |                               |
-| ANALYZE     |                               |
-| AND         | logical AND operator          |
-| ARRAY       | one-indexed array of elements |
-| AS          | alias a column, expression, or type |
-| AT          |                               |
-| BEGINNING   | use with FROM                 | `FROM BEGINNING`
-| BETWEEN     | constrain a value to a range  |
-| BY          | use with GROUP or ADVANCE     | `GROUP BY`, `ADVANCE BY` 
-| CASE        | select a condition from expressions | 
-| CAST        | change the type of an expression |
-| CATALOG     |                               |
-| CHANGES     | use with EMIT                 | `EMIT CHANGES`
-| COLUMN      |                               |
-| COLUMNS     |                               |
-| CONNECTOR   |                               |
-| CONNECTORS  |                               |
-| CREATE      | use with STREAM, TABLE, CONNECTOR, or TYPE |
-| DATE        |                               |
-| DAY         |                               |
-| DAYS        |                               |
-| DECIMAL     | decimal numeric type          |
-| DELETE      | use with TOPIC                | `[DELETE TOPIC]`
-| DESCRIBE    | list details of a stream, table, connector, or function |
-| DISTINCT    |                               |
-| DROP        | delete a stream, table, connector, or type |
-| ELSE        | use with IF                   |
-| EMIT        | use with CHANGES              | `EMIT CHANGES`
-| END         | use with CASE                 |
-| ESCAPE      |                               |
-| EXISTS      | use with IF                   | `[IF EXISTS]`
-| EXPLAIN     | show the execution plan of an expression or query |
-| EXPORT      |                               |
-| EXTENDED    | use with SHOW, LIST, or DESCRIBE |
-| FALSE       | Boolean value of FALSE        |
-| FINAL       |                               |
-| FROM        | use with SELECT               | `SELECT * FROM users;`
-| FULL        | use with JOIN                 |
-| FUNCTION    | use with SHOW, LIST, or DESCRIBE |
-| FUNCTIONS   | use with SHOW, LIST, or DESCRIBE |
-| GRACE       | use with PERIOD                          | `WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)`
-| GROUP       | use with BY                              | `GROUP BY`
-| HAVING      | extract records from an aggregation that fulfill a condition |
-| HOPPING     | use with WINDOW                          | `WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)`
-| HOUR        |                                |
-| HOURS       |                                |
-| IF          |                                |
-| IN          | specify multiple values in a WHERE clause | `WHERE name IN (value1, value2, ...)`
-| INNER       | use with JOIN                  |
-| INSERT      | use with INTO or VALUES        | `INSERT INTO stream_name ...`
-| INTEGER     | integer numeric type           |
-| INTERVAL    | use with PRINT                 | `PRINT topicName INTERVAL interval 5`
-| INTO        | use with INSERT                | `INSERT INTO stream_name ...`
-| IS          |                                |
-| JOIN        | match records from two streams or tables |
-| KEY         | use with PRIMARY               | `userId INT PRIMARY KEY`
-| LEFT        | use with JOIN                  | `LEFT JOIN users ON pageviews.userid = users.userid`
-| LIKE        | use with WHERE                 | `WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'`
-| LIMIT       | use with SELECT                | `SELECT * FROM users EMIT CHANGES LIMIT 5;`
-| LIST        |                                |
-| LOAD        |                                |
-| MAP         | `map` data type                |
-| MATERIALIZED|                                |
-| MILLISECOND |                                |
-| MILLISECONDS|                                |
-| MINUTE      |                                |
-| MINUTES     |                                |
-| MONTH       |                                |
-| MONTHS      |                                |
-| NAMESPACE   |                                |
-| NOT         | logical NOT operator           |
-| NULL        |                                |
-| ON          | use with JOIN                  | `LEFT JOIN users ON pageviews.userid = users.userid`
-| OR          | logical OR operator            |
-| OUTER       | use with JOIN                  |                  
-| PARTITION   | use with BY                    | `PARTITION BY key_field`
-| PARTITIONS  | user with CREATE               | `CREATE STREAM users_rekeyed WITH (PARTITIONS=6) AS ...`
-| PERIOD      | use with GRACE                 |
-| PRIMARY     | use with KEY                   |
-| PRINT       |                                |
-| PROPERTIES  | use with LIST or SHOW          | `SHOW PROPERTIES;`
-| QUERIES     | use with LIST or SHOW          | `SHOW QUERIES;`
-| QUERY       |                                |
-| RENAME      |                                |
-| REPLACE     | string replace                 | `REPLACE(col1, 'foo', 'bar')`
-| RESET       |                                |
-| RETENTION   | use with WINDOW                | `WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)`
-| RIGHT       |                                |
-| RUN         | use with SCRIPT                | `RUN SCRIPT <path-to-query-file>;`
-| SAMPLE      |                                |
-| SCRIPT      | use with RUN                   | `RUN SCRIPT <path-to-query-file>;`
-| SECOND      |                                |
-| SECONDS     |                                |
-| SELECT      | query a stream or table        |
-| SESSION     | use with WINDOW                | `WINDOW SESSION (60 SECONDS)`
-| SET         | assign a property value        | `SET 'auto.offset.reset'='earliest';`
-| SHOW        |                                |
-| SINK        | use with CREATE CONNECTOR      | `CREATE SINK CONNECTOR ...`
-| SIZE        | use with WINDOW                | `WINDOW TUMBLING (SIZE 5 SECONDS)`
-| SOURCE      | use with CREATE CONNECTOR      | `CREATE SOURCE CONNECTOR ...`
-| STREAM      |                                |
-| STREAMS     | use with LIST or SHOW          | `SHOW STREAMS;`
-| STRUCT      | struct data type               |
-| TABLE       |                                |
-| TABLES      | use with LIST or SHOW          | `SHOW TABLES;`
-| TERMINATE   | end a persistent query         | `TERMINATE query_id;`
-| THEN        | use with IF                    |
-| TIME        |                                |
-| TIMESTAMP   |                                |
-| TO          |                                |
-| TOPIC       |                                |
-| TOPICS      | use with LIST or SHOW          | `SHOW TOPICS;`
-| TRUE        | Boolean value of TRUE          |
-| TUMBLING    | use with WINDOW                | `WINDOW TUMBLING (SIZE 5 SECONDS)`
-| TYPE        | use with CREATE and DROP       | `CREATE TYPE <type_name> AS <type>;`
-| TYPES       | use with LIST or SHOW          | `SHOW TYPES;`
-| UNSET       | unassign a property value      | `UNSET 'auto.offset.reset';`
-| VALUES      | use with INSERT                | `INSERT INTO foo VALUES ('key', 'A');`
-| VIEW        |                                |
-| WHEN        | use with CASE                  |
-| WHERE       | use with SELECT                | `SELECT * FROM pageviews WHERE pageid < 'Page_20'`
-| WINDOW      | use with CREATE and SELECT     | `SELECT userid, COUNT(*) FROM users WINDOW SESSION (60 SECONDS) ...`
-| WITH        | use with CREATE                | `CREATE STREAM pageviews WITH (TIMESTAMP='viewtime', ...`
-| WITHIN      | use with windowed JOIN         | `SELECT * FROM impressions i JOIN clicks c WITHIN 1 minute ON i.user = c.user`
-| YEAR        |                                |
-| YEARS       |                                |
-| ZONE        |                                |
+| keyword      | description                         | related keywords                         | example                                                              |
+|--------------|-------------------------------------|------------------------------------------|----------------------------------------------------------------------|
+| ADVANCE      |                                     | BY                                       | `ADVANCE BY`                                                         |
+| ALL          |                                     |                                          |                                                                      |
+| ANALYZE      |                                     |                                          |                                                                      |
+| AND          | logical AND operator                |                                          |                                                                      |
+| ARRAY        | one-indexed array of elements       |                                          |                                                                      |
+| AS           | alias a column, expression, or type |                                          |                                                                      |
+| AT           |                                     |                                          |                                                                      |
+| BEGINNING    |                                     | FROM                                     | `FROM BEGINNING`                                                     |
+| BETWEEN      | constrain a value to a range        |                                          |                                                                      |
+| BY           |                                     | GROUP, ADVANCE                           | `GROUP BY`, `ADVANCE BY`                                             |
+| CASE         | select a condition from expressions | WHEN                                     |                                                                      |
+| CAST         | change expression type              |                                          |                                                                      |
+| CATALOG      |                                     |                                          |                                                                      |
+| CHANGES      |                                     | EMIT                                     | `EMIT CHANGES`                                                       |
+| COLUMN       |                                     |                                          |                                                                      |
+| COLUMNS      |                                     |                                          |                                                                      |
+| CONNECTOR    |                                     |                                          |                                                                      |
+| CONNECTORS   |                                     |                                          |                                                                      |
+| CREATE       |                                     | STREAM, TABLE, CONNECTOR, TYPE           |                                                                      |
+| DATE         |                                     |                                          |                                                                      |
+| DAY          |                                     |                                          |                                                                      |
+| DAYS         |                                     |                                          |                                                                      |
+| DECIMAL      | decimal numeric type                |                                          |                                                                      |
+| DELETE       |                                     | TOPIC                                    | `[DELETE TOPIC]`                                                     |
+| DESCRIBE     | list details                        | STREAM, TABLE, CONNECTOR, TYPE, FUNCTION |                                                                      |
+| DISTINCT     |                                     |                                          |                                                                      |
+| DROP         | delete                              | STREAM, TABLE, CONNECTOR, TYPE           |                                                                      |
+| ELSE         |                                     | IF                                       |                                                                      |
+| EMIT         |                                     | CHANGES                                  | `EMIT CHANGES`                                                       |
+| END          |                                     | CASE                                     |                                                                      |
+| ESCAPE       |                                     |                                          |                                                                      |
+| EXISTS       |                                     | IF                                       | `[IF EXISTS]`                                                        |
+| EXPLAIN      | show execution plan                 |                                          |                                                                      |
+| EXPORT       |                                     |                                          |                                                                      |
+| EXTENDED     |                                     | SHOW, LIST, DESCRIBE                     |                                                                      |
+| FALSE        | Boolean value of FALSE              |                                          |                                                                      |
+| FINAL        |                                     |                                          |                                                                      |
+| FROM         |                                     | SELECT                                   | `SELECT * FROM users;`                                               |
+| FULL         |                                     | JOIN                                     |                                                                      |
+| FUNCTION     |                                     | SHOW, LIST, DESCRIBE                     |                                                                      |
+| FUNCTIONS    |                                     | SHOW, LIST, DESCRIBE                     |                                                                      |
+| GRACE        |                                     | PERIOD                                   | `WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)`                |
+| GROUP        |                                     | BY                                       | `GROUP BY`                                                           |
+| HAVING       | filter condition                    |                                          |                                                                      |
+| HOPPING      |                                     | WINDOW                                   | `WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)`            |
+| HOUR         |                                     |                                          |                                                                      |
+| HOURS        |                                     |                                          |                                                                      |
+| IF           |                                     |                                          |                                                                      |
+| IN           | specify multiple values             | WHERE                                    | `WHERE name IN (value1, value2, ...)`                                |
+| INNER        |                                     | JOIN                                     |                                                                      |
+| INSERT       |                                     | INTO, VALUES                             | `INSERT INTO stream_name ...`                                        |
+| INTEGER      | integer numeric type                |                                          |                                                                      |
+| INTERVAL     |                                     | PRINT                                    | `PRINT topicName INTERVAL interval 5`                                |
+| INTO         |                                     | INSERT                                   | `INSERT INTO stream_name ...`                                        |
+| IS           |                                     |                                          |                                                                      |
+| JOIN         | match records                       |                                          |                                                                      |
+| KEY          |                                     | PRIMARY                                  | `userId INT PRIMARY KEY`                                             |
+| LEFT         |                                     | JOIN                                     | `LEFT JOIN users ON pageviews.userid = users.userid`                 |
+| LIKE         |                                     | WHERE                                    | `WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'`       |
+| LIMIT        |                                     | SELECT                                   | `SELECT * FROM users EMIT CHANGES LIMIT 5;`                          |
+| LIST         |                                     |                                          |                                                                      |
+| LOAD         |                                     |                                          |                                                                      |
+| MAP          | `map` data type                     |                                          |                                                                      |
+| MATERIALIZED |                                     |                                          |                                                                      |
+| MILLISECOND  |                                     |                                          |                                                                      |
+| MILLISECONDS |                                     |                                          |                                                                      |
+| MINUTE       |                                     |                                          |                                                                      |
+| MINUTES      |                                     |                                          |                                                                      |
+| MONTH        |                                     |                                          |                                                                      |
+| MONTHS       |                                     |                                          |                                                                      |
+| NAMESPACE    |                                     |                                          |                                                                      |
+| NOT          | logical NOT operator                |                                          |                                                                      |
+| NULL         |                                     |                                          |                                                                      |
+| ON           |                                     | JOIN                                     | `LEFT JOIN users ON pageviews.userid = users.userid`                 |
+| OR           | logical OR operator                 |                                          |                                                                      |
+| OUTER        |                                     | JOIN                                     |                                                                      |
+| PARTITION    |                                     | BY                                       | `PARTITION BY key_field`                                             |
+| PARTITIONS   |                                     | CREATE                                   | `CREATE STREAM users_rekeyed WITH (PARTITIONS=6) AS ...`             |
+| PERIOD       |                                     | GRACE                                    |                                                                      |
+| PRIMARY      |                                     | KEY                                      |                                                                      |
+| PRINT        |                                     |                                          |                                                                      |
+| PROPERTIES   |                                     | LIST, SHOW                               | `SHOW PROPERTIES;`                                                   |
+| QUERIES      |                                     | LIST, SHOW                               | `SHOW QUERIES;`                                                      |
+| QUERY        |                                     |                                          |                                                                      |
+| RENAME       |                                     |                                          |                                                                      |
+| REPLACE      | string replace                      |                                          | `REPLACE(col1, 'foo', 'bar')`                                        |
+| RESET        |                                     |                                          |                                                                      |
+| RETENTION    |                                     | WINDOW                                   | `WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)`             |
+| RIGHT        |                                     |                                          |                                                                      |
+| RUN          |                                     | SCRIPT                                   | `RUN SCRIPT <path-to-query-file>;`                                   |
+| SAMPLE       |                                     |                                          |                                                                      |
+| SCRIPT       |                                     | RUN                                      | `RUN SCRIPT <path-to-query-file>;`                                   |
+| SECOND       |                                     |                                          |                                                                      |
+| SECONDS      |                                     |                                          |                                                                      |
+| SELECT       | query a stream or table             |                                          |                                                                      |
+| SESSION      |                                     | WINDOW                                   | `WINDOW SESSION (60 SECONDS)`                                        |
+| SET          | assign a property value             |                                          | `SET 'auto.offset.reset'='earliest';`                                |
+| SHOW         |                                     |                                          |                                                                      |
+| SINK         |                                     | CREATE CONNECTOR                         | `CREATE SINK CONNECTOR ...`                                          |
+| SIZE         |                                     | WINDOW                                   | `WINDOW TUMBLING (SIZE 5 SECONDS)`                                   |
+| SOURCE       |                                     | CREATE CONNECTOR                         | `CREATE SOURCE CONNECTOR ...`                                        |
+| STREAM       |                                     |                                          |                                                                      |
+| STREAMS      |                                     | LIST, SHOW                               | `SHOW STREAMS;`                                                      |
+| STRUCT       | struct data type                    |                                          |                                                                      |
+| TABLE        |                                     |                                          |                                                                      |
+| TABLES       |                                     | LIST, SHOW                               | `SHOW TABLES;`                                                       |
+| TERMINATE    | end a persistent query              |                                          | `TERMINATE query_id;`                                                |
+| THEN         |                                     | IF                                       |                                                                      |
+| TIME         |                                     |                                          |                                                                      |
+| TIMESTAMP    |                                     |                                          |                                                                      |
+| TO           |                                     |                                          |                                                                      |
+| TOPIC        |                                     |                                          |                                                                      |
+| TOPICS       |                                     | LIST, SHOW                               | `SHOW TOPICS;`                                                       |
+| TRUE         | Boolean value of TRUE               |                                          |                                                                      |
+| TUMBLING     |                                     | WINDOW                                   | `WINDOW TUMBLING (SIZE 5 SECONDS)`                                   |
+| TYPE         |                                     | CREATE, DROP                             | `CREATE TYPE <type_name> AS <type>;`                                 |
+| TYPES        |                                     | LIST, SHOW                               | `SHOW TYPES;`                                                        |
+| UNSET        | unassign a property value           |                                          | `UNSET 'auto.offset.reset';`                                         |
+| VALUES       |                                     | INSERT                                   | `INSERT INTO foo VALUES ('key', 'A');`                               |
+| VIEW         |                                     |                                          |                                                                      |
+| WHEN         |                                     | CASE                                     |                                                                      |
+| WHERE        |                                     | SELECT                                   | `SELECT * FROM pageviews WHERE pageid < 'Page_20'`                   |
+| WINDOW       |                                     | CREATE, SELECT                           | `SELECT userid, COUNT(*) FROM users WINDOW SESSION (60 SECONDS) ...` |
+| WITH         |                                     | CREATE                                   | `CREATE STREAM pageviews WITH (TIMESTAMP='viewtime', ...`            |
+| WITHIN       | use with windowed JOIN              | JOIN                                     | `SELECT * FROM impressions i JOIN clicks c WITHIN 1 minute ...`      |
+| YEAR         |                                     |                                          |                                                                      |
+| YEARS        |                                     |                                          |                                                                      |
+| ZONE         |                                     |                                          |                                                                      |
 
 
 

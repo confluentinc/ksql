@@ -81,6 +81,20 @@ As with streams, tables can also be declared directly ontop of an existing Kafka
 
 If a column is declared in a schema, but no attribute is present in the underlying Kafka record, the value for the row's column is populated as `null`.
 
+## System columns
+
+TODO
+
+## Keys
+
+TODO
+
+What they do: extract data out of the key namespace of a Kafka record. Only used for streams. How they differ from primary keys. Optional for streams.
+
+Why they're useful: avoid a repartition
+
+What to do if your key is not set or is in a different format
+
 ## Constraints
 
 Although data types help limit the range of values that can be accepted by ksqlDB, sometimes it is useful to have more sophisticated restrictions. Constraints allow you to exercise that type of logic directly in your schema.
@@ -106,16 +120,10 @@ CREATE TABLE users (
   );
 ```
 
+TODO: What to do if your key is not set or is in a different format
+
+
+
 ### Not-null constraints
 
 A not-null constraint designates that a column cannot contain a null value. ksqlDB doesn't yet support this constraint, but you can track the progress towards it in [GitHub issue 4436](https://github.com/confluentinc/ksql/issues/4436).
-
-## Partitioning
-
-- Kafka keys control partitioning/sharding
-- General requirements
-- Different key formats
-
-## Modify streams and tables
-
-- Future work in 0.12

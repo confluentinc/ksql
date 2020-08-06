@@ -23,8 +23,6 @@ keywords: ksqldb, sql, keyword, identifier, constant, operator
 
 ## Keywords
 
-https://github.com/confluentinc/ksql/blob/master/ksqldb-parser/src/main/antlr4/io/confluent/ksql/parser/SqlBase.g4
-
 - Keywords = reserved words
   - examples: select, insert, where
   - case insensitive
@@ -61,20 +59,25 @@ The following table lists all of the operators that are supported by ksqlDB SQL.
 |--------------|--------------------------------|-----------------
 | `=`          | is equal to                    | string, numeric 
 | `!=` or `<>` | is not equal to                | string, numeric 
-| `<`          | is less than                   | numeric         
-| `<=`         | is less than or equal to       | numeric         
-| `>`          | is greater than                | numeric         
-| `>=`         | is greater than or equal to    | numeric         
-| `+`          | addition and concatenation     | numeric         
+| `<`          | is less than                   | string, numeric         
+| `<=`         | is less than or equal to       | string, numeric         
+| `>`          | is greater than                | string, numeric         
+| `>=`         | is greater than or equal to    | string, numeric         
+| `+`          | addition for numeric, concatenation for string | string, numeric         
 | `-`          | subtraction                    | numeric         
 | `*`          | multiplication                 | numeric         
 | `/`          | division                       | numeric         
-| `%`          | wildcard and modulus           | string, numeric 
+| `%`          | modulus                        | numeric 
 | `||` or `+`  | concatenation                  | string          
 | `:=`         | assignment                     | all             
 | `->`         | struct field dereference       | struct     
 | `.`          | source dereference             | table, stream
-| `E`          | exponent                       | numeric         
+| `E` or `e`   | exponent                       | numeric
+| `NOT`        | logical NOT                    | boolean
+| `AND`        | logical AND                    | boolean
+| `OR`         | logical OR                     | boolean
+| `BETWEEN`    | test if value within range     | numeric, string
+| `LIKE`       | match a pattern                | string
 
 The explanation for each operator includes a supporting example based on
 the following table:
@@ -92,7 +95,8 @@ CREATE TABLE USERS (
 ### Arithmetic
 
 You can apply the familiar arithmetic operators, like `+` and `%`, to
-[numeric types](data-types/numeric.md), like INT, BIGINT, and DOUBLE.
+[numeric types](data-types/numeric.md), like INT, BIGINT, DOUBLE, and
+DECIMAL.
 
 The following example statement uses the addition operator (`+`) to compute
 the sum of the lengths of two strings:
@@ -110,9 +114,9 @@ Use the concatenation operator (`+` or `||`) to concatenate
 SELECT USERID, FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS EMIT CHANGES;
 ```
 
-You can use the `+` operator for multi-part concatenation.
+You can use the concatenation operator for multi-part concatenation.
 
-The following example statement uses the concatenation operator (`+`) to create
+The following example statement uses the concatenation operator to create
 an error message:
 
 ```sql
@@ -133,17 +137,22 @@ SELECT USERID,
 Use the source dereference operator (`.`) to specify columns by dereferencing
 the source stream or table.
 
-The following example statement selects the value of the FIRST_NAME column in
-the USERS table:
+Providing the fully qualified column name is optional, unless the column name is
+ambiguous. For example, if two sides of a join both contain a `foo` column, any
+reference to `foo` in the query must be fully qualified.
+
+The following example statement selects the values of the USERID and FIRST_NAME
+columns in the USERS table by using the fully qualified column names:
 
 ```sql
-SELECT USERID, USERS.FIRST_NAME FROM USERS EMIT CHANGES;
+SELECT USERS.USERID, USERS.FIRST_NAME FROM USERS EMIT CHANGES;
 ```
 
 ### Subscript
 
 Use the subscript operator (`[subscript_expr]`) to reference the value at an
-[array](data-types/compund.md#array) index or a [array](data-types/compund.md#array) map key. Arrays indexes are one-based.
+[array](data-types/compound.md#array) index or a [array](data-types/compound.md#map)
+map key. Arrays indexes are one-based.
 
 The following example statement selects the first string in the NICKNAMES array:
 
@@ -163,7 +172,7 @@ fields in the ADDRESS struct:
 SELECT USERID, ADDRESS->STREET, ADDRESS->HOUSE_NUM FROM USERS EMIT CHANGES;
 ```
 
-Combine `->` with `.` when using aliases:
+Combine `->` with `.` to provide fully qualified names:
 
 ```sql
 SELECT USERID, USERS.ADDRESS->STREET, U.ADDRESS->STREET FROM USERS U EMIT CHANGES;
@@ -189,9 +198,22 @@ Not a function/operator/identifier, have meta-meaning for the commands.
 
 TODO: does ksqlDB have multi-line comments?
 
-bracketed comments
+There are bracketed comments in the grammar, so I think so.
 '/*' .*? '*/' 
 
 ## Operator precedence
 
-TODO: can we lift this out of our grammar
+Precedence in order:
+
+1. `*` (multiplication), `/` (division), `%` (modulus)
+2. `+` (positive), - (negative), + (addition), + (concatenation), - (subtraction)
+3. `=`, `>`, `<`, `>=`, `<=`, `<>`, `!=` (comparison operators)
+4. NOT
+5. AND
+6. BETWEEN, LIKE, OR
+
+In an expression, when two operators have the same precedence level, they're
+evaluated left-to-right based on their position in the expression.
+
+You can enclose an expression in parentheses to force precedence or clarify
+precedence, for example, _(5 + 2) * 3_.

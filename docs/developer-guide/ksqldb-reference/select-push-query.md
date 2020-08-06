@@ -188,7 +188,7 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
 #### EMIT
 
 The EMIT clause lets you control the output refinement of your push query. The output refinement is
-just how you would like to *emit* your results. 
+how you would like to *emit* your results. 
 
 ksqlDB supports the following output refinement types.
 

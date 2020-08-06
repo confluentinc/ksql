@@ -27,6 +27,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
 import org.slf4j.Logger;
@@ -50,9 +51,9 @@ public class UdtfLoader {
       final SqlTypeParser typeParser,
       final boolean throwExceptionOnLoadFailure
   ) {
-    this.functionRegistry = functionRegistry;
-    this.metrics = metrics;
-    this.typeParser = typeParser;
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.metrics = Objects.requireNonNull(metrics, "metrics");
+    this.typeParser = Objects.requireNonNull(typeParser, "typeParser");
     this.throwExceptionOnLoadFailure = throwExceptionOnLoadFailure;
   }
 
@@ -67,7 +68,8 @@ public class UdtfLoader {
     }
     final String functionName = udtfDescriptionAnnotation.name();
     final String sensorName = "ksql-udtf-" + functionName;
-    FunctionLoaderUtils.addSensor(sensorName, functionName, metrics);
+
+    FunctionMetrics.initInvocationSensor(metrics, sensorName, "ksql-udtf", functionName + " udtf");
 
     final UdfMetadata metadata = new UdfMetadata(
         udtfDescriptionAnnotation.name(),

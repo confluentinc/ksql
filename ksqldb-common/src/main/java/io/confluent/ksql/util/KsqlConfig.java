@@ -304,10 +304,14 @@ public class KsqlConfig extends AbstractConfig {
       + "KSQL metastore backup files are located.";
 
   public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
-  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = true;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE = "ksql.suppress.buffer.size";
+  public static final Long KSQL_SUPPRESS_BUFFER_SIZE_DEFAULT = 1000000L;
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE_DOC =
+      "Bound the size of the buffer used for suppression";
   // Defaults for config NOT defined by this class's ConfigDef:
   static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
       .<String, Object>builder()
@@ -761,6 +765,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC
+        )
+        .define(
+            KSQL_SUPPRESS_BUFFER_SIZE,
+            Type.LONG,
+            KSQL_SUPPRESS_BUFFER_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_SUPPRESS_BUFFER_SIZE_DOC
         )
         .withClientSslSupport();
 

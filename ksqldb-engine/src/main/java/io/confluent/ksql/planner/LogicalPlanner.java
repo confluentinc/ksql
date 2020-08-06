@@ -143,6 +143,9 @@ public class LogicalPlanner {
 
     if (analysis.getRefinementInfo().isPresent()
         && analysis.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL) {
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SUPPRESS_ENABLED)) {
+        throw new KsqlException("Suppression is currently disabled in the KsqlConfig.");
+      }
       if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
         throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
       }

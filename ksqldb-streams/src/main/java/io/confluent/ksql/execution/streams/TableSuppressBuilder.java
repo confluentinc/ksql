@@ -28,6 +28,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Set;
 import java.util.function.BiFunction;
+
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.KTable;
@@ -99,7 +101,10 @@ public final class TableSuppressBuilder {
         materialized
     ).suppress(
         (Suppressed<? super K>) Suppressed
-            .untilWindowCloses(Suppressed.BufferConfig.unbounded())
+            .untilWindowCloses(Suppressed.BufferConfig
+                .maxBytes(KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE_DEFAULT)
+                .shutDownWhenFull()
+            )
             .withName(SUPPRESS_OP_NAME)
     );
 

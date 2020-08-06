@@ -34,7 +34,8 @@ stream the result of the query as a changelog into the topic.
 Note that the WINDOW clause can only be used if the `from_item` is a stream and the query contains
 a `GROUP BY` clause.
 
-Note that EMIT clause defaults to `EMIT CHANGES` unless explicitly set to `EMIT FINAL` on a
+Note that EMIT `output_refinement` defaults to `CHANGES` unless explicitly set to `FINAL` on a
+
 windowed aggregation.
 
 Joins to streams can use any stream column. If the join criteria is not the key column of the stream

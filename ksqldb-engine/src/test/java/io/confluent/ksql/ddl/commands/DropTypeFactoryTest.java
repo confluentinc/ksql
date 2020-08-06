@@ -16,27 +16,79 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.DropType;
 import java.util.Optional;
-import org.junit.Test;
 
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlException;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+@RunWith(MockitoJUnitRunner.class)
 public class DropTypeFactoryTest {
   private static final String SOME_TYPE_NAME = "some_type";
 
-  private final DropTypeFactory factory = new DropTypeFactory();
+  private DropTypeFactory factory;
+
+  @Mock
+  private MetaStore metaStore;
+  @Mock
+  private SqlType customType;
+
+  @Before
+  public void setUp() {
+    when(metaStore.resolveType(SOME_TYPE_NAME)).thenReturn(Optional.of(customType));
+
+    factory = new DropTypeFactory(metaStore);
+  }
 
   @Test
   public void shouldCreateDropType() {
     // Given:
-    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME);
+    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME, false);
 
     // When:
     final DropTypeCommand cmd = factory.create(dropType);
 
     // Then:
     assertThat(cmd.getTypeName(), equalTo(SOME_TYPE_NAME));
+  }
+
+  @Test
+  public void shouldCreateTypeOnMissingNameWithIfExists() {
+    // Given:
+    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME, true);
+
+    // When:
+    final DropTypeCommand cmd = factory.create(dropType);
+
+    // Then:
+    assertThat(cmd.getTypeName(), equalTo(SOME_TYPE_NAME));
+  }
+
+  @Test
+  public void shouldFailCreateTypeOnMissingName() {
+    // Given:
+    final DropType dropType = new DropType(Optional.empty(), "ADDRESS", false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.create(dropType)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), equalTo("Type ADDRESS does not exist."));
   }
 }

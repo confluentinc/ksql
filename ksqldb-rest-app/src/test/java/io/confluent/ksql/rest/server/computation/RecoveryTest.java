@@ -36,6 +36,7 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
@@ -94,6 +95,9 @@ public class RecoveryTest {
   @Mock
   @SuppressWarnings("unchecked")
   private final Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
+  @Mock
+  private DenyListPropertyValidator denyListPropertyValidator =
+      mock(DenyListPropertyValidator.class);
 
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
@@ -226,7 +230,8 @@ public class RecoveryTest {
           Duration.ofMillis(0),
           ()->{},
           Optional.of((sc, metastore, statement) -> { }),
-          mock(Errors.class)
+          mock(Errors.class),
+          denyListPropertyValidator
       );
 
       this.statementExecutor.configure(ksqlConfig);

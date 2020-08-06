@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
+import static io.confluent.ksql.rest.entity.ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP;
 import static io.confluent.ksql.rest.entity.CommandId.Action.CREATE;
 import static io.confluent.ksql.rest.entity.CommandId.Action.DROP;
 import static io.confluent.ksql.rest.entity.CommandId.Action.EXECUTE;
@@ -97,6 +98,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -291,6 +293,8 @@ public class KsqlResourceTest {
   private Producer<CommandId, Command> transactionalProducer;
   @Mock
   private Errors errorsHandler;
+  @Mock
+  private DenyListPropertyValidator denyListPropertyValidator;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -399,7 +403,8 @@ public class KsqlResourceTest {
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
-        errorsHandler
+        errorsHandler,
+        denyListPropertyValidator
     );
 
     // When:
@@ -429,7 +434,8 @@ public class KsqlResourceTest {
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
-        errorsHandler
+        errorsHandler,
+        denyListPropertyValidator
     );
 
     // When:
@@ -2174,10 +2180,77 @@ public class KsqlResourceTest {
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
-        errorsHandler
+        errorsHandler,
+        denyListPropertyValidator
     );
 
     ksqlResource.configure(ksqlConfig);
+  }
+
+  @Test
+  public void shouldThrowOnDenyListValidatorWhenTerminateCluster() {
+    final Map<String, Object> terminateStreamProperties =
+        ImmutableMap.of(DELETE_TOPIC_LIST_PROP, Collections.singletonList("Foo"));
+
+    // Given:
+    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator).validateAll(
+        terminateStreamProperties
+    );
+
+    // When:
+    final EndpointResponse response = ksqlResource.terminateCluster(
+        securityContext,
+        VALID_TERMINATE_REQUEST
+    );
+
+    // Then:
+    verify(denyListPropertyValidator).validateAll(terminateStreamProperties);
+    assertThat(response.getStatus(), equalTo(INTERNAL_SERVER_ERROR.code()));
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    assertThat(((KsqlStatementErrorMessage) response.getEntity()).getMessage(),
+        containsString("deny override"));
+  }
+
+  @Test
+  public void shouldThrowOnDenyListValidatorWhenHandleKsqlStatement() {
+    // Given:
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        denyListPropertyValidator
+    );
+    final Map<String, Object> props = new HashMap<>(ksqlRestConfig.getKsqlConfigProperties());
+    props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG);
+    ksqlResource.configure(new KsqlConfig(props));
+    final Map<String, Object> overrides =
+        ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
+        .validateAll(overrides);
+
+    // When:
+    final EndpointResponse response = ksqlResource.handleKsqlStatements(
+        securityContext,
+        new KsqlRequest(
+            "query",
+            overrides,  // stream properties
+            emptyMap(),
+            null
+        )
+    );
+
+    // Then:
+    verify(denyListPropertyValidator).validateAll(overrides);
+    assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(), is("deny override"));
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

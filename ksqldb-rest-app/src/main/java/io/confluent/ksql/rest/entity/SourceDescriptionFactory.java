@@ -21,6 +21,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
 
@@ -35,7 +36,7 @@ public final class SourceDescriptionFactory {
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription,
-      final List<QueryOffsetSummary> offsetSummaries
+      final Map<String, List<QueryOffsetSummary>> offsetSummaries
   ) {
     return new SourceDescription(
         dataSource.getName().toString(FormatOptions.noEscape()),

@@ -220,7 +220,7 @@ public final class ListSourceExecutor {
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
         Optional.empty();
-    List<QueryOffsetSummary> queryOffsetSummaries = new ArrayList<>();
+    Map<String, List<QueryOffsetSummary>> queryOffsetSummaries = new HashMap<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
@@ -246,18 +246,17 @@ public final class ListSourceExecutor {
     );
   }
 
-  private static List<QueryOffsetSummary> offsetSummaries(
+  private static Map<String, List<QueryOffsetSummary>> offsetSummaries(
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
-      final List<RunningQuery> sinkQueries
+      final List<RunningQuery> writeQueries
   ) {
-    final List<QueryOffsetSummary> queryOffsetSummaries = new ArrayList<>();
     final Map<String, Map<TopicPartition, OffsetAndMetadata>> offsetsPerQuery =
-        new HashMap<>(sinkQueries.size());
+        new HashMap<>(writeQueries.size());
     final Map<String, Set<String>> topicsPerQuery = new HashMap<>();
     final Set<String> allTopics = new HashSet<>();
     // Get topics and offsets per running query
-    for (RunningQuery query : sinkQueries) {
+    for (RunningQuery query : writeQueries) {
       final QueryId queryId = query.getId();
       final String applicationId =
           QueryApplicationId.build(ksqlConfig, true, queryId);
@@ -278,11 +277,12 @@ public final class ListSourceExecutor {
     final Map<TopicPartition, Long> topicAndEndOffsets =
         serviceContext.getTopicClient().listTopicsEndOffsets(allTopics);
     // Build consumer offsets summary
+    final Map<String, List<QueryOffsetSummary>> summariesPerQuery = new HashMap<>();
     for (Entry<String, Set<String>> entry : topicsPerQuery.entrySet()) {
+      final  List<QueryOffsetSummary> summaries = new ArrayList<>();
       for (String topic : entry.getValue()) {
-        queryOffsetSummaries.add(
+        summaries.add(
             new QueryOffsetSummary(
-                entry.getKey(),
                 topic,
                 consumerPartitionOffsets(
                     sourceTopicDescriptions.get(topic),
@@ -290,8 +290,9 @@ public final class ListSourceExecutor {
                     topicAndEndOffsets,
                     offsetsPerQuery.get(entry.getKey()))));
       }
+      summariesPerQuery.put(entry.getKey(), summaries);
     }
-    return queryOffsetSummaries;
+    return summariesPerQuery;
   }
 
   private static List<ConsumerPartitionOffsets> consumerPartitionOffsets(

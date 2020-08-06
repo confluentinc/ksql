@@ -146,14 +146,14 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
-            ImmutableList.of()),
+            ImmutableMap.of()),
         SourceDescriptionFactory.create(
             stream2,
             true,
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
-            ImmutableList.of())
+            ImmutableMap.of())
     ));
   }
 
@@ -215,7 +215,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
-            ImmutableList.of()
+            ImmutableMap.of()
         ),
         SourceDescriptionFactory.create(
             table2,
@@ -223,7 +223,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
-            ImmutableList.of()
+            ImmutableMap.of()
         )
     ));
   }
@@ -272,7 +272,7 @@ public class ListSourceExecutorTest {
                 queryStatusCount,
                 KsqlConstants.KsqlQueryType.PERSISTENT)),
             Optional.empty(),
-            ImmutableList.of())));
+            ImmutableMap.of())));
   }
 
   @Test
@@ -335,7 +335,7 @@ public class ListSourceExecutorTest {
                             ImmutableList.of(),
                             ImmutableList.of(),
                             Optional.empty(),
-                            ImmutableList.of()
+                            ImmutableMap.of()
                         )
                     )
                 )
@@ -422,7 +422,7 @@ public class ListSourceExecutorTest {
                 ImmutableList.of(),
                 ImmutableList.of(),
                 Optional.empty(),
-                ImmutableList.of()
+                ImmutableMap.of()
             )
         )
     );

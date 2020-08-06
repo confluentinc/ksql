@@ -146,7 +146,7 @@ public class ConsoleTest {
       2,
       1,
       "statement",
-      Collections.emptyList());
+      Collections.emptyMap());
 
   @Mock
   private QueryStatusCount queryStatusCount;
@@ -528,7 +528,7 @@ public class ConsoleTest {
                 1,
                 1,
                 "sql statement",
-                Collections.emptyList()),
+                Collections.emptyMap()),
             Collections.emptyList()
         )
     ));
@@ -1179,15 +1179,16 @@ public class ConsoleTest {
                 "kadka-topic",
                 2, 1,
                 "sql statement text",
-                ImmutableList.of(
-                    new QueryOffsetSummary(
-                        "consumer1",
-                        "kadka-topic",
-                        ImmutableList.of(
-                            new ConsumerPartitionOffsets(0, 100, 900, 800),
-                            new ConsumerPartitionOffsets(1, 50, 900, 900)
-                        ))
-                )),
+                ImmutableMap.of(
+                    "consumer1",
+                    ImmutableList.of(
+                        new QueryOffsetSummary(
+                            "kadka-topic",
+                            ImmutableList.of(
+                                new ConsumerPartitionOffsets(0, 100, 900, 800),
+                                new ConsumerPartitionOffsets(1, 50, 900, 900)
+                            ))
+                    ))),
             Collections.emptyList()
         ))
     );

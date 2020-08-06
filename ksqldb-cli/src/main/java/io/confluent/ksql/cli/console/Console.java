@@ -626,32 +626,39 @@ public class Console implements Closeable {
         "Statistics of the local KSQL server interaction with the Kafka topic "
             + source.getTopic()
     ));
-    for (QueryOffsetSummary queryOffsetSummary : source.getQueryOffsetSummaries()) {
+    if (!source.getQueryOffsetSummaries().isEmpty()) {
       writer().println();
-      writer().println(String.format("%-20s : %s",
-          "Consumer Group", queryOffsetSummary.getGroupId()));
-      writer().println(String.format("%-20s : %s",
-          "Kafka topic", queryOffsetSummary.getKafkaTopic()));
-      writer().println(String.format("%-20s : %s",
-          "Max lag", queryOffsetSummary.getOffsets().stream()
-              .mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
-              .max()
-              .orElse(0)));
-      writer().println("");
-      final Table taskTable = new Table.Builder()
-          .withColumnHeaders(
-              ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
-          .withRows(queryOffsetSummary.getOffsets()
-              .stream()
-              .map(offset -> ImmutableList.of(
-                  String.valueOf(offset.getPartition()),
-                  String.valueOf(offset.getLogStartOffset()),
-                  String.valueOf(offset.getLogEndOffset()),
-                  String.valueOf(offset.getConsumerOffset()),
-                  String.valueOf(offset.getLogEndOffset() - offset.getConsumerOffset())
-              )))
-          .build();
-      taskTable.print(this);
+      writer().println("Consumer groups summary:");
+      for (Entry<String, List<QueryOffsetSummary>> entry :
+          source.getQueryOffsetSummaries().entrySet()) {
+        writer().println();
+        writer().println(String.format("%-20s : %s",
+            "Consumer Group", entry.getKey()));
+        for (QueryOffsetSummary summary : entry.getValue()) {
+          writer().println();
+          writer().println(String.format("%-20s : %s", "Kafka topic", summary.getKafkaTopic()));
+          writer().println(String.format("%-20s : %s",
+              "Max lag", summary.getOffsets().stream()
+                  .mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
+                  .max()
+                  .orElse(0)));
+          writer().println("");
+          final Table taskTable = new Table.Builder()
+              .withColumnHeaders(
+                  ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
+              .withRows(summary.getOffsets()
+                  .stream()
+                  .map(offset -> ImmutableList.of(
+                      String.valueOf(offset.getPartition()),
+                      String.valueOf(offset.getLogStartOffset()),
+                      String.valueOf(offset.getLogEndOffset()),
+                      String.valueOf(offset.getConsumerOffset()),
+                      String.valueOf(offset.getLogEndOffset() - offset.getConsumerOffset())
+                  )))
+              .build();
+          taskTable.print(this);
+        }
+      }
     }
   }
 

@@ -24,23 +24,16 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryOffsetSummary {
-  private final String groupId;
   private final String kafkaTopic;
   private final List<ConsumerPartitionOffsets> offsets;
 
   @JsonCreator
   public QueryOffsetSummary(
-      @JsonProperty("groupId") final String groupId,
       @JsonProperty("kafkaTopic") final String kafkaTopic,
       @JsonProperty("offsets") final List<ConsumerPartitionOffsets> offsets
   ) {
-    this.groupId = Objects.requireNonNull(groupId);
     this.kafkaTopic = Objects.requireNonNull(kafkaTopic);
     this.offsets = ImmutableList.copyOf(Objects.requireNonNull(offsets, "offsets"));
-  }
-
-  public String getGroupId() {
-    return groupId;
   }
 
   public String getKafkaTopic() {
@@ -60,13 +53,12 @@ public class QueryOffsetSummary {
       return false;
     }
     final QueryOffsetSummary that = (QueryOffsetSummary) o;
-    return Objects.equals(groupId, that.groupId)
-        && Objects.equals(kafkaTopic, that.kafkaTopic)
+    return Objects.equals(kafkaTopic, that.kafkaTopic)
         && Objects.equals(offsets, that.offsets);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupId, kafkaTopic, offsets);
+    return Objects.hash(kafkaTopic, offsets);
   }
 }

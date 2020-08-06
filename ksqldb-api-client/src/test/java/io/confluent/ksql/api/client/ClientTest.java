@@ -916,7 +916,7 @@ public class ClientTest extends BaseApiTest {
             4,
             1,
             "statement",
-            Collections.emptyList()),
+            Collections.emptyMap()),
         Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 

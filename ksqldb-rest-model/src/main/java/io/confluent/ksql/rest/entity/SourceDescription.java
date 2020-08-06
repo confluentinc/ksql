@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.model.WindowType;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -48,7 +49,7 @@ public class SourceDescription {
   private final int partitions;
   private final int replication;
   private final String statement;
-  private final List<QueryOffsetSummary> queryOffsetSummaries;
+  private final Map<String, List<QueryOffsetSummary>> queryOffsetSummaries;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -69,7 +70,8 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
-      @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries) {
+      @JsonProperty("queryOffsetSummaries")
+      final Map<String, List<QueryOffsetSummary>> queryOffsetSummaries) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
@@ -90,7 +92,8 @@ public class SourceDescription {
     this.partitions = partitions;
     this.replication = replication;
     this.statement = Objects.requireNonNull(statement, "statement");
-    this.queryOffsetSummaries = Collections.unmodifiableList(
+    this.queryOffsetSummaries =
+        Collections.unmodifiableMap(
             Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
   }
 
@@ -158,7 +161,7 @@ public class SourceDescription {
     return errorStats;
   }
 
-  public List<QueryOffsetSummary> getQueryOffsetSummaries() {
+  public Map<String, List<QueryOffsetSummary>> getQueryOffsetSummaries() {
     return queryOffsetSummaries;
   }
 

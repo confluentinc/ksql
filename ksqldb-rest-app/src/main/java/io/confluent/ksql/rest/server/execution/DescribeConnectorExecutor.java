@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.connect.supported.Connectors;
@@ -135,7 +136,7 @@ public final class DescribeConnectorExecutor {
               ImmutableList.of(),
               ImmutableList.of(),
               Optional.empty(),
-              ImmutableList.of()))
+              ImmutableMap.of()))
           .collect(Collectors.toList());
     } else {
       sources = ImmutableList.of();

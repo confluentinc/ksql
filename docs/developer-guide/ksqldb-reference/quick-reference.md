@@ -247,14 +247,28 @@ DROP TYPE <type_name> AS <type>;
 ```
 
 ## EMIT CHANGES
-Specify a push query in a SELECT statement. For more information, see
-[Push Queries](../../concepts/queries/push).
+Specify a push query with a continuous output refinement in a SELECT statement. 
+For more information, see [Push Queries](../../concepts/queries/push).
 
 ```sql
 CREATE STREAM stream_name
   AS SELECT  select_expr [, ...]
   FROM from_stream
   EMIT CHANGES;
+```
+
+## EMIT FINAL
+Specify a push query with a suppressed output refinement in a SELECT statement on a 
+windowed aggregation. 
+For more information, see [Push Queries](../../concepts/queries/push).
+
+```sql
+CREATE TABLE table_name
+  AS SELECT  select_expr_with_aggregation [, ...]
+  FROM from_stream
+  [ WINDOW window_expression ]
+  [ GROUP BY grouping_expression ]
+  EMIT FINAL;
 ```
 
 ## EXPLAIN

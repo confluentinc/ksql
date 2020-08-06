@@ -8,17 +8,15 @@ keywords: ksqldb, sql, ddl
 
 This section covers how you create the structures that store your events. ksqlDB has two abstractions for that: streams and tables.
 
-## Basics
+## Rows and columns
 
 Streams and tables help you model collections of events that accrete over time. Both are represented as a series of rows and columns with a schema, much like a relational database table. Rows represent individual events. Columns represent the attributes of those events.
 
-
-
-TODO: how rows work w/ kafka: independently serialized. Exercise control over which data goes where. Key/value are two primary namespaces where data goes. Controls parititoning
-
 Each column has a data type. The data type limits the span of permissible values that it can take on. For example, if a column is declared as type `INT`, it cannot take on the value of string `'foo'`.
 
-TODO: columns by default are populated from the value portion of the record. In general, columns are meant to feel like a flat set of values over the record. ksqlDB simplifies this by flattening it, but still allows you to exercise control over which data goes where to integrate with connectors and control partitioning.
+In contrast to relational database tables, the columns of a row in ksqlDB are divided into "key" and "value" columns. The key columns control which partition a row resides in. The value columns, by convention, are used to store the main data of interest. Being able to control the key columns is useful for manipulating the underlying data locality, and generally allows you to integrate with the wider Kafka ecosystem, which uses the same key/value data model. By default, a column is a value column. Marking a column as a `(PRIMARY) KEY` makes it a key column.
+
+Internally, each row is backed by a Kafka record. In Kafka, the key and value parts of a record are independently serialized. ksqlDB allows you to exercise that same flexibility, and generally builds on the semantics of Kafka records, rather than hiding them.
 
 There is no theoretical limit on the number of columns in a stream or table. In practice, the limit is determined by the maximum message size that Kafka can store and the resources dedicated to ksqlDB.
 

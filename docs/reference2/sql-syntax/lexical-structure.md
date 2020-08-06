@@ -160,7 +160,7 @@ The following example statement selects the first string in the NICKNAMES array:
 SELECT USERID, NICKNAMES[1] FROM USERS EMIT CHANGES;
 ```
 
-### STRUCT dereference
+### Struct dereference
 
 Access nested data by declaring a STRUCT and using the dereference operator
 (`->`) to access its fields.

@@ -12,7 +12,13 @@ This section covers how you create the structures that store your events. ksqlDB
 
 Streams and tables help you model collections of events that accrete over time. Both are represented as a series of rows and columns with a schema, much like a relational database table. Rows represent individual events. Columns represent the attributes of those events.
 
+
+
+TODO: how rows work w/ kafka: independently serialized. Exercise control over which data goes where. Key/value are two primary namespaces where data goes. Controls parititoning
+
 Each column has a data type. The data type limits the span of permissible values that it can take on. For example, if a column is declared as type `INT`, it cannot take on the value of string `'foo'`.
+
+TODO: columns by default are populated from the value portion of the record. In general, columns are meant to feel like a flat set of values over the record. ksqlDB simplifies this by flattening it, but still allows you to exercise control over which data goes where to integrate with connectors and control partitioning.
 
 There is no theoretical limit on the number of columns in a stream or table. In practice, the limit is determined by the maximum message size that Kafka can store and the resources dedicated to ksqlDB.
 
@@ -38,7 +44,7 @@ CREATE STREAM s1 (
 );
 ```
 
-This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls which partition each row is stored in. When the data is stored, it will be serialized in the JSON format.
+This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls which partition each row is stored in. When the data is stored, the value portion of each row's underlying Kafka record will be serialized in the JSON format.
 
 Under the covers, each stream corresponds to a Kafka topic with a registered schema. If the backing topic for a stream doesn't exist when you declare it, ksqlDB creates it on your behalf, as in the example above.
 
@@ -58,7 +64,7 @@ Note that when you create a stream on an existing topic, you don't need to decla
 
 ## Tables
 
-Tables are mutable, partitioned collections that models change over time. By contrast to streams, which represent a historical sequence of events, tables represent what is true as of "now". For example, you might use a table to model the locations that someone has lived at as a stream: first Miami, then New York, then London, and so forth.
+Tables are mutable, partitioned collections that model change over time. By contrast to streams, which represent a historical sequence of events, tables represent what is true as of "now". For example, you might use a table to model the locations that someone has lived at as a stream: first Miami, then New York, then London, and so forth.
 
 Tables work by leveraging the keys of each row. If a sequence of rows shares a key, the last row for a given key represents the most up-to-date information for that key's identity. A background process periodically runs and deletes all but the newest rows for each key.
 
@@ -77,14 +83,6 @@ CREATE TABLE current_location (
 
 As with streams, tables can also be declared directly ontop of an existing Kafka topic. Simply omit the number of partitions in the `WITH` clause.
 
-## Default values
-
-If a column is declared in a schema, but no attribute is present in the underlying Kafka record, the value for the row's column is populated as `null`.
-
-## System columns
-
-TODO
-
 ## Keys
 
 TODO
@@ -94,6 +92,14 @@ What they do: extract data out of the key namespace of a Kafka record. Only used
 Why they're useful: avoid a repartition
 
 What to do if your key is not set or is in a different format
+
+## Default values
+
+If a column is declared in a schema, but no attribute is present in the underlying Kafka record, the value for the row's column is populated as `null`.
+
+## Pseudocolumns
+
+TODO
 
 ## Constraints
 

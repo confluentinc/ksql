@@ -86,6 +86,9 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -362,6 +365,8 @@ public class ConsoleTest {
 
   @Test
   public void shouldPrintExplainQueryWithError() {
+    final long timestamp = 1596644936314L;
+
     // Given:
     final QueryDescriptionEntity queryEntity = new QueryDescriptionEntity(
         "statement",
@@ -381,7 +386,7 @@ public class ConsoleTest {
             ImmutableMap.of("overridden.prop", 42),
             ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
             KsqlQueryType.PERSISTENT,
-            ImmutableList.of(new QueryError(1596644936314L, "error", Type.SYSTEM))
+            ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM))
         )
     );
 
@@ -429,6 +434,10 @@ public class ConsoleTest {
           "  \"warnings\" : [ ]\n" +
           "} ]\n"));
     } else {
+      final DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss,SSS (z)");
+      final String localTime = Instant.ofEpochMilli(timestamp)
+          .atZone(ZoneId.systemDefault()).format(format);
+
       assertThat(output, is("\n" +
           "ID                   : id\n" +
           "Query Type           : PERSISTENT\n" +
@@ -467,7 +476,7 @@ public class ConsoleTest {
           " overridden.prop | 42    \n" +
           "-------------------------\n" +
           "\n" +
-          "Error Date           : 2020-08-05 11:28:56.314\n" +
+          "Error Date           : " + localTime + "\n" +
           "Error Details        : error\n" +
           "Error Type           : SYSTEM\n"
       ));

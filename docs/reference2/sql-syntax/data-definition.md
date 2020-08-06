@@ -83,13 +83,23 @@ As with streams, tables can also be declared directly ontop of an existing Kafka
 
 ## Keys
 
-TODO
+Columns can be marked with the `KEY` keyword to indicate that they are key columns. Key columns contitute the key portion of the row's underlying Kafka record. Only streams can mark columns as keys, and it is optional for them to do do. Tables must use the `PRIMARY KEY` constraint instead.
 
-What they do: extract data out of the key namespace of a Kafka record. Only used for streams. How they differ from primary keys. Optional for streams.
+In this example, `k1`'s data is stored in the key portion of the row, while `v1`'s data is stored in the value.
 
-Why they're useful: avoid a repartition
+```sql
+CREATE STREAM s3 (
+    k1 VARCHAR KEY,
+    v1 VARCHAR
+) WITH (
+    kafka_topic = 's3',
+    value_format = 'json'
+);
+```
 
-What to do if your key is not set or is in a different format
+TODO: Why they're useful: avoid a repartition
+
+TODO: What to do if your key is not set or is in a different format
 
 ## Default values
 

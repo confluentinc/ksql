@@ -38,7 +38,7 @@ public class RecordProcessingErrorTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String errorMsg = "error msg";
   private static final Throwable cause = new Exception("cause1", new Exception("cause2"));
-  private static final Throwable error = new Exception(errorMsg, cause);
+  private static final Throwable error = new Exception("cause0", cause);
 
   private final ProcessingLogConfig config = new ProcessingLogConfig(
       Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS, true)
@@ -70,7 +70,7 @@ public class RecordProcessingErrorTest {
     assertThat(
         recordProcessingError.get(
             ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE),
-        equalTo(ErrorMessageUtil.getErrorMessages(cause)));
+        equalTo(ErrorMessageUtil.getErrorMessages(error)));
     final List<?> rowAsList =
         OBJECT_MAPPER.readValue(
             recordProcessingError.getString(

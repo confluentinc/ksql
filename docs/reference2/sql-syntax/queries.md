@@ -31,4 +31,6 @@ keywords: ksqldb, sql, query, persistent query, pull query, push query
 ### EMIT CHANGES
 ### LIMIT
 
+## System-generated columns
+
 ## Pull query limitations

@@ -6,7 +6,7 @@ description: How to use DDL to structure data in ksqlDB
 keywords: ksqldb, sql, ddl
 ---
 
-This section covers how you create the structures that store your events. ksqlDB abstracts events as rows with columns, and stores them in  streams and tables.
+This section covers how you create the structures that store your events. ksqlDB abstracts events as rows with columns and stores them in streams and tables.
 
 ## Rows and columns
 
@@ -107,7 +107,19 @@ If a column is declared in a schema, but no attribute is present in the underlyi
 
 ## Pseudocolumns
 
-TODO
+Pseudocolumns are columns that are automatically populated by ksqlDB. They contain meta-information that can be infered about the row at creation time. By default, pseudocolumns are not returned when selecting all columns with the star (`*`) special character. You must select them explicitly, as in:
+
+```sql
+SELECT ROWTIME, * FROM s1 EMIT CHANGES;
+```
+
+The following table lists all pseudocolumns.
+
+| pseudocolumn | meaning                        |
+|--------------|--------------------------------|
+| `ROWTIME`    | Row timestamp, inferred from the underlying Kafka record if not overridden. |
+
+You cannot create additional pseudocolumns beyond these.
 
 ## Constraints
 

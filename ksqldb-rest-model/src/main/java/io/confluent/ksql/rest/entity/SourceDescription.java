@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.model.WindowType;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

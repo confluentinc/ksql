@@ -633,11 +633,15 @@ public class Console implements Closeable {
       for (QueryOffsetSummary entry : source.getQueryOffsetSummaries()) {
         writer().println();
         writer().println(String.format("%-20s : %s", "Consumer Group", entry.getGroupId()));
-        for (QueryTopicOffsetSummary summary : entry.getTopicSummaries()) {
+        if (entry.getTopicSummaries().isEmpty()) {
+          writer().println("<no offsets committed by this group yet>");
+        }
+        for (QueryTopicOffsetSummary topicSummary : entry.getTopicSummaries()) {
           writer().println();
-          writer().println(String.format("%-20s : %s", "Kafka topic", summary.getKafkaTopic()));
           writer().println(String.format("%-20s : %s",
-              "Max lag", summary.getOffsets().stream()
+              "Kafka topic", topicSummary.getKafkaTopic()));
+          writer().println(String.format("%-20s : %s",
+              "Max lag", topicSummary.getOffsets().stream()
                   .mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
                   .max()
                   .orElse(0)));
@@ -645,7 +649,7 @@ public class Console implements Closeable {
           final Table taskTable = new Table.Builder()
               .withColumnHeaders(
                   ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
-              .withRows(summary.getOffsets()
+              .withRows(topicSummary.getOffsets()
                   .stream()
                   .map(offset -> ImmutableList.of(
                       String.valueOf(offset.getPartition()),

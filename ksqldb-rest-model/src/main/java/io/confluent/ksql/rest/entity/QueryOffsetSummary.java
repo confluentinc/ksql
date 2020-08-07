@@ -30,7 +30,7 @@ public class QueryOffsetSummary {
   @JsonCreator
   public QueryOffsetSummary(
       @JsonProperty("kafkaTopic") final String groupId,
-      @JsonProperty("offsets") final List<QueryTopicOffsetSummary> topicSummaries
+      @JsonProperty("topicSummaries") final List<QueryTopicOffsetSummary> topicSummaries
   ) {
     this.groupId = Objects.requireNonNull(groupId);
     this.topicSummaries =

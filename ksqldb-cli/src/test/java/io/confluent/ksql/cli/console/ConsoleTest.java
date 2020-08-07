@@ -1182,22 +1182,25 @@ public class ConsoleTest {
                 "sql statement text",
                 ImmutableList.of(
                     new QueryOffsetSummary(
-                    "consumer1",
-                    ImmutableList.of(
-                        new QueryTopicOffsetSummary(
-                            "kadka-topic",
-                            ImmutableList.of(
-                                new ConsumerPartitionOffsets(0, 100, 900, 800),
-                                new ConsumerPartitionOffsets(1, 50, 900, 900)
-                            )),
-                        new QueryTopicOffsetSummary(
-                            "kadka-topic-2",
-                            ImmutableList.of(
-                                new ConsumerPartitionOffsets(0, 0, 90, 80),
-                                new ConsumerPartitionOffsets(1, 10, 90, 90)
-                            ))
-                    )
-                ))),
+                        "consumer1",
+                        ImmutableList.of(
+                            new QueryTopicOffsetSummary(
+                                "kadka-topic",
+                                ImmutableList.of(
+                                    new ConsumerPartitionOffsets(0, 100, 900, 800),
+                                    new ConsumerPartitionOffsets(1, 50, 900, 900)
+                                )),
+                            new QueryTopicOffsetSummary(
+                                "kadka-topic-2",
+                                ImmutableList.of(
+                                    new ConsumerPartitionOffsets(0, 0, 90, 80),
+                                    new ConsumerPartitionOffsets(1, 10, 90, 90)
+                                ))
+                        )),
+                    new QueryOffsetSummary(
+                        "consumer2",
+                        ImmutableList.of())
+                )),
             Collections.emptyList()
         ))
     );
@@ -1265,8 +1268,8 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : {" + NEWLINE
-          + "      \"consumer1\" : [ {" + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ {" + NEWLINE
+          + "      \"topicSummaries\" : [ {" + NEWLINE
           + "        \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
           + "        \"offsets\" : [ {" + NEWLINE
           + "          \"partition\" : 0," + NEWLINE
@@ -1292,8 +1295,12 @@ public class ConsoleTest {
           + "          \"logEndOffset\" : 90," + NEWLINE
           + "          \"consumerOffset\" : 90" + NEWLINE
           + "        } ]" + NEWLINE
-          + "      } ]" + NEWLINE
-          + "    }" + NEWLINE
+          + "      } ]," + NEWLINE
+          + "      \"groupId\" : \"consumer1\"" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"topicSummaries\" : [ ]," + NEWLINE
+          + "      \"groupId\" : \"consumer2\"" + NEWLINE
+          + "    } ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -1353,6 +1360,9 @@ public class ConsoleTest {
           + " 0         | 0            | 90         | 80     | 10  " + NEWLINE
           + " 1         | 10           | 90         | 90     | 0   " + NEWLINE
           + "------------------------------------------------------" + NEWLINE
+          + NEWLINE
+          + "Consumer Group       : consumer2" + NEWLINE
+          + "<no offsets committed by this group yet>" + NEWLINE
       ));
     }
   }

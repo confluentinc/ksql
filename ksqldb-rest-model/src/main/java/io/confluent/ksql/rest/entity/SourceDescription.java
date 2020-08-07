@@ -90,9 +90,8 @@ public class SourceDescription {
     this.partitions = partitions;
     this.replication = replication;
     this.statement = Objects.requireNonNull(statement, "statement");
-    this.queryOffsetSummaries =
-        Collections.unmodifiableList(
-            Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
+    this.queryOffsetSummaries = ImmutableList.copyOf(
+        Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
   }
 
   public String getStatement() {

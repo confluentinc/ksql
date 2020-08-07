@@ -29,10 +29,10 @@ public class QueryOffsetSummary {
 
   @JsonCreator
   public QueryOffsetSummary(
-      @JsonProperty("kafkaTopic") final String groupId,
+      @JsonProperty("groupId") final String groupId,
       @JsonProperty("topicSummaries") final List<QueryTopicOffsetSummary> topicSummaries
   ) {
-    this.groupId = Objects.requireNonNull(groupId);
+    this.groupId = Objects.requireNonNull(groupId, "groupId");
     this.topicSummaries =
         ImmutableList.copyOf(Objects.requireNonNull(topicSummaries, "topicSummaries"));
   }

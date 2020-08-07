@@ -32,7 +32,7 @@ public class QueryTopicOffsetSummary {
       @JsonProperty("kafkaTopic") final String kafkaTopic,
       @JsonProperty("offsets") final List<ConsumerPartitionOffsets> offsets
   ) {
-    this.kafkaTopic = Objects.requireNonNull(kafkaTopic);
+    this.kafkaTopic = Objects.requireNonNull(kafkaTopic, "kafkaTopic");
     this.offsets = ImmutableList.copyOf(Objects.requireNonNull(offsets, "offsets"));
   }
 

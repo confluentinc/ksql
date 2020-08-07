@@ -93,6 +93,18 @@ public final class TableSuppressBuilder {
             keySerde,
             valueSerde
         );
+
+    final Suppressed.StrictBufferConfig strictBufferConfig;
+    long maxBytes = queryBuilder.getKsqlConfig().getLong(KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE);
+
+    if (maxBytes == -1){
+      strictBufferConfig = Suppressed.BufferConfig.unbounded();
+    } else {
+      strictBufferConfig = Suppressed.BufferConfig
+          .maxBytes(maxBytes)
+          .shutDownWhenFull();
+    }
+
     /* This is a dummy transformValues() call, we do this to ensure that the correct materialized
     with the correct key and val serdes is passed on when we call suppress
      */
@@ -101,10 +113,7 @@ public final class TableSuppressBuilder {
         materialized
     ).suppress(
         (Suppressed<? super K>) Suppressed
-            .untilWindowCloses(Suppressed.BufferConfig
-                .maxBytes(KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE_DEFAULT)
-                .shutDownWhenFull()
-            )
+            .untilWindowCloses(strictBufferConfig)
             .withName(SUPPRESS_OP_NAME)
     );
 

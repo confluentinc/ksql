@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
@@ -39,7 +40,7 @@ final class EndToEndEngineTestUtil {
   private EndToEndEngineTestUtil(){}
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
-    try (final TestExecutor testExecutor = new TestExecutor()) {
+    try (final TestExecutor testExecutor = new TestExecutor(Optional.empty())) {
       testExecutor.buildAndExecuteQuery(testCase);
     } catch (final AssertionError e) {
       throw new AssertionError(e.getMessage()

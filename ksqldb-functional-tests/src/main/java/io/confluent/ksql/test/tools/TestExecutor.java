@@ -93,10 +93,6 @@ public class TestExecutor implements Closeable {
   private final TopologyBuilder topologyBuilder;
   private final TopicInfoCache topicInfoCache;
 
-  public static TestExecutor create() {
-    return create(Optional.empty());
-  }
-
   public static TestExecutor create(final Optional<String> extensionDir) {
     final StubKafkaService kafkaService = StubKafkaService.create();
     final StubKafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();

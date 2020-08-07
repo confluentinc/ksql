@@ -263,7 +263,7 @@ public final class TestCasePlanLoader {
   }
 
   private static TestInfoGatherer executeTestCaseAndGatherInfo(final TestCase testCase) {
-    try (final TestExecutor testExecutor = TestExecutor.create()) {
+    try (final TestExecutor testExecutor = TestExecutor.create(Optional.empty())) {
       final TestInfoGatherer listener = new TestInfoGatherer();
       testExecutor.buildAndExecuteQuery(testCase, listener);
       return listener;

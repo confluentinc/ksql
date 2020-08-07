@@ -243,7 +243,7 @@ Remove a type alias from ksqlDB. For more information, see
 [DROP TYPE](../../ksqldb-reference/drop-type).
 
 ```sql
-DROP TYPE <type_name> AS <type>;
+DROP TYPE [IF EXISTS] <type_name> AS <type>;
 ```
 
 ## EMIT CHANGES

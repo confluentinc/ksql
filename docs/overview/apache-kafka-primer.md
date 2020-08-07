@@ -18,12 +18,12 @@ In general, ksqlDB avoids raising up Kafka-level implementation details that don
 
 ## Topics
 
-- Topics are named collections of events.
-- Let you hold events of interest together.
-- Topics have some number of partitions, which are independent, append-only structures.
-- Used to get better parallelism and scale
+Topics are named collections of records. Their function is to let you hold events of mutual interest together. A series of click records might get stored in a “clicks” topic so that you can access them all in one spot. Topics are append-only. Once you add a record to a topic, you can’t change or delete it individually.
 
-- ksqlDB up-levels topic to "stream" and "table", which is just a topic with a registered schema. Static typing means fewer mistakes.
+There are no rules for what kinds of records can be placed into topics. They need not conform to the same structure, relate to the same situation, or anything like that. The way you manage publication to topics is entirely a matter of user convention and enforcement.
+
+ksqlDB provides a higher-level abstraction over topics called streams and tables. A stream or table is just a Kafka topic w
+ith a registered schema. The schema controls the shapes of records that are allowed to be stored in the topic. This kind of static typing makes it easier to understand what sort of rows are in your topic, and generally helps you make fewer mistakes in your programs that process them.
 
 ## Partitions
 

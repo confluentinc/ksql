@@ -1269,6 +1269,7 @@ public class ConsoleTest {
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
           + "    \"queryOffsetSummaries\" : [ {" + NEWLINE
+          + "      \"groupId\" : \"consumer1\"," + NEWLINE
           + "      \"topicSummaries\" : [ {" + NEWLINE
           + "        \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
           + "        \"offsets\" : [ {" + NEWLINE
@@ -1295,11 +1296,10 @@ public class ConsoleTest {
           + "          \"logEndOffset\" : 90," + NEWLINE
           + "          \"consumerOffset\" : 90" + NEWLINE
           + "        } ]" + NEWLINE
-          + "      } ]," + NEWLINE
-          + "      \"groupId\" : \"consumer1\"" + NEWLINE
+          + "      } ]" + NEWLINE
           + "    }, {" + NEWLINE
-          + "      \"topicSummaries\" : [ ]," + NEWLINE
-          + "      \"groupId\" : \"consumer2\"" + NEWLINE
+          + "      \"groupId\" : \"consumer2\"," + NEWLINE
+          + "      \"topicSummaries\" : [ ]" + NEWLINE
           + "    } ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE

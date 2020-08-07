@@ -51,14 +51,36 @@ public class FunctionMetricsTest {
   }
 
   @Test
-  public void shouldInitializeOnFirstCall() {
+  public void shouldGetSensorWithCorrectName() {
+    // When:
+    FunctionMetrics
+        .getInvocationSensor(metrics, SENSOR_NAME, GROUP_NAME, FUNC_NAME);
+
+    // Then:
+    verify(metrics).sensor(SENSOR_NAME);
+  }
+
+  @Test
+  public void shouldReturnSensorOnFirstCall() {
     // When:
     final Sensor result = FunctionMetrics
         .getInvocationSensor(metrics, SENSOR_NAME, GROUP_NAME, FUNC_NAME);
 
     // Then:
     assertThat(result, is(sensor));
-    verify(metrics).sensor(SENSOR_NAME);
+  }
+
+  @Test
+  public void shouldReturnSensorOnSubsequentCalls() {
+    // Given:
+    when(sensor.hasMetrics()).thenReturn(true);
+
+    // When:
+    final Sensor result = FunctionMetrics
+        .getInvocationSensor(metrics, SENSOR_NAME, GROUP_NAME, FUNC_NAME);
+
+    // Then:
+    assertThat(result, is(sensor));
   }
 
   @Test
@@ -118,30 +140,16 @@ public class FunctionMetricsTest {
   }
 
   @Test
-  public void shouldReturnAnyExisting() {
-    // Given:
-    when(metrics.getSensor(any())).thenReturn(sensor);
-
-    // When:
-    final Sensor result = FunctionMetrics
-        .getInvocationSensor(metrics, SENSOR_NAME, GROUP_NAME, FUNC_NAME);
-
-    // Then:
-    verify(metrics).getSensor(SENSOR_NAME);
-    assertThat(result, is(sensor));
-  }
-
-  @Test
   public void shouldNotInitializeOnSubsequentCalls() {
     // Given:
-    when(metrics.getSensor(any())).thenReturn(sensor);
+    when(sensor.hasMetrics()).thenReturn(true);
 
     // When:
     FunctionMetrics
         .getInvocationSensor(metrics, SENSOR_NAME, GROUP_NAME, FUNC_NAME);
 
     // Then:
-    verify(metrics, never()).sensor(any());
+    verify(sensor, never()).add(any(MetricName.class), any());
   }
 
   private static String description(final String formatString) {

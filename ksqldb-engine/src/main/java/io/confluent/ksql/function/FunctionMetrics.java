@@ -71,38 +71,36 @@ public final class FunctionMetrics {
       final String groupName,
       final String functionDescription
   ) {
-    final Sensor existing = metrics.getSensor(sensorName);
-    if (existing != null) {
-      return existing;
+    final Sensor sensor = metrics.sensor(sensorName);
+    if (sensor.hasMetrics()) {
+      return sensor;
     }
-
-    final Sensor newSensor = metrics.sensor(sensorName);
 
     final BiFunction<String, String, MetricName> metricNamer = (suffix, descPattern) -> {
       final String description = String.format(descPattern, functionDescription);
       return metrics.metricName(sensorName + "-" + suffix, groupName, description);
     };
 
-    newSensor.add(
+    sensor.add(
         metricNamer.apply("avg", AVG_DESC),
         new Avg()
     );
 
-    newSensor.add(
+    sensor.add(
         metricNamer.apply("max", MAX_DESC),
         new Max()
     );
 
-    newSensor.add(
+    sensor.add(
         metricNamer.apply("count", COUNT_DESC),
         new WindowedCount()
     );
 
-    newSensor.add(
+    sensor.add(
         metricNamer.apply("rate", RATE_DESC),
         new Rate(TimeUnit.SECONDS, new WindowedCount())
     );
 
-    return newSensor;
+    return sensor;
   }
 }

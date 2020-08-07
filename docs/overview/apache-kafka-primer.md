@@ -27,16 +27,15 @@ ith a registered schema. The schema controls the shapes of records that are allo
 
 ## Partitions
 
-- independent, append-only structures.
-- Offsets
-- depends on who keys what
-- mostly invisible in ksqlDB, don't need to worry about who consumes which partitions
+When a record is placed into a topic, it is placed into a particular partition. A partition is a totally ordered sequence of records. Topics have multiple partitions to make storage and processing more scalable. When you create a topic, you choose how many partitions it has.
 
-- still need to control the key, though
-- colocated data is processed together
-- repartitioning, either implicit or explicit
+When you append a record to a topic, a partitioning strategy chooses which partition it lands in. There are many partitioning strategies. The most common one is to hash the contents of the record’s key against the total number of partitions. This has the effect of placing all records with the same identity into the same partition, which is useful because of the strong ordering guarantees.
 
-- ksqlDB uplevels this with group by / partition by
+The order of the records is tracked by a piece of data known as an offset, which is set when the record is appended. A record with offset 10 happened earlier than a record with offset 20.
+
+Many of the mechanics here are automatically handled by ksqlDB on your behalf. When you create a stream or table, you choose the number of partitions for the underlying topic so that you can have control over its scalability. When you declare a schema, you choose which columns are part of the key and which are part of the value. Beyond that, you need not think about individual partitions or offsets. Here are some examples of that.
+
+When a record is appended, its keys content is automatically rolled up and hashed to consistently send it to the same partition. When records are processed, they follow the correct offset order, even in the presence of failures or faults. When a stream’s key content changes because of how a query wants to process the rows (via `GROUP BY` or `PARTITION BY`), the underlying records keys are recalculated, and the records are sent to a new partition set to perform the computation.
 
 ## Producers and consumers
 

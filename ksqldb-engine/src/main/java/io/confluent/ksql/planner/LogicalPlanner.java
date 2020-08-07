@@ -110,7 +110,9 @@ public class LogicalPlanner {
     this.aggregateAnalyzer = new AggregateAnalyzer(functionRegistry);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public OutputNode buildPlan() {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     PlanNode currentNode = buildSourceNode();
 
     if (analysis.getWhereExpression().isPresent()) {

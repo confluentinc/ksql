@@ -660,7 +660,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummaries\" : { }" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -799,7 +799,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"statement\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummaries\" : { }" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -1187,8 +1187,15 @@ public class ConsoleTest {
                             ImmutableList.of(
                                 new ConsumerPartitionOffsets(0, 100, 900, 800),
                                 new ConsumerPartitionOffsets(1, 50, 900, 900)
+                            )),
+                        new QueryOffsetSummary(
+                            "kadka-topic-2",
+                            ImmutableList.of(
+                                new ConsumerPartitionOffsets(0, 0, 90, 80),
+                                new ConsumerPartitionOffsets(1, 10, 90, 90)
                             ))
-                    ))),
+                    )
+                )),
             Collections.emptyList()
         ))
     );
@@ -1256,21 +1263,35 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ {" + NEWLINE
-          + "      \"groupId\" : \"consumer1\"," + NEWLINE
-          + "      \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
-          + "      \"offsets\" : [ {" + NEWLINE
-          + "        \"partition\" : 0," + NEWLINE
-          + "        \"logStartOffset\" : 100," + NEWLINE
-          + "        \"logEndOffset\" : 900," + NEWLINE
-          + "        \"consumerOffset\" : 800" + NEWLINE
+          + "    \"queryOffsetSummaries\" : {" + NEWLINE
+          + "      \"consumer1\" : [ {" + NEWLINE
+          + "        \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
+          + "        \"offsets\" : [ {" + NEWLINE
+          + "          \"partition\" : 0," + NEWLINE
+          + "          \"logStartOffset\" : 100," + NEWLINE
+          + "          \"logEndOffset\" : 900," + NEWLINE
+          + "          \"consumerOffset\" : 800" + NEWLINE
+          + "        }, {" + NEWLINE
+          + "          \"partition\" : 1," + NEWLINE
+          + "          \"logStartOffset\" : 50," + NEWLINE
+          + "          \"logEndOffset\" : 900," + NEWLINE
+          + "          \"consumerOffset\" : 900" + NEWLINE
+          + "        } ]" + NEWLINE
           + "      }, {" + NEWLINE
-          + "        \"partition\" : 1," + NEWLINE
-          + "        \"logStartOffset\" : 50," + NEWLINE
-          + "        \"logEndOffset\" : 900," + NEWLINE
-          + "        \"consumerOffset\" : 900" + NEWLINE
+          + "        \"kafkaTopic\" : \"kadka-topic-2\"," + NEWLINE
+          + "        \"offsets\" : [ {" + NEWLINE
+          + "          \"partition\" : 0," + NEWLINE
+          + "          \"logStartOffset\" : 0," + NEWLINE
+          + "          \"logEndOffset\" : 90," + NEWLINE
+          + "          \"consumerOffset\" : 80" + NEWLINE
+          + "        }, {" + NEWLINE
+          + "          \"partition\" : 1," + NEWLINE
+          + "          \"logStartOffset\" : 10," + NEWLINE
+          + "          \"logEndOffset\" : 90," + NEWLINE
+          + "          \"consumerOffset\" : 90" + NEWLINE
+          + "        } ]" + NEWLINE
           + "      } ]" + NEWLINE
-          + "    } ]" + NEWLINE
+          + "    }" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -1306,9 +1327,13 @@ public class ConsoleTest {
           + "------------------------" + NEWLINE
           + "stats" + NEWLINE
           + "errors" + NEWLINE
-          + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)" + NEWLINE
+          + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)"
+          + NEWLINE
+          + NEWLINE
+          + "Consumer Groups summary:" + NEWLINE
           + NEWLINE
           + "Consumer Group       : consumer1" + NEWLINE
+          + NEWLINE
           + "Kafka topic          : kadka-topic" + NEWLINE
           + "Max lag              : 100" + NEWLINE
           + NEWLINE
@@ -1316,7 +1341,17 @@ public class ConsoleTest {
           + "------------------------------------------------------" + NEWLINE
           + " 0         | 100          | 900        | 800    | 100 " + NEWLINE
           + " 1         | 50           | 900        | 900    | 0   " + NEWLINE
-          + "------------------------------------------------------" + NEWLINE));
+          + "------------------------------------------------------" + NEWLINE
+          + NEWLINE
+          + "Kafka topic          : kadka-topic-2" + NEWLINE
+          + "Max lag              : 10" + NEWLINE
+          + NEWLINE
+          + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + " 0         | 0            | 90         | 80     | 10  " + NEWLINE
+          + " 1         | 10           | 90         | 90     | 0   " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+      ));
     }
   }
 

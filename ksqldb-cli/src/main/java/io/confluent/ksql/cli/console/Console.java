@@ -628,7 +628,7 @@ public class Console implements Closeable {
     ));
     if (!source.getQueryOffsetSummaries().isEmpty()) {
       writer().println();
-      writer().println("Consumer groups summary:");
+      writer().println("Consumer Groups summary:");
       for (Entry<String, List<QueryOffsetSummary>> entry :
           source.getQueryOffsetSummaries().entrySet()) {
         writer().println();

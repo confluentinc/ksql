@@ -2,22 +2,19 @@ ksqlDB is an event streaming database specifically built for Apache Kafka. Altho
 
 ## Records
 
-- The unit of data in Kafka is an event, it's manipulated as something known as a record.
-- A record is a container for an event. Every record has a few components:
-  - Key
-  - Value
-  - Timestamp
-  - Topic
-  - Offset
-  - Partition
-  - Headers
+The primary unit of data in Kafka is the event. An event models something that happened in the world at a point in time. In Kafka, you work with events using a construct known as a record. Records carry a few different kinds of data within them: key, value, timestamp, topic, partition, offset, and headers.
 
-- Key denotes identity
-- Value is traditionally the payload
-- Timestamp is when it happened
-- Topic is which larger collection it's a part of
+The key of a record is an arbitrary piece of data that denotes the identity of the event. If the events are clicks on a web page, a suitable key might be the user ID who did the clicking. The value is also an arbitrary piece of data that represents the data of interest. The value of a click event probably contains the page that it happened on, the DOM element that was clicked, and other interesting tidbits of information.
 
-These are the important ones for ksqlDB. ksqlDB up-levels this a bit by using "rows" instead of records, but generally carries the K/V model forward. Row is just an abstraction over a record so that you can use it a higher-level way. Key/value columns
+The timestamp denotes when the event happened. There are a few different “kinds” of time that can be tracked. These aren’t discussed here, but they’re useful to learn about nonetheless.
+
+The topic and partition describe which larger collection of events this event belongs to, and the offset describes its exact position within that larger collection (more on that below).
+
+Finally, the headers carry arbitrary, user-supplied metadata about the record.
+
+ksqlDB abstracts over some of these pieces of information so you don’t need to think about them. Others are exposed directly and are an integral part of the programming model. For example, the fundamental unit of data in ksqlDB is the _row_. A row is a helpful abstraction over a Kafka record. Rows have columns of two kinds, key columns and value columns. They also carry pseudocolumns for metadata, like a timestamp.
+
+In general, ksqlDB avoids raising up Kafka-level implementation details that don’t contribute to a high-level programming model.
 
 ## Topics
 

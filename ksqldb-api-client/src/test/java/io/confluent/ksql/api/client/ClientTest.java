@@ -899,9 +899,24 @@ public class ClientTest extends BaseApiTest {
     // Given
     final SourceDescriptionEntity entity = new SourceDescriptionEntity(
         "describe source;",
-        new SourceDescription("name", Optional.empty(), Collections.emptyList(), Collections.emptyList(),
-            Collections.emptyList(), "type", "timestamp", "statistics", "errorStats",
-            false, "keyFormat", "valueFormat", "topic", 4, 1, "statement"),
+        new SourceDescription(
+            "name",
+            Optional.empty(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "type",
+            "timestamp",
+            "statistics",
+            "errorStats",
+            false,
+            "keyFormat",
+            "valueFormat",
+            "topic",
+            4,
+            1,
+            "statement",
+            Collections.emptyList()),
         Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 

@@ -70,6 +70,8 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
+import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -197,6 +199,7 @@ public class Console implements Closeable {
   private CliConfig config;
 
   public interface RowCaptor {
+
     void addRow(GenericRow row);
 
     void addRows(List<List<String>> fields);
@@ -315,7 +318,7 @@ public class Console implements Closeable {
 
   public void printErrorMessage(final KsqlErrorMessage errorMessage) {
     if (errorMessage instanceof KsqlStatementErrorMessage) {
-      printKsqlEntityList(((KsqlStatementErrorMessage)errorMessage).getEntities());
+      printKsqlEntityList(((KsqlStatementErrorMessage) errorMessage).getEntities());
     }
     printError(errorMessage.getMessage(), errorMessage.toString());
   }
@@ -436,7 +439,7 @@ public class Console implements Closeable {
           "Unexpected KsqlEntity class: '%s'", entity.getClass().getCanonicalName()
       ));
     }
-    
+
     handler.handle(this, entity);
 
     printWarnings(entity);
@@ -485,8 +488,8 @@ public class Console implements Closeable {
 
   private void printTopicInfo(final SourceDescription source) {
     final String timestamp = source.getTimestamp().isEmpty()
-                             ? "Not set - using <ROWTIME>"
-                             : source.getTimestamp();
+        ? "Not set - using <ROWTIME>"
+        : source.getTimestamp();
 
     writer().println(String.format("%-20s : %s", "Timestamp field", timestamp));
     writer().println(String.format("%-20s : %s", "Key format", source.getKeyFormat()));
@@ -624,6 +627,42 @@ public class Console implements Closeable {
         "Statistics of the local KSQL server interaction with the Kafka topic "
             + source.getTopic()
     ));
+    if (!source.getQueryOffsetSummaries().isEmpty()) {
+      writer().println();
+      writer().println("Consumer Groups summary:");
+      for (QueryOffsetSummary entry : source.getQueryOffsetSummaries()) {
+        writer().println();
+        writer().println(String.format("%-20s : %s", "Consumer Group", entry.getGroupId()));
+        if (entry.getTopicSummaries().isEmpty()) {
+          writer().println("<no offsets committed by this group yet>");
+        }
+        for (QueryTopicOffsetSummary topicSummary : entry.getTopicSummaries()) {
+          writer().println();
+          writer().println(String.format("%-20s : %s",
+              "Kafka topic", topicSummary.getKafkaTopic()));
+          writer().println(String.format("%-20s : %s",
+              "Max lag", topicSummary.getOffsets().stream()
+                  .mapToLong(s -> s.getLogEndOffset() - s.getConsumerOffset())
+                  .max()
+                  .orElse(0)));
+          writer().println("");
+          final Table taskTable = new Table.Builder()
+              .withColumnHeaders(
+                  ImmutableList.of("Partition", "Start Offset", "End Offset", "Offset", "Lag"))
+              .withRows(topicSummary.getOffsets()
+                  .stream()
+                  .map(offset -> ImmutableList.of(
+                      String.valueOf(offset.getPartition()),
+                      String.valueOf(offset.getLogStartOffset()),
+                      String.valueOf(offset.getLogEndOffset()),
+                      String.valueOf(offset.getConsumerOffset()),
+                      String.valueOf(offset.getLogEndOffset() - offset.getConsumerOffset())
+                  )))
+              .build();
+          taskTable.print(this);
+        }
+      }
+    }
   }
 
   private void printSourceDescriptionList(final SourceDescriptionList sourceDescriptionList) {
@@ -839,6 +878,7 @@ public class Console implements Closeable {
   }
 
   static class NoOpRowCaptor implements RowCaptor {
+
     @Override
     public void addRow(final GenericRow row) {
     }

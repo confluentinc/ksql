@@ -46,8 +46,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -153,11 +153,7 @@ public final class QueryExecutor {
   ) {
     final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
-    final String applicationId = addTimeSuffix(getQueryApplicationId(
-        getServiceId(),
-        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
-        queryId
-    ));
+    final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
@@ -197,13 +193,7 @@ public final class QueryExecutor {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     final Object result = physicalPlan.build(planBuilder);
-    final String persistenceQueryPrefix =
-        ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String applicationId = getQueryApplicationId(
-        getServiceId(),
-        persistenceQueryPrefix,
-        queryId
-    );
+    final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
@@ -284,11 +274,6 @@ public final class QueryExecutor {
     );
   }
 
-  private String getServiceId() {
-    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-  }
-
   private Map<String, Object> buildStreamsProperties(
       final String applicationId,
       final QueryId queryId
@@ -355,13 +340,6 @@ public final class QueryExecutor {
     return ImmutableSet.copyOf(usedTopics);
   }
 
-  private static String getQueryApplicationId(
-      final String serviceId,
-      final String queryPrefix,
-      final QueryId queryId) {
-    return serviceId + queryPrefix + queryId;
-  }
-
   private static void updateListProperty(
       final Map<String, Object> properties,
       final String key,
@@ -385,9 +363,5 @@ public final class QueryExecutor {
     }
     valueList.add(value);
     properties.put(key, valueList);
-  }
-
-  private static String addTimeSuffix(final String original) {
-    return String.format("%s_%d", original, System.currentTimeMillis());
   }
 }

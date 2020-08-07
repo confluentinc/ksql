@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -48,8 +49,10 @@ import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
@@ -77,9 +80,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private final Supplier<Admin> adminClient;
 
   /**
-   * Construct a topic client from an existing admin client.
-   * Note, the admin client is shared between all methods of this class, i.e the admin client
-   * is created only once and then reused.
+   * Construct a topic client from an existing admin client. Note, the admin client is shared
+   * between all methods of this class, i.e the admin client is created only once and then reused.
    *
    * @param sharedAdminClient the admin client .
    */
@@ -142,9 +144,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   /**
-   * We need this method because {@link Admin#createTopics(Collection)} does not allow
-   * you to pass in only partitions. Instead, we determine the default number from the cluster
-   * config and then pass that value back.
+   * We need this method because {@link Admin#createTopics(Collection)} does not allow you to pass
+   * in only partitions. Instead, we determine the default number from the cluster config and then
+   * pass that value back.
    *
    * @return the default broker configuration
    */
@@ -308,7 +310,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
     if (!failList.isEmpty()) {
       throw new KafkaDeleteTopicsException("Failed to clean up topics: "
-              + String.join(",", failList), exceptionList);
+          + String.join(",", failList), exceptionList);
     }
   }
 
@@ -329,6 +331,38 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       LOG.error("Exception while trying to clean up internal topics for application id: {}.",
           applicationId, e
       );
+    }
+  }
+
+  @Override
+  public Map<TopicPartition, Long> listTopicsOffsets(
+      final Collection<String> topicNames,
+      final OffsetSpec offsetSpec
+  ) {
+    final Map<TopicPartition, OffsetSpec> offsetsRequest =
+        describeTopics(topicNames).entrySet().stream()
+            .flatMap(entry ->
+                entry.getValue().partitions()
+                    .stream()
+                    .map(tpInfo -> new TopicPartition(entry.getKey(), tpInfo.partition())))
+            .collect(Collectors.toMap(tp -> tp, tp -> offsetSpec));
+    try {
+      return ExecutorUtil.executeWithRetries(
+          () -> adminClient.get().listOffsets(offsetsRequest).all().get()
+              .entrySet()
+              .stream()
+              .collect(Collectors.toMap(
+                  Entry::getKey,
+                  entry -> entry.getValue().offset())),
+          RetryBehaviour.ON_RETRYABLE);
+    } catch (final TopicAuthorizationException e) {
+      throw new KsqlTopicAuthorizationException(AclOperation.DESCRIBE, e.unauthorizedTopics());
+    } catch (final ExecutionException e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to get topic offsets. partitions: " + offsetsRequest.keySet(), e.getCause());
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to get topic offsets. partitions: " + offsetsRequest.keySet(), e);
     }
   }
 

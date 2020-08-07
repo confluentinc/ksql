@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -48,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -63,11 +65,14 @@ import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
@@ -351,6 +356,71 @@ public class KafkaTopicClientImplTest {
 
     // Then:
     verify(adminClient, times(2)).listTopics();
+  }
+
+  @Test
+  public void shouldListTopicsStartOffsets() {
+    // When:
+    givenTopicExists("topicA", 1, 1);
+
+    when(adminClient.listOffsets(anyMap())).thenAnswer(listTopicOffsets());
+
+    // When:
+    final Map<TopicPartition, Long> offsets =
+        kafkaTopicClient.listTopicsStartOffsets(ImmutableList.of("topicA"));
+
+    // Then:
+    assertThat(offsets,
+        is(ImmutableMap.of(new TopicPartition("topicA", 0), 100L)));
+  }
+
+  @Test
+  public void shouldRetryListTopicsStartOffsets() {
+    // When:
+    givenTopicExists("topicA", 1, 1);
+
+    when(adminClient.listOffsets(anyMap()))
+        .thenAnswer(listTopicOffsets(new NotControllerException("Not Controller")))
+        .thenAnswer(listTopicOffsets());
+
+    // When:
+    kafkaTopicClient.listTopicsStartOffsets(ImmutableList.of("topicA"));
+
+    // Then:
+    verify(adminClient, times(2)).listOffsets(anyMap());
+  }
+
+
+  @Test
+  public void shouldListTopicsEndOffsets() {
+    // When:
+    givenTopicExists("topicA", 1, 1);
+
+    when(adminClient.listOffsets(anyMap())).thenAnswer(listTopicOffsets());
+
+    // When:
+    final Map<TopicPartition, Long> offsets =
+        kafkaTopicClient.listTopicsEndOffsets(ImmutableList.of("topicA"));
+
+    // Then:
+    assertThat(offsets,
+        is(ImmutableMap.of(new TopicPartition("topicA", 0), 100L)));
+  }
+
+  @Test
+  public void shouldRetryListTopicsEndOffsets() {
+    // When:
+    givenTopicExists("topicA", 1, 1);
+
+    when(adminClient.listOffsets(anyMap()))
+        .thenAnswer(listTopicOffsets(new NotControllerException("Not Controller")))
+        .thenAnswer(listTopicOffsets());
+
+    // When:
+    kafkaTopicClient.listTopicsEndOffsets(ImmutableList.of("topicA"));
+
+    // Then:
+    verify(adminClient, times(2)).listOffsets(anyMap());
   }
 
   @Test
@@ -784,6 +854,25 @@ public class KafkaTopicClientImplTest {
               KafkaFuture.completedFuture(ImmutableSet.copyOf(topicPartitionInfo.keySet())));
 
       return listTopicsResult;
+    };
+  }
+
+  private Answer<ListOffsetsResult> listTopicOffsets() {
+    return inv -> {
+      final ListOffsetsResult result = mock(ListOffsetsResult.class);
+      when(result.all()).thenReturn(KafkaFuture.completedFuture(ImmutableMap.of(
+          new TopicPartition("topicA", 0),
+          new ListOffsetsResultInfo(100L, 0L, Optional.empty()))));
+      return result;
+    };
+  }
+
+  private Answer<ListOffsetsResult> listTopicOffsets(final Exception e) {
+    return inv -> {
+      final ListOffsetsResult result = mock(ListOffsetsResult.class);
+      final KafkaFuture<Map<TopicPartition, ListOffsetsResultInfo>> f = failedFuture(e);
+      when(result.all()).thenReturn(f);
+      return result;
     };
   }
 

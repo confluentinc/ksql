@@ -40,12 +40,9 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class DescribeConnectorExecutor {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
   @VisibleForTesting
   static final String TOPICS_KEY = "topics";
 
@@ -134,7 +131,8 @@ public final class DescribeConnectorExecutor {
               false,
               ImmutableList.of(),
               ImmutableList.of(),
-              Optional.empty()))
+              Optional.empty(),
+              ImmutableList.of()))
           .collect(Collectors.toList());
     } else {
       sources = ImmutableList.of();

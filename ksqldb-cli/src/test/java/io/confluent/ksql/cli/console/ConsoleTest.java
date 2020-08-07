@@ -63,10 +63,13 @@ import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
+import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
+import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -143,8 +146,8 @@ public class ConsoleTest {
       "kadka-topic",
       2,
       1,
-      "statement"
-  );
+      "statement",
+      Collections.emptyList());
 
   @Mock
   private QueryStatusCount queryStatusCount;
@@ -525,8 +528,8 @@ public class ConsoleTest {
                 "kadka-topic",
                 1,
                 1,
-                "sql statement"
-            ),
+                "sql statement",
+                Collections.emptyList()),
             Collections.emptyList()
         )
     ));
@@ -657,7 +660,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"sql statement\"" + NEWLINE
+          + "    \"statement\" : \"sql statement\"," + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -795,7 +799,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"statement\"" + NEWLINE
+          + "    \"statement\" : \"statement\"," + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -1174,8 +1179,28 @@ public class ConsoleTest {
                 "avro",
                 "kadka-topic",
                 2, 1,
-                "sql statement text"
-            ),
+                "sql statement text",
+                ImmutableList.of(
+                    new QueryOffsetSummary(
+                        "consumer1",
+                        ImmutableList.of(
+                            new QueryTopicOffsetSummary(
+                                "kadka-topic",
+                                ImmutableList.of(
+                                    new ConsumerPartitionOffsets(0, 100, 900, 800),
+                                    new ConsumerPartitionOffsets(1, 50, 900, 900)
+                                )),
+                            new QueryTopicOffsetSummary(
+                                "kadka-topic-2",
+                                ImmutableList.of(
+                                    new ConsumerPartitionOffsets(0, 0, 90, 80),
+                                    new ConsumerPartitionOffsets(1, 10, 90, 90)
+                                ))
+                        )),
+                    new QueryOffsetSummary(
+                        "consumer2",
+                        ImmutableList.of())
+                )),
             Collections.emptyList()
         ))
     );
@@ -1242,7 +1267,40 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"sql statement text\"" + NEWLINE
+          + "    \"statement\" : \"sql statement text\"," + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ {" + NEWLINE
+          + "      \"groupId\" : \"consumer1\"," + NEWLINE
+          + "      \"topicSummaries\" : [ {" + NEWLINE
+          + "        \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
+          + "        \"offsets\" : [ {" + NEWLINE
+          + "          \"partition\" : 0," + NEWLINE
+          + "          \"logStartOffset\" : 100," + NEWLINE
+          + "          \"logEndOffset\" : 900," + NEWLINE
+          + "          \"consumerOffset\" : 800" + NEWLINE
+          + "        }, {" + NEWLINE
+          + "          \"partition\" : 1," + NEWLINE
+          + "          \"logStartOffset\" : 50," + NEWLINE
+          + "          \"logEndOffset\" : 900," + NEWLINE
+          + "          \"consumerOffset\" : 900" + NEWLINE
+          + "        } ]" + NEWLINE
+          + "      }, {" + NEWLINE
+          + "        \"kafkaTopic\" : \"kadka-topic-2\"," + NEWLINE
+          + "        \"offsets\" : [ {" + NEWLINE
+          + "          \"partition\" : 0," + NEWLINE
+          + "          \"logStartOffset\" : 0," + NEWLINE
+          + "          \"logEndOffset\" : 90," + NEWLINE
+          + "          \"consumerOffset\" : 80" + NEWLINE
+          + "        }, {" + NEWLINE
+          + "          \"partition\" : 1," + NEWLINE
+          + "          \"logStartOffset\" : 10," + NEWLINE
+          + "          \"logEndOffset\" : 90," + NEWLINE
+          + "          \"consumerOffset\" : 90" + NEWLINE
+          + "        } ]" + NEWLINE
+          + "      } ]" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"groupId\" : \"consumer2\"," + NEWLINE
+          + "      \"topicSummaries\" : [ ]" + NEWLINE
+          + "    } ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -1279,7 +1337,33 @@ public class ConsoleTest {
           + "stats" + NEWLINE
           + "errors" + NEWLINE
           + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)"
-          + NEWLINE));
+          + NEWLINE
+          + NEWLINE
+          + "Consumer Groups summary:" + NEWLINE
+          + NEWLINE
+          + "Consumer Group       : consumer1" + NEWLINE
+          + NEWLINE
+          + "Kafka topic          : kadka-topic" + NEWLINE
+          + "Max lag              : 100" + NEWLINE
+          + NEWLINE
+          + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + " 0         | 100          | 900        | 800    | 100 " + NEWLINE
+          + " 1         | 50           | 900        | 900    | 0   " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + NEWLINE
+          + "Kafka topic          : kadka-topic-2" + NEWLINE
+          + "Max lag              : 10" + NEWLINE
+          + NEWLINE
+          + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + " 0         | 0            | 90         | 80     | 10  " + NEWLINE
+          + " 1         | 10           | 90         | 90     | 0   " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + NEWLINE
+          + "Consumer Group       : consumer2" + NEWLINE
+          + "<no offsets committed by this group yet>" + NEWLINE
+      ));
     }
   }
 

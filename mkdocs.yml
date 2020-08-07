@@ -26,6 +26,7 @@ extra_javascript:
 nav:
   - Overview: index.md
   - Getting started: quickstart.md # links to Derek's quickstart at ksqldb.io
+  - Apache Kafka primer: overview/apache-kafka-primer.md
   - Concepts:
     - Concepts: concepts/index.md
     - Events: concepts/events.md
@@ -188,7 +189,7 @@ nav:
       - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
-  - Frequently Asked Questions: faq.md
+  - Frequently asked questions: faq.md
 
 markdown_extensions:
     - toc:

@@ -6,7 +6,7 @@ description: How to use DML to change data in ksqlDB
 keywords: ksqldb, sql, dml
 ---
 
-- DML: how to change data
+The [data definition](data-definition.md) section discussed how you create structures to store your events. This section describes how you populate those structures with events, and generally manipulate the events once they are loaded.
 
 ## Insert data
 

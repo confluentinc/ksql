@@ -6,7 +6,7 @@ description: How to ask questions about data with SQL queries in ksqlDB
 keywords: ksqldb, sql, query, persistent query, pull query, push query
 ---
 
-- Queries: how to ask questions about data
+The [data manipulation](data-manipulation.md) section covered how you work with affect changes on structures of events. This section describes how you ask questions about your events.
 
 ## Query types
 

@@ -7,7 +7,8 @@
 
 **tl;dr:** _Introduce **Y**et **A**nother **T**esting **T**ool (YATT) that is written and driven 
 primarily by SQL-based syntax to add coverage for test cases that require interleaving statements
-and inserts. Eventually, the goal is to replace the external facing testing tool and maybe QTT tests._
+and inserts. Eventually, the goal is to replace the external facing ksql-test-runner and maybe 
+(R)QTT tests._
            
 ## Motivation and background
 
@@ -31,7 +32,7 @@ and asserts.
 
 ### Why Not Reuse?
 
-Why introduce YATT (Yet Another Testing Tool) when we already have two existing options? There
+Why introduce YATT (Yet Another Testing Tool) when we already have three existing options? There
 are a few factors here:
 
 - the primary motivation is practical in nature: We need interleaved testing for the query upgrades 
@@ -39,11 +40,11 @@ are a few factors here:
     tool and the historical test execution while maintaining or migrating all the historical plans. 
     In order to deliver query upgrades (see KLIP-28) quickly, we will begin work on YATT while 
     maintaining support for QTT tests.
-- the testing tool and QTT have, over time, diverged significantly from the ksqlDB engine and require
-    lots of custom code (the ksqldb-functional-test module has 11k lines of Java). Specifically, the
-    custom JSON format requires maintaining a parallel, testing-only framework and serde to convert 
-    inputs/outputs to their desired serialization format. Instead, we should leverage the production 
-    SQL expression functionality to produce data.
+- the ksql-test-runner and (R)QTT have, over time, diverged significantly from the ksqlDB engine and 
+    require lots of custom code (the ksqldb-functional-test module has 11k lines of Java). 
+    Specifically, the custom JSON format requires maintaining a parallel, testing-only framework and 
+    serde to convert inputs/outputs to their desired serialization format. Instead, we should 
+    leverage the production SQL expression functionality to produce data.
 - providing a SQL-driven testing tool will mesh better with our product offering, allowing users to
     write tests without every leaving the "SQL mindset"
     
@@ -53,12 +54,13 @@ This KLIP covers:
 
 - design of the test file format
 - design of the testing-specific directives
-- outline features that need to be implemented in order to replace QTT/testing-tool
-- sketch out an implementation
+- outline features that need to be implemented in order to replace (R)QTT/testing-tool
 
 This KLIP does not cover:
 
-- implementation of a migration path from QTT/testing-tool
+- implementation of a migration path from (R)QTT/testing-tool, but we plan to deprecate and remove
+    the ksql-test-runner over the next few releases. At the time when we remove it, we will build
+    some convenience scripts to help generate YATT sql files.
 - generating historical plans from YATT sql tests
 
 The intention of this KLIP is to provide a solid foundation for YATT to eventually replace the other
@@ -69,8 +71,7 @@ migrate the existing tools.
 
 ## Design
 
-The best way to describe the testing tool is by motivating example. Below is an example test
-file:
+The best way to describe the testing tool is by a motivating example, such as the test file below:
 
 ```sql
 ---------------------------------------------------------------------------------------------------
@@ -113,7 +114,7 @@ YATT will accept as a parameter a directory containing testing files, and will r
 tests in the directory in a single JVM.
 
 Each test file can contain one or more tests, separated by the `--@test` directive. This will
-improve on a pain point of the existing testing tool, which requires three files for a single
+improve on a pain point of the existing ksql-test-runner, which requires three files for a single
 test. The test name is a concatenation of the test file time and the contents of the `--@test`
 directive.
 
@@ -132,6 +133,8 @@ using ksqlDB's `AstBuilder` to make sure YATT can leverage the existing expressi
 At first, `ASSERT` statements will fail if they are sent to a production server, but we may consider
 allowing `ASSERT` in the future in order to allow REPL-based testing/experimentation.
 
+#### `ASSERT DATA`
+
 The `ASSERT DATA` statement asserts that data exists at an optionally provided offset (or otherwise 
 sequential based on the last `ASSERT DATA`) with the given values. If the `ASSERT DATA` does not
 specify certain columns they will be ignored (allowing users to assert only subset of the columns
@@ -139,14 +142,22 @@ match what they expect).
 
 The values will be created in the same way that `INSERT INTO` creates values:
 ```sql
-ASSERT DATA source_name [OFFSET offset] ( { column_name } [, ...] ) VALUES ( value [, ...] );
+ASSERT DATA source_name [OFFSET at_offset] ( { column_name } [, ...] ) VALUES ( value [, ...] );
 ```
+
+The `ASSERT DATA` statement will allow users to specify psuedocolumns as well, such as `ROWTIME`,
+and when ksqlDB supports constructs such as `PARTITION` and/or headers, YATT will inherit these
+psuedocolumns as well.
+
+#### `ASSERT NO DATA`
 
 The `ASSERT NO DATA` statement will allow users to ensure that no more data exists in a specified
 source:
 ```sql
-ASSERT NO DATA source_name;
+ASSERT NO DATA source_name [OFFSET from_offset];
 ```
+
+#### `ASSERT SOURCE`
 
 The `ASSERT (TABLE | STREAM)` statement asserts that the given stream or table has the specified
 columns and physical properties.
@@ -154,6 +165,11 @@ columns and physical properties.
 ASSERT (STREAM | TABLE) source_name ( { column_name data_type [[PRIMARY] KEY] } [, ...] )
     WITH (property_name = expression [, ...] );
 ```
+
+#### `ASSERT TYPE`
+
+The `ASSERT TYPE` statement ensures that a custom type has the expected type. This is especially
+useful when chaining multiple 
 
 #### Considered Alternative
 
@@ -171,6 +187,16 @@ meta directives. Some examples of these directives:
     expects an exception to be thrown with the specified message and type.
 - The `--@topic.denylist` directive will ensure that any topics matching the denylist will not
     be present at the end of the test execution.
+
+### Global Checks
+
+These are a set of checks that will happen without any directive or `ASSERT` statement. Some
+checks that we may consider including:
+
+- _Processing Log Check_: this check will ensure that there are no failures in the processing log.
+    If the test case intends to check that the processing log contains certain entries, this check
+    can be disabled on a test-by-test basis and assert via `ASSERT DATA` on the processing log
+    stream.
     
 ### Language Gaps
 
@@ -180,30 +206,33 @@ on par with the existing testing tools. Some of those are outlined here:
 - _Windowed Keys_: when we have structured key support, we can `ASSERT DATA` and just provide the
     struct as the value. Until then, windowed keys will either be unsupported or stringified.
 - _Tombstones_: we will implement `DELETE FROM table WHERE key = value` syntax to allow tombstones
-    to be inserted into tables, both for ksqlDB and the testing tool.
+    to be inserted into tables, both for ksqlDB and YATT.
 - _Null Values for Streams_: insert `null` values into streams will not be supported for the first
     iteration of YATT. Eventually, if we want to support this, we can add a directive like
     `--@null.value: topic key` to produce a `null` valued record into a specific topic/source.
 - _Other Unsupported Inserts_: there are other types of inserts that ksqlDB doesn't allow for at the
     moment (e.g. `enum` support or binary formats). This is only somewhat a regression from the 
-    existing QTT tests, so we may or may not decide to support it in YATT.
+    existing (R)QTT tests, so we may or may not decide to support it in YATT.
     
 ### Error Reporting & UX
 
-One of the bigger concerns with the existing testing tool is that it's helpful in letting
+One of the bigger concerns with the existing ksql-test-runner is that it's helpful in letting
 us know _that_ an error happened, but not so much _why_ it happened or even at times _what_
 exactly happened. To avoid this pitfall, the errors will include:
 
-- the assert statement that failed
+- the assert statement that failed, with a link to the line that failed in the test file
 - the actual data, and the expected data
 - the ability to add `PRINT` statements to debug the issue further by printing topic contents
 
 When data comparisons fail, we will leverage our SQL formatters to display the errors the
-same way we display `SELECT` statements - in a tabular, easy-to-digest way.
+same way we display `SELECT` statements - in a tabular, easy-to-digest way. YATT will alternatively
+take in a flag that allows failure messages to be output as machine-readable JSON, and this
+will leverage our existing REST API JSON formats and be helpful for users reporting test failures
+programmatically via some CI pipeline.
 
 ### Extensions
 
-There are some extensions to this testing tool that we may want to consider. I'm listing them here
+There are some extensions to YATT that we may want to consider. I'm listing them here
 because I'm currently in the mindset of thinking about them, and I don't want to forget!
 
 - _BYO Kafka_: we may want to allow users to "plug in their own kafka" cluster and run these tests
@@ -211,6 +240,8 @@ because I'm currently in the mindset of thinking about them, and I don't want to
     outside of this tool, mitigating the limitations described above. It also would allow them
     to "debug" further when something doesn't go the way they want by examining the input/output
     topics through ksqlDB.
+- _YaaS_: (YAAT as a Service) we may want to consider a deployment option where YAAT just watches
+    a directory in some long-running deployment, running new tests whenever a directory changes.
 
 ## Test Plan
 
@@ -225,7 +256,7 @@ to ensure that it should fail when it is supposed to fail.
 1. (S) Supported meta-directives other than `--@expected.error`
 1. (M) Extending ksqlDB to support the language gaps
 1. (M) Historical plans
-1. (L) Migrate QTT use cases
+1. (L) Migrate (R)QTT use cases
 
 ## Documentation
 

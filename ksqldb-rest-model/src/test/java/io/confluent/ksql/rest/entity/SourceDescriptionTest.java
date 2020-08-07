@@ -42,7 +42,7 @@ public class SourceDescriptionTest {
     @Mock
     private FieldInfo fieldInfo;
     @Mock
-    private QueryOffsetSummary summary;
+    private QueryTopicOffsetSummary summary;
 
     @SuppressWarnings("UnstableApiUsage")
     @Test
@@ -50,8 +50,8 @@ public class SourceDescriptionTest {
         final List<RunningQuery> readQueries = Collections.singletonList(query1);
         final List<RunningQuery> writeQueries = Collections.singletonList(query2);
         final List<FieldInfo> fields = Collections.singletonList(fieldInfo);
-        final Map<String, List<QueryOffsetSummary>> summaries =
-            Collections.singletonMap("g1", Collections.singletonList(summary));
+        final List<QueryOffsetSummary> summaries = Collections.singletonList(
+            new QueryOffsetSummary("g1", Collections.singletonList(summary)));
 
         new EqualsTester()
             .addEqualityGroup(
@@ -99,7 +99,7 @@ public class SourceDescriptionTest {
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields,
                     SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
-                    SOME_STRING, ImmutableMap.of())
+                    SOME_STRING, ImmutableList.of())
             )
             .addEqualityGroup(
                 new SourceDescription(
@@ -184,13 +184,15 @@ public class SourceDescriptionTest {
                     SOME_STRING, SOME_STRING, SOME_STRING,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING,
-                    ImmutableMap.of("g1",
-                    ImmutableList.of(
-                        new QueryOffsetSummary(
-                            "t1",
-                            ImmutableList.of(
-                                new ConsumerPartitionOffsets(0, 1L, 100L, 99L))))))
-            )
+                    ImmutableList.of(new QueryOffsetSummary("g1",
+                        ImmutableList.of(
+                            new QueryTopicOffsetSummary(
+                                "t1",
+                                ImmutableList.of(
+                                    new ConsumerPartitionOffsets(0, 1L, 100L, 99L)
+                                )
+                            )
+                        )))))
             .testEquals();
     }
   }

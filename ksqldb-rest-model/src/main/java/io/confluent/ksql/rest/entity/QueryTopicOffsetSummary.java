@@ -23,26 +23,25 @@ import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class QueryOffsetSummary {
-  private final String groupId;
-  private final List<QueryTopicOffsetSummary> topicSummaries;
+public class QueryTopicOffsetSummary {
+  private final String kafkaTopic;
+  private final List<ConsumerPartitionOffsets> offsets;
 
   @JsonCreator
-  public QueryOffsetSummary(
-      @JsonProperty("kafkaTopic") final String groupId,
-      @JsonProperty("offsets") final List<QueryTopicOffsetSummary> topicSummaries
+  public QueryTopicOffsetSummary(
+      @JsonProperty("kafkaTopic") final String kafkaTopic,
+      @JsonProperty("offsets") final List<ConsumerPartitionOffsets> offsets
   ) {
-    this.groupId = Objects.requireNonNull(groupId);
-    this.topicSummaries =
-        ImmutableList.copyOf(Objects.requireNonNull(topicSummaries, "topicSummaries"));
+    this.kafkaTopic = Objects.requireNonNull(kafkaTopic);
+    this.offsets = ImmutableList.copyOf(Objects.requireNonNull(offsets, "offsets"));
   }
 
-  public String getGroupId() {
-    return groupId;
+  public String getKafkaTopic() {
+    return kafkaTopic;
   }
 
-  public List<QueryTopicOffsetSummary> getTopicSummaries() {
-    return topicSummaries;
+  public List<ConsumerPartitionOffsets> getOffsets() {
+    return offsets;
   }
 
   @Override
@@ -53,13 +52,13 @@ public class QueryOffsetSummary {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final QueryOffsetSummary that = (QueryOffsetSummary) o;
-    return Objects.equals(groupId, that.groupId)
-        && Objects.equals(topicSummaries, that.topicSummaries);
+    final QueryTopicOffsetSummary that = (QueryTopicOffsetSummary) o;
+    return Objects.equals(kafkaTopic, that.kafkaTopic)
+        && Objects.equals(offsets, that.offsets);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(groupId, topicSummaries);
+    return Objects.hash(kafkaTopic, offsets);
   }
 }

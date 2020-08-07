@@ -63,12 +63,13 @@ import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
-import io.confluent.ksql.rest.entity.QueryOffsetSummary;
+import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -146,7 +147,7 @@ public class ConsoleTest {
       2,
       1,
       "statement",
-      Collections.emptyMap());
+      Collections.emptyList());
 
   @Mock
   private QueryStatusCount queryStatusCount;
@@ -528,7 +529,7 @@ public class ConsoleTest {
                 1,
                 1,
                 "sql statement",
-                Collections.emptyMap()),
+                Collections.emptyList()),
             Collections.emptyList()
         )
     ));
@@ -1179,23 +1180,24 @@ public class ConsoleTest {
                 "kadka-topic",
                 2, 1,
                 "sql statement text",
-                ImmutableMap.of(
+                ImmutableList.of(
+                    new QueryOffsetSummary(
                     "consumer1",
                     ImmutableList.of(
-                        new QueryOffsetSummary(
+                        new QueryTopicOffsetSummary(
                             "kadka-topic",
                             ImmutableList.of(
                                 new ConsumerPartitionOffsets(0, 100, 900, 800),
                                 new ConsumerPartitionOffsets(1, 50, 900, 900)
                             )),
-                        new QueryOffsetSummary(
+                        new QueryTopicOffsetSummary(
                             "kadka-topic-2",
                             ImmutableList.of(
                                 new ConsumerPartitionOffsets(0, 0, 90, 80),
                                 new ConsumerPartitionOffsets(1, 10, 90, 90)
                             ))
                     )
-                )),
+                ))),
             Collections.emptyList()
         ))
     );

@@ -71,6 +71,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
+import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -629,12 +630,10 @@ public class Console implements Closeable {
     if (!source.getQueryOffsetSummaries().isEmpty()) {
       writer().println();
       writer().println("Consumer Groups summary:");
-      for (Entry<String, List<QueryOffsetSummary>> entry :
-          source.getQueryOffsetSummaries().entrySet()) {
+      for (QueryOffsetSummary entry : source.getQueryOffsetSummaries()) {
         writer().println();
-        writer().println(String.format("%-20s : %s",
-            "Consumer Group", entry.getKey()));
-        for (QueryOffsetSummary summary : entry.getValue()) {
+        writer().println(String.format("%-20s : %s", "Consumer Group", entry.getGroupId()));
+        for (QueryTopicOffsetSummary summary : entry.getTopicSummaries()) {
           writer().println();
           writer().println(String.format("%-20s : %s", "Kafka topic", summary.getKafkaTopic()));
           writer().println(String.format("%-20s : %s",

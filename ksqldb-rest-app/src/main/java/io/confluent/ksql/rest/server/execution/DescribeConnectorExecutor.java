@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.connect.supported.Connectors;
@@ -41,12 +40,9 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class DescribeConnectorExecutor {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
   @VisibleForTesting
   static final String TOPICS_KEY = "topics";
 
@@ -136,7 +132,7 @@ public final class DescribeConnectorExecutor {
               ImmutableList.of(),
               ImmutableList.of(),
               Optional.empty(),
-              ImmutableMap.of()))
+              ImmutableList.of()))
           .collect(Collectors.toList());
     } else {
       sources = ImmutableList.of();

@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -220,14 +221,14 @@ public final class ListSourceExecutor {
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
         Optional.empty();
-    Map<String, List<QueryOffsetSummary>> queryOffsetSummaries = new HashMap<>();
+    List<QueryOffsetSummary> queryOffsetSummaries = new ArrayList<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
         topicDescription = Optional.of(
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
-        queryOffsetSummaries = offsetSummaries(ksqlConfig, serviceContext, writeQueries);
+        queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
@@ -246,7 +247,7 @@ public final class ListSourceExecutor {
     );
   }
 
-  private static Map<String, List<QueryOffsetSummary>> offsetSummaries(
+  private static List<QueryOffsetSummary> queryOffsetSummaries(
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final List<RunningQuery> writeQueries
@@ -277,12 +278,12 @@ public final class ListSourceExecutor {
     final Map<TopicPartition, Long> topicAndEndOffsets =
         serviceContext.getTopicClient().listTopicsEndOffsets(allTopics);
     // Build consumer offsets summary
-    final Map<String, List<QueryOffsetSummary>> summariesPerQuery = new HashMap<>();
+    final List<QueryOffsetSummary> offsetSummaries = new ArrayList<>();
     for (Entry<String, Set<String>> entry : topicsPerQuery.entrySet()) {
-      final  List<QueryOffsetSummary> summaries = new ArrayList<>();
+      final List<QueryTopicOffsetSummary> topicSummaries = new ArrayList<>();
       for (String topic : entry.getValue()) {
-        summaries.add(
-            new QueryOffsetSummary(
+        topicSummaries.add(
+            new QueryTopicOffsetSummary(
                 topic,
                 consumerPartitionOffsets(
                     sourceTopicDescriptions.get(topic),
@@ -290,9 +291,9 @@ public final class ListSourceExecutor {
                     topicAndEndOffsets,
                     offsetsPerQuery.get(entry.getKey()))));
       }
-      summariesPerQuery.put(entry.getKey(), summaries);
+      offsetSummaries.add(new QueryOffsetSummary(entry.getKey(), topicSummaries));
     }
-    return summariesPerQuery;
+    return offsetSummaries;
   }
 
   private static List<ConsumerPartitionOffsets> consumerPartitionOffsets(

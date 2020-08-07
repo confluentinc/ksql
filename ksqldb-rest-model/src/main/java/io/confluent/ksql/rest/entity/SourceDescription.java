@@ -49,7 +49,7 @@ public class SourceDescription {
   private final int partitions;
   private final int replication;
   private final String statement;
-  private final Map<String, List<QueryOffsetSummary>> queryOffsetSummaries;
+  private final List<QueryOffsetSummary> queryOffsetSummaries;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -70,8 +70,7 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
-      @JsonProperty("queryOffsetSummaries")
-      final Map<String, List<QueryOffsetSummary>> queryOffsetSummaries) {
+      @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
@@ -93,7 +92,7 @@ public class SourceDescription {
     this.replication = replication;
     this.statement = Objects.requireNonNull(statement, "statement");
     this.queryOffsetSummaries =
-        Collections.unmodifiableMap(
+        Collections.unmodifiableList(
             Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
   }
 
@@ -161,7 +160,7 @@ public class SourceDescription {
     return errorStats;
   }
 
-  public Map<String, List<QueryOffsetSummary>> getQueryOffsetSummaries() {
+  public List<QueryOffsetSummary> getQueryOffsetSummaries() {
     return queryOffsetSummaries;
   }
 

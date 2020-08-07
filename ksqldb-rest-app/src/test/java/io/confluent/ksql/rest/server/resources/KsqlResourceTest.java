@@ -505,12 +505,12 @@ public class KsqlResourceTest {
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
-            Collections.emptyMap()),
+            Collections.emptyList()),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
-            Collections.emptyMap()))
+            Collections.emptyList()))
     );
   }
 
@@ -537,12 +537,12 @@ public class KsqlResourceTest {
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
-            Collections.emptyMap()),
+            Collections.emptyList()),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
-            Collections.emptyMap()))
+            Collections.emptyList()))
     );
   }
 
@@ -587,7 +587,7 @@ public class KsqlResourceTest {
         Collections.singletonList(queries.get(1)),
         Collections.singletonList(queries.get(0)),
         Optional.empty(),
-        Collections.emptyMap());
+        Collections.emptyList());
 
     assertThat(description.getSourceDescription(), is(expectedDescription));
   }

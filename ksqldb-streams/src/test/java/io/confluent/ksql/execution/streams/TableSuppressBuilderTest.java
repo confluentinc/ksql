@@ -63,6 +63,8 @@ public class TableSuppressBuilderTest {
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
+  private KsqlConfig ksqlConfig;
+  @Mock
   private ExecutionStep<KTableHolder<Struct>> sourceStep;
   @Mock
   private KTable<Struct, GenericRow> sourceKTable;
@@ -94,9 +96,11 @@ public class TableSuppressBuilderTest {
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
       .getQueryContext();
+
   private TableSuppress<Struct> tableSuppress;
   private BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory;
   private BiFunction<Serde<Struct>, Serde<GenericRow>, Materialized> materializedFactory;
+  private Long maxBytes = 300L;
   private TableSuppressBuilder builder;
 
   @Rule
@@ -112,6 +116,9 @@ public class TableSuppressBuilderTest {
 
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlConfig.getLong(any())).thenReturn(maxBytes);
+
     when(tableHolder.getTable()).thenReturn(sourceKTable);
     when(sourceKTable.transformValues(any(), any(Materialized.class))).thenReturn(preKTable);
     when(preKTable.suppress(any())).thenReturn(suppressedKTable);

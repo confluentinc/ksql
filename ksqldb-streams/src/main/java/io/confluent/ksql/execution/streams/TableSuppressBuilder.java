@@ -26,8 +26,10 @@ import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Set;
 import java.util.function.BiFunction;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.KTable;
@@ -91,6 +93,19 @@ public final class TableSuppressBuilder {
             keySerde,
             valueSerde
         );
+
+    final Suppressed.StrictBufferConfig strictBufferConfig;
+    final long maxBytes = queryBuilder.getKsqlConfig().getLong(
+        KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE);
+
+    if (maxBytes < 0) {
+      strictBufferConfig = Suppressed.BufferConfig.unbounded();
+    } else {
+      strictBufferConfig = Suppressed.BufferConfig
+          .maxBytes(maxBytes)
+          .shutDownWhenFull();
+    }
+
     /* This is a dummy transformValues() call, we do this to ensure that the correct materialized
     with the correct key and val serdes is passed on when we call suppress
      */
@@ -99,7 +114,7 @@ public final class TableSuppressBuilder {
         materialized
     ).suppress(
         (Suppressed<? super K>) Suppressed
-            .untilWindowCloses(Suppressed.BufferConfig.unbounded())
+            .untilWindowCloses(strictBufferConfig)
             .withName(SUPPRESS_OP_NAME)
     );
 

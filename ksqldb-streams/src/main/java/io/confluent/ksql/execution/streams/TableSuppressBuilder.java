@@ -30,7 +30,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.KTable;

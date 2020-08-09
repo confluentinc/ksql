@@ -104,7 +104,6 @@ questions.
         <configuration>
           <compilerArgs>
             <arg>-Xlint:all,-serial,-processing</arg>
-            <arg>${compile.warnings-flag}</arg>
           </compilerArgs>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>

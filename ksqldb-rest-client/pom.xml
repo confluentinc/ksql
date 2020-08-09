@@ -83,7 +83,6 @@
         <configuration>
           <compilerArgs>
             <arg>-Xlint:all,-serial</arg>
-            <arg>${compile.warnings-flag}</arg>
           </compilerArgs>
         </configuration>
       </plugin>

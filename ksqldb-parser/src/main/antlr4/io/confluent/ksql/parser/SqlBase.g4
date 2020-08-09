@@ -67,7 +67,7 @@ statement
     | DROP CONNECTOR identifier                                             #dropConnector
     | EXPLAIN  (statement | identifier)                                     #explain
     | CREATE TYPE identifier AS type                                        #registerType
-    | DROP TYPE identifier                                                  #dropType
+    | DROP TYPE (IF EXISTS)? identifier                                     #dropType
     ;
 
 query

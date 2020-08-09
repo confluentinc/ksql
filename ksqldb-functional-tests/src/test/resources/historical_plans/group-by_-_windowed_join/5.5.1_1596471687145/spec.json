@@ -1,291 +1,195 @@
 {
-  "version" : "5.5.1",
-  "timestamp" : 1596471687145,
-  "plan" : [ {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE A (ID STRING, REGIONID STRING) WITH (KAFKA_TOPIC='a', KEY='id', VALUE_FORMAT='json');",
-    "ddlCommand" : {
-      "@type" : "createTableV1",
-      "sourceName" : "A",
-      "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `REGIONID` STRING",
-      "keyField" : "ID",
-      "timestampColumn" : null,
-      "topicName" : "a",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "JSON",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : null
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM B (ID STRING) WITH (KAFKA_TOPIC='b', VALUE_FORMAT='json');",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "B",
-      "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
-      "keyField" : null,
-      "timestampColumn" : null,
-      "topicName" : "b",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "JSON",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : null
-    },
-    "queryPlan" : null
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE TEST AS SELECT\n  A.ID A_ID,\n  COUNT(*) COUNT\nFROM B B\nLEFT OUTER JOIN A A ON ((A.ID = B.ID))\nWINDOW TUMBLING ( SIZE 1 MINUTES ) \nGROUP BY A.ID\nHAVING (COUNT(*) > 2)\nEMIT CHANGES",
-    "ddlCommand" : {
-      "@type" : "createTableV1",
-      "sourceName" : "TEST",
-      "schema" : "`ROWKEY` STRING KEY, `A_ID` STRING, `COUNT` BIGINT",
-      "keyField" : "A_ID",
-      "timestampColumn" : null,
-      "topicName" : "TEST",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "properties" : { }
-        },
-        "valueFormat" : {
-          "format" : "JSON",
-          "properties" : { }
-        },
-        "options" : [ ]
-      },
-      "windowInfo" : {
-        "type" : "TUMBLING",
-        "size" : 60.000000000
-      }
-    },
-    "queryPlan" : {
-      "sources" : [ "A", "B" ],
-      "sink" : "TEST",
-      "physicalPlan" : {
-        "@type" : "tableSinkV1",
-        "properties" : {
-          "queryContext" : "TEST"
-        },
-        "source" : {
-          "@type" : "tableSelectV1",
-          "properties" : {
-            "queryContext" : "Aggregate/Project"
-          },
-          "source" : {
-            "@type" : "tableFilterV1",
-            "properties" : {
-              "queryContext" : "Aggregate/HavingFilter"
-            },
-            "source" : {
-              "@type" : "streamWindowedAggregateV1",
-              "properties" : {
-                "queryContext" : "Aggregate/Aggregate"
-              },
-              "source" : {
-                "@type" : "streamGroupByV1",
-                "properties" : {
-                  "queryContext" : "Aggregate/GroupBy"
-                },
-                "source" : {
-                  "@type" : "streamSelectV1",
-                  "properties" : {
-                    "queryContext" : "Aggregate/Prepare"
-                  },
-                  "source" : {
-                    "@type" : "streamTableJoinV1",
-                    "properties" : {
-                      "queryContext" : "Join"
-                    },
-                    "joinType" : "LEFT",
-                    "internalFormats" : {
-                      "keyFormat" : {
-                        "format" : "KAFKA",
-                        "properties" : { }
-                      },
-                      "valueFormat" : {
-                        "format" : "JSON",
-                        "properties" : { }
-                      },
-                      "options" : [ ]
-                    },
-                    "leftSource" : {
-                      "@type" : "streamSelectV1",
-                      "properties" : {
-                        "queryContext" : "PrependAliasLeft"
-                      },
-                      "source" : {
-                        "@type" : "streamSelectKeyV1",
-                        "properties" : {
-                          "queryContext" : "LeftSourceKeyed"
-                        },
-                        "source" : {
-                          "@type" : "streamSourceV1",
-                          "properties" : {
-                            "queryContext" : "KafkaTopic_Left/Source"
-                          },
-                          "topicName" : "b",
-                          "formats" : {
-                            "keyFormat" : {
-                              "format" : "KAFKA",
-                              "properties" : { }
-                            },
-                            "valueFormat" : {
-                              "format" : "JSON",
-                              "properties" : { }
-                            },
-                            "options" : [ ]
-                          },
-                          "timestampColumn" : null,
-                          "sourceSchema" : "`ROWKEY` STRING KEY, `ID` STRING"
-                        },
-                        "keyExpression" : "ID"
-                      },
-                      "selectExpressions" : [ "ID AS B_ID", "ROWTIME AS B_ROWTIME", "ROWKEY AS B_ROWKEY" ]
-                    },
-                    "rightSource" : {
-                      "@type" : "tableSelectV1",
-                      "properties" : {
-                        "queryContext" : "PrependAliasRight"
-                      },
-                      "source" : {
-                        "@type" : "tableSourceV1",
-                        "properties" : {
-                          "queryContext" : "KafkaTopic_Right/Source"
-                        },
-                        "topicName" : "a",
-                        "formats" : {
-                          "keyFormat" : {
-                            "format" : "KAFKA",
-                            "properties" : { }
-                          },
-                          "valueFormat" : {
-                            "format" : "JSON",
-                            "properties" : { }
-                          },
-                          "options" : [ ]
-                        },
-                        "timestampColumn" : null,
-                        "sourceSchema" : "`ROWKEY` STRING KEY, `ID` STRING, `REGIONID` STRING"
-                      },
-                      "selectExpressions" : [ "ID AS A_ID", "REGIONID AS A_REGIONID", "ROWTIME AS A_ROWTIME", "ROWKEY AS A_ROWKEY" ]
-                    }
-                  },
-                  "selectExpressions" : [ "A_ID AS KSQL_INTERNAL_COL_0", "B_ROWTIME AS KSQL_INTERNAL_COL_1" ]
-                },
-                "internalFormats" : {
-                  "keyFormat" : {
-                    "format" : "KAFKA",
-                    "properties" : { }
-                  },
-                  "valueFormat" : {
-                    "format" : "JSON",
-                    "properties" : { }
-                  },
-                  "options" : [ ]
-                },
-                "groupByExpressions" : [ "KSQL_INTERNAL_COL_0" ]
-              },
-              "internalFormats" : {
-                "keyFormat" : {
-                  "format" : "KAFKA",
-                  "properties" : { }
-                },
-                "valueFormat" : {
-                  "format" : "JSON",
-                  "properties" : { }
-                },
-                "options" : [ ]
-              },
-              "nonAggregateColumns" : [ "KSQL_INTERNAL_COL_0", "KSQL_INTERNAL_COL_1" ],
-              "aggregationFunctions" : [ "COUNT(KSQL_INTERNAL_COL_1)", "COUNT(KSQL_INTERNAL_COL_1)" ],
-              "windowExpression" : " TUMBLING ( SIZE 1 MINUTES ) "
-            },
-            "filterExpression" : "(KSQL_AGG_VARIABLE_1 > 2)"
-          },
-          "selectExpressions" : [ "KSQL_INTERNAL_COL_0 AS A_ID", "KSQL_AGG_VARIABLE_0 AS COUNT" ]
-        },
-        "formats" : {
-          "keyFormat" : {
-            "format" : "KAFKA",
-            "properties" : { }
-          },
-          "valueFormat" : {
-            "format" : "JSON",
-            "properties" : { }
-          },
-          "options" : [ ]
-        },
-        "topicName" : "TEST"
-      },
-      "queryId" : "CTAS_TEST_0"
-    }
-  } ],
-  "schemas" : {
-    "CTAS_TEST_0.KafkaTopic_Right.Source" : "STRUCT<ID VARCHAR, REGIONID VARCHAR> NOT NULL",
-    "CTAS_TEST_0.KafkaTopic_Left.Source" : "STRUCT<ID VARCHAR> NOT NULL",
-    "CTAS_TEST_0.Join.Left" : "STRUCT<B_ID VARCHAR, B_ROWTIME BIGINT, B_ROWKEY VARCHAR> NOT NULL",
-    "CTAS_TEST_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL",
-    "CTAS_TEST_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT, KSQL_AGG_VARIABLE_1 BIGINT> NOT NULL",
-    "CTAS_TEST_0.TEST" : "STRUCT<A_ID VARCHAR, COUNT BIGINT> NOT NULL"
+  "version": "5.5.1",
+  "timestamp": 1596471687145,
+  "path": "query-validation-tests/group-by.json",
+  "schemas": {
+    "CTAS_TEST_0.KafkaTopic_Right.Source": "STRUCT<ID VARCHAR, REGIONID VARCHAR> NOT NULL",
+    "CTAS_TEST_0.KafkaTopic_Left.Source": "STRUCT<ID VARCHAR> NOT NULL",
+    "CTAS_TEST_0.Join.Left": "STRUCT<B_ID VARCHAR, B_ROWTIME BIGINT, B_ROWKEY VARCHAR> NOT NULL",
+    "CTAS_TEST_0.Aggregate.GroupBy": "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL",
+    "CTAS_TEST_0.Aggregate.Aggregate.Materialize": "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT, KSQL_AGG_VARIABLE_1 BIGINT> NOT NULL",
+    "CTAS_TEST_0.TEST": "STRUCT<A_ID VARCHAR, COUNT BIGINT> NOT NULL"
   },
-  "configs" : {
-    "ksql.extension.dir" : "ext",
-    "ksql.streams.cache.max.bytes.buffering" : "0",
-    "ksql.security.extension.class" : null,
-    "ksql.transient.prefix" : "transient_",
-    "ksql.persistence.wrap.single.values" : "true",
-    "ksql.authorization.cache.expiry.time.secs" : "30",
-    "ksql.schema.registry.url" : "",
-    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
-    "ksql.output.topic.name.prefix" : "",
-    "ksql.streams.auto.offset.reset" : "earliest",
-    "ksql.query.pull.enable.standby.reads" : "false",
-    "ksql.connect.url" : "http://localhost:8083",
-    "ksql.service.id" : "some.ksql.service.id",
-    "ksql.internal.topic.min.insync.replicas" : "1",
-    "ksql.streams.shutdown.timeout.ms" : "300000",
-    "ksql.new.api.enabled" : "false",
-    "ksql.streams.state.dir" : "/var/folders/7c/zftp0089471cylbb3rvw01040000gp/T/confluent4576063723780193454",
-    "ksql.internal.topic.replicas" : "1",
-    "ksql.insert.into.values.enabled" : "true",
-    "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
-    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
-    "ksql.access.validator.enable" : "auto",
-    "ksql.streams.bootstrap.servers" : "localhost:0",
-    "ksql.streams.commit.interval.ms" : "2000",
-    "ksql.metric.reporters" : "",
-    "ksql.streams.auto.commit.interval.ms" : "0",
-    "ksql.metrics.extension" : null,
-    "ksql.streams.topology.optimization" : "all",
-    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
-    "ksql.streams.num.stream.threads" : "4",
-    "ksql.authorization.cache.max.entries" : "10000",
-    "ksql.metrics.tags.custom" : "",
-    "ksql.pull.queries.enable" : "true",
-    "ksql.udfs.enabled" : "true",
-    "ksql.udf.enable.security.manager" : "true",
-    "ksql.connect.worker.config" : "",
-    "ksql.sink.window.change.log.additional.retention" : "1000000",
-    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
-    "ksql.udf.collect.metrics" : "false",
-    "ksql.persistent.prefix" : "query_",
-    "ksql.query.persistent.active.limit" : "2147483647"
+  "testCase": {
+    "name": "windowed join",
+    "inputs": [
+      {
+        "topic": "a",
+        "key": "1",
+        "value": {
+          "id": "1",
+          "regionid": "one"
+        }
+      },
+      {
+        "topic": "b",
+        "key": null,
+        "value": {
+          "Id": "1"
+        }
+      },
+      {
+        "topic": "b",
+        "key": null,
+        "value": {
+          "Id": "1"
+        }
+      },
+      {
+        "topic": "b",
+        "key": null,
+        "value": {
+          "Id": "1"
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "topic": "TEST",
+        "key": "1",
+        "value": null,
+        "window": {
+          "start": 0,
+          "end": 60000,
+          "type": "TIME"
+        }
+      },
+      {
+        "topic": "TEST",
+        "key": "1",
+        "value": null,
+        "window": {
+          "start": 0,
+          "end": 60000,
+          "type": "TIME"
+        }
+      },
+      {
+        "topic": "TEST",
+        "key": "1",
+        "value": {
+          "A_ID": "1",
+          "COUNT": 3
+        },
+        "window": {
+          "start": 0,
+          "end": 60000,
+          "type": "TIME"
+        }
+      }
+    ],
+    "topics": [
+      {
+        "name": "a",
+        "replicas": 1,
+        "numPartitions": 4
+      },
+      {
+        "name": "b",
+        "replicas": 1,
+        "numPartitions": 4
+      },
+      {
+        "name": "TEST",
+        "replicas": 1,
+        "numPartitions": 4
+      }
+    ],
+    "statements": [
+      "CREATE TABLE A (id varchar primary key, regionid varchar) WITH (kafka_topic='a', value_format='json');",
+      "CREATE STREAM B (id varchar) WITH (kafka_topic='b', value_format='json');",
+      "CREATE TABLE test AS SELECT a.id, COUNT(*) as count FROM B LEFT JOIN A ON a.id = b.id WINDOW TUMBLING (SIZE 1 MINUTE) GROUP BY a.id HAVING COUNT(*) > 2;"
+    ],
+    "post": {
+      "topics": {
+        "topics": [
+          {
+            "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Join-repartition",
+            "keyFormat": {
+              "formatInfo": {
+                "format": "KAFKA"
+              },
+              "windowInfo": {
+                "type": "TUMBLING",
+                "size": 60.000000000
+              }
+            },
+            "valueFormat": {
+              "format": "JSON"
+            }
+          },
+          {
+            "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Aggregate-GroupBy-repartition",
+            "keyFormat": {
+              "formatInfo": {
+                "format": "KAFKA"
+              },
+              "windowInfo": {
+                "type": "TUMBLING",
+                "size": 60.000000000
+              }
+            },
+            "valueFormat": {
+              "format": "JSON"
+            }
+          },
+          {
+            "name": "a",
+            "keyFormat": {
+              "formatInfo": {
+                "format": "KAFKA"
+              }
+            },
+            "valueFormat": {
+              "format": "JSON"
+            },
+            "partitions": 4
+          },
+          {
+            "name": "b",
+            "keyFormat": {
+              "formatInfo": {
+                "format": "KAFKA"
+              }
+            },
+            "valueFormat": {
+              "format": "JSON"
+            },
+            "partitions": 4
+          },
+          {
+            "name": "TEST",
+            "keyFormat": {
+              "formatInfo": {
+                "format": "KAFKA"
+              },
+              "windowInfo": {
+                "type": "TUMBLING",
+                "size": 60.000000000
+              }
+            },
+            "valueFormat": {
+              "format": "JSON"
+            },
+            "partitions": 4
+          },
+          {
+            "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Aggregate-Aggregate-Materialize-changelog",
+            "keyFormat": {
+              "formatInfo": {
+                "format": "KAFKA"
+              },
+              "windowInfo": {
+                "type": "TUMBLING",
+                "size": 60.000000000
+              }
+            },
+            "valueFormat": {
+              "format": "JSON"
+            }
+          }
+        ]
+      }
+    }
   }
 }

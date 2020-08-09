@@ -54,6 +54,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -93,6 +94,8 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
+  private KafkaConsumerGroupClient consumerGroupClient;
+  @Mock
   private KsqlExecutionContext executionContext;
   @Mock
   private KsqlExecutionContext executionSandbox;
@@ -116,6 +119,7 @@ public class SchemaRegisterInjectorTest {
 
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(serviceContext.getConsumerGroupClient()).thenReturn(consumerGroupClient);
 
     when(executionContext.createSandbox(any())).thenReturn(executionSandbox);
 

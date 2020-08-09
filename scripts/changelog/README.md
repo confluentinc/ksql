@@ -66,3 +66,6 @@ python3 scripts/changelog/process_commit_files.py --release_version 0.8.0 --prev
 ```
 
 You should now see a file called `CHANGELOG_additions.md` with the desired changes, which can copied (directly) into the main `CHANGELOG.md`.
+
+When opening a PR to introduce the changelog for a new release, don't forget to also add a section for the new release in
+https://github.com/confluentinc/ksql/blob/master/docs/operate-and-deploy/changelog.md.

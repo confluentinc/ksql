@@ -69,7 +69,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
-  
+
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
       ImmutableSet.of(
@@ -79,7 +79,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
-  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY = 
+  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY =
       "ksql.internal.topic.min.insync.replicas";
 
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
@@ -338,6 +338,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC = "The maximum number of "
       + "error messages (per query) to hold in the internal query errors queue and display"
       + "in the query description when executing the `EXPLAIN <query>` command.";
+
+  public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
+      "ksql.properties.overrides.denylist";
+  private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
+      + "properties that KSQL users cannot override.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -774,6 +779,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SUPPRESS_BUFFER_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_SUPPRESS_BUFFER_SIZE_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
         )
         .withClientSslSupport();
 

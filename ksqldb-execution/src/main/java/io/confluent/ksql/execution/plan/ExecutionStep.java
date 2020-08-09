@@ -122,7 +122,7 @@ public interface ExecutionStep<S> {
   }
 
   default StepType type() {
-    throw new KsqlException("Upgrades not yet supported for " + getClass().getName());
+    throw new KsqlException("Upgrades not yet supported for " + getClass().getSimpleName());
   }
 
   /**
@@ -143,7 +143,7 @@ public interface ExecutionStep<S> {
         throw new KsqlException(String.format(
             "Query is not upgradeable. Plan step of type %s must have matching %s. "
                 + "Values differ: %s vs. %s",
-            getClass(), property.name, a, b));
+            getClass().getSimpleName(), property.name, a, b));
       }
     }
   }

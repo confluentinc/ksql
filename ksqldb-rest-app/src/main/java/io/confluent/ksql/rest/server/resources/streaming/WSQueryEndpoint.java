@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -68,6 +69,7 @@ public class WSQueryEndpoint {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
   private final PullQueryExecutor pullQueryExecutor;
+  private final DenyListPropertyValidator denyListPropertyValidator;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -83,7 +85,8 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(ksqlConfig,
         statementParser,
@@ -97,7 +100,8 @@ public class WSQueryEndpoint {
         commandQueueCatchupTimeout,
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
   }
 
@@ -116,7 +120,8 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -135,6 +140,8 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(authorizationValidator, "authorizationValidator");
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
+    this.denyListPropertyValidator =
+        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
@@ -228,7 +235,7 @@ public class WSQueryEndpoint {
         throw new IllegalArgumentException("\"ksql\" field of \"request\" must be populated");
       }
       // To validate props:
-      request.getConfigOverrides();
+      denyListPropertyValidator.validateAll(request.getConfigOverrides());
       return request;
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing request: " + e.getMessage(), e);

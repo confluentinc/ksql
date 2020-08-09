@@ -49,6 +49,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
@@ -183,6 +184,7 @@ public final class KsqlRestApplication implements Executable {
   private Server apiServer = null;
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
   private final QueryMonitor queryMonitor;
+  private final DenyListPropertyValidator denyListPropertyValidator;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -218,7 +220,8 @@ public final class KsqlRestApplication implements Executable {
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent,
       final Vertx vertx,
-      final QueryMonitor ksqlQueryMonitor
+      final QueryMonitor ksqlQueryMonitor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -245,6 +248,8 @@ public final class KsqlRestApplication implements Executable {
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
     this.vertx = requireNonNull(vertx, "vertx");
+    this.denyListPropertyValidator =
+        requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
 
     this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
     if (heartbeatAgent.isPresent()) {
@@ -305,7 +310,8 @@ public final class KsqlRestApplication implements Executable {
             KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
 
     startAsyncThreadRef.set(Thread.currentThread());
@@ -695,6 +701,9 @@ public final class KsqlRestApplication implements Executable {
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
         ksqlEngine, routingFilterFactory, ksqlConfig);
 
+    final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
+        ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -704,7 +713,8 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
 
     final KsqlResource ksqlResource = new KsqlResource(
@@ -713,7 +723,8 @@ public final class KsqlRestApplication implements Executable {
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
         authorizationValidator,
-        errorHandler
+        errorHandler,
+        denyListPropertyValidator
     );
 
     final List<String> managedTopics = new LinkedList<>();
@@ -773,7 +784,8 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent,
         lagReportingAgent,
         vertx,
-        queryMonitor
+        queryMonitor,
+        denyListPropertyValidator
     );
   }
 

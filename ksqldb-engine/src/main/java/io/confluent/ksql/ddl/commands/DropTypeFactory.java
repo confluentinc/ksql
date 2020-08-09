@@ -16,13 +16,27 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.DropType;
+import io.confluent.ksql.util.KsqlException;
+
+import java.util.Objects;
 
 public class DropTypeFactory {
-  DropTypeFactory() {
+  private final MetaStore metaStore;
+
+  DropTypeFactory(final MetaStore metaStore) {
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
   public DropTypeCommand create(final DropType statement) {
-    return new DropTypeCommand(statement.getTypeName());
+    final String typeName = statement.getTypeName();
+    final boolean ifExists = statement.getIfExists();
+
+    if (!ifExists && !metaStore.resolveType(typeName).isPresent()) {
+      throw new KsqlException("Type " + typeName + " does not exist.");
+    }
+
+    return new DropTypeCommand(typeName);
   }
 }

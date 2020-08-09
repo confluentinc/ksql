@@ -266,7 +266,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateDropType() {
     // Given:
-    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME);
+    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME, false);
 
     // When:
     final DropTypeCommand cmd = (DropTypeCommand) commandFactories.create(

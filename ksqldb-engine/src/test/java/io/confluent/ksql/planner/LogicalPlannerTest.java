@@ -336,7 +336,7 @@ public class LogicalPlannerTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Suppression is currently disabled in the KsqlConfig."));
+    assertThat(e.getMessage(), containsString("Suppression is currently disabled. You can enable it by setting ksql.suppress.enabled to true"));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

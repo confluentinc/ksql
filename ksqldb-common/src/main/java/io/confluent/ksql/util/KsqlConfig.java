@@ -310,8 +310,10 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE = "ksql.suppress.buffer.size";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_DEFAULT = -1L;
-  public static final String KSQL_SUPPRESS_BUFFER_SIZE_DOC =
-      "Bound the size of the buffer used for suppression";
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE_DOC = "Bound the size of the buffer used "
+      + "for suppression. Negative size means the buffer will be unbounded. If the buffer exceeds "
+      + "its max capacity, a StreamsException stating this is thrown";
+
   // Defaults for config NOT defined by this class's ConfigDef:
   static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
       .<String, Object>builder()

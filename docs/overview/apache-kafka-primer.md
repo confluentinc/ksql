@@ -41,7 +41,7 @@ When a record is appended, its keys content is automatically rolled up and hashe
 
 Producers and consumers facilitate the movement of records to and from topics. When an application wants to either publish records or subscribe to them, it invokes the APIs (generally called the _client_) to do so. Clients communicate with the brokers over a structured network protocol.
 
-TODO: consumers never delete data
+When consumers read records from a topic, they never delete them (or mutate them in any way). This pattern of being able to repeatedly read the same information is helpful for building multiple applications over the same data set in a non-conflicting way. It's also the primary building block for supporting "replay", where an application can rewind its event stream and read old information again.
 
 Producers and consumers expose a fairly low-level API. You need to construct your own records, manage their schemas, configure their serialization, and manage what you send where.
 

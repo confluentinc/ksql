@@ -55,60 +55,70 @@ public final class LatestByOffset {
   static final Comparator<Struct> structComparator  = new LatestStructComparator();
 
   @UdafFactory(description = "return the latest value of an integer column",
+      paramSchema = "STRUCT<SEQ BIGINT, VAL INT>",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
   public static Udaf<Integer, Struct, Integer> latestInteger() {
     return latest(STRUCT_INTEGER);
   }
   
   @UdafFactory(description = "return the latest value of an integer column",
+      paramSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL INT>>",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL INT>>")
   public static Udaf<Integer, List<Struct>, List<Integer>> latestInteger(final int topNSize) {
     return latestN(STRUCT_INTEGER, topNSize);
   }
 
   @UdafFactory(description = "return the latest value of an big integer column",
+      paramSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>")
   public static Udaf<Long, Struct, Long> latestLong() {
     return latest(STRUCT_LONG);
   }
   
   @UdafFactory(description = "return the latest value of an big integer column",
+      paramSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>")
   public static Udaf<Long, List<Struct>, List<Long>> latestLong(final int topNSize) {
     return latestN(STRUCT_LONG, topNSize);
   }
 
   @UdafFactory(description = "return the latest value of a double column",
+      paramSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>")
   public static Udaf<Double, Struct, Double> latestDouble() {
     return latest(STRUCT_DOUBLE);
   }
   
   @UdafFactory(description = "return the latest value of a double column",
+      paramSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DOUBLE>>",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DOUBLE>>")
   public static Udaf<Double, List<Struct>, List<Double>> latestDouble(final int topNSize) {
     return latestN(STRUCT_DOUBLE, topNSize);
   }
 
   @UdafFactory(description = "return the latest value of a boolean column",
+      paramSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
   public static Udaf<Boolean, Struct, Boolean> latestBoolean() {
     return latest(STRUCT_BOOLEAN);
   }
   
   @UdafFactory(description = "return the latest value of a boolean column",
+      paramSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>")
   public static Udaf<Boolean, List<Struct>, List<Boolean>> latestBoolean(final int topNSize) {
     return latestN(STRUCT_BOOLEAN, topNSize);
   }
 
   @UdafFactory(description = "return the latest value of a string column",
+      paramSchema = "STRUCT<SEQ BIGINT, VAL STRING>",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL STRING>")
   public static Udaf<String, Struct, String> latestString() {
     return latest(STRUCT_STRING);
   }
   
   @UdafFactory(description = "return the latest value of a string column",
+      paramSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL STRING>>",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL STRING>>")
   public static Udaf<String, List<Struct>, List<String>> latestString(final int topNSize) {
     return latestN(STRUCT_STRING, topNSize);

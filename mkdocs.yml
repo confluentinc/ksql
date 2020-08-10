@@ -47,6 +47,7 @@ nav:
       - Join Index: developer-guide/joins/index.md
       - Joining collections: developer-guide/joins/join-streams-and-tables.md
       - Partitioning requirements: developer-guide/joins/partition-data.md
+      - Synthetic key columns: developer-guide/joins/synthetic-keys.md
     - Architecture: concepts/ksqldb-architecture.md
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - Serialization: developer-guide/serialization.md

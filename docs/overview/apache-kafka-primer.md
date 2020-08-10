@@ -39,29 +39,25 @@ When a record is appended, its keys content is automatically rolled up and hashe
 
 ## Producers and consumers
 
-- Clients that publish and subscribe to records.
-- Low level, need to build messages, send them places, manage what you send where
+Producers and consumers facilitate the movement of records to and from topics. When an application wants to either publish records or subscribe to them, it invokes the APIs (generally called the _client_) to do so. Clients communicate with the brokers over a structured network protocol.
 
-- ksqlDB is both. Continuously producing & consuming on your behalf
+Producers and consumers expose a fairly low-level API. You need to construct your own records, manage their schemas, configure their serialization, and manage what you send where.
+
+ksqlDB behaves as a high-level, continuous producer and consumer. You simply declare the shape of your records, then issue high level SQL statements that describe how to populate, alter, and query the data. These SQL programs are translated into low-level client API invocations that take care of the details for you.
 
 ## Brokers
 
-- Where the data is stored. Servers to the clients. Manage access to data.
+The brokers are servers that store and manage access to topics. Many brokers can cluster together to replicate topics in a highly-available, fault-tolerant manner. Clients communicate with the brokers to read and write records.
 
-- ksqlDB just points to the brokers like any other application
+When you run a ksqlDB server or cluster, each of its nodes communicates with the Kafka brokers to do its processing. In some sense, each ksqlDB server is just like a client from the Kafka brokers point of view. No processing ever takes place on the broker. ksqlDB's servers do the entirety of their computation on their own nodes.
 
 ## Serializers
 
-- How data is transported and stored.
-- Kafka just speaks bytes
-- Separate for key and value
-- Great because it doesnt need to keep up with formats
-- Roll up at producer, store on broker, unroll at client
-- Errors can happen if producer + consumer don't talk correctly.
+Because no data format is a silver bullet for all problems, Kafka was designed to be indifferent to the data contents in the key and value portions of its records. When records move from client to broker, the user payload (key and value) must be transformed to byte arrays. This allows Kafka to work with an opaque series of bytes without needing to know anything about what they are. When records are deliver to a consumer, those byte arrays need to be transformed back into their original topics to be meaningful to the application. The process that converts to and from byte representations is called serialization.
 
-- ksqlDB up-levels this by supporting a limited number of serializers out of the box
-- Maintains metadata about serializers so that you can't mess this up
-- Just say what format you want things in, and it just works.
+Here is what that looks like in practice. When a producer sends a record to a topic, it must decide which serializers to use to convert the key and value to byte arrays. The key and value serializations are independently chosen. When a consumer receives a record, it must decide which deserializers to use to convert those byte arrays back into their original values. Serializers and deserializers come in pairs. If you use a different deserializer, you won't be able to make sense of the byte contents.
+
+ksqlDB substantially raises the abstraction of serialization. Instead of manually configuring serializers, you just declare the formats using configuration options at stream/table creation time. Instead of having to keep track of which topics are serialized which way, ksqlDB maintains metadata about the byte representations of each stream and table. Consumers are automatically configured to use the right deserializers.
 
 ## Schemas
 

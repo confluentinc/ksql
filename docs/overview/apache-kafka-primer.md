@@ -41,6 +41,8 @@ When a record is appended, its keys content is automatically rolled up and hashe
 
 Producers and consumers facilitate the movement of records to and from topics. When an application wants to either publish records or subscribe to them, it invokes the APIs (generally called the _client_) to do so. Clients communicate with the brokers over a structured network protocol.
 
+TODO: consumers never delete data
+
 Producers and consumers expose a fairly low-level API. You need to construct your own records, manage their schemas, configure their serialization, and manage what you send where.
 
 ksqlDB behaves as a high-level, continuous producer and consumer. You simply declare the shape of your records, then issue high level SQL statements that describe how to populate, alter, and query the data. These SQL programs are translated into low-level client API invocations that take care of the details for you.
@@ -61,34 +63,32 @@ ksqlDB substantially raises the abstraction of serialization. Instead of manuall
 
 ## Schemas
 
-- Kafka is just bytes, but the data has rhyme and reason
-- Helpful to make the schema explicit
-- Record explicit schemas somewhere
-- Confluent Schema Registry helps you do this. Not Apache, but used lots of places.
+Even though the records serialized to Kafka are just bytes, they need to have some rules about their structure and form to make it possible to process them. One aspect of this structure is the schema of the data: what is its shape and fields. Is the data an integer? Is it a map with keys `foo`, `bar`, and `baz`?
 
-- ksqlDB speaks with SR behind the scenes to automatically store and retrieve schemas based on your stream/table schemas
-- Can also extract schemas automatically for existing topics
-- Makes your ksqlDB schemas centrally available to other programs
+Without any kind of enforcement, schemas are implicit. A consumer, somehow, needs to know the form of the produced data. This often by getting a group of people to verbally agree on the schema. This approach, however, is error prone. It's often better is the schema can be centrally managed, audited, and programatically enforced.
+
+Confluent Schema Registry, a project outside of Apache Kafka, helps do this. Schema Registry allows produces to register a schema with a topic so that when any further data is produced, it is rejected if it does not conform to the schema. Consumers can consult Schema Registry to find the schema for topics they do not know about.
+
+Rather than having you glue together producers, consumers, and schema configuration, ksqlDB transparently integrates with Schema Registry. By enabling a configuration option so that the two systems can talk to each other, ksqlDB will store all stream and table schemas in Schema Registry. These schemas can then be downloaded and used by any application working with ksqlDB data. Moreover, ksqlDB can automatically infer the schemas of existing topics so that you need not declare their structure when you define the stream or table over it.
 
 ## Consumer groups
 
-- Allows you to load balance many partitions over many consumers
-- Works dynamically. As you gain/lose consumers, load balancing happens automatically
+When a consumer program boots up, it registers itself into a _consumer group_, of which multiple consumers can enter. Each time a record is elligible to be consumed, exactly one consumer in the group reads it. This effectively provides a way for a set of processes to coordinate and load balance the consumption of records.
 
-- ksqlDB builds on this. When you deploy a persistent query, it loads balances the work using a consumer group
-- Looks at how many source partitions there are and divides them by the number of available servers.
-- e.g. 10 partitions, 2 servers = 5 parts per server. Lose a server, and the other one gets all 10. Add 5 servers, and they all have 2.
+Because the records in a single topic are meant to be consumed in one, each partition in the subscription is only read by one consumer at a time. The number of partitions that each consumer is responsible for is defined by the total number of source parititons divided by the number of consumers. If a consumer dynamically joins the group, the ownership is recomputed and the partitions reassigned. If a consumer leaves the group, the same computation takes place.
+
+ksqlDB builds on this powerful load balancing primitive. When you deploy a persistent query to a cluster of ksqlDB servers, the workload is distributed across the cluster according to the number of source partitions. You need not manage group membership explicitly, all of this happens under the covers automatically.
+
+As an example, if you deploy a persistent query with 10 source partitions to a ksqlDB cluster with 2 nodes, each node will process 5 partitions. If you lose a server, the sole remaining server will automatically rebalance and process all 10. If you add 4 more servers, each will rebalance to process 2 partitions.
 
 ## Retention
 
-- How long records stay in a topic's partition.
-- Affects how long you can "replay" a topic from the earliest information.
-- Retention is a nuanced topic, best to read about it in the docs.
-- Still important to call out and know what it is.
+When you create a topic, one parameter that you must set is its retention. Retention defines how long a record will be stored before it is deleted. This parameter is particularly important in stream processing because it defines the time horizon that you can replay a stream of events. Replay is useful if you're fixing a bug, building a new application, or backtesting some existing piece of logic.
+
+ksqlDB allows you to directly control the retention of the underlying topics of base streams and tables, so it is key to understand. It's also a nuanced topic, so it is best to read about it directly in the Kafka documentation.
 
 ## Compaction
 
-- Ditch all but the latest record per key
-- Used for tables + state maintainence
-- Set automatically for you
-- Affects things like joins where they are timestamp dependent
+Compaction is a process that runs in the background on each Kafka broker that periodically deletes all but the latest record per key. It is an optional, opt-in process. Compaction is particularly useful when your records represent some kind of updates to a piece of a state, and the latest update is the only one that matters in the end.
+
+ksqlDB directly leverages compaction to support the underlying changelogs that back its materialized tables. They allow ksqlDB to store the minimum amount of information needed to rebuild a table in the event of a failover. Similar to retention, compaction is best to read about it directly in the Kafka docs.

@@ -169,7 +169,11 @@ ASSERT (STREAM | TABLE) source_name ( { column_name data_type [[PRIMARY] KEY] } 
 #### `ASSERT TYPE`
 
 The `ASSERT TYPE` statement ensures that a custom type has the expected type. This is especially
-useful when chaining multiple 
+useful when chaining multiple `CREATE TYPE` statements together and asserting the types later
+in the chain are correct.
+```sql
+ASSERT TYPE type_name AS type;
+```
 
 #### Considered Alternative
 
@@ -229,6 +233,17 @@ same way we display `SELECT` statements - in a tabular, easy-to-digest way. YATT
 take in a flag that allows failure messages to be output as machine-readable JSON, and this
 will leverage our existing REST API JSON formats and be helpful for users reporting test failures
 programmatically via some CI pipeline.
+
+### Implementation
+
+There are two ways of implementing such a testing tool:
+
+1. backed by multiple topology test drivers, one for each query
+1. backed by a real Kafka cluster
+
+The initial implementation will be scoped to just the former implementation in order to ensure
+speedy test execution. Since YATT will help drive development, it is necessary that the tests run
+quickly - both in batch and as single test cases. 
 
 ### Extensions
 

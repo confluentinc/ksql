@@ -16,7 +16,7 @@ Each column has a data type. The data type limits the span of permissible values
 
 In contrast to relational database tables, the columns of a row in ksqlDB are divided into "key" and "value" columns. The key columns control which partition a row resides in. The value columns, by convention, are used to store the main data of interest. Being able to control the key columns is useful for manipulating the underlying data locality, and generally allows you to integrate with the wider Kafka ecosystem, which uses the same key/value data model. By default, a column is a value column. Marking a column as a `(PRIMARY) KEY` makes it a key column.
 
-Internally, each row is backed by a Kafka record. In Kafka, the key and value parts of a record are independently serialized. ksqlDB allows you to exercise that same flexibility, and generally builds on the semantics of Kafka records, rather than hiding them.
+Internally, each row is backed by a [Kafka record](../../../overview/apache-kafka-primer/#records). In Kafka, the key and value parts of a record are independently [serialized](../../../overview/apache-kafka-primer/#serializers). ksqlDB allows you to exercise that same flexibility, and generally builds on the semantics of Kafka records, rather than hiding them.
 
 There is no theoretical limit on the number of columns in a stream or table. In practice, the limit is determined by the maximum message size that Kafka can store and the resources dedicated to ksqlDB.
 
@@ -44,7 +44,7 @@ CREATE STREAM s1 (
 
 This creates a new stream named `s1` with three columns: `k`, `v1`, and `v2`. The column `k` is designated as the key of this stream, which controls which partition each row is stored in. When the data is stored, the value portion of each row's underlying Kafka record will be serialized in the JSON format.
 
-Under the covers, each stream corresponds to a Kafka topic with a registered schema. If the backing topic for a stream doesn't exist when you declare it, ksqlDB creates it on your behalf, as in the example above.
+Under the covers, each stream corresponds to a [Kafka topic](../../../overview/apache-kafka-primer/#topics) with a registered schema. If the backing topic for a stream doesn't exist when you declare it, ksqlDB creates it on your behalf, as in the example above.
 
 You can also declare a stream on top of an existing topic. When you do that, ksqlDB simply registers its associated schema. If topic `s2` already exists, this command will register a new stream over it:
 

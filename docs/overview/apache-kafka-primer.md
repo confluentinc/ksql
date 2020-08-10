@@ -91,4 +91,4 @@ ksqlDB allows you to directly control the retention of the underlying topics of 
 
 Compaction is a process that runs in the background on each Kafka broker that periodically deletes all but the latest record per key. It is an optional, opt-in process. Compaction is particularly useful when your records represent some kind of updates to a piece of a state, and the latest update is the only one that matters in the end.
 
-ksqlDB directly leverages compaction to support the underlying changelogs that back its materialized tables. They allow ksqlDB to store the minimum amount of information needed to rebuild a table in the event of a failover. Similar to retention, compaction is best to read about it directly in the Kafka docs.
+ksqlDB directly leverages compaction to support the underlying changelogs that back its materialized tables. They allow ksqlDB to store the minimum amount of information needed to rebuild a table in the event of a failover. Similar to retention, compaction is best to read about it [directly in the Kafka docs](https://kafka.apache.org/documentation/#compaction).

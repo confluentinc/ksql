@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
 import org.slf4j.Logger;
@@ -45,9 +46,9 @@ class UdafLoader {
       final Optional<Metrics> metrics,
       final SqlTypeParser typeParser
   ) {
-    this.functionRegistry = functionRegistry;
-    this.metrics = metrics;
-    this.typeParser = typeParser;
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.metrics = Objects.requireNonNull(metrics, "metrics");
+    this.typeParser = Objects.requireNonNull(typeParser, "typeParser");
   }
 
   void loadUdafFromClass(final Class<?> theClass, final String path) {

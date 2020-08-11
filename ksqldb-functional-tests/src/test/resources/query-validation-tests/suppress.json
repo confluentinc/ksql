@@ -292,7 +292,7 @@
     {
       "name": "should throw when max buffer size is exceeded",
       "properties": {
-        "ksql.suppress.buffer.size": 10
+        "ksql.suppress.buffer.size.bytes": 10
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",

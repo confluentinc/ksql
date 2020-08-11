@@ -236,6 +236,61 @@ take in a flag that allows failure messages to be output as machine-readable JSO
 will leverage our existing REST API JSON formats and be helpful for users reporting test failures
 programmatically via some CI pipeline.
 
+### CI/CD Implications
+
+Most users that will be using this testing tool as part of a CI/CD pipeline will want to run
+_exactly_ the scripts that are being deployed. To support this, the `RUN SCRIPT` language feature
+will be supported and can be interleaved just like any other statement in the testing tool. This
+is especially helpful when testing query upgrades and schema evolution. 
+
+In this use case below, we can imagine that the user has a directory structure containing
+all changes to their production cluster:
+
+```
++ dir
+|--+ 1
+|    |--- 1_create_foo_bar.sql
+|    |--- 1_test.sql
+|
+|--+ 2
+|    |--- 2_update_bar.sql
+|    |--- 2_test.sql
+```
+
+Then they write the following files, and ask the tool to recursively look through the top-level 
+directory and run all tests. This test utilizes some syntax (`--@depends`) for demonstration of
+how we could use this in a CI/CD pipeline to chain tests together as well, pairing tests with
+their corresponding production sql files.
+
+```sql
+-- 1_create_foo_bar.sql
+CREATE STREAM foo (id INT KEY, col1 VARCHAR) WITH (...)
+CREATE STREAM bar AS SELECT * from FOO;
+```
+
+```sql
+-- 1_test.sql
+--@test: 1_test
+RUN SCRIPT '1_create_foo_bar.sql`;
+ASSERT STREAM foo (...) WITH (...);
+INSERT INTO foo ...;
+```
+
+```sql
+-- 2_update_bar.sql
+CREATE OR REPLACE STREAM bar AS SELECT * FROM foo WHERE foo.id > 0;
+```
+
+```sql
+--@test: 2_test
+--@depends: 1/1_test.sql
+RUN_SCRIPT '2_update_bar.sql';
+INSERT INTO foo ...;
+ASSERT DATA bar ...;
+```
+
+
+
 ### Implementation
 
 There are two ways of implementing such a testing tool:

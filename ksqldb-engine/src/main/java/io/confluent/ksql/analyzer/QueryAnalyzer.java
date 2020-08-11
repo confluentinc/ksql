@@ -41,8 +41,8 @@ public class QueryAnalyzer {
   ) {
     this(
         new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions),
-        new PushQueryValidator(),
-        new PullQueryValidator()
+        new PullQueryValidator(),
+        new PushQueryValidator()
     );
   }
 
@@ -64,9 +64,9 @@ public class QueryAnalyzer {
     final Analysis analysis = analyzer.analyze(query, sink);
 
     if (query.isPullQuery()) {
-      pushQueryValidator.validate(analysis);
-    } else {
       pullQueryValidator.validate(analysis);
+    } else {
+      pushQueryValidator.validate(analysis);
     }
 
     if (!analysis.getTableFunctions().isEmpty()) {

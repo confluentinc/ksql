@@ -96,7 +96,7 @@ public class QueryEndpoint {
       final ConfiguredStatement<Query> statement
   ) {
     final PullQueryResult result = pullQueryExecutor.execute(
-        statement, serviceContext, Optional.empty(), Optional.of(false));
+        statement, serviceContext, Optional.of(false));
     final TableRows tableRows = result.getTableRows();
 
     return new PullQueryPublisher(

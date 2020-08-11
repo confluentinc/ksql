@@ -70,13 +70,12 @@ public class PullQueryExecutorTest {
           engine.getKsqlConfig()
       );
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(), Optional.empty());
 
       // When:
       final Exception e = assertThrows(
           KsqlException.class,
-          () -> pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty(),
-              Optional.empty())
+          () -> pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty())
       );
 
       // Then:
@@ -131,7 +130,7 @@ public class PullQueryExecutorTest {
     @Test
     public void shouldRateLimit() {
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(), Optional.empty());
 
       // When:
       pullQueryExecutor.checkRateLimit();

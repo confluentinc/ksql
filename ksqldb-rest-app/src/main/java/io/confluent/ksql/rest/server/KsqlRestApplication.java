@@ -702,7 +702,7 @@ public final class KsqlRestApplication implements Executable {
 
     final Boolean collectMetrics = ksqlConfig.getBoolean(
         KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED);
-    Optional<PullQueryExecutorMetrics> pullQueryMetrics = collectMetrics
+    final Optional<PullQueryExecutorMetrics> pullQueryMetrics = collectMetrics
         ? Optional.of(new PullQueryExecutorMetrics(
         ksqlEngine.getServiceId(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))

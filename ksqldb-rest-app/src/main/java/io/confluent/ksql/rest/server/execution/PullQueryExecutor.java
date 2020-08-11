@@ -229,7 +229,7 @@ public final class PullQueryExecutor {
           contextStacker,
           pullQueryMetrics);
 
-      PullQueryResult result = handlePullQuery(
+      final PullQueryResult result = handlePullQuery(
           statement,
           executionContext,
           serviceContext,

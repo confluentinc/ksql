@@ -308,9 +308,10 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
-  public static final String KSQL_SUPPRESS_BUFFER_SIZE = "ksql.suppress.buffer.size";
-  public static final Long KSQL_SUPPRESS_BUFFER_SIZE_DEFAULT = -1L;
-  public static final String KSQL_SUPPRESS_BUFFER_SIZE_DOC = "Bound the number of bytes that the "
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
+  public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
+      "Bound the number of bytes that the "
       + "buffer can use for suppression. Negative size means the buffer will be unbounded. If the "
       + "buffer exceeds its max capacity, a StreamsException stating this is thrown";
 
@@ -774,11 +775,11 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC
         )
         .define(
-            KSQL_SUPPRESS_BUFFER_SIZE,
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES,
             Type.LONG,
-            KSQL_SUPPRESS_BUFFER_SIZE_DEFAULT,
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT,
             Importance.LOW,
-            KSQL_SUPPRESS_BUFFER_SIZE_DOC
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC
         )
         .define(
             KSQL_PROPERTIES_OVERRIDES_DENYLIST,

@@ -63,10 +63,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   private final Map<CommandId, CommandStatus> statusStore;
   private KsqlConfig ksqlConfig;
 
-  private enum Mode {
-    RESTORE,
-    EXECUTE
-  }
 
   public InteractiveStatementExecutor(
       final ServiceContext serviceContext,
@@ -120,19 +116,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         queuedCommand.getCommand(),
         queuedCommand.getCommandId(),
         queuedCommand.getStatus(),
-        Mode.EXECUTE,
-        queuedCommand.getOffset()
-    );
-  }
-
-  void handleRestore(final QueuedCommand queuedCommand) {
-    throwIfNotConfigured();
-
-    handleStatementWithTerminatedQueries(
-        queuedCommand.getCommand(),
-        queuedCommand.getCommandId(),
-        queuedCommand.getStatus(),
-        Mode.RESTORE,
         queuedCommand.getOffset()
     );
   }
@@ -180,18 +163,16 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
    *
    * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
-   * @param mode was this table/stream subsequently dropped
    */
   private void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
-      final Mode mode,
       final long offset
   ) {
     try {
       if (command.getPlan().isPresent()) {
-        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode, offset);
+        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), offset);
         return;
       }
       final String statementString = command.getStatement();
@@ -206,7 +187,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
       executeStatement(
-          statement, command, commandId, commandStatusFuture, mode, offset);
+          statement, command, commandId, commandStatusFuture, offset);
     } catch (final KsqlException exception) {
       log.error("Failed to handle: " + command, exception);
       
@@ -224,7 +205,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
       final KsqlPlan plan,
-      final Mode mode,
       final long offset
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
@@ -264,7 +244,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
-      final Mode mode,
       final long offset
   ) {
     String successMessage = "";
@@ -272,14 +251,14 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     if (statement.getStatement() instanceof ExecutableDdlStatement) {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
-      final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
+      final PersistentQueryMetadata query = startQuery(statement, command, offset);
       final String name = ((CreateAsSelect)statement.getStatement()).getName().text();
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table " + name + " created and running" : "Stream " + name + " created and running";
       successMessage += ". Created by query with query ID: " + query.getQueryId();
       queryId = Optional.of(query.getQueryId());
     } else if (statement.getStatement() instanceof InsertInto) {
-      final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
+      final PersistentQueryMetadata query = startQuery(statement, command, offset);
       successMessage = "Insert Into query is running with query ID: " + query.getQueryId();
       queryId = Optional.of(query.getQueryId());
     } else if (statement.getStatement() instanceof TerminateQuery) {
@@ -315,7 +294,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   private PersistentQueryMetadata startQuery(
       final PreparedStatement<?> statement,
       final Command command,
-      final Mode mode,
       final long offset
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);

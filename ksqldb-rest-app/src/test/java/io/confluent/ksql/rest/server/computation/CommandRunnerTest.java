@@ -134,9 +134,9 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand3));
   }
 
   @Test
@@ -154,7 +154,7 @@ public class CommandRunnerTest {
     inOrder.verify(commandStore).wakeup();
     inOrder.verify(clusterTerminator).terminateCluster(anyList());
 
-    verify(statementExecutor, never()).handleRestore(any());
+    verify(statementExecutor, never()).handleStatement(any());
   }
 
   @Test
@@ -167,7 +167,7 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(any());
+    verify(statementExecutor, never()).handleStatement(any());
   }
 
   @Test
@@ -192,10 +192,10 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand3));
 
-    verify(statementExecutor, never()).handleRestore(queuedCommand2);
+    verify(statementExecutor, never()).handleStatement(queuedCommand2);
   }
 
   @Test
@@ -254,9 +254,9 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(queuedCommand1);
-    verify(statementExecutor, never()).handleRestore(queuedCommand2);
-    verify(statementExecutor, never()).handleRestore(queuedCommand3);
+    verify(statementExecutor, never()).handleStatement(queuedCommand1);
+    verify(statementExecutor, never()).handleStatement(queuedCommand2);
+    verify(statementExecutor, never()).handleStatement(queuedCommand3);
   }
 
   @Test
@@ -323,7 +323,7 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(queuedCommand2);
+    verify(statementExecutor, never()).handleStatement(queuedCommand2);
   }
 
   @Test

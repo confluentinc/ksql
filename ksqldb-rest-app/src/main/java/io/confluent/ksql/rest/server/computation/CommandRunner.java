@@ -181,20 +181,12 @@ public class CommandRunner implements Closeable {
                 maxRetries,
                 STATEMENT_RETRY_MS,
                 MAX_STATEMENT_RETRY_MS,
-                () -> statementExecutor.handleRestore(command),
+                () -> statementExecutor.handleStatement(command),
                 WakeupException.class
             );
             currentCommandRef.set(null);
           }
       );
-
-      final List<PersistentQueryMetadata> queries = statementExecutor
-          .getKsqlEngine()
-          .getPersistentQueries();
-
-      LOG.info("Restarting {} queries.", queries.size());
-
-      queries.forEach(PersistentQueryMetadata::start);
 
       LOG.info("Restore complete");
 

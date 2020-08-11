@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -217,7 +216,7 @@ public class InteractiveStatementExecutorTest {
     );
 
     // When:
-    statementExecutor.handleRestore(queuedCommand);
+    statementExecutor.handleStatement(queuedCommand);
   }
 
   @Test
@@ -485,7 +484,7 @@ public class InteractiveStatementExecutorTest {
         () -> {
           for (int i = 0; i < priorCommands.size(); i++) {
             final Pair<CommandId, Command> pair = priorCommands.get(i);
-            statementExecutor.handleRestore(
+            statementExecutor.handleStatement(
                 new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
             );
           }
@@ -587,7 +586,7 @@ public class InteractiveStatementExecutorTest {
     mockReplayCSAS(new QueryId("csas-query-id"));
 
     // When:
-    statementExecutorWithMocks.handleRestore(
+    statementExecutorWithMocks.handleStatement(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.CREATE),
             new Command("CSAS", emptyMap(), emptyMap(), Optional.empty()),
@@ -651,7 +650,7 @@ public class InteractiveStatementExecutorTest {
         .thenReturn(ExecuteResult.of("SUCCESS"));
 
     // When:
-    statementExecutorWithMocks.handleRestore(
+    statementExecutorWithMocks.handleStatement(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
             new Command(drop, emptyMap(), emptyMap(), Optional.empty()),

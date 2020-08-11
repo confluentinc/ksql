@@ -24,7 +24,6 @@ import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,13 +62,12 @@ class UdafFactoryInvoker implements FunctionSignature {
     if (!Modifier.isStatic(method.getModifiers())) {
       throw new KsqlException("UDAF factory methods must be static " + method);
     }
-    final UdafTypes types = new UdafTypes(method, functionName.text(), typeParser);
+    final UdafTypes types = new UdafTypes(method, functionName, typeParser);
     this.functionName = Objects.requireNonNull(functionName);
     this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
     this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
     this.metrics = Objects.requireNonNull(metrics);
-    this.params =
-        Collections.singletonList(types.getInputSchema(Objects.requireNonNull(inputSchema)));
+    this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
     this.method = Objects.requireNonNull(method);
     this.description = Objects.requireNonNull(description);

@@ -109,6 +109,7 @@ public class PostConditions {
         .map(s -> s.getDataSourceType() + ":" + s.getName().text()
             + ", value:" + s.getSchema()
             + ", keyFormat:" + s.getKsqlTopic().getKeyFormat()
+            + ", serdeOptions: " + s.getSerdeOptions()
         )
         .collect(Collectors.joining(System.lineSeparator()));
 

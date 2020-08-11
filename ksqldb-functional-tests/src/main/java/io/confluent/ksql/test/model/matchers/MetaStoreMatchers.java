@@ -21,6 +21,8 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeOption;
+import java.util.Set;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 
@@ -67,6 +69,20 @@ public final class MetaStoreMatchers {
       @Override
       protected KeyFormat featureValueOf(final DataSource actual) {
         return actual.getKsqlTopic().getKeyFormat();
+      }
+    };
+  }
+
+  public static Matcher<DataSource> hasSerdeOptions(
+      final Matcher<? super Set<SerdeOption>> matcher
+  ) {
+    return new FeatureMatcher<DataSource, Set<SerdeOption>>(
+        matcher,
+        "source with serde options",
+        "serde options") {
+      @Override
+      protected Set<SerdeOption> featureValueOf(final DataSource actual) {
+        return actual.getSerdeOptions();
       }
     };
   }

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.model;
 
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.serde.SerdeOption;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -24,7 +26,8 @@ public class SourceNodeTest {
       "bob",
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
-      Optional.of(KeyFormatNodeTest.INSTANCE)
+      Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES))
   );
 
   @Test

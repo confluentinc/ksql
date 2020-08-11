@@ -18,6 +18,7 @@ package io.confluent.ksql.test.model;
 import static org.hamcrest.Matchers.allOf;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,12 +30,14 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.model.matchers.MetaStoreMatchers;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.JsonParsingUtil;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -47,18 +50,21 @@ final class SourceNode {
   private final String type;
   private final Optional<String> schema;
   private final Optional<KeyFormatNode> keyFormat;
+  private final Optional<Set<SerdeOption>> serdeOptions;
 
   @VisibleForTesting
   SourceNode(
       final String name,
       final String type,
       final Optional<String> schema,
-      final Optional<KeyFormatNode> keyFormat
+      final Optional<KeyFormatNode> keyFormat,
+      final Optional<Set<SerdeOption>> serdeOptions
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
+    this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions");
 
     if (this.name.isEmpty()) {
       throw new InvalidFieldException("name", "missing or empty");
@@ -84,6 +90,10 @@ final class SourceNode {
     return schema;
   }
 
+  public Optional<Set<SerdeOption>> getSerdeOptions() {
+    return serdeOptions;
+  }
+
   @SuppressWarnings("unchecked")
   Matcher<? super DataSource> build() {
     if (name.isEmpty()) {
@@ -107,8 +117,13 @@ final class SourceNode {
         .map(MetaStoreMatchers::hasKeyFormat)
         .orElse(null);
 
+    final Matcher<DataSource> serdeOptionsMatcher = serdeOptions
+        .map(options -> Matchers.containsInAnyOrder(options.toArray()))
+        .map(MetaStoreMatchers::hasSerdeOptions)
+        .orElse(null);
+
     final Matcher<DataSource>[] matchers = Stream
-        .of(nameMatcher, typeMatcher, schemaMatcher, keyFormatMatcher)
+        .of(nameMatcher, typeMatcher, schemaMatcher, keyFormatMatcher, serdeOptionsMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);
 
@@ -151,7 +166,10 @@ final class SourceNode {
       final Optional<KeyFormatNode> keyFormat = JsonParsingUtil
           .getOptional("keyFormat", node, jp, KeyFormatNode.class);
 
-      return new SourceNode(name, type, rawSchema, keyFormat);
+      final Optional<Set<SerdeOption>> serdeOptions = JsonParsingUtil
+          .getOptional("serdeOptions", node, jp, new TypeReference<Set<SerdeOption>>() { });
+
+      return new SourceNode(name, type, rawSchema, keyFormat, serdeOptions);
     }
   }
 }

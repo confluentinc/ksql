@@ -377,7 +377,12 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"FOO": "bar", "FOO2": "bar"}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "serdeOptions": ["UNWRAP_SINGLE_VALUES"]}
+        ]
+      }
     },
     {
       "name": "deserialization should default to wrapped values",
@@ -390,7 +395,12 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"FOO": "bar"}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "serdeOptions": []}
+        ]
+      }
     },
     {
       "name": "C* should throw for multi-field schema if WRAP_SINGLE_VALUE=true",
@@ -704,7 +714,12 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": "bar"}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "serdeOptions": ["UNWRAP_SINGLE_VALUES"]}
+        ]
+      }
     },
     {
       "name": "serialization should default to wrapped values",
@@ -717,7 +732,12 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"FOO": "bar"}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "serdeOptions": []}
+        ]
+      }
     },
     {
       "name": "C*AS should throw for multi-field schema if WRAP_SINGLE_VALUE=true",

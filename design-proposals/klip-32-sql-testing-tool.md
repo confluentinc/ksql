@@ -111,7 +111,9 @@ CREATE OR REPLACE STREAM bar AS SELECT id, col1, col2 AS col3 FROM foo;
 ### Test Structure
 
 YATT will accept as a parameter a directory containing testing files, and will run all the
-tests in the directory in a single JVM.
+tests in the directory in a single JVM. Alternatively, it can accept a single test file to
+run just a limited subset of tests as well as which tests to run within the file based on
+regex.
 
 Each test file can contain one or more tests, separated by the `--@test` directive. This will
 improve on a pain point of the existing ksql-test-runner, which requires three files for a single

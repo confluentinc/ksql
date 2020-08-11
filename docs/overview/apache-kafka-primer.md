@@ -7,9 +7,9 @@ keywords: ksqldb, kafka
 ---
 
 ksqlDB is an event streaming database built specifically for {{ site.aktm }}.
-ksqlDB is designed to give you a higher-level set of primitives than
-{{ site.ak }} has, but it's inevitable that {{ site.ak }} can't be -- and
-shouldn't be -- abstracted away entirely. This section describes the minimum
+Although it's designed to give you a higher-level set of primitives than
+{{ site.ak }} has, it's inevitable that all of {{ site.ak }}'s concepts can't be, and
+shouldn't be, abstracted away entirely. This section describes the minimum
 number of {{ site.ak }} concepts that you need to use ksqlDB effectively.
 For more information, consult the official [Apache Kafka documentation](https://kafka.apache.org/documentation/).
 
@@ -17,23 +17,23 @@ For more information, consult the official [Apache Kafka documentation](https://
 
 The primary unit of data in {{ site.ak }} is the event. An event models
 something that happened in the world at a point in time. In {{ site.ak }},
-you work with events using a data construct known as a record. A record
-carries a few different kinds of data it: key, value, timestamp, topic, partition, offset, and headers.
+you represent each event using a data construct known as a record. A record
+carries a few different kinds of data in it: key, value, timestamp, topic, partition, offset, and headers.
 
 The _key_ of a record is an arbitrary piece of data that denotes the identity
 of the event. If the events are clicks on a web page, a suitable key might be
 the ID of the user who did the clicking.
 
-The _value_ is also an arbitrary piece of data that represents the data of
+The _value_ is also an arbitrary piece of data that represents the primary data of
 interest. The value of a click event probably contains the page that it
 happened on, the DOM element that was clicked, and other interesting tidbits
 of information.
 
 The _timestamp_ denotes when the event happened. There are a few different "kinds"
 of time that can be tracked. These aren’t discussed here, but they’re useful to
-learn about nonetheless.
+[learn about](../../../concepts/time-and-windows-in-ksqldb-queries/#time-semantics) nonetheless.
 
-The _topic_ and _partition_ describe which larger collection of events that
+The _topic_ and _partition_ describe which larger collection of events
 this event belongs to, and the _offset_ describes its exact position within
 that larger collection (more on that below).
 
@@ -51,9 +51,9 @@ that don’t contribute to a high-level programming model.
 
 ## Topics
 
-Topics are named collections of records. Their function is to let you hold
+Topics are named collections of records. Their purpose is to let you hold
 events of mutual interest together. A series of click records might get stored
-in a "clicks" topic, so that you can access them all in one place. Topics are
+in a "clicks" topic so that you can access them all in one place. Topics are
 append-only. Once you add a record to a topic, you can’t change or delete it
 individually.
 
@@ -62,8 +62,8 @@ don't need to conform to the same structure, relate to the same situation, or
 anything like that. The way you manage publication to topics is entirely a
 matter of user convention and enforcement.
 
-ksqlDB provides a higher-level abstraction over a topic, named a _stream_ or
-_table_. A stream or table is a {{ site.ak }} topic with a registered schema.
+ksqlDB provides higher-level abstractions over a topic through _streams_ and
+_tables_. A stream or table is a {{ site.ak }} topic with a registered schema.
 The schema controls the shape of records that are allowed to be stored in the
 topic. This kind of static typing makes it easier to understand what sort of
 rows are in your topic and generally helps you make fewer mistakes in your
@@ -77,7 +77,7 @@ partitions to make storage and processing more scalable. When you create a
 topic, you choose how many partitions it has.
 
 When you append a record to a topic, a partitioning strategy chooses which
-partition it lands in. There are many partitioning strategies. The most common
+partition it is stored in. There are many partitioning strategies. The most common
 one is to hash the contents of the record's key against the total number of
 partitions. This has the effect of placing all records with the same identity
 into the same partition, which is useful because of the strong ordering
@@ -85,18 +85,18 @@ guarantees.
 
 The order of the records is tracked by a piece of data known as an offset,
 which is set when the record is appended. A record with offset of _10_ happened
-earlier than a record with offset of _20_.
+earlier than a record in the same partition with offset of _20_.
 
-Many of the mechanics here are handled automatically by ksqlDB on your behalf.
+Much of the mechanics here are handled automatically by ksqlDB on your behalf.
 When you create a stream or table, you choose the number of partitions for the
 underlying topic so that you can have control over its scalability. When you
 declare a schema, you choose which columns are part of the key and which are
 part of the value. Beyond this, you don't need to think about individual partitions
 or offsets. Here are some examples of that.
 
-When a record is appended, its key's content is rolled up automatically and
-hashed, to send it consistently to the same partition. When records are
-processed, they follow the correct offset order, even in the presence of
+When a record is processed, its key content is hashed so that its new downstream
+partition will be consistent with all other records with the same key. When records are
+appended, they follow the correct offset order, even in the presence of
 failures or faults. When a stream's key content changes because of how a query
 wants to process the rows (via `GROUP BY` or `PARTITION BY`), the underlying
 records keys are recalculated, and the records are sent to a new partition set
@@ -118,17 +118,17 @@ old information again.
 
 Producers and consumers expose a fairly low-level API. You need to construct
 your own records, manage their schemas, configure their serialization, and
-manage what you send where.
+handle what you send where.
 
 ksqlDB behaves as a high-level, continuous producer and consumer. You simply
-declare the shape of your records, then issue high-level SQL statements that
+declare the shape of your records, then issue high-level SQL commands that
 describe how to populate, alter, and query the data. These SQL programs are
 translated into low-level client API invocations that take care of the details
 for you.
 
 ## Brokers
 
-The brokers are servers that store and manage access to topics. Many brokers
+The brokers are servers that store and manage access to topics. Multiple brokers
 can cluster together to replicate topics in a highly-available, fault-tolerant
 manner. Clients communicate with the brokers to read and write records.
 
@@ -139,7 +139,7 @@ on the broker. ksqlDB's servers do all of their computation on their own nodes.
 
 ## Serializers
 
-Because no data format is a good solution for all problems, {{ site.ak }} was
+Because no data format is a perfect fit for all problems, {{ site.ak }} was
 designed to be agnostic to the data contents in the key and value portions of
 its records. When records move from client to broker, the user payload (key and
 value) must be transformed to byte arrays. This enables {{ site.ak }} to work
@@ -151,13 +151,13 @@ _serialization_.
 
 When a producer sends a record to a topic, it must decide which serializers to
 use to convert the key and value to byte arrays. The key and value
-serializations are chosen independently. When a consumer receives a record, it
-must decide which deserializers to use to convert those byte arrays back to
+serializers are chosen independently. When a consumer receives a record, it
+must decide which deserializer to use to convert the byte arrays back to
 their original values. Serializers and deserializers come in pairs. If you use
 a different deserializer, you won't be able to make sense of the byte contents.
 
 ksqlDB raises the abstraction of serialization substantially. Instead of
-configuring serializers manually, you declare the formats using configuration
+configuring serializers manually, you declare formats using configuration
 options at stream/table creation time. Instead of having to keep track of which
 topics are serialized which way, ksqlDB maintains metadata about the byte
 representations of each stream and table. Consumers are configured automatically
@@ -165,10 +165,10 @@ to use the correct deserializers.
 
 ## Schemas
 
-Although the records serialized to {{ site.ak }} are only bytes, they must have
-some rules about their structure to enable processing them. One aspect of this
+Although the records serialized to {{ site.ak }} are opaque bytes, they must have
+some rules about their structure to make it possible to process them. One aspect of this
 structure is the schema of the data, which defines its shape and fields. Is it
-an integer? Is it a map with keys `foo`, `bar`, and `baz`?
+an integer? Is it a map with keys `foo`, `bar`, and `baz`? Something else?
 
 Without any mechanism for enforcement, schemas are implicit. A consumer,
 somehow, needs to know the form of the produced data. Frequently this happens
@@ -176,8 +176,8 @@ by getting a group of people to agree  verbally on the schema. This approach,
 however, is error prone. It's often better if the schema can be managed
 centrally, audited, and enforced programmatically.
 
-Confluent {{ site.sr }}, a project outside of {{ site.ak }}, helps with schema
-management. {{ site.sr }} enables producers to register a schema with a topic
+[Confluent {{ site.sr }}](https://docs.confluent.io/current/schema-registry/index.html), a project outside of {{ site.ak }}, helps with schema
+management. {{ site.sr }} enables producers to register a topic with a schema
 so that when any further data is produced, it is rejected if it doesn't
 conform to the schema. Consumers can consult {{ site.sr }} to find the schema
 for topics they don't know about.
@@ -218,15 +218,16 @@ all ten. If you add four more servers, each rebalances to process two partitions
 
 ## Retention
 
-When you create a topic, you must set its retention parameter. Retention
-defines how long a record is stored before it's deleted. This parameter is
-particularly important in stream processing, because it defines the time
+When you create a topic, you must set a retention duration. Retention
+defines how long a record is stored before it's deleted. Retention is one of the
+only ways to delete a record in a topic. This parameter is
+particularly important in stream processing because it defines the time
 horizon that you can replay a stream of events. Replay is useful if you're
 fixing a bug, building a new application, or backtesting some existing piece of
 logic.
 
-ksqlDB enable you to control the retention of the underlying topics of base
-streams and tables directly, so it's important to understand retention. For
+ksqlDB enables you to control the retention of the underlying topics of base
+streams and tables directly, so it's important to understand the concept. For
 more information see [Topics and Logs in the Kafka docs](https://kafka.apache.org/documentation/#intro_topics).
 
 ## Compaction

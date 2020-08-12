@@ -376,10 +376,6 @@
         {"topic": "test_topic", "key": 4, "value": {"col1": null}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "lala", "value": {"COL1": {"foo": "lala"},"ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "kaka", "value": {"COL1": {"foo": "kaka"},"ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "lala", "value": {"COL1": {"foo": "lala"}, "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "kaka", "value": {"COL1": {"foo": "kaka"}, "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
         {"topic": "OUTPUT", "key": "lala", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "kaka", "value": {"COUNT": 1}}
       ]
@@ -399,10 +395,6 @@
         {"topic": "test_topic", "key": 4, "value": {"col1": null}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "lala", "value": {"COL1": {"foo": "lala"},"ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "kaka", "value": {"COL1": {"foo": "kaka"},"ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "lala", "value": {"COL1": {"foo": "lala"}, "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "kaka", "value": {"COL1": {"foo": "kaka"}, "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
         {"topic": "OUTPUT", "key": "lala", "value": {"VV": "lala","COUNT": 1}},
         {"topic": "OUTPUT", "key": "kaka", "value": {"VV": "kaka","COUNT": 1}}
       ]
@@ -420,10 +412,6 @@
         {"topic": "test_topic", "key": 3, "value": {"col1": "smells", "col2": "like", "col3": "   teen spirit   "}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "Smells|+|like|+|teen spirit", "value":{"COL1": "smells", "COL2": "like", "COL3": "teen spirit", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "The|+|man who|+|stole the world", "value":{"COL1": "the", "COL2": "man who", "COL3": "stole the world", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "Smells|+|like|+|spring", "value":{"COL1": "smells", "COL2": "like", "COL3": "spring", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "Smells|+|like|+|teen spirit", "value":{"COL1": "smells", "COL2": "like", "COL3": "   teen spirit   ", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 2}},
         {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"FOO": "Smellsliketeen spirit", "KSQL_COL_0": 1}},
         {"topic": "OUTPUT", "key": "The|+|man who|+|stole the world", "value": {"FOO": "Theman whostole the world", "KSQL_COL_0": 1}},
         {"topic": "OUTPUT", "key": "Smells|+|like|+|spring", "value": {"FOO": "Smellslikespring","KSQL_COL_0": 1}},

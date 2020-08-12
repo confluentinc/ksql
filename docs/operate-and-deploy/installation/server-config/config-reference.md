@@ -350,8 +350,7 @@ By default, any amount of lag is allowed. For using this functionality, the serv
 ### ksql.suppress.buffer.size.bytes
 
 Bound the number of bytes that the buffer can use for suppression. Negative size means the buffer 
-will be unbounded. If the buffer exceeds its max capacity, it will gracefully shut down the 
-application.
+will be unbounded. If the maximum capacity is exceeded, the query will be terminated.
 
 ksqlDB Server Settings
 ----------------------

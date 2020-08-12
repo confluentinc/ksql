@@ -50,7 +50,6 @@ public final class SourceNode {
   private final String type;
   private final Optional<String> schema;
   private final Optional<KeyFormatNode> keyFormat;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   private final Optional<Set<SerdeOption>> serdeOptions;
 
   public SourceNode(
@@ -90,6 +89,7 @@ public final class SourceNode {
     return schema;
   }
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public Optional<Set<SerdeOption>> getSerdeOptions() {
     return serdeOptions;
   }

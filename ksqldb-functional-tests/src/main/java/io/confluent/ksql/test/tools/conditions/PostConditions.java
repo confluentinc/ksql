@@ -29,12 +29,10 @@ import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicsNode;
 import io.confluent.ksql.test.model.SourceNode;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
@@ -76,46 +74,16 @@ public class PostConditions {
     verifyTopics(knownTopics);
   }
 
-  public Optional<PostConditionsNode> asNode(
-      final List<PostTopicNode> additionalTopics,
-      final List<SourceNode> additionalSources
+  public PostConditionsNode asNode(
+      final List<PostTopicNode> topics,
+      final List<SourceNode> sources
   ) {
-    if (this == NONE && additionalTopics.isEmpty() && additionalSources.isEmpty()) {
-      return Optional.empty();
-    }
-
-    return Optional.of(new PostConditionsNode(
-        withAdditionalSources(additionalSources),
-        Optional.of(withAdditionalTopics(additionalTopics))
-    ));
-  }
-
-  private List<SourceNode> withAdditionalSources(final List<SourceNode> additionalSources) {
-    final TreeMap<String, SourceNode> sources = new TreeMap<>();
-
-    sourceNode.getSources()
-        .forEach(node -> sources.put(node.getName(), node));
-
-    additionalSources
-        .forEach(node -> sources.put(node.getName(), node));
-
-    return new ArrayList<>(sources.values());
-  }
-
-  private PostTopicsNode withAdditionalTopics(final List<PostTopicNode> additionalTopics) {
-    final TreeMap<String, PostTopicNode> topics = new TreeMap<>();
-
-    sourceNode.getTopics()
-        .map(PostTopicsNode::getTopics)
-        .orElseGet(ImmutableList::of)
-        .forEach(node -> topics.put(node.getName(), node));
-
-    additionalTopics
-        .forEach(node -> topics.put(node.getName(), node));
-
-    return new PostTopicsNode(
-        sourceNode.getTopics().flatMap(PostTopicsNode::getBlackList),
-        Optional.of(ImmutableList.copyOf(topics.values()))
+    return new PostConditionsNode(
+        sources,
+        Optional.of(new PostTopicsNode(
+            sourceNode.getTopics().flatMap(PostTopicsNode::getBlackList),
+            Optional.of(topics)
+        ))
     );
   }
 

@@ -227,9 +227,7 @@ public final class TestCasePlanLoader {
         testCase.statements(),
         testCase.properties(),
         null,
-        testCase.getPostConditions()
-            .asNode(testInfo.getTopics(), testInfo.getSources())
-            .orElse(null),
+        testCase.getPostConditions().asNode(testInfo.getTopics(), testInfo.getSources()),
         true
     );
 

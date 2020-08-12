@@ -198,7 +198,7 @@ public final class SourceNode {
     return new SourceNode(
         dataSource.getName().text(),
         dataSource.getDataSourceType().getKsqlType(),
-        Optional.of(dataSource.getSchema().toString()), // TODO: check
+        Optional.of(dataSource.getSchema().toString()),
         Optional.of(KeyFormatNode.fromKeyFormat(dataSource.getKsqlTopic().getKeyFormat())),
         Optional.of(dataSource.getSerdeOptions())
     );

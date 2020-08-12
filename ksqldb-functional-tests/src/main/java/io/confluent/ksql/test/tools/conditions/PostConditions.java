@@ -90,7 +90,6 @@ public class PostConditions {
     ));
   }
 
-  // TODO: is this necessary? should be able to just replace with the new sources
   private List<SourceNode> withAdditionalSources(final List<SourceNode> additionalSources) {
     final TreeMap<String, SourceNode> sources = new TreeMap<>();
 

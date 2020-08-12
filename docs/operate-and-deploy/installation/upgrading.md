@@ -362,7 +362,7 @@ CREATE TABLE INPUT (
 ### Upgrading from ksqlDB 0.7.0+ to 0.9.0
 
 !!! important
-    ksqlDB 0.9.0 is not backward compatible. Do not upgrade in-place.
+    ksqlDB 0.8.0 is not backward compatible. Do not upgrade in-place.
 
 The following changes in SQL syntax and functionality may mean SQL statements
 that ran previously no longer run.

@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -127,6 +126,27 @@ public final class SourceNode {
         .toArray(Matcher[]::new);
 
     return allOf(matchers);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final SourceNode that = (SourceNode) o;
+    return name.equals(that.name)
+        && type.equals(that.type)
+        && schema.equals(that.schema)
+        && keyFormat.equals(that.keyFormat)
+        && serdeOptions.equals(that.serdeOptions);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, type, schema, keyFormat, serdeOptions);
   }
 
   private static Class<? extends DataSource> toType(final String type) {

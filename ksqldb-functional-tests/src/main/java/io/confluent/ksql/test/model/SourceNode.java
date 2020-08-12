@@ -17,6 +17,7 @@ package io.confluent.ksql.test.model;
 
 import static org.hamcrest.Matchers.allOf;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -49,6 +50,7 @@ public final class SourceNode {
   private final String type;
   private final Optional<String> schema;
   private final Optional<KeyFormatNode> keyFormat;
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   private final Optional<Set<SerdeOption>> serdeOptions;
 
   public SourceNode(

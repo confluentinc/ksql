@@ -76,17 +76,17 @@ nav:
     - Synopsis: reference2/index.md
     - The SQL language:
       - SQL syntax:
-        - Lexical structure: reference2/sql-syntax/lexical-structure.md
-        - Value statements: reference2/sql-syntax/value-statements.md
-      - Data definition: reference2/sql-syntax/data-definition.md
-      - Data manipulation: reference2/sql-syntax/data-manipulation.md
-      - Queries: reference2/sql-syntax/queries.md
+        - Lexical structure: reference2/sql/sql-syntax/lexical-structure.md
+        - Value statements: reference2/sql/sql-syntax/value-statements.md
+      - Data definition: reference2/sql/data-definition.md
+      - Data manipulation: reference2/sql/data-manipulation.md
+      - Queries: reference2/sql/queries.md
       - Data types:
-        - Synopsis: reference2/sql-syntax/data-types/index.md
-        - Numeric types: reference2/sql-syntax/data-types/numeric.md
-        - Character types: reference2/sql-syntax/data-types/character.md
-        - Boolean type: reference2/sql-syntax/data-types/boolean.md
-        - Compound types: reference2/sql-syntax/data-types/compound.md
+        - Synopsis: reference2/sql/data-types/index.md
+        - Numeric types: reference2/sql/data-types/numeric.md
+        - Character types: reference2/sql/data-types/character.md
+        - Boolean type: reference2/sql/data-types/boolean.md
+        - Compound types: reference2/sql/data-types/compound.md
       - Functions and operators:
         - Logical operators: xx.md
         - Comparison operators: xx.md
@@ -105,7 +105,7 @@ nav:
         - Window functions: xx.md
       - Type conversion: xx.md
       - SQL commands: xx.md
-      - Appendix: reference2/sql-syntax/appendix.md
+      - Appendix: reference2/sql/appendix.md
     - Configuration: xx.md
     - Metrics: xx.md
     - Serialization: xx.md
@@ -213,8 +213,8 @@ plugins:
     - redirects:
         redirect_maps:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
-            concepts/collections/streams.md: reference2/sql-syntax/data-definition.md
-            concepts/collections/tables.md: reference2/sql-syntax/data-definition.md
+            concepts/collections/streams.md: reference2/sql/sql-syntax/data-definition.md
+            concepts/collections/tables.md: reference2/sql/sql-syntax/data-definition.md
 
 extra:
     site:

@@ -244,7 +244,7 @@ CREATE TABLE USERS (
 ### Arithmetic
 
 You can apply the familiar arithmetic operators, like `+` and `%`, to
-[numeric types](data-types/numeric.md), like INT, BIGINT, DOUBLE, and
+[numeric types](../data-types/numeric.md), like INT, BIGINT, DOUBLE, and
 DECIMAL.
 
 The following example statement uses the addition operator (`+`) to compute
@@ -257,7 +257,7 @@ SELECT USERID, LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS EMIT C
 ### Concatenation
 
 Use the concatenation operator (`+` or `||`) to concatenate
-[STRING](data-types/character.md) values.
+[STRING](../data-types/character.md) values.
 
 ```sql
 SELECT USERID, FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS EMIT CHANGES;

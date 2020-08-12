@@ -36,6 +36,7 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
@@ -43,7 +44,9 @@ import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.model.KeyFormatNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
+import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
@@ -201,10 +204,14 @@ public class TestExecutor implements Closeable {
             );
           })
           .collect(Collectors.toList());
+      final List<SourceNode> knownSources = ksqlEngine.getMetaStore().getAllDataSources().values()
+          .stream()
+          .map(SourceNode::fromDataSource)
+          .collect(Collectors.toList());
 
       testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), knownTopics);
 
-      listener.runComplete(knownTopics);
+      listener.runComplete(knownTopics, knownSources);
 
     } catch (final RuntimeException e) {
       final Optional<Matcher<Throwable>> expectedExceptionMatcher = testCase.expectedException();

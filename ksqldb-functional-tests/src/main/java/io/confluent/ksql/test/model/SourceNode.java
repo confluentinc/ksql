@@ -44,7 +44,7 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 
 @JsonDeserialize(using = SourceNode.Deserializer.class)
-final class SourceNode {
+public final class SourceNode {
 
   private final String name;
   private final String type;
@@ -52,8 +52,7 @@ final class SourceNode {
   private final Optional<KeyFormatNode> keyFormat;
   private final Optional<Set<SerdeOption>> serdeOptions;
 
-  @VisibleForTesting
-  SourceNode(
+  public SourceNode(
       final String name,
       final String type,
       final Optional<String> schema,
@@ -171,5 +170,15 @@ final class SourceNode {
 
       return new SourceNode(name, type, rawSchema, keyFormat, serdeOptions);
     }
+  }
+
+  public static SourceNode fromDataSource(final DataSource dataSource) {
+    return new SourceNode(
+        dataSource.getName().text(),
+        dataSource.getDataSourceType().getKsqlType(),
+        Optional.of(dataSource.getSchema().toString()), // TODO: check
+        Optional.of(KeyFormatNode.fromKeyFormat(dataSource.getKsqlTopic().getKeyFormat())),
+        Optional.of(dataSource.getSerdeOptions())
+    );
   }
 }

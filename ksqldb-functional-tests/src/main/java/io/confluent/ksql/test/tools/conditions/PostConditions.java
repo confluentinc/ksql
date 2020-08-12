@@ -28,6 +28,8 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicsNode;
+import io.confluent.ksql.test.model.SourceNode;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -75,12 +77,33 @@ public class PostConditions {
   }
 
   public Optional<PostConditionsNode> asNode(
-      final List<PostTopicNode> additional
+      final List<PostTopicNode> additionalTopics,
+      final List<SourceNode> additionalSources
   ) {
-    if (this == NONE && additional.isEmpty()) {
+    if (this == NONE && additionalTopics.isEmpty() && additionalSources.isEmpty()) {
       return Optional.empty();
     }
 
+    return Optional.of(new PostConditionsNode(
+        withAdditionalSources(additionalSources),
+        Optional.of(withAdditionalTopics(additionalTopics))
+    ));
+  }
+
+  // TODO: is this necessary? should be able to just replace with the new sources
+  private List<SourceNode> withAdditionalSources(final List<SourceNode> additionalSources) {
+    final TreeMap<String, SourceNode> sources = new TreeMap<>();
+
+    sourceNode.getSources()
+        .forEach(node -> sources.put(node.getName(), node));
+
+    additionalSources
+        .forEach(node -> sources.put(node.getName(), node));
+
+    return new ArrayList<>(sources.values());
+  }
+
+  private PostTopicsNode withAdditionalTopics(final List<PostTopicNode> additionalTopics) {
     final TreeMap<String, PostTopicNode> topics = new TreeMap<>();
 
     sourceNode.getTopics()
@@ -88,16 +111,13 @@ public class PostConditions {
         .orElseGet(ImmutableList::of)
         .forEach(node -> topics.put(node.getName(), node));
 
-    additional
+    additionalTopics
         .forEach(node -> topics.put(node.getName(), node));
 
-    return Optional.of(new PostConditionsNode(
-        sourceNode.getSources(),
-        Optional.of(new PostTopicsNode(
-            sourceNode.getTopics().flatMap(PostTopicsNode::getBlackList),
-            Optional.of(ImmutableList.copyOf(topics.values()))
-        ))
-    ));
+    return new PostTopicsNode(
+        sourceNode.getTopics().flatMap(PostTopicsNode::getBlackList),
+        Optional.of(ImmutableList.copyOf(topics.values()))
+    );
   }
 
   private void verifyMetaStore(final MetaStore metaStore) {

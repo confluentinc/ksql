@@ -87,4 +87,12 @@ public final class KeyFormatNode {
 
     return allOf(matchers);
   }
+
+  public static KeyFormatNode fromKeyFormat(final KeyFormat keyFormat) {
+    return new KeyFormatNode(
+        Optional.of(keyFormat.getFormatInfo().getFormat()),
+        keyFormat.getWindowType(),
+        keyFormat.getWindowSize().map(Duration::toMillis)
+    );
+  }
 }

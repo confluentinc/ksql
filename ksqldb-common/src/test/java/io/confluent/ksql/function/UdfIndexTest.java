@@ -7,6 +7,7 @@ import static java.lang.System.lineSeparator;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -60,6 +61,24 @@ public class UdfIndexTest {
   @Before
   public void setUp() {
     udfIndex = new UdfIndex<>("name", true);
+  }
+
+  @Test
+  public void shouldThrowOnAddIfFunctionWithSameNameAndParamsExists() {
+    // Given:
+    givenFunctions(
+        function(EXPECTED, false, DOUBLE)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udfIndex.addFunction(function(EXPECTED, false, DOUBLE))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), startsWith("Can't add function `expected` with parameters [DOUBLE] "
+        + "as a function with the same name and parameter types already exists"));
   }
 
   @Test

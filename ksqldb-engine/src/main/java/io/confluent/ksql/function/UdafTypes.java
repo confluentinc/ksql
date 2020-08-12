@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
@@ -54,38 +56,43 @@ class UdafTypes {
   private final Type inputType;
   private final Type aggregateType;
   private final Type outputType;
-  private final String functionInfo;
+  private final List<ParameterInfo> literalParams;
   private final String invalidClassErrorMsg;
   private final SqlTypeParser sqlTypeParser;
 
   UdafTypes(
       final Method method,
-      final String functionInfo,
+      final FunctionName functionName,
       final SqlTypeParser sqlTypeParser
   ) {
-    Objects.requireNonNull(method);
-    this.functionInfo = Objects.requireNonNull(functionInfo);
     this.invalidClassErrorMsg = "class='%s'"
         + " is not supported by UDAFs. Valid types are: " + SUPPORTED_TYPES + " "
-        + functionInfo;
+        + Objects.requireNonNull(functionName, "functionName");
     final AnnotatedParameterizedType annotatedReturnType
         = (AnnotatedParameterizedType) method.getAnnotatedReturnType();
     final ParameterizedType type = (ParameterizedType) annotatedReturnType.getType();
     this.sqlTypeParser = Objects.requireNonNull(sqlTypeParser);
 
-    inputType = type.getActualTypeArguments()[0];
-    aggregateType = type.getActualTypeArguments()[1];
-    outputType = type.getActualTypeArguments()[2];
+    this.inputType = type.getActualTypeArguments()[0];
+    this.aggregateType = type.getActualTypeArguments()[1];
+    this.outputType = type.getActualTypeArguments()[2];
+
+    this.literalParams = FunctionLoaderUtils
+        .createParameters(method, functionName.text(), sqlTypeParser);
 
     validateTypes(inputType);
     validateTypes(aggregateType);
     validateTypes(outputType);
   }
 
-  ParameterInfo getInputSchema(final String inSchema) {
+  List<ParameterInfo> getInputSchema(final String inSchema) {
     validateStructAnnotation(inputType, inSchema, "paramSchema");
     final ParamType inputSchema = getSchemaFromType(inputType, inSchema);
-    return new ParameterInfo("val", inputSchema, "", false);
+
+    return ImmutableList.<ParameterInfo>builder()
+        .add(new ParameterInfo("val", inputSchema, "", false))
+        .addAll(literalParams)
+        .build();
   }
 
   ParamType getAggregateSchema(final String aggSchema) {
@@ -104,7 +111,11 @@ class UdafTypes {
     }
   }
 
-  private void validateStructAnnotation(final Type type, final String schema, final String msg) {
+  private static void validateStructAnnotation(
+      final Type type,
+      final String schema,
+      final String msg
+  ) {
     if (type.equals(Struct.class) && schema.isEmpty()) {
       throw new KsqlException("Must specify '" + msg + "' for STRUCT parameter in @UdafFactory.");
     }
@@ -117,7 +128,7 @@ class UdafTypes {
             sqlTypeParser.parse(schema).getSqlType());
   }
 
-  private Type getRawType(final Type type) {
+  private static Type getRawType(final Type type) {
     if (type instanceof ParameterizedType) {
       return ((ParameterizedType) type).getRawType();
     }

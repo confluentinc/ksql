@@ -48,7 +48,7 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "JSONIFIED",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -59,7 +59,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "JSONIFIED",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

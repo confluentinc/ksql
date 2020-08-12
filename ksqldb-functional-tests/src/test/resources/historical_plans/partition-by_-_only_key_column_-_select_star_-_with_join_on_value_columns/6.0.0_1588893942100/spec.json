@@ -57,9 +57,9 @@
     "statements" : [ "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');", "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.Y PARTITION BY A;" ],
     "post" : {
       "sources" : [ {
-        "name" : "L",
+        "name" : "R",
         "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "schema" : "`X` INTEGER KEY, `Y` INTEGER, `Z` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -73,9 +73,9 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "R",
+        "name" : "L",
         "type" : "STREAM",
-        "schema" : "`X` INTEGER KEY, `Y` INTEGER, `Z` INTEGER",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -83,39 +83,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "LEFT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "RIGHT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
           "keyFormat" : {
             "formatInfo" : {
@@ -136,7 +103,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
+          "name" : "RIGHT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -144,7 +111,8 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "partitions" : 4
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
           "keyFormat" : {
@@ -155,6 +123,38 @@
           "valueFormat" : {
             "format" : "JSON"
           }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "LEFT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
         } ]
       }
     }

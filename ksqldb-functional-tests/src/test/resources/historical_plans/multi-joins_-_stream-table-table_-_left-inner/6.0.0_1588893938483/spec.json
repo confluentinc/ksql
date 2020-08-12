@@ -78,17 +78,17 @@
     "statements" : [ "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');", "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');", "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT S1.ID, s1.V0, t2.V0, t3.V0 FROM S1 LEFT JOIN T2 ON S1.ID = T2.ID JOIN T3 ON S1.ID = T3.ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT",
+        "name" : "T3",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -102,8 +102,8 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "T3",
-        "type" : "TABLE",
+        "name" : "S1",
+        "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
@@ -112,17 +112,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "left",
           "keyFormat" : {
             "formatInfo" : {
@@ -134,7 +123,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "right",
+          "name" : "right2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -145,7 +134,18 @@
           },
           "partitions" : 4
         }, {
-          "name" : "right2",
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

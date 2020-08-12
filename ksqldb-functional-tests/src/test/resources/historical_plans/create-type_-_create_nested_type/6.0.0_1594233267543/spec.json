@@ -48,7 +48,7 @@
     "statements" : [ "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;", "CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;", "CREATE TABLE people (K STRING PRIMARY KEY, person PERSON) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE copy AS SELECT * FROM people;" ],
     "post" : {
       "sources" : [ {
-        "name" : "COPY",
+        "name" : "PEOPLE",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
         "keyFormat" : {
@@ -56,7 +56,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "PEOPLE",
+        "name" : "COPY",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
         "keyFormat" : {
@@ -77,16 +77,6 @@
           },
           "partitions" : 4
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COPY_0-KsqlTopic-Reduce-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
           "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
@@ -97,6 +87,16 @@
             "format" : "JSON"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COPY_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
         } ]
       }
     }

@@ -117,13 +117,10 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "SESSION"
             }
           },
           "valueFormat" : {
@@ -157,10 +154,13 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "input_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "SESSION"
             }
           },
           "valueFormat" : {

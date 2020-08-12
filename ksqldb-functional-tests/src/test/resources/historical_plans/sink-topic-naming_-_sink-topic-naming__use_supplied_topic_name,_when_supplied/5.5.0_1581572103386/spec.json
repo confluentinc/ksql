@@ -37,7 +37,7 @@
     },
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
         "keyFormat" : {
@@ -45,7 +45,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
         "keyFormat" : {
@@ -55,7 +55,7 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "Fred",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -66,7 +66,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "Fred",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

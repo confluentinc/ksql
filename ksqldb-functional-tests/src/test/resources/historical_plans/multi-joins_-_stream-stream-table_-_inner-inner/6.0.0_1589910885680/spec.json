@@ -104,6 +104,22 @@
     "statements" : [ "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');", "CREATE STREAM S2 (ID INT KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');", "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT S2.ID, s1.V0, s2.V0, t3.V0 FROM S1 JOIN S2 WITHIN 10 seconds ON S1.ID = S2.ID JOIN T3 ON S1.ID = T3.ID;" ],
     "post" : {
       "sources" : [ {
+        "name" : "T3",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`S2_ID` INTEGER KEY, `S1_V0` BIGINT, `S2_V0` BIGINT, `T3_V0` BIGINT",
@@ -119,37 +135,10 @@
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
-      }, {
-        "name" : "S2",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "T3",
-        "type" : "TABLE",
-        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000013-store-changelog",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000012-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -159,7 +148,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000012-store-changelog",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000013-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -180,7 +169,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "right",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -192,6 +181,17 @@
           "partitions" : 4
         }, {
           "name" : "right2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

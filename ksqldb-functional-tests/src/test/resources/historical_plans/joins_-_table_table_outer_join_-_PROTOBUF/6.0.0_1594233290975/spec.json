@@ -179,17 +179,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TEST_TABLE",
         "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST_TABLE",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -207,16 +207,6 @@
             "format" : "PROTOBUF"
           },
           "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTER_JOIN_0-KafkaTopic_Left-Reduce-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "PROTOBUF"
-          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTER_JOIN_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
@@ -249,6 +239,16 @@
             "format" : "PROTOBUF"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTER_JOIN_0-KafkaTopic_Left-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
         } ]
       }
     }

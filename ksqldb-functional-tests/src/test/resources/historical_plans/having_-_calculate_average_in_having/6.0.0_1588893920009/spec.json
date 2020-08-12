@@ -82,6 +82,17 @@
       } ],
       "topics" : {
         "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
           "name" : "AVG",
           "keyFormat" : {
             "formatInfo" : {
@@ -102,17 +113,6 @@
           "valueFormat" : {
             "format" : "DELIMITED"
           }
-        }, {
-          "name" : "test_topic",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          },
-          "partitions" : 4
         } ]
       }
     }

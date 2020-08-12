@@ -105,7 +105,7 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "DATE_STREAM",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -116,7 +116,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "DATE_STREAM",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

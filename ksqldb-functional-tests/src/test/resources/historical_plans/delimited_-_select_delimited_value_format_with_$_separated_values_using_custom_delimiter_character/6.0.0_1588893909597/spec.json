@@ -80,20 +80,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED",
-            "properties" : {
-              "delimiter" : "$"
-            }
-          },
-          "partitions" : 4
-        }, {
           "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
@@ -104,6 +90,20 @@
             "format" : "DELIMITED",
             "properties" : {
               "delimiter" : "|"
+            }
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED",
+            "properties" : {
+              "delimiter" : "$"
             }
           },
           "partitions" : 4

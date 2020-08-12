@@ -41,7 +41,7 @@
     },
     "post" : {
       "sources" : [ {
-        "name" : "T1",
+        "name" : "TEST",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
@@ -49,7 +49,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "T1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {

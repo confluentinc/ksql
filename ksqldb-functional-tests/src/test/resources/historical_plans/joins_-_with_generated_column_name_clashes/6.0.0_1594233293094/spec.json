@@ -63,9 +63,9 @@
     "statements" : [ "CREATE TABLE L (ROWKEY INT PRIMARY KEY, ROWKEY_1 INT, ROWKEY_2 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (ROWKEY_3 INT PRIMARY KEY, ROWKEY_4 INT, ROWKEY_5 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT ROWKEY_6, L.ROWKEY, R.ROWKEY_3, L.ROWKEY_1, R.ROWKEY_5 FROM L FULL OUTER JOIN R on L.ROWKEY = R.ROWKEY_3;" ],
     "post" : {
       "sources" : [ {
-        "name" : "L",
+        "name" : "R",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER",
+        "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -79,9 +79,9 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "R",
+        "name" : "L",
         "type" : "TABLE",
-        "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -89,7 +89,17 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -110,17 +120,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
-          "name" : "left_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

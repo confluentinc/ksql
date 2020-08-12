@@ -164,7 +164,7 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -179,7 +179,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

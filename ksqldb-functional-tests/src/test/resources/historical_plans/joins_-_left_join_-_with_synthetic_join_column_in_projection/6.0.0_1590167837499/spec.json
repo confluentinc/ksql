@@ -65,7 +65,7 @@
     "statements" : [ "CREATE STREAM L (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM R (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT ROWKEY AS ID, L.ID, R.ID, L.V0, R.V1 FROM L LEFT JOIN R WITHIN 1 SECOND ON ABS(L.id) = ABS(R.id);" ],
     "post" : {
       "sources" : [ {
-        "name" : "L",
+        "name" : "R",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
@@ -81,7 +81,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "R",
+        "name" : "L",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
@@ -91,17 +91,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
           "keyFormat" : {
             "formatInfo" : {
@@ -132,6 +121,17 @@
             "format" : "JSON"
           }
         }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
@@ -142,7 +142,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "left_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

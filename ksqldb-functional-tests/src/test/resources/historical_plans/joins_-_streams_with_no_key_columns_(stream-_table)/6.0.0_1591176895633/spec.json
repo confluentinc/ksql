@@ -56,9 +56,9 @@
     "statements" : [ "CREATE STREAM L (A INT, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');", "CREATE TABLE R (A INT PRIMARY KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R ON L.A = R.A;" ],
     "post" : {
       "sources" : [ {
-        "name" : "L",
-        "type" : "STREAM",
-        "schema" : "`A` INTEGER, `B` INTEGER, `C` INTEGER",
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -72,9 +72,9 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "R",
-        "type" : "TABLE",
-        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER, `B` INTEGER, `C` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -82,6 +82,17 @@
       } ],
       "topics" : {
         "topics" : [ {
+          "name" : "RIGHT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "LEFT",
           "keyFormat" : {
             "formatInfo" : {
@@ -94,17 +105,6 @@
           "partitions" : 4
         }, {
           "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "RIGHT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

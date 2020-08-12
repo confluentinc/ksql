@@ -42,7 +42,7 @@
     "statements" : [ "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;", "CREATE TABLE addresses (address ADDRESS) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE copy AS SELECT * FROM addresses;" ],
     "post" : {
       "sources" : [ {
-        "name" : "ADDRESSES",
+        "name" : "COPY",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>",
         "keyFormat" : {
@@ -50,7 +50,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "COPY",
+        "name" : "ADDRESSES",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>",
         "keyFormat" : {

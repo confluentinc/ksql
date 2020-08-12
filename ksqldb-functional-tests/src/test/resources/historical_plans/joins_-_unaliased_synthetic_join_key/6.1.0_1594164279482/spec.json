@@ -63,7 +63,7 @@
     "statements" : [ "CREATE TABLE L (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT ROWKEY, L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R on L.id = R.id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "L",
+        "name" : "R",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
@@ -79,7 +79,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "R",
+        "name" : "L",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
@@ -89,7 +89,17 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -110,17 +120,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
-          "name" : "left_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

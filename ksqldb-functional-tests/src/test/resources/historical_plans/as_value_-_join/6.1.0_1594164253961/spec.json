@@ -52,6 +52,14 @@
     "statements" : [ "CREATE STREAM I1 (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='i1', value_format='JSON');", "CREATE TABLE I2 (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='i2', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM I1 JOIN I2 ON AS_VALUE(I1.ID) = I2.ID;" ],
     "post" : {
       "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`I2_ID` INTEGER KEY, `I1_ID` INTEGER, `I1_V0` INTEGER, `I1_V1` INTEGER, `I2_V0` INTEGER, `I2_V1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "I1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
@@ -67,17 +75,41 @@
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
-      }, {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`I2_ID` INTEGER KEY, `I1_ID` INTEGER, `I1_V0` INTEGER, `I1_V1` INTEGER, `I2_V0` INTEGER, `I2_V1` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "i2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "i1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
@@ -98,38 +130,6 @@
           "valueFormat" : {
             "format" : "JSON"
           }
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
-          "name" : "i1",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "i2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

@@ -104,17 +104,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "sink",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "partitions" : 4
-        }, {
           "name" : "source",
           "keyFormat" : {
             "formatInfo" : {
@@ -123,6 +112,17 @@
           },
           "valueFormat" : {
             "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "sink",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
           },
           "partitions" : 4
         } ]

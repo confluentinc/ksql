@@ -157,9 +157,9 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');", "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');", "CREATE TABLE OUTPUT as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "TEST_TABLE",
         "type" : "TABLE",
-        "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -173,9 +173,9 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST_TABLE",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -183,7 +183,17 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
+        }, {
+          "name" : "left_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -204,17 +214,7 @@
             "format" : "PROTOBUF"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "PROTOBUF"
-          }
-        }, {
-          "name" : "left_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

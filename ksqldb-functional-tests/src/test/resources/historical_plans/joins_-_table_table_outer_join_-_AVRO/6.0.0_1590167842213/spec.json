@@ -193,17 +193,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TEST_TABLE",
         "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST_TABLE",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

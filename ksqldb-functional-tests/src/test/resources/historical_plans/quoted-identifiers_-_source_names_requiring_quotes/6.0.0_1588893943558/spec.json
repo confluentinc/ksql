@@ -34,7 +34,7 @@
     "statements" : [ "CREATE STREAM `foo-source` (K STRING KEY, id VARCHAR) WITH (kafka_topic='foo-source', value_format='JSON');", "CREATE STREAM `foo-too` AS SELECT K, `foo-source`.id FROM `foo-source`;" ],
     "post" : {
       "sources" : [ {
-        "name" : "foo-source",
+        "name" : "foo-too",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` STRING",
         "keyFormat" : {
@@ -42,7 +42,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "foo-too",
+        "name" : "foo-source",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` STRING",
         "keyFormat" : {

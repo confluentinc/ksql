@@ -103,13 +103,24 @@
     "post" : {
       "sources" : [ {
         "name" : "S2",
-        "type" : "stream",
-        "schema" : "ROWKEY INT KEY, ID BIGINT, WSTART BIGINT, WEND BIGINT, KEY INT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

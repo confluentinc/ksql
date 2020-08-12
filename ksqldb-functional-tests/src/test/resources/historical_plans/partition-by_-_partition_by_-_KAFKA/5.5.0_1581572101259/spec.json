@@ -30,12 +30,21 @@
     "statements" : [ "CREATE STREAM INPUT (ID INTEGER) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='KAFKA');", "CREATE STREAM OUTPUT AS SELECT INPUT.ID ID\nFROM INPUT INPUT\nPARTITION BY INPUT.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY INT KEY, ID INT",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

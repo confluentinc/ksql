@@ -43,6 +43,23 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, c1 INT, unknown INT) WITH (kafka_topic='input', value_format='AVRO');", "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM input;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S",

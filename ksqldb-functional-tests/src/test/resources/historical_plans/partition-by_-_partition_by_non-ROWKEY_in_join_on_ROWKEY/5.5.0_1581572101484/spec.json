@@ -50,8 +50,29 @@
     "statements" : [ "CREATE STREAM L (A STRING, B STRING) WITH (KAFKA_TOPIC='LEFT', KEY='A', VALUE_FORMAT='JSON');", "CREATE STREAM R (C STRING, D STRING) WITH (KAFKA_TOPIC='RIGHT', KEY='C', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  L.ROWKEY L_ROWKEY,\n  R.ROWKEY R_ROWKEY\nFROM L L\nINNER JOIN R R WITHIN 10 SECONDS ON ((L.A = R.C))\nPARTITION BY L.B\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `A` STRING, `B` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
-        "type" : "stream"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `L_ROWKEY` STRING, `R_ROWKEY` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `C` STRING, `D` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

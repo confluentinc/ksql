@@ -146,9 +146,40 @@
     "statements" : [ "CREATE STREAM DATA (USER_ID INT) WITH (kafka_topic='data', value_format='JSON');", "CREATE TABLE SESSIONS as SELECT USER_ID, COUNT(USER_ID) AS COUNT FROM DATA WINDOW SESSION (5 SECONDS) group by USER_ID;", "CREATE STREAM SESSION_STREAM (USER_ID INT KEY, COUNT BIGINT) WITH (kafka_topic='SESSIONS', value_format='JSON', window_type='Session');", "CREATE STREAM SESSION_STARTS AS SELECT * FROM SESSION_STREAM WHERE WINDOWSTART = WINDOWEND;" ],
     "post" : {
       "sources" : [ {
+        "name" : "DATA",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `USER_ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "SESSIONS",
+        "type" : "TABLE",
+        "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "SESSION_STARTS",
-        "type" : "stream",
-        "schema" : "USER_ID INT KEY, COUNT BIGINT"
+        "type" : "STREAM",
+        "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "SESSION_STREAM",
+        "type" : "STREAM",
+        "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -122,13 +122,23 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_TYPE='SESSION');", "CREATE STREAM S2 AS SELECT\n  *,\n  INPUT.WINDOWSTART WSTART,\n  INPUT.WINDOWEND WEND,\n  INPUT.ROWKEY KEY\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "S2",
-        "type" : "stream",
+        "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        }
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

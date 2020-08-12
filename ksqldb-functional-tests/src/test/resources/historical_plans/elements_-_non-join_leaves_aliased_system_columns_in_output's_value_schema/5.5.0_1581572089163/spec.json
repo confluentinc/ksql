@@ -49,6 +49,25 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (F0 INTEGER) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON', WINDOW_TYPE='session');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.F0 F0,\n  INPUT.ROWTIME TIME,\n  INPUT.WINDOWSTART WSTART,\n  INPUT.WINDOWEND WEND,\n  INPUT.ROWKEY KEY\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "OUTPUT",

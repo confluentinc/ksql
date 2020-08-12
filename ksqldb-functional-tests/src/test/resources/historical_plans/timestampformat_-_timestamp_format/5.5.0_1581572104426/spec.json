@@ -69,6 +69,23 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, EVENT_TIMESTAMP STRING) WITH (KAFKA_TOPIC='test_topic', TIMESTAMP='event_timestamp', TIMESTAMP_FORMAT='yyyy-MM-dd''T''HH:mm:ssX', VALUE_FORMAT='JSON');", "CREATE STREAM TS AS SELECT\n  TEST.ID ID,\n  STRINGTOTIMESTAMP(TEST.EVENT_TIMESTAMP, 'yyyy-MM-dd''T''HH:mm:ssX') ETS\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TIMESTAMP` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TS",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ETS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "TS",

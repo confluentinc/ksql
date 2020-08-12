@@ -40,8 +40,20 @@
     "post" : {
       "sources" : [ {
         "name" : "BIG_STRUCT",
-        "type" : "stream",
-        "schema" : "ROWKEY STRING KEY, S STRUCT<F1 STRING, F2 ARRAY<STRING>, F3 STRING>"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`F1` STRING, `F2` ARRAY<STRING>, `F3` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `COL1` STRING, `COL2` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

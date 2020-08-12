@@ -54,9 +54,29 @@
     "statements" : [ "CREATE STREAM L (L0 DOUBLE, L1 INTEGER) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON');", "CREATE STREAM R (R0 DOUBLE, R1 INTEGER) WITH (KAFKA_TOPIC='right_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  L.ROWKEY L_ROWKEY,\n  L.L1 L1,\n  R.R1 R1\nFROM L L\nINNER JOIN R R WITHIN 11 SECONDS ON ((L.L0 = R.R0))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `L0` DOUBLE, `L1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY DOUBLE KEY, L_ROWKEY STRING, L1 INT, R1 INT"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` DOUBLE KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `R0` DOUBLE, `R1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

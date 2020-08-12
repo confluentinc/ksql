@@ -67,6 +67,23 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (ROWKEY INTEGER PRIMARY KEY, USER INTEGER, REGION STRING) WITH (KAFKA_TOPIC='test_topic', KEY='user', VALUE_FORMAT='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT\n  SUBSTRING(TEST.REGION, 2, 1) KSQL_COL_0,\n  COUNT(*) KSQL_COL_1\nFROM TEST TEST\nGROUP BY TEST.REGION\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` INTEGER KEY, `USER` INTEGER, `REGION` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "OUTPUT",

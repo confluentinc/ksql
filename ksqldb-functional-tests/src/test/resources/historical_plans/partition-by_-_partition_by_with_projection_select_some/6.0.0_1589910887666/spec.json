@@ -31,11 +31,20 @@
     "post" : {
       "sources" : [ {
         "name" : "REPARTITIONED",
-        "type" : "stream",
-        "schema" : "NAME STRING KEY, ID BIGINT",
+        "type" : "STREAM",
+        "schema" : "`NAME` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

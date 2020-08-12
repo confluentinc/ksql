@@ -35,10 +35,20 @@
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
-        "type" : "table"
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       }, {
         "name" : "OUTPUT",
-        "type" : "table"
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -15,7 +15,7 @@
         "ID" : 1,
         "F0" : 2
       }
-    },{
+    }, {
       "topic" : "input",
       "key" : "foo",
       "value" : {
@@ -30,7 +30,7 @@
         "ID" : 1,
         "F0" : 2
       }
-    },{
+    }, {
       "topic" : "OUTPUT",
       "key" : null,
       "value" : {
@@ -51,12 +51,20 @@
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
-        "type" : "stream",
-        "schema" : "ID INT, F0 INT"
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       }, {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ID INT, F0 INT"
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

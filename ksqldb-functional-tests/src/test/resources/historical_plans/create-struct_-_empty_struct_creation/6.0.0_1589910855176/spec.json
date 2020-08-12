@@ -35,8 +35,20 @@
     "post" : {
       "sources" : [ {
         "name" : "BIG_STRUCT",
-        "type" : "stream",
-        "schema" : "ID STRING KEY, S STRUCT< >"
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `S` STRUCT< >",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

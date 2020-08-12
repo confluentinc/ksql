@@ -58,14 +58,23 @@
     "statements" : [ "CREATE STREAM INPUT (K BIGINT KEY, VALUE BIGINT) WITH (kafka_topic='input', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT K AS ID, max(value) AS MAX FROM INPUT WINDOW TUMBLING (SIZE 30 SECONDS) group by K;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
-        "type" : "table",
+        "type" : "TABLE",
         "schema" : "`ID` BIGINT KEY, `MAX` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        }
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

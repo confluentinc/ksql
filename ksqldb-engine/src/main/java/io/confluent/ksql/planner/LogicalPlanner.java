@@ -37,8 +37,8 @@ import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.AsValue;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -93,21 +93,21 @@ public class LogicalPlanner {
 
   private final KsqlConfig ksqlConfig;
   private final RewrittenAnalysis analysis;
-  private final FunctionRegistry functionRegistry;
+  private final MetaStore metaStore;
   private final AggregateAnalyzer aggregateAnalyzer;
   private final ColumnReferenceRewriter refRewriter;
 
   public LogicalPlanner(
       final KsqlConfig ksqlConfig,
       final ImmutableAnalysis analysis,
-      final FunctionRegistry functionRegistry
+      final MetaStore metaStore
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.refRewriter =
         new ColumnReferenceRewriter(analysis.getFromSourceSchemas(false).isJoin());
     this.analysis = new RewrittenAnalysis(analysis, refRewriter::process);
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.aggregateAnalyzer = new AggregateAnalyzer(functionRegistry);
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+    this.aggregateAnalyzer = new AggregateAnalyzer(metaStore);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -227,13 +227,20 @@ public class LogicalPlanner {
     return timestampColumn;
   }
 
+  private Optional<LogicalSchema> getTargetSchema() {
+    return analysis.getInto().filter(i -> !i.isCreate())
+        .map(i -> metaStore.getSource(i.getName()))
+        .map(target -> target.getSchema());
+  }
+
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
     final GroupBy groupBy = analysis.getGroupBy()
         .orElseThrow(IllegalStateException::new);
 
     final List<SelectExpression> projectionExpressions = SelectionUtil.buildSelectExpressions(
         sourcePlanNode,
-        analysis.getSelectItems()
+        analysis.getSelectItems(),
+        getTargetSchema()
     );
 
     final LogicalSchema schema =
@@ -247,7 +254,7 @@ public class LogicalPlanner {
     if (analysis.getHavingExpression().isPresent()) {
       final FilterTypeValidator validator = new FilterTypeValidator(
           sourcePlanNode.getSchema(),
-          functionRegistry,
+          metaStore,
           FilterType.HAVING);
 
       validator.validateFilterExpression(analysis.getHavingExpression().get());
@@ -258,7 +265,7 @@ public class LogicalPlanner {
         sourcePlanNode,
         schema,
         groupBy,
-        functionRegistry,
+        metaStore,
         analysis,
         aggregateAnalysis,
         projectionExpressions,
@@ -271,8 +278,8 @@ public class LogicalPlanner {
         new PlanNodeId("Project"),
         parentNode,
         analysis.getSelectItems(),
-        analysis.getInto().isPresent(),
-        functionRegistry
+        analysis.getInto(),
+        metaStore
     );
   }
 
@@ -294,7 +301,7 @@ public class LogicalPlanner {
   ) {
     final FilterTypeValidator validator = new FilterTypeValidator(
         sourcePlanNode.getSchema(),
-        functionRegistry,
+        metaStore,
         FilterType.WHERE);
 
     validator.validateFilterExpression(filterExpression);
@@ -342,7 +349,7 @@ public class LogicalPlanner {
   }
 
   private FlatMapNode buildFlatMapNode(final PlanNode sourcePlanNode) {
-    return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, functionRegistry, analysis);
+    return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, metaStore, analysis);
   }
 
   private PlanNode buildSourceForJoin(
@@ -511,7 +518,7 @@ public class LogicalPlanner {
         sourceSchema
             .withPseudoAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
         projectionExpressions,
-        functionRegistry
+        metaStore
     );
 
     final List<Expression> groupByExps = groupBy.getGroupingExpressions();
@@ -555,7 +562,7 @@ public class LogicalPlanner {
       );
     } else {
       final ExpressionTypeManager typeManager =
-          new ExpressionTypeManager(sourceSchema, functionRegistry);
+          new ExpressionTypeManager(sourceSchema, metaStore);
 
       final Expression expression = groupByExps.get(0);
 
@@ -607,7 +614,7 @@ public class LogicalPlanner {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
         partitionBy,
-        functionRegistry
+        metaStore
     );
   }
 

@@ -305,7 +305,7 @@ final class EngineExecutor {
     final LogicalSchema resultSchema = outputNode.getSchema();
     final LogicalSchema existingSchema = existing.getSchema();
 
-    if (!resultSchema.equals(existingSchema)) {
+    if (!resultSchema.compatibleSchema(existingSchema)) {
       throw new KsqlException("Incompatible schema between results and sink."
           + System.lineSeparator()
           + "Result schema is " + resultSchema

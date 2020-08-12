@@ -188,6 +188,21 @@ public final class DecimalUtil {
     }
   }
 
+  /**
+   * Returns True if {@code s1} can be implicitly cast to {@code s2}.
+   * </p>
+   * A decimal {@code s1} can be implicitly cast if precision/scale fits into the {@code s2}
+   * precision/scale.
+   * <ul>
+   *   <li>{@code s1} scale <= {@code s2} scale</li>
+   *   <li>{@code s1} left digits <= {@code s2} left digits</li>
+   * </ul>
+   */
+  public static boolean canImplicitlyCast(final SqlDecimal s1, final SqlDecimal s2) {
+    return s1.getScale() <= s2.getScale()
+        && (s1.getPrecision() - s1.getScale()) <= (s2.getPrecision() - s2.getScale());
+  }
+
   public static BigDecimal cast(final long value, final int precision, final int scale) {
     validateParameters(precision, scale);
     final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));

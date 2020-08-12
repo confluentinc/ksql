@@ -173,6 +173,20 @@
         {"topic": "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_0-KSTREAM-JOINOTHER-0000000017-store-changelog", "window": {"start": 0, "end": 1000, "type": "time"}, "key": "v1", "value": {"S2_K": "v1", "S2_ROWTIME": 0, "S2_ID": "s2-key"}},
         {"topic": "OUTPUT", "key": "v1", "value": {"DATA": "s1-keys2-key", "I": 1}}
       ]
+    },
+    {
+      "name": "implicitly casts",
+      "statements": [
+        "CREATE STREAM SOURCE (ignored VARCHAR) WITH (kafka_topic='source', value_format='AVRO');",
+        "CREATE STREAM TARGET (c1 DECIMAL(5,2), c2 DECIMAL(5,2)) WITH (kafka_topic='target', value_format='AVRO');",
+        "INSERT INTO TARGET SELECT 1 as c1, 2.0 as c2 FROM SOURCE;"
+      ],
+      "inputs": [
+        {"topic": "source", "value": {"ignored": "v1"}}
+      ],
+      "outputs": [
+        {"topic": "target", "value": {"C1": 1.00, "C2": 2.00}}
+      ]
     }
   ]
 }

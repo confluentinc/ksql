@@ -65,10 +65,10 @@ The key of the resulting stream is determined by the following rules, in order o
 
 The projection must include all columns required in the result, including any key columns.
 
-For supported [serialization formats](../developer-guide/serialization.md), ksqlDB can integrate 
-with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
-ksqlDB will register the value schema of the new stream with {{ site.sr }} for you. 
-The schema will be registered under the subject `<topic-name>-value`.
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB registers the value schema of the new stream with {{ site.sr }} automatically. 
+The schema is registered under the subject `<topic-name>-value`.
 
 The WITH clause for the result supports the following properties:
 

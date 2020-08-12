@@ -5,7 +5,7 @@ tagline:  Serialize and deserialize data with ksqlDB
 description: Learn how to control serialization and deserialization in ksqlDB queries
 ---
 
-The term serialization format refers to the manner in which an event's raw bytes
+The term _serialization format_ refers to the manner in which an event's raw bytes
 are translated to and from information structures that ksqlDB can understand
 at runtime. ksqlDB offers several mechanisms for controlling serialization
 and deserialization.
@@ -75,26 +75,26 @@ This data format supports all SQL
 | Feature                      | Supported |
 |------------------------------|-----------|
 | [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
-| [Schema inference][1]        | Yes. `JSON` supports _reading_ of schemas. `JSON_SR` supports both _reading_ and _writing_ of scheams.  |
+| [Schema inference][1]        | Yes. `JSON` supports _reading_ schemas. `JSON_SR` supports both _reading_ and _writing_ scheams.  |
 | [Single field unwrapping][2] | Yes       |
 
-There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and deserializing 
-JSON data. Both support reading the schema of a source from the {{ site.sr }}. The difference 
-between the two formats is that only the `JSON_SR` format will register the schema of new sources
-with the {{ site.sr }}. 
+There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and
+deserializing JSON data. Both support reading the schema of a source from
+{{ site.sr }}. The difference between the two formats is that only the `JSON_SR`
+format registers the schema of a new source with {{ site.sr }}. 
 
 The JSON formats supports all SQL [data types](syntax-reference.md#data-types).
-As JSON doesn't itself support a map type, ksqlDB serializes `MAP` types as
-JSON objects. Because of this the JSON format can only support `MAP` objects
+By itself, JSON doesn't support a map type, so ksqlDB serializes `MAP` types as
+JSON objects. For this reason, the JSON format  supports only `MAP` objects
 that have `STRING` keys.
 
-The serialized object should be a Kafka-serialized string containing a
-valid JSON value. The format supports JSON objects and top-level
-primitives, arrays and maps. See below for more info.
+The serialized object should be a {{ site.ak }}-serialized string that contains
+a valid JSON value. The format supports JSON objects and top-level primitives,
+arrays, and maps.
 
-!!! note
-    If you want sources you create to store their schemas in the {{ site.sr }}, specify the
-    `JSON_SR` format.
+!!! important
+    If you want the sources that you create to store their schemas in
+    {{ site.sr }}, specify the `JSON_SR` format.
 
 #### JSON Objects
 
@@ -151,7 +151,7 @@ For more information, see [Single field (un)wrapping](#single-field-unwrapping).
 
 #### Decimal Serialization
 
-ksqlDB accepts decimals that are serialized either as numbers, or the text
+ksqlDB accepts decimals that are serialized either as numbers or the text
 representation of the base 10 equivalent. For example, ksqlDB can read JSON data
 from both formats below:
 

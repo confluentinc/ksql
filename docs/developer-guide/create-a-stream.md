@@ -102,9 +102,9 @@ The previous SQL statement doesn't define a column to represent the data in the
 is serialized in a key format that ksqlDB supports, you can specify the key in the column list of 
 the CREATE STREAM statement.
 
-ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
+ksqlDB requires keys to be serialized using {{ site.ak }}'s own serializers or compatible
 serializers. For supported data types, see the [`KAFKA` format](./serialization.md#kafka). 
-If the data in your {{ site.ak }} topics does not have a suitable key format, 
+If the data in your {{ site.ak }} topics doesn't have a suitable key format, 
 see [Key Requirements](syntax-reference.md#key-requirements).
 
 For example, the {{ site.ak }}  message key of the `pageviews` topic is a `BIGINT` containing the 
@@ -192,13 +192,13 @@ Kafka topic          : pageviews (partitions: 1, replication: 1)
 
 ### Creating a Table using Schema Inference
 
-For supported [serialization formats](../developer-guide/serialization.md), ksqlDB can integrate 
-with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
-ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to save you 
-from having to manually define columns in your `CREATE STREAM` statements.
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+spare you from defining columns manually in your `CREATE STREAM` statements.
 
-The example below creates a stream over an existing topic, loading the value column definitions from
-the {{ site.sr }}.
+The following example creates a stream over an existing topic, loading the
+value column definitions from {{ site.sr }}.
 
 ```sql
 CREATE STREAM pageviews WITH (
@@ -207,7 +207,7 @@ CREATE STREAM pageviews WITH (
   );
 ```
 
-For more information, see [Schema Inference](../concepts/schemas.md#schema-inference). 
+For more information, see [Schema Inference](../concepts/schemas.md#schema-inference).
 
 Create a Stream backed by a new Kafka Topic
 -------------------------------------------

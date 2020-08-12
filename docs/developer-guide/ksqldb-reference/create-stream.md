@@ -45,10 +45,10 @@ Each column is defined by:
    If a column is not marked as a `KEY` column, ksqlDB loads it from the Kafka message's value.
    Unlike a table's `PRIMARY KEY`, a stream's keys can be NULL.
    
-For supported [serialization formats](../developer-guide/serialization.md), ksqlDB can integrate 
-with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
-ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to save you 
-from having to manually define columns in your `CREATE STREAM` statements.
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+spare you from defining columns manually in your `CREATE STREAM` statements.
    
 Each row within the stream has a `ROWTIME` pseudo column, which represents the _event time_ 
 of the row. The timestamp has milliseconds accuracy. The timestamp is used by ksqlDB during any
@@ -108,13 +108,13 @@ CREATE STREAM pageviews (
     VALUE_FORMAT = 'JSON'
   );
 
--- keyless stream, with value columns loaded from the schema registry:
+-- keyless stream, with value columns loaded from Schema Registry:
 CREATE STREAM pageviews WITH (
     KAFKA_TOPIC = 'keyless-pageviews-topic',
     VALUE_FORMAT = 'JSON'
   );
 
--- keyed stream, with value columns loaded from the schema registry:
+-- keyed stream, with value columns loaded from Schema Registry:
 CREATE STREAM pageviews (
     page_id BIGINT KEY
   ) WITH (

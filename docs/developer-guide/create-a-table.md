@@ -20,12 +20,12 @@ query results from other tables or streams.
       
 ksqlDB can't infer the topic value's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
-data format is `JSON`. 
-For all supported formats, see [Serialization Formats](serialization.md#serialization-formats).
+data format is `JSON`. For all supported formats, see
+[Serialization Formats](serialization.md#serialization-formats).
 
-ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
-serializers. For supported data types, see the [`KAFKA` format](./serialization.md#kafka). 
-If the data in your {{ site.ak }} topics does not have a suitable key format, 
+ksqlDB requires keys to be serialized using {{ site.ak }}'s own serializers or
+compatible serializers. For supported data types, see the [`KAFKA` format](./serialization.md#kafka). 
+If the data in your {{ site.ak }} topics doesn't have a suitable key format, 
 see [Key Requirements](syntax-reference.md#key-requirements).
 
 Create a Table from an existing Kafka Topic
@@ -129,13 +129,13 @@ because the underlying `users` topic receives new messages continuously.
 
 ### Creating a Table using Schema Inference
 
-For supported [serialization formats](../developer-guide/serialization.md), ksqlDB can integrate 
-with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
-ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to save you 
-from having to manually define columns in your `CREATE TABLE` statements.
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+spare you from defining columns manually in your `CREATE TABLE` statements.
 
-The example below creates a table over an existing topic, loading the value column definitions from
-the {{ site.sr }}.
+The following example creates a table over an existing topic, loading the
+value column definitions from {{ site.sr }}.
 
 ```sql
 CREATE TABLE users (

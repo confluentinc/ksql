@@ -6,26 +6,36 @@ description: Details about SQL commands and statements in ksqlDB
 keywords: ksqldb, sql, keyword, identifier, constant, operator
 ---
 
-- ksqlDB SQL is SQL extended for streaming
-- commands
-  - tokens
-  - terminate with ;
-  - valid tokens
-    - keyword
-    - identifier
-    - backticked identifier
-    - special character
-  - tokens separated by whitespace
+SQL is a domain-specific language for managing and manipulating data. It’s primarily used to work with structured data, where the types and relationships across entities are well-defined. Originally adopted for relational databases, SQL is rapidly becoming the language of choice for stream processing. It’s declarative, expressive, and ubiquitous.
 
-[ example commands ]
+The American National Standards Institute (ANSI) maintains a standard for the specification of SQL. SQL-92, the third revision to the standard, is generally the most recognized form of that specification. Beyond the standard, there are many flavors and extensions to SQL so that it can express programs beyond the SQL-92 grammar.
 
-- Note that it's based off Presto + has additions for other functionality.
+ksqlDB’s SQL grammar was initially built around Presto’s grammar and has been judiciously extended. ksqlDB goes beyond SQL-92 because the standard currently has no constructs for streaming queries, a core aspect of this project.
+
+## Syntax
+
+SQL inputs are made up of a series of commands. Each command is made up of a series of tokens and ends in a semicolon (`;`). The tokens that apply depend on the command being invoked.
+
+A token is any keyword, identifier, backticked identifier, literal, or special character. Tokens are conventionally separated by whitespace unless there is no ambiguity in the grammar. This often happens when tokens flank a special character.
+
+As an example, the following is syntactically valid ksqlDB SQL input:
+
+```sql
+INSERT INTO s1 (a, b) VALUES ('k1', 'v1');
+
+CREATE STREAM s2 AS
+    SELECT a, b
+    FROM s1
+    EMIT CHANGES;
+
+SELECT * FROM t1 WHERE k1='foo' EMIT CHANGES;
+```
 
 ## Keywords
 
-- Keywords = reserved words
-  - examples: select, insert, where
-  - case insensitive
+Some tokens, such as `SELECT`, `INSERT`, and `CREATE`, are known as keywords. Keywords are reserved tokens that have a specific meaning in ksqlDB’s syntax. They control their surrounding allowable tokens and execution semantics. Keywords are case insensitive, meaning `SELECT` and `select` are equivalent. You cannot create an identifier that is already a keyword (unless you use backticked identifiers).
+
+A complete list of keywords can be found in the appendix.
 
 The following table shows all keywords in ksqlDB SQL.
 

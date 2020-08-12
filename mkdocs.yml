@@ -105,6 +105,7 @@ nav:
         - Window functions: xx.md
       - Type conversion: xx.md
       - SQL commands: xx.md
+      - Appendix: reference2/sql-syntax/appendix.md
     - Configuration: xx.md
     - Metrics: xx.md
     - Serialization: xx.md

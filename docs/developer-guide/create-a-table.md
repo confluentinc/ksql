@@ -17,6 +17,16 @@ query results from other tables or streams.
 !!! note
       Creating streams is similar to creating tables. For more information,
       see [Create a ksqlDB Stream](create-a-stream.md).
+      
+ksqlDB can't infer the topic value's data format, so you must provide the
+format of the values that are stored in the topic. In this example, the
+data format is `JSON`. For all supported formats, see
+[Serialization Formats](serialization.md#serialization-formats).
+
+ksqlDB requires keys to be serialized using {{ site.ak }}'s own serializers or
+compatible serializers. For supported data types, see the [`KAFKA` format](./serialization.md#kafka). 
+If the data in your {{ site.ak }} topics doesn't have a suitable key format, 
+see [Key Requirements](syntax-reference.md#key-requirements).
 
 Create a Table from an existing Kafka Topic
 -------------------------------------------
@@ -33,16 +43,6 @@ The following example creates a table that has four columns from the
 `users` topic: `registertime`, `userid`, `gender`, and `regionid`. 
 The `userid` column is the primary key of the table. This means that it's loaded from the {{ site.ak }} message
 key. Primary key columns can't be `NULL`.
-
-ksqlDB can't infer the topic value's data format, so you must provide the
-format of the values that are stored in the topic. In this example, the
-data format is `JSON`. Other options are `Avro`, `DELIMITED`, `JSON_SR`, `PROTOBUF`, and `KAFKA`. 
-For more information, see [Serialization Formats](serialization.md#serialization-formats).
-
-ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
-serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types. If the data in your
-{{ site.ak }} topics does not have a suitable key format, 
-see [Key Requirements](syntax-reference.md#key-requirements).
 
 In the ksqlDB CLI, paste the following CREATE TABLE statement:
 
@@ -126,6 +126,27 @@ Press Ctrl+C to stop printing the query results.
 
 The table values update continuously with the most recent records,
 because the underlying `users` topic receives new messages continuously.
+
+### Creating a Table using Schema Inference
+
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+spare you from defining columns manually in your `CREATE TABLE` statements.
+
+The following example creates a table over an existing topic, loading the
+value column definitions from {{ site.sr }}.
+
+```sql
+CREATE TABLE users (
+    userid VARCHAR PRIMARY KEY
+  ) WITH (
+    KAFKA_TOPIC = 'users',
+    VALUE_FORMAT='AVRO'
+);
+```
+
+For more information, see [Schema Inference](../concepts/schemas.md#schema-inference).
 
 Create a Table backed by a new Kafka Topic
 ------------------------------------------

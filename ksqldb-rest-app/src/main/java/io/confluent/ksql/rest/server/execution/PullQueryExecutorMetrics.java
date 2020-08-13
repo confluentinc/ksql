@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -42,7 +43,6 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Sensor localRequestsSensor;
   private final Sensor remoteRequestsSensor;
   private final Sensor latencySensor;
-  private final Sensor requestRateSensor;
   private final Sensor errorRateSensor;
   private final Metrics metrics;
   private final Map<String, String> customMetricsTags;
@@ -61,7 +61,6 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
     this.latencySensor = configureRequestSensor();
-    this.requestRateSensor = configureRateSensor();
     this.errorRateSensor = configureErrorRateSensor();
   }
 
@@ -78,12 +77,10 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.remoteRequestsSensor.record(value);
   }
 
-  public void recordRate(final double value) {
-    this.requestRateSensor.record(value);
-  }
-
-  public void recordLatency(final double value) {
-    this.latencySensor.record(value);
+  public void recordLatency(final long nanoSeconds) {
+    // Record latency at microsecond scale
+    final double latency = TimeUnit.NANOSECONDS.toMicros(nanoSeconds);
+    this.latencySensor.record(latency);
   }
 
   public void recordErrorRate(final double value) {

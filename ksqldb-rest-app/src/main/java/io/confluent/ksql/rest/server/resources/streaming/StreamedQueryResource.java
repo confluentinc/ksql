@@ -58,6 +58,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,6 +152,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest
   ) {
+    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -161,7 +163,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest);
+        isInternalRequest, startTimeNanos);
   }
 
   private void throwIfNotConfigured() {
@@ -189,7 +191,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final KsqlRequest request,
       final PreparedStatement<?> statement,
       final CompletableFuture<Void> connectionClosedFuture,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final long startTimeNanos
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -211,7 +214,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
               queryStmt,
               configProperties,
               request.getRequestProperties(),
-              isInternalRequest
+              isInternalRequest,
+              startTimeNanos
           );
           return response;
         }
@@ -249,13 +253,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final PreparedStatement<Query> statement,
       final Map<String, Object> configOverrides,
       final Map<String, Object> requestProperties,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final long startTimeNanos
   ) {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
     final PullQueryResult result = pullQueryExecutor
-        .execute(configured, serviceContext, isInternalRequest);
+        .execute(configured, serviceContext, isInternalRequest, startTimeNanos);
     final TableRows tableRows = result.getTableRows();
     final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
         .map(KsqlNode::location)

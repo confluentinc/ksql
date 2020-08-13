@@ -113,21 +113,9 @@ public class PullQueryExecutorMetricsTest {
   }
 
   @Test
-  public void shouldRecordRequestRate() {
-    // Given:
-    pullMetrics.recordRate(3);
-
-    // When:
-    final double rate = getMetricValue("-rate");
-
-    // Then:
-    assertThat(rate, closeTo(0.03, 0.001));
-  }
-
-  @Test
   public void shouldRecordLatency() {
     // Given:
-    pullMetrics.recordLatency(3);
+    pullMetrics.recordLatency(3000);
 
     // When:
     final double avg = getMetricValue("-latency-avg");

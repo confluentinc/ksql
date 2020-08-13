@@ -187,7 +187,7 @@ public class StreamedQueryResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     pullQueryExecutor = new PullQueryExecutor(
-        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, Optional.empty());
+        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,

@@ -31,6 +31,7 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -137,25 +138,25 @@ public final class PullQueryExecutor {
   private static final String VALID_WINDOW_BOUNDS_TYPES_STRING =
       GrammaticalJoiner.and().join(VALID_WINDOW_BOUNDS_TYPES);
 
-  private final KsqlExecutionContext executionContext;
+  private final KsqlEngine ksqlEngine;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final Time time;
 
   public PullQueryExecutor(
-      final KsqlExecutionContext executionContext,
+      final KsqlEngine ksqlEngine,
       final RoutingFilterFactory routingFilterFactory,
-      final KsqlConfig ksqlConfig,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final KsqlConfig ksqlConfig
   ) {
-    this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
-    this.pullQueryMetrics = pullQueryMetrics;
-    this.time = Time.SYSTEM;
+    this.pullQueryMetrics = ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED)
+        ? Optional.of(new PullQueryExecutorMetrics(ksqlEngine.getServiceId(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
+        : Optional.empty();
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -171,7 +172,8 @@ public final class PullQueryExecutor {
   public PullQueryResult execute(
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final long startTimeNanos
   ) {
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
@@ -187,7 +189,6 @@ public final class PullQueryExecutor {
     }
 
     try {
-      final long startTime = time.nanoseconds();
       final RoutingOptions routingOptions = new ConfigRoutingOptions(
           statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
       // If internal listeners are in use, we require the request to come from that listener to
@@ -202,11 +203,11 @@ public final class PullQueryExecutor {
       }
 
       final ImmutableAnalysis analysis = new RewrittenAnalysis(
-          analyze(statement, executionContext),
+          analyze(statement, ksqlEngine),
           new ColumnReferenceRewriter()::process
       );
 
-      final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
+      final PersistentQueryMetadata query = findMaterializingQuery(ksqlEngine, analysis);
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
@@ -231,18 +232,14 @@ public final class PullQueryExecutor {
 
       final PullQueryResult result = handlePullQuery(
           statement,
-          executionContext,
+          ksqlEngine,
           serviceContext,
           pullQueryContext,
           routingOptions
       );
 
-      if (pullQueryMetrics.isPresent()) {
-        //Record latency at microsecond scale
-        final double latency = (time.nanoseconds() - startTime) / 1000f;
-        pullQueryMetrics.get().recordLatency(latency);
-        pullQueryMetrics.get().recordRate(1);
-      }
+      pullQueryMetrics.ifPresent(metrics ->
+          metrics.recordLatency(Time.SYSTEM.nanoseconds() - startTimeNanos));
       return result;
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
@@ -263,9 +260,7 @@ public final class PullQueryExecutor {
   }
 
   public void closeMetrics() {
-    if (pullQueryMetrics != null) {
-      pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
-    }
+    pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
   }
 
   private PullQueryResult handlePullQuery(
@@ -490,8 +485,7 @@ public final class PullQueryExecutor {
       this.whereInfo = Objects.requireNonNull(whereInfo, "whereInfo");
       this.queryId = Objects.requireNonNull(queryId, "queryId");
       this.contextStacker = Objects.requireNonNull(contextStacker, "contextStacker");
-      this.pullQueryMetrics = Objects.requireNonNull(
-          pullQueryMetrics, "pullQueryExecutorMetrics");
+      this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     }
   }
 

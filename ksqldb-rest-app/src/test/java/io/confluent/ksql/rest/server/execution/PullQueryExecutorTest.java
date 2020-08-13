@@ -40,7 +40,6 @@ import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,12 +69,12 @@ public class PullQueryExecutorTest {
           engine.getKsqlConfig()
       );
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(), Optional.empty());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig());
 
       // When:
       final Exception e = assertThrows(
           KsqlException.class,
-          () -> pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty())
+          () -> pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty(), 0L)
       );
 
       // Then:
@@ -130,7 +129,7 @@ public class PullQueryExecutorTest {
     @Test
     public void shouldRateLimit() {
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(), Optional.empty());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig());
 
       // When:
       pullQueryExecutor.checkRateLimit();

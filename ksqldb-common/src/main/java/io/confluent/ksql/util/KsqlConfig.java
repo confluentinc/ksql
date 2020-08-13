@@ -342,7 +342,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS =
       "ksql.query.status.running.threshold.seconds";
-  private static final Integer KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT = 18000;
+  private static final Integer KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT = 300;
   private static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC = "Amount of time in "
       + "seconds to wait before setting a restarted query status as healthy (or running).";
 

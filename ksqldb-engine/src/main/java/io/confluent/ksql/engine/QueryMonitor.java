@@ -147,13 +147,16 @@ public class QueryMonitor implements Closeable {
             if (now >= retryEvent.queryHealthyTime()) {
               // Clean the errors queue & delete the query from future retries now the query is
               // healthy and has been running after some threshold time
-              query.ifPresent(QueryMetadata::clearErrors);
+              queryMetadata.clearErrors();
               it.remove();
             }
             break;
+          case CREATED:
+            // Do nothing.
+            continue;
           default:
             // Stop attempting restarts for any other status. Either the query is pending
-            // a shutdown or other status that do not track.
+            // a shutdown or other status that we do not track.
             it.remove();
             break;
         }

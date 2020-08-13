@@ -16,8 +16,8 @@ package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import org.apache.kafka.common.serialization.Serde;

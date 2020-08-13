@@ -26,7 +26,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;

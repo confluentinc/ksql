@@ -37,9 +37,9 @@ import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFa
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import io.confluent.ksql.serde.WindowInfo;

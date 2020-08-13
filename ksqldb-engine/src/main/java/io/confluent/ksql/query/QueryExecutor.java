@@ -41,7 +41,7 @@ import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;

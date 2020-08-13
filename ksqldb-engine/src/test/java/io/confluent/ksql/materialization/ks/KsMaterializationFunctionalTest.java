@@ -43,7 +43,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;

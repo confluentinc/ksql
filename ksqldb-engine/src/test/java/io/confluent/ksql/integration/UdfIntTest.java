@@ -33,7 +33,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.json.JsonFormat;

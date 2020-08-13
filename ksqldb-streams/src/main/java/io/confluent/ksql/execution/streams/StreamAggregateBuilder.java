@@ -37,7 +37,7 @@ import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.execution.windows.WindowVisitor;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.PhysicalSchema;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;

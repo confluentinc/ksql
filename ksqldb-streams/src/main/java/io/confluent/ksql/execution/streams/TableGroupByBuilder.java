@@ -29,7 +29,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.PhysicalSchema;
 import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;

@@ -23,9 +23,9 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationProvid
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;

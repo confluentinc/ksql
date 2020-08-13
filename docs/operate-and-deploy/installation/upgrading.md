@@ -6,10 +6,7 @@ description: Learn how to upgrade your on-premises ksqlDB deployments.
 keywords: ksqldb, install, upgrade
 ---
 
-!!! warning
-    Do not upgrade existing ksqlDB installations in-place.
-
-## Why does ksqlDB not currently support in-place upgrades?
+## About backward compatibility
 
 Past releases of KSQL were backward compatible. But there was a cost to this backward compatibility:
 progress was slower and the code base incurred increased complexity. ksqlDB is a young product and
@@ -63,7 +60,7 @@ If you prefer to recover the schema manually, use the following steps.
   5. Run `list types;` to list all of the custom types.
   6. Convert the output into `CREATE TYPE <name> AS <schema>` syntax by grabbing the name from the
      first column and the schema from the second column of the output.
-4. Order by dependency:  you'll now have the list of SQL statements to rebuild the schema, but they
+4. Order by dependency: you'll now have the list of SQL statements to rebuild the schema, but they
    are not yet ordered in terms of dependencies. You will need to reorder the statements to ensure
    each statement come after any other statements it depends on.
 5. Update the script to take into account any changes in syntax or functionality between the old
@@ -107,9 +104,6 @@ This will stop all processing and delete any internal topics in Kafka.
 ## Upgrade notes
 
 ### Upgrading from ksqlDB 0.9.0 to 0.10.0
-
-!!! important
-    ksqlDB 0.10.0 is not backward compatible. Do not upgrade in-place.
 
 The following changes in SQL syntax and functionality may mean SQL statements
 that ran previously no longer run.
@@ -368,7 +362,7 @@ CREATE TABLE INPUT (
 ### Upgrading from ksqlDB 0.7.0+ to 0.9.0
 
 !!! important
-    ksqlDB 0.9.0 is not backward compatible. Do not upgrade in-place.
+    ksqlDB 0.8.0 is not backward compatible. Do not upgrade in-place.
 
 The following changes in SQL syntax and functionality may mean SQL statements
 that ran previously no longer run.

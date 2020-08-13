@@ -1,11 +1,11 @@
 ---
 layout: page
-title: ksqlDB Serialization
+title: ksqlDB Serialization Formats
 tagline:  Serialize and deserialize data with ksqlDB
 description: Learn how to control serialization and deserialization in ksqlDB queries
 ---
 
-The term serialization refers to the manner in which an event's raw bytes
+The term _serialization format_ refers to the manner in which an event's raw bytes
 are translated to and from information structures that ksqlDB can understand
 at runtime. ksqlDB offers several mechanisms for controlling serialization
 and deserialization.
@@ -32,16 +32,20 @@ Serialization Formats
 
 ksqlDB supports these serialization formats:
 
--   `DELIMITED` supports comma separated values. See
-    [DELIMITED](#delimited) below.
--   `JSON` supports JSON values. See [JSON](#json) below.
--   `AVRO` supports AVRO serialized values. See
-    [AVRO](#avro) below.
+-   `DELIMITED` supports comma separated values. See [DELIMITED](#delimited) below.
+-   `JSON` and `JSON_SR` support JSON values. See [JSON](#json) below.
+-   `AVRO` supports AVRO serialized values. See [AVRO](#avro) below.
 -   `KAFKA` supports primitives serialized using the standard Kafka
     serializers. See [KAFKA](#kafka) below.
 -   `PROTOBUF` supports Protocol Buffers. See [Protobuf](#protobuf) below.
 
 ### DELIMITED
+
+| Feature                      | Supported |
+|------------------------------|-----------|
+| [Schema Registry required][0]| No        |
+| [Schema inference][1]        | No        |
+| [Single field unwrapping][2] | No: single field is always unwrapped | 
 
 The `DELIMITED` format supports comma-separated values. You can use other
 delimiter characters by specifying the VALUE_DELIMITER when you use
@@ -68,21 +72,29 @@ This data format supports all SQL
 
 ### JSON
 
-The `JSON` format supports JSON values.
+| Feature                      | Supported |
+|------------------------------|-----------|
+| [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
+| [Schema inference][1]        | Yes. `JSON` supports _reading_ schemas. `JSON_SR` supports both _reading_ and _writing_ scheams.  |
+| [Single field unwrapping][2] | Yes       |
 
-The JSON format supports all SQL
-[data types](syntax-reference.md#data-types).
-As JSON doesn't itself support a map type, ksqlDB serializes `MAP` types as
-JSON objects. Because of this the JSON format can only support `MAP` objects
+There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and
+deserializing JSON data. Both support reading the schema of a source from
+{{ site.sr }}. The difference between the two formats is that only the `JSON_SR`
+format registers the schema of a new source with {{ site.sr }}. 
+
+The JSON formats supports all SQL [data types](syntax-reference.md#data-types).
+By itself, JSON doesn't support a map type, so ksqlDB serializes `MAP` types as
+JSON objects. For this reason, the JSON format  supports only `MAP` objects
 that have `STRING` keys.
 
-The serialized object should be a Kafka-serialized string containing a
-valid JSON value. The format supports JSON objects and top-level
-primitives, arrays and maps. See below for more info.
+The serialized object should be a {{ site.ak }}-serialized string that contains
+a valid JSON value. The format supports JSON objects and top-level primitives,
+arrays, and maps.
 
-!!! note
-    If you want to use a JSON-based schema with {{ site.sr }}, specify the
-    `JSON_SR` format.
+!!! important
+    If you want the sources that you create to store their schemas in
+    {{ site.sr }}, specify the `JSON_SR` format.
 
 #### JSON Objects
 
@@ -96,7 +108,7 @@ CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='JSON', ...
 
 And a JSON value of:
 
-```sql
+```json
 {
   "id": 120,
   "name": "bob",
@@ -137,6 +149,27 @@ CREATE STREAM y WITH (WRAP_SINGLE_VALUE=false) AS SELECT id FROM x EMIT CHANGES;
 
 For more information, see [Single field (un)wrapping](#single-field-unwrapping).
 
+#### Decimal Serialization
+
+ksqlDB accepts decimals that are serialized either as numbers or the text
+representation of the base 10 equivalent. For example, ksqlDB can read JSON data
+from both formats below:
+
+```json
+{
+  "numericDecimal": 1.12345678912345,
+  "stringDecimal": "1.12345678912345"
+}
+```
+
+Decimals with specified precision and scale are serialized as JSON numbers. For example:
+
+```json
+{
+  "value": 1.12345678912345
+}
+```
+
 #### Field Name Case Sensitivity
 
 The format is case-insensitive when matching a SQL field name with a
@@ -144,6 +177,12 @@ JSON document's property name. The first case-insensitive match is
 used.
 
 ### Avro
+
+| Feature                      | Supported |
+|------------------------------|-----------|
+| [Schema Registry required][0]| Yes       |
+| [Schema inference][1]        | Yes       |
+| [Single field unwrapping][2] | Yes       |
 
 The `AVRO` format supports Avro binary serialization of all SQL
 [data types](syntax-reference.md#data-types), including records and
@@ -165,7 +204,7 @@ CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='JSON', ...
 
 And an Avro record serialized with the schema:
 
-```sql
+```json
 {
   "type": "record",
   "namespace": "com.acme",
@@ -180,6 +219,16 @@ And an Avro record serialized with the schema:
 
 ksqlDB deserializes the Avro record's fields into the corresponding
 fields of the stream.
+
+!!! important
+      By default, ksqlDB-registered schemas have the same name
+      (`KsqlDataSourceSchema`) and the same namespace
+      (`io.confluent.ksql.avro_schemas`). You can override this behavior by
+      providing a `VALUE_AVRO_SCHEMA_FULL_NAME` property in the `WITH` clause,
+      where you set the `VALUE_FORMAT` to `'AVRO'`. As the name suggests, this
+      property overrides the default name/namespace with the provided one.
+      For example, `com.mycompany.MySchema` registers a schema with the
+      `MySchema` name and the `com.mycompany` namespace.
 
 #### Top-level primitives, arrays and maps
 
@@ -219,6 +268,12 @@ The format is case-insensitive when matching a SQL field name with an
 Avro record's field name. The first case-insensitive match is used.
 
 ### KAFKA
+
+| Feature                      | Supported |
+|------------------------------|-----------|
+| [Schema Registry required][0]| No        |
+| [Schema inference][1]        | No        |
+| [Single field unwrapping][2] | No: single field is always unwrapped |
 
 The `KAFKA` format supports `INT`, `BIGINT`, `DOUBLE` and `STRING`
 primitives that have been serialized using Kafka's standard set of
@@ -271,6 +326,12 @@ format.
 
 ### Protobuf
 
+| Feature                      | Supported |
+|------------------------------|-----------|
+| [Schema Registry required][0]| Yes       |
+| [Schema inference][1]        | Yes       |
+| [Single field unwrapping][2] | No        |
+
 Protobuf handles `null` values differently than AVRO and JSON. Protobuf doesn't
 have the concept of a `null` value, so the conversion between PROTOBUF and Java
 ({{ site.kconnectlong }}) objects is undefined. Usually, Protobuf resolves a
@@ -283,29 +344,6 @@ have the concept of a `null` value, so the conversion between PROTOBUF and Java
 - **Enum:** the default value is the first defined enum value, which must be zero.
 - **Message field:** the field is not set. Its exact value is language-dependent.
   See the generated code guide for details.
-
-Decimal Serialization
----------------------
-
-ksqlDB accepts Decimals that are serialized either as numbers, or the text
-representation of the base 10 equivalent. For example, ksqlDB can read data
-from both formats below:
-
-```json
-{
-  "value": 1.12345678912345,
-  "value": "1.12345678912345"
-}
-```
-
-Decimals with specified precision and scale are serialized as JSON floating
-point numbers. For example:
-
-```json
-{
-  "value": 1.12345678912345
-}
-```
 
 Single field (un)wrapping
 -------------------------
@@ -491,3 +529,6 @@ CREATE STREAM EXPLICIT_SINK WITH(WRAP_SINGLE_VALUE=false) AS SELECT ID FROM S EM
 CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EMIT CHANGES;
 ```
 
+[0]: ../operate-and-deploy/installation/server-config/avro-schema.md
+[1]: ../concepts/schemas.md#schema-inference 
+[2]: #single-field-unwrapping

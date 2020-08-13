@@ -58,7 +58,7 @@ public abstract class QueryMetadata {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  private final Consumer<QueryMetadata> closeCallback;
+  private Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
@@ -140,6 +140,10 @@ public abstract class QueryMetadata {
     this.queryStateListener = Optional.of(queryStateListener);
     kafkaStreams.setStateListener(queryStateListener);
     queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
+  }
+
+  public void closeAndThen(final Consumer<QueryMetadata> andThen) {
+    this.closeCallback = closeCallback.andThen(andThen);
   }
 
   private void uncaughtHandler(final Thread t, final Throwable e) {

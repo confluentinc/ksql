@@ -52,7 +52,6 @@ public class TestDirectiveTest {
 
     // Then:
     assertThat(directive, Matchers.is(new TestDirective(Type.TEST, "bar", LOC)));
-    assertThat(directive.getLocation(), Matchers.is(new NodeLocation(1, 10)));
   }
 
   @Test

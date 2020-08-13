@@ -50,28 +50,28 @@ public class SqlTestReaderTest {
     assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
 
     assertThat(reader.hasNext(), is(true));
-    reader.next().handle(
+    reader.next().consume(
         s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
         s -> assertThat("unexpected statement " + s, false),
         s -> assertThat("unexpected statement " + s, false)
     );
 
     assertThat(reader.hasNext(), is(true));
-    reader.next().handle(
+    reader.next().consume(
         s -> assertThat(s.getStatementText(), containsString("CREATE STREAM bar")),
         s -> assertThat("unexpected statement " + s, false),
         s -> assertThat("unexpected statement " + s, false)
     );
 
     assertThat(reader.hasNext(), is(true));
-    reader.next().handle(
+    reader.next().consume(
         s -> assertThat(s.getStatementText(), containsString("INSERT INTO")),
         s -> assertThat("unexpected statement " + s, false),
         s -> assertThat("unexpected statement " + s, false)
     );
 
     assertThat(reader.hasNext(), is(true));
-    reader.next().handle(
+    reader.next().consume(
         s -> assertThat("unexpected statement " + s, false),
         s -> assertThat(s, instanceOf(AssertValues.class)),
         s -> assertThat("unexpected statement " + s, false)
@@ -93,14 +93,14 @@ public class SqlTestReaderTest {
     assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
 
     assertThat(reader.hasNext(), is(true));
-    reader.next().handle(
+    reader.next().consume(
         s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
         s -> assertThat("unexpected statement " + s, false),
         s -> assertThat("unexpected statement " + s, false)
     );
 
     assertThat(reader.hasNext(), is(true));
-    reader.next().handle(
+    reader.next().consume(
         s -> assertThat(s.getStatementText(), containsString("CREATE STREAM bar")),
         s -> assertThat("unexpected statement " + s, false),
         s -> assertThat("unexpected statement " + s, false)
@@ -124,7 +124,7 @@ public class SqlTestReaderTest {
     assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
 
     assertThat(reader.hasNext(), is(true));
-    reader.next().handle(
+    reader.next().consume(
         s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
         s -> assertThat("unexpected statement " + s, false),
         s -> assertThat("unexpected statement " + s, false)
@@ -151,7 +151,7 @@ public class SqlTestReaderTest {
     assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
 
     assertThat(reader.hasNext(), is(true));
-    reader.next().handle(
+    reader.next().consume(
         s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
         s -> assertThat("unexpected statement " + s, false),
         s -> assertThat("unexpected statement " + s, false)

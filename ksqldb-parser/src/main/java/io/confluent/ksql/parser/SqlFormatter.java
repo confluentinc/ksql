@@ -20,9 +20,13 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import com.google.common.base.Strings;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.Name;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -56,6 +60,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
@@ -250,6 +255,18 @@ public final class SqlFormatter {
     }
 
     @Override
+    public Void visitAssertStream(final AssertStream node, final Integer context) {
+      formatAssertSource(node.getStatement(), "STREAM");
+      return null;
+    }
+
+    @Override
+    public Void visitAssertTable(final AssertTable node, final Integer context) {
+      formatAssertSource(node.getStatement(), "TABLE");
+      return null;
+    }
+
+    @Override
     protected Void visitExplain(final Explain node, final Integer indent) {
       builder.append("EXPLAIN ");
       builder.append("\n");
@@ -314,22 +331,45 @@ public final class SqlFormatter {
       builder.append(escapedName(node.getTarget()));
       builder.append(" ");
 
-      if (!node.getColumns().isEmpty()) {
-        builder.append(node.getColumns()
+      visitColumns(node.getColumns());
+
+      builder.append("VALUES ");
+
+      visitExpressionList(node.getValues());
+
+      return null;
+    }
+
+    private void visitColumns(final List<ColumnName> columns) {
+      if (!columns.isEmpty()) {
+        builder.append(columns
             .stream()
             .map(SqlFormatter::escapedName)
             .collect(Collectors.joining(", ", "(", ") ")));
       }
+    }
 
-      builder.append("VALUES ");
-
+    private void visitExpressionList(final List<Expression> expressions) {
       builder.append("(");
       builder.append(
-          node.getValues()
+          expressions
               .stream()
               .map(SqlFormatter::formatExpression)
               .collect(Collectors.joining(", ")));
       builder.append(")");
+    }
+
+    @Override
+    public Void visitAssertValues(final AssertValues node, final Integer context) {
+      builder.append("ASSERT VALUES ");
+      builder.append(escapedName(node.getStatement().getTarget()));
+      builder.append(" ");
+
+      visitColumns(node.getStatement().getColumns());
+
+      builder.append("VALUES ");
+
+      visitExpressionList(node.getStatement().getValues());
 
       return null;
     }
@@ -469,7 +509,28 @@ public final class SqlFormatter {
 
       builder.append(escapedName(node.getName()));
 
-      final String elements = node.getElements().stream()
+      formatTableElements(node.getElements());
+      formatTableProperties(node.getProperties());
+
+      builder.append(";");
+    }
+
+    private void formatAssertSource(final CreateSource node, final String type) {
+      builder.append("ASSERT ");
+
+      builder.append(type);
+      builder.append(" ");
+
+      builder.append(escapedName(node.getName()));
+
+      formatTableElements(node.getElements());
+      formatTableProperties(node.getProperties());
+
+      builder.append(";");
+    }
+
+    private void formatTableElements(final TableElements tableElements) {
+      final String elements = tableElements.stream()
           .map(Formatter::formatTableElement)
           .collect(Collectors.joining(", "));
 
@@ -479,16 +540,16 @@ public final class SqlFormatter {
             .append(elements)
             .append(")");
       }
+    }
 
-      final String tableProps = node.getProperties().toString();
+    private void formatTableProperties(final CreateSourceProperties properties) {
+      final String tableProps = properties.toString();
       if (!tableProps.isEmpty()) {
         builder
             .append(" WITH (")
             .append(tableProps)
             .append(")");
       }
-
-      builder.append(";");
     }
 
     private void formatCreateAs(

@@ -8,7 +8,7 @@ def baseConfig = {
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
     dockerArtifacts = ['confluentinc/ksqldb-docker', 'confluentinc/ksqldb-docker']
     dockerRepos = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
-    nodeLabel = 'docker-oraclejdk8-compose-swarm'
+    nodeLabel = 'docker-openjdk11-compose-swarm'
     dockerScan = true
     cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
@@ -215,7 +215,7 @@ def job = {
                             // Set the version of the parent project to use.
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
 
-                            cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
+                            cmd = "mvn --batch-mode -Pjenkins clean install dependency:analyze-only site validate -U "
                             cmd += "-DskipTests "
                             cmd += "-Dspotbugs.skip "
                             cmd += "-Dcheckstyle.skip "
@@ -228,6 +228,15 @@ def job = {
                                 sh cmd
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
+
+                            if (config.release) {
+                                dir('ksqldb-api-client') {
+                                    withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
+                                        sh "mvn javadoc:javadoc"
+                                    }
+                                    sh "git add -f ../docs/developer-guide/ksqldb-clients/java-client/api"
+                                }
+                            }
 
                             sh "cp ${settingsFile} ."
 
@@ -260,7 +269,7 @@ def job = {
                                 bash extract-iam-credential.sh
                             '''
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
-                                cmd = "mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
+                                cmd = "mvn --batch-mode -Pjenkins deploy -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Ddocker.skip-build=true -Ddocker.skip-test=true"
                                 cmd += " -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
                                 cmd += " -DrepositoryId=confluent-artifactory-central"
                                 cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"

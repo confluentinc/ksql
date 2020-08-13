@@ -16,21 +16,17 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
-import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +35,7 @@ public class CommandTopic {
   private static final Logger log = LoggerFactory.getLogger(CommandTopic.class);
   private final TopicPartition commandTopicPartition;
 
-  private Consumer<CommandId, Command> commandConsumer = null;
+  private Consumer<byte[], byte[]> commandConsumer;
   private final String commandTopicName;
   private CommandTopicBackup commandTopicBackup;
 
@@ -52,8 +48,8 @@ public class CommandTopic {
         commandTopicName,
         new KafkaConsumer<>(
             Objects.requireNonNull(kafkaConsumerProperties, "kafkaClientProperties"),
-            InternalTopicSerdes.deserializer(CommandId.class),
-            InternalTopicSerdes.deserializer(Command.class)
+            new ByteArrayDeserializer(),
+            new ByteArrayDeserializer()
         ),
         commandTopicBackup
     );
@@ -61,7 +57,7 @@ public class CommandTopic {
 
   CommandTopic(
       final String commandTopicName,
-      final Consumer<CommandId, Command> commandConsumer,
+      final Consumer<byte[], byte[]> commandConsumer,
       final CommandTopicBackup commandTopicBackup
   ) {
     this.commandTopicPartition = new TopicPartition(commandTopicName, 0);
@@ -79,43 +75,38 @@ public class CommandTopic {
     commandConsumer.assign(Collections.singleton(commandTopicPartition));
   }
 
-  public Iterable<ConsumerRecord<CommandId, Command>> getNewCommands(final Duration timeout) {
-    final Iterable<ConsumerRecord<CommandId, Command>> iterable = commandConsumer.poll(timeout);
+  public Iterable<ConsumerRecord<byte[], byte[]>> getNewCommands(final Duration timeout) {
+    final Iterable<ConsumerRecord<byte[], byte[]>> iterable = commandConsumer.poll(timeout);
 
     if (iterable != null) {
-      iterable.forEach(record -> backupRecord(record));
+      iterable.forEach(this::backupRecord);
     }
 
     return iterable;
   }
 
-  public List<QueuedCommand> getRestoreCommands(final Duration duration) {
-    final List<QueuedCommand> restoreCommands = Lists.newArrayList();
+  public List<ConsumerRecord<byte[], byte[]>> getRestoreRecords(final Duration duration) {
+    final List<ConsumerRecord<byte[], byte[]>> restoreRecords = Lists.newArrayList();
 
     commandConsumer.seekToBeginning(
         Collections.singletonList(commandTopicPartition));
 
     log.debug("Reading prior command records");
-    ConsumerRecords<CommandId, Command> records =
+    ConsumerRecords<byte[], byte[]> records =
         commandConsumer.poll(duration);
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
-      for (final ConsumerRecord<CommandId, Command> record : records) {
+      for (final ConsumerRecord<byte[], byte[]> record : records) {
         backupRecord(record);
 
         if (record.value() == null) {
           continue;
         }
-        restoreCommands.add(
-            new QueuedCommand(
-                record.key(),
-                record.value(),
-                Optional.empty(),
-                record.offset()));
+        restoreRecords.add(record);
       }
       records = commandConsumer.poll(duration);
     }
-    return restoreCommands;
+    return restoreRecords;
   }
 
   public long getCommandTopicConsumerPosition() {
@@ -136,7 +127,7 @@ public class CommandTopic {
     commandTopicBackup.close();
   }
 
-  private void backupRecord(final ConsumerRecord<CommandId, Command> record) {
+  private void backupRecord(final ConsumerRecord<byte[], byte[]> record) {
     commandTopicBackup.writeRecord(record);
   }
 }

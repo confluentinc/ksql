@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.Pair;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collections;
@@ -37,8 +38,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -47,6 +50,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.TopicPartition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
@@ -55,6 +60,7 @@ import org.apache.kafka.common.TopicPartition;
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandStore implements CommandQueue, Closeable {
 
+  private static final Logger LOG = LoggerFactory.getLogger(CommandStore.class);
   private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
   private static final int COMMAND_TOPIC_PARTITION = 0;
 
@@ -207,30 +213,39 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   @Override
-  public List<QueuedCommand> getNewCommands(final Duration timeout) {
+  public List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>>
+      getNewCommands(final Duration timeout) {
     completeSatisfiedSequenceNumberFutures();
 
-    final List<QueuedCommand> queuedCommands = Lists.newArrayList();
-    commandTopic.getNewCommands(timeout).forEach(
-        c -> {
-          if (c.value() != null) {
-            queuedCommands.add(
-                new QueuedCommand(
-                    c.key(),
-                    c.value(),
-                    Optional.ofNullable(commandStatusMap.remove(c.key())),
-                    c.offset()
-                )
-            );
-          }
+    final List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>>
+        recordFuturePairs = Lists.newArrayList();
+
+    final Iterable<ConsumerRecord<byte[], byte[]>> records = commandTopic.getNewCommands(timeout);
+    for (ConsumerRecord<byte[], byte[]> record: records) {
+      if (record.value() != null) {
+        Optional<CommandStatusFuture> commandStatusFuture = Optional.empty();
+        try {
+          final CommandId commandId =
+              InternalTopicSerdes
+                  .deserializer(CommandId.class)
+                  .deserialize(commandTopicName, record.key());
+          commandStatusFuture = Optional.ofNullable(commandStatusMap.remove(commandId));
+        } catch (Exception e) {
+          LOG.warn(
+              "Error while attempting to fetch from commandStatusMap for key {}",
+              record.key(),
+              e);
         }
-    );
-    return queuedCommands;
+        recordFuturePairs.add(new Pair<>(record, commandStatusFuture));
+      }
+    }
+
+    return recordFuturePairs;
   }
 
   @Override
-  public List<QueuedCommand> getRestoreCommands() {
-    return commandTopic.getRestoreCommands(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
+  public List<ConsumerRecord<byte[], byte[]>> getRestoreCommands() {
+    return commandTopic.getRestoreRecords(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
   }
 
   @Override

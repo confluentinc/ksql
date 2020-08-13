@@ -16,9 +16,12 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.CommandTopicUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -36,6 +39,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,9 +77,15 @@ public class CommandRunner implements Closeable {
   private final Duration commandRunnerHealthTimeout;
   private final Clock clock;
 
+  private final Function<
+      Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>,
+      QueuedCommand> commandDeserializer;
+  private boolean deserializationErrorThrown;
+
   public enum CommandRunnerStatus {
     RUNNING,
-    ERROR
+    ERROR,
+    DEGRADED
   }
 
   public CommandRunner(
@@ -96,7 +109,17 @@ public class CommandRunner implements Closeable {
         commandRunnerHealthTimeout,
         metricsGroupPrefix,
         Clock.systemUTC(),
-        RestoreCommandsCompactor::compact
+        RestoreCommandsCompactor::compact,
+        recordPair -> {
+          final CommandId commandId =
+              CommandTopicUtil.deserializeCommandId(null, recordPair.getLeft().key());
+          return new QueuedCommand(
+              commandId,
+              CommandTopicUtil.deserializeCommand(null, recordPair.getLeft().value()),
+              recordPair.getRight(),
+              recordPair.getLeft().offset()
+          );
+        }
     );
   }
 
@@ -113,7 +136,10 @@ public class CommandRunner implements Closeable {
       final Duration commandRunnerHealthTimeout,
       final String metricsGroupPrefix,
       final Clock clock,
-      final Function<List<QueuedCommand>, List<QueuedCommand>> compactor
+      final Function<List<QueuedCommand>, List<QueuedCommand>> compactor,
+      final Function<Pair<
+          ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>,
+          QueuedCommand> commandDeserializer
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
@@ -130,6 +156,9 @@ public class CommandRunner implements Closeable {
         new CommandRunnerStatusMetric(ksqlServiceId, this, metricsGroupPrefix);
     this.clock = Objects.requireNonNull(clock, "clock");
     this.compactor = Objects.requireNonNull(compactor, "compactor");
+    this.commandDeserializer =
+        Objects.requireNonNull(commandDeserializer, "commandDeserializer");
+    this.deserializationErrorThrown = false;
   }
 
   /**
@@ -146,6 +175,16 @@ public class CommandRunner implements Closeable {
    */
   @Override
   public void close() {
+    if (!closed) {
+      closeEarly();
+    }
+    commandRunnerStatusMetric.close();
+  }
+
+  /**
+   * Closes the poll-execute loop before the server shuts down
+   */
+  private void closeEarly() {
     try {
       closed = true;
       commandStore.wakeup();
@@ -153,7 +192,6 @@ public class CommandRunner implements Closeable {
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
-    commandRunnerStatusMetric.close();
   }
 
   /**
@@ -161,7 +199,8 @@ public class CommandRunner implements Closeable {
    */
   public void processPriorCommands() {
     try {
-      final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
+      final List<ConsumerRecord<byte[], byte[]>> restoreRecords = commandStore.getRestoreCommands();
+      final List<QueuedCommand> restoreCommands = deserializeCommandTopicRecords(restoreRecords);
 
       LOG.info("Restoring previous state from {} commands.", restoreCommands.size());
 
@@ -206,11 +245,13 @@ public class CommandRunner implements Closeable {
 
   void fetchAndRunCommands() {
     lastPollTime.set(clock.instant());
-    final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
-    if (commands.isEmpty()) {
+    final List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>> recordPairs =
+        commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
+    if (recordPairs.isEmpty()) {
       return;
     }
 
+    final List<QueuedCommand> commands = deserializeCommandTopicRecordPairs(recordPairs);
     final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
     if (terminateCmd.isPresent()) {
       terminateCluster(terminateCmd.get().getCommand());
@@ -272,6 +313,10 @@ public class CommandRunner implements Closeable {
   }
 
   CommandRunnerStatus checkCommandRunnerStatus() {
+    if (deserializationErrorThrown) {
+      return CommandRunnerStatus.DEGRADED;
+    }
+
     final Pair<QueuedCommand, Instant> currentCommand = currentCommandRef.get();
     if (currentCommand == null) {
       return lastPollTime.get() == null
@@ -285,14 +330,46 @@ public class CommandRunner implements Closeable {
         ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
   }
 
+  private List<QueuedCommand> deserializeCommandTopicRecords(
+      final List<ConsumerRecord<byte[], byte[]>> records) {
+    return deserializeCommandTopicRecordPairs(records
+        .stream()
+        .map(record -> 
+            new Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>(
+                record, 
+                Optional.empty()))
+        .collect(Collectors.toList()));
+  }
+
+  private List<QueuedCommand> deserializeCommandTopicRecordPairs(
+      final List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>> recordPairs
+  ) {
+    final List<QueuedCommand> commands = Lists.newArrayList();
+    try {
+      for (Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>> 
+          recordPair: recordPairs) {
+        commands.add(commandDeserializer.apply(recordPair));
+      }
+    } catch (SerializationException e) {
+      LOG.info("Deserialization error detected when processing record", e);
+      deserializationErrorThrown = true;
+    }
+    return commands;
+  }
+
   private class Runner implements Runnable {
 
     @Override
     public void run() {
       try {
         while (!closed) {
-          LOG.trace("Polling for new writes to command topic");
-          fetchAndRunCommands();
+          if (deserializationErrorThrown) {
+            LOG.warn("CommandRunner entering degraded state after failing to deserialize command");
+            closeEarly();
+          } else {
+            LOG.trace("Polling for new writes to command topic");
+            fetchAndRunCommands();
+          }
         }
       } catch (final WakeupException wue) {
         if (!closed) {

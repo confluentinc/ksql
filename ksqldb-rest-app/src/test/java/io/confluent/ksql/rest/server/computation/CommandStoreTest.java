@@ -44,6 +44,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import io.confluent.ksql.util.Pair;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
@@ -185,44 +187,51 @@ public class CommandStoreTest {
 
   @Test
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
-    // Given:
+    // Given:	
     when(transactionalProducer.send(any(ProducerRecord.class))).thenAnswer(
         invocation -> {
-          final QueuedCommand queuedCommand = commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
-          assertThat(queuedCommand.getCommandId(), equalTo(commandId));
-          assertThat(queuedCommand.getStatus().isPresent(), equalTo(true));
+          final Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>> recordPair =
+              commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
           assertThat(
-              queuedCommand.getStatus().get().getStatus().getStatus(),
+              InternalTopicSerdes.deserializer(CommandId.class).deserialize("", recordPair.getLeft().key()),
+              equalTo(commandId));
+          assertThat(recordPair.getRight().isPresent(), equalTo(true));
+          assertThat(
+              recordPair.getRight().get().getStatus().getStatus(),
               equalTo(CommandStatus.Status.QUEUED));
-          assertThat(queuedCommand.getOffset(), equalTo(0L));
+          assertThat(recordPair.left.offset(), equalTo(0L));
           return testFuture;
         }
     );
 
-    // When:
+    // When:	
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
-    // Then:
+    // Then:	
     verify(transactionalProducer).send(any(ProducerRecord.class));
   }
 
   @Test
   public void shouldFilterNullCommands() {
-    // Given:
-    final ConsumerRecords<CommandId, Command> records = buildRecords(
+    // Given:	
+    final ConsumerRecords<byte[], byte[]> records = buildRecords(
         commandId, null,
-        commandId, command);
+            commandId, command);
     when(commandTopic.getNewCommands(any())).thenReturn(records);
 
-    // When:
-    final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
+    // When:	
+    final List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>> commands =
+        commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
-    // Then:
+    // Then:	
     assertThat(commands, hasSize(1));
-    assertThat(commands.get(0).getCommandId(), equalTo(commandId));
-    assertThat(commands.get(0).getCommand(), equalTo(command));
+    assertThat(
+        InternalTopicSerdes.deserializer(CommandId.class).deserialize("",commands.get(0).getLeft().key()),
+        equalTo(commandId));
+    assertThat(
+        InternalTopicSerdes.deserializer(Command.class).deserialize("",commands.get(0).getLeft().value()),
+        equalTo(command));
   }
-
 
   @Test
   public void shouldDistributeCommand() {
@@ -342,14 +351,20 @@ public class CommandStoreTest {
     verify(commandTopic).start();
   }
 
-  private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {
+  private static ConsumerRecords<byte[], byte[]> buildRecords(final Object... args) {
     assertThat(args.length % 2, equalTo(0));
-    final List<ConsumerRecord<CommandId, Command>> records = new ArrayList<>();
+    final List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
     for (int i = 0; i < args.length; i += 2) {
       assertThat(args[i], instanceOf(CommandId.class));
       assertThat(args[i + 1], anyOf(is(nullValue()), instanceOf(Command.class)));
+
       records.add(
-          new ConsumerRecord<>(COMMAND_TOPIC_NAME, 0, 0, (CommandId) args[i], (Command) args[i + 1]));
+          new ConsumerRecord<>(
+              COMMAND_TOPIC_NAME,
+              0,
+              0,
+              InternalTopicSerdes.serializer().serialize(null, args[i]),
+              args[i + 1] == null ? null : InternalTopicSerdes.serializer().serialize(null, args[i + 1])));
     }
     return new ConsumerRecords<>(Collections.singletonMap(COMMAND_TOPIC_PARTITION, records));
   }

@@ -56,6 +56,7 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Duration;
 import java.util.Arrays;
@@ -68,7 +69,10 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -149,17 +153,43 @@ public class RecoveryTest {
               commandSequenceNumber));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
-
-    @Override
-    public List<QueuedCommand> getNewCommands(final Duration timeout) {
-      final List<QueuedCommand> commands = commandLog.subList(offset, commandLog.size());
+    
+  @Override
+  public List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>>
+      getNewCommands(final Duration duration) 
+  {
+    final List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>> commands =
+      commandLog.subList(offset, commandLog.size())
+        .stream()
+        .map(queuedCommand -> {
+          final Serializer<CommandId> commandIdSerializer = InternalTopicSerdes.serializer();
+          final Serializer<Command> commandSerializer = InternalTopicSerdes.serializer();
+          return new Pair<>(new ConsumerRecord<>(
+              "",
+              0,
+              queuedCommand.getOffset(),
+              commandIdSerializer.serialize("", queuedCommand.getCommandId()),
+              commandSerializer.serialize("", queuedCommand.getCommand())), queuedCommand.getStatus());
+        }).collect(Collectors.toList());
       offset = commandLog.size();
       return commands;
     }
 
     @Override
-    public List<QueuedCommand> getRestoreCommands() {
-      final List<QueuedCommand> restoreCommands = ImmutableList.copyOf(commandLog);
+    public List<ConsumerRecord<byte[], byte[]>> getRestoreCommands() {
+      final List<ConsumerRecord<byte[], byte[]>> restoreCommands =
+          ImmutableList.copyOf(commandLog)
+              .stream()
+              .map(queuedCommand -> {
+                final Serializer<CommandId> commandIdSerializer = InternalTopicSerdes.serializer();
+                final Serializer<Command> commandSerializer = InternalTopicSerdes.serializer();
+                return new ConsumerRecord<>(
+                    "",
+                    0,
+                    queuedCommand.getOffset(),
+                    commandIdSerializer.serialize("", queuedCommand.getCommandId()),
+                    commandSerializer.serialize("", queuedCommand.getCommand()));
+              }).collect(Collectors.toList());
       this.offset = commandLog.size();
       return restoreCommands;
     }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.builder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -48,6 +49,7 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
@@ -239,27 +241,8 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(
-        ksqlQueryBuilder.getSchemas().toString(),
-        is("fred.context = STRUCT<f0 BOOLEAN> NOT NULL"));
-  }
-
-  @Test
-  public void shouldTrackSchemasTakingIntoAccountSerdeOptions() {
-    // Given:
-    final PhysicalSchema schema = PhysicalSchema.from(
-        SOME_SCHEMA.logicalSchema(),
-        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)
-    );
-
-    // When:
-    ksqlQueryBuilder.buildValueSerde(
-        FORMAT_INFO,
-        schema,
-        queryContext
-    );
-
-    // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(), is("fred.context = BOOLEAN"));
+    final Map<String, PhysicalSchema> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    assertThat(schemas.entrySet(), hasSize(1));
+    assertThat(schemas.get("fred.context"), is(SOME_SCHEMA));
   }
 }

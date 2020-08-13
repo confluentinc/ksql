@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.test.model.SchemaNode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,13 +26,13 @@ public class TopologyAndConfigs {
 
   private final Optional<List<KsqlPlan>> plan;
   private final String topology;
-  private final Map<String, String> schemas;
+  private final Map<String, SchemaNode> schemas;
   private final Map<String, String> configs;
 
   public TopologyAndConfigs(
       final Optional<List<KsqlPlan>> plan,
       final String topology,
-      final Map<String, String> schemas,
+      final Map<String, SchemaNode> schemas,
       final Map<String, String> configs
   ) {
     this.plan = Objects.requireNonNull(plan, "plan");
@@ -44,7 +45,7 @@ public class TopologyAndConfigs {
     return topology;
   }
 
-  public Map<String, String> getSchemas() {
+  public Map<String, SchemaNode> getSchemas() {
     return schemas;
   }
 

@@ -133,8 +133,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkDataSource.getName();
   }
 
-  public Map<String, String> getSchemasDescription() {
-    return schemas.getSchemasDescription();
+  public Map<String, PhysicalSchema> getSchemas() {
+    return schemas.getSchemas();
   }
 
   public PhysicalSchema getPhysicalSchema() {

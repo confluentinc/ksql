@@ -16,36 +16,18 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.engine.generic.GenericRecordFactory;
+import io.confluent.ksql.engine.generic.KsqlGenericRecord;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
-import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlValueCoercer;
-import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.ksql.types.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
@@ -58,16 +40,11 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.clients.producer.Producer;
@@ -214,11 +191,12 @@ public class InsertValuesExecutor {
         .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     try {
-      final RowData row = extractRow(
-          insertValues,
-          dataSource,
-          metaStore,
-          config);
+      final KsqlGenericRecord row = new GenericRecordFactory(config, metaStore, clock).build(
+          insertValues.getColumns(),
+          insertValues.getValues(),
+          dataSource.getSchema(),
+          dataSource.getDataSourceType()
+      );
 
       final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
       final byte[] value = serializeValue(row.value, dataSource, config, serviceContext);
@@ -252,137 +230,6 @@ public class InsertValuesExecutor {
           + "To enable it, restart your ksqlDB server "
           + "with 'ksql.insert.into.values.enabled'=true");
     }
-  }
-
-  private RowData extractRow(
-      final InsertValues insertValues,
-      final DataSource dataSource,
-      final FunctionRegistry functionRegistry,
-      final KsqlConfig config
-  ) {
-    final List<ColumnName> columns = insertValues.getColumns().isEmpty()
-        ? implicitColumns(dataSource, insertValues.getValues())
-        : insertValues.getColumns();
-
-    final LogicalSchema schemaWithRowTime = withRowTime(dataSource.getSchema());
-
-    for (ColumnName col : columns) {
-      if (!schemaWithRowTime.findColumn(col).isPresent()) {
-        throw new KsqlException("Column name " + col + " does not exist.");
-      }
-    }
-
-    final Map<ColumnName, Object> values = resolveValues(
-        insertValues, columns, schemaWithRowTime, functionRegistry, config);
-
-    if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
-      final String noValue = schemaWithRowTime.key().stream()
-          .map(Column::name)
-          .filter(colName -> !values.containsKey(colName))
-          .map(ColumnName::text)
-          .collect(Collectors.joining(", "));
-
-      if (!noValue.isEmpty()) {
-        throw new KsqlException("Value for primary key column(s) "
-            + noValue + " is required for tables");
-      }
-    }
-
-    final long ts = (long) values.getOrDefault(SystemColumns.ROWTIME_NAME, clock.getAsLong());
-
-    final Struct key = buildKey(dataSource.getSchema(), values);
-    final GenericRow value = buildValue(dataSource.getSchema(), values);
-
-    return RowData.of(ts, key, value);
-  }
-
-  private static LogicalSchema withRowTime(final LogicalSchema schema) {
-    // The set of columns users can supply values for includes the ROWTIME pseudocolumn,
-    // so include it in the schema:
-    return schema.asBuilder()
-        .valueColumn(SystemColumns.ROWTIME_NAME, SystemColumns.ROWTIME_TYPE)
-        .build();
-  }
-
-  private static Struct buildKey(
-      final LogicalSchema schema,
-      final Map<ColumnName, Object> values
-  ) {
-
-    final Struct key = new Struct(schema.keyConnectSchema());
-
-    for (final org.apache.kafka.connect.data.Field field : key.schema().fields()) {
-      final Object value = values.get(ColumnName.of(field.name()));
-      key.put(field, value);
-    }
-
-    return key;
-  }
-
-  private static GenericRow buildValue(
-      final LogicalSchema schema,
-      final Map<ColumnName, Object> values
-  ) {
-    return new GenericRow().appendAll(
-        schema
-            .value()
-            .stream()
-            .map(Column::name)
-            .map(values::get)
-            .collect(Collectors.toList())
-    );
-  }
-
-  @SuppressWarnings("UnstableApiUsage")
-  private static List<ColumnName> implicitColumns(
-      final DataSource dataSource,
-      final List<Expression> values
-  ) {
-    final LogicalSchema schema = dataSource.getSchema();
-
-    final List<ColumnName> fieldNames = Streams.concat(
-        schema.key().stream(),
-        schema.value().stream())
-        .map(Column::name)
-        .collect(Collectors.toList());
-
-    if (fieldNames.size() != values.size()) {
-      throw new KsqlException(
-          "Expected a value for each column."
-              + " Expected Columns: " + fieldNames
-              + ". Got " + values);
-    }
-
-    return fieldNames;
-  }
-
-  private static Map<ColumnName, Object> resolveValues(
-      final InsertValues insertValues,
-      final List<ColumnName> columns,
-      final LogicalSchema schema,
-      final FunctionRegistry functionRegistry,
-      final KsqlConfig config
-  ) {
-    final Map<ColumnName, Object> values = new HashMap<>();
-    for (int i = 0; i < columns.size(); i++) {
-      final ColumnName column = columns.get(i);
-      final SqlType columnType = columnType(column, schema);
-      final Expression valueExp = insertValues.getValues().get(i);
-
-      final Object value =
-          new ExpressionResolver(columnType, column, schema, functionRegistry, config)
-              .process(valueExp, null);
-
-      values.put(column, value);
-    }
-    return values;
-  }
-
-  private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
-    return schema
-        .findColumn(column)
-        .map(Column::type)
-        .orElseThrow(IllegalStateException::new);
   }
 
   private byte[] serializeKey(
@@ -493,84 +340,4 @@ public class InsertValuesExecutor {
     }
   }
 
-  private static final class RowData {
-
-    final long ts;
-    final Struct key;
-    final GenericRow value;
-
-    private static RowData of(final long ts, final Struct key, final GenericRow value) {
-      return new RowData(ts, key, value);
-    }
-
-    private RowData(final long ts, final Struct key, final GenericRow value) {
-      this.ts = ts;
-      this.key = key;
-      this.value = value;
-    }
-  }
-
-  private static class ExpressionResolver extends VisitParentExpressionVisitor<Object, Void> {
-
-    private static final Supplier<String> IGNORED_MSG = () -> "";
-    private static final ProcessingLogger THROWING_LOGGER = errorMessage -> {
-      throw new KsqlException(((RecordProcessingError) errorMessage).getMessage());
-    };
-
-    private final SqlType fieldType;
-    private final ColumnName fieldName;
-    private final LogicalSchema schema;
-    private final SqlValueCoercer sqlValueCoercer = DefaultSqlValueCoercer.INSTANCE;
-    private final FunctionRegistry functionRegistry;
-    private final KsqlConfig config;
-
-    ExpressionResolver(
-        final SqlType fieldType,
-        final ColumnName fieldName,
-        final LogicalSchema schema,
-        final FunctionRegistry functionRegistry,
-        final KsqlConfig config
-    ) {
-      this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
-      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-      this.schema = Objects.requireNonNull(schema, "schema");
-      this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-      this.config = Objects.requireNonNull(config, "config");
-    }
-
-    @Override
-    protected Object visitExpression(final Expression expression, final Void context) {
-      final ExpressionMetadata metadata =
-          Iterables.getOnlyElement(
-              CodeGenRunner.compileExpressions(
-                  Stream.of(expression),
-                  "insert value",
-                  schema,
-                  config,
-                  functionRegistry)
-          );
-
-      // we expect no column references, so we can pass in an empty generic row
-      final Object value = metadata.evaluate(new GenericRow(), null, THROWING_LOGGER, IGNORED_MSG);
-
-      return sqlValueCoercer.coerce(value, fieldType)
-          .orElseThrow(() -> {
-            final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
-                .toSqlType(value.getClass());
-
-            return new KsqlException(
-                String.format("Expected type %s for field %s but got %s(%s)",
-                    fieldType,
-                    fieldName,
-                    valueSqlType,
-                    value));
-          })
-          .orElse(null);
-    }
-
-    @Override
-    public Object visitNullLiteral(final NullLiteral node, final Void context) {
-      return null;
-    }
-  }
 }

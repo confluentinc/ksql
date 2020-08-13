@@ -6,10 +6,7 @@ description: Learn how to upgrade your on-premises ksqlDB deployments.
 keywords: ksqldb, install, upgrade
 ---
 
-!!! warning
-    Do not upgrade existing ksqlDB installations in-place.
-
-## Why does ksqlDB not currently support in-place upgrades?
+## About backward compatibility
 
 Past releases of KSQL were backward compatible. But there was a cost to this backward compatibility:
 progress was slower and the code base incurred increased complexity. ksqlDB is a young product and
@@ -109,7 +106,7 @@ This will stop all processing and delete any internal topics in Kafka.
 ### Upgrading from ksqlDB 0.7.0+ to 0.9.0
 
 !!! important
-    ksqlDB 0.9.0 is not backward compatible. Do not upgrade in-place.
+    ksqlDB 0.8.0 is not backward compatible. Do not upgrade in-place.
 
 The following changes in SQL syntax and functionality may mean SQL statements
 that ran previously no longer run.

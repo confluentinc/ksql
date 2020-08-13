@@ -89,7 +89,7 @@ public final class SourceNode {
     return schema;
   }
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   public Optional<Set<SerdeOption>> getSerdeOptions() {
     return serdeOptions;
   }

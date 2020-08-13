@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
@@ -84,7 +85,7 @@ public class PullQueryPublisherTest {
         0L);
 
     PullQueryResult result = new PullQueryResult(entity, Optional.empty());
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenReturn(result);
+    when(pullQueryExecutor.execute(any(), any(), any(), anyLong())).thenReturn(result);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -156,7 +157,7 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
     final Throwable e = new RuntimeException("Boom!");
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenThrow(e);
+    when(pullQueryExecutor.execute(any(), any(), any(), anyLong())).thenThrow(e);
 
     // When:
     subscription.request(1);

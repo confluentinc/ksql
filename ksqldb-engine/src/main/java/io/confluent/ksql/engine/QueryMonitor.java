@@ -22,9 +22,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
@@ -54,6 +53,7 @@ public class QueryMonitor implements Closeable {
   private final Ticker ticker;
   private final long retryBackoffInitialMs;
   private final long retryBackoffMaxMs;
+  private final long statusRunningThresholdMs;
   private final KsqlEngine ksqlEngine;
   private final ExecutorService executor;
   private final Map<QueryId, RetryEvent> queriesRetries = new HashMap<>();
@@ -66,6 +66,7 @@ public class QueryMonitor implements Closeable {
         Executors.newSingleThreadExecutor(r -> new Thread(r, QueryMonitor.class.getName())),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS) * 1000,
         CURRENT_TIME_MILLIS_TICKER
     );
   }
@@ -76,10 +77,12 @@ public class QueryMonitor implements Closeable {
       final ExecutorService executor,
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
+      final long statusRunningThresholdMs,
       final Ticker ticker
   ) {
     this.retryBackoffInitialMs = retryBackoffInitialMs;
     this.retryBackoffMaxMs = retryBackoffMaxMs;
+    this.statusRunningThresholdMs = statusRunningThresholdMs;
     this.ksqlEngine = ksqlEngine;
     this.executor = executor;
     this.ticker = ticker;
@@ -120,32 +123,52 @@ public class QueryMonitor implements Closeable {
     final long now = ticker.read();
 
     // Restart queries that has passed the waiting timeout
-    final List<QueryId> deleteRetryEvents = new ArrayList<>();
-    queriesRetries.entrySet().stream()
-        .forEach(mapEntry -> {
-          final QueryId queryId = mapEntry.getKey();
-          final RetryEvent retryEvent = mapEntry.getValue();
-          final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId);
+    final Iterator<Map.Entry<QueryId, RetryEvent>> it = queriesRetries.entrySet().iterator();
+    while (it.hasNext()) {
+      final Map.Entry<QueryId, RetryEvent> mapEntry = it.next();
 
-          // Query was terminated manually if no present
-          if (!query.isPresent()) {
-            deleteRetryEvents.add(queryId);
-          } else if (query.get().isError() && now > retryEvent.nextRestartTimeMs()) {
-            // Retry again if it's still in ERROR state
-            retryEvent.restart();
-          } else if (now > retryEvent.queryHealthyTime()) {
-            // Clean the errors queue & delete the query from future retries now the query is
-            // healthy
-            query.ifPresent(QueryMetadata::clearErrors);
-            deleteRetryEvents.add(queryId);
-          }
-        });
+      final QueryId queryId = mapEntry.getKey();
+      final RetryEvent retryEvent = mapEntry.getValue();
+      final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId);
 
-    deleteRetryEvents.stream().forEach(queriesRetries::remove);
+      // Query was terminated manually if no present
+      if (!query.isPresent()) {
+        it.remove();
+      } else {
+        final PersistentQueryMetadata queryMetadata = query.get();
+        switch (queryMetadata.getState()) {
+          case ERROR:
+            if (now >= retryEvent.nextRestartTimeMs()) {
+              retryEvent.restart(queryMetadata);
+            }
+            break;
+          case RUNNING:
+          case REBALANCING:
+            if (now >= retryEvent.queryHealthyTime()) {
+              // Clean the errors queue & delete the query from future retries now the query is
+              // healthy and has been running after some threshold time
+              query.ifPresent(QueryMetadata::clearErrors);
+              it.remove();
+            }
+            break;
+          default:
+            // Stop attempting restarts for any other status. Either the query is pending
+            // a shutdown or other status that do not track.
+            it.remove();
+            break;
+        }
+      }
+    }
   }
 
   private RetryEvent newRetryEvent(final QueryId queryId) {
-    return new RetryEvent(ksqlEngine, queryId, retryBackoffInitialMs, retryBackoffMaxMs, ticker);
+    return new RetryEvent(
+        queryId,
+        retryBackoffInitialMs,
+        retryBackoffMaxMs,
+        statusRunningThresholdMs,
+        ticker
+    );
   }
 
   private class Runner implements Runnable {
@@ -168,31 +191,35 @@ public class QueryMonitor implements Closeable {
   }
 
   static class RetryEvent {
-    private final KsqlEngine ksqlEngine;
     private final QueryId queryId;
     private final Ticker ticker;
+    private final long statusRunningThresholdMs;
 
     private int numRetries = 0;
     private long waitingTimeMs;
     private long expiryTimeMs;
     private long retryBackoffMaxMs;
     private long baseWaitingTimeMs;
+    private long healthyTimeMs;
 
     RetryEvent(
-        final KsqlEngine ksqlEngine,
         final QueryId queryId,
         final long baseWaitingTimeMs,
         final long retryBackoffMaxMs,
+        final long statusRunningThresholdMs,
         final Ticker ticker
     ) {
-      this.ksqlEngine = ksqlEngine;
       this.queryId = queryId;
       this.ticker = ticker;
+      this.statusRunningThresholdMs = statusRunningThresholdMs;
+
+      final long now = ticker.read();
 
       this.baseWaitingTimeMs = baseWaitingTimeMs;
       this.waitingTimeMs = baseWaitingTimeMs;
-      this.expiryTimeMs = ticker.read() + baseWaitingTimeMs;
       this.retryBackoffMaxMs = retryBackoffMaxMs;
+      this.expiryTimeMs = now + baseWaitingTimeMs;
+      this.healthyTimeMs = now + statusRunningThresholdMs;
     }
 
     public long nextRestartTimeMs() {
@@ -204,25 +231,26 @@ public class QueryMonitor implements Closeable {
     }
 
     public long queryHealthyTime() {
-      // Return same value as nextRestartTimeMs for now. QueryHealthyTime may be configured in
-      // the future to return a time when a running query is considered healthy.
-      return expiryTimeMs;
+      return healthyTimeMs;
     }
 
-    public void restart() {
+    public void restart(final PersistentQueryMetadata query) {
       numRetries++;
 
       LOG.info("Restarting query {} (attempt #{})", queryId, numRetries);
-      ksqlEngine.getPersistentQuery(queryId).ifPresent(q -> {
-        try {
-          q.restart();
-        } catch (final Exception e) {
-          LOG.warn("Failed restarting query {}. Error = {}", queryId, e.getMessage());
-        }
-      });
+      try {
+        query.restart();
+      } catch (final Exception e) {
+        LOG.warn("Failed restarting query {}. Error = {}", queryId, e.getMessage());
+      }
+
+      final long now = ticker.read();
 
       this.waitingTimeMs = getWaitingTimeMs();
-      this.expiryTimeMs = ticker.read() + waitingTimeMs;
+
+      // Math.max() prevents overflow if now is Long.MAX_VALUE (found just in tests)
+      this.expiryTimeMs = Math.max(now, now + waitingTimeMs);
+      this.healthyTimeMs = Math.max(now, now + statusRunningThresholdMs);
     }
 
     private long getWaitingTimeMs() {

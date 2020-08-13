@@ -49,13 +49,6 @@ public class GenericRecordFactory {
 
   public GenericRecordFactory(
       final KsqlConfig config,
-      final FunctionRegistry functionRegistry
-  ) {
-    this(config, functionRegistry, System::currentTimeMillis);
-  }
-
-  public GenericRecordFactory(
-      final KsqlConfig config,
       final FunctionRegistry functionRegistry,
       final LongSupplier clock
   ) {
@@ -153,7 +146,7 @@ public class GenericRecordFactory {
           schema,
           functionRegistry,
           config
-      ).process(valueExp, null);
+      ).resolve(valueExp);
 
       values.put(column, value);
     }

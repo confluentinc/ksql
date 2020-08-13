@@ -24,7 +24,7 @@ import org.apache.kafka.connect.data.Struct;
  * a {@link GenericRow} value and a {@code long} timestamp. This is mostly
  * used when generating data from SQL expressions.
  */
-public class KsqlGenericRecord {
+public final class KsqlGenericRecord {
 
   public final Struct key;
   public final GenericRow value;

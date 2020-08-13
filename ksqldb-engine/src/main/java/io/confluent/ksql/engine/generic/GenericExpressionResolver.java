@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.engine.generic;
 
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
@@ -36,13 +35,12 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * Builds a Java object, coerced to the desired type, from an arbitrary SQL
  * expression that does not reference any source data.
  */
-class GenericExpressionResolver extends VisitParentExpressionVisitor<Object, Void> {
+class GenericExpressionResolver {
 
   private static final Supplier<String> IGNORED_MSG = () -> "";
   private static final ProcessingLogger THROWING_LOGGER = errorMessage -> {
@@ -70,38 +68,45 @@ class GenericExpressionResolver extends VisitParentExpressionVisitor<Object, Voi
     this.config = Objects.requireNonNull(config, "config");
   }
 
-  @Override
-  protected Object visitExpression(final Expression expression, final Void context) {
-    final ExpressionMetadata metadata =
-        Iterables.getOnlyElement(
-            CodeGenRunner.compileExpressions(
-                Stream.of(expression),
-                "insert value",
-                schema,
-                config,
-                functionRegistry)
-        );
-
-    // we expect no column references, so we can pass in an empty generic row
-    final Object value = metadata.evaluate(new GenericRow(), null, THROWING_LOGGER, IGNORED_MSG);
-
-    return sqlValueCoercer.coerce(value, fieldType)
-        .orElseThrow(() -> {
-          final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
-              .toSqlType(value.getClass());
-
-          return new KsqlException(
-              String.format("Expected type %s for field %s but got %s(%s)",
-                  fieldType,
-                  fieldName,
-                  valueSqlType,
-                  value));
-        })
-        .orElse(null);
+  public Object resolve(final Expression expression) {
+    return new Visitor().process(expression, null);
   }
 
-  @Override
-  public Object visitNullLiteral(final NullLiteral node, final Void context) {
-    return null;
+  private class Visitor extends VisitParentExpressionVisitor<Object, Void> {
+
+    @Override
+    protected Object visitExpression(final Expression expression, final Void context) {
+      final ExpressionMetadata metadata =
+          CodeGenRunner.compileExpression(
+              expression,
+              "insert value",
+              schema,
+              config,
+              functionRegistry
+          );
+
+      // we expect no column references, so we can pass in an empty generic row
+      final Object value = metadata.evaluate(new GenericRow(), null, THROWING_LOGGER, IGNORED_MSG);
+
+      return sqlValueCoercer.coerce(value, fieldType)
+          .orElseThrow(() -> {
+            final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
+                .toSqlType(value.getClass());
+
+            return new KsqlException(
+                String.format("Expected type %s for field %s but got %s(%s)",
+                    fieldType,
+                    fieldName,
+                    valueSqlType,
+                    value));
+          })
+          .orElse(null);
+    }
+
+    @Override
+    public Object visitNullLiteral(final NullLiteral node, final Void context) {
+      return null;
+    }
   }
+
 }

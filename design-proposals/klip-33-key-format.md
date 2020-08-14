@@ -48,7 +48,7 @@ To open ksqlDB up to new problems spaces and to drive adoption, ksqlDB should su
     * `BOOLEAN`
  * Support of the following key formats:
     * `DELIMITED`: single key columns as a single string value.
-    * `JSON`: single key column as an anonymous value, i.e. not within a JSON object.
+    * `JSON` / `JSON_SR`: single key column as an anonymous value, i.e. not within a JSON object.
     * `AVRO`: single key column as an anonymous value, i.e. not within an Avro record.
   * Full support of these key formats for all supported SQL syntax.
   * Automatic repartitioning of streams and tables for joins where key formats do not match.
@@ -248,7 +248,7 @@ The KLIP will be broken down into the following deliverables:
    streams and tables for joins where key formats do not match.
 1. **Schema Registry support**: Adds support for reading and writing schemas to and from the schema
    registry.
-1. **JSON_SR support** Adds support for the `AVRO` key format, inc. schema registry integration.
+1. **JSON_SR support** Adds support for the `JSON_SR` key format, inc. schema registry integration.
 1. **Avro support** Adds support for the `AVRO` key format, inc. schema registry integration.
 1. **Delimited support**: Adds support for the `DELIMITED` key format.
 1. **Optional KAFKA_TOPIC property**: makes the `KAFKA_TOPIC` property optional everywhere and add

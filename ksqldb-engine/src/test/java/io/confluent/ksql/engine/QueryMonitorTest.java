@@ -102,18 +102,16 @@ public class QueryMonitorTest {
         queryId,
         RETRY_BACKOFF_INITIAL_MS,
         RETRY_BACKOFF_MAX_MS,
-        STATUS_RUNNING_THRESHOLD_MS,
         ticker
     );
 
     // Then:
     assertThat(retryEvent.getNumRetries(), is(0));
     assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS));
-    assertThat(retryEvent.queryHealthyTime(), is(now + STATUS_RUNNING_THRESHOLD_MS));
   }
 
   @Test
-  public void shouldRetryEventRestartAndIncrementBackoffAndHealthyTime() {
+  public void shouldRetryEventRestartAndIncrementBackoffTime() {
     // Given:
     final long now = 20;
     final QueryId queryId = new QueryId("id-1");
@@ -124,7 +122,6 @@ public class QueryMonitorTest {
         queryId,
         RETRY_BACKOFF_INITIAL_MS,
         RETRY_BACKOFF_MAX_MS,
-        STATUS_RUNNING_THRESHOLD_MS,
         ticker
     );
     retryEvent.restart(queryMetadata);
@@ -132,7 +129,6 @@ public class QueryMonitorTest {
     // Then:
     assertThat(retryEvent.getNumRetries(), is(1));
     assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS * 2));
-    assertThat(retryEvent.queryHealthyTime(), is(now + STATUS_RUNNING_THRESHOLD_MS));
     verify(queryMetadata).restart();
   }
 
@@ -148,7 +144,6 @@ public class QueryMonitorTest {
         queryId,
         RETRY_BACKOFF_INITIAL_MS,
         RETRY_BACKOFF_MAX_MS,
-        STATUS_RUNNING_THRESHOLD_MS,
         ticker
     );
     retryEvent.restart(queryMetadata);
@@ -172,7 +167,7 @@ public class QueryMonitorTest {
         queryId,
         RETRY_BACKOFF_INITIAL_MS,
         RETRY_BACKOFF_MAX_MS,
-        STATUS_RUNNING_THRESHOLD_MS,
+
         ticker
     );
     retryEvent.restart(queryMetadata);
@@ -309,16 +304,16 @@ public class QueryMonitorTest {
 
   @Test
   public void shouldRestartedQueryClearErrorsAfterHealthyTime() {
-// Given:
+    // Given:
     final PersistentQueryMetadata query = mockPersistentQueryMetadata("id-1", ERROR);
     when(ksqlEngine.getPersistentQueries()).thenReturn(Arrays.asList(query));
     when(ksqlEngine.getPersistentQuery(query.getQueryId())).thenReturn(Optional.of(query));
 
     // When:
     queryMonitor.restartFailedQueries();
-    when(ticker.read()).thenReturn(STATUS_RUNNING_THRESHOLD_MS + 1);
     when(query.isError()).thenReturn(false);
     when(query.getState()).thenReturn(RUNNING);
+    when(query.uptime()).thenReturn(STATUS_RUNNING_THRESHOLD_MS + 1);
     // 2nd round should not clear query errors before healthy time
     queryMonitor.restartFailedQueries();
 

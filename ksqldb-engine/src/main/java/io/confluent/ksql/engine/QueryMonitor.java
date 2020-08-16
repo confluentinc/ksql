@@ -133,6 +133,7 @@ public class QueryMonitor implements Closeable {
 
       // Query was terminated manually if no present
       if (!query.isPresent()) {
+        LOG.debug("Query {} was manually terminated. Removing from query retry monitor.", queryId);
         it.remove();
       } else {
         final PersistentQueryMetadata queryMetadata = query.get();
@@ -144,9 +145,11 @@ public class QueryMonitor implements Closeable {
             break;
           case RUNNING:
           case REBALANCING:
-            if (now >= retryEvent.queryHealthyTime()) {
+            if (queryMetadata.uptime() >= statusRunningThresholdMs) {
               // Clean the errors queue & delete the query from future retries now the query is
               // healthy and has been running after some threshold time
+              LOG.info("Query {} has been running for more than {} seconds. "
+                      + "Marking query as healthy.", queryId, statusRunningThresholdMs * 1000);
               queryMetadata.clearErrors();
               it.remove();
             }
@@ -157,6 +160,8 @@ public class QueryMonitor implements Closeable {
           default:
             // Stop attempting restarts for any other status. Either the query is pending
             // a shutdown or other status that we do not track.
+            LOG.debug("Query {} is in status {}. Removing from query retry monitor.",
+                queryId, queryMetadata.getState());
             it.remove();
             break;
         }
@@ -165,13 +170,7 @@ public class QueryMonitor implements Closeable {
   }
 
   private RetryEvent newRetryEvent(final QueryId queryId) {
-    return new RetryEvent(
-        queryId,
-        retryBackoffInitialMs,
-        retryBackoffMaxMs,
-        statusRunningThresholdMs,
-        ticker
-    );
+    return new RetryEvent(queryId, retryBackoffInitialMs, retryBackoffMaxMs, ticker);
   }
 
   private class Runner implements Runnable {
@@ -196,25 +195,21 @@ public class QueryMonitor implements Closeable {
   static class RetryEvent {
     private final QueryId queryId;
     private final Ticker ticker;
-    private final long statusRunningThresholdMs;
 
     private int numRetries = 0;
     private long waitingTimeMs;
     private long expiryTimeMs;
     private long retryBackoffMaxMs;
     private long baseWaitingTimeMs;
-    private long healthyTimeMs;
 
     RetryEvent(
         final QueryId queryId,
         final long baseWaitingTimeMs,
         final long retryBackoffMaxMs,
-        final long statusRunningThresholdMs,
         final Ticker ticker
     ) {
       this.queryId = queryId;
       this.ticker = ticker;
-      this.statusRunningThresholdMs = statusRunningThresholdMs;
 
       final long now = ticker.read();
 
@@ -222,7 +217,6 @@ public class QueryMonitor implements Closeable {
       this.waitingTimeMs = baseWaitingTimeMs;
       this.retryBackoffMaxMs = retryBackoffMaxMs;
       this.expiryTimeMs = now + baseWaitingTimeMs;
-      this.healthyTimeMs = now + statusRunningThresholdMs;
     }
 
     public long nextRestartTimeMs() {
@@ -231,10 +225,6 @@ public class QueryMonitor implements Closeable {
 
     public int getNumRetries() {
       return numRetries;
-    }
-
-    public long queryHealthyTime() {
-      return healthyTimeMs;
     }
 
     public void restart(final PersistentQueryMetadata query) {
@@ -253,7 +243,6 @@ public class QueryMonitor implements Closeable {
 
       // Math.max() prevents overflow if now is Long.MAX_VALUE (found just in tests)
       this.expiryTimeMs = Math.max(now, now + waitingTimeMs);
-      this.healthyTimeMs = Math.max(now, now + statusRunningThresholdMs);
     }
 
     private long getWaitingTimeMs() {

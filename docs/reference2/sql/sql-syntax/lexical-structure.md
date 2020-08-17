@@ -64,10 +64,15 @@ SELECT `@MY-identifier-stream-column!` FROM `s3` EMIT CHANGES;
 
 ## Constants
 
-- A value of a given type - a literal
-- String constants - single quotes
-- Numeric constants
-- Boolean constants
+There are three implicitly typed constants, or literals, in ksqlDB: strings, numbers, and booleans.
+
+### String constants
+
+A string constant is an arbitrary series of characters surrounded by single quotes (`'`), like `'Hello world'`. To include a quote inside of a string literal, escape the quote by prefixing it with another quote, as in `'You can call me ''Stuart'', or Stu.'`
+
+### Numeric constants
+
+### Boolean constants
 
 ## Operators
 

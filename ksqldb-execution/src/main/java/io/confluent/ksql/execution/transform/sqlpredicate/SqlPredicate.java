@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.transform.sqlpredicate;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
@@ -31,7 +30,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public final class SqlPredicate {
 
@@ -46,13 +44,13 @@ public final class SqlPredicate {
   ) {
     this(
         filterExpression,
-        Iterables.getOnlyElement(CodeGenRunner.compileExpressions(
-            Stream.of(filterExpression),
+        CodeGenRunner.compileExpression(
+            filterExpression,
             "Predicate",
             schema,
             ksqlConfig,
             functionRegistry
-        ))
+        )
     );
   }
 

@@ -19,11 +19,13 @@ Version 0.10.1
 Version 0.10.0
 --------------
 
+- [Announcing ksqlDB 0.10.0](https://www.confluent.io/blog/ksqldb-0-10-0-latest-features-updates/)
 - [ksqlDB v0.10.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0100-2020-06-25)
 
 Version 0.9.0
 -------------
 
+- [Announcing ksqlDB 0.9.0](https://www.confluent.io/blog/ksqldb-0-9-0-feature-updates)
 - [ksqlDB v0.9.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#090-2020-05-11)
 
 Version 0.8.1
@@ -34,6 +36,7 @@ Version 0.8.1
 Version 0.8.0
 -------------
 
+- [Announcing ksqlDB 0.8.0](https://www.confluent.io/blog/ksqldb-0-8-0-feature-updates)
 - [ksqlDB v0.8.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#080-2020-03-18)
 
 Version 0.7.1
@@ -44,6 +47,7 @@ Version 0.7.1
 Version 0.7.0
 -------------
 
+- [Announcing ksqlDB 0.7.0](https://www.confluent.io/blog/ksqldb-0-7-0-feature-updates)
 - [ksqlDB v0.7.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#070-2020-02-11)
 
 Version 0.6.0

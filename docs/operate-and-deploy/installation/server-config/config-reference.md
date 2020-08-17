@@ -347,6 +347,10 @@ the pull query REST endpoint (by including it in the request e.g: `"streamsPrope
 By default, any amount of lag is allowed. For using this functionality, the server must be configured with `ksql.heartbeat.enable=true` and 
 `ksql.lag.reporting.enable=true`, so the servers can exchange lag information between themselves ahead of time, to validate pull queries against the allowed lag. 
 
+### ksql.suppress.buffer.size.bytes
+
+Bound the number of bytes that the buffer can use for suppression. Negative size means the buffer 
+will be unbounded. If the maximum capacity is exceeded, the query will be terminated.
 
 ksqlDB Server Settings
 ----------------------

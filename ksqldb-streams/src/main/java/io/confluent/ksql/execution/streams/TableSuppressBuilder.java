@@ -96,7 +96,7 @@ public final class TableSuppressBuilder {
 
     final Suppressed.StrictBufferConfig strictBufferConfig;
     final long maxBytes = queryBuilder.getKsqlConfig().getLong(
-        KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE);
+        KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE_BYTES);
 
     if (maxBytes < 0) {
       strictBufferConfig = Suppressed.BufferConfig.unbounded();

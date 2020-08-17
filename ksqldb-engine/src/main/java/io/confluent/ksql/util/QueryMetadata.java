@@ -238,6 +238,10 @@ public abstract class QueryMetadata {
     return ImmutableList.copyOf(queryErrors);
   }
 
+  public long uptime() {
+    return queryStateListener.map(QueryStateListener::uptime).orElse(0L);
+  }
+
   protected boolean isClosed() {
     return closed;
   }

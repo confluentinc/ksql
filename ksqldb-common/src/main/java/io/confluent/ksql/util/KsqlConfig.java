@@ -340,6 +340,12 @@ public class KsqlConfig extends AbstractConfig {
       + "error messages (per query) to hold in the internal query errors queue and display"
       + "in the query description when executing the `EXPLAIN <query>` command.";
 
+  public static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS =
+      "ksql.query.status.running.threshold.seconds";
+  private static final Integer KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT = 300;
+  private static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC = "Amount of time in "
+      + "seconds to wait before setting a restarted query status as healthy (or running).";
+
   public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
       "ksql.properties.overrides.denylist";
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
@@ -787,6 +793,13 @@ public class KsqlConfig extends AbstractConfig {
             "",
             Importance.LOW,
             KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
+        )
+        .define(
+            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS,
+            Type.INT,
+            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC
         )
         .withClientSslSupport();
 

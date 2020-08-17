@@ -97,6 +97,8 @@ Here are some examples of valid numeric constants:
 
 ### Boolean constants
 
+A boolean constant is represented as either the identifer `true` or `false`. Boolean constants are not case-sensitive, meaning `true` evaluates to the same value as `TRUE`.
+
 ## Operators
 
 A complete list of operators can be found in the appendix.

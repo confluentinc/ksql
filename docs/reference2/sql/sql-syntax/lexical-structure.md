@@ -72,6 +72,29 @@ A string constant is an arbitrary series of characters surrounded by single quot
 
 ### Numeric constants
 
+Numeric constants are accepted in these forms:
+
+1. **_`digits`_**
+2. **_`digits`_**`.[`**_`digits`_**`][e[+-]`**_`digits`_**`]`
+3. `[`**_`digits`_**`].`**_`digits`_**`[e[+-]`**_`digits`_**`]`
+4. **_`digits`_**`e[+-]`**_`digits`_**
+
+where **_`digits`_** is one or more single-digit integers (`0` through `9`). At least one digit must be present before or after the decimal point, if there is one. At least one digit must follow the exponent symbol `e`, if there is one. Spaces and underscores (nor any other characters) are allowed in the constant.
+
+Numeric constants may also have a `+` or `-` prefix, but this considered a function applied to the constant, not the constant itself.
+
+Here are some examples of valid numeric constants:
+
+- `5`
+- `7.2`
+- `0.0087`
+- `1.`
+- `.5`
+- `1e-3`
+- `1.332434e+2`
+- `+100`
+- `-250`
+
 ### Boolean constants
 
 ## Operators

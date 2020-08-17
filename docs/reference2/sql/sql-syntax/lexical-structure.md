@@ -101,121 +101,19 @@ A boolean constant is represented as either the identifer `true` or `false`. Boo
 
 ## Operators
 
-A complete list of operators can be found in the appendix.
-
-
-The explanation for each operator includes a supporting example based on
-the following table:
-
-```sql
-CREATE TABLE USERS (
-    USERID BIGINT PRIMARY KEY,
-    FIRST_NAME STRING,
-    LAST_NAME STRING,
-    NICKNAMES ARRAY<STRING>,
-    ADDRESS STRUCT<STREET_NAME STRING, HOUSE_NUM INTEGER>
-) WITH (KAFKA_TOPIC='users', VALUE_FORMAT='AVRO');
-```
-
-### Arithmetic
-
-You can apply the familiar arithmetic operators, like `+` and `%`, to
-[numeric types](../data-types/numeric.md), like INT, BIGINT, DOUBLE, and
-DECIMAL.
-
-The following example statement uses the addition operator (`+`) to compute
-the sum of the lengths of two strings:
-
-```sql
-SELECT USERID, LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS EMIT CHANGES;
-```
-
-### Concatenation
-
-Use the concatenation operator (`+` or `||`) to concatenate
-[STRING](../data-types/character.md) values.
-
-```sql
-SELECT USERID, FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS EMIT CHANGES;
-```
-
-You can use the concatenation operator for multi-part concatenation.
-
-The following example statement uses the concatenation operator to create
-an error message:
-
-```sql
-SELECT USERID,
-    TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') +
-        ': :heavy_exclamation_mark: On ' +
-        HOST +
-        ' there were ' +
-        CAST(INVALID_LOGIN_COUNT AS VARCHAR) +
-        ' attempts in the last minute (threshold is >=4)'
-  FROM INVALID_USERS_LOGINS_PER_HOST
-  WHERE INVALID_LOGIN_COUNT>=4
-  EMIT CHANGES;
-```
-
-### Source dereference
-
-Use the source dereference operator (`.`) to specify columns by dereferencing
-the source stream or table.
-
-Providing the fully qualified column name is optional, unless the column name is
-ambiguous. For example, if two sides of a join both contain a `foo` column, any
-reference to `foo` in the query must be fully qualified.
-
-The following example statement selects the values of the USERID and FIRST_NAME
-columns in the USERS table by using the fully qualified column names:
-
-```sql
-SELECT USERS.USERID, USERS.FIRST_NAME FROM USERS EMIT CHANGES;
-```
-
-### Subscript
-
-Use the subscript operator (`[subscript_expr]`) to reference the value at an
-[array](data-types/compound.md#array) index or a [array](data-types/compound.md#map)
-map key. Arrays indexes are one-based.
-
-The following example statement selects the first string in the NICKNAMES array:
-
-```sql
-SELECT USERID, NICKNAMES[1] FROM USERS EMIT CHANGES;
-```
-
-### Struct dereference
-
-Access nested data by declaring a STRUCT and using the dereference operator
-(`->`) to access its fields.
-
-The following example statement selects the values of the STREET and HOUSE_NUM
-fields in the ADDRESS struct: 
-
-```sql
-SELECT USERID, ADDRESS->STREET, ADDRESS->HOUSE_NUM FROM USERS EMIT CHANGES;
-```
-
-Combine `->` with `.` to provide fully qualified names:
-
-```sql
-SELECT USERID, USERS.ADDRESS->STREET, U.ADDRESS->STREET FROM USERS U EMIT CHANGES;
-```
-
-
+Operators are infix functions composed of special characters. A complete list of operators can be found in the appendix. ksqlDB does not allow you to add user-space operators.
 
 ## Special characters
 
-Not a function/operator/identifier, have meta-meaning for the commands.
+Some characters have a particular meaning that doesn't correspond to an operator. The following list describes the special characters and their purpose:
 
-- Parens
-- brackets
-- commas
-- semi-colon
-- colon
-- asterisk
-- dot
+1. Parentheses (`()`) retain their usual meaning in programming languages for grouping expressions and controlling the order of evaluation.
+2. Brackets (`[]`) are used to work with arrays, both in their construction and subscript access.
+3. Commas (`,`) delineate a discrete list of entities.
+4. The semi-colons (`;`) terminates a SQL command.
+5. The asterisk (`*`), when used in particular syntax, is used as an "all" qualifier. This is seen most commonly in a `SELECT` command to retrieve all columns.
+6. The period (`.`) accesses a column in a stream or table.
+7. The arrow (`->`) accesses a field in a struct data type.
 
 ## Comments
 
@@ -235,17 +133,17 @@ You can also span a comment over multiple lines by using C-style syntax:
 
 ## Lexical precedence
 
-Precedence in order:
+Operators are evaluated using the following order of precedence:
 
-1. `*` (multiplication), `/` (division), `%` (modulus)
-2. `+` (positive), - (negative), + (addition), + (concatenation), - (subtraction)
-3. `=`, `>`, `<`, `>=`, `<=`, `<>`, `!=` (comparison operators)
-4. NOT
-5. AND
-6. BETWEEN, LIKE, OR
+1. `*`, `/`, `%`
+2. `+`, `-`
+3. `=`, `>`, `<`, `>=`, `<=`, `<>`, `!=`
+4. `NOT`
+5. `AND`
+6. `BETWEEN`, `LIKE`, `OR`
 
 In an expression, when two operators have the same precedence level, they're
-evaluated left-to-right based on their position in the expression.
+evaluated left-to-right based on their position.
 
 You can enclose an expression in parentheses to force precedence or clarify
-precedence, for example, _(5 + 2) * 3_.
+precedence, for example, `(5 + 2) * 3`.

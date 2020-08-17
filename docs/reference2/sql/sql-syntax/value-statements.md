@@ -12,15 +12,51 @@ keywords: ksqldb, sql, value, dereference, aggregate, function, operator, cast
 
 ## Subscripts
 
-- Arrays start at 1
+Use the subscript operator (`[subscript_expr]`) to reference the value at an
+[array](data-types/compound.md#array) index or a [array](data-types/compound.md#map)
+map key. Arrays indexes are one-based.
+
+The following example statement selects the first string in the NICKNAMES array:
+
+```sql
+SELECT USERID, NICKNAMES[1] FROM USERS EMIT CHANGES;
+```
+
+- TODO: Arrays start at 1
 
 ## Key selection
 
-- -> lifting out of a struct
+Access nested data by declaring a STRUCT and using the dereference operator
+(`->`) to access its fields.
+
+The following example statement selects the values of the STREET and HOUSE_NUM
+fields in the ADDRESS struct: 
+
+```sql
+SELECT USERID, ADDRESS->STREET, ADDRESS->HOUSE_NUM FROM USERS EMIT CHANGES;
+```
+
+Combine `->` with `.` to provide fully qualified names:
+
+```sql
+SELECT USERID, USERS.ADDRESS->STREET, U.ADDRESS->STREET FROM USERS U EMIT CHANGES;
+```
 
 ## Field selection
 
-- dot to lift out of a map
+Use the source dereference operator (`.`) to specify columns by dereferencing
+the source stream or table.
+
+Providing the fully qualified column name is optional, unless the column name is
+ambiguous. For example, if two sides of a join both contain a `foo` column, any
+reference to `foo` in the query must be fully qualified.
+
+The following example statement selects the values of the USERID and FIRST_NAME
+columns in the USERS table by using the fully qualified column names:
+
+```sql
+SELECT USERS.USERID, USERS.FIRST_NAME FROM USERS EMIT CHANGES;
+```
 
 ## Operator invocations
 

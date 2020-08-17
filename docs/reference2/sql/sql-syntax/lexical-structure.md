@@ -219,14 +219,21 @@ Not a function/operator/identifier, have meta-meaning for the commands.
 
 ## Comments
 
-- -- double dash
+A comment is a string beginning with twos dashes. It includes all of the content from the dashes to the end of the line:
 
-TODO: does ksqlDB have multi-line comments?
+```sql
+-- Here is a comment.
+```
 
-There are bracketed comments in the grammar, so I think so.
-'/*' .*? '*/' 
+You can also span a comment over multiple lines by using C-style syntax:
 
-## Operator precedence
+```sql
+/* Here is
+   another comment.
+ */
+```
+
+## Lexical precedence
 
 Precedence in order:
 

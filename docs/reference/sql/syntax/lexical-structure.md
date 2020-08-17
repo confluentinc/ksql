@@ -35,7 +35,7 @@ SELECT * FROM t1 WHERE k1='foo' EMIT CHANGES;
 
 Some tokens, such as `SELECT`, `INSERT`, and `CREATE`, are known as keywords. Keywords are reserved tokens that have a specific meaning in ksqlDB’s syntax. They control their surrounding allowable tokens and execution semantics. Keywords are case insensitive, meaning `SELECT` and `select` are equivalent. You cannot create an identifier that is already a keyword (unless you use backticked identifiers).
 
-A complete list of keywords can be found in the appendix.
+A complete list of keywords can be found in the [appendix](../appendix.md#keywords).
 
 ## Identifiers
 
@@ -101,7 +101,7 @@ A boolean constant is represented as either the identifer `true` or `false`. Boo
 
 ## Operators
 
-Operators are infix functions composed of special characters. A complete list of operators can be found in the appendix. ksqlDB does not allow you to add user-space operators.
+Operators are infix functions composed of special characters. A complete list of operators can be found in the [appendix](../appendix.md#operators). ksqlDB does not allow you to add user-space operators.
 
 ## Special characters
 

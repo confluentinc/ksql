@@ -79,6 +79,7 @@ nav:
         - SQL syntax:
           - Lexical structure: reference/sql/syntax/lexical-structure.md
         - Data definition: reference/sql/data-definition.md
+        - Appendix: reference/sql/appendix.md
     - Statements:
       - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md

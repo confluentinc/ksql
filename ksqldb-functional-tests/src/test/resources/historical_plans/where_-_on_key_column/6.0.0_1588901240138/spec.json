@@ -58,7 +58,7 @@
     "statements" : [ "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE id < 10;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
@@ -66,7 +66,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {

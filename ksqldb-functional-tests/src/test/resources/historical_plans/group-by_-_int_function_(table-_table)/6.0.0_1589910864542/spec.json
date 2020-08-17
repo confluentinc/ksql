@@ -68,17 +68,17 @@
     "statements" : [ "CREATE TABLE TEST (K STRING PRIMARY KEY, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT LEN(region), COUNT(*) FROM TEST GROUP BY LEN(region);" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`K` STRING KEY, `REGION` STRING",
+        "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` BIGINT",
+        "schema" : "`K` STRING KEY, `REGION` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -108,17 +108,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, avg(value) AS avg FROM INPUT group by ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `VALUE` DOUBLE",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VALUE` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

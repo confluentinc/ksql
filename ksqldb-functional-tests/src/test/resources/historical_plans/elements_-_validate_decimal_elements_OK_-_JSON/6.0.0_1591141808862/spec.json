@@ -34,7 +34,7 @@
     "statements" : [ "CREATE STREAM INPUT (V0 DECIMAL(15,14)) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`V0` DECIMAL(15, 14)",
         "keyFormat" : {
@@ -42,7 +42,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`V0` DECIMAL(15, 14)",
         "keyFormat" : {

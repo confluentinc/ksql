@@ -43,7 +43,7 @@
     "statements" : [ "CREATE STREAM INPUT (id int key) WITH (kafka_topic='input', value_format='JSON_SR');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `C1` BIGINT",
         "keyFormat" : {
@@ -51,7 +51,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `C1` BIGINT",
         "keyFormat" : {

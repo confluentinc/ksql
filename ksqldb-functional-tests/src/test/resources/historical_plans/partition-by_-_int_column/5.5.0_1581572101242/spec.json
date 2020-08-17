@@ -30,17 +30,17 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY STRING KEY, ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='delimited');", "CREATE STREAM OUTPUT AS SELECT *\nFROM TEST TEST\nPARTITION BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

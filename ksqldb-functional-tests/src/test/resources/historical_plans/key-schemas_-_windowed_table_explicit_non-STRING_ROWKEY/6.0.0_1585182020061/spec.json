@@ -60,14 +60,6 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY BIGINT KEY, VALUE BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  INPUT.ROWKEY ID,\n  MAX(INPUT.VALUE) MAX\nFROM INPUT INPUT\nWINDOW TUMBLING ( SIZE 30 SECONDS ) \nGROUP BY INPUT.ROWKEY\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `VALUE` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MAX` BIGINT",
@@ -75,6 +67,14 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

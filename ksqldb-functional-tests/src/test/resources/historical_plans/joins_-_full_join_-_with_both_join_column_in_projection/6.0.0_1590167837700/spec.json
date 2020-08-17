@@ -69,14 +69,6 @@
     "statements" : [ "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');", "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM L FULL OUTER JOIN R WITHIN 10 SECONDS ON L.A = R.A;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `L_A` INTEGER, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
@@ -86,6 +78,14 @@
         "serdeOptions" : [ ]
       }, {
         "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
         "type" : "STREAM",
         "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
         "keyFormat" : {

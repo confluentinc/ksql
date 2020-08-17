@@ -139,17 +139,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "LEFT_JOIN",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "LEFT_JOIN",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

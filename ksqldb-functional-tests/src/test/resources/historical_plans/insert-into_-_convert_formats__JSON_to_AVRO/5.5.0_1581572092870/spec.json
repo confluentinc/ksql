@@ -86,7 +86,7 @@
     "statements" : [ "CREATE STREAM SOURCE (A BIGINT, B STRING) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');", "CREATE STREAM SINK (A BIGINT, B STRING) WITH (KAFKA_TOPIC='sink', VALUE_FORMAT='AVRO');", "INSERT INTO SINK SELECT *\nFROM SOURCE SOURCE\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "SINK",
+        "name" : "SOURCE",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
         "keyFormat" : {
@@ -94,7 +94,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE",
+        "name" : "SINK",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
         "keyFormat" : {

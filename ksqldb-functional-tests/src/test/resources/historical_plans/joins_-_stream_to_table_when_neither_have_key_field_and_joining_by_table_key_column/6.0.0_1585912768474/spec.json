@@ -51,6 +51,14 @@
     "statements" : [ "CREATE STREAM S (ID BIGINT) WITH (KAFKA_TOPIC='S', VALUE_FORMAT='JSON');", "CREATE TABLE NO_KEY (ROWKEY BIGINT PRIMARY KEY, NAME STRING) WITH (KAFKA_TOPIC='NO_KEY', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  S.ID ID,\n  T.NAME NAME\nFROM S S\nINNER JOIN NO_KEY T ON ((S.ID = T.ROWKEY))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "NO_KEY",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `NAME` STRING",
@@ -62,14 +70,6 @@
         "name" : "S",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -30,17 +30,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.ID ID,\n  -2147483647 MIN,\n  2147483647 MAX\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MIN` INTEGER, `MAX` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MIN` INTEGER, `MAX` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

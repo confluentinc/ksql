@@ -46,17 +46,17 @@
     "statements" : [ "CREATE STREAM TEST (SOURCE STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT CONCAT('prefix-', CONCAT(TEST.SOURCE, '-postfix')) THING\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `THING` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `THING` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

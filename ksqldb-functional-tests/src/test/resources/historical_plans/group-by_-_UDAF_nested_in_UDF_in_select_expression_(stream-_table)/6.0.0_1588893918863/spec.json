@@ -64,17 +64,17 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT D1, SUBSTRING('Mr Bugalicious', CAST(COUNT(*) AS INT), 1) FROM TEST GROUP BY d1;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `D1` STRING",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`D1` STRING KEY, `KSQL_COL_0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`D1` STRING KEY, `KSQL_COL_0` STRING",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `D1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

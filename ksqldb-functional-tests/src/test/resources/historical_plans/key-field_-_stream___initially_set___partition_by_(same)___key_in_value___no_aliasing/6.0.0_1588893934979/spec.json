@@ -36,17 +36,17 @@
     "statements" : [ "CREATE STREAM INPUT (K INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER, `K` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER, `K` INTEGER",
+        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

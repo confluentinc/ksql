@@ -117,17 +117,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1_JOIN_S2",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1",
+        "name" : "S1_JOIN_S2",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -112,17 +112,17 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, data double) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(*) FROM TEST GROUP BY DATA;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `DATA` DOUBLE",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`DATA` DOUBLE KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`DATA` DOUBLE KEY, `KSQL_COL_0` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

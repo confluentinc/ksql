@@ -34,7 +34,7 @@
     "statements" : [ "CREATE STREAM TEST (`some.key` STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT *\nFROM TEST TEST\nPARTITION BY TEST.`some.key`\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `some.key` STRING",
         "keyFormat" : {
@@ -42,7 +42,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `some.key` STRING",
         "keyFormat" : {

@@ -145,17 +145,17 @@
     "statements" : [ "CREATE STREAM S1 (ID INT KEY, A bigint, B STRUCT<C INT>) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM S2 (ID INT KEY, X bigint, Y STRUCT<Z INT>) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT *, S1.ROWTIME, S2.ROWTIME FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.B->C = S2.Y->Z;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `X` BIGINT, `Y` STRUCT<`Z` INTEGER>",
+        "schema" : "`KSQL_COL_0` INTEGER KEY, `S1_ID` INTEGER, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S2_ID` INTEGER, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`KSQL_COL_0` INTEGER KEY, `S1_ID` INTEGER, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S2_ID` INTEGER, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT",
+        "schema" : "`ID` INTEGER KEY, `X` BIGINT, `Y` STRUCT<`Z` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

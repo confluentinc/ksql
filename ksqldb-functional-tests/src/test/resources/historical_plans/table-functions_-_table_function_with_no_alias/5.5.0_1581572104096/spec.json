@@ -60,17 +60,17 @@
     "statements" : [ "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT EXPLODE(TEST.MY_ARR) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `FOO` BIGINT, `ID` BIGINT, `MY_ARR` ARRAY<BIGINT>, `BAR` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` BIGINT, `ID` BIGINT, `MY_ARR` ARRAY<BIGINT>, `BAR` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

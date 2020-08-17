@@ -61,17 +61,17 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.ID ID,\n  INPUT.ROWKEY KEY\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `KEY` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `KEY` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -70,7 +70,7 @@
     "statements" : [ "CREATE STREAM INPUT (K DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K > 0.1;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` DOUBLE KEY, `ID` INTEGER",
         "keyFormat" : {
@@ -78,7 +78,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` DOUBLE KEY, `ID` INTEGER",
         "keyFormat" : {

@@ -66,17 +66,17 @@
     "statements" : [ "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT bad_udf(DATA), COUNT(*) FROM TEST GROUP BY bad_udf(DATA);" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `DATA` STRING",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `DATA` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -34,7 +34,7 @@
     "statements" : [ "CREATE TABLE INPUT (K STRING PRIMARY KEY, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `BAR` INTEGER",
         "keyFormat" : {
@@ -42,7 +42,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `BAR` INTEGER",
         "keyFormat" : {

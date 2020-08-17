@@ -37,17 +37,17 @@
     "statements" : [ "CREATE TABLE INPUT (K INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "schema" : "`ALIASED` INTEGER KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "TABLE",
-        "schema" : "`ALIASED` INTEGER KEY, `KSQL_COL_0` BIGINT",
+        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

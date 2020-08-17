@@ -35,17 +35,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  'foo' KSQL_COL_0,\n  '''foo''' KSQL_COL_1\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -36,7 +36,7 @@
     "statements" : [ "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `C1` INTEGER",
         "keyFormat" : {
@@ -44,7 +44,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `C1` INTEGER",
         "keyFormat" : {

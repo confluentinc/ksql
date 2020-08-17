@@ -60,16 +60,16 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "I1",
-        "type" : "STREAM",
+        "name" : "I2",
+        "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "I2",
-        "type" : "TABLE",
+        "name" : "I1",
+        "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"

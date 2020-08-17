@@ -58,17 +58,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, NAME STRING, OTHER INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID AS ID, NAME FROM INPUT PARTITION BY ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `OTHER` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `NAME` STRING",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `OTHER` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

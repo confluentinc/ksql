@@ -87,17 +87,17 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR, pattern VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, REGEXP_SPLIT_TO_ARRAY(input_string, pattern) AS EXTRACTED FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `INPUT_STRING` STRING, `PATTERN` STRING",
+        "schema" : "`K` STRING KEY, `EXTRACTED` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `EXTRACTED` ARRAY<STRING>",
+        "schema" : "`K` STRING KEY, `INPUT_STRING` STRING, `PATTERN` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

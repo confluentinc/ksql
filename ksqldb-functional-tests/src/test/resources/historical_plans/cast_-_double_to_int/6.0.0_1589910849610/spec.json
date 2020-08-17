@@ -51,17 +51,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col0 DOUBLE, col1 DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS INT) as VAL FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `COL0` DOUBLE, `COL1` DOUBLE",
+        "schema" : "`ID` STRING KEY, `VAL` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `VAL` INTEGER",
+        "schema" : "`ID` STRING KEY, `COL0` DOUBLE, `COL1` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

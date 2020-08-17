@@ -63,7 +63,7 @@
     "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`C1` BOOLEAN, `C2` INTEGER, `C3` BIGINT, `C4` DOUBLE, `C5` STRING",
         "keyFormat" : {
@@ -71,7 +71,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`C1` BOOLEAN, `C2` INTEGER, `C3` BIGINT, `C4` DOUBLE, `C5` STRING",
         "keyFormat" : {

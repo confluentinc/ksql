@@ -49,7 +49,7 @@
     "statements" : [ "CREATE STREAM INPUT (V0 ARRAY<INT>) WITH (kafka_topic='input', value_format='AVRO');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` ARRAY<INTEGER>",
         "keyFormat" : {
@@ -57,7 +57,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` ARRAY<INTEGER>",
         "keyFormat" : {

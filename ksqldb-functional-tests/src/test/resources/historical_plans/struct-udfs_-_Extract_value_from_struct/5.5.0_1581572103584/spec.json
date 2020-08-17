@@ -38,17 +38,17 @@
     "statements" : [ "CREATE STREAM TEST (VALUE STRUCT<A STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT TEST_UDF(TEST.VALUE) VALUE\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `VALUE` STRUCT<`A` STRING>",
+        "schema" : "`ROWKEY` STRING KEY, `VALUE` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `VALUE` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `VALUE` STRUCT<`A` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

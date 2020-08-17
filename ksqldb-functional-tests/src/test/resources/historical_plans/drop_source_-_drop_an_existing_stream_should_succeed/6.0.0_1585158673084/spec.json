@@ -30,7 +30,7 @@
     "statements" : [ "CREATE STREAM INPUT2 (DATA STRING) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='DELIMITED');", "DROP STREAM INPUT2;", "CREATE STREAM INPUT (DATA STRING) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
@@ -38,7 +38,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {

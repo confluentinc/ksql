@@ -50,6 +50,14 @@
     "statements" : [ "CREATE STREAM TEST1 (K STRING KEY, ID varchar) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM TEST2 (K STRING KEY, ID varchar) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT T.ID, tt.ID FROM test1 t join test2 tt WITHIN 30 SECONDS ON t.id = SUBSTRING(tt.id, 2);" ],
     "post" : {
       "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`T_ID` STRING KEY, `TT_ID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "TEST1",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` STRING",
@@ -61,14 +69,6 @@
         "name" : "TEST2",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`T_ID` STRING KEY, `TT_ID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

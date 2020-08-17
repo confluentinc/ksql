@@ -54,17 +54,17 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, shouldThrow BOOLEAN) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, shouldThrow, throwing_udtf(shouldThrow) FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `SHOULDTHROW` BOOLEAN",
+        "schema" : "`K` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_0` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_0` BOOLEAN",
+        "schema" : "`K` STRING KEY, `SHOULDTHROW` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
         },

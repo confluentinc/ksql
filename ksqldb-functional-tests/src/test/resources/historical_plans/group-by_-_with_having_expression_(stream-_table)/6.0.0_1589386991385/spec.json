@@ -64,17 +64,17 @@
     "statements" : [ "CREATE STREAM TEST (ID INT KEY, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT f1, COUNT(*) FROM TEST GROUP BY f1 HAVING SUM(f1) > 1;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `F1` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`F1` INTEGER KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`F1` INTEGER KEY, `KSQL_COL_0` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `F1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

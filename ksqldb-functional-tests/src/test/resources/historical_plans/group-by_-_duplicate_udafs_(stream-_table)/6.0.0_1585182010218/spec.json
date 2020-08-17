@@ -100,17 +100,17 @@
     "statements" : [ "CREATE STREAM TEST (DATA STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  COUNT(1) KSQL_COL_0,\n  COUNT(1) KSQL_COL_1\nFROM TEST TEST\nGROUP BY TEST.DATA\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

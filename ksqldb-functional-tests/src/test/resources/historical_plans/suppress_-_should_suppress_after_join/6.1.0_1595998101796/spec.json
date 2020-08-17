@@ -125,14 +125,6 @@
     "statements" : [ "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');", "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');", "CREATE STREAM JOINED_OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 1 SECONDS ON L.A = R.A;", "CREATE TABLE OUTPUT AS SELECT L_A, COUNT(*) as COUNT FROM JOINED_OUTPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY L_A EMIT FINAL;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`L_A` INTEGER KEY, `COUNT` BIGINT",
@@ -143,17 +135,25 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "JOINED_OUTPUT",
+        "name" : "L",
         "type" : "STREAM",
-        "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "L",
+        "name" : "R",
         "type" : "STREAM",
         "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "JOINED_OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

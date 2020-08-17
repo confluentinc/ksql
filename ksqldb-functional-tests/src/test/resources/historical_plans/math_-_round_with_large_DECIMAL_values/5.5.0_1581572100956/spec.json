@@ -30,17 +30,17 @@
     "statements" : [ "CREATE STREAM TEST (V DECIMAL(33, 16)) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  ROUND(TEST.V) R0,\n  ROUND(TEST.V, 0) R00,\n  ROUND(TEST.V, 1) R1,\n  ROUND(TEST.V, 2) R2,\n  ROUND(TEST.V, 10) R10,\n  ROUND(TEST.V, -1) 1R,\n  ROUND(TEST.V, -2) 2R\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `V` DECIMAL(33, 16)",
+        "schema" : "`ROWKEY` STRING KEY, `R0` DECIMAL(17, 0), `R00` DECIMAL(33, 16), `R1` DECIMAL(33, 16), `R2` DECIMAL(33, 16), `R10` DECIMAL(33, 16), `1R` DECIMAL(33, 16), `2R` DECIMAL(33, 16)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `R0` DECIMAL(17, 0), `R00` DECIMAL(33, 16), `R1` DECIMAL(33, 16), `R2` DECIMAL(33, 16), `R10` DECIMAL(33, 16), `1R` DECIMAL(33, 16), `2R` DECIMAL(33, 16)",
+        "schema" : "`ROWKEY` STRING KEY, `V` DECIMAL(33, 16)",
         "keyFormat" : {
           "format" : "KAFKA"
         },

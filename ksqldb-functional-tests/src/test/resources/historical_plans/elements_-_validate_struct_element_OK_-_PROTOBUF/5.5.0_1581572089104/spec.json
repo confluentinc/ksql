@@ -42,7 +42,7 @@
     "statements" : [ "CREATE STREAM INPUT (V0 STRUCT<F0 STRING, F1 INTEGER>) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>",
         "keyFormat" : {
@@ -50,7 +50,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>",
         "keyFormat" : {

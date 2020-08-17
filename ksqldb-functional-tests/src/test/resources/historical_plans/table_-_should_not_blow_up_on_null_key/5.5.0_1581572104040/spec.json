@@ -42,7 +42,7 @@
     "statements" : [ "CREATE TABLE INPUT (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
@@ -50,7 +50,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {

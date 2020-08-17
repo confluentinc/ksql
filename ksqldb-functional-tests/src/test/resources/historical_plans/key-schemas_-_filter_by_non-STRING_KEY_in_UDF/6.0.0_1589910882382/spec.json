@@ -58,7 +58,7 @@
     "statements" : [ "CREATE STREAM INPUT (K DOUBLE KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');", "CREATE STREAM OUTPUT as SELECT * FROM INPUT WHERE EXP(K) >= 1;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` DOUBLE KEY, `ID` BIGINT",
         "keyFormat" : {
@@ -66,7 +66,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` DOUBLE KEY, `ID` BIGINT",
         "keyFormat" : {

@@ -89,17 +89,17 @@
     "statements" : [ "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT f2, f1, f2+f1, COUNT(*) FROM TEST GROUP BY f1, f2;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`F1` INTEGER KEY, `F2` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`KSQL_COL_2` STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`KSQL_COL_2` STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`F1` INTEGER KEY, `F2` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

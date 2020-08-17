@@ -129,16 +129,6 @@
     "statements" : [ "CREATE STREAM S1 (ID INT KEY, V bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='5 SECONDS');", "CREATE STREAM S2 (ID INT KEY, V bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');", "CREATE STREAM OUTPUT as SELECT *, S1.ROWTIME, S2.ROWTIME FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ID = S2.ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `V` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "windowType" : "TUMBLING",
-          "windowSize" : 2000
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`S1_ID` INTEGER KEY, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_V` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_V` BIGINT, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT",
@@ -146,6 +136,16 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 5000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 2000
         },
         "serdeOptions" : [ ]
       }, {

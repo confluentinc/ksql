@@ -34,17 +34,17 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, ID bigint) with (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS select ID, AS_VALUE(K) AS OLDKEY from INPUT partition by ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "schema" : "`ID` BIGINT KEY, `OLDKEY` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `OLDKEY` STRING",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

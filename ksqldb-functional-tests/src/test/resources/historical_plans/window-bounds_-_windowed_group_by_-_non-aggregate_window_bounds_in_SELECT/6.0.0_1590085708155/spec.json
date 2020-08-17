@@ -81,14 +81,6 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT ROWKEY, count(1) as count, windowstart as WSTART, windowend AS WEND FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `COUNT` BIGINT, `WSTART` BIGINT, `WEND` BIGINT",
@@ -96,6 +88,14 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 1000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

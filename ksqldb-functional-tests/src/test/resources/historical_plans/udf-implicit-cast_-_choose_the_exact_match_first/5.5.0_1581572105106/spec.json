@@ -35,17 +35,17 @@
     "statements" : [ "CREATE STREAM TEST (ID INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  TEST_UDF(TEST.ID, 'foo') FOO\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER, `FOO` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER, `FOO` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

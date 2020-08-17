@@ -36,17 +36,17 @@
     "statements" : [ "CREATE STREAM TEST (URL STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT URL_DECODE_PARAM(URL_EXTRACT_PARAMETER(TEST.URL, 'two')) PARAM\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `URL` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `PARAM` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `PARAM` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `URL` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

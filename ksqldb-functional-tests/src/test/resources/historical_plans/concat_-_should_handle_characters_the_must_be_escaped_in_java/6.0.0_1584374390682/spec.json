@@ -46,17 +46,17 @@
     "statements" : [ "CREATE STREAM INPUT (SOURCE STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT CONCAT('\"', CONCAT(INPUT.SOURCE, '\\')) THING\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `THING` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `THING` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

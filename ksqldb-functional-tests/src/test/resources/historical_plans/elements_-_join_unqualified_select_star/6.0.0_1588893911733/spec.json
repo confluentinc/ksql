@@ -60,7 +60,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT_1",
+        "name" : "INPUT_2",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `F0` INTEGER",
         "keyFormat" : {
@@ -68,7 +68,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT_2",
+        "name" : "INPUT_1",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `F0` INTEGER",
         "keyFormat" : {

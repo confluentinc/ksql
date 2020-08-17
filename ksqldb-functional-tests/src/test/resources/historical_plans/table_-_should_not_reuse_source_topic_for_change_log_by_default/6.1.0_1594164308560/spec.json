@@ -38,7 +38,7 @@
     "statements" : [ "CREATE TABLE TEST (K STRING PRIMARY KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE T1 as SELECT * FROM test;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "T1",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
@@ -46,7 +46,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "T1",
+        "name" : "TEST",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `ID` BIGINT",
         "keyFormat" : {

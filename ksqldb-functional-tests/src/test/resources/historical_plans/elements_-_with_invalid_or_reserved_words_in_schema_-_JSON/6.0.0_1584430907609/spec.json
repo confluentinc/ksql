@@ -36,7 +36,7 @@
     "statements" : [ "CREATE STREAM INPUT (`@TIMESTAMP` BIGINT, `FROM` BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT",
         "keyFormat" : {
@@ -44,7 +44,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `@TIMESTAMP` BIGINT, `FROM` BIGINT",
         "keyFormat" : {

@@ -64,17 +64,17 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, URL_ENCODE_PARAM(url) as ENCODED FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `URL` STRING",
+        "schema" : "`K` STRING KEY, `ENCODED` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ENCODED` STRING",
+        "schema" : "`K` STRING KEY, `URL` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

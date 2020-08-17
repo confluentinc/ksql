@@ -34,17 +34,17 @@
     "statements" : [ "CREATE STREAM INPUT (IGNORED STRING) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT STRUCT(F1:=CAST(null AS INTEGER)) S\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `IGNORED` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`F1` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`F1` INTEGER>",
+        "schema" : "`ROWKEY` STRING KEY, `IGNORED` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

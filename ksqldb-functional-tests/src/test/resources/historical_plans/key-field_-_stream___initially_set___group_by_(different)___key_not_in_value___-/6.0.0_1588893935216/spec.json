@@ -37,17 +37,17 @@
     "statements" : [ "CREATE STREAM INPUT (K INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`BAR` INTEGER KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`BAR` INTEGER KEY, `KSQL_COL_0` BIGINT",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

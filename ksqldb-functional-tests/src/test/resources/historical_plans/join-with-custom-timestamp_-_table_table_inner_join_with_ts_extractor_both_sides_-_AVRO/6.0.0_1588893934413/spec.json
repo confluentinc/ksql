@@ -143,17 +143,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1_JOIN_S2",
+        "name" : "S1",
         "type" : "TABLE",
-        "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1",
+        "name" : "S1_JOIN_S2",
         "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT",
+        "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

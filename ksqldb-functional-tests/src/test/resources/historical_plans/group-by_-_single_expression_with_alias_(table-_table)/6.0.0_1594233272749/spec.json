@@ -167,17 +167,17 @@
     "statements" : [ "CREATE TABLE TEST (ID INT PRIMARY KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT LEN(DATA) AS NEW_KEY, COUNT(*) AS COUNT FROM TEST GROUP BY LEN(DATA);" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`ID` INTEGER KEY, `DATA` STRING",
+        "schema" : "`NEW_KEY` INTEGER KEY, `COUNT` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`NEW_KEY` INTEGER KEY, `COUNT` BIGINT",
+        "schema" : "`ID` INTEGER KEY, `DATA` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

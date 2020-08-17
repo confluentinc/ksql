@@ -85,17 +85,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `IGNORED` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `COUNT` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ID` INTEGER KEY, `COUNT` BIGINT",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `IGNORED` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -135,7 +135,7 @@
     "statements" : [ "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='AVRO');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {
@@ -143,7 +143,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {

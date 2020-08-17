@@ -78,17 +78,17 @@
     "statements" : [ "CREATE STREAM INPUT (TEXT STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.TEXT TEXT,\n  (INPUT.TEXT < 'b2') KSQL_COL_0\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_0` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_0` BOOLEAN",
+        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -44,7 +44,7 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT as SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
         "keyFormat" : {
@@ -52,7 +52,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
         "keyFormat" : {

@@ -30,17 +30,17 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, ID int) with (kafka_topic='input', value_format = 'KAFKA');", "CREATE STREAM OUTPUT AS select ID, K from INPUT partition by ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `K` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `K` STRING",
+        "schema" : "`K` STRING KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

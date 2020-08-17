@@ -23,17 +23,17 @@
     "statements" : [ "CREATE TABLE TEST (K STRING PRIMARY KEY, id INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT BAD_UDF(id), COUNT() FROM TEST GROUP BY BAD_UDF(id);" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`K` STRING KEY, `ID` INTEGER",
+        "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT",
+        "schema" : "`K` STRING KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -78,18 +78,18 @@
     "statements" : [ "CREATE STREAM S1 (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON', WINDOW_TYPE='SESSION');", "CREATE STREAM S2 (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='right_topic', VALUE_FORMAT='JSON', WINDOW_TYPE='SESSION');", "CREATE STREAM OUTPUT AS SELECT\n  S1.ID S1_ID,\n  S2.ID S2_ID\nFROM S1 S1\nINNER JOIN S2 S2 WITHIN 1 MINUTES ON ((S1.ROWKEY = S2.ROWKEY))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` INTEGER KEY, `S1_ID` BIGINT, `S2_ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `S1_ID` BIGINT, `S2_ID` BIGINT",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"

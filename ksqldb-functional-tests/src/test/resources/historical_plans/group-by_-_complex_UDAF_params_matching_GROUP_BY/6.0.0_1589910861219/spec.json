@@ -116,17 +116,17 @@
     "statements" : [ "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT (V0 + V1) AS NEW_KEY, SUM(V0 + V1) AS SUM FROM TEST GROUP BY V0 + V1;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`V0` INTEGER KEY, `V1` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`NEW_KEY` INTEGER KEY, `SUM` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`NEW_KEY` INTEGER KEY, `SUM` INTEGER",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`V0` INTEGER KEY, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

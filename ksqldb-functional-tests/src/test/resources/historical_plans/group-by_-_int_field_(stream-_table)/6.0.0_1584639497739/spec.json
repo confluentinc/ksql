@@ -148,17 +148,17 @@
     "statements" : [ "CREATE STREAM TEST (ID INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  TEST.ID ID,\n  COUNT(*) KSQL_COL_0\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER, `KSQL_COL_0` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

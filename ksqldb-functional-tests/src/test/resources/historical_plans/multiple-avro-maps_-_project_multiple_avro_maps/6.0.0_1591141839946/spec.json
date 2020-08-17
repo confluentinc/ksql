@@ -94,7 +94,7 @@
     "statements" : [ "CREATE STREAM TEST (M1 MAP<STRING, INT>, M2 MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM SINK as SELECT * FROM test;" ],
     "post" : {
       "sources" : [ {
-        "name" : "SINK",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
         "keyFormat" : {
@@ -102,7 +102,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "SINK",
         "type" : "STREAM",
         "schema" : "`M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
         "keyFormat" : {

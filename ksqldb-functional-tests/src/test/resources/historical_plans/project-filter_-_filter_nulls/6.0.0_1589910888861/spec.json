@@ -60,7 +60,7 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT * FROM INPUT WHERE ID IS NOT NULL AND NAME IS NOT NULL;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
@@ -68,7 +68,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {

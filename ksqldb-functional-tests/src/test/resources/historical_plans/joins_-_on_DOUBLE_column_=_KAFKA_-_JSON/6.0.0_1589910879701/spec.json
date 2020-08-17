@@ -54,14 +54,6 @@
     "statements" : [ "CREATE STREAM L (ID STRING KEY, l0 DOUBLE, l1 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM R (ID STRING KEY, r0 DOUBLE, r1 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT L.l0, L.ID, L1, R1 FROM L join R WITHIN 11 SECONDS ON L.l0 = R.r0;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `R0` DOUBLE, `R1` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`L0` DOUBLE KEY, `L_ID` STRING, `L1` INTEGER, `R1` INTEGER",
@@ -73,6 +65,14 @@
         "name" : "L",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `L0` DOUBLE, `L1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `R0` DOUBLE, `R1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

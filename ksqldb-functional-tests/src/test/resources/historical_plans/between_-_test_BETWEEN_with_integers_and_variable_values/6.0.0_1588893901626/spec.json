@@ -74,17 +74,17 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, source int, min int, max int) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source BETWEEN min AND max;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `SOURCE` INTEGER, `MIN` INTEGER, `MAX` INTEGER",
+        "schema" : "`ID` STRING KEY, `THING` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `THING` INTEGER",
+        "schema" : "`ID` STRING KEY, `SOURCE` INTEGER, `MIN` INTEGER, `MAX` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

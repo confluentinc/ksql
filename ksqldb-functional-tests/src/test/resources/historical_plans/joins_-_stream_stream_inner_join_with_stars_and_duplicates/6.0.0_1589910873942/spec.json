@@ -132,6 +132,14 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM TEST_STREAM (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM INNER_JOIN as SELECT t.*, t.F1 AS F1_2, tt.*, tt.NAME AS NAME_2 FROM test tt inner join TEST_STREAM t WITHIN 11 SECONDS ON t.id = tt.id;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "INNER_JOIN",
         "type" : "STREAM",
         "schema" : "`TT_ID` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `F1_2` STRING, `TT_NAME` STRING, `TT_VALUE` BIGINT, `NAME_2` STRING",
@@ -143,14 +151,6 @@
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "TEST_STREAM",
-        "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

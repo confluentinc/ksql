@@ -50,14 +50,6 @@
     "statements" : [ "CREATE STREAM L (ID DOUBLE) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON');", "CREATE STREAM R (ID INTEGER) WITH (KAFKA_TOPIC='right_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT L.ID L_ID\nFROM L L\nINNER JOIN R R WITHIN 30 SECONDS ON ((CAST(L.ID AS INTEGER) = R.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `L_ID` DOUBLE",
@@ -69,6 +61,14 @@
         "name" : "L",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -93,7 +93,7 @@
     "statements" : [ "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='AVRO');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<BIGINT>",
         "keyFormat" : {
@@ -101,7 +101,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<BIGINT>",
         "keyFormat" : {

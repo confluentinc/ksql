@@ -68,17 +68,17 @@
     "statements" : [ "CREATE TABLE TEST (ROWKEY INTEGER KEY, USER INTEGER, REGION STRING) WITH (KAFKA_TOPIC='test_topic', KEY='user', VALUE_FORMAT='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT (COUNT(*) * 2) KSQL_COL_0\nFROM TEST TEST\nGROUP BY TEST.REGION\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` INTEGER KEY, `USER` INTEGER, `REGION` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT",
+        "schema" : "`ROWKEY` INTEGER KEY, `USER` INTEGER, `REGION` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

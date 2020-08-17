@@ -64,17 +64,17 @@
     "statements" : [ "CREATE TABLE TEST (ID INT PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT f0, f0 * SUM(f1) FROM TEST GROUP BY f0;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`ID` INTEGER KEY, `F0` INTEGER, `F1` INTEGER",
+        "schema" : "`F0` INTEGER KEY, `KSQL_COL_0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`F0` INTEGER KEY, `KSQL_COL_0` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `F0` INTEGER, `F1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

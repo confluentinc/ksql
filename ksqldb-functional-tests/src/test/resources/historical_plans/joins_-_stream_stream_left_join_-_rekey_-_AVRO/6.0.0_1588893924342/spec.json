@@ -443,14 +443,6 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='AVRO');", "CREATE STREAM TEST_STREAM (K STRING KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='AVRO');", "CREATE STREAM OUTPUT as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
@@ -462,6 +454,14 @@
         "name" : "TEST_STREAM",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

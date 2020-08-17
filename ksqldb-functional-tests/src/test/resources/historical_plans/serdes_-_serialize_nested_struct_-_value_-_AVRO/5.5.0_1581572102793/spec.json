@@ -111,7 +111,7 @@
     "statements" : [ "CREATE STREAM INPUT (FOO STRUCT<F0 INTEGER>) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` STRUCT<`F0` INTEGER>",
         "keyFormat" : {
@@ -119,7 +119,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` STRUCT<`F0` INTEGER>",
         "keyFormat" : {

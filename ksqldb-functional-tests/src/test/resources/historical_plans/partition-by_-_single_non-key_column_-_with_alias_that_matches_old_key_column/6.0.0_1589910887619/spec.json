@@ -36,17 +36,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS select NAME AS ID, AGE, ID AS OLD from INPUT partition by NAME;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `AGE` INTEGER",
+        "schema" : "`ID` STRING KEY, `AGE` INTEGER, `OLD` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `AGE` INTEGER, `OLD` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `AGE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

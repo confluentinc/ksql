@@ -66,7 +66,7 @@
     "statements" : [ "CREATE STREAM INPUT (SOURCE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON', WINDOW_TYPE='Session');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nWHERE ((1581323504001 <= INPUT.WINDOWSTART) AND (INPUT.WINDOWEND <= 1581323505001))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
         "keyFormat" : {
@@ -75,7 +75,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
         "keyFormat" : {

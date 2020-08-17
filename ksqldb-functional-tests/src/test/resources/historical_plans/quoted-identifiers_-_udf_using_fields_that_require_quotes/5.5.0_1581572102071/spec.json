@@ -34,17 +34,17 @@
     "statements" : [ "CREATE STREAM TEST (`SELECT` INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT ABS(TEST.`SELECT`) FOO\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `SELECT` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `SELECT` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

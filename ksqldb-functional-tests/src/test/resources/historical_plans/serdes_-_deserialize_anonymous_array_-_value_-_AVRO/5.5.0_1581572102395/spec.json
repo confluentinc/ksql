@@ -55,14 +55,6 @@
     "statements" : [ "CREATE STREAM INPUT (FOO ARRAY<STRING>) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='AVRO', WRAP_SINGLE_VALUE=false);", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<STRING>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<STRING>",
@@ -70,6 +62,14 @@
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
       } ],
       "topics" : {
         "topics" : [ {

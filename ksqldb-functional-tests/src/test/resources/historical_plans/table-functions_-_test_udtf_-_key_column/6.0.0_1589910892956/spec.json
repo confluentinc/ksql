@@ -34,17 +34,17 @@
     "statements" : [ "CREATE STREAM TEST (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, TEST_UDTF(ID) FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `NAME` STRING",
+        "schema" : "`ID` INTEGER KEY, `KSQL_COL_0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `KSQL_COL_0` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

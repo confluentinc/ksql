@@ -69,9 +69,9 @@
     "statements" : [ "CREATE STREAM LEFT_STREAM (K STRING KEY, F0 INT) WITH (kafka_topic='left', value_format='JSON', window_type='tumbling', window_size='1 second');", "CREATE STREAM RIGHT_STREAM (K STRING KEY, F1 INT) WITH (kafka_topic='right', value_format='JSON', window_type='tumbling', window_size='1 second');", "CREATE STREAM OUTPUT as SELECT l.K, l.ROWTIME AS TIME, l.WINDOWSTART AS WSTART, l.WINDOWEND AS WEND, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.k = r.k;" ],
     "post" : {
       "sources" : [ {
-        "name" : "RIGHT_STREAM",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `F1` INTEGER",
+        "schema" : "`L_K` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `F0` INTEGER, `F1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
@@ -79,9 +79,9 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "RIGHT_STREAM",
         "type" : "STREAM",
-        "schema" : "`L_K` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `F0` INTEGER, `F1` INTEGER",
+        "schema" : "`K` STRING KEY, `F1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "TUMBLING",

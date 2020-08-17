@@ -36,14 +36,6 @@
     },
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING, `FOO2` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
@@ -51,6 +43,14 @@
           "format" : "KAFKA"
         },
         "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING, `FOO2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

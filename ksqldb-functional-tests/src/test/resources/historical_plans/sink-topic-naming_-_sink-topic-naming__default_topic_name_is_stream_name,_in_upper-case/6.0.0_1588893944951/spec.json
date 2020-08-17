@@ -34,7 +34,7 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OutPut AS SELECT * FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `SOURCE` STRING",
         "keyFormat" : {
@@ -42,7 +42,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `SOURCE` STRING",
         "keyFormat" : {

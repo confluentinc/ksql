@@ -64,17 +64,17 @@
     "statements" : [ "CREATE STREAM TEST (SOURCE STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  SUBSTRING(TEST.SOURCE, 6) SUBSTRING,\n  SUBSTRING(null, 1) NULL_STR,\n  SUBSTRING(TEST.SOURCE, null) NULL_POS\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `SUBSTRING` STRING, `NULL_STR` STRING, `NULL_POS` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `SUBSTRING` STRING, `NULL_STR` STRING, `NULL_POS` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

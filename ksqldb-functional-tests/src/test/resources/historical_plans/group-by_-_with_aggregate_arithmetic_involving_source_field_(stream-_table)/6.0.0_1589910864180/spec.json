@@ -56,17 +56,17 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, ITEM INT, COST INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT ITEM, COST, COST * COUNT() FROM TEST GROUP BY ITEM, COST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ITEM` INTEGER, `COST` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`KSQL_COL_1` STRING KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`KSQL_COL_1` STRING KEY, `KSQL_COL_0` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ITEM` INTEGER, `COST` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

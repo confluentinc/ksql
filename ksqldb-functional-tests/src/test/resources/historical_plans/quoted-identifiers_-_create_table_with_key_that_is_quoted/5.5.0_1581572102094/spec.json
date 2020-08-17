@@ -34,7 +34,7 @@
     "statements" : [ "CREATE TABLE TEST (`some.key` STRING) WITH (KAFKA_TOPIC='test_topic', KEY='`some.key`', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `some.key` STRING",
         "keyFormat" : {
@@ -42,7 +42,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `some.key` STRING",
         "keyFormat" : {

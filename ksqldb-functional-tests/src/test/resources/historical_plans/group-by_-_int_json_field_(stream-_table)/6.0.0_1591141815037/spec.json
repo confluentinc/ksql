@@ -78,17 +78,17 @@
     "statements" : [ "CREATE STREAM TEST (data STRUCT<field INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT data->field, COUNT(*) AS COUNT FROM TEST GROUP BY data->field;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`DATA` STRUCT<`FIELD` INTEGER>",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`FIELD` INTEGER KEY, `COUNT` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`FIELD` INTEGER KEY, `COUNT` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`DATA` STRUCT<`FIELD` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

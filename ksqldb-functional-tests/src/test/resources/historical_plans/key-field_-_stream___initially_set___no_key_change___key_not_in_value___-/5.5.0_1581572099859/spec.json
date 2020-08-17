@@ -35,17 +35,17 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY INTEGER KEY, FOO INTEGER, BAR INTEGER) WITH (KAFKA_TOPIC='input_topic', KEY='foo', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT INPUT.BAR BAR\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `BAR` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

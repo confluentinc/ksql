@@ -212,17 +212,17 @@
     "statements" : [ "CREATE STREAM TEST (ID INT KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ADDRESS->TOWN, COUNT(*) AS COUNT FROM TEST GROUP BY ADDRESS->TOWN;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`TOWN` STRING KEY, `COUNT` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`TOWN` STRING KEY, `COUNT` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

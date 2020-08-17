@@ -37,17 +37,17 @@
     "statements" : [ "CREATE TABLE INPUT (FOO INTEGER) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  INPUT.FOO ALIASED,\n  COUNT(*) KSQL_COL_0\nFROM INPUT INPUT\nGROUP BY INPUT.FOO\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `ALIASED` INTEGER, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` INTEGER KEY, `ALIASED` INTEGER, `KSQL_COL_0` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

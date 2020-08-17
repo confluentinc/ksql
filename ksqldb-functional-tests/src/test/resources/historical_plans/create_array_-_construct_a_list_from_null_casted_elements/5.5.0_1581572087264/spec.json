@@ -35,17 +35,17 @@
     "statements" : [ "CREATE STREAM TEST (A INTEGER, B INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT ARRAY[CAST(null AS INTEGER)] L\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `A` INTEGER, `B` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `L` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `L` ARRAY<INTEGER>",
+        "schema" : "`ROWKEY` STRING KEY, `A` INTEGER, `B` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

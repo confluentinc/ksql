@@ -106,17 +106,17 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, foo VARCHAR) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `FOO` STRING",
+        "schema" : "`ID` STRING KEY, `VAL` DECIMAL(2, 1)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `VAL` DECIMAL(2, 1)",
+        "schema" : "`ID` STRING KEY, `FOO` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

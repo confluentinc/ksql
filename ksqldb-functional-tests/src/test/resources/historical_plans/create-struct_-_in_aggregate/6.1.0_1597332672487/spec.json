@@ -53,12 +53,24 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "table",
-        "schema" : "ID INT KEY, BODY STRUCT<VALS ARRAY<INT>>"
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `BODY` STRUCT<`VALS` ARRAY<INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `VAL` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -79,7 +91,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "test",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

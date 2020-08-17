@@ -56,17 +56,17 @@
     "statements" : [ "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT NAME, LEN(NAME) AS LEN FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 2;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`NAME` STRING",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`NAME` STRING KEY, `LEN` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`NAME` STRING KEY, `LEN` INTEGER",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

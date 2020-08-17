@@ -34,17 +34,17 @@
     "statements" : [ "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT 6 % 4 / 2 * 6 AS VAL, 6 / 2 % 2 * 2 AS VAL2, 2 * 3 % 4 AS VAL3 FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`IGNORED` INTEGER",
+        "schema" : "`VAL` INTEGER, `VAL2` INTEGER, `VAL3` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`VAL` INTEGER, `VAL2` INTEGER, `VAL3` INTEGER",
+        "schema" : "`IGNORED` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

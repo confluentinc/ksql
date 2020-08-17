@@ -318,6 +318,14 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING, F2 BIGINT) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM LEFT_OUTER_JOIN AS SELECT\n  T.ID T_ID,\n  T.NAME NAME,\n  T.VALUE VALUE,\n  TT.F1 F1,\n  TT.F2 F2\nFROM TEST T\nLEFT OUTER JOIN TEST_STREAM TT WITHIN 11 SECONDS ON ((T.ID = TT.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "LEFT_OUTER_JOIN",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
@@ -329,14 +337,6 @@
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "TEST_STREAM",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

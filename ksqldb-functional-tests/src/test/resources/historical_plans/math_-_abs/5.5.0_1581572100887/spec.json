@@ -128,7 +128,7 @@
     "statements" : [ "CREATE STREAM INPUT (I INTEGER, L BIGINT, D DOUBLE, B DECIMAL(2, 1)) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='AVRO');", "CREATE STREAM OUTPUT AS SELECT\n  ABS(INPUT.I) I,\n  ABS(INPUT.L) L,\n  ABS(INPUT.D) D,\n  ABS(INPUT.B) B\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
         "keyFormat" : {
@@ -136,7 +136,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
         "keyFormat" : {

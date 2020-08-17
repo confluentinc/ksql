@@ -36,7 +36,7 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT I.K, I.FOO, I.BAR FROM INPUT I;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
@@ -44,7 +44,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {

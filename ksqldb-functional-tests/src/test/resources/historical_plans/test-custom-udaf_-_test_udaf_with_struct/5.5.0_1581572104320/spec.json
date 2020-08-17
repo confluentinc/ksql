@@ -84,17 +84,17 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID STRING, VAL STRUCT<A INTEGER, B INTEGER>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE RESULT AS SELECT\n  TEST.ID ID,\n  TEST_UDAF(TEST.VAL) RESULT\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
+        "name" : "RESULT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "RESULT",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -38,17 +38,17 @@
     "statements" : [ "CREATE STREAM INPUT (ignored VARCHAR) WITH (kafka_topic='test',value_format='json',partitions=1);", "CREATE STREAM OUTPUT AS SELECT array[struct(a:=123),struct(a:=123)] from INPUT emit changes;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`IGNORED` STRING",
+        "schema" : "`KSQL_COL_0` ARRAY<STRUCT<`A` INTEGER>>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`KSQL_COL_0` ARRAY<STRUCT<`A` INTEGER>>",
+        "schema" : "`IGNORED` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

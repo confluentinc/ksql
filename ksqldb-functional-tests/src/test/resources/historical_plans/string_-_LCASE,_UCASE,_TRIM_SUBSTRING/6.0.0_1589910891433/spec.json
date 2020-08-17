@@ -70,17 +70,17 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM OUTPUT AS select K, LCASE(text), UCASE(text), TRIM(text), SUBSTRING(text, 2, 5) from INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `TEXT` STRING",
+        "schema" : "`K` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING, `KSQL_COL_2` STRING, `KSQL_COL_3` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING, `KSQL_COL_2` STRING, `KSQL_COL_3` STRING",
+        "schema" : "`K` STRING KEY, `TEXT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

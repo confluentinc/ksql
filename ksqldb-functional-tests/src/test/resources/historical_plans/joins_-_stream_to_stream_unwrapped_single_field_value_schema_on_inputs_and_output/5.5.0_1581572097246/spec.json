@@ -54,7 +54,7 @@
     "statements" : [ "CREATE STREAM S1 (ID BIGINT) WITH (KAFKA_TOPIC='S1', VALUE_FORMAT='JSON', WRAP_SINGLE_VALUE=false);", "CREATE STREAM S2 (ID BIGINT) WITH (KAFKA_TOPIC='S2', VALUE_FORMAT='JSON', WRAP_SINGLE_VALUE=false);", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT S1.ID ID\nFROM S1 S1\nINNER JOIN S2 S2 WITHIN 1 SECONDS ON ((S1.ROWKEY = S2.ROWKEY))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
@@ -62,7 +62,7 @@
         },
         "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {

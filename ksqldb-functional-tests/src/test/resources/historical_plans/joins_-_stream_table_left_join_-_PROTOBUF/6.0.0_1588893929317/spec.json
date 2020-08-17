@@ -136,17 +136,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "LEFT_JOIN",
         "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+        "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "LEFT_JOIN",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

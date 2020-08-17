@@ -61,17 +61,17 @@
     "statements" : [ "CREATE TABLE INPUT (ROWKEY STRING PRIMARY KEY, ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  INPUT.ID ID,\n  INPUT.ROWKEY KEY\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `KEY` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `KEY` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -76,7 +76,7 @@
     "statements" : [ "CREATE STREAM test (ID STRING KEY, colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, colors FROM test WHERE ARRAY_CONTAINS(colors, 'Pink');" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
         "keyFormat" : {
@@ -84,7 +84,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
         "keyFormat" : {

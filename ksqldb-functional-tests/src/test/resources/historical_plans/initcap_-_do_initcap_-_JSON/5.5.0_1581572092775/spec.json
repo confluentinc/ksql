@@ -61,17 +61,17 @@
     },
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `INITCAP` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `INITCAP` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

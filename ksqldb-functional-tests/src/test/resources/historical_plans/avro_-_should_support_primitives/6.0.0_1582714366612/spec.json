@@ -63,7 +63,7 @@
     "statements" : [ "CREATE STREAM INPUT (C1 BOOLEAN, C2 INTEGER, C3 BIGINT, C4 DOUBLE, C5 STRING) WITH (AVRO_SCHEMA_ID=1, KAFKA_TOPIC='input', VALUE_FORMAT='AvRo');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `C1` BOOLEAN, `C2` INTEGER, `C3` BIGINT, `C4` DOUBLE, `C5` STRING",
         "keyFormat" : {
@@ -71,7 +71,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `C1` BOOLEAN, `C2` INTEGER, `C3` BIGINT, `C4` DOUBLE, `C5` STRING",
         "keyFormat" : {

@@ -179,8 +179,8 @@ plugins:
     - redirects:
         redirect_maps:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
-            concepts/collections/streams.md: reference/sql/syntax/data-definition.md
-            concepts/collections/tables.md: reference/sql/syntax/data-definition.md
+            concepts/collections/streams.md: reference/sql/data-definition.md
+            concepts/collections/tables.md: reference/sql/data-definition.md
 
 extra:
     site:

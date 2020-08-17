@@ -26,8 +26,8 @@ public final class FieldInfoImpl implements FieldInfo {
   private final boolean isKey;
 
   FieldInfoImpl(final String name, final ColumnType type, final boolean isKey) {
-    this.name = Objects.requireNonNull(name);
-    this.type = Objects.requireNonNull(type);
+    this.name = Objects.requireNonNull(name, "name");
+    this.type = Objects.requireNonNull(type, "type");
     this.isKey = isKey;
   }
 

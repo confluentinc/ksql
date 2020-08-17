@@ -51,17 +51,17 @@ public final class SourceDescriptionImpl implements SourceDescription {
       final String sqlStatement
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    this.name = Objects.requireNonNull(name);
-    this.type = Objects.requireNonNull(type);
-    this.fields = Objects.requireNonNull(fields);
-    this.topic = Objects.requireNonNull(topic);
-    this.keyFormat = Objects.requireNonNull(keyFormat);
-    this.valueFormat = Objects.requireNonNull(valueFormat);
-    this.readQueries = Objects.requireNonNull(readQueries);
-    this.writeQueries = Objects.requireNonNull(writeQueries);
-    this.timestampColumn = Objects.requireNonNull(timestampColumn);
-    this.windowType = Objects.requireNonNull(windowType);
-    this.sqlStatement = Objects.requireNonNull(sqlStatement);
+    this.name = Objects.requireNonNull(name, "name");
+    this.type = Objects.requireNonNull(type, "type");
+    this.fields = Objects.requireNonNull(fields, "fields");
+    this.topic = Objects.requireNonNull(topic, "topic");
+    this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
+    this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
+    this.readQueries = Objects.requireNonNull(readQueries, "readQueries");
+    this.writeQueries = Objects.requireNonNull(writeQueries, "writeQueries");
+    this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
+    this.windowType = Objects.requireNonNull(windowType, "windowType");
+    this.sqlStatement = Objects.requireNonNull(sqlStatement, "sqlStatement");
   }
 
   @Override

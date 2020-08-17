@@ -39,20 +39,28 @@ A complete list of keywords can be found in the appendix.
 
 ## Identifiers
 
-- Identifiers = user-space symbols
-- Identify streams, tables, and other objects created by the user
-  - examples: I create a stream called `s1`. `s1` is an identifier
-- case insensitive
+Identifiers are symbols that represent user-space entities, like streams, tables, columns, and other objects. For example, if you have a stream named `s1`, `s1` is an _identifier_ for that stream. By default, identifiers are case-insensitive, meaning `s1` and `S1` refer to the same stream. Under the covers, ksqlDB will capitalize all of the characters in the identifier for all future display purposes.
 
-[ example ]
+Unless an identifier is backticked, it may only be composed of characters that are a letter, number, or underscore. There is no imposed limit on the number of characters.
 
-TODO: what makes a valid identifier?
+To make it possible to use any character in an identifier, you can surround it in backticks (``` ` ```) when it is declared and used. A _backticked identifier_ is useful when you don't control the data, so it might have special characters, or even keywords. When you use backticked identifers, the case is captured exactly, and any future references to the identifer become case-sensitive. As an example, if you declare the following stream:
 
-- Backticked identifiers = escaped for exact casing
-- Allows you to use any name of your choosing, including keywords.
-- This is useful if you don't control the data
+```sql
+CREATE STREAM `s1` (
+    k VARCHAR KEY,
+    `@MY-identifier-stream-column!` INT
+) WITH (
+    kafka_topic = 's1',
+    partitions = 3,
+    value_format = 'json'
+);
+```
 
-[ example ]
+You must select from it by backticking the stream name and column name and using the original casing:
+
+```sql
+SELECT `@MY-identifier-stream-column!` FROM `s3` EMIT CHANGES;
+```
 
 ## Constants
 

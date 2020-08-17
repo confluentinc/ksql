@@ -65,7 +65,7 @@ public class CommandFactories implements DdlCommandFactory {
         new CreateSourceFactory(serviceContext),
         new DropSourceFactory(metaStore),
         new RegisterTypeFactory(),
-        new DropTypeFactory()
+        new DropTypeFactory(metaStore)
     );
   }
 

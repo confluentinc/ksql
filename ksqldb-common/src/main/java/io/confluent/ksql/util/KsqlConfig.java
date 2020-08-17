@@ -69,7 +69,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
-  
+
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
       ImmutableSet.of(
@@ -79,7 +79,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
-  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY = 
+  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY =
       "ksql.internal.topic.min.insync.replicas";
 
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
@@ -304,9 +304,16 @@ public class KsqlConfig extends AbstractConfig {
       + "KSQL metastore backup files are located.";
 
   public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
-  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = true;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
+
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
+  public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
+      "Bound the number of bytes that the buffer can use for suppression. Negative size means the"
+      + " buffer will be unbounded. If the maximum capacity is exceeded, the query will be"
+      + " terminated";
 
   // Defaults for config NOT defined by this class's ConfigDef:
   static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
@@ -315,6 +322,28 @@ public class KsqlConfig extends AbstractConfig {
       // of a join have data. See https://github.com/confluentinc/ksql/issues/5537.
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 500L)
       .build();
+
+  public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS
+      = "ksql.query.retry.backoff.initial.ms";
+  public static final Long KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT = 15000L;
+  public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC = "The initial amount of time "
+      + "to wait before attempting to retry a persistent query in ERROR state.";
+
+  public static final String KSQL_QUERY_RETRY_BACKOFF_MAX_MS = "ksql.query.retry.backoff.max.ms";
+  public static final Long KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT = 900000L;
+  public static final String KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC = "The maximum amount of time "
+      + "to wait before attempting to retry a persistent query in ERROR state.";
+
+  public static final String KSQL_QUERY_ERROR_MAX_QUEUE_SIZE = "ksql.query.error.max.queue.size";
+  public static final Integer KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT = 10;
+  public static final String KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC = "The maximum number of "
+      + "error messages (per query) to hold in the internal query errors queue and display"
+      + "in the query description when executing the `EXPLAIN <query>` command.";
+
+  public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
+      "ksql.properties.overrides.denylist";
+  private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
+      + "properties that KSQL users cannot override.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -723,6 +752,41 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SUPPRESS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_SUPPRESS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS,
+            Type.LONG,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS,
+            Type.LONG,
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE,
+            Type.INT,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC
+        )
+        .define(
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES,
+            Type.LONG,
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT,
+            Importance.LOW,
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
         )
         .withClientSslSupport();
 

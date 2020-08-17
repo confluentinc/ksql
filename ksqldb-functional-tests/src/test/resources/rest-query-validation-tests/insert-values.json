@@ -356,6 +356,18 @@
       "outputs": [
         {"topic": "test_topic", "key": 1, "value": {"V0": 0.00}}
       ]
+    },
+    {
+      "name": "should fail on column reference",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (K, ID) VALUES (FOO.bar, '10');"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Failed to prepare statement: 'FOO' is not a valid stream/table name or alias.",
+        "status": 400
+      }
     }
   ]
 }

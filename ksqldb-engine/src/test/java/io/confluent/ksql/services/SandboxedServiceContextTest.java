@@ -56,6 +56,7 @@ public final class SandboxedServiceContextTest {
           .ignore("getSchemaRegistryClient")
           .ignore("getSchemaRegistryClientFactory")
           .ignore("getConnectClient")
+          .ignore("getConsumerGroupClient")
           .ignore("close")
           .build();
     }
@@ -67,6 +68,8 @@ public final class SandboxedServiceContextTest {
     private KafkaTopicClient delegateTopicClient;
     @Mock
     private SchemaRegistryClient delegateSrClient;
+    @Mock
+    private KafkaConsumerGroupClient delegateConsumerGroupClient;
     private SandboxedServiceContext sandboxedServiceContext;
 
     public UnsupportedMethods(final TestCase<SandboxedServiceContext> testCase) {
@@ -79,6 +82,7 @@ public final class SandboxedServiceContextTest {
 
       when(delegate.getTopicClient()).thenReturn(delegateTopicClient);
       when(delegate.getSchemaRegistryClient()).thenReturn(delegateSrClient);
+      when(delegate.getConsumerGroupClient()).thenReturn(delegateConsumerGroupClient);
 
       sandboxedServiceContext = SandboxedServiceContext.create(delegate);
     }
@@ -98,12 +102,15 @@ public final class SandboxedServiceContextTest {
     private KafkaTopicClient delegateTopicClient;
     @Mock
     private SchemaRegistryClient delegateSrClient;
+    @Mock
+    private KafkaConsumerGroupClient delegateConsumerGroupClient;
     private SandboxedServiceContext sandboxedServiceContext;
 
     @Before
     public void setUp() {
       when(delegate.getTopicClient()).thenReturn(delegateTopicClient);
       when(delegate.getSchemaRegistryClient()).thenReturn(delegateSrClient);
+      when(delegate.getConsumerGroupClient()).thenReturn(delegateConsumerGroupClient);
 
       sandboxedServiceContext = SandboxedServiceContext.create(delegate);
     }

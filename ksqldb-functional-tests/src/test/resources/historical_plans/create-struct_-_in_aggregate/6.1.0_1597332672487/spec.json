@@ -1,0 +1,96 @@
+{
+  "version" : "6.1.0",
+  "timestamp" : 1597332672487,
+  "path" : "query-validation-tests/create-struct.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VAL INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID INT, VAL INT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID INT, VAL INT, KSQL_AGG_VARIABLE_0 ARRAY<INT>> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<BODY STRUCT<VALS ARRAY<INT>>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "in aggregate",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : 1,
+      "value" : {
+        "VAL" : 1
+      }
+    }, {
+      "topic" : "test",
+      "key" : 1,
+      "value" : {
+        "VAL" : 2
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "BODY" : {
+          "VALS" : [ 1 ]
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "BODY" : {
+          "VALS" : [ 1, 2 ]
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, STRUCT(Vals := COLLECT_LIST(VAL)) AS body FROM INPUT GROUP BY ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "table",
+        "schema" : "ID INT KEY, BODY STRUCT<VALS ARRAY<INT>>"
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

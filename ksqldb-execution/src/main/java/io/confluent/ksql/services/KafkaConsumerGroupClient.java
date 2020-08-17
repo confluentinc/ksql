@@ -13,14 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.services;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
 public interface KafkaConsumerGroupClient {
@@ -28,6 +30,8 @@ public interface KafkaConsumerGroupClient {
   List<String> listGroups();
 
   ConsumerGroupSummary describeConsumerGroup(String group);
+
+  Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(String group);
 
   /**
    * API POJOs
@@ -60,7 +64,7 @@ public interface KafkaConsumerGroupClient {
       return partitions;
     }
 
-    void addPartitions(final Set<TopicPartition> topicPartitions) {
+    public void addPartitions(final Set<TopicPartition> topicPartitions) {
       this.partitions.addAll(topicPartitions);
     }
 

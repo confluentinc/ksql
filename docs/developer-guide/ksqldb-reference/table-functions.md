@@ -94,6 +94,8 @@ Would give:
 
 ### `CUBE`
 
+Since: 0.7.0
+
 ```sql
 cube_explode(array[col1, ..., colN])
 ```
@@ -105,6 +107,8 @@ It produces `2^d` new rows where `d` is the number of columns given as parameter
 Duplicate entries for columns with null value are skipped.
 
 ### `EXPLODE`
+
+Since: 0.6.0
 
 ```sql
 EXPLODE(col1)

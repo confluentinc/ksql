@@ -28,6 +28,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.Configurable;
@@ -54,9 +55,9 @@ public class UdfLoader {
       final SqlTypeParser typeParser,
       final boolean throwExceptionOnLoadFailure
   ) {
-    this.functionRegistry = functionRegistry;
-    this.metrics = metrics;
-    this.typeParser = typeParser;
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.metrics = Objects.requireNonNull(metrics, "metrics");
+    this.typeParser = Objects.requireNonNull(typeParser, "typeParser");
     this.throwExceptionOnLoadFailure = throwExceptionOnLoadFailure;
   }
 
@@ -84,7 +85,8 @@ public class UdfLoader {
     @SuppressWarnings("unchecked") final Class<? extends Kudf> udfClass = metrics
         .map(m -> (Class) UdfMetricProducer.class)
         .orElse(PluggableUdf.class);
-    FunctionLoaderUtils.addSensor(sensorName, functionName, metrics);
+
+    FunctionMetrics.initInvocationSensor(metrics, sensorName, "ksql-udf", functionName + " udf");
 
     final UdfFactory factory = new UdfFactory(
         udfClass,

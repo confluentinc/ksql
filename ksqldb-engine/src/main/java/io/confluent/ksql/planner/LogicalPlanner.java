@@ -110,7 +110,9 @@ public class LogicalPlanner {
     this.aggregateAnalyzer = new AggregateAnalyzer(functionRegistry);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public OutputNode buildPlan() {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     PlanNode currentNode = buildSourceNode();
 
     if (analysis.getWhereExpression().isPresent()) {
@@ -143,10 +145,17 @@ public class LogicalPlanner {
 
     if (analysis.getRefinementInfo().isPresent()
         && analysis.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL) {
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SUPPRESS_ENABLED)) {
+        throw new KsqlException("Suppression is currently disabled. You can enable it by setting "
+            + KsqlConfig.KSQL_SUPPRESS_ENABLED + " to true");
+      }
       if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
         throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
       }
-      currentNode = buildSuppressNode(currentNode, analysis.getRefinementInfo().get());
+      currentNode = buildSuppressNode(
+          currentNode,
+          analysis.getRefinementInfo().get()
+      );
     }
 
     return buildOutputNode(currentNode);
@@ -484,7 +493,11 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode,
       final RefinementInfo refinementInfo
   ) {
-    return new SuppressNode(new PlanNodeId("Suppress"), sourcePlanNode, refinementInfo);
+    return new SuppressNode(
+        new PlanNodeId("Suppress"),
+        sourcePlanNode,
+        refinementInfo
+    );
   }
 
   private LogicalSchema buildAggregateSchema(

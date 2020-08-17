@@ -22,7 +22,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageTy
 import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -124,7 +123,7 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
             )
             .put(
                 ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE,
-                exception.map(RecordProcessingError::getCause)
+                exception.map(ErrorMessageUtil::getErrorMessages)
                     .orElse(Collections.emptyList())
             );
 
@@ -136,12 +135,6 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
     }
 
     return recordProcessingError;
-  }
-
-  private static List<String> getCause(final Throwable e) {
-    final List<String> cause = ErrorMessageUtil.getErrorMessages(e);
-    cause.remove(0);
-    return cause;
   }
 
   private static String serializeRow(final GenericRow record) {

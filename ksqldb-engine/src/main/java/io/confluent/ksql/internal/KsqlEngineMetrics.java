@@ -150,7 +150,7 @@ public class KsqlEngineMetrics implements Closeable {
         query.getQueryApplicationId()
     );
 
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
   }
 
   private void recordMessageConsumptionByQueryStats(

@@ -373,7 +373,7 @@ final class EngineExecutor {
         serviceContext
     );
 
-    final PersistentQueryMetadata queryMetadata = executor.buildQuery(
+    final PersistentQueryMetadata queryMetadata = executor.buildPersistentQuery(
         statementText,
         queryPlan.getQueryId(),
         engineContext.getMetaStore().getSource(queryPlan.getSink()),

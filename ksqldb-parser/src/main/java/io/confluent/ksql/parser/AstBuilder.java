@@ -653,7 +653,11 @@ public class AstBuilder {
 
     @Override
     public Node visitDropType(final DropTypeContext ctx) {
-      return new DropType(getLocation(ctx), getIdentifierText(ctx.identifier()));
+      return new DropType(
+          getLocation(ctx),
+          getIdentifierText(ctx.identifier()),
+          ctx.EXISTS() != null
+      );
     }
 
     @Override

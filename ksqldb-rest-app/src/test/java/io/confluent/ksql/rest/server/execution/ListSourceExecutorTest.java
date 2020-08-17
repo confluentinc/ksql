@@ -67,7 +67,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -146,13 +145,15 @@ public class ListSourceExecutorTest {
             true,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.of(topicWith1PartitionAndRfOf1)),
+            Optional.of(topicWith1PartitionAndRfOf1),
+            ImmutableList.of()),
         SourceDescriptionFactory.create(
             stream2,
             true,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.of(topicWith1PartitionAndRfOf1))
+            Optional.of(topicWith1PartitionAndRfOf1),
+            ImmutableList.of())
     ));
   }
 
@@ -213,14 +214,16 @@ public class ListSourceExecutorTest {
             true,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.of(client.describeTopic(table1.getKafkaTopicName()))
+            Optional.of(client.describeTopic(table1.getKafkaTopicName())),
+            ImmutableList.of()
         ),
         SourceDescriptionFactory.create(
             table2,
             true,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.of(client.describeTopic(table1.getKafkaTopicName()))
+            Optional.of(client.describeTopic(table1.getKafkaTopicName())),
+            ImmutableList.of()
         )
     ));
   }
@@ -266,8 +269,10 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
-                queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)),
-            Optional.empty())));
+                queryStatusCount,
+                KsqlConstants.KsqlQueryType.PERSISTENT)),
+            Optional.empty(),
+            ImmutableList.of())));
   }
 
   @Test
@@ -329,7 +334,8 @@ public class ListSourceExecutorTest {
                             true,
                             ImmutableList.of(),
                             ImmutableList.of(),
-                            Optional.empty()
+                            Optional.empty(),
+                            ImmutableList.of()
                         )
                     )
                 )
@@ -415,7 +421,8 @@ public class ListSourceExecutorTest {
                 true,
                 ImmutableList.of(),
                 ImmutableList.of(),
-                Optional.empty()
+                Optional.empty(),
+                ImmutableList.of()
             )
         )
     );

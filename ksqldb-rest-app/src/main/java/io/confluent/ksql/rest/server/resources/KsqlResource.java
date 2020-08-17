@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
@@ -61,6 +62,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -96,6 +98,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
+  private final DenyListPropertyValidator denyListPropertyValidator;
   private RequestValidator validator;
   private RequestHandler handler;
   private final Errors errorHandler;
@@ -108,7 +111,8 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(
         ksqlEngine,
@@ -117,7 +121,8 @@ public class KsqlResource implements KsqlConfigurable {
         activenessRegistrar,
         Injectors.DEFAULT,
         authorizationValidator,
-        errorHandler
+        errorHandler,
+        denyListPropertyValidator
     );
   }
 
@@ -128,7 +133,8 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -140,6 +146,8 @@ public class KsqlResource implements KsqlConfigurable {
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.denyListPropertyValidator =
+        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
   }
 
   @Override
@@ -199,11 +207,14 @@ public class KsqlResource implements KsqlConfigurable {
 
     ensureValidPatterns(request.getDeleteTopicList());
     try {
+      final Map<String, Object> streamsProperties = request.getStreamsProperties();
+      denyListPropertyValidator.validateAll(streamsProperties);
+
       final KsqlEntityList entities = handler.execute(
           securityContext,
           TERMINATE_CLUSTER,
           new SessionProperties(
-              request.getStreamsProperties(),
+              streamsProperties,
               localHost,
               localUrl,
               false
@@ -232,14 +243,18 @@ public class KsqlResource implements KsqlConfigurable {
           request,
           distributedCmdResponseTimeout);
 
+      final Map<String, Object> configProperties = request.getConfigOverrides();
+      denyListPropertyValidator.validateAll(configProperties);
+
       final KsqlRequestConfig requestConfig =
           new KsqlRequestConfig(request.getRequestProperties());
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+
       validator.validate(
           SandboxedServiceContext.create(securityContext.getServiceContext()),
           statements,
           new SessionProperties(
-              request.getConfigOverrides(),
+              configProperties,
               localHost,
               localUrl,
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
@@ -251,7 +266,7 @@ public class KsqlResource implements KsqlConfigurable {
           securityContext,
           statements,
           new SessionProperties(
-              request.getConfigOverrides(),
+              configProperties,
               localHost,
               localUrl,
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)

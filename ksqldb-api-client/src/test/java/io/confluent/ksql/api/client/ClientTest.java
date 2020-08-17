@@ -904,9 +904,23 @@ public class ClientTest extends BaseApiTest {
     final SourceDescriptionEntity entity = new SourceDescriptionEntity(
         "describe source;",
         new io.confluent.ksql.rest.entity.SourceDescription(
-            "name", Optional.empty(), Collections.emptyList(), Collections.emptyList(),
-            Collections.emptyList(), "type", "timestamp", "statistics", "errorStats",
-            false, "keyFormat", "valueFormat", "topic", 4, 1, "statement"),
+            "name",
+            Optional.empty(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "type",
+            "timestamp",
+            "statistics",
+            "errorStats",
+            false,
+            "keyFormat",
+            "valueFormat",
+            "topic",
+            4,
+            1,
+            "statement",
+            Collections.emptyList()),
         Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
@@ -1286,7 +1300,8 @@ public class ClientTest extends BaseApiTest {
             "topic",
             4,
             1,
-            "sql"
+            "sql",
+            Collections.emptyList()
         );
     final SourceDescriptionEntity entity = new SourceDescriptionEntity(
         "describe source;", sd, Collections.emptyList());

@@ -22,7 +22,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
-
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -45,6 +44,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +59,9 @@ public class LogicalPlannerTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
     ksqlConfig = new KsqlConfig(Collections.emptyMap());
+
   }
+
 
   @Test
   public void shouldCreatePlanWithTableAsSource() {
@@ -309,6 +311,7 @@ public class LogicalPlannerTest {
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }
+
   @Test
   public void shouldThrowOnNonWindowedAggregationSuppressions() {
     final String simpleQuery = "SELECT * FROM test2 EMIT FINAL;";
@@ -319,6 +322,23 @@ public class LogicalPlannerTest {
 
     assertThat(e.getMessage(), containsString("EMIT FINAL is only supported for windowed aggregations."));
   }
+
+  @Test
+  public void shouldThrowOnSuppressDisabledInConfig() {
+    // Given:
+    KsqlConfig ksqlConfigSuppressDisabled = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SUPPRESS_ENABLED, false));
+    final String simpleQuery = "SELECT col1,COUNT(*) as COUNT FROM test2 WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY col1 EMIT FINAL;";
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AnalysisTestUtil.buildLogicalPlan(ksqlConfigSuppressDisabled, simpleQuery, metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Suppression is currently disabled. You can enable it by setting ksql.suppress.enabled to true"));
+  }
+
   private PlanNode buildLogicalPlan(final String query) {
     return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
   }

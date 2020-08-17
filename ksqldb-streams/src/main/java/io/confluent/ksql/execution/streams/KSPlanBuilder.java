@@ -287,8 +287,13 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public <K> KTableHolder<K> visitTableSuppress(final TableSuppress<K> tableSuppress) {
-    final KTableHolder<K> source = tableSuppress.getSource().build(this);
-    return TableSuppressBuilder.build(source);
+    final KTableHolder<K>  source = tableSuppress.getSource().build(this);
+    return new TableSuppressBuilder().build(
+        source,
+        tableSuppress,
+        queryBuilder,
+        source.getKeySerdeFactory()
+    );
   }
 
   @Override

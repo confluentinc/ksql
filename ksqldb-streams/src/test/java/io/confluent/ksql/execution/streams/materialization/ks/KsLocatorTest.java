@@ -342,8 +342,8 @@ public class KsLocatorTest {
 
   @SuppressWarnings("unchecked")
   private void getActiveAndStandbyMetadata() {
-    when(keyQueryMetadata.getActiveHost()).thenReturn(activeHostInfo);
-    when(keyQueryMetadata.getStandbyHosts()).thenReturn(ImmutableSet.of(
+    when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);
+    when(keyQueryMetadata.standbyHosts()).thenReturn(ImmutableSet.of(
         standByHostInfo1, standByHostInfo2));
     when(kafkaStreams.queryMetadataForKey(any(), any(), any(Serializer.class)))
         .thenReturn(keyQueryMetadata);
@@ -351,8 +351,8 @@ public class KsLocatorTest {
 
   @SuppressWarnings("unchecked")
   private void getActiveAndStandbyMetadata(final HostInfo activeHostInfo) {
-    when(keyQueryMetadata.getActiveHost()).thenReturn(activeHostInfo);
-    when(keyQueryMetadata.getStandbyHosts()).thenReturn(Collections.emptySet());
+    when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);
+    when(keyQueryMetadata.standbyHosts()).thenReturn(Collections.emptySet());
     when(kafkaStreams.queryMetadataForKey(any(), any(), any(Serializer.class)))
         .thenReturn(keyQueryMetadata);
   }

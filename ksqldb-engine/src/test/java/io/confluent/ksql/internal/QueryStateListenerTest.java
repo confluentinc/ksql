@@ -128,7 +128,7 @@ public class QueryStateListenerTest {
   @Test
   public void shouldUpdateOnError() {
     // When:
-    listener.onError(new QueryError("foo", Type.USER));
+    listener.onError(new QueryError(1, "foo", Type.USER));
 
     // Then:
     assertThat(currentGaugeValue(METRIC_NAME_2), is("USER"));

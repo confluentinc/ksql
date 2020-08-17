@@ -17,6 +17,7 @@ package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 
@@ -24,9 +25,9 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.test.util.ConsumerGroupTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
-import io.confluent.ksql.util.KafkaConsumerGroupClient;
-import io.confluent.ksql.util.KafkaConsumerGroupClient.ConsumerSummary;
-import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
+import io.confluent.ksql.services.KafkaConsumerGroupClient;
+import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerSummary;
+import io.confluent.ksql.services.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.time.Duration;
@@ -41,6 +42,8 @@ import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.test.IntegrationTest;
@@ -52,9 +55,9 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 /**
- * Unfortunately needs to be an integration test as there is no way
- * of stubbing results from the admin client as constructors are package-private. Mocking
- * the results would be tedious and distract from the actual testing.
+ * Unfortunately needs to be an integration test as there is no way of stubbing results from the
+ * admin client as constructors are package-private. Mocking the results would be tedious and
+ * distract from the actual testing.
  */
 @Category({IntegrationTest.class})
 public class KafkaConsumerGroupClientTest {
@@ -79,7 +82,7 @@ public class KafkaConsumerGroupClientTest {
     final KsqlConfig ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.getKafkaCluster());
 
     adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    consumerGroupClient = new KafkaConsumerGroupClientImpl(adminClient);
+    consumerGroupClient = new KafkaConsumerGroupClientImpl(() -> adminClient);
 
     topicName = TopicTestUtil.uniqueTopicName();
 
@@ -93,24 +96,30 @@ public class KafkaConsumerGroupClientTest {
   }
 
   @Test
-  public void shouldListConsumerGroupsWhenTheyExist() throws InterruptedException {
+  public void shouldListConsumerGroupsWhenTheyExist() {
     givenTopicExistsWithData();
     verifyListsGroups(group0, ImmutableList.of(group0));
     verifyListsGroups(group1, ImmutableList.of(group0, group1));
   }
 
   @Test
-  public void shouldDescribeGroup() throws InterruptedException {
+  public void shouldDescribeConsumerGroup() {
     givenTopicExistsWithData();
     try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
-      verifyDescribeGroup(1, group0, ImmutableList.of(c1));
+      verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
       try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
-        verifyDescribeGroup(2, group0, ImmutableList.of(c1, c2));
+        verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
       }
     }
   }
 
-  private void verifyDescribeGroup(
+  @Test
+  public void shouldListConsumerGroupOffsetsWhenTheyExist() {
+    givenTopicExistsWithData();
+    verifyListsConsumerGroupOffsets(group0);
+  }
+
+  private void verifyDescribeConsumerGroup(
       final int expectedNumConsumers,
       final String group,
       final List<KafkaConsumer<?, ?>> consumers
@@ -133,7 +142,6 @@ public class KafkaConsumerGroupClientTest {
   }
 
   private void verifyListsGroups(final String newGroup, final List<String> consumerGroups) {
-
     try (KafkaConsumer<String, byte[]> consumer = createConsumer(newGroup)) {
 
       final Supplier<List<String>> pollAndGetGroups = () -> {
@@ -142,6 +150,20 @@ public class KafkaConsumerGroupClientTest {
       };
 
       assertThatEventually(pollAndGetGroups, hasItems(consumerGroups.toArray(new String[0])));
+    }
+  }
+
+  private void verifyListsConsumerGroupOffsets(
+      final String newGroup
+  ) {
+    try (KafkaConsumer<String, byte[]> consumer = createConsumer(newGroup)) {
+      final Supplier<Map<TopicPartition, OffsetAndMetadata>> pollAndGetGroups = () -> {
+        consumer.poll(Duration.ofMillis(1));
+        return consumerGroupClient.listConsumerGroupOffsets(newGroup);
+      };
+
+      assertThatEventually(pollAndGetGroups,
+          hasEntry(new TopicPartition(topicName, 0), new OffsetAndMetadata(0)));
     }
   }
 

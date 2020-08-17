@@ -13,24 +13,31 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.services;
 
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KsqlGroupAuthorizationException;
+import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.errors.GroupAuthorizationException;
 
 public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
-  private final Admin adminClient;
+  private final Supplier<Admin> adminClient;
 
-  public KafkaConsumerGroupClientImpl(final Admin adminClient) {
+  public KafkaConsumerGroupClientImpl(final Supplier<Admin> adminClient) {
     this.adminClient = adminClient;
   }
 
@@ -38,7 +45,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   public List<String> listGroups() {
     try {
       return ExecutorUtil.executeWithRetries(
-          () -> adminClient.listConsumerGroups().all().get(),
+          () -> adminClient.get().listConsumerGroups().all().get(),
           RetryBehaviour.ON_RETRYABLE)
           .stream()
           .map(ConsumerGroupListing::groupId).collect(Collectors.toList());
@@ -48,14 +55,16 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
   }
 
   public ConsumerGroupSummary describeConsumerGroup(final String group) {
-
     try {
-      final Map<String, ConsumerGroupDescription> groups = ExecutorUtil
+      final Map<String, ConsumerGroupDescription> groupDescriptions = ExecutorUtil
           .executeWithRetries(
-              () -> adminClient.describeConsumerGroups(Collections.singleton(group)).all().get(),
+              () -> adminClient.get()
+                  .describeConsumerGroups(Collections.singleton(group))
+                  .all()
+                  .get(),
               RetryBehaviour.ON_RETRYABLE);
 
-      final Set<ConsumerSummary> results = groups
+      final Set<ConsumerSummary> results = groupDescriptions
           .values()
           .stream()
           .flatMap(g ->
@@ -68,9 +77,27 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
                   })).collect(Collectors.toSet());
 
       return new ConsumerGroupSummary(results);
-
+    } catch (final GroupAuthorizationException e) {
+      throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
     } catch (final Exception e) {
-      throw new KafkaResponseGetFailedException("Failed to describe Kafka consumer groups", e);
+      throw new KafkaResponseGetFailedException(
+          "Failed to describe Kafka consumer groups: " + group, e);
+    }
+  }
+
+  @Override
+  public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(final String group) {
+    try {
+      return ExecutorUtil.executeWithRetries(
+          () -> adminClient.get()
+              .listConsumerGroupOffsets(group)
+              .partitionsToOffsetAndMetadata()
+              .get(),
+          RetryBehaviour.ON_RETRYABLE);
+    } catch (final GroupAuthorizationException e) {
+      throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException("Failed to list Kafka consumer groups offsets", e);
     }
   }
 }

@@ -25,10 +25,14 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -41,25 +45,39 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryApplicationId;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ListSourceExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private ListSourceExecutor() { }
+  private ListSourceExecutor() {
+  }
 
   private static Optional<KsqlEntity> sourceDescriptionList(
       final ConfiguredStatement<?> statement,
+      final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final List<? extends DataSource> sources
@@ -67,6 +85,7 @@ public final class ListSourceExecutor {
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
             s -> describeSource(
+                statement.getConfig(),
                 executionContext,
                 serviceContext,
                 s.getName(),
@@ -95,6 +114,7 @@ public final class ListSourceExecutor {
     if (listStreams.getShowExtended()) {
       return sourceDescriptionList(
           statement,
+          sessionProperties,
           executionContext,
           serviceContext,
           ksqlStreams
@@ -120,6 +140,7 @@ public final class ListSourceExecutor {
     if (listTables.getShowExtended()) {
       return sourceDescriptionList(
           statement,
+          sessionProperties,
           executionContext,
           serviceContext,
           ksqlTables
@@ -140,6 +161,7 @@ public final class ListSourceExecutor {
   ) {
     final ShowColumns showColumns = statement.getStatement();
     final SourceDescriptionWithWarnings descriptionWithWarnings = describeSource(
+        statement.getConfig(),
         executionContext,
         serviceContext,
         showColumns.getTable(),
@@ -178,6 +200,7 @@ public final class ListSourceExecutor {
   }
 
   private static SourceDescriptionWithWarnings describeSource(
+      final KsqlConfig ksqlConfig,
       final KsqlExecutionContext ksqlEngine,
       final ServiceContext serviceContext,
       final SourceName name,
@@ -191,13 +214,21 @@ public final class ListSourceExecutor {
       ), statementText);
     }
 
-    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription = Optional.empty();
+    final List<RunningQuery> readQueries = getQueries(ksqlEngine,
+        q -> q.getSourceNames().contains(dataSource.getName()));
+    final List<RunningQuery> writeQueries = getQueries(ksqlEngine,
+        q -> q.getSinkName().equals(dataSource.getName()));
+
+    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
+        Optional.empty();
+    List<QueryOffsetSummary> queryOffsetSummaries = new ArrayList<>();
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
         topicDescription = Optional.of(
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
+        queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
@@ -208,11 +239,86 @@ public final class ListSourceExecutor {
         SourceDescriptionFactory.create(
             dataSource,
             extended,
-            getQueries(ksqlEngine, q -> q.getSourceNames().contains(dataSource.getName())),
-            getQueries(ksqlEngine, q -> q.getSinkName().equals(dataSource.getName())),
-            topicDescription
+            readQueries,
+            writeQueries,
+            topicDescription,
+            queryOffsetSummaries
         )
     );
+  }
+
+  private static List<QueryOffsetSummary> queryOffsetSummaries(
+      final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
+      final List<RunningQuery> writeQueries
+  ) {
+    final Map<String, Map<TopicPartition, OffsetAndMetadata>> offsetsPerQuery =
+        new HashMap<>(writeQueries.size());
+    final Map<String, Set<String>> topicsPerQuery = new HashMap<>();
+    final Set<String> allTopics = new HashSet<>();
+    // Get topics and offsets per running query
+    for (RunningQuery query : writeQueries) {
+      final QueryId queryId = query.getId();
+      final String applicationId =
+          QueryApplicationId.build(ksqlConfig, true, queryId);
+      final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets =
+          serviceContext.getConsumerGroupClient().listConsumerGroupOffsets(applicationId);
+      offsetsPerQuery.put(applicationId, topicAndConsumerOffsets);
+      final Set<String> topics = topicAndConsumerOffsets.keySet().stream()
+          .map(TopicPartition::topic)
+          .collect(Collectors.toSet());
+      topicsPerQuery.put(applicationId, topics);
+      allTopics.addAll(topics);
+    }
+    // Get topics descriptions and start/end offsets
+    final Map<String, TopicDescription> sourceTopicDescriptions =
+        serviceContext.getTopicClient().describeTopics(allTopics);
+    final Map<TopicPartition, Long> topicAndStartOffsets =
+        serviceContext.getTopicClient().listTopicsStartOffsets(allTopics);
+    final Map<TopicPartition, Long> topicAndEndOffsets =
+        serviceContext.getTopicClient().listTopicsEndOffsets(allTopics);
+    // Build consumer offsets summary
+    final List<QueryOffsetSummary> offsetSummaries = new ArrayList<>();
+    for (Entry<String, Set<String>> entry : topicsPerQuery.entrySet()) {
+      final List<QueryTopicOffsetSummary> topicSummaries = new ArrayList<>();
+      for (String topic : entry.getValue()) {
+        topicSummaries.add(
+            new QueryTopicOffsetSummary(
+                topic,
+                consumerPartitionOffsets(
+                    sourceTopicDescriptions.get(topic),
+                    topicAndStartOffsets,
+                    topicAndEndOffsets,
+                    offsetsPerQuery.get(entry.getKey()))));
+      }
+      offsetSummaries.add(new QueryOffsetSummary(entry.getKey(), topicSummaries));
+    }
+    return offsetSummaries;
+  }
+
+  private static List<ConsumerPartitionOffsets> consumerPartitionOffsets(
+      final TopicDescription topicDescription,
+      final Map<TopicPartition, Long> topicAndStartOffsets,
+      final Map<TopicPartition, Long> topicAndEndOffsets,
+      final Map<TopicPartition, OffsetAndMetadata> topicAndConsumerOffsets
+  ) {
+    final List<ConsumerPartitionOffsets> consumerPartitionOffsets = new ArrayList<>();
+    for (TopicPartitionInfo topicPartitionInfo : topicDescription.partitions()) {
+      final TopicPartition tp = new TopicPartition(topicDescription.name(),
+          topicPartitionInfo.partition());
+      final Long startOffsetResultInfo = topicAndStartOffsets.get(tp);
+      final Long endOffsetResultInfo = topicAndEndOffsets.get(tp);
+      final OffsetAndMetadata offsetAndMetadata = topicAndConsumerOffsets.get(tp);
+      consumerPartitionOffsets.add(
+          new ConsumerPartitionOffsets(
+              topicPartitionInfo.partition(),
+              startOffsetResultInfo,
+              endOffsetResultInfo,
+              // null when consumer has not poll yet from a topic-partition
+              offsetAndMetadata != null ? offsetAndMetadata.offset() : 0
+          ));
+    }
+    return consumerPartitionOffsets;
   }
 
   private static List<RunningQuery> getQueries(
@@ -250,6 +356,7 @@ public final class ListSourceExecutor {
   }
 
   private static final class SourceDescriptionWithWarnings {
+
     private final List<KsqlWarning> warnings;
     private final SourceDescription description;
 

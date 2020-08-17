@@ -681,6 +681,9 @@ types.
 with richer information, including the parameter schema. This annotation is
 required if the SQL type can't be inferred from the Java type, like `STRUCT`.
 
+For an example UDTF implementation, see
+[Data Enrichment in ksqlDB Using UDTFs](https://www.confluent.io/blog/infrastructure-monitoring-with-ksqldb-udtf/).
+
 ##### Null Handling
 
 If a UDTF uses primitive types in its signature, this indicates that the
@@ -947,5 +950,6 @@ processing time. See more details in the
 
 ### Suggested Reading
 
+- [Data Enrichment in ksqlDB Using UDTFs](https://www.confluent.io/blog/infrastructure-monitoring-with-ksqldb-udtf/)
 - [ksqlDB UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)
 - [How to Build a UDF and/or UDAF in ksqlDB 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)

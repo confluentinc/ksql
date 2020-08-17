@@ -28,17 +28,18 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final RefinementInfo refinementInfo;
+  private final Formats internalFormats;
 
   public TableSuppress(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "refinementInfo",
-          required = true) final RefinementInfo refinementInfo
+      @JsonProperty(value = "refinementInfo", required = true) final RefinementInfo refinementInfo,
+      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
-    this.refinementInfo = Objects.requireNonNull(
-        refinementInfo, "refinementInfo");
+    this.refinementInfo = Objects.requireNonNull(refinementInfo, "refinementInfo");
+    this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
   }
 
   @Override
@@ -54,6 +55,10 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
 
   public RefinementInfo getRefinementInfo() {
     return refinementInfo;
+  }
+
+  public Formats getInternalFormats() {
+    return internalFormats;
   }
 
   public ExecutionStep<KTableHolder<K>> getSource() {
@@ -76,12 +81,18 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
     final TableSuppress<?> that = (TableSuppress<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(refinementInfo, that.refinementInfo);
+        && Objects.equals(refinementInfo, that.refinementInfo)
+        && Objects.equals(internalFormats, that.internalFormats);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, refinementInfo);
+    return Objects.hash(
+        properties,
+        source,
+        refinementInfo,
+        internalFormats
+    );
   }
 }

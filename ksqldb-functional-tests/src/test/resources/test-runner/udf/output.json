@@ -1,0 +1,7 @@
+{
+  "outputs": [
+    {"topic": "S1", "key": 10, "value": {"BACKWARD": "cathat"}, "timestamp": 0},
+    {"topic": "S1", "key": 20, "value": {"BACKWARD": "cakepan"}, "timestamp": 1},
+    {"topic": "S1", "key": 30, "value": {"BACKWARD": "teacoffee"}, "timestamp": 2}
+  ]
+}

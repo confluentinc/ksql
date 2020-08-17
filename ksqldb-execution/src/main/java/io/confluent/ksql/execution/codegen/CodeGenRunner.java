@@ -70,8 +70,27 @@ public class CodeGenRunner {
     final CodeGenRunner codeGen = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
 
     return expressions
-        .map(exp -> codeGen.buildCodeGenFromParseTree(exp, type))
+        .map(exp -> compileExpression(exp, type, codeGen))
         .collect(Collectors.toList());
+  }
+
+  public static ExpressionMetadata compileExpression(
+      final Expression expression,
+      final String type,
+      final LogicalSchema schema,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry
+  ) {
+    final CodeGenRunner codeGen = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
+    return compileExpression(expression, type, codeGen);
+  }
+
+  private static ExpressionMetadata compileExpression(
+      final Expression expression,
+      final String type,
+      final CodeGenRunner codeGen
+  ) {
+    return codeGen.buildCodeGenFromParseTree(expression, type);
   }
 
   public CodeGenRunner(

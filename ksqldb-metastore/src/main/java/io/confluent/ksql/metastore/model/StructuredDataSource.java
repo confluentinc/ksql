@@ -149,7 +149,7 @@ abstract class StructuredDataSource<K> implements DataSource {
         .collect(Collectors.toList());
 
     checkSchemas(getSchema(), other.getSchema())
-        .map(s -> getCompatMessage(other, SCHEMA_PROP) + "(" + s + ")")
+        .map(s -> getCompatMessage(other, SCHEMA_PROP) + ". (" + s + ")")
         .ifPresent(issues::add);
 
     final String err = String.join("\n\tAND ", issues);

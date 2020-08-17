@@ -72,7 +72,8 @@ statement
                     (WITH tableProperties)?                                 #createTable
     | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createTableAs
-    | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
+    | CREATE (SINK | SOURCE) CONNECTOR (IF NOT EXISTS)? identifier
+             WITH tableProperties                                           #createConnector
     | INSERT INTO sourceName query                                          #insertInto
     | INSERT INTO sourceName (columns)? VALUES values                       #insertValues
     | DROP STREAM (IF EXISTS)? sourceName (DELETE TOPIC)?                   #dropStream

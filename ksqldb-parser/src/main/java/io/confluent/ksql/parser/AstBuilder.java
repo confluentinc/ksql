@@ -335,7 +335,8 @@ public class AstBuilder {
           getLocation(context),
           name,
           properties,
-          type
+          type,
+          context.EXISTS() != null
       );
     }
 

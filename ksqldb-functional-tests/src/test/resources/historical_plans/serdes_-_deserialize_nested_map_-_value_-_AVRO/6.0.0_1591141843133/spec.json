@@ -3,8 +3,14 @@
   "timestamp" : 1591141843133,
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO MAP<VARCHAR, INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO MAP<VARCHAR, INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`FOO` MAP<STRING, INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`FOO` MAP<STRING, INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "deserialize nested map - value - AVRO",
@@ -118,7 +124,7 @@
     "statements" : [ "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='AVRO');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`FOO` MAP<STRING, INTEGER>",
         "keyFormat" : {
@@ -126,7 +132,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`FOO` MAP<STRING, INTEGER>",
         "keyFormat" : {

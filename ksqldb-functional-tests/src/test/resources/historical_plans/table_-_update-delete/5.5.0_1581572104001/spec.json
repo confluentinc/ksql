@@ -3,8 +3,14 @@
   "timestamp" : 1581572104001,
   "path" : "query-validation-tests/table.json",
   "schemas" : {
-    "CTAS_T1_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE INT> NOT NULL",
-    "CTAS_T1_0.T1" : "STRUCT<NAME VARCHAR, VALUE INT> NOT NULL"
+    "CTAS_T1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_T1_0.T1" : {
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "update-delete",
@@ -54,17 +60,17 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT, NAME STRING, VALUE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE T1 AS SELECT\n  TEST.NAME NAME,\n  TEST.VALUE VALUE\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "T1",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "T1",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

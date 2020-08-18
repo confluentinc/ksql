@@ -3,8 +3,14 @@
   "timestamp" : 1589910887316,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR, AGE INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT, AGE INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING, `AGE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`NAME` STRING KEY, `ID` INTEGER, `AGE` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "single value column - select explicit",
@@ -36,17 +42,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, NAME STRING, AGE INT) with (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS select ID, NAME, AGE from INPUT partition by NAME;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`NAME` STRING KEY, `ID` INTEGER, `AGE` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `AGE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `AGE` INTEGER",
+        "schema" : "`NAME` STRING KEY, `ID` INTEGER, `AGE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -3,11 +3,26 @@
   "timestamp" : 1589910878134,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<X BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<X BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<L_X BIGINT, L_ROWTIME BIGINT, L_ID INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<R_X BIGINT, R_ROWTIME BIGINT, R_ID DOUBLE, R_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<L_X BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` DOUBLE KEY, `X` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT, `L_ROWTIME` BIGINT, `L_ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `X` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`R_KSQL_COL_0` INTEGER KEY, `R_X` BIGINT, `R_ROWTIME` BIGINT, `R_ID` DOUBLE, `R_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream stream join - contains CAST double to int",
@@ -50,6 +65,14 @@
     "statements" : [ "CREATE STREAM L (ID INT KEY, x bigint) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM R (ID DOUBLE KEY, x bigint) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT l.id, L.x FROM L JOIN R WITHIN 30 seconds ON L.id = CAST(R.id AS INT);" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ID` DOUBLE KEY, `X` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT",
@@ -61,14 +84,6 @@
         "name" : "L",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `X` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`ID` DOUBLE KEY, `X` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

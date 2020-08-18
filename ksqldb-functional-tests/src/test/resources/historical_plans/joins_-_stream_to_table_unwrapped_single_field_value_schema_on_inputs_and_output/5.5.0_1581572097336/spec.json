@@ -3,10 +3,22 @@
   "timestamp" : 1581572097336,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "BIGINT",
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "BIGINT",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S_ID BIGINT, S_ROWTIME BIGINT, S_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "BIGINT"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`ROWKEY` STRING KEY, `S_ID` BIGINT, `S_ROWTIME` BIGINT, `S_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    }
   },
   "testCase" : {
     "name" : "stream to table unwrapped single field value schema on inputs and output",
@@ -58,14 +70,6 @@
     "statements" : [ "CREATE STREAM S (ID BIGINT) WITH (KAFKA_TOPIC='S', VALUE_FORMAT='JSON', WRAP_SINGLE_VALUE=false);", "CREATE TABLE T (ID BIGINT) WITH (KAFKA_TOPIC='T', VALUE_FORMAT='JSON', WRAP_SINGLE_VALUE=false);", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT S.ID ID\nFROM S S\nINNER JOIN T T ON ((S.ROWKEY = T.ROWKEY))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
-      }, {
         "name" : "S",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
@@ -76,6 +80,14 @@
       }, {
         "name" : "T",
         "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"

@@ -3,8 +3,14 @@
   "timestamp" : 1589910891136,
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<A STRUCT<B MAP<VARCHAR, STRUCT<C ARRAY<STRUCT<D INT>>>>>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<D INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `A` STRUCT<`B` MAP<STRING, STRUCT<`C` ARRAY<STRUCT<`D` INTEGER>>>>>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `D` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "generated name",
@@ -42,17 +48,17 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, A STRUCT<B MAP<STRING, STRUCT<C ARRAY<STRUCT<D INT>>>>>) WITH (kafka_topic='test_topic', value_format='json');", "CREATE STREAM OUTPUT as SELECT K, A->B['key$Name[]']->C[1]->D FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `D` INTEGER",
+        "schema" : "`K` STRING KEY, `A` STRUCT<`B` MAP<STRING, STRUCT<`C` ARRAY<STRUCT<`D` INTEGER>>>>>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `A` STRUCT<`B` MAP<STRING, STRUCT<`C` ARRAY<STRUCT<`D` INTEGER>>>>>",
+        "schema" : "`K` STRING KEY, `D` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

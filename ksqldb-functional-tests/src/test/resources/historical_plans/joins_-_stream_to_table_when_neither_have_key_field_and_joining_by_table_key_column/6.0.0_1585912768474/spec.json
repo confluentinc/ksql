@@ -3,10 +3,22 @@
   "timestamp" : 1585912768474,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<NAME VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S_ID BIGINT, S_ROWTIME BIGINT, S_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, NAME VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S_ID` BIGINT, `S_ROWTIME` BIGINT, `S_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream to table when neither have key field and joining by table key column",
@@ -51,14 +63,6 @@
     "statements" : [ "CREATE STREAM S (ID BIGINT) WITH (KAFKA_TOPIC='S', VALUE_FORMAT='JSON');", "CREATE TABLE NO_KEY (ROWKEY BIGINT PRIMARY KEY, NAME STRING) WITH (KAFKA_TOPIC='NO_KEY', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  S.ID ID,\n  T.NAME NAME\nFROM S S\nINNER JOIN NO_KEY T ON ((S.ID = T.ROWKEY))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "NO_KEY",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `NAME` STRING",
@@ -70,6 +74,14 @@
         "name" : "S",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -3,10 +3,22 @@
   "timestamp" : 1588893900602,
   "path" : "query-validation-tests/as_value.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<I1_V0 INT, I1_V1 INT, I1_ROWTIME BIGINT, I1_ID INT, I1_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I1_ID INT, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `I1_V0` INTEGER, `I1_V1` INTEGER, `I1_ROWTIME` BIGINT, `I1_ID` INTEGER, `I1_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`I2_ID` INTEGER KEY, `I1_ID` INTEGER, `I1_V0` INTEGER, `I1_V1` INTEGER, `I2_V0` INTEGER, `I2_V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "join",
@@ -60,16 +72,16 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "I2",
-        "type" : "TABLE",
+        "name" : "I1",
+        "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "I1",
-        "type" : "STREAM",
+        "name" : "I2",
+        "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"

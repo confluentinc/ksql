@@ -3,11 +3,26 @@
   "timestamp" : 1589910879633,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<L0 DOUBLE, L1 INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<R0 DOUBLE, R1 INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<L_L0 DOUBLE, L_L1 INT, L_ROWTIME BIGINT, L_ID VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<R_R0 DOUBLE, R_R1 INT, R_ROWTIME BIGINT, R_ID VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<L_ID VARCHAR, L1 INT, R1 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` STRING KEY, `R0` DOUBLE, `R1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`L_L0` DOUBLE KEY, `L_L0` DOUBLE, `L_L1` INTEGER, `L_ROWTIME` BIGINT, `L_ID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L0` DOUBLE KEY, `L_ID` STRING, `L1` INTEGER, `R1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` STRING KEY, `L0` DOUBLE, `L1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`R_R0` DOUBLE KEY, `R_R0` DOUBLE, `R_R1` INTEGER, `R_ROWTIME` BIGINT, `R_ID` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "on DOUBLE column = KAFKA - AVRO",
@@ -86,6 +101,14 @@
     "statements" : [ "CREATE STREAM L (ID STRING KEY, l0 DOUBLE, l1 INT) WITH (kafka_topic='left_topic', value_format='AVRO');", "CREATE STREAM R (ID STRING KEY, r0 DOUBLE, r1 INT) WITH (kafka_topic='right_topic', value_format='AVRO');", "CREATE STREAM OUTPUT as SELECT L.l0, L.ID, L1, R1 FROM L join R WITHIN 11 SECONDS ON L.l0 = R.r0;" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `R0` DOUBLE, `R1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`L0` DOUBLE KEY, `L_ID` STRING, `L1` INTEGER, `R1` INTEGER",
@@ -97,14 +120,6 @@
         "name" : "L",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `L0` DOUBLE, `L1` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `R0` DOUBLE, `R1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -3,8 +3,14 @@
   "timestamp" : 1581572105028,
   "path" : "query-validation-tests/udf-implicit-cast.json",
   "schemas" : {
-    "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, LAT1 DOUBLE, LON1 DOUBLE> NOT NULL",
-    "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : "STRUCT<ID BIGINT, CALCULATED_DISTANCE DOUBLE> NOT NULL"
+    "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "int literal -> double",

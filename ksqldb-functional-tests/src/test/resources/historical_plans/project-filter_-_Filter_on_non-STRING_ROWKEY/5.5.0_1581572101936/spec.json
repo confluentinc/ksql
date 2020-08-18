@@ -3,8 +3,14 @@
   "timestamp" : 1581572101936,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` DOUBLE KEY, `C1` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` DOUBLE KEY, `C1` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Filter on non-STRING ROWKEY",
@@ -54,7 +60,7 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, C1 BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nWHERE (INPUT.ROWKEY > 0.1)\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` DOUBLE KEY, `C1` BIGINT",
         "keyFormat" : {
@@ -62,7 +68,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` DOUBLE KEY, `C1` BIGINT",
         "keyFormat" : {

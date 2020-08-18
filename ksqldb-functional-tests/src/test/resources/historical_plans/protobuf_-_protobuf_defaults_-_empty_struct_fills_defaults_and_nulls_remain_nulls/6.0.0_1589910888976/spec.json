@@ -3,8 +3,14 @@
   "timestamp" : 1589910888976,
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<S STRUCT<FOO INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S STRUCT<FOO INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`FOO` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`FOO` INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "protobuf defaults - empty struct fills defaults and nulls remain nulls",
@@ -66,7 +72,7 @@
     "statements" : [ "CREATE STREAM INPUT (s STRUCT<foo INTEGER>) WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT as SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`FOO` INTEGER>",
         "keyFormat" : {
@@ -74,7 +80,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`FOO` INTEGER>",
         "keyFormat" : {

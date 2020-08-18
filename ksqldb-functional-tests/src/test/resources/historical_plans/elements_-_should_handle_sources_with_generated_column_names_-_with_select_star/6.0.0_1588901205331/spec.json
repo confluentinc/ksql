@@ -3,8 +3,14 @@
   "timestamp" : 1588901205331,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<KSQL_COL_2 INT, KSQL_COL_4 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 INT, KSQL_COL_5 INT, KSQL_COL_2 INT, KSQL_COL_4 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` INTEGER, `KSQL_COL_5` INTEGER, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should handle sources with generated column names - with select star",
@@ -39,17 +45,17 @@
     "statements" : [ "CREATE STREAM INPUT (KSQL_COL_3 INT KEY, KSQL_COL_2 INT, KSQL_COL_4 INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT ABS(KSQL_COL_2), ABS(KSQL_COL_2), ABS(KSQL_COL_2), * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` INTEGER, `KSQL_COL_5` INTEGER, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
+        "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
+        "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` INTEGER, `KSQL_COL_5` INTEGER, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

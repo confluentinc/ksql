@@ -3,8 +3,14 @@
   "timestamp" : 1589910888389,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<Name VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<Name VARCHAR, Name2 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`Key` STRING KEY, `Name` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`Key` STRING KEY, `Name` STRING, `Name2` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should handle quoted key and value",
@@ -64,17 +70,17 @@
     "statements" : [ "CREATE STREAM INPUT (`Key` STRING KEY, `Name` STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT *, `Name` AS `Name2` FROM INPUT PARTITION BY `Key`;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`Key` STRING KEY, `Name` STRING, `Name2` STRING",
+        "schema" : "`Key` STRING KEY, `Name` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`Key` STRING KEY, `Name` STRING",
+        "schema" : "`Key` STRING KEY, `Name` STRING, `Name2` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

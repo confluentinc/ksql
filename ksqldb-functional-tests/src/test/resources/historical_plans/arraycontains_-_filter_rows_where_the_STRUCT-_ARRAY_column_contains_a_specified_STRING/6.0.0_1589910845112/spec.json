@@ -3,8 +3,14 @@
   "timestamp" : 1589910845112,
   "path" : "query-validation-tests/arraycontains.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 STRUCT<COLORS ARRAY<VARCHAR>>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COLORS ARRAY<VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `C1` STRUCT<`COLORS` ARRAY<STRING>>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "filter rows where the STRUCT->ARRAY column contains a specified STRING",

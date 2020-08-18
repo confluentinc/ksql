@@ -3,11 +3,26 @@
   "timestamp" : 1589910878599,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<NAME VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<F1 VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<T_NAME VARCHAR, T_ROWTIME BIGINT, T_LEFT_ID BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<TT_F1 VARCHAR, TT_ROWTIME BIGINT, TT_RIGHT_ID BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<NAME VARCHAR, F1 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`RIGHT_ID` BIGINT KEY, `F1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`T_LEFT_ID` BIGINT KEY, `T_NAME` STRING, `T_ROWTIME` BIGINT, `T_LEFT_ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`LEFT_ID` BIGINT KEY, `NAME` STRING, `F1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`LEFT_ID` BIGINT KEY, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`TT_RIGHT_ID` BIGINT KEY, `TT_F1` STRING, `TT_ROWTIME` BIGINT, `TT_RIGHT_ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "unqualified join criteria",
@@ -149,17 +164,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST_STREAM",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`RIGHT_ID` BIGINT KEY, `F1` STRING",
+        "schema" : "`LEFT_ID` BIGINT KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TEST_STREAM",
         "type" : "STREAM",
-        "schema" : "`LEFT_ID` BIGINT KEY, `NAME` STRING",
+        "schema" : "`RIGHT_ID` BIGINT KEY, `F1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

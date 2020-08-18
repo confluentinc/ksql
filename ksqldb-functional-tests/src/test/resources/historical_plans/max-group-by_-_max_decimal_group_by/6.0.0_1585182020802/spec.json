@@ -3,10 +3,22 @@
   "timestamp" : 1585182020802,
   "path" : "query-validation-tests/max-group-by.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2), KSQL_AGG_VARIABLE_0 DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2)> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "max decimal group by",
@@ -205,16 +217,16 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE DECIMAL(4, 2)) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='AVRO');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  MAX(TEST.VALUE) VALUE\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "TABLE",
+        "name" : "TEST",
+        "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
-        "type" : "STREAM",
+        "name" : "S2",
+        "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"

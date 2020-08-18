@@ -3,8 +3,14 @@
   "timestamp" : 1581572102742,
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO MAP<VARCHAR, DOUBLE>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO MAP<VARCHAR, DOUBLE>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "serialize nested map - value - AVRO",
@@ -135,7 +141,7 @@
     "statements" : [ "CREATE STREAM INPUT (FOO MAP<STRING, DOUBLE>) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {
@@ -143,7 +149,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {

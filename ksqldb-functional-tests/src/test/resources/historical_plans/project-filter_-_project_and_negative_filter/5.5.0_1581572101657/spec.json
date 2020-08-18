@@ -3,8 +3,14 @@
   "timestamp" : 1581572101657,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE DOUBLE> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<NAME VARCHAR, ID BIGINT> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "project and negative filter",
@@ -38,17 +44,17 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, NAME STRING, VALUE DOUBLE) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM S2 AS SELECT\n  TEST.NAME NAME,\n  TEST.ID ID\nFROM TEST TEST\nWHERE (TEST.ID < -100)\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
+        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

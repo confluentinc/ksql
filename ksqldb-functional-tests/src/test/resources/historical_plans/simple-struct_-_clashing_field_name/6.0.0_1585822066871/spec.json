@@ -3,8 +3,14 @@
   "timestamp" : 1585822066871,
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<B INT, A STRUCT<B INT>, C STRUCT<B INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<B INT, B_1 INT, B_2 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `B` INTEGER, `A` STRUCT<`B` INTEGER>, `C` STRUCT<`B` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `B` INTEGER, `B_1` INTEGER, `B_2` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "clashing field name",
@@ -42,17 +48,17 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY STRING KEY, B INTEGER, A STRUCT<B INTEGER>, C STRUCT<B INTEGER>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.B B,\n  INPUT.A->B B_1,\n  INPUT.C->B B_2\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `B` INTEGER, `B_1` INTEGER, `B_2` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `B` INTEGER, `A` STRUCT<`B` INTEGER>, `C` STRUCT<`B` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `B` INTEGER, `A` STRUCT<`B` INTEGER>, `C` STRUCT<`B` INTEGER>",
+        "schema" : "`ROWKEY` STRING KEY, `B` INTEGER, `B_1` INTEGER, `B_2` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

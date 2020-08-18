@@ -3,8 +3,14 @@
   "timestamp" : 1588893908853,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DEC DECIMAL(6, 4)> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "JSON scale in data less than scale in type",
@@ -94,7 +100,7 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
         "keyFormat" : {
@@ -102,7 +108,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
         "keyFormat" : {

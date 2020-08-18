@@ -3,10 +3,22 @@
   "timestamp" : 1585912775211,
   "path" : "query-validation-tests/test-custom-udaf.json",
   "schemas" : {
-    "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, REGION VARCHAR> NOT NULL",
-    "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<REGION VARCHAR, ID BIGINT> NOT NULL",
-    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Aggregate.Materialize" : "STRUCT<REGION VARCHAR, ID BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_SUM_ID_BY_REGION_0.SUM_ID_BY_REGION" : "STRUCT<REGION VARCHAR, KSQL_COL_0 BIGINT> NOT NULL"
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : {
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_SUM_ID_BY_REGION_0.SUM_ID_BY_REGION" : {
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `KSQL_COL_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "test_udaf on a table",
@@ -76,17 +88,17 @@
     "statements" : [ "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, NAME STRING, REGION STRING) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='DELIMITED');", "CREATE TABLE SUM_ID_BY_REGION AS SELECT\n  TEST.REGION REGION,\n  TEST_UDAF(TEST.ID) KSQL_COL_0\nFROM TEST TEST\nGROUP BY TEST.REGION\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "SUM_ID_BY_REGION",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `KSQL_COL_0` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "SUM_ID_BY_REGION",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

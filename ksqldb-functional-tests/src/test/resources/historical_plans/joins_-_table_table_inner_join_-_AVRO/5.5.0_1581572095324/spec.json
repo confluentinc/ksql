@@ -3,9 +3,18 @@
   "timestamp" : 1581572095324,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CTAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
-    "CTAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
-    "CTAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
+    "CTAS_INNER_JOIN_0.INNER_JOIN" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table table inner join - AVRO",

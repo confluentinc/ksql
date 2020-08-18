@@ -3,8 +3,14 @@
   "timestamp" : 1581572089992,
   "path" : "query-validation-tests/floating-point.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` DOUBLE KEY, `ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` DOUBLE KEY, `ID` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "with exponent",
@@ -70,7 +76,7 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nWHERE (INPUT.ROWKEY > 1E-1)\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` DOUBLE KEY, `ID` INTEGER",
         "keyFormat" : {
@@ -78,7 +84,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` DOUBLE KEY, `ID` INTEGER",
         "keyFormat" : {

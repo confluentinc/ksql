@@ -3,8 +3,14 @@
   "timestamp" : 1581572105315,
   "path" : "query-validation-tests/url.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<PROTOCOL VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `PROTOCOL` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "extract a protocol from a URL using URL_EXTRACT_PROTOCOL - PROTOBUF",

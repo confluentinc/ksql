@@ -3,9 +3,18 @@
   "timestamp" : 1581572095062,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CTAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
-    "CTAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
-    "CTAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
+    "CTAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table table left join - PROTOBUF",
@@ -171,17 +180,17 @@
     "statements" : [ "CREATE TABLE TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE TEST_TABLE (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING, F2 BIGINT) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE LEFT_OUTER_JOIN AS SELECT\n  T.ID T_ID,\n  T.NAME NAME,\n  T.VALUE VALUE,\n  TT.F1 F1,\n  TT.F2 F2\nFROM TEST T\nLEFT OUTER JOIN TEST_TABLE TT ON ((T.ID = TT.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST_TABLE",
+        "name" : "LEFT_OUTER_JOIN",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "LEFT_OUTER_JOIN",
+        "name" : "TEST_TABLE",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

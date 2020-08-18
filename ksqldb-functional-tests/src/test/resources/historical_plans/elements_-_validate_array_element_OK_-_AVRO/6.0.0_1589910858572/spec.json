@@ -3,8 +3,14 @@
   "timestamp" : 1589910858572,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 ARRAY<INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 ARRAY<INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `V0` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `V0` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "validate array element OK - AVRO",
@@ -49,7 +55,7 @@
     "statements" : [ "CREATE STREAM INPUT (V0 ARRAY<INT>) WITH (kafka_topic='input', value_format='AVRO');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` ARRAY<INTEGER>",
         "keyFormat" : {
@@ -57,7 +63,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` ARRAY<INTEGER>",
         "keyFormat" : {

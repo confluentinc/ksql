@@ -3,8 +3,14 @@
   "timestamp" : 1588893945073,
   "path" : "query-validation-tests/split.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<MESSAGE VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1 VARCHAR, S2 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `MESSAGE` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `S1` STRING, `S2` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "split a message by commas and display pos 0 and 2 of the returned array",

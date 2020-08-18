@@ -3,11 +3,26 @@
   "timestamp" : 1588893933719,
   "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
-    "CSAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : "STRUCT<NAME VARCHAR, TS BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : "STRUCT<F1 VARCHAR, F2 VARCHAR, RTS BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_S2_0.Join.Left" : "STRUCT<S1_NAME VARCHAR, S1_TS BIGINT, S1_ROWTIME BIGINT, S1_ID BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_S2_0.Join.Right" : "STRUCT<S2_F1 VARCHAR, S2_F2 VARCHAR, S2_RTS BIGINT, S2_ROWTIME BIGINT, S2_ID BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_S2_0.S1_JOIN_S2" : "STRUCT<NAME VARCHAR, TS BIGINT, F1 VARCHAR, F2 VARCHAR> NOT NULL"
+    "CSAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_S2_0.Join.Right" : {
+      "schema" : "`ID` BIGINT KEY, `S2_F1` STRING, `S2_F2` STRING, `S2_RTS` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_S2_0.Join.Left" : {
+      "schema" : "`ID` BIGINT KEY, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_S2_0.S1_JOIN_S2" : {
+      "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream stream inner join with ts extractor both sides - JSON",
@@ -101,9 +116,9 @@
     "statements" : [ "CREATE STREAM S1 (ID BIGINT KEY, NAME varchar, TS bigint) WITH (timestamp='TS', kafka_topic='s1', value_format='JSON');", "CREATE STREAM S2 (ID BIGINT KEY, F1 varchar, F2 varchar, RTS bigint) WITH (timestamp='RTS', kafka_topic='s2', value_format='JSON');", "CREATE STREAM S1_JOIN_S2 WITH(timestamp='TS') as SELECT S1.ID, S1.name as name, S1.ts as ts, s2.f1, s2.f2 from S1 join S2 WITHIN 11 SECONDS ON s1.id = s2.id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "S1_JOIN_S2",
         "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+        "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -117,9 +132,9 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1_JOIN_S2",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` STRING, `RTS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

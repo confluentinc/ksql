@@ -3,8 +3,14 @@
   "timestamp" : 1588893943376,
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<with.dot VARCHAR, *bad!chars* VARCHAR, SELECT VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<with.dot VARCHAR, *bad!chars* VARCHAR, SELECT VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "source fields that require quotes",

@@ -3,8 +3,14 @@
   "timestamp" : 1581572101616,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, THING MAP<VARCHAR, VARCHAR>> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<ID BIGINT> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `THING` MAP<STRING, STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Json Map filter",
@@ -74,17 +80,17 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, THING MAP<STRING, STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S1 AS SELECT TEST.ID ID\nFROM TEST TEST\nWHERE (TEST.THING['status'] = 'false')\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `THING` MAP<STRING, STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `THING` MAP<STRING, STRING>",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

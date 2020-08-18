@@ -3,8 +3,14 @@
   "timestamp" : 1582734342008,
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
-    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, EVENT_TS VARCHAR> NOT NULL",
-    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT, EVENT_TS VARCHAR> NOT NULL"
+    "CSAS_TS_0.TS" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "override output timestamp for CTAS using a string TIMESTAMP_FORMAT",
@@ -62,7 +68,7 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, EVENT_TS STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM TS WITH (TIMESTAMP='event_ts', TIMESTAMP_FORMAT='yyyy-MM-dd''T''HH:mm:ssX') AS SELECT\n  TEST.ID ID,\n  TEST.EVENT_TS EVENT_TS\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TS",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
         "keyFormat" : {
@@ -70,7 +76,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TS",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
         "keyFormat" : {

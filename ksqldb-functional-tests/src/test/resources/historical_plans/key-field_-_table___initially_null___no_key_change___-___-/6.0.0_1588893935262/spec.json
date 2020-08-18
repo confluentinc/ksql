@@ -3,8 +3,14 @@
   "timestamp" : 1588893935262,
   "path" : "query-validation-tests/key-field.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<BAR INT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<BAR INT> NOT NULL"
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table | initially null | no key change | - | -",
@@ -34,7 +40,7 @@
     "statements" : [ "CREATE TABLE INPUT (K STRING PRIMARY KEY, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `BAR` INTEGER",
         "keyFormat" : {
@@ -42,7 +48,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `BAR` INTEGER",
         "keyFormat" : {

@@ -3,11 +3,26 @@
   "timestamp" : 1588893921592,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
-    "INSERTQUERY_0.KafkaTopic_Left.Source" : "STRUCT<K VARCHAR> NOT NULL",
-    "INSERTQUERY_0.KafkaTopic_Right.Source" : "STRUCT<K VARCHAR> NOT NULL",
-    "INSERTQUERY_0.Join.Left" : "STRUCT<S1_K VARCHAR, S1_ROWTIME BIGINT, S1_ID VARCHAR> NOT NULL",
-    "INSERTQUERY_0.Join.Right" : "STRUCT<S2_K VARCHAR, S2_ROWTIME BIGINT, S2_ID VARCHAR> NOT NULL",
-    "INSERTQUERY_0.OUTPUT" : "STRUCT<DATA VARCHAR, I INT> NOT NULL"
+    "INSERTQUERY_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` STRING KEY, `K` STRING",
+      "serdeOptions" : [ ]
+    },
+    "INSERTQUERY_0.Join.Left" : {
+      "schema" : "`K` STRING KEY, `S1_K` STRING, `S1_ROWTIME` BIGINT, `S1_ID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "INSERTQUERY_0.Join.Right" : {
+      "schema" : "`K` STRING KEY, `S2_K` STRING, `S2_ROWTIME` BIGINT, `S2_ID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "INSERTQUERY_0.OUTPUT" : {
+      "schema" : "`S1_K` STRING KEY, `DATA` STRING, `I` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "INSERTQUERY_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` STRING KEY, `K` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "join with repartition",
@@ -116,7 +131,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE2",
+        "name" : "SOURCE1",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `K` STRING",
         "keyFormat" : {
@@ -124,7 +139,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE1",
+        "name" : "SOURCE2",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `K` STRING",
         "keyFormat" : {

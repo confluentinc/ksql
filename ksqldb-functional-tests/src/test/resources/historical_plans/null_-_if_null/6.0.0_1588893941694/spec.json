@@ -3,8 +3,14 @@
   "timestamp" : 1588893941694,
   "path" : "query-validation-tests/null.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR, COL2 ARRAY<INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<A INT, B VARCHAR, C ARRAY<INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`COL0` INTEGER KEY, `COL1` STRING, `COL2` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`COL0` INTEGER KEY, `A` INTEGER, `B` STRING, `C` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "if null",
@@ -72,17 +78,17 @@
     "statements" : [ "CREATE STREAM INPUT (COL0 INT KEY, COL1 STRING, COL2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT COL0, IFNULL(COL0, 10) AS A, IFNULL(COL1, 'x') AS B, IFNULL(COL2, ARRAY[10, 20]) AS C FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`COL0` INTEGER KEY, `A` INTEGER, `B` STRING, `C` ARRAY<INTEGER>",
+        "schema" : "`COL0` INTEGER KEY, `COL1` STRING, `COL2` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`COL0` INTEGER KEY, `COL1` STRING, `COL2` ARRAY<INTEGER>",
+        "schema" : "`COL0` INTEGER KEY, `A` INTEGER, `B` STRING, `C` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

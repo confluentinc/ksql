@@ -3,8 +3,14 @@
   "timestamp" : 1585158673144,
   "path" : "query-validation-tests/drop_source.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DATA VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "drop if exists an existing stream should succeed",
@@ -30,7 +36,7 @@
     "statements" : [ "CREATE STREAM INPUT2 (DATA STRING) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='DELIMITED');", "DROP STREAM IF EXISTS INPUT2;", "CREATE STREAM INPUT (DATA STRING) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
@@ -38,7 +44,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {

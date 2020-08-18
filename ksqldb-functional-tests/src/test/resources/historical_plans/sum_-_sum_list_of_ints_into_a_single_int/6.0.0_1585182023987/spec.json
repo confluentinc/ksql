@@ -3,10 +3,22 @@
   "timestamp" : 1585182023987,
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE ARRAY<INT>> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<VALUE ARRAY<INT>, ROWKEY VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<VALUE ARRAY<INT>, ROWKEY VARCHAR, KSQL_AGG_VARIABLE_0 INT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<SUM_VAL INT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` ARRAY<INTEGER>, `ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` ARRAY<INTEGER>, `ROWKEY` STRING, `KSQL_AGG_VARIABLE_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `SUM_VAL` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "sum list of ints into a single int",
@@ -72,17 +84,17 @@
     "statements" : [ "CREATE STREAM INPUT (VALUE ARRAY<INTEGER>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT SUM_LIST(INPUT.VALUE) SUM_VAL\nFROM INPUT INPUT\nGROUP BY INPUT.ROWKEY\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `SUM_VAL` INTEGER",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `VALUE` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `VALUE` ARRAY<INTEGER>",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `SUM_VAL` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

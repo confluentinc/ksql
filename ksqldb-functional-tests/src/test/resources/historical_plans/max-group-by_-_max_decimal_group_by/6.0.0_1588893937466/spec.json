@@ -3,10 +3,22 @@
   "timestamp" : 1588893937466,
   "path" : "query-validation-tests/max-group-by.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<VALUE DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2), KSQL_AGG_VARIABLE_0 DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<VALUE DECIMAL(4, 2)> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "max decimal group by",
@@ -179,16 +191,16 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4, 2)) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE S2 as SELECT ID, max(value) as value FROM test group by id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "TABLE",
+        "name" : "TEST",
+        "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
-        "type" : "STREAM",
+        "name" : "S2",
+        "type" : "TABLE",
         "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"

@@ -3,11 +3,26 @@
   "timestamp" : 1581809700758,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<T_ID BIGINT, T_ROWTIME BIGINT, T_ROWKEY BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<TT_ID INT, TT_ROWTIME BIGINT, TT_ROWKEY INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<T_ID BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `TT_ID` INTEGER, `TT_ROWTIME` BIGINT, `TT_ROWKEY` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream stream join - contains CAST",
@@ -63,6 +78,14 @@
     "statements" : [ "CREATE STREAM TEST1 (ROWKEY BIGINT KEY, ID BIGINT) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE STREAM TEST2 (ROWKEY INTEGER KEY, ID INTEGER) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT T.ID T_ID\nFROM TEST1 T\nINNER JOIN TEST2 TT WITHIN 30 SECONDS ON ((T.ID = CAST(TT.ID AS BIGINT)))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT",
@@ -74,14 +97,6 @@
         "name" : "TEST1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

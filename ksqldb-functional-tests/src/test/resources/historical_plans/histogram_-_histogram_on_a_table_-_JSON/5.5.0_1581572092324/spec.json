@@ -3,10 +3,22 @@
   "timestamp" : 1581572092324,
   "path" : "query-validation-tests/histogram.json",
   "schemas" : {
-    "CTAS_COUNT_BY_REGION_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, REGION VARCHAR> NOT NULL",
-    "CTAS_COUNT_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
-    "CTAS_COUNT_BY_REGION_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 MAP<VARCHAR, BIGINT>> NOT NULL",
-    "CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION" : "STRUCT<REGION VARCHAR, COUNTS MAP<VARCHAR, BIGINT>> NOT NULL"
+    "CTAS_COUNT_BY_REGION_0.Aggregate.GroupBy" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_COUNT_BY_REGION_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` MAP<STRING, BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_COUNT_BY_REGION_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "histogram on a table - JSON",
@@ -136,17 +148,17 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT, NAME STRING, REGION STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE COUNT_BY_REGION AS SELECT\n  TEST.REGION REGION,\n  HISTOGRAM(TEST.NAME) COUNTS\nFROM TEST TEST\nGROUP BY TEST.REGION\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "COUNT_BY_REGION",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "COUNT_BY_REGION",
         "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

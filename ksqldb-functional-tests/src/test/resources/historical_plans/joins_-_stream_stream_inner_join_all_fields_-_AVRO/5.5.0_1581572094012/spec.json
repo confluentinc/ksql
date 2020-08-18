@@ -3,11 +3,26 @@
   "timestamp" : 1581572094012,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR> NOT NULL",
-    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR> NOT NULL",
-    "CSAS_INNER_JOIN_0.Join.Left" : "STRUCT<TT_ID BIGINT, TT_NAME VARCHAR, TT_ROWTIME BIGINT, TT_ROWKEY BIGINT> NOT NULL",
-    "CSAS_INNER_JOIN_0.Join.Right" : "STRUCT<T_ID BIGINT, T_F1 VARCHAR, T_ROWTIME BIGINT, T_ROWKEY BIGINT> NOT NULL",
-    "CSAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<TT_ROWTIME BIGINT, TT_ROWKEY BIGINT, TT_ID BIGINT, TT_NAME VARCHAR, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_ID BIGINT, T_F1 VARCHAR> NOT NULL"
+    "CSAS_INNER_JOIN_0.INNER_JOIN" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT, `TT_ID` BIGINT, `TT_NAME` STRING, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_F1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_INNER_JOIN_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `TT_ID` BIGINT, `TT_NAME` STRING, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_INNER_JOIN_0.Join.Right" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream stream inner join all fields - AVRO",
@@ -295,14 +310,6 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='AVRO');", "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='AVRO');", "CREATE STREAM INNER_JOIN AS SELECT *\nFROM TEST TT\nINNER JOIN TEST_STREAM T WITHIN 11 SECONDS ON ((T.ID = TT.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST_STREAM",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "INNER_JOIN",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT, `TT_ID` BIGINT, `TT_NAME` STRING, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_F1` STRING",
@@ -314,6 +321,14 @@
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

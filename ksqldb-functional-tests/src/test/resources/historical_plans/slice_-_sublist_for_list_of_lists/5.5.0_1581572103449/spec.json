@@ -3,8 +3,14 @@
   "timestamp" : 1581572103449,
   "path" : "query-validation-tests/slice.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<L ARRAY<ARRAY<VARCHAR>>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SUB ARRAY<ARRAY<VARCHAR>>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `L` ARRAY<ARRAY<STRING>>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `SUB` ARRAY<ARRAY<STRING>>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "sublist for list of lists",

@@ -3,8 +3,14 @@
   "timestamp" : 1588893900093,
   "path" : "query-validation-tests/arrayindex.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COLORS ARRAY<VARCHAR>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `C` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "select the first element of an Array",

@@ -3,8 +3,14 @@
   "timestamp" : 1581572101687,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S3_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<VARCHAR>>>> NOT NULL",
-    "CSAS_S3_0.S3" : "STRUCT<ID BIGINT, ARRAY_ITEM VARCHAR> NOT NULL"
+    "CSAS_S3_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S3_0.S3" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Json Multi Dimensional Array",

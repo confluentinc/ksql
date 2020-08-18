@@ -3,8 +3,14 @@
   "timestamp" : 1581704482641,
   "path" : "query-validation-tests/magic-timestamp-conversion.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SOURCE INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "comparison predicate on BIGINT window bounds in WHERE",
@@ -66,7 +72,7 @@
     "statements" : [ "CREATE STREAM INPUT (SOURCE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON', WINDOW_TYPE='Session');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nWHERE ((1581323504001 <= INPUT.WINDOWSTART) AND (INPUT.WINDOWEND <= 1581323505001))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
         "keyFormat" : {
@@ -75,7 +81,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
         "keyFormat" : {

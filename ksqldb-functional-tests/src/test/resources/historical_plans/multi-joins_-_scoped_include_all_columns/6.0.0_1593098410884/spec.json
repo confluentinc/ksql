@@ -3,14 +3,38 @@
   "timestamp" : 1593098410884,
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : "STRUCT<B INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : "STRUCT<B INT> NOT NULL",
-    "CSAS_OUTPUT_0.L_Join.Left" : "STRUCT<S1_B INT, S1_ROWTIME BIGINT, S1_A INT> NOT NULL",
-    "CSAS_OUTPUT_0.L_Join.Right" : "STRUCT<S2_B INT, S2_ROWTIME BIGINT, S2_A INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<B INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S1_B INT, S1_ROWTIME BIGINT, S1_A INT, S2_B INT, S2_ROWTIME BIGINT, S2_A INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<S3_B INT, S3_ROWTIME BIGINT, S3_A INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1_B INT, S2_A INT, S2_B INT, S3_A INT, S3_B INT> NOT NULL"
+    "CSAS_OUTPUT_0.L_Join.Left" : {
+      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S1_ROWTIME` BIGINT, `S1_A` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.L_Join.Right" : {
+      "schema" : "`S2_A` INTEGER KEY, `S2_B` INTEGER, `S2_ROWTIME` BIGINT, `S2_A` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S1_ROWTIME` BIGINT, `S1_A` INTEGER, `S2_B` INTEGER, `S2_ROWTIME` BIGINT, `S2_A` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S2_A` INTEGER, `S2_B` INTEGER, `S3_A` INTEGER, `S3_B` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`S3_A` INTEGER KEY, `S3_B` INTEGER, `S3_ROWTIME` BIGINT, `S3_A` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "scoped include all columns",
@@ -75,17 +99,17 @@
     "statements" : [ "CREATE STREAM S1 (A INT KEY, B INT) WITH (kafka_topic='S1', value_format='JSON');", "CREATE STREAM S2 (A INT KEY, B INT) WITH (kafka_topic='S2', value_format='JSON');", "CREATE STREAM S3 (A INT KEY, B INT) WITH (kafka_topic='S3', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT s1.*, s2.*, s3.* FROM S1 INNER JOIN S2 WITHIN 10 SECONDS ON S1.A = S2.A INNER JOIN S3 WITHIN 10 SECONDS ON S1.A = S3.A WHERE S1.B < 5;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "S3",
         "type" : "STREAM",
-        "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S2_A` INTEGER, `S2_B` INTEGER, `S3_A` INTEGER, `S3_B` INTEGER",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S2",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `B` INTEGER",
+        "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S2_A` INTEGER, `S2_B` INTEGER, `S3_A` INTEGER, `S3_B` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -99,7 +123,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S3",
+        "name" : "S2",
         "type" : "STREAM",
         "schema" : "`A` INTEGER KEY, `B` INTEGER",
         "keyFormat" : {

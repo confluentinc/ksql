@@ -3,8 +3,14 @@
   "timestamp" : 1581572084864,
   "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ADDRESS STRUCT<CITY VARCHAR, STATE VARCHAR>, ITEMID STRUCT<NAME VARCHAR>> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<CASE_RESAULT VARCHAR> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ROWKEY` STRING KEY, `CASE_RESAULT` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "searched case expression with structs, multiple expression and the same type",
@@ -112,17 +118,17 @@
     "statements" : [ "CREATE STREAM ORDERS (ADDRESS STRUCT<CITY STRING, STATE STRING>, ITEMID STRUCT<NAME STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S1 AS SELECT (CASE WHEN (ORDERS.ADDRESS->STATE = 'STATE_1') THEN ORDERS.ITEMID->NAME WHEN (ORDERS.ADDRESS->STATE = 'STATE_3') THEN ORDERS.ADDRESS->CITY ELSE 'default' END) CASE_RESAULT\nFROM ORDERS ORDERS\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "ORDERS",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `CASE_RESAULT` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "ORDERS",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
+        "schema" : "`ROWKEY` STRING KEY, `CASE_RESAULT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

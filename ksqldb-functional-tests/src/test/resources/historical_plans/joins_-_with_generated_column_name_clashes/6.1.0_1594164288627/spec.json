@@ -3,9 +3,18 @@
   "timestamp" : 1594164288627,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ROWKEY_1 INT, ROWKEY_2 INT> NOT NULL",
-    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ROWKEY_4 INT, ROWKEY_5 INT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ROWKEY INT, ROWKEY_3 INT, ROWKEY_1 INT, ROWKEY_5 INT> NOT NULL"
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY_6` INTEGER KEY, `ROWKEY` INTEGER, `ROWKEY_3` INTEGER, `ROWKEY_1` INTEGER, `ROWKEY_5` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "with generated column name clashes",
@@ -63,6 +72,14 @@
     "statements" : [ "CREATE TABLE L (ROWKEY INT PRIMARY KEY, ROWKEY_1 INT, ROWKEY_2 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (ROWKEY_3 INT PRIMARY KEY, ROWKEY_4 INT, ROWKEY_5 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT ROWKEY_6, L.ROWKEY, R.ROWKEY_3, L.ROWKEY_1, R.ROWKEY_5 FROM L FULL OUTER JOIN R on L.ROWKEY = R.ROWKEY_3;" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY_6` INTEGER KEY, `ROWKEY` INTEGER, `ROWKEY_3` INTEGER, `ROWKEY_1` INTEGER, `ROWKEY_5` INTEGER",
@@ -74,14 +91,6 @@
         "name" : "L",
         "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -3,8 +3,14 @@
   "timestamp" : 1581572105106,
   "path" : "query-validation-tests/udf-implicit-cast.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT, FOO VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER, `FOO` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "choose the exact match first",

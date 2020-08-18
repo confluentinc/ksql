@@ -3,8 +3,14 @@
   "timestamp" : 1584374408526,
   "path" : "query-validation-tests/string.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<TEXT VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR, KSQL_COL_1 VARCHAR, KSQL_COL_2 VARCHAR, KSQL_COL_3 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING, `KSQL_COL_2` STRING, `KSQL_COL_3` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "LCASE, UCASE, TRIM SUBSTRING",
@@ -70,17 +76,17 @@
     "statements" : [ "CREATE STREAM INPUT (TEXT STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  LCASE(INPUT.TEXT) KSQL_COL_0,\n  UCASE(INPUT.TEXT) KSQL_COL_1,\n  TRIM(INPUT.TEXT) KSQL_COL_2,\n  SUBSTRING(INPUT.TEXT, 2, 5) KSQL_COL_3\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING, `KSQL_COL_2` STRING, `KSQL_COL_3` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING, `KSQL_COL_2` STRING, `KSQL_COL_3` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

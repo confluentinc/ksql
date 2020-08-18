@@ -3,10 +3,22 @@
   "timestamp" : 1589910853877,
   "path" : "query-validation-tests/collect-set.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR, VALUE MAP<VARCHAR, BOOLEAN>> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE MAP<VARCHAR, BOOLEAN>, KSQL_INTERNAL_COL_2 BOOLEAN> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE MAP<VARCHAR, BOOLEAN>, KSQL_AGG_VARIABLE_0 ARRAY<BOOLEAN>> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<COLLECTED ARRAY<BOOLEAN>> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_AGG_VARIABLE_0` ARRAY<BOOLEAN>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_INTERNAL_COL_2` BOOLEAN",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "collect_set bool map - JSON",
@@ -72,17 +84,17 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE map<varchar, boolean>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE S2 as SELECT ID, collect_set(value['key1']) AS collected FROM test group by id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

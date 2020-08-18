@@ -3,8 +3,14 @@
   "timestamp" : 1581572089104,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 STRUCT<F0 VARCHAR, F1 INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 STRUCT<F0 VARCHAR, F1 INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "validate struct element OK - PROTOBUF",
@@ -42,7 +48,7 @@
     "statements" : [ "CREATE STREAM INPUT (V0 STRUCT<F0 STRING, F1 INTEGER>) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>",
         "keyFormat" : {
@@ -50,7 +56,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>",
         "keyFormat" : {

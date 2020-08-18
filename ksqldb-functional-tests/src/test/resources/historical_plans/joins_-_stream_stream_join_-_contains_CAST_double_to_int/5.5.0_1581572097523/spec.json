@@ -3,11 +3,26 @@
   "timestamp" : 1581572097523,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID DOUBLE> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<L_ID INT, L_ROWTIME BIGINT, L_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<R_ID DOUBLE, R_ROWTIME BIGINT, R_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<L_ID INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `R_ID` DOUBLE, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream stream join - contains CAST double to int",
@@ -50,6 +65,14 @@
     "statements" : [ "CREATE STREAM L (ID INTEGER) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON');", "CREATE STREAM R (ID DOUBLE) WITH (KAFKA_TOPIC='right_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT L.ID L_ID\nFROM L L\nINNER JOIN R R WITHIN 30 SECONDS ON ((L.ID = CAST(R.ID AS INTEGER)))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER",
@@ -61,14 +84,6 @@
         "name" : "L",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

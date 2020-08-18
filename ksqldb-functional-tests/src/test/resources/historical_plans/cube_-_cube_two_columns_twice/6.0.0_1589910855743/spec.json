@@ -3,8 +3,14 @@
   "timestamp" : 1589910855743,
   "path" : "query-validation-tests/cube.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR, COL2 VARCHAR, COL3 INT, COL4 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<VAL1 ARRAY<VARCHAR>, VAL2 ARRAY<INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL1` STRING, `COL2` STRING, `COL3` INTEGER, `COL4` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `VAL1` ARRAY<STRING>, `VAL2` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "cube two columns twice",

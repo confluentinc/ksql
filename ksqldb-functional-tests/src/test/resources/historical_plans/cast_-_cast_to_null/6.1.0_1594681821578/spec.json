@@ -3,8 +3,14 @@
   "timestamp" : 1594681821578,
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 DOUBLE> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<VAL VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `F0` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `VAL` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "cast to null",

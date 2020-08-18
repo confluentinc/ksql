@@ -3,8 +3,14 @@
   "timestamp" : 1588893903295,
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
-    "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<FOO VARCHAR> NOT NULL",
-    "CSAS_OUT_0.OUT" : "STRUCT<VAL DECIMAL(2, 1)> NOT NULL"
+    "CSAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `FOO` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUT_0.OUT" : {
+      "schema" : "`ID` STRING KEY, `VAL` DECIMAL(2, 1)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "string to decimal",
@@ -106,17 +112,17 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, foo VARCHAR) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(2,1)) as VAL FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `VAL` DECIMAL(2, 1)",
+        "schema" : "`ID` STRING KEY, `FOO` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "OUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `FOO` STRING",
+        "schema" : "`ID` STRING KEY, `VAL` DECIMAL(2, 1)",
         "keyFormat" : {
           "format" : "KAFKA"
         },

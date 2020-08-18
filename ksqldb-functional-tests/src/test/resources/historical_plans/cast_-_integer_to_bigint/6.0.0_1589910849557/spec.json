@@ -3,8 +3,14 @@
   "timestamp" : 1589910849557,
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
-    "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<COL0 INT, COL1 INT> NOT NULL",
-    "CSAS_OUT_0.OUT" : "STRUCT<VAL BIGINT> NOT NULL"
+    "CSAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL0` INTEGER, `COL1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUT_0.OUT" : {
+      "schema" : "`ID` STRING KEY, `VAL` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "integer to bigint",
@@ -51,17 +57,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS BIGINT) as VAL FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `VAL` BIGINT",
+        "schema" : "`ID` STRING KEY, `COL0` INTEGER, `COL1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `COL0` INTEGER, `COL1` INTEGER",
+        "schema" : "`ID` STRING KEY, `VAL` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

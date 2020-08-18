@@ -3,11 +3,26 @@
   "timestamp" : 1589910880077,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<V BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<V BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S1_V BIGINT, S1_ROWTIME BIGINT, S1_ID INT, S1_WINDOWSTART BIGINT, S1_WINDOWEND BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<S2_V BIGINT, S2_ROWTIME BIGINT, S2_ID INT, S2_WINDOWSTART BIGINT, S2_WINDOWEND BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1_V BIGINT, S2_V BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`S1_ID` INTEGER KEY, `S1_V` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`S1_ID` INTEGER KEY, `S1_V` BIGINT, `S2_V` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`S2_ID` INTEGER KEY, `S2_V` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "matching session-windowed",
@@ -87,7 +102,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S2",
+        "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V` BIGINT",
         "keyFormat" : {
@@ -96,7 +111,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1",
+        "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V` BIGINT",
         "keyFormat" : {

@@ -3,11 +3,26 @@
   "timestamp" : 1590167837499,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<L_V0 INT, L_V1 INT, L_ROWTIME BIGINT, L_ID INT, L_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<R_V0 INT, R_V1 INT, R_ROWTIME BIGINT, R_ID INT, R_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<L_ID INT, R_ID INT, L_V0 INT, R_V1 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`L_KSQL_COL_0` INTEGER KEY, `L_V0` INTEGER, `L_V1` INTEGER, `L_ROWTIME` BIGINT, `L_ID` INTEGER, `L_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`R_KSQL_COL_0` INTEGER KEY, `R_V0` INTEGER, `R_V1` INTEGER, `R_ROWTIME` BIGINT, `R_ID` INTEGER, `R_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "left join - with synthetic join column in projection",
@@ -65,6 +80,14 @@
     "statements" : [ "CREATE STREAM L (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM R (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT ROWKEY AS ID, L.ID, R.ID, L.V0, R.V1 FROM L LEFT JOIN R WITHIN 1 SECOND ON ABS(L.id) = ABS(R.id);" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER",
@@ -74,14 +97,6 @@
         "serdeOptions" : [ ]
       }, {
         "name" : "L",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {

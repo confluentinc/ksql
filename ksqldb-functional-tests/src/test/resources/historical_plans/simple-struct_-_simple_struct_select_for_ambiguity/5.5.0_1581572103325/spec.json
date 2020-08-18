@@ -3,8 +3,14 @@
   "timestamp" : 1581572103325,
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
-    "CSAS_S7_0.KsqlTopic.Source" : "STRUCT<S STRUCT<S VARCHAR>> NOT NULL",
-    "CSAS_S7_0.S7" : "STRUCT<S1 STRUCT<S VARCHAR>, S2 STRUCT<S VARCHAR>, S3 VARCHAR, S4 VARCHAR> NOT NULL"
+    "CSAS_S7_0.S7" : {
+      "schema" : "`ROWKEY` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S7_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`S` STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "simple struct select for ambiguity",

@@ -3,8 +3,14 @@
   "timestamp" : 1588893903092,
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<B BOOLEAN, I INT, BI BIGINT, D DOUBLE, S VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BOOLEAN, KSQL_COL_1 INT, KSQL_COL_2 BIGINT, KSQL_COL_3 DOUBLE, KSQL_COL_4 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `B` BOOLEAN, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `S` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` INTEGER, `KSQL_COL_2` BIGINT, `KSQL_COL_3` DOUBLE, `KSQL_COL_4` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "no op",

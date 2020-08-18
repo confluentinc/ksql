@@ -3,11 +3,26 @@
   "timestamp" : 1589910878536,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<T_IGNORED VARCHAR, T_ROWTIME BIGINT, T_ID INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<TT_IGNORED VARCHAR, TT_ROWTIME BIGINT, TT_ID INT, TT_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<TT_ID INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `IGNORED` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`T_ID` INTEGER KEY, `T_IGNORED` STRING, `T_ROWTIME` BIGINT, `T_ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`T_ID` INTEGER KEY, `TT_ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `IGNORED` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`TT_KSQL_COL_0` INTEGER KEY, `TT_IGNORED` STRING, `TT_ROWTIME` BIGINT, `TT_ID` INTEGER, `TT_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream stream join - contains arithmetic unary expression flipped sides",
@@ -46,6 +61,14 @@
     "statements" : [ "CREATE STREAM TEST1 (ID INT KEY, IGNORED STRING) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM TEST2 (ID INT KEY, IGNORED STRING) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT T.ID, TT.ID FROM test1 t join test2 tt WITHIN 30 seconds ON -tt.id = t.id;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `IGNORED` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`T_ID` INTEGER KEY, `TT_ID` INTEGER",
@@ -55,14 +78,6 @@
         "serdeOptions" : [ ]
       }, {
         "name" : "TEST1",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `IGNORED` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "TEST2",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `IGNORED` STRING",
         "keyFormat" : {

@@ -3,8 +3,14 @@
   "timestamp" : 1588893949545,
   "path" : "query-validation-tests/url.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<DECODED VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `DECODED` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "decode a url parameter using DECODE_URL_PARAM - JSON",

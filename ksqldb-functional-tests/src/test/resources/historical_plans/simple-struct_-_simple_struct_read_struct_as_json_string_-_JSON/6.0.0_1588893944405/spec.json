@@ -3,8 +3,14 @@
   "timestamp" : 1588893944405,
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ORDERTIME BIGINT, ORDERID BIGINT, ITEMID VARCHAR, ORDERUNITS DOUBLE, ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>, ADDRESS STRUCT<NUMBER BIGINT, STREET VARCHAR, CITY VARCHAR, STATE VARCHAR, ZIPCODE BIGINT>> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<ITEMID VARCHAR, KSQL_COL_0 VARCHAR> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRING, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`K` STRING KEY, `ITEMID` STRING, `KSQL_COL_0` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "simple struct read struct as json string - JSON",
@@ -212,17 +218,17 @@
     "statements" : [ "CREATE STREAM orders (K STRING KEY, ordertime bigint, orderid bigint, itemid VARCHAR, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM s1 AS SELECT K, itemid, EXTRACTJSONFIELD(itemid, '$.ITEMID') FROM orders;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "ORDERS",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ITEMID` STRING, `KSQL_COL_0` STRING",
+        "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRING, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "ORDERS",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRING, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+        "schema" : "`K` STRING KEY, `ITEMID` STRING, `KSQL_COL_0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

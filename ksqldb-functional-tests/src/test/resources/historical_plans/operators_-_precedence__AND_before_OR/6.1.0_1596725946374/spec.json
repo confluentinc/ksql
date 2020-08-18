@@ -3,8 +3,14 @@
   "timestamp" : 1596725946374,
   "path" : "query-validation-tests/operators.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<VAL BOOLEAN> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`IGNORED` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`VAL` BOOLEAN",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "precedence: AND before OR",
@@ -32,17 +38,17 @@
     "statements" : [ "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT true OR false AND true AS VAL FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`VAL` BOOLEAN",
+        "schema" : "`IGNORED` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`IGNORED` INTEGER",
+        "schema" : "`VAL` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
         },

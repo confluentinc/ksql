@@ -3,8 +3,14 @@
   "timestamp" : 1584715948213,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_REPARTITIONED_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, SHOULDTHROW BOOLEAN> NOT NULL",
-    "CSAS_REPARTITIONED_0.REPARTITIONED" : "STRUCT<ID BIGINT> NOT NULL"
+    "CSAS_REPARTITIONED_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_REPARTITIONED_0.REPARTITIONED" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should handle PARTITION BY that throws",
@@ -55,17 +61,17 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, SHOULDTHROW BOOLEAN) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');", "CREATE STREAM REPARTITIONED AS SELECT TEST.ID ID\nFROM TEST TEST\nPARTITION BY BAD_UDF(TEST.SHOULDTHROW)\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "REPARTITIONED",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "REPARTITIONED",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

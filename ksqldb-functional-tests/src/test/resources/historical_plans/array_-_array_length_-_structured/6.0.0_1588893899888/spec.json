@@ -3,8 +3,14 @@
   "timestamp" : 1588893899888,
   "path" : "query-validation-tests/array.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ARRAY_ARRAY ARRAY<ARRAY<BOOLEAN>>, MAP_ARRAY ARRAY<MAP<VARCHAR, INT>>, STRUCT_ARRAY ARRAY<STRUCT<V BIGINT>>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ARRAY_LEN INT, MAP_LEN INT, STRUCT_LEN INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `ARRAY_ARRAY` ARRAY<ARRAY<BOOLEAN>>, `MAP_ARRAY` ARRAY<MAP<STRING, INTEGER>>, `STRUCT_ARRAY` ARRAY<STRUCT<`V` BIGINT>>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `ARRAY_LEN` INTEGER, `MAP_LEN` INTEGER, `STRUCT_LEN` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "array_length - structured",
@@ -50,17 +56,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, array_array ARRAY<ARRAY<BOOLEAN>>, map_array ARRAY<MAP<STRING,INT>>, struct_array ARRAY<STRUCT<V BIGINT>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, ARRAY_LENGTH(array_array) AS array_len, ARRAY_LENGTH(map_array) AS map_len, ARRAY_LENGTH(struct_array) AS struct_len FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `ARRAY_LEN` INTEGER, `MAP_LEN` INTEGER, `STRUCT_LEN` INTEGER",
+        "schema" : "`ID` STRING KEY, `ARRAY_ARRAY` ARRAY<ARRAY<BOOLEAN>>, `MAP_ARRAY` ARRAY<MAP<STRING, INTEGER>>, `STRUCT_ARRAY` ARRAY<STRUCT<`V` BIGINT>>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `ARRAY_ARRAY` ARRAY<ARRAY<BOOLEAN>>, `MAP_ARRAY` ARRAY<MAP<STRING, INTEGER>>, `STRUCT_ARRAY` ARRAY<STRUCT<`V` BIGINT>>",
+        "schema" : "`ID` STRING KEY, `ARRAY_LEN` INTEGER, `MAP_LEN` INTEGER, `STRUCT_LEN` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

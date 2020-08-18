@@ -3,8 +3,14 @@
   "timestamp" : 1588893937076,
   "path" : "query-validation-tests/math.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<I INT, L BIGINT, D DOUBLE, B DECIMAL(2, 1)> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I INT, L BIGINT, D DOUBLE, B DECIMAL(2, 1)> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "floor",
@@ -272,7 +278,7 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE, b DECIMAL(2,1)) WITH (kafka_topic='input', value_format='AVRO');", "CREATE STREAM OUTPUT AS SELECT K, floor(i) i, floor(l) l, floor(d) d, floor(b) b FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
         "keyFormat" : {
@@ -280,7 +286,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
         "keyFormat" : {

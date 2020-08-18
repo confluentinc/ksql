@@ -3,8 +3,14 @@
   "timestamp" : 1589910887172,
   "path" : "query-validation-tests/multiple-avro-maps.json",
   "schemas" : {
-    "CSAS_SINK_0.KsqlTopic.Source" : "STRUCT<M1 MAP<VARCHAR, INT>, M2 MAP<VARCHAR, VARCHAR>> NOT NULL",
-    "CSAS_SINK_0.SINK" : "STRUCT<M1 MAP<VARCHAR, INT>, M2 MAP<VARCHAR, VARCHAR>> NOT NULL"
+    "CSAS_SINK_0.SINK" : {
+      "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_SINK_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "project multiple avro maps",
@@ -94,7 +100,7 @@
     "statements" : [ "CREATE STREAM TEST (M1 MAP<STRING, INT>, M2 MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM SINK as SELECT * FROM test;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
+        "name" : "SINK",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
         "keyFormat" : {
@@ -102,7 +108,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SINK",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
         "keyFormat" : {

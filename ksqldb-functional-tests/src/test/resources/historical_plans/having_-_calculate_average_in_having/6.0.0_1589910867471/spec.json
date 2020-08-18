@@ -3,10 +3,22 @@
   "timestamp" : 1589910867471,
   "path" : "query-validation-tests/having.json",
   "schemas" : {
-    "CTAS_AVG_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR, VALUE BIGINT> NOT NULL",
-    "CTAS_AVG_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
-    "CTAS_AVG_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE BIGINT, KSQL_AGG_VARIABLE_0 BIGINT, KSQL_AGG_VARIABLE_1 BIGINT, KSQL_AGG_VARIABLE_2 BIGINT, KSQL_AGG_VARIABLE_3 BIGINT> NOT NULL",
-    "CTAS_AVG_0.AVG" : "STRUCT<AVG BIGINT> NOT NULL"
+    "CTAS_AVG_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_AVG_0.AVG" : {
+      "schema" : "`ID` BIGINT KEY, `AVG` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_AVG_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT, `KSQL_AGG_VARIABLE_2` BIGINT, `KSQL_AGG_VARIABLE_3` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_AVG_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "calculate average in having",

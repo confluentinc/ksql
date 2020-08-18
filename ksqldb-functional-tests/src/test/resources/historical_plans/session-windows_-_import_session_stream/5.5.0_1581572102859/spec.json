@@ -3,8 +3,14 @@
   "timestamp" : 1581572102859,
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE BIGINT, KEY VARCHAR> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `KEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "import session stream",
@@ -122,18 +128,18 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_TYPE='SESSION');", "CREATE STREAM S2 AS SELECT\n  *,\n  TEST.ROWKEY KEY\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `KEY` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `KEY` STRING",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"

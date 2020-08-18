@@ -3,11 +3,26 @@
   "timestamp" : 1589219239348,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<IMPRESSION_ID BIGINT, URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<I_IMPRESSION_ID BIGINT, I_URL VARCHAR, I_ROWTIME BIGINT, I_USER VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<C_URL VARCHAR, C_ROWTIME BIGINT, C_USER VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<IMPRESSION_ID BIGINT, URL VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`USER` STRING KEY, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`USER` STRING KEY, `I_IMPRESSION_ID` BIGINT, `I_URL` STRING, `I_ROWTIME` BIGINT, `I_USER` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`USER` STRING KEY, `C_URL` STRING, `C_ROWTIME` BIGINT, `C_USER` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "with where",

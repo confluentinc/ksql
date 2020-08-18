@@ -3,10 +3,22 @@
   "timestamp" : 1581572087205,
   "path" : "query-validation-tests/count-distinct.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR, NAME VARCHAR> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 ARRAY<INT>> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<ID VARCHAR, COUNT BIGINT> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `ID` STRING, `COUNT` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "count distinct",
@@ -108,17 +120,17 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING, NAME STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  COUNT_DISTINCT(TEST.NAME) COUNT\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `COUNT` BIGINT",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING",
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `COUNT` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

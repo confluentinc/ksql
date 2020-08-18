@@ -3,8 +3,14 @@
   "timestamp" : 1583429899288,
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ASTR ARRAY<VARCHAR>, MSTR MAP<VARCHAR, VARCHAR>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ASTR ARRAY<VARCHAR>, MSTR MAP<VARCHAR, VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "protobuf containers",
@@ -42,7 +48,7 @@
     "statements" : [ "CREATE STREAM INPUT (ASTR ARRAY<STRING>, MSTR MAP<STRING, STRING>) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
         "keyFormat" : {
@@ -50,7 +56,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
         "keyFormat" : {

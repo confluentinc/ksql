@@ -3,11 +3,26 @@
   "timestamp" : 1581572097718,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<LEFT_ID BIGINT, NAME VARCHAR> NOT NULL",
-    "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<RIGHT_ID BIGINT, F1 VARCHAR> NOT NULL",
-    "CSAS_LEFT_OUTER_JOIN_0.Join.Left" : "STRUCT<T_LEFT_ID BIGINT, T_NAME VARCHAR, T_ROWTIME BIGINT, T_ROWKEY BIGINT> NOT NULL",
-    "CSAS_LEFT_OUTER_JOIN_0.Join.Right" : "STRUCT<TT_RIGHT_ID BIGINT, TT_F1 VARCHAR, TT_ROWTIME BIGINT, TT_ROWKEY BIGINT> NOT NULL",
-    "CSAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN" : "STRUCT<LEFT_ID BIGINT, NAME VARCHAR, F1 VARCHAR> NOT NULL"
+    "CSAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `LEFT_ID` BIGINT, `NAME` STRING, `F1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `RIGHT_ID` BIGINT, `F1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_LEFT_OUTER_JOIN_0.Join.Right" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `TT_RIGHT_ID` BIGINT, `TT_F1` STRING, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_LEFT_OUTER_JOIN_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_LEFT_ID` BIGINT, `T_NAME` STRING, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `LEFT_ID` BIGINT, `NAME` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "unqualified join criteria",
@@ -156,14 +171,6 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, LEFT_ID BIGINT, NAME STRING) WITH (KAFKA_TOPIC='left_topic', KEY='LEFT_ID', VALUE_FORMAT='JSON');", "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, RIGHT_ID BIGINT, F1 STRING) WITH (KAFKA_TOPIC='right_topic', KEY='RIGHT_ID', VALUE_FORMAT='JSON');", "CREATE STREAM LEFT_OUTER_JOIN AS SELECT\n  T.LEFT_ID LEFT_ID,\n  T.NAME NAME,\n  TT.F1 F1\nFROM TEST T\nLEFT OUTER JOIN TEST_STREAM TT WITHIN 11 SECONDS ON ((T.LEFT_ID = TT.RIGHT_ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST_STREAM",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `RIGHT_ID` BIGINT, `F1` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "LEFT_OUTER_JOIN",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `LEFT_ID` BIGINT, `NAME` STRING, `F1` STRING",
@@ -175,6 +182,14 @@
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `LEFT_ID` BIGINT, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `RIGHT_ID` BIGINT, `F1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

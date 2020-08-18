@@ -3,10 +3,22 @@
   "timestamp" : 1585912769122,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<TF INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<SF INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S_SF INT, S_ROWTIME BIGINT, S_ROWKEY BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S_ROWTIME BIGINT, S_ROWKEY BIGINT, S_SF INT, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_TF INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `TF` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S_SF` INTEGER, `S_ROWTIME` BIGINT, `S_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S_ROWTIME` BIGINT, `S_ROWKEY` BIGINT, `S_SF` INTEGER, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_TF` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `SF` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "on non-STRING key",

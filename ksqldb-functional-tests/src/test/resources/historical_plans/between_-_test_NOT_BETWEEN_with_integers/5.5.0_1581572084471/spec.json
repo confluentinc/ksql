@@ -3,8 +3,14 @@
   "timestamp" : 1581572084471,
   "path" : "query-validation-tests/between.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<THING INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `THING` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "test NOT BETWEEN with integers",

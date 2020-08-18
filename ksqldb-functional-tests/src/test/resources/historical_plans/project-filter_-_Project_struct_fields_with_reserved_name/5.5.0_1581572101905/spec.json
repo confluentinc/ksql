@@ -3,8 +3,14 @@
   "timestamp" : 1581572101905,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<S STRUCT<START VARCHAR, END VARCHAR>> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<S__END VARCHAR> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`START` STRING, `END` STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ROWKEY` STRING KEY, `S__END` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Project struct fields with reserved name",
@@ -52,17 +58,17 @@
     "statements" : [ "CREATE STREAM TEST (S STRUCT<START STRING, `END` STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S1 AS SELECT TEST.S->`END` S__END\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `S__END` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`START` STRING, `END` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`START` STRING, `END` STRING>",
+        "schema" : "`ROWKEY` STRING KEY, `S__END` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

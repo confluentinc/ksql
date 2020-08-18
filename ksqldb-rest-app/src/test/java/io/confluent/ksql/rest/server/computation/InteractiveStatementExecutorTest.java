@@ -922,13 +922,17 @@ public class InteractiveStatementExecutorTest {
     handleStatement(statementExecutor, command, commandId, commandStatus, offset);
   }
 
-  private static void handleStatement(
+  private void handleStatement(
       final InteractiveStatementExecutor statementExecutor,
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatus,
       final long offset) {
-    statementExecutor.handleStatement(new QueuedCommand(commandId, command, commandStatus, offset));
+    when(queuedCommand.getAndDeserializeCommand()).thenReturn(command);
+    when(queuedCommand.getAndDeserializeCommandId()).thenReturn(commandId);
+    when(queuedCommand.getStatus()).thenReturn(commandStatus);
+    when(queuedCommand.getOffset()).thenReturn(offset);
+    statementExecutor.handleStatement(queuedCommand);
   }
 
   private void terminateQueries() {

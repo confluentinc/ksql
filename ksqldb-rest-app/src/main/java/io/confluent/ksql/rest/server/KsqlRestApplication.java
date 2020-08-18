@@ -253,7 +253,8 @@ public final class KsqlRestApplication implements Executable {
     this.denyListPropertyValidator =
         requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
 
-    this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
+    this.serverInfoResource =
+        new ServerInfoResource(serviceContext, ksqlConfigNoPort, commandRunner);
     if (heartbeatAgent.isPresent()) {
       this.heartbeatResource = Optional.of(new HeartbeatResource(heartbeatAgent.get()));
       this.clusterStatusResource = Optional.of(new ClusterStatusResource(

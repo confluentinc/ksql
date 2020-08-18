@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -54,6 +55,8 @@ public class ServerInfoResourceTest {
   @Mock
   private DescribeClusterResult describeClusterResult;
   @Mock
+  private CommandRunner commandRunner;
+  @Mock
   private KafkaFuture<String> future;
 
   private ServerInfoResource serverInfoResource = null;
@@ -73,8 +76,9 @@ public class ServerInfoResourceTest {
     when(adminClient.describeCluster()).thenReturn(describeClusterResult);
     when(describeClusterResult.clusterId()).thenReturn(future);
     when(future.get(anyLong(), any())).thenReturn(KAFKA_CLUSTER_ID);
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
 
-    serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfig);
+    serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfig, commandRunner);
   }
 
   @Test
@@ -88,7 +92,7 @@ public class ServerInfoResourceTest {
     final ServerInfo serverInfo = (ServerInfo)response.getEntity();
     assertThat(
         serverInfo,
-        equalTo(new ServerInfo(AppInfo.getVersion(), KAFKA_CLUSTER_ID, KSQL_SERVICE_ID))
+        equalTo(new ServerInfo(AppInfo.getVersion(), KAFKA_CLUSTER_ID, KSQL_SERVICE_ID, "RUNNING"))
     );
   }
 

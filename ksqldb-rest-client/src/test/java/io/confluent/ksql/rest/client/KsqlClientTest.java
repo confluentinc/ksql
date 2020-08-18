@@ -192,7 +192,7 @@ public class KsqlClientTest {
 
     // Given:
     ServerInfo expectedResponse = new ServerInfo("someversion",
-        "kafkaclusterid", "ksqlserviceid");
+        "kafkaclusterid", "ksqlserviceid", "status");
     server.setResponseObject(expectedResponse);
 
     // When:

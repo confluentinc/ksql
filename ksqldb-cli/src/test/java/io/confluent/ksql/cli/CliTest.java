@@ -1113,7 +1113,7 @@ public class CliTest {
 
     when(mockRestClient.getServerInfo()).thenReturn(RestResponse.successful(
         OK.code(),
-        new ServerInfo("1.x", "testClusterId", "testServiceId")
+        new ServerInfo("1.x", "testClusterId", "testServiceId", "status")
     ));
 
     when(mockRestClient.getServerAddress()).thenReturn(new URI("http://someserver:8008"));

@@ -16,22 +16,30 @@
 package io.confluent.ksql.parser;
 
 import io.confluent.ksql.parser.tree.AssertStatement;
+import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateTable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class AssertTable extends AssertStatement<CreateTable> {
+public class AssertTable extends AssertStatement {
+
+  private final CreateTable statement;
 
   public AssertTable(
       final Optional<NodeLocation> location,
       final CreateTable statement
   ) {
-    super(location, statement);
+    super(location);
+    this.statement = Objects.requireNonNull(statement, "statement");
+  }
+
+  public CreateTable getStatement() {
+    return statement;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(getStatement());
+    return Objects.hashCode(statement);
   }
 
   @Override
@@ -53,4 +61,8 @@ public class AssertTable extends AssertStatement<CreateTable> {
         + '}';
   }
 
+  @Override
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitAssertTable(this, context);
+  }
 }

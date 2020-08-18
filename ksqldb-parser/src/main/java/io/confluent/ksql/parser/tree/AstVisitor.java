@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import io.confluent.ksql.parser.AssertTable;
 import io.confluent.ksql.parser.DropType;
 import javax.annotation.Nullable;
 
@@ -179,5 +180,17 @@ public abstract class AstVisitor<R, C> {
 
   public R visitDropType(final DropType node, final C context) {
     return visitStatement(node, context);
+  }
+
+  public R visitAssertValues(final AssertValues node, final C context) {
+    return visitStatement(node.getStatement(), context);
+  }
+
+  public R visitAssertStream(final AssertStream node, final C context) {
+    return visitStatement(node.getStatement(), context);
+  }
+
+  public R visitAssertTable(final AssertTable node, final C context) {
+    return visitStatement(node.getStatement(), context);
   }
 }

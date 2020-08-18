@@ -21,13 +21,15 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.test.parser.TestDirective.Type;
 import org.junit.Test;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class SqlTestReaderTest {
+
+  private static final NodeLocation LOC = new NodeLocation(1, 1);
 
   @Test
   public void shouldParseBasicTest() {
@@ -45,15 +47,65 @@ public class SqlTestReaderTest {
 
     // Then:
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1"))));
+    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
+
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("CREATE STREAM foo"));
+    reader.next().handle(
+        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("CREATE STREAM bar"));
+    reader.next().handle(
+        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM bar")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("INSERT INTO"));
+    reader.next().handle(
+        s -> assertThat(s.getStatementText(), containsString("INSERT INTO")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getAssertStatement(), instanceOf(AssertValues.class));
+    reader.next().handle(
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat(s, instanceOf(AssertValues.class)),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+  }
+
+  @Test
+  public void shouldHandleMultilineStatements() {
+    final String contents = ""
+        + "--@test: test1\n"
+        + "CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='json');"
+        + "CREATE STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='b', value_format='json');";
+
+    // When:
+    final SqlTestReader reader = SqlTestReader.of(contents);
+
+    // Then:
+    assertThat(reader.hasNext(), is(true));
+    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
+
+    assertThat(reader.hasNext(), is(true));
+    reader.next().handle(
+        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
+    assertThat(reader.hasNext(), is(true));
+    reader.next().handle(
+        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM bar")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
     assertThat(reader.hasNext(), is(false));
   }
 
@@ -69,11 +121,17 @@ public class SqlTestReaderTest {
 
     // Then:
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1"))));
+    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
+
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("CREATE STREAM foo"));
+    reader.next().handle(
+        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.UNKNOWN, "bar"))));
+    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.UNKNOWN, "bar", LOC))));
     assertThat(reader.hasNext(), is(false));
   }
 
@@ -90,9 +148,15 @@ public class SqlTestReaderTest {
 
     // Then:
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1"))));
+    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
+
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("CREATE STREAM foo"));
+    reader.next().handle(
+        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
     assertThat(reader.hasNext(), is(false));
   }
 

@@ -15,28 +15,19 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.parser.Node;
 import io.confluent.ksql.parser.NodeLocation;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
  * Indicates that the given {@link io.confluent.ksql.parser.Node} is used
  * for testing purposes.
  */
-public abstract class AssertStatement<T extends Statement> extends Node  {
-
-  private final T statement;
+public abstract class AssertStatement extends AstNode  {
 
   protected AssertStatement(
-      final Optional<NodeLocation> location,
-      final T statement
+      final Optional<NodeLocation> location
   ) {
     super(location);
-    this.statement = Objects.requireNonNull(statement, "statement");
   }
 
-  public T getStatement() {
-    return statement;
-  }
 }

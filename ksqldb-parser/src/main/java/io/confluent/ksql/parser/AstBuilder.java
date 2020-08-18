@@ -187,7 +187,7 @@ public class AstBuilder {
     return build(Optional.empty(), parseTree);
   }
 
-  public AssertStatement<?> buildAssertStatement(final ParserRuleContext parseTree) {
+  public AssertStatement buildAssertStatement(final ParserRuleContext parseTree) {
     return build(Optional.empty(), parseTree);
   }
 

@@ -15,17 +15,13 @@
 
 package io.confluent.ksql.test.parser;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
-import io.confluent.ksql.parser.ParsingException;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.antlr.v4.runtime.Token;
 
 /**
  * A test directive indicates special handling of test-only metadata. The
@@ -43,34 +39,14 @@ import org.antlr.v4.runtime.Token;
  */
 public class TestDirective {
 
-  static final Pattern DIRECTIVE_REGEX = Pattern.compile(
-      "--@(?<type>[a-zA-Z.]+):\\s*(?<contents>.*)"
-  );
-
   private final Type type;
   private final String contents;
+  private final NodeLocation location;
 
-  public static TestDirective parse(final Token comment) {
-    final Matcher matcher = DIRECTIVE_REGEX.matcher(comment.getText().trim());
-    if (!matcher.find()) {
-      throw new ParsingException(
-          "Expected directive matching pattern " + DIRECTIVE_REGEX + " but got " + comment,
-          null,
-          comment.getLine(),
-          comment.getCharPositionInLine()
-      );
-    }
-
-    final Type type = Type.from(matcher.group("type").toLowerCase());
-    final String contents = matcher.group("contents");
-
-    return new TestDirective(type, contents);
-  }
-
-  @VisibleForTesting
-  TestDirective(final Type type, final String contents) {
+  TestDirective(final Type type, final String contents, final NodeLocation location) {
     this.type = Objects.requireNonNull(type, "type");
     this.contents = Objects.requireNonNull(contents, "contents");
+    this.location = Objects.requireNonNull(location, "location");
   }
 
   public Type getType() {
@@ -109,10 +85,15 @@ public class TestDirective {
         + '}';
   }
 
+  public NodeLocation getLocation() {
+    return location;
+  }
+
   public enum Type {
     TEST("test"),
     EXPECTED_ERROR("expected.error"),
     EXPECTED_MESSAGE("expected.message"),
+    ENABLED("enabled"),
     UNKNOWN("UNKNOWN")
     ;
 

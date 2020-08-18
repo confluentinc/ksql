@@ -21,13 +21,20 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class AssertValues extends AssertStatement<InsertValues> {
+public class AssertValues extends AssertStatement {
+
+  private final InsertValues statement;
 
   public AssertValues(
       final Optional<NodeLocation> location,
-      final InsertValues insertValues
+      final InsertValues statement
   ) {
-    super(location, insertValues);
+    super(location);
+    this.statement = Objects.requireNonNull(statement, "statement");
+  }
+
+  public InsertValues getStatement() {
+    return statement;
   }
 
   @Override
@@ -54,5 +61,10 @@ public class AssertValues extends AssertStatement<InsertValues> {
     return "AssertValues{"
         + "statement=" + getStatement()
         + '}';
+  }
+
+  @Override
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitAssertValues(this, context);
   }
 }

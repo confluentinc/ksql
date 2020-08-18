@@ -19,6 +19,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -33,14 +34,14 @@ import java.util.stream.Stream;
 public final class TestStatement {
 
   private final ParsedStatement engineStatement;
-  private final AssertStatement<?> assertStatement;
+  private final AssertStatement assertStatement;
   private final TestDirective directive;
 
   public static TestStatement of(final ParsedStatement engineStatement) {
     return new TestStatement(engineStatement, null, null);
   }
 
-  public static TestStatement of(final AssertStatement<?> assertStatement) {
+  public static TestStatement of(final AssertStatement assertStatement) {
     return new TestStatement(null, assertStatement, null);
   }
 
@@ -50,7 +51,7 @@ public final class TestStatement {
 
   private TestStatement(
       final ParsedStatement engineStatement,
-      final AssertStatement<?> assertStatement,
+      final AssertStatement assertStatement,
       final TestDirective directive
   ) {
     this.engineStatement = engineStatement;
@@ -70,6 +71,20 @@ public final class TestStatement {
     }
   }
 
+  public void handle(
+      final Consumer<ParsedStatement> parsedStatementConsumer,
+      final Consumer<AssertStatement> assertStatementConsumer,
+      final Consumer<TestDirective> testDirectiveConsumer
+  ) {
+    if (engineStatement != null) {
+      parsedStatementConsumer.accept(engineStatement);
+    } else if (assertStatement != null) {
+      assertStatementConsumer.accept(assertStatement);
+    } else if (directive != null) {
+      testDirectiveConsumer.accept(directive);
+    }
+  }
+
   public boolean hasEngineStatement() {
     return engineStatement != null;
   }
@@ -86,7 +101,7 @@ public final class TestStatement {
     return assertStatement != null;
   }
 
-  public AssertStatement<?> getAssertStatement() {
+  public AssertStatement getAssertStatement() {
     if (!hasAssertStatement()) {
       throw new NoSuchElementException("assertStatement");
     }

@@ -21,13 +21,20 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class AssertStream extends AssertStatement<CreateStream> {
+public class AssertStream extends AssertStatement {
+
+  private final CreateStream statement;
 
   public AssertStream(
       final Optional<NodeLocation> location,
       final CreateStream statement
   ) {
-    super(location, statement);
+    super(location);
+    this.statement = Objects.requireNonNull(statement, "statement");
+  }
+
+  public CreateStream getStatement() {
+    return statement;
   }
 
   @Override
@@ -52,5 +59,10 @@ public class AssertStream extends AssertStatement<CreateStream> {
     return "AssertStream{"
         + "statement=" + getStatement()
         + '}';
+  }
+
+  @Override
+  protected <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitAssertStream(this, context);
   }
 }

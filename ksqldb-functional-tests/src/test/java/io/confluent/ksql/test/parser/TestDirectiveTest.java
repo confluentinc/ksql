@@ -17,7 +17,7 @@ package io.confluent.ksql.test.parser;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.test.parser.TestDirective;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.test.parser.TestDirective.Type;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
@@ -26,16 +26,33 @@ import org.junit.Test;
 
 public class TestDirectiveTest {
 
+  private static final NodeLocation LOC = new NodeLocation(1, 1);
+
   @Test
   public void shouldParseKnownDirectives() {
     // Given:
     final Token tok = new CommonToken(0, "--@test: bar");
 
     // When:
-    final TestDirective directive = TestDirective.parse(tok);
+    final TestDirective directive = DirectiveParser.parse(tok);
 
     // Then:
-    assertThat(directive, Matchers.is(new TestDirective(Type.TEST, "bar")));
+    assertThat(directive, Matchers.is(new TestDirective(Type.TEST, "bar", LOC)));
+  }
+
+  @Test
+  public void shouldParseKnownDirectivesAtLocation() {
+    // Given:
+    final CommonToken tok = new CommonToken(0, "--@test: bar");
+    tok.setLine(1);
+    tok.setCharPositionInLine(10);
+
+    // When:
+    final TestDirective directive = DirectiveParser.parse(tok);
+
+    // Then:
+    assertThat(directive, Matchers.is(new TestDirective(Type.TEST, "bar", LOC)));
+    assertThat(directive.getLocation(), Matchers.is(new NodeLocation(1, 10)));
   }
 
   @Test
@@ -44,10 +61,10 @@ public class TestDirectiveTest {
     final Token tok = new CommonToken(0, "--@teST: bar");
 
     // When:
-    final TestDirective directive = TestDirective.parse(tok);
+    final TestDirective directive = DirectiveParser.parse(tok);
 
     // Then:
-    assertThat(directive, Matchers.is(new TestDirective(Type.TEST, "bar")));
+    assertThat(directive, Matchers.is(new TestDirective(Type.TEST, "bar", LOC)));
   }
 
   @Test
@@ -56,10 +73,10 @@ public class TestDirectiveTest {
     final Token tok = new CommonToken(0, "--@foo: bar");
 
     // When:
-    final TestDirective directive = TestDirective.parse(tok);
+    final TestDirective directive = DirectiveParser.parse(tok);
 
     // Then:
-    assertThat(directive, Matchers.is(new TestDirective(Type.UNKNOWN, "bar")));
+    assertThat(directive, Matchers.is(new TestDirective(Type.UNKNOWN, "bar", LOC)));
   }
 
 }

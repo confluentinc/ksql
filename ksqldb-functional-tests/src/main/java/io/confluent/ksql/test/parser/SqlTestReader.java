@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.test.parser;
 
-import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.CaseInsensitiveStream;
@@ -47,7 +46,7 @@ import org.antlr.v4.runtime.Token;
  * statements, but checks to see if any directives were skipped in the underlying
  * hidden channels.</p>
  */
-public class SqlTestReader implements Iterator<TestStatement> {
+public final class SqlTestReader implements Iterator<TestStatement> {
 
   private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
@@ -62,9 +61,6 @@ public class SqlTestReader implements Iterator<TestStatement> {
       throw new ParsingException(message, e, line, charPositionInLine);
     }
   };
-
-  private static final Pattern TEST_DIRECTIVE_REGEX =
-      Pattern.compile("(?m)^--@test:\\s*(?<name>.*)$");
 
   private final SqlBaseParser parser;
   private final CommonTokenStream tks;
@@ -138,7 +134,7 @@ public class SqlTestReader implements Iterator<TestStatement> {
     while (directiveIdx < currIdx) {
       final Token tok = tks.get(directiveIdx++);
       if (tok.getChannel() == SqlBaseLexer.DIRECTIVES) {
-        return TestStatement.of(TestDirective.parse(tok));
+        return TestStatement.of(DirectiveParser.parse(tok));
       }
     }
 

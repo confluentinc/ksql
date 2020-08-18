@@ -1,3 +1,11 @@
+---
+layout: page
+title: ksqlDB SQL keywords and operators
+tagline: SQL language keywords
+description: Tables listing all valid keywords and operators in ksqlDB SQL
+keywords: ksqldb, sql, keyword, operators
+---
+
 ## Keywords
 
 The following table shows all keywords in the language.

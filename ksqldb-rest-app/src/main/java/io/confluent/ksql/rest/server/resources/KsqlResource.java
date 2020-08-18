@@ -180,12 +180,14 @@ public class KsqlResource implements KsqlConfigurable {
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
             config,
-            commandRunner,
+            commandRunner.getCommandQueue(),
             distributedCmdResponseTimeout,
             injectorFactory,
             authorizationValidator,
             new ValidatedCommandFactory(),
-            errorHandler
+            errorHandler,
+            () -> commandRunner.checkCommandRunnerStatus()
+                == CommandRunner.CommandRunnerStatus.DEGRADED
         ),
         ksqlEngine,
         config,

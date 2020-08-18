@@ -309,7 +309,7 @@ public class CommandRunner implements Closeable {
     LOG.info("The KSQL server was terminated.");
   }
 
-  CommandRunnerStatus checkCommandRunnerStatus() {
+  public CommandRunnerStatus checkCommandRunnerStatus() {
     if (deserializationErrorThrown) {
       return CommandRunnerStatus.DEGRADED;
     }

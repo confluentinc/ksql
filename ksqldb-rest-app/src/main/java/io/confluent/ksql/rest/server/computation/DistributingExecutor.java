@@ -37,6 +37,8 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
@@ -51,7 +53,6 @@ import org.apache.kafka.common.errors.TimeoutException;
  */
 public class DistributingExecutor {
   private final CommandQueue commandQueue;
-  private final CommandRunner commandRunner;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
@@ -59,18 +60,19 @@ public class DistributingExecutor {
   private final CommandIdAssigner commandIdAssigner;
   private final ReservedInternalTopics internalTopics;
   private final Errors errorHandler;
+  private final Supplier<Boolean> commandRunnerDegraded;
 
   public DistributingExecutor(
       final KsqlConfig ksqlConfig,
-      final CommandRunner commandRunner,
+      final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final ValidatedCommandFactory validatedCommandFactory,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final Supplier<Boolean> commandRunnerDegraded
   ) {
-    this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");;
-    this.commandQueue = commandRunner.getCommandQueue();
+    this.commandQueue = commandQueue;
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
@@ -84,6 +86,8 @@ public class DistributingExecutor {
     this.internalTopics =
         new ReservedInternalTopics(Objects.requireNonNull(ksqlConfig, "ksqlConfig"));
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.commandRunnerDegraded =
+        Objects.requireNonNull(commandRunnerDegraded, "commandRunnerDegraded");
   }
 
   /**
@@ -101,8 +105,10 @@ public class DistributingExecutor {
       final KsqlExecutionContext executionContext,
       final KsqlSecurityContext securityContext
   ) {
-    if (commandRunner.checkCommandRunnerStatus() == CommandRunner.CommandRunnerStatus.DEGRADED) {
-      throw new KsqlServerException(errorHandler.commandRunnerDegradedErrorMessage());
+    if (commandRunnerDegraded.get()) {
+      throw new KsqlServerException("Failed to handle Ksql Statement."
+          + System.lineSeparator()
+          + errorHandler.commandRunnerDegradedErrorMessage());
     }
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, securityContext.getServiceContext())

@@ -68,6 +68,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
@@ -107,8 +109,6 @@ public class DistributingExecutorTest {
   @Mock
   private CommandQueue queue;
   @Mock
-  private CommandRunner commandRunner;
-  @Mock
   private QueuedCommandStatus status;
   @Mock
   private ServiceContext serviceContext;
@@ -132,6 +132,8 @@ public class DistributingExecutorTest {
   private Command command;
   @Mock
   private Errors errorHandler;
+  @Mock
+  private Supplier<Boolean> commandRunnerDegraded;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -142,13 +144,13 @@ public class DistributingExecutorTest {
     scnCounter = new AtomicLong();
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(commandRunner.getCommandQueue()).thenReturn(queue);
     when(queue.enqueueCommand(any(), any(), any())).thenReturn(status);
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
     when(executionContext.getMetaStore()).thenReturn(metaStore);
     when(executionContext.createSandbox(any())).thenReturn(sandboxContext);
+    when(commandRunnerDegraded.get()).thenReturn(false);
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
     when(validatedCommandFactory.create(any(), any())).thenReturn(command);
@@ -158,12 +160,13 @@ public class DistributingExecutorTest {
 
     distributor = new DistributingExecutor(
         KSQL_CONFIG,
-        commandRunner,
+        queue,
         DURATION_10_MS,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         Optional.of(authorizationValidator),
         validatedCommandFactory,
-        errorHandler
+        errorHandler,
+        commandRunnerDegraded
     );
   }
 
@@ -231,7 +234,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldNotInitTransactionWhenCommandRunnerDegraded() {
     // When:
-    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.DEGRADED);
+    when(commandRunnerDegraded.get()).thenReturn(true);
 
     // Then:
     assertThrows(

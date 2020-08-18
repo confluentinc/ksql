@@ -165,6 +165,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.2.0</version>
                 <configuration>
+                    <source>8</source>
                     <reportOutputDirectory>../docs/developer-guide/ksqldb-clients/java-client</reportOutputDirectory>
                     <stylesheetfile>javadoc.css</stylesheetfile>
                     <destDir>api</destDir>
@@ -181,7 +182,7 @@
 -j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 -'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 -})(window,document,'script','dataLayer','GTM-WRL2Z8Z');</script>]]></header>
-                    <footer>&nbsp;</footer> <!-- prevent duplication of the header content -->
+                    <footer>&#xA0;</footer> <!-- prevent duplication of the header content -->
                     <doclint>none</doclint>
                     <keywords>true</keywords>
                     <nodeprecated>true</nodeprecated>

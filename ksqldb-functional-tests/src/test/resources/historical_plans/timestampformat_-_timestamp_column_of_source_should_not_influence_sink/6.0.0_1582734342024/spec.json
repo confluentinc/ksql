@@ -49,9 +49,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT, EVENT_TS BIGINT) WITH (KAFKA_TOPIC='test_topic', TIMESTAMP='EVENT_TS', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT INPUT.ID EVENT_TS\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `EVENT_TS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -62,7 +79,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

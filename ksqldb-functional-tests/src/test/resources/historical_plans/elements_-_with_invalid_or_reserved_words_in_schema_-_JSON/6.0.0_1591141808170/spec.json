@@ -37,22 +37,23 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "`@TIMESTAMP` BIGINT, `FROM` BIGINT"
+        "type" : "STREAM",
+        "schema" : "`@TIMESTAMP` BIGINT, `FROM` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`@TIMESTAMP` BIGINT, `FROM` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
@@ -63,6 +64,17 @@
             "format" : "JSON"
           },
           "partitions" : 1
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
         } ]
       }
     }

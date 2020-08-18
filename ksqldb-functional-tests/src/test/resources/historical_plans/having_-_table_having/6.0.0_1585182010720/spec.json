@@ -62,8 +62,41 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='DELIMITED');", "CREATE TABLE T1 AS SELECT\n  TEST.ID ID,\n  SUM(TEST.VALUE) SUM\nFROM TEST TEST\nWINDOW TUMBLING ( SIZE 30 SECONDS ) \nGROUP BY TEST.ID\nHAVING (SUM(TEST.VALUE) > 100)\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `SUM` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
           "name" : "T1",
           "keyFormat" : {
             "formatInfo" : {
@@ -78,20 +111,6 @@
             "format" : "DELIMITED"
           },
           "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-Aggregate-Aggregate-Materialize-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 30.000000000
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          }
         }, {
           "name" : "test_topic",
           "keyFormat" : {

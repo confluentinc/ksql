@@ -33,8 +33,36 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (`some.key` STRING PRIMARY KEY, v VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT * FROM TEST;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`some.key` STRING KEY, `V` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`some.key` STRING KEY, `V` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
@@ -55,17 +83,6 @@
           "valueFormat" : {
             "format" : "JSON"
           }
-        }, {
-          "name" : "test_topic",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

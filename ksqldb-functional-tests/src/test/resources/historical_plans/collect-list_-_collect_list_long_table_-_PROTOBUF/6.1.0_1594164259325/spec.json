@@ -85,30 +85,26 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='PROTOBUF');", "CREATE TABLE S2 as SELECT ID, collect_list(value) as collected FROM test group by id;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "PROTOBUF"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "PROTOBUF"
-          }
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -129,6 +125,27 @@
           }
         }, {
           "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
+        }, {
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

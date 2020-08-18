@@ -29,9 +29,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (B BOOLEAN, I INTEGER, BI BIGINT, D DOUBLE, S STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  CAST(TEST.B AS BOOLEAN) KSQL_COL_0,\n  CAST(TEST.I AS INTEGER) KSQL_COL_1,\n  CAST(TEST.BI AS BIGINT) KSQL_COL_2,\n  CAST(TEST.D AS DOUBLE) KSQL_COL_3,\n  CAST(TEST.S AS STRING) KSQL_COL_4\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` INTEGER, `KSQL_COL_2` BIGINT, `KSQL_COL_3` DOUBLE, `KSQL_COL_4` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `B` BOOLEAN, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `S` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -42,7 +59,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

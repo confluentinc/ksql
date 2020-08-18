@@ -128,23 +128,27 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, IGNORED STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE S2 as SELECT ID, WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `WSTART` BIGINT, `WEND` BIGINT, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `IGNORED` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 30.000000000
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
             "formatInfo" : {
@@ -163,6 +167,21 @@
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000
             }
           },
           "valueFormat" : {

@@ -58,9 +58,34 @@
     } ],
     "statements" : [ "CREATE STREAM impressions (user VARCHAR KEY, impression_id BIGINT, url VARCHAR) WITH (kafka_topic='impressions', value_format='JSON');", "CREATE STREAM clicks (user VARCHAR KEY, url VARCHAR) WITH (kafka_topic='clicks', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT I.USER, IMPRESSION_ID, I.URL AS URL FROM impressions i JOIN clicks c WITHIN 1 minute ON i.user = c.user WHERE i.url = c.url;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "CLICKS",
+        "type" : "STREAM",
+        "schema" : "`USER` STRING KEY, `URL` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "IMPRESSIONS",
+        "type" : "STREAM",
+        "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -68,8 +93,7 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          },
-          "partitions" : 4
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
@@ -81,7 +105,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "name" : "clicks",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -89,9 +113,10 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "partitions" : 4
         }, {
-          "name" : "clicks",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

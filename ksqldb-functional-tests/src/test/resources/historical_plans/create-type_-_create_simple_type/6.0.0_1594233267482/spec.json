@@ -41,9 +41,37 @@
     } ],
     "statements" : [ "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;", "CREATE TABLE addresses (K STRING PRIMARY KEY, address ADDRESS) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE copy AS SELECT * FROM addresses;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "COPY",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "ADDRESSES",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "COPY",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -63,17 +91,6 @@
           "valueFormat" : {
             "format" : "JSON"
           }
-        }, {
-          "name" : "test",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

@@ -38,12 +38,24 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "KSQL_COL_0 INT KEY, V0 INT, V1 INT, ID INT"
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_0` INTEGER KEY, `V0` INTEGER, `V1` INTEGER, `ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -54,7 +66,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

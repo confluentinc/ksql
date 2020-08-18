@@ -55,6 +55,31 @@
     } ],
     "statements" : [ "CREATE STREAM L (`the key` STRING KEY, `SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (`with.dot` STRING PRIMARY KEY, `field 0` VARCHAR) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM JOINED as SELECT * FROM L LEFT JOIN R ON L.`SELECT` = R.`with.dot`;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`the key` STRING KEY, `SELECT` STRING, `field!` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`with.dot` STRING KEY, `field 0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "JOINED",
+        "type" : "STREAM",
+        "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "JOINED",
@@ -67,16 +92,6 @@
             "format" : "JSON"
           },
           "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
         }, {
           "name" : "left_topic",
           "keyFormat" : {
@@ -99,6 +114,16 @@
             "format" : "JSON"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
         } ]
       }
     }

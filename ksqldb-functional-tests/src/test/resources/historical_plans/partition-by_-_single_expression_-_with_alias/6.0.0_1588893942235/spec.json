@@ -38,12 +38,24 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "NEW_KEY STRING KEY, NAME STRING, AGE INT, ID INT"
+        "type" : "STREAM",
+        "schema" : "`NEW_KEY` STRING KEY, `NAME` STRING, `AGE` INTEGER, `ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `AGE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -54,7 +66,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

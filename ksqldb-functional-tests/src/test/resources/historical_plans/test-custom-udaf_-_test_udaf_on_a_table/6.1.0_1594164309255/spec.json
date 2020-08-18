@@ -75,8 +75,35 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE SUM_ID_BY_REGION AS SELECT REGION, test_udaf(id) FROM TEST GROUP BY REGION;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "SUM_ID_BY_REGION",
+        "type" : "TABLE",
+        "schema" : "`REGION` STRING KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `REGION` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
           "name" : "SUM_ID_BY_REGION",
           "keyFormat" : {
             "formatInfo" : {
@@ -88,27 +115,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          }
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-Aggregate-GroupBy-repartition",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          }
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-KsqlTopic-Reduce-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -128,6 +135,16 @@
             "format" : "DELIMITED"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
         } ]
       }
     }

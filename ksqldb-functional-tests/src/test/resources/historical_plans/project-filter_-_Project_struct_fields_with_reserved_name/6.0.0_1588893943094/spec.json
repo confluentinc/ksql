@@ -51,6 +51,23 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, S STRUCT<START STRING, `END` STRING>) WITH (KAFKA_TOPIC='test_topic', value_format='JSON');", "CREATE STREAM S1 AS SELECT K, S->`END` FROM TEST;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `END` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `S` STRUCT<`START` STRING, `END` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S1",

@@ -63,8 +63,36 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');", "CREATE TABLE AVG AS select id, sum(value)/count(id) as avg from test GROUP BY id HAVING sum(value)/count(id)> 25;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "AVG",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `AVG` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
           "name" : "AVG",
           "keyFormat" : {
             "formatInfo" : {
@@ -85,17 +113,6 @@
           "valueFormat" : {
             "format" : "DELIMITED"
           }
-        }, {
-          "name" : "test_topic",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          },
-          "partitions" : 4
         } ]
       }
     }

@@ -51,9 +51,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID BIGINT, F0 INTEGER) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  INPUT.ID ID,\n  LATEST_BY_OFFSET(INPUT.F0) L0\nFROM INPUT INPUT\nGROUP BY INPUT.ID\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `L0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -74,7 +91,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -58,9 +58,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (BOOLEAN_ARRAY ARRAY<BOOLEAN>, INT_ARRAY ARRAY<INTEGER>, BIGINT_ARRAY ARRAY<BIGINT>, DOUBLE_ARRAY ARRAY<DOUBLE>, STRING_ARRAY ARRAY<STRING>, DECIMAL_ARRAY ARRAY<DECIMAL(2, 1)>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  ARRAY_LENGTH(INPUT.BOOLEAN_ARRAY) BOOLEAN_LEN,\n  ARRAY_LENGTH(INPUT.INT_ARRAY) INT_LEN,\n  ARRAY_LENGTH(INPUT.BIGINT_ARRAY) BIGINT_LEN,\n  ARRAY_LENGTH(INPUT.DOUBLE_ARRAY) DOUBLE_LEN,\n  ARRAY_LENGTH(INPUT.STRING_ARRAY) STRING_LEN,\n  ARRAY_LENGTH(INPUT.DECIMAL_ARRAY) DECIMAL_LEN\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `BOOLEAN_LEN` INTEGER, `INT_LEN` INTEGER, `BIGINT_LEN` INTEGER, `DOUBLE_LEN` INTEGER, `STRING_LEN` INTEGER, `DECIMAL_LEN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `BOOLEAN_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -71,7 +88,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

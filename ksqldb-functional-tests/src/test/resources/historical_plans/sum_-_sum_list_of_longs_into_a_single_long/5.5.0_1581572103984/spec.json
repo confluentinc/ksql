@@ -71,9 +71,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (VALUE ARRAY<BIGINT>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT SUM_LIST(INPUT.VALUE) SUM_VAL\nFROM INPUT INPUT\nGROUP BY INPUT.ROWKEY\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `SUM_VAL` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `VALUE` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -94,7 +111,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -157,23 +157,27 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ROWKEY INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');", "CREATE TABLE S2 as SELECT ID, count(1) as count FROM test WINDOW HOPPING (SIZE 5 SECOND, ADVANCE BY 1 SECONDS) group by id;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 5000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "HOPPING",
-              "size" : 5.000000000
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
             "formatInfo" : {
@@ -192,6 +196,21 @@
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 5.000000000
             }
           },
           "valueFormat" : {

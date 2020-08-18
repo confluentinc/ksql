@@ -77,9 +77,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, F0 ARRAY<INT>, F1 ARRAY<BIGINT>, F2 ARRAY<DOUBLE>, F3 ARRAY<BOOLEAN>, F4 ARRAY<STRING>, F5 ARRAY<DECIMAL(20, 10)>, F6 ARRAY<STRUCT<A VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, TEST_UDTF(F0, F1, F2, F3, F4, F5, F6) FROM TEST;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `F0` ARRAY<INTEGER>, `F1` ARRAY<BIGINT>, `F2` ARRAY<DOUBLE>, `F3` ARRAY<BOOLEAN>, `F4` ARRAY<STRING>, `F5` ARRAY<DECIMAL(20, 10)>, `F6` ARRAY<STRUCT<`A` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -90,7 +107,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -79,16 +79,35 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY INT KEY, S1_ID BIGINT, S2_ID BIGINT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `S1_ID` BIGINT, `S2_ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -99,8 +118,7 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          },
-          "partitions" : 4
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
@@ -115,7 +133,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -126,7 +144,8 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "partitions" : 4
         }, {
           "name" : "left_topic",
           "keyFormat" : {

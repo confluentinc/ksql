@@ -95,19 +95,25 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  COLLECT_LIST(TEST.VALUE) COLLECTED\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "PROTOBUF"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
             "formatInfo" : {
@@ -117,6 +123,17 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
@@ -128,7 +145,7 @@
             "format" : "PROTOBUF"
           }
         }, {
-          "name" : "test_topic",
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -49,20 +49,34 @@
     } ],
     "statements" : [ "CREATE STREAM L (ID INT KEY, x bigint) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM R (ID DOUBLE KEY, x bigint) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT l.id, L.x FROM L JOIN R WITHIN 30 seconds ON L.id = CAST(R.id AS INT);" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `X` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ID` DOUBLE KEY, `X` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000012-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -82,7 +96,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000012-store-changelog",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -91,6 +105,17 @@
           "valueFormat" : {
             "format" : "JSON"
           }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
         }, {
           "name" : "left_topic",
           "keyFormat" : {

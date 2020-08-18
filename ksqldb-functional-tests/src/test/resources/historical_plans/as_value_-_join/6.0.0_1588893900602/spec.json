@@ -53,11 +53,53 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "I2_ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT"
+        "type" : "STREAM",
+        "schema" : "`I2_ID` INTEGER KEY, `I1_ID` INTEGER, `I1_V0` INTEGER, `I1_V1` INTEGER, `I2_V0` INTEGER, `I2_V1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "I2",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "I1",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
+          "name" : "i2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "i1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
@@ -78,28 +120,6 @@
           "valueFormat" : {
             "format" : "JSON"
           }
-        }, {
-          "name" : "i1",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "i2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

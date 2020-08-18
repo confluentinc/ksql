@@ -100,19 +100,33 @@
     } ],
     "statements" : [ "CREATE TABLE T1 (ID BIGINT) WITH (KAFKA_TOPIC='T1', VALUE_FORMAT='JSON');", "CREATE TABLE T2 (ID BIGINT) WITH (KAFKA_TOPIC='T2', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  T1.ID ID1,\n  T2.ID ID2\nFROM T1 T1\nINNER JOIN T2 T2 ON ((T1.ROWKEY = T2.ROWKEY))\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID1` BIGINT, `ID2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "T2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "T1",
           "keyFormat" : {
             "formatInfo" : {
@@ -125,6 +139,17 @@
           "partitions" : 4
         }, {
           "name" : "T2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

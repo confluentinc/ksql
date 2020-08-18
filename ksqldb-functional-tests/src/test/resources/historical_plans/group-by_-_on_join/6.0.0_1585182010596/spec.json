@@ -138,19 +138,33 @@
     } ],
     "statements" : [ "CREATE TABLE T1 (ROWKEY BIGINT KEY, TOTAL INTEGER) WITH (KAFKA_TOPIC='T1', VALUE_FORMAT='AVRO');", "CREATE TABLE T2 (ROWKEY BIGINT KEY, TOTAL INTEGER) WITH (KAFKA_TOPIC='T2', VALUE_FORMAT='AVRO');", "CREATE TABLE OUTPUT AS SELECT SUM((T1.TOTAL + (CASE WHEN (T2.TOTAL IS NULL) THEN 0 ELSE T2.TOTAL END))) SUM\nFROM T1 T1\nLEFT OUTER JOIN T2 T2 ON ((T1.ROWKEY = T2.ROWKEY))\nGROUP BY T1.ROWKEY\nHAVING (COUNT(1) > 0)\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `SUM` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "T2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "partitions" : 4
-        }, {
           "name" : "T1",
           "keyFormat" : {
             "formatInfo" : {
@@ -161,6 +175,26 @@
             "format" : "AVRO"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          }
         }, {
           "name" : "T2",
           "keyFormat" : {
@@ -173,7 +207,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -181,17 +215,8 @@
           },
           "valueFormat" : {
             "format" : "AVRO"
-          }
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
           },
-          "valueFormat" : {
-            "format" : "AVRO"
-          }
+          "partitions" : 4
         } ]
       }
     }

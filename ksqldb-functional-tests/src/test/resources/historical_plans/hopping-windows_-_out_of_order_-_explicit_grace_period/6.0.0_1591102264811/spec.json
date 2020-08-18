@@ -168,23 +168,27 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE S2 as SELECT ID, max(value) FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 15 SECONDS, GRACE PERIOD 1 MINUTE) group by id;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 30000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "HOPPING",
-              "size" : 30.000000000
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
             "formatInfo" : {
@@ -203,6 +207,21 @@
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 30.000000000
             }
           },
           "valueFormat" : {

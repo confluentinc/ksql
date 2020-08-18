@@ -94,17 +94,25 @@
     "statements" : [ "CREATE STREAM INPUT (DEC DECIMAL(6, 4)) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
-      }, {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY STRING KEY, DEC DECIMAL(6,4)"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -115,7 +123,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

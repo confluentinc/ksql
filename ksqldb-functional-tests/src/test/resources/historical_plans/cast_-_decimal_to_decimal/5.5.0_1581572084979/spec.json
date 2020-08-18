@@ -45,9 +45,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (FOO DECIMAL(4, 2)) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUT AS SELECT CAST(TEST.FOO AS DECIMAL(5, 3)) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` DECIMAL(5, 3)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` DECIMAL(4, 2)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -58,7 +75,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

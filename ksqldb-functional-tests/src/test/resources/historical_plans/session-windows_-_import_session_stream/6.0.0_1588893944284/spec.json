@@ -123,16 +123,26 @@
     "post" : {
       "sources" : [ {
         "name" : "S2",
-        "type" : "stream",
+        "type" : "STREAM",
         "schema" : "`K` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -146,7 +156,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

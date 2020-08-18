@@ -83,52 +83,36 @@
     } ],
     "statements" : [ "CREATE TABLE A (id varchar primary key, regionid varchar) WITH (kafka_topic='a', value_format='json');", "CREATE STREAM B (id varchar) WITH (kafka_topic='b', value_format='json');", "CREATE TABLE test AS SELECT a.id, COUNT(*) as count FROM B LEFT JOIN A ON a.id = b.id WINDOW TUMBLING (SIZE 1 MINUTE) GROUP BY a.id HAVING COUNT(*) > 2;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "A",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `REGIONID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "B",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`A_ID` STRING KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 60000
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "TEST",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 60.000000000
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Aggregate-Aggregate-Materialize-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 60.000000000
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Join-repartition",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 60.000000000
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -163,6 +147,49 @@
             "format" : "JSON"
           },
           "partitions" : 4
+        }, {
+          "name" : "TEST",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 60.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 60.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 60.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
         } ]
       }
     }

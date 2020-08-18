@@ -105,9 +105,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (FOO STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM OUT AS SELECT CAST(TEST.FOO AS DECIMAL(2, 1)) VAL\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `VAL` DECIMAL(2, 1)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -118,7 +135,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

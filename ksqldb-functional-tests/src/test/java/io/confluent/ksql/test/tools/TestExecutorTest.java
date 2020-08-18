@@ -35,6 +35,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -50,6 +51,7 @@ import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -220,7 +222,7 @@ public class TestExecutorTest {
   }
 
   @Test
-  public void shouldFailOnTwoLittleOutput() {
+  public void shouldFailOnTooLittleOutput() {
     // Given:
     final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0));
@@ -243,7 +245,7 @@ public class TestExecutorTest {
   }
 
   @Test
-  public void shouldFailOnTwoMuchOutput() {
+  public void shouldFailOnTooMuchOutput() {
     // Given:
     final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
     final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
@@ -380,11 +382,16 @@ public class TestExecutorTest {
     when(topic.getValueFormat())
         .thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())));
 
+    final SourceName sourceName = SourceName.of(TestExecutorTest.SINK_TOPIC_NAME + "_source");
+
     final DataSource dataSource = mock(DataSource.class);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getSchema()).thenReturn(schema);
     when(dataSource.getKafkaTopicName()).thenReturn(TestExecutorTest.SINK_TOPIC_NAME);
-    allSources.put(SourceName.of(TestExecutorTest.SINK_TOPIC_NAME + "_source"), dataSource);
+    when(dataSource.getName()).thenReturn(sourceName);
+    when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(dataSource.getSerdeOptions()).thenReturn(Collections.emptySet());
+    allSources.put(sourceName, dataSource);
   }
 
   private static ProducerRecord<?, ?> producerRecord(

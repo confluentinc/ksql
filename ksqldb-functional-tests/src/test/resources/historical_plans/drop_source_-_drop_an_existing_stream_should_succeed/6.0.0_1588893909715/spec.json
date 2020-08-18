@@ -29,9 +29,26 @@
     } ],
     "statements" : [ "CREATE STREAM input2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');", "DROP STREAM input2;", "CREATE STREAM input (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');", "CREATE STREAM output AS SELECT * FROM input;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -42,7 +59,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

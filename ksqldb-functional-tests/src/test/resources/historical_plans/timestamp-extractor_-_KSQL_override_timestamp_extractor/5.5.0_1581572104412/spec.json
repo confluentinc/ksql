@@ -59,9 +59,26 @@
       "ksql.streams.default.timestamp.extractor" : "org.apache.kafka.streams.processor.LogAndSkipOnInvalidTimestamp"
     },
     "post" : {
+      "sources" : [ {
+        "name" : "TS",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "TS",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -72,7 +89,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "TS",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

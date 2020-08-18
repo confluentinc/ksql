@@ -68,15 +68,32 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "S_SF BIGINT KEY, S_K STRING, T_ID BIGINT, T_TF INT, S_ROWTIME BIGINT, T_ROWTIME BIGINT",
+        "type" : "STREAM",
+        "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SF` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `TF` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -84,8 +101,7 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          },
-          "partitions" : 4
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
           "keyFormat" : {
@@ -97,7 +113,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "name" : "stream_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -105,9 +121,10 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "partitions" : 4
         }, {
-          "name" : "stream_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

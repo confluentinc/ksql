@@ -29,6 +29,7 @@ import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.PathLocation;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.TestCase;
@@ -226,7 +227,7 @@ public final class TestCasePlanLoader {
         testCase.statements(),
         testCase.properties(),
         null,
-        testCase.getPostConditions().asNode(testInfo.getTopics()).orElse(null),
+        testCase.getPostConditions().asNode(testInfo.getTopics(), testInfo.getSources()),
         true
     );
 
@@ -299,6 +300,7 @@ public final class TestCasePlanLoader {
     private final Builder<KsqlPlan> plansBuilder = new Builder<>();
     private PersistentQueryMetadata queryMetadata = null;
     private List<PostTopicNode> topics = ImmutableList.of();
+    private List<SourceNode> sources = ImmutableList.of();
 
     @Override
     public void acceptPlan(final ConfiguredKsqlPlan plan) {
@@ -311,12 +313,16 @@ public final class TestCasePlanLoader {
     }
 
     @Override
-    public void runComplete(final List<PostTopicNode> knownTopics) {
+    public void runComplete(
+        final List<PostTopicNode> knownTopics,
+        final List<SourceNode> knownSources
+    ) {
       if (queryMetadata == null) {
         throw new AssertionError("test case does not build a query");
       }
 
       this.topics = ImmutableList.copyOf(knownTopics);
+      this.sources = ImmutableList.copyOf(knownSources);
     }
 
     public Map<String, String> getSchemasDescription() {
@@ -325,6 +331,10 @@ public final class TestCasePlanLoader {
 
     public List<PostTopicNode> getTopics() {
       return topics;
+    }
+
+    public List<SourceNode> getSources() {
+      return sources;
     }
 
     public List<KsqlPlan> getPlans() {

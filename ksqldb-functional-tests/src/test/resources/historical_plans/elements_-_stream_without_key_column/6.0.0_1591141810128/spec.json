@@ -15,7 +15,7 @@
         "ID" : 1,
         "F0" : 2
       }
-    },{
+    }, {
       "topic" : "input",
       "key" : "foo",
       "value" : {
@@ -30,7 +30,7 @@
         "ID" : 1,
         "F0" : 2
       }
-    },{
+    }, {
       "topic" : "OUTPUT",
       "key" : null,
       "value" : {
@@ -50,17 +50,25 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT, F0 INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "stream",
-        "schema" : "ID INT, F0 INT"
-      }, {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ID INT, F0 INT"
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -71,7 +79,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

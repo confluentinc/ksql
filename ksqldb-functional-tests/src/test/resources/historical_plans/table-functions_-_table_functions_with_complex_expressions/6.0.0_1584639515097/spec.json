@@ -52,9 +52,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (F0 INTEGER, F1 INTEGER, F2 INTEGER, F3 INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  TEST.F0 F0,\n  EXPLODE(ARRAY[ABS((TEST.F1 + TEST.F2)), ABS((TEST.F2 + TEST.F3)), ABS((TEST.F3 + TEST.F1))]) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER, `KSQL_COL_0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER, `F1` INTEGER, `F2` INTEGER, `F3` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -65,7 +82,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

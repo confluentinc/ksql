@@ -37,9 +37,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (col0 INT KEY, col1 BIGINT, col2 DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT col0, col0+col1, col2+10, col1*25, 12*4+2 FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`COL0` INTEGER KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` DOUBLE, `KSQL_COL_2` BIGINT, `KSQL_COL_3` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`COL0` INTEGER KEY, `COL1` BIGINT, `COL2` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -50,7 +67,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

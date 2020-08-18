@@ -44,6 +44,23 @@
     } ],
     "statements" : [ "CREATE STREAM S (S STRUCT<S STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');", "CREATE STREAM S7 AS SELECT\n  S.S S1,\n  S.S S2,\n  S.S->S S3,\n  S.S->S S4\nFROM S S\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`S` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S7",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S7",

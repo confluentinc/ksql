@@ -53,9 +53,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (K DOUBLE KEY, C1 BIGINT) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K > 0.1;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` DOUBLE KEY, `C1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` DOUBLE KEY, `C1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -66,7 +83,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

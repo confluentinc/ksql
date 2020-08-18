@@ -62,14 +62,34 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "table",
-        "schema" : "K INT KEY, ID BIGINT, KEY INT",
+        "type" : "TABLE",
+        "schema" : "`K` INTEGER KEY, `ID` BIGINT, `KEY` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "TABLE",
+        "schema" : "`K` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
@@ -90,17 +110,6 @@
           "valueFormat" : {
             "format" : "JSON"
           }
-        }, {
-          "name" : "input",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

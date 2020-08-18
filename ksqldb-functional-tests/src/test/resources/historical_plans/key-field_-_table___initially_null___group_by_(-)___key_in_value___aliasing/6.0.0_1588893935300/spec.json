@@ -36,15 +36,25 @@
     "statements" : [ "CREATE TABLE INPUT (K STRING PRIMARY KEY, foo INT) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "table"
-      }, {
         "name" : "OUTPUT",
-        "type" : "table"
+        "type" : "TABLE",
+        "schema" : "`ALIASED` INTEGER KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -54,16 +64,6 @@
             "format" : "JSON"
           },
           "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
@@ -75,7 +75,17 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "input_topic",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

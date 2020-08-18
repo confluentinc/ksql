@@ -39,11 +39,24 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `FOO0` INTEGER, `FOO1` INTEGER, `FOO2` INTEGER, `FOO3` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -54,7 +67,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -92,6 +92,47 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, F1 STRING, F2 BIGINT) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE TEST_TABLE_2 (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, F3 STRING) WITH (KAFKA_TOPIC='right_topic_2', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE INNER_JOIN WITH (PARTITIONS=4) AS SELECT\n  T.ID T_ID,\n  T.NAME NAME,\n  T.VALUE VALUE,\n  TT.F1 F1,\n  TT.F2 F2\nFROM TEST T\nINNER JOIN TEST_TABLE TT ON ((T.ID = TT.ID))\nEMIT CHANGES;", "CREATE TABLE INNER_JOIN_2 AS SELECT\n  TT.T_ID T_ID,\n  TT.NAME NAME,\n  TT.F1 F1,\n  T.F3 F3\nFROM INNER_JOIN TT\nINNER JOIN TEST_TABLE_2 T ON ((T.ID = TT.T_ID))\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INNER_JOIN_2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `F1` STRING, `F3` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INNER_JOIN",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST_TABLE_2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F3` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "INNER_JOIN",
@@ -127,7 +168,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "right_topic",
+          "name" : "right_topic_2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -138,7 +179,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "right_topic_2",
+          "name" : "right_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

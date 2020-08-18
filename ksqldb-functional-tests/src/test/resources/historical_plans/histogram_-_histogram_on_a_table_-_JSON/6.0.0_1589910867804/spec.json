@@ -128,29 +128,25 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (K STRING PRIMARY KEY, ID bigint, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE COUNT_BY_REGION AS SELECT region, histogram(name) AS COUNTS FROM TEST GROUP BY region;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "COUNT_BY_REGION",
+        "type" : "TABLE",
+        "schema" : "`REGION` STRING KEY, `COUNTS` MAP<STRING, BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "COUNT_BY_REGION",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
             "formatInfo" : {
@@ -171,6 +167,27 @@
             "format" : "JSON"
           },
           "partitions" : 4
+        }, {
+          "name" : "COUNT_BY_REGION",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
         } ]
       }
     }

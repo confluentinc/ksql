@@ -75,6 +75,24 @@ public final class PostConditionsNode {
     return new PostConditions(sourcesMatcher, topicsMatcher, blackListPattern, this);
   }
 
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final PostConditionsNode that = (PostConditionsNode) o;
+    return sources.equals(that.sources)
+        && topics.equals(that.topics);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(sources, topics);
+  }
+
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static final class PostTopicsNode {
 
@@ -119,6 +137,24 @@ public final class PostConditionsNode {
           .toArray(Matcher[]::new);
 
       return hasItems(matchers);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final PostTopicsNode that = (PostTopicsNode) o;
+      return blackList.equals(that.blackList)
+          && topics.equals(that.topics);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(blackList, topics);
     }
   }
 

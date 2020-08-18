@@ -38,9 +38,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (IGNORED STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  CAST(null AS BOOLEAN) KSQL_COL_0,\n  CAST(null AS INTEGER) KSQL_COL_1,\n  CAST(null AS BIGINT) KSQL_COL_2,\n  CAST(null AS DOUBLE) KSQL_COL_3,\n  CAST(null AS STRING) KSQL_COL_4,\n  CAST(null AS ARRAY<INTEGER>) KSQL_COL_5,\n  CAST(null AS MAP<STRING, INTEGER>) KSQL_COL_6,\n  CAST(null AS STRUCT<F0 INTEGER>) KSQL_COL_7\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` INTEGER, `KSQL_COL_2` BIGINT, `KSQL_COL_3` DOUBLE, `KSQL_COL_4` STRING, `KSQL_COL_5` ARRAY<INTEGER>, `KSQL_COL_6` MAP<STRING, INTEGER>, `KSQL_COL_7` STRUCT<`F0` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `IGNORED` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -51,7 +68,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

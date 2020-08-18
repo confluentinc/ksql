@@ -108,9 +108,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, INTMAP MAP<STRING, INT>, BIGINTMAP MAP<STRING, BIGINT>, DOUBLEMAP MAP<STRING, DOUBLE>, BOOLEANMAP MAP<STRING, BOOLEAN>, STRINGMAP MAP<STRING, STRING>, NULLMAP MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, ENTRIES(INTMAP, TRUE), ENTRIES(BIGINTMAP, TRUE), ENTRIES(DOUBLEMAP, TRUE), ENTRIES(BOOLEANMAP, TRUE), ENTRIES(STRINGMAP, TRUE), ENTRIES(NULLMAP, TRUE) FROM TEST;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<STRUCT<`K` STRING, `V` INTEGER>>, `KSQL_COL_1` ARRAY<STRUCT<`K` STRING, `V` BIGINT>>, `KSQL_COL_2` ARRAY<STRUCT<`K` STRING, `V` DOUBLE>>, `KSQL_COL_3` ARRAY<STRUCT<`K` STRING, `V` BOOLEAN>>, `KSQL_COL_4` ARRAY<STRUCT<`K` STRING, `V` STRING>>, `KSQL_COL_5` ARRAY<STRUCT<`K` STRING, `V` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `INTMAP` MAP<STRING, INTEGER>, `BIGINTMAP` MAP<STRING, BIGINT>, `DOUBLEMAP` MAP<STRING, DOUBLE>, `BOOLEANMAP` MAP<STRING, BOOLEAN>, `STRINGMAP` MAP<STRING, STRING>, `NULLMAP` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -121,7 +138,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

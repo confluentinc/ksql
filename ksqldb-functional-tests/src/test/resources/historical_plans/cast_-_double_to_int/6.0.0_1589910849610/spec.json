@@ -50,9 +50,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col0 DOUBLE, col1 DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS INT) as VAL FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VAL` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL0` DOUBLE, `COL1` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -63,7 +80,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

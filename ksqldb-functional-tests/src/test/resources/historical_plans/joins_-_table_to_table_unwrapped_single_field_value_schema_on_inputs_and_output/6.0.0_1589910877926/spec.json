@@ -61,19 +61,33 @@
     } ],
     "statements" : [ "CREATE TABLE T1 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');", "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');", "CREATE TABLE OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT t1.id, t1.name name FROM T1 JOIN T2 ON T1.id = T2.id;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`T1_ID` BIGINT KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "T2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "T1",
           "keyFormat" : {
             "formatInfo" : {
@@ -86,6 +100,17 @@
           "partitions" : 4
         }, {
           "name" : "T2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

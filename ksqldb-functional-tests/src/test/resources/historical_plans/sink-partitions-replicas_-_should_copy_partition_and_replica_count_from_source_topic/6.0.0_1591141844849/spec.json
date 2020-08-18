@@ -42,6 +42,23 @@
     } ],
     "statements" : [ "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');", "CREATE STREAM S as SELECT * FROM test;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S",
+        "type" : "STREAM",
+        "schema" : "`C1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`C1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S",

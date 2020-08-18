@@ -323,6 +323,23 @@
     } ],
     "statements" : [ "CREATE STREAM orders (K STRING KEY, ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', value_format='PROTOBUF');", "CREATE STREAM s1 AS SELECT * FROM orders;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "ORDERS",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S1",

@@ -31,12 +31,24 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ID STRING KEY, R0 DECIMAL(17,0), R00 DECIMAL(33,16), R1 DECIMAL(33,16), R2 DECIMAL(33,16), R10 DECIMAL(33,16), 1R DECIMAL(33,16), 2R DECIMAL(33,16)"
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `R0` DECIMAL(17, 0), `R00` DECIMAL(33, 16), `R1` DECIMAL(33, 16), `R2` DECIMAL(33, 16), `R10` DECIMAL(33, 16), `1R` DECIMAL(33, 16), `2R` DECIMAL(33, 16)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -47,7 +59,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

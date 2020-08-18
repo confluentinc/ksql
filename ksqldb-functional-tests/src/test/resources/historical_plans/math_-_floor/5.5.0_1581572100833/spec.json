@@ -271,9 +271,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (I INTEGER, L BIGINT, D DOUBLE, B DECIMAL(2, 1)) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='AVRO');", "CREATE STREAM OUTPUT AS SELECT\n  FLOOR(INPUT.I) I,\n  FLOOR(INPUT.L) L,\n  FLOOR(INPUT.D) D,\n  FLOOR(INPUT.B) B\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -284,7 +301,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

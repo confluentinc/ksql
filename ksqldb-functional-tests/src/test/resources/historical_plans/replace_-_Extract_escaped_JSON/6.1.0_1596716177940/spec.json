@@ -29,9 +29,26 @@
     } ],
     "statements" : [ "CREATE STREAM RAW (message VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');", "CREATE STREAM JSONIFIED AS SELECT REPLACE(REPLACE(REPLACE(message, '\"text\": \"{', '\"text\": {'), '\\\"', '\"'), '\"}', '}') FROM RAW;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "JSONIFIED",
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "RAW",
+        "type" : "STREAM",
+        "schema" : "`MESSAGE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "JSONIFIED",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -42,7 +59,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "JSONIFIED",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

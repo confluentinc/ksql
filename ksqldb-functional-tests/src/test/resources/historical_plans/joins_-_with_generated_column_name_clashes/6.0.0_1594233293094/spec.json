@@ -64,12 +64,42 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "table",
-        "schema" : "ROWKEY_6 INT KEY, ROWKEY INT, ROWKEY_3 INT, ROWKEY_1 INT, ROWKEY_5 INT"
+        "type" : "TABLE",
+        "schema" : "`ROWKEY_6` INTEGER KEY, `ROWKEY` INTEGER, `ROWKEY_3` INTEGER, `ROWKEY_1` INTEGER, `ROWKEY_5` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "L",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -90,17 +120,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
-          "name" : "left_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

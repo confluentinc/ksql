@@ -37,15 +37,25 @@
     "statements" : [ "CREATE STREAM INPUT (K INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "stream"
-      }, {
         "name" : "OUTPUT",
-        "type" : "table"
+        "type" : "TABLE",
+        "schema" : "`ALIASED` INTEGER KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -66,7 +76,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "input_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

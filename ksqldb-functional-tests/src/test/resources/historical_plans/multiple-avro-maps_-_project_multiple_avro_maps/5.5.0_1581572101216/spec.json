@@ -93,6 +93,23 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (M1 MAP<STRING, INTEGER>, M2 MAP<STRING, STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM SINK AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "SINK",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "SINK",

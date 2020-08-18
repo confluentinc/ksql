@@ -163,13 +163,33 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='AVRO');", "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='AVRO');", "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "INNER_JOIN",
-        "type" : "table",
-        "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"
+        "type" : "TABLE",
+        "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "INNER_JOIN",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_INNER_JOIN_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -177,8 +197,7 @@
           },
           "valueFormat" : {
             "format" : "AVRO"
-          },
-          "partitions" : 4
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_INNER_JOIN_0-KafkaTopic_Left-Reduce-changelog",
           "keyFormat" : {
@@ -190,7 +209,7 @@
             "format" : "AVRO"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_INNER_JOIN_0-KafkaTopic_Right-Reduce-changelog",
+          "name" : "INNER_JOIN",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -198,7 +217,8 @@
           },
           "valueFormat" : {
             "format" : "AVRO"
-          }
+          },
+          "partitions" : 4
         }, {
           "name" : "left_topic",
           "keyFormat" : {

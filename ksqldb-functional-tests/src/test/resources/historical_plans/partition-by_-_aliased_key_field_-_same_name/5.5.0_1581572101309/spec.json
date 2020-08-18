@@ -39,7 +39,20 @@
     "post" : {
       "sources" : [ {
         "name" : "REPARTITIONED",
-        "type" : "stream"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

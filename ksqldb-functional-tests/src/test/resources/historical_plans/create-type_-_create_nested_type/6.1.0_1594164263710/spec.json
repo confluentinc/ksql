@@ -47,9 +47,37 @@
     } ],
     "statements" : [ "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;", "CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;", "CREATE TABLE people (K STRING PRIMARY KEY, person PERSON) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE copy AS SELECT * FROM people;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "PEOPLE",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "COPY",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "COPY",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -69,17 +97,6 @@
           "valueFormat" : {
             "format" : "JSON"
           }
-        }, {
-          "name" : "test",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

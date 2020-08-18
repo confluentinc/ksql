@@ -256,9 +256,26 @@
     } ],
     "statements" : [ "CREATE STREAM FOO (NESTED_STRUCT_FIELD STRUCT<SL1_STRUCT STRUCT<SL2_STRUCT STRUCT<SL3_STRUCT STRUCT<SL4_STRING STRING, SL4_INT INTEGER, SL4_DOUBLE_ARRAY ARRAY<DOUBLE>>, SL3_DOUBLE_ARRAY ARRAY<DOUBLE>, SL3_STRING STRING>, SL2_STRUCT_MAP MAP<STRING, STRUCT<SL2_3_STRING STRING, SL2_3_DOUBLE DOUBLE>>, SL2_DOUBLE DOUBLE, SL2_BOOLEAN BOOLEAN>, SL1_STRING STRING, SL1_STRUCT_ARRAY ARRAY<STRUCT<SL1_2_STRING STRING, SL1_2_DOUBLE DOUBLE>>>, COL1 BIGINT, COL2 STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');", "CREATE STREAM S2 AS SELECT\n  FOO.NESTED_STRUCT_FIELD->SL1_STRUCT->SL2_STRUCT->SL3_STRUCT->SL4_DOUBLE_ARRAY SL4_DOUBLE_ARRAY,\n  FOO.NESTED_STRUCT_FIELD->SL1_STRUCT->SL2_STRUCT_MAP SL2_STRUCT_MAP\nFROM FOO FOO\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `SL4_DOUBLE_ARRAY` ARRAY<DOUBLE>, `SL2_STRUCT_MAP` MAP<STRING, STRUCT<`SL2_3_STRING` STRING, `SL2_3_DOUBLE` DOUBLE>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "FOO",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `NESTED_STRUCT_FIELD` STRUCT<`SL1_STRUCT` STRUCT<`SL2_STRUCT` STRUCT<`SL3_STRUCT` STRUCT<`SL4_STRING` STRING, `SL4_INT` INTEGER, `SL4_DOUBLE_ARRAY` ARRAY<DOUBLE>>, `SL3_DOUBLE_ARRAY` ARRAY<DOUBLE>, `SL3_STRING` STRING>, `SL2_STRUCT_MAP` MAP<STRING, STRUCT<`SL2_3_STRING` STRING, `SL2_3_DOUBLE` DOUBLE>>, `SL2_DOUBLE` DOUBLE, `SL2_BOOLEAN` BOOLEAN>, `SL1_STRING` STRING, `SL1_STRUCT_ARRAY` ARRAY<STRUCT<`SL1_2_STRING` STRING, `SL1_2_DOUBLE` DOUBLE>>>, `COL1` BIGINT, `COL2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -269,7 +286,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

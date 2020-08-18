@@ -135,8 +135,44 @@
     } ],
     "statements" : [ "CREATE STREAM S1 (ID BIGINT KEY, NAME varchar, TS bigint) WITH (timestamp='TS', kafka_topic='s1', value_format='AVRO');", "CREATE TABLE  T1 (ID BIGINT PRIMARY KEY, F1 varchar, F2 varchar, RTS bigint) WITH (timestamp='RTS', kafka_topic='t1', value_format='AVRO');", "CREATE STREAM S1_JOIN_T1 WITH(timestamp='TS') as SELECT S1.ID, S1.name as name, S1.ts as ts, T1.f1, T1.f2 from S1 inner join T1 ON s1.id = t1.id;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S1_JOIN_T1",
+        "type" : "STREAM",
+        "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
+          "name" : "s1",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
           "name" : "S1_JOIN_T1",
           "keyFormat" : {
             "formatInfo" : {
@@ -157,17 +193,6 @@
           "valueFormat" : {
             "format" : "AVRO"
           }
-        }, {
-          "name" : "s1",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "partitions" : 4
         }, {
           "name" : "t1",
           "keyFormat" : {

@@ -36,9 +36,26 @@
     } ],
     "statements" : [ "CREATE STREAM EVENTS (ID INTEGER, FIELD0 STRING) WITH (KAFKA_TOPIC='events', VALUE_FORMAT='json');", "CREATE STREAM EVENTSTEST AS SELECT\n  EVENTS.ID ID,\n  'x_0' FIELD1,\n  EVENTS.FIELD0 FIELD0\nFROM EVENTS EVENTS\nWHERE (((((EVENTS.ID = 1) OR (EVENTS.ID = 2)) OR (EVENTS.ID = 3)) OR (EVENTS.ID = 4)) AND ((((((((((((((((((((((((((((((((((((((((((((((((EVENTS.FIELD0 = '0x10') OR (EVENTS.FIELD0 = '0x11')) OR (EVENTS.FIELD0 = '0x12')) OR (EVENTS.FIELD0 = '0x13')) OR (EVENTS.FIELD0 = '0x14')) OR (EVENTS.FIELD0 = '0x15')) OR (EVENTS.FIELD0 = '0x16')) OR (EVENTS.FIELD0 = '0x17')) OR (EVENTS.FIELD0 = '0x18')) OR (EVENTS.FIELD0 = '0x19')) OR (EVENTS.FIELD0 = '0x1A')) OR (EVENTS.FIELD0 = '0x1B')) OR (EVENTS.FIELD0 = '0x1C')) OR (EVENTS.FIELD0 = '0x1D')) OR (EVENTS.FIELD0 = '0x1E')) OR (EVENTS.FIELD0 = '0x1F')) OR (EVENTS.FIELD0 = '0x20')) OR (EVENTS.FIELD0 = '0x21')) OR (EVENTS.FIELD0 = '0x22')) OR (EVENTS.FIELD0 = '0x23')) OR (EVENTS.FIELD0 = '0x24')) OR (EVENTS.FIELD0 = '0x25')) OR (EVENTS.FIELD0 = '0x26')) OR (EVENTS.FIELD0 = '0x27')) OR (EVENTS.FIELD0 = '0x28')) OR (EVENTS.FIELD0 = '0x29')) OR (EVENTS.FIELD0 = '0x2A')) OR (EVENTS.FIELD0 = '0x2B')) OR (EVENTS.FIELD0 = '0x2C')) OR (EVENTS.FIELD0 = '0x2D')) OR (EVENTS.FIELD0 = '0x2E')) OR (EVENTS.FIELD0 = '0x2F')) OR (EVENTS.FIELD0 = '0x30')) OR (EVENTS.FIELD0 = '0x31')) OR (EVENTS.FIELD0 = '0x32')) OR (EVENTS.FIELD0 = '0x33')) OR (EVENTS.FIELD0 = '0x34')) OR (EVENTS.FIELD0 = '0x35')) OR (EVENTS.FIELD0 = '0x36')) OR (EVENTS.FIELD0 = '0x37')) OR (EVENTS.FIELD0 = '0x38')) OR (EVENTS.FIELD0 = '0x39')) OR (EVENTS.FIELD0 = '0x3A')) OR (EVENTS.FIELD0 = '0x3B')) OR (EVENTS.FIELD0 = '0x3C')) OR (EVENTS.FIELD0 = '0x3D')) OR (EVENTS.FIELD0 = '0x3E')) OR (EVENTS.FIELD0 = '0x3F')))\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "EVENTS",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "EVENTSTEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "EVENTSTEST",
+          "name" : "events",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -49,7 +66,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "events",
+          "name" : "EVENTSTEST",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

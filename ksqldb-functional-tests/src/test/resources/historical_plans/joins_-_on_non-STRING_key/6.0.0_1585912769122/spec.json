@@ -69,11 +69,28 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY BIGINT KEY, S_ROWTIME BIGINT, S_ROWKEY BIGINT, S_SF INT, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_TF INT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `S_ROWTIME` BIGINT, `S_ROWKEY` BIGINT, `S_SF` INTEGER, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_TF` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `SF` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `TF` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

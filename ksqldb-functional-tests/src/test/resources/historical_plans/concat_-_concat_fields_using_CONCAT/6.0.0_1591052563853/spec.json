@@ -1,7 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591052563853,
-  "path" : "query-validation-tests\\concat.json",
+  "path" : "query-validation-tests/concat.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<THING VARCHAR> NOT NULL"

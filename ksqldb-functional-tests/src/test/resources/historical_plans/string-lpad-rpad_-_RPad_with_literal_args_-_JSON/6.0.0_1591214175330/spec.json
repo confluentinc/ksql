@@ -1,7 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591214175330,
-  "path" : "query-validation-tests\\string-lpad-rpad.json",
+  "path" : "query-validation-tests/string-lpad-rpad.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT< > NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<RESULT VARCHAR> NOT NULL"

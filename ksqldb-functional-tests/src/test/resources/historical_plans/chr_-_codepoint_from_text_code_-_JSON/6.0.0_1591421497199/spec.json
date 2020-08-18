@@ -1,7 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591421497199,
-  "path" : "query-validation-tests\\chr.json",
+  "path" : "query-validation-tests/chr.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<UTFCODE VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<RESULT VARCHAR> NOT NULL"

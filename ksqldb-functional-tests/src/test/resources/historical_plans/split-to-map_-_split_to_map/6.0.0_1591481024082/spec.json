@@ -1,7 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591481024082,
-  "path" : "query-validation-tests\\split-to-map.json",
+  "path" : "query-validation-tests/split-to-map.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT VARCHAR, ENTRYDELIM VARCHAR, KVDELIM VARCHAR> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<RESULT MAP<VARCHAR, VARCHAR>> NOT NULL"

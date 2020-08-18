@@ -1,7 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1590779903355,
-  "path" : "query-validation-tests\\array-min-max-sort.json",
+  "path" : "query-validation-tests/array-min-max-sort.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<BOOL_ARRAY ARRAY<BOOLEAN>, INT_ARRAY ARRAY<INT>, BIGINT_ARRAY ARRAY<BIGINT>, DOUBLE_ARRAY ARRAY<DOUBLE>, STRING_ARRAY ARRAY<VARCHAR>, DECIMAL_ARRAY ARRAY<DECIMAL(2, 1)>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<BOOLS ARRAY<BOOLEAN>, INTS ARRAY<INT>, BIGINTS ARRAY<BIGINT>, DOUBLES ARRAY<DOUBLE>, STRINGS ARRAY<VARCHAR>, DECIMALS ARRAY<DECIMAL(2, 1)>> NOT NULL"

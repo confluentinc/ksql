@@ -1,7 +1,7 @@
 {
   "version" : "6.1.0",
   "timestamp" : 1594957049161,
-  "path" : "query-validation-tests\\array-remove.json",
+  "path" : "query-validation-tests/array-remove.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DUMMY INT> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<A1 ARRAY<VARCHAR>> NOT NULL"

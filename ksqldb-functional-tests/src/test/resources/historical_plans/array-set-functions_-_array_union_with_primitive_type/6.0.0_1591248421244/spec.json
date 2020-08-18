@@ -1,7 +1,7 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591248421244,
-  "path" : "query-validation-tests\\array-set-functions.json",
+  "path" : "query-validation-tests/array-set-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ARR1 ARRAY<INT>, ARR2 ARRAY<INT>> NOT NULL",
     "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<RESULT ARRAY<INT>> NOT NULL"

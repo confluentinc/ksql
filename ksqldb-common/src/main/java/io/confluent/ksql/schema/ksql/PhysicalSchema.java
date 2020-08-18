@@ -13,15 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde;
+package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Set;

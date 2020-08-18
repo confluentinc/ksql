@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
-import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.model.KsqlVersion;

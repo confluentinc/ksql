@@ -24,7 +24,6 @@ import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.ImmutableTester;
 import io.confluent.ksql.util.KsqlException;

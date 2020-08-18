@@ -18,7 +18,7 @@ package io.confluent.ksql.test.tools;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.serde.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.conditions.PostConditions;

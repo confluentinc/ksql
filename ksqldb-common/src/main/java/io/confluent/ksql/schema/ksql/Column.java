@@ -17,8 +17,11 @@ package io.confluent.ksql.schema.ksql;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.util.DecimalUtil;
+
 import java.util.Objects;
 
 /**
@@ -111,6 +114,20 @@ public final class Column implements SimpleColumn {
     return index;
   }
 
+  public boolean canImplicitlyCast(final SqlType toType) {
+    if (type instanceof SqlDecimal && toType instanceof SqlDecimal) {
+      return DecimalUtil.canImplicitlyCast((SqlDecimal)type, (SqlDecimal)toType);
+    }
+
+    return type.equals(toType);
+  }
+
+  public boolean equalsIgnoreType(final Column that) {
+    return Objects.equals(index, that.index)
+        && Objects.equals(namespace, that.namespace)
+        && Objects.equals(name, that.name);
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -120,10 +137,7 @@ public final class Column implements SimpleColumn {
       return false;
     }
     final Column that = (Column) o;
-    return Objects.equals(index, that.index)
-        && Objects.equals(namespace, that.namespace)
-        && Objects.equals(type, that.type)
-        && Objects.equals(name, that.name);
+    return equalsIgnoreType(that) && Objects.equals(type, that.type);
   }
 
   @Override

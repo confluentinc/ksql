@@ -44,6 +44,7 @@ import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -54,6 +55,8 @@ import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
+import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
@@ -66,12 +69,13 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TypeList;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.vertx.core.json.JsonArray;
@@ -899,7 +903,7 @@ public class ClientTest extends BaseApiTest {
     // Given
     final SourceDescriptionEntity entity = new SourceDescriptionEntity(
         "describe source;",
-        new SourceDescription(
+        new io.confluent.ksql.rest.entity.SourceDescription(
             "name",
             Optional.empty(),
             Collections.emptyList(),
@@ -1266,6 +1270,69 @@ public class ClientTest extends BaseApiTest {
     assertThat(queries.get(1).getSql(), is("sql2"));
     assertThat(queries.get(1).getSink(), is(Optional.empty()));
     assertThat(queries.get(1).getSinkTopic(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldDescribeSource() throws Exception {
+    // Given
+    final io.confluent.ksql.rest.entity.SourceDescription sd =
+        new io.confluent.ksql.rest.entity.SourceDescription(
+            "name",
+            Optional.of(WindowType.TUMBLING),
+            Collections.singletonList(new RunningQuery(
+                "query_sql",
+                ImmutableSet.of("sink"),
+                ImmutableSet.of("sink_topic"),
+                new QueryId("a_persistent_query"),
+                new QueryStatusCount(ImmutableMap.of(KsqlQueryStatus.RUNNING, 1)),
+                KsqlQueryType.PERSISTENT)),
+            Collections.emptyList(),
+            ImmutableList.of(
+                new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY)),
+                new FieldInfo("f2", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty())),
+            "TABLE",
+            "",
+            "",
+            "",
+            false,
+            "KAFKA",
+            "JSON",
+            "topic",
+            4,
+            1,
+            "sql",
+            Collections.emptyList()
+        );
+    final SourceDescriptionEntity entity = new SourceDescriptionEntity(
+        "describe source;", sd, Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final SourceDescription description = javaClient.describeSource("source").get();
+
+    // Then
+    assertThat(description.name(), is("name"));
+    assertThat(description.type(), is("TABLE"));
+    assertThat(description.fields(), hasSize(2));
+    assertThat(description.fields().get(0).name(), is("f1"));
+    assertThat(description.fields().get(0).type().getType(), is(ColumnType.Type.STRING));
+    assertThat(description.fields().get(0).isKey(), is(true));
+    assertThat(description.fields().get(1).name(), is("f2"));
+    assertThat(description.fields().get(1).type().getType(), is(ColumnType.Type.INTEGER));
+    assertThat(description.fields().get(1).isKey(), is(false));
+    assertThat(description.topic(), is("topic"));
+    assertThat(description.keyFormat(), is("KAFKA"));
+    assertThat(description.valueFormat(), is("JSON"));
+    assertThat(description.readQueries(), hasSize(1));
+    assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
+    assertThat(description.readQueries().get(0).getId(), is("a_persistent_query"));
+    assertThat(description.readQueries().get(0).getSql(), is("query_sql"));
+    assertThat(description.readQueries().get(0).getSink(), is(Optional.of("sink")));
+    assertThat(description.readQueries().get(0).getSinkTopic(), is(Optional.of("sink_topic")));
+    assertThat(description.writeQueries(), hasSize(0));
+    assertThat(description.timestampColumn(), is(Optional.empty()));
+    assertThat(description.windowType(), is(Optional.of("TUMBLING")));
+    assertThat(description.sqlStatement(), is("sql"));
   }
 
   protected Client createJavaClient() {

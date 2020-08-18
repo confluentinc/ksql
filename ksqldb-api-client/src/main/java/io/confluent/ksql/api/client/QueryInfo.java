@@ -40,11 +40,11 @@ public interface QueryInfo {
   String getId();
 
   /**
-   * Returns the KSQL statement text corresponding to this query. This text may not be exactly the
+   * Returns the ksqlDB statement text corresponding to this query. This text may not be exactly the
    * statement submitted in order to start the query, but submitting this statement will result
    * in exactly this query.
    *
-   * @return the KSQL statement text
+   * @return the ksqlDB statement text
    */
   String getSql();
 

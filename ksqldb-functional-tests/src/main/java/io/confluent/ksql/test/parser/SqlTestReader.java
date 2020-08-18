@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.parser;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.CaseInsensitiveStream;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -23,9 +24,13 @@ import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TestStatementContext;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
@@ -58,9 +63,11 @@ public class SqlTestReader implements Iterator<TestStatement> {
     }
   };
 
+  private static final Pattern TEST_DIRECTIVE_REGEX =
+      Pattern.compile("(?m)^--@test:\\s*(?<name>.*)$");
+
   private final SqlBaseParser parser;
   private final CommonTokenStream tks;
-  private final KsqlExecutionContext engine;
 
   /* indicates the latest index in tks that has been scanned for directives */
   private int directiveIdx = 0;
@@ -69,20 +76,26 @@ public class SqlTestReader implements Iterator<TestStatement> {
   private boolean cachedStatement = false;
   private TestStatementContext testStatement;
 
+  public static SqlTestReader of(
+      final String test
+  ) {
+    return new SqlTestReader(CharStreams.fromString(test));
+  }
+
   /**
-   * @param testCase the test case
-   * @param engine   the ksqlDB engine, used to prepare statements
+   * @param file     the test file
    */
-  public SqlTestReader(final String testCase, final KsqlExecutionContext engine) {
-    this.engine = Objects.requireNonNull(engine, "engine");
+  public static SqlTestReader of(
+      final Path file
+  ) throws IOException {
+    final CharStream chars = CharStreams.fromPath(file);
+    return new SqlTestReader(chars);
+  }
 
-    Objects.requireNonNull(testCase, "testCase");
-    if (testCase.isEmpty()) {
-      throw new IllegalArgumentException("Expected nonempty test case.");
-    }
+  private SqlTestReader(final CharStream chars) {
+    Objects.requireNonNull(chars, "chars");
 
-    final SqlBaseLexer lexer = new SqlBaseLexer(
-        new CaseInsensitiveStream(CharStreams.fromString(testCase)));
+    final SqlBaseLexer lexer = new SqlBaseLexer(new CaseInsensitiveStream(chars));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ERROR_LISTENER);
 
@@ -132,13 +145,13 @@ public class SqlTestReader implements Iterator<TestStatement> {
     cachedStatement = false;
     if (testStatement.singleStatement() != null) {
       return TestStatement.of(
-          engine.prepare(DefaultKsqlParser.parsedStatement(testStatement.singleStatement()))
+          DefaultKsqlParser.parsedStatement(testStatement.singleStatement())
       );
     }
 
     if (testStatement.assertStatement() != null) {
       return TestStatement.of(
-          new AstBuilder(engine.getMetaStore())
+          new AstBuilder(TypeRegistry.EMPTY)
               .buildAssertStatement(testStatement.assertStatement())
       );
     }

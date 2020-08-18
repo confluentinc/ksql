@@ -16,53 +16,18 @@
 package io.confluent.ksql.test.parser;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.ParsingException;
-import io.confluent.ksql.test.parser.SqlTestReader;
-import io.confluent.ksql.test.parser.TestDirective;
-import io.confluent.ksql.test.parser.TestDirective.Type;
 import io.confluent.ksql.parser.tree.AssertValues;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.test.parser.TestStatement;
-import org.junit.Before;
-import org.junit.Rule;
+import io.confluent.ksql.test.parser.TestDirective.Type;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class SqlTestReaderTest {
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-  @Mock
-  private KsqlExecutionContext engine;
-  @Mock
-  private MetaStore metaStore;
-  @Mock
-  private CreateStream cs;
-  @Mock
-  private CreateStreamAsSelect csas;
-  @Mock
-  private InsertValues iv;
-
-  @Before
-  public void setUp() {
-    when(engine.getMetaStore()).thenReturn(metaStore);
-  }
 
   @Test
   public void shouldParseBasicTest() {
@@ -75,23 +40,18 @@ public class SqlTestReaderTest {
         + "ASSERT VALUES bar (id, col1) VALUES (1, 1);\n"
         ;
 
-    when(engine.prepare(any()))
-        .thenReturn((PreparedStatement) PreparedStatement.of("foo", cs))
-        .thenReturn(PreparedStatement.of("foo", csas))
-        .thenReturn(PreparedStatement.of("foo", iv));
-
     // When:
-    final SqlTestReader reader = new SqlTestReader(contents, engine);
+    final SqlTestReader reader = SqlTestReader.of(contents);
 
     // Then:
     assertThat(reader.hasNext(), is(true));
     assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1"))));
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatement(), instanceOf(CreateStream.class));
+    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("CREATE STREAM foo"));
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatement(), instanceOf(CreateStreamAsSelect.class));
+    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("CREATE STREAM bar"));
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatement(), instanceOf(InsertValues.class));
+    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("INSERT INTO"));
     assertThat(reader.hasNext(), is(true));
     assertThat(reader.next().getAssertStatement(), instanceOf(AssertValues.class));
     assertThat(reader.hasNext(), is(false));
@@ -104,16 +64,14 @@ public class SqlTestReaderTest {
         + "CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='json');\n"
         + "--@foo: bar\n";
 
-    when(engine.prepare(any())).thenReturn((PreparedStatement) PreparedStatement.of("foo", cs));
-
     // When:
-    final SqlTestReader reader = new SqlTestReader(contents, engine);
+    final SqlTestReader reader = SqlTestReader.of(contents);
 
     // Then:
     assertThat(reader.hasNext(), is(true));
     assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1"))));
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatement(), instanceOf(CreateStream.class));
+    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("CREATE STREAM foo"));
     assertThat(reader.hasNext(), is(true));
     assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.UNKNOWN, "bar"))));
     assertThat(reader.hasNext(), is(false));
@@ -127,16 +85,14 @@ public class SqlTestReaderTest {
         + "CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='json');\n"
         + "--bar\n";
 
-    when(engine.prepare(any())).thenReturn((PreparedStatement) PreparedStatement.of("foo", cs));
-
     // When:
-    final SqlTestReader reader = new SqlTestReader(contents, engine);
+    final SqlTestReader reader = SqlTestReader.of(contents);
 
     // Then:
     assertThat(reader.hasNext(), is(true));
     assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1"))));
     assertThat(reader.hasNext(), is(true));
-    assertThat(reader.next().getEngineStatement().getStatement(), instanceOf(CreateStream.class));
+    assertThat(reader.next().getEngineStatement().getStatementText(), containsString("CREATE STREAM foo"));
     assertThat(reader.hasNext(), is(false));
   }
 
@@ -146,7 +102,7 @@ public class SqlTestReaderTest {
         + "CREATE foo;\n";
 
     // When:
-    final SqlTestReader reader = new SqlTestReader(contents, engine);
+    final SqlTestReader reader = SqlTestReader.of(contents);
     final ParsingException parsingException = assertThrows(ParsingException.class, reader::next);
 
     // Then:

@@ -16,7 +16,6 @@
 package io.confluent.ksql.test.parser;
 
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -33,11 +32,11 @@ import java.util.stream.Stream;
  */
 public final class TestStatement {
 
-  private final PreparedStatement<?> engineStatement;
+  private final ParsedStatement engineStatement;
   private final AssertStatement<?> assertStatement;
   private final TestDirective directive;
 
-  public static TestStatement of(final PreparedStatement<?> engineStatement) {
+  public static TestStatement of(final ParsedStatement engineStatement) {
     return new TestStatement(engineStatement, null, null);
   }
 
@@ -50,7 +49,7 @@ public final class TestStatement {
   }
 
   private TestStatement(
-      final PreparedStatement<?> engineStatement,
+      final ParsedStatement engineStatement,
       final AssertStatement<?> assertStatement,
       final TestDirective directive
   ) {
@@ -75,7 +74,7 @@ public final class TestStatement {
     return engineStatement != null;
   }
 
-  public PreparedStatement<?> getEngineStatement() {
+  public ParsedStatement getEngineStatement() {
     if (!hasEngineStatement()) {
       throw new NoSuchElementException("engineStatement");
     }

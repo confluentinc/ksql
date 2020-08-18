@@ -33,6 +33,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+
+import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -123,19 +126,67 @@ public class CommandTopicTest {
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
-    final List<ConsumerRecord<byte[], byte[]>> recordList = commandTopic
-        .getRestoreRecords(Duration.ofMillis(1));
+    final List<QueuedCommand> queuedCommandList = commandTopic
+        .getRestoreCommands(Duration.ofMillis(1));
 
     // Then:
     verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
     assertThat(topicPartitionsCaptor.getValue(),
         equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
-    assertThat(recordList, Matchers.equalTo(ImmutableList.of(
-        record1,
-        record2,
-        record3)));
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(),1L),
+        new QueuedCommand(commandId3, command3, Optional.empty(), 2L))));
   }
 
+  @Test
+  public void shouldHaveOffsetsInQueuedCommands() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+            new ConsumerRecord<>("topic", 0, 1, commandId2, command2)))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 2, commandId3, command3)))
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic
+        .getRestoreCommands(Duration.ofMillis(1));
+
+    // Then:
+    verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
+    assertThat(topicPartitionsCaptor.getValue(),
+        equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(),1L),
+        new QueuedCommand(commandId3, command3, Optional.empty(), 2L))));
+  }
+
+  @Test
+  public void shouldGetRestoreCommandsCorrectlyWithDuplicateKeys() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+            new ConsumerRecord<>("topic", 0, 1, commandId2, command2)))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 2, commandId2, command3),
+            new ConsumerRecord<>("topic", 0, 3, commandId3, command3)))
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic
+        .getRestoreCommands(Duration.ofMillis(1));
+
+    // Then:
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(), 1L),
+        new QueuedCommand(commandId2, command3, Optional.empty(), 2L),
+        new QueuedCommand(commandId3, command3, Optional.empty(), 3L))));
+  }
 
   @Test
   public void shouldFilterNullCommandsWhileRestoringCommands() {
@@ -149,11 +200,13 @@ public class CommandTopicTest {
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
-    final List<ConsumerRecord<byte[], byte[]>> recordList = commandTopic
-        .getRestoreRecords(Duration.ofMillis(1));
+    final List<QueuedCommand> recordList = commandTopic
+        .getRestoreCommands(Duration.ofMillis(1));
 
     // Then:
-    assertThat(recordList, equalTo(ImmutableList.of(record1, record2)));
+    assertThat(recordList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(),1L))));
   }
 
   @Test
@@ -184,10 +237,14 @@ public class CommandTopicTest {
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
-    final List<ConsumerRecord<byte[], byte[]>> commands = commandTopic.getRestoreRecords(Duration.ofMillis(10));
+    final List<QueuedCommand> commands = commandTopic.getRestoreCommands(Duration.ofMillis(10));
 
     // Then:
-    assertThat(commands, equalTo(Arrays.asList(record1, record2, record3)));
+    assertThat(commands, equalTo(Arrays.asList(
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(), 1L),
+        new QueuedCommand(commandId3, command3, Optional.empty(), 2L)	
+    )));
   }
 
   @Test
@@ -217,7 +274,7 @@ public class CommandTopicTest {
     commandTopic.start();
 
     // When
-    commandTopic.getRestoreRecords(Duration.ofHours(1));
+    commandTopic.getRestoreCommands(Duration.ofHours(1));
 
     // Then
     final InOrder inOrder = Mockito.inOrder(commandTopicBackup);

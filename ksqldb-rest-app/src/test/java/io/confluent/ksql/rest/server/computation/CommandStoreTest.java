@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -187,49 +188,48 @@ public class CommandStoreTest {
 
   @Test
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
-    // Given:	
+    // Given:
     when(transactionalProducer.send(any(ProducerRecord.class))).thenAnswer(
         invocation -> {
-          final Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>> recordPair =
-              commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
+          final QueuedCommand command = commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
           assertThat(
-              InternalTopicSerdes.deserializer(CommandId.class).deserialize("", recordPair.getLeft().key()),
+              command.getAndDeserializeCommandId(),
               equalTo(commandId));
-          assertThat(recordPair.getRight().isPresent(), equalTo(true));
+          assertThat(command.getStatus().isPresent(), equalTo(true));
           assertThat(
-              recordPair.getRight().get().getStatus().getStatus(),
+              command.getStatus().get().getStatus().getStatus(),
               equalTo(CommandStatus.Status.QUEUED));
-          assertThat(recordPair.left.offset(), equalTo(0L));
+          assertThat(command.getOffset(), equalTo(0L));
           return testFuture;
         }
     );
 
-    // When:	
+    // When:
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
 
-    // Then:	
+    // Then:
     verify(transactionalProducer).send(any(ProducerRecord.class));
   }
 
   @Test
   public void shouldFilterNullCommands() {
-    // Given:	
+    // Given:
     final ConsumerRecords<byte[], byte[]> records = buildRecords(
         commandId, null,
-            commandId, command);
+        commandId, command);
     when(commandTopic.getNewCommands(any())).thenReturn(records);
 
     // When:	
-    final List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>> commands =
+    final List<QueuedCommand> commands =
         commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
-    // Then:	
+    // Then:
     assertThat(commands, hasSize(1));
     assertThat(
-        InternalTopicSerdes.deserializer(CommandId.class).deserialize("",commands.get(0).getLeft().key()),
+        commands.get(0).getAndDeserializeCommandId(),
         equalTo(commandId));
     assertThat(
-        InternalTopicSerdes.deserializer(Command.class).deserialize("",commands.get(0).getLeft().value()),
+        commands.get(0).getAndDeserializeCommand(),
         equalTo(command));
   }
 

@@ -16,11 +16,13 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
+import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -85,8 +87,8 @@ public class CommandTopic {
     return iterable;
   }
 
-  public List<ConsumerRecord<byte[], byte[]>> getRestoreRecords(final Duration duration) {
-    final List<ConsumerRecord<byte[], byte[]>> restoreRecords = Lists.newArrayList();
+  public List<QueuedCommand> getRestoreCommands(final Duration duration) {
+    final List<QueuedCommand> restoreCommands = Lists.newArrayList();
 
     commandConsumer.seekToBeginning(
         Collections.singletonList(commandTopicPartition));
@@ -102,11 +104,16 @@ public class CommandTopic {
         if (record.value() == null) {
           continue;
         }
-        restoreRecords.add(record);
+        restoreCommands.add(
+            new QueuedCommand(
+                record.key(),
+                record.value(),
+                Optional.empty(),
+                record.offset()));
       }
       records = commandConsumer.poll(duration);
     }
-    return restoreRecords;
+    return restoreCommands;
   }
 
   public long getCommandTopicConsumerPosition() {

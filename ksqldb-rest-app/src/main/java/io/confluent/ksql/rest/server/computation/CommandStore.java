@@ -25,7 +25,6 @@ import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
-import io.confluent.ksql.util.Pair;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collections;
@@ -213,12 +212,10 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   @Override
-  public List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>>
-      getNewCommands(final Duration timeout) {
+  public List<QueuedCommand> getNewCommands(final Duration timeout) {
     completeSatisfiedSequenceNumberFutures();
 
-    final List<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>>
-        recordFuturePairs = Lists.newArrayList();
+    final List<QueuedCommand> commands = Lists.newArrayList();
 
     final Iterable<ConsumerRecord<byte[], byte[]>> records = commandTopic.getNewCommands(timeout);
     for (ConsumerRecord<byte[], byte[]> record: records) {
@@ -236,16 +233,20 @@ public class CommandStore implements CommandQueue, Closeable {
               record.key(),
               e);
         }
-        recordFuturePairs.add(new Pair<>(record, commandStatusFuture));
+        commands.add(new QueuedCommand(
+            record.key(),
+            record.value(),
+            commandStatusFuture,
+            record.offset()));
       }
     }
 
-    return recordFuturePairs;
+    return commands;
   }
 
   @Override
-  public List<ConsumerRecord<byte[], byte[]>> getRestoreCommands() {
-    return commandTopic.getRestoreRecords(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
+  public List<QueuedCommand> getRestoreCommands() {
+    return commandTopic.getRestoreCommands(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
   }
 
   @Override

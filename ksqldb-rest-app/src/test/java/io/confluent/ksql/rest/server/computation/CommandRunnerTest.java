@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -49,6 +50,7 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -86,12 +88,6 @@ public class CommandRunnerTest {
   @Mock
   private Command clusterTerminate;
   @Mock
-  private ConsumerRecord<byte[], byte[]> record1;
-  @Mock
-  private ConsumerRecord<byte[], byte[]> record2;
-  @Mock
-  private ConsumerRecord<byte[], byte[]> record3;
-  @Mock
   private QueuedCommand queuedCommand1;
   @Mock
   private QueuedCommand queuedCommand2;
@@ -102,8 +98,7 @@ public class CommandRunnerTest {
   @Mock
   private Function<List<QueuedCommand>, List<QueuedCommand>> compactor;
   @Mock
-  private Function<Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>, QueuedCommand>
-      commandDeserializer;
+  private Consumer<QueuedCommand> incompatibleCommandChecker;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
@@ -117,16 +112,16 @@ public class CommandRunnerTest {
     when(clusterTerminate.getStatement())
         .thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
 
-    when(queuedCommand1.getCommand()).thenReturn(command);
-    when(queuedCommand2.getCommand()).thenReturn(command);
-    when(queuedCommand3.getCommand()).thenReturn(command);
-    when(commandDeserializer.apply(new Pair<>(record1, Optional.empty()))).thenReturn(queuedCommand1);
-    when(commandDeserializer.apply(new Pair<>(record2, Optional.empty()))).thenReturn(queuedCommand2);
-    when(commandDeserializer.apply(new Pair<>(record3, Optional.empty()))).thenReturn(queuedCommand3);
+    when(queuedCommand1.getAndDeserializeCommand()).thenReturn(command);
+    when(queuedCommand2.getAndDeserializeCommand()).thenReturn(command);
+    when(queuedCommand3.getAndDeserializeCommand()).thenReturn(command);
+    doNothing().when(incompatibleCommandChecker).accept(queuedCommand1);
+    doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
+    doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);
 
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     commandRunner = new CommandRunner(
         statementExecutor,
@@ -140,14 +135,14 @@ public class CommandRunnerTest {
         "",
         clock,
         compactor,
-        commandDeserializer
+        incompatibleCommandChecker
     );
   }
 
   @Test
   public void shouldRunThePriorCommandsCorrectly() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     // When:
     commandRunner.processPriorCommands();
@@ -162,8 +157,8 @@ public class CommandRunnerTest {
   @Test
   public void shouldRunThePriorCommandsWithTerminateCorrectly() {
     // Given:
-    givenRecordsFromCommandTopic(Collections.singletonList(record1));
-    when(queuedCommand1.getCommand()).thenReturn(clusterTerminate);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(queuedCommand1.getAndDeserializeCommand()).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.processPriorCommands();
@@ -180,8 +175,8 @@ public class CommandRunnerTest {
   @Test
   public void shouldEarlyOutIfRestoreContainsTerminate() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
-    when(queuedCommand2.getCommand()).thenReturn(clusterTerminate);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(queuedCommand2.getAndDeserializeCommand()).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.processPriorCommands();
@@ -193,7 +188,7 @@ public class CommandRunnerTest {
   @Test
   public void shouldCompactOnRestore() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     // When:
     commandRunner.processPriorCommands();
@@ -221,8 +216,8 @@ public class CommandRunnerTest {
   @Test
   public void shouldProcessPartialListOfCommandsOnDeserializationExceptionInRestore() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
-    when(commandDeserializer.apply(new Pair<>(record3, Optional.empty()))).thenThrow(new SerializationException());
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
     commandRunner.processPriorCommands();
@@ -240,8 +235,8 @@ public class CommandRunnerTest {
   @Test
   public void shouldProcessPartialListOfCommandsOnDeserializationExceptionInFetch() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
-    when(commandDeserializer.apply(new Pair<>(record2, Optional.empty()))).thenThrow(new SerializationException());
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
 
     // When:
     commandRunner.processPriorCommands();
@@ -256,7 +251,7 @@ public class CommandRunnerTest {
   @Test
   public void shouldPullAndRunStatements() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     // When:
     commandRunner.fetchAndRunCommands();
@@ -272,7 +267,7 @@ public class CommandRunnerTest {
   @Test
   public void shouldRetryOnException() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2));
+    givenQueuedCommands(queuedCommand1, queuedCommand2);
     doThrow(new RuntimeException())
         .doThrow(new RuntimeException())
         .doNothing().when(statementExecutor).handleStatement(queuedCommand2);
@@ -289,7 +284,7 @@ public class CommandRunnerTest {
   @Test
   public void shouldThrowExceptionIfOverMaxRetries() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2));
+    givenQueuedCommands(queuedCommand1, queuedCommand2);
     doThrow(new RuntimeException()).when(statementExecutor).handleStatement(queuedCommand2);
 
     // When:
@@ -302,8 +297,8 @@ public class CommandRunnerTest {
   @Test
   public void shouldEarlyOutIfNewCommandsContainsTerminate() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
-    when(queuedCommand2.getCommand()).thenReturn(clusterTerminate);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(queuedCommand2.getAndDeserializeCommand()).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.fetchAndRunCommands();
@@ -317,7 +312,7 @@ public class CommandRunnerTest {
   @Test
   public void shouldTransitionFromRunningToErrorWhenStuckOnCommand() throws InterruptedException {
     // Given:
-    givenRecordsFromCommandTopic(Collections.singletonList(record1));
+    givenQueuedCommands(queuedCommand1);
 
     final Instant current = Instant.now();
     final CountDownLatch handleStatementLatch = new CountDownLatch(1);
@@ -357,7 +352,7 @@ public class CommandRunnerTest {
   @Test
   public void shouldTransitionFromRunningToErrorWhenNotPollingCommandTopic() {
     // Given:
-    givenRecordsFromCommandTopic(Collections.emptyList());
+    givenQueuedCommands();
 
     final Instant current = Instant.now();
     when(clock.instant()).thenReturn(current)
@@ -371,7 +366,7 @@ public class CommandRunnerTest {
   @Test
   public void shouldEarlyOutOnShutdown() {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2));
+    givenQueuedCommands(queuedCommand1, queuedCommand2);
     doAnswer(closeRunner()).when(statementExecutor).handleStatement(queuedCommand1);
 
     // When:
@@ -404,8 +399,8 @@ public class CommandRunnerTest {
   @Test
   public void shouldNotStartCommandRunnerThreadIfSerializationExceptionInRestore() throws Exception {
     // Given:
-    givenRecordsFromCommandTopic(Arrays.asList(record1, record2, record3));
-    when(commandDeserializer.apply(new Pair<>(record3, Optional.empty()))).thenThrow(new SerializationException());
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
     commandRunner.processPriorCommands();
@@ -427,9 +422,9 @@ public class CommandRunnerTest {
   public void shouldCloseEarlyWhenSerializationExceptionInFetch() throws Exception {
     // Given:
     when(commandStore.getNewCommands(any()))
-        .thenReturn(Collections.singletonList(new Pair<>(record1, Optional.empty())))
-        .thenReturn(Collections.singletonList(new Pair<>(record2, Optional.empty())));
-    when(commandDeserializer.apply(new Pair<>(record2, Optional.empty()))).thenThrow(new SerializationException());
+        .thenReturn(Collections.singletonList(queuedCommand1))
+        .thenReturn(Collections.singletonList(queuedCommand2));
+    doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
     
     // When:
     commandRunner.start();
@@ -466,15 +461,12 @@ public class CommandRunnerTest {
 
   private Runnable getThreadTask() {
     verify(executor).execute(threadTaskCaptor.capture());
-    return threadTaskCaptor.getValue(); 
+    return threadTaskCaptor.getValue();
   }
 
-  private final void givenRecordsFromCommandTopic(final List<ConsumerRecord<byte[], byte[]>> records) {
-    when(commandStore.getRestoreCommands()).thenReturn(records);
-    when(commandStore.getNewCommands(any())).thenReturn(records
-        .stream()
-        .map(record -> new Pair<ConsumerRecord<byte[], byte[]>, Optional<CommandStatusFuture>>(record, Optional.empty()))
-        .collect(Collectors.toList()));
+  private void givenQueuedCommands(final QueuedCommand... cmds) {
+    when(commandStore.getRestoreCommands()).thenReturn(Arrays.asList(cmds));
+    when(commandStore.getNewCommands(any())).thenReturn(Arrays.asList(cmds));
   }
 
   private Answer<?> closeRunner() {

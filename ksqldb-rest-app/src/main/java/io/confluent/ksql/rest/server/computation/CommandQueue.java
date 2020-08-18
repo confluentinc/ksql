@@ -16,14 +16,10 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.util.Pair;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
 /**
@@ -52,9 +48,8 @@ public interface CommandQueue extends Closeable {
   );
   
   /**
-   * Polls the Queue for any command records that have been enqueued since the last
-   * invocation to this method. Returns the CommandStatusFuture associated with a record
-   * if it exists
+   * Polls the Queue for any commands that have been enqueued since the last
+   * invocation to this method.
    *
    * <p>The method blocks until either there is data to return or the
    * supplied {@code timeout} expires.
@@ -62,22 +57,20 @@ public interface CommandQueue extends Closeable {
    * <p>If between invocations to this method, {@link #getRestoreCommands()} is
    * invoked, this command will begin where the results of that call ended.
    *
-   * @param timeout the max time to wait for new records.
-   * @return a list of records that have been enqueued since the last call
+   * @param timeout the max time to wait for new commands.
+   * @return a list of commands that have been enqueued since the last call
    * @apiNote this method may block
    */
-  List<Pair<
-      ConsumerRecord<byte[], byte[]>, 
-      Optional<CommandStatusFuture>>> getNewCommands(Duration timeout);
+  List<QueuedCommand> getNewCommands(Duration timeout);
 
   /**
    * Seeks to the earliest point in history available in the command queue
-   * and returns all records between then and the end of the queue.
+   * and returns all commands between then and the end of the queue.
    *
-   * @return the entire command topic record list history
+   * @return the entire command list history
    * @apiNote this method may block
    */
-  List<ConsumerRecord<byte[], byte[]>> getRestoreCommands();
+  List<QueuedCommand> getRestoreCommands();
 
   /**
    * @param seqNum  the required minimum sequence number to wait for

@@ -117,8 +117,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     throwIfNotConfigured();
 
     handleStatementWithTerminatedQueries(
-        queuedCommand.getCommand(),
-        queuedCommand.getCommandId(),
+        queuedCommand.getAndDeserializeCommand(),
+        queuedCommand.getAndDeserializeCommandId(),
         queuedCommand.getStatus(),
         Mode.EXECUTE,
         queuedCommand.getOffset()
@@ -129,8 +129,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     throwIfNotConfigured();
 
     handleStatementWithTerminatedQueries(
-        queuedCommand.getCommand(),
-        queuedCommand.getCommandId(),
+        queuedCommand.getAndDeserializeCommand(),
+        queuedCommand.getAndDeserializeCommandId(),
         queuedCommand.getStatus(),
         Mode.RESTORE,
         queuedCommand.getOffset()

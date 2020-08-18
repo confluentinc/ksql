@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
@@ -76,7 +77,7 @@ public class CommandRunner implements Closeable {
 
   private final Deserializer<Command> commandDeserializer;
   private final Consumer<QueuedCommand> incompatibleCommandChecker;
-  private boolean deserializationErrorThrown;
+  private boolean incompatibleCommandDetected;
 
   public enum CommandRunnerStatus {
     RUNNING,
@@ -151,7 +152,7 @@ public class CommandRunner implements Closeable {
         Objects.requireNonNull(incompatibleCommandChecker, "incompatibleCommandChecker");
     this.commandDeserializer =
         Objects.requireNonNull(commandDeserializer, "commandDeserializer");
-    this.deserializationErrorThrown = false;
+    this.incompatibleCommandDetected = false;
   }
 
   /**
@@ -310,7 +311,7 @@ public class CommandRunner implements Closeable {
   }
 
   public CommandRunnerStatus checkCommandRunnerStatus() {
-    if (deserializationErrorThrown) {
+    if (incompatibleCommandDetected) {
       return CommandRunnerStatus.DEGRADED;
     }
 
@@ -334,9 +335,9 @@ public class CommandRunner implements Closeable {
         incompatibleCommandChecker.accept(command);
         compatibleCommands.add(command);
       }
-    } catch (SerializationException e) {
-      LOG.info("Deserialization error detected when processing record", e);
-      deserializationErrorThrown = true;
+    } catch (final SerializationException | IncomaptibleKsqlCommandVersionException e) {
+      LOG.info("Incompatible command record detected when processing command topic", e);
+      incompatibleCommandDetected = true;
     }
     return compatibleCommands;
   }
@@ -351,7 +352,7 @@ public class CommandRunner implements Closeable {
     public void run() {
       try {
         while (!closed) {
-          if (deserializationErrorThrown) {
+          if (incompatibleCommandDetected) {
             LOG.warn("CommandRunner entering degraded state after failing to deserialize command");
             closeEarly();
           } else {

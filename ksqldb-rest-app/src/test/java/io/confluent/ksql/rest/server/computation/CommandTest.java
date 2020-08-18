@@ -18,16 +18,22 @@ package io.confluent.ksql.rest.server.computation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+
+import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import org.junit.Test;
 
 public class CommandTest {
+
   @Test
   public void shouldDeserializeCorrectly() throws IOException {
     final String commandStr = "{" +
@@ -44,6 +50,23 @@ public class CommandTest {
     final Map<String, Object> expectedOriginalProperties
         = Collections.singletonMap("biz", "baz");
     assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenCommandVersionHigher() {
+    final String commandStr = "{" +
+        "\"statement\": \"test statement;\", " +
+        "\"streamsProperties\": {\"foo\": \"bar\"}, " +
+        "\"originalProperties\": {\"biz\": \"baz\"}, " +
+        "\"version\": " + (Command.VERSION + 1) +
+        "}";
+    final ObjectMapper mapper = PlanJsonMapper.INSTANCE.get();
+    final ValueInstantiationException thrown = assertThrows(
+        "Expected deserialization to throw, but it didn't",
+        ValueInstantiationException.class,
+        () -> mapper.readValue(commandStr, Command.class)
+    );
+    assertTrue(thrown.getCause() instanceof IncomaptibleKsqlCommandVersionException);
   }
 
   @Test

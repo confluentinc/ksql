@@ -49,6 +49,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -307,10 +308,10 @@ public class CommandStore implements CommandQueue, Closeable {
         COMMAND_TOPIC_PARTITION
     );
 
-    try (Consumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
+    try (Consumer<byte[], byte[]> commandConsumer = new KafkaConsumer<>(
         kafkaConsumerProperties,
-        InternalTopicSerdes.deserializer(CommandId.class),
-        InternalTopicSerdes.deserializer(Command.class)
+        new ByteArrayDeserializer(),
+        new ByteArrayDeserializer()
     )) {
       commandConsumer.assign(Collections.singleton(commandTopicPartition));
       return commandConsumer.endOffsets(Collections.singletonList(commandTopicPartition))

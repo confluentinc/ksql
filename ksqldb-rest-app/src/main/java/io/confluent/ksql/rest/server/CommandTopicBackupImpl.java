@@ -19,7 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ticker;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.util.CommandTopicUtil;
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
@@ -133,8 +133,8 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
           record.topic(),
           record.partition(),
           record.offset(),
-          CommandTopicUtil.deserializeCommandId(record.topic(), record.key()),
-          CommandTopicUtil.deserializeCommand(record.topic(), record.value())
+          InternalTopicSerdes.deserializer(CommandId.class).deserialize(record.topic(), record.key()),
+          InternalTopicSerdes.deserializer(Command.class).deserialize(record.topic(), record.value())
       );
     } catch (Exception e) {
       LOG.error("Failed to deserialize command topic record when backing it up: {}:{}",

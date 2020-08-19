@@ -28,10 +28,10 @@ public final class SchemaRegistryUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(SchemaRegistryUtil.class);
 
-  private static final String CHANGE_LOG_SUFFIX = KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX
+  public static final String CHANGE_LOG_SUFFIX = KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX
       + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
 
-  private static final String REPARTITION_SUFFIX = KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX
+  public static final String REPARTITION_SUFFIX = KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX
       + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
 
   private SchemaRegistryUtil() {
@@ -39,10 +39,15 @@ public final class SchemaRegistryUtil {
 
   public static void cleanupInternalTopicSchemas(
       final String applicationId,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isPermanent
   ) {
     getInternalSubjectNames(applicationId, schemaRegistryClient)
-        .forEach(subject -> tryDeleteInternalSubject(applicationId, schemaRegistryClient, subject));
+        .forEach(subject -> tryDeleteInternalSubject(
+            applicationId,
+            schemaRegistryClient,
+            subject,
+            isPermanent));
   }
 
   public static Stream<String> getSubjectNames(final SchemaRegistryClient schemaRegistryClient) {
@@ -67,6 +72,13 @@ public final class SchemaRegistryUtil {
     ExecutorUtil.executeWithRetries(() -> schemaRegistryClient.deleteSubject(subject), ALWAYS);
   }
 
+  private static void hardDeleteSubjectWithRetries(
+      final SchemaRegistryClient schemaRegistryClient,
+      final String subject) throws Exception {
+    ExecutorUtil.executeWithRetries(
+        () -> schemaRegistryClient.deleteSubject(subject, true), ALWAYS);
+  }
+
   private static Stream<String> getInternalSubjectNames(
       final String applicationId,
       final SchemaRegistryClient schemaRegistryClient
@@ -83,10 +95,14 @@ public final class SchemaRegistryUtil {
   private static void tryDeleteInternalSubject(
       final String applicationId,
       final SchemaRegistryClient schemaRegistryClient,
-      final String subjectName
+      final String subjectName,
+      final boolean isPermanent
   ) {
     try {
       deleteSubjectWithRetries(schemaRegistryClient, subjectName);
+      if (isPermanent) {
+        hardDeleteSubjectWithRetries(schemaRegistryClient, subjectName);
+      }
     } catch (final Exception e) {
       LOG.warn("Could not clean up the schema registry for"
           + " query: " + applicationId

@@ -36,13 +36,17 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -58,6 +62,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -69,6 +74,8 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -727,6 +734,35 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldHardDeleteSchemaOnEngineCloseForTransientQueries() throws IOException, RestClientException {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        "select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    final String internalTopic1 = query.getQueryApplicationId() + "-subject1" + SchemaRegistryUtil.CHANGE_LOG_SUFFIX;
+    final String internalTopic2 = query.getQueryApplicationId() + "-subject3" + SchemaRegistryUtil.REPARTITION_SUFFIX;
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(
+        Arrays.asList(
+            internalTopic1,
+            "subject2",
+            internalTopic2));
+
+    query.start();
+
+    // When:
+    query.close();
+
+    // Then:
+    verify(schemaRegistryClient, times(2)).deleteSubject(any());
+    verify(schemaRegistryClient).deleteSubject(internalTopic1, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2, true);
+    verify(schemaRegistryClient, never()).deleteSubject("subject2");
+  }
+
+  @Test
   public void shouldNotCleanUpInternalTopicsOnEngineCloseForPersistentQueries() {
     // Given:
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
@@ -762,6 +798,34 @@ public class KsqlEngineTest {
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldNotHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
+    // Given:
+    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream persistent as select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    final String applicationId = query.get(0).getQueryApplicationId();
+    final String internalTopic1 =  applicationId + "-subject1" + SchemaRegistryUtil.CHANGE_LOG_SUFFIX;
+    final String internalTopic2 = applicationId + "-subject3" + SchemaRegistryUtil.REPARTITION_SUFFIX;
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(
+        Arrays.asList(
+            internalTopic1,
+            "subject2",
+            internalTopic2));
+    query.get(0).start();
+
+    // When:
+    query.get(0).close();
+
+    // Then:
+    verify(schemaRegistryClient, times(2)).deleteSubject(any());
+    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1, true);
+    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2, true);
   }
 
   @Test

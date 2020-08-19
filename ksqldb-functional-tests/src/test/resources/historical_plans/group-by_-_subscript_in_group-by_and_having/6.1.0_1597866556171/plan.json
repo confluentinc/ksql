@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (ID INTEGER KEY, COL1 STRING, COL2 STRING, COL3 STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');",
+    "statementText" : "CREATE STREAM INPUT (ID INTEGER KEY, COL1 MAP<STRING, STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
-      "schema" : "`ID` INTEGER KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING",
+      "schema" : "`ID` INTEGER KEY, `COL1` MAP<STRING, STRING>",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -19,11 +19,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE OUTPUT AS SELECT\n  INITCAP(INPUT.COL1) G1,\n  INPUT.COL2 G2,\n  TRIM(INPUT.COL3) G3,\n  CONCAT(INITCAP(INPUT.COL1), INPUT.COL2, TRIM(INPUT.COL3)) FOO,\n  COUNT(*) KSQL_COL_0\nFROM INPUT INPUT\nGROUP BY INITCAP(INPUT.COL1), INPUT.COL2, TRIM(INPUT.COL3)\nEMIT CHANGES",
+    "statementText" : "CREATE TABLE OUTPUT AS SELECT\n  INPUT.COL1['foo'] NEW_KEY,\n  COUNT(*) COUNT\nFROM INPUT INPUT\nGROUP BY INPUT.COL1['foo']\nHAVING (INPUT.COL1['foo'] = 'lala')\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createTableV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`KSQL_COL_1` STRING KEY, `FOO` STRING, `KSQL_COL_0` BIGINT",
+      "schema" : "`NEW_KEY` STRING KEY, `COUNT` BIGINT",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -49,38 +49,53 @@
             "queryContext" : "Aggregate/Project"
           },
           "source" : {
-            "@type" : "streamAggregateV1",
+            "@type" : "tableFilterV1",
             "properties" : {
-              "queryContext" : "Aggregate/Aggregate"
+              "queryContext" : "Aggregate/HavingFilter"
             },
             "source" : {
-              "@type" : "streamGroupByV1",
+              "@type" : "streamAggregateV1",
               "properties" : {
-                "queryContext" : "Aggregate/GroupBy"
+                "queryContext" : "Aggregate/Aggregate"
               },
               "source" : {
-                "@type" : "streamSelectV1",
+                "@type" : "streamGroupByV1",
                 "properties" : {
-                  "queryContext" : "Aggregate/Prepare"
+                  "queryContext" : "Aggregate/GroupBy"
                 },
                 "source" : {
-                  "@type" : "streamSourceV1",
+                  "@type" : "streamSelectV1",
                   "properties" : {
-                    "queryContext" : "KsqlTopic/Source"
+                    "queryContext" : "Aggregate/Prepare"
                   },
-                  "topicName" : "test_topic",
-                  "formats" : {
-                    "keyFormat" : {
-                      "format" : "KAFKA"
+                  "source" : {
+                    "@type" : "streamSourceV1",
+                    "properties" : {
+                      "queryContext" : "KsqlTopic/Source"
                     },
-                    "valueFormat" : {
-                      "format" : "JSON"
-                    }
+                    "topicName" : "test_topic",
+                    "formats" : {
+                      "keyFormat" : {
+                        "format" : "KAFKA"
+                      },
+                      "valueFormat" : {
+                        "format" : "JSON"
+                      }
+                    },
+                    "sourceSchema" : "`ID` INTEGER KEY, `COL1` MAP<STRING, STRING>"
                   },
-                  "sourceSchema" : "`ID` INTEGER KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING"
+                  "keyColumnNames" : [ "ID" ],
+                  "selectExpressions" : [ "COL1 AS COL1", "ROWTIME AS ROWTIME" ]
                 },
-                "keyColumnNames" : [ "ID" ],
-                "selectExpressions" : [ "COL1 AS COL1", "COL2 AS COL2", "COL3 AS COL3", "ROWTIME AS ROWTIME" ]
+                "internalFormats" : {
+                  "keyFormat" : {
+                    "format" : "KAFKA"
+                  },
+                  "valueFormat" : {
+                    "format" : "JSON"
+                  }
+                },
+                "groupByExpressions" : [ "COL1['foo']" ]
               },
               "internalFormats" : {
                 "keyFormat" : {
@@ -90,21 +105,13 @@
                   "format" : "JSON"
                 }
               },
-              "groupByExpressions" : [ "INITCAP(COL1)", "COL2", "TRIM(COL3)" ]
+              "nonAggregateColumns" : [ "COL1", "ROWTIME" ],
+              "aggregationFunctions" : [ "COUNT(ROWTIME)" ]
             },
-            "internalFormats" : {
-              "keyFormat" : {
-                "format" : "KAFKA"
-              },
-              "valueFormat" : {
-                "format" : "JSON"
-              }
-            },
-            "nonAggregateColumns" : [ "COL1", "COL2", "COL3", "ROWTIME" ],
-            "aggregationFunctions" : [ "COUNT(ROWTIME)" ]
+            "filterExpression" : "(COL1['foo'] = 'lala')"
           },
-          "keyColumnNames" : [ "KSQL_COL_1" ],
-          "selectExpressions" : [ "CONCAT(INITCAP(COL1), COL2, TRIM(COL3)) AS FOO", "KSQL_AGG_VARIABLE_0 AS KSQL_COL_0" ]
+          "keyColumnNames" : [ "NEW_KEY" ],
+          "selectExpressions" : [ "KSQL_AGG_VARIABLE_0 AS COUNT" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -125,6 +132,7 @@
     "ksql.security.extension.class" : null,
     "metric.reporters" : "",
     "ksql.transient.prefix" : "transient_",
+    "ksql.query.status.running.threshold.seconds" : "300",
     "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
     "ksql.output.topic.name.prefix" : "",
     "ksql.query.pull.enable.standby.reads" : "false",

@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (ID INTEGER KEY, COL1 INTEGER, COL2 INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');",
+    "statementText" : "CREATE STREAM INPUT (ID INTEGER KEY, COL1 MAP<STRING, STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
-      "schema" : "`ID` INTEGER KEY, `COL1` INTEGER, `COL2` INTEGER",
+      "schema" : "`ID` INTEGER KEY, `COL1` MAP<STRING, STRING>",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -19,11 +19,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE OUTPUT AS SELECT\n  (INPUT.COL1 + INPUT.COL2) G1,\n  AS_VALUE((INPUT.COL1 + INPUT.COL2)) KSQL_COL_0,\n  COUNT(*) KSQL_COL_1\nFROM INPUT INPUT\nGROUP BY (INPUT.COL1 + INPUT.COL2)\nEMIT CHANGES",
+    "statementText" : "CREATE TABLE OUTPUT AS SELECT\n  INPUT.COL1['foo'] NEW_KEY,\n  COUNT(*) COUNT\nFROM INPUT INPUT\nGROUP BY INPUT.COL1['foo']\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createTableV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`G1` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
+      "schema" : "`NEW_KEY` STRING KEY, `COUNT` BIGINT",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -77,10 +77,10 @@
                       "format" : "JSON"
                     }
                   },
-                  "sourceSchema" : "`ID` INTEGER KEY, `COL1` INTEGER, `COL2` INTEGER"
+                  "sourceSchema" : "`ID` INTEGER KEY, `COL1` MAP<STRING, STRING>"
                 },
                 "keyColumnNames" : [ "ID" ],
-                "selectExpressions" : [ "COL1 AS COL1", "COL2 AS COL2", "ROWTIME AS ROWTIME" ]
+                "selectExpressions" : [ "COL1 AS COL1", "ROWTIME AS ROWTIME" ]
               },
               "internalFormats" : {
                 "keyFormat" : {
@@ -90,7 +90,7 @@
                   "format" : "JSON"
                 }
               },
-              "groupByExpressions" : [ "(COL1 + COL2)" ]
+              "groupByExpressions" : [ "COL1['foo']" ]
             },
             "internalFormats" : {
               "keyFormat" : {
@@ -100,11 +100,11 @@
                 "format" : "JSON"
               }
             },
-            "nonAggregateColumns" : [ "COL1", "COL2", "ROWTIME" ],
+            "nonAggregateColumns" : [ "COL1", "ROWTIME" ],
             "aggregationFunctions" : [ "COUNT(ROWTIME)" ]
           },
-          "keyColumnNames" : [ "G1" ],
-          "selectExpressions" : [ "AS_VALUE((COL1 + COL2)) AS KSQL_COL_0", "KSQL_AGG_VARIABLE_0 AS KSQL_COL_1" ]
+          "keyColumnNames" : [ "NEW_KEY" ],
+          "selectExpressions" : [ "KSQL_AGG_VARIABLE_0 AS COUNT" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -125,6 +125,7 @@
     "ksql.security.extension.class" : null,
     "metric.reporters" : "",
     "ksql.transient.prefix" : "transient_",
+    "ksql.query.status.running.threshold.seconds" : "300",
     "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
     "ksql.output.topic.name.prefix" : "",
     "ksql.query.pull.enable.standby.reads" : "false",

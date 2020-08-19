@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.util.Pair;
 import java.util.Objects;
 import java.util.Optional;
@@ -159,8 +160,10 @@ public class DataGenProducer {
   private Serializer<Struct> getKeySerializer(
       final ConnectSchema keySchema
   ) {
-    final PersistenceSchema schema = PersistenceSchema
-        .from(keySchema, keySerializerFactory.format().supportsWrapping());
+    final PersistenceSchema schema = PersistenceSchema.from(
+        keySchema,
+        keySerializerFactory.format().supportedFeatures().contains(SerdeFeature.UNWRAP_SINGLES)
+    );
 
     return keySerializerFactory.create(schema);
   }

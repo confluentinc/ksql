@@ -205,8 +205,8 @@ public class LogicalPlanner {
     return SerdeOptions.buildForCreateAsStatement(
         columnNames,
         valueFormat,
-        analysis.getProperties().getWrapSingleValues(),
-        intoDataSource.getDefaultSerdeOptions()
+        analysis.getProperties().getSerdeOptions(),
+        ksqlConfig
     );
   }
 

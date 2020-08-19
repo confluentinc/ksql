@@ -15,11 +15,17 @@
 
 package io.confluent.ksql.serde.kafka;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
+import java.util.Set;
 
 public class KafkaFormat implements Format {
+
+  private static final Set<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+  );
 
   public static final String NAME = "KAFKA";
 
@@ -29,8 +35,8 @@ public class KafkaFormat implements Format {
   }
 
   @Override
-  public boolean supportsWrapping() {
-    return false;
+  public Set<SerdeFeature> supportedFeatures() {
+    return SUPPORTED_FEATURES;
   }
 
   @Override

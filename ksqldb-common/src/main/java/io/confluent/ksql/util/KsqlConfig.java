@@ -594,7 +594,7 @@ public class KsqlConfig extends AbstractConfig {
         ).define(
             KSQL_WRAP_SINGLE_VALUES,
             ConfigDef.Type.BOOLEAN,
-            true,
+            null,
             ConfigDef.Importance.LOW,
             "Controls how KSQL will serialize a value whose schema contains only a "
                 + "single column. The setting only sets the default for `CREATE STREAM`, "

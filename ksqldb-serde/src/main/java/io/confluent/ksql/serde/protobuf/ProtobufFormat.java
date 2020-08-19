@@ -16,16 +16,23 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
+import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
 
 public class ProtobufFormat extends ConnectFormat {
+
+  private static final Set<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.WRAP_SINGLES
+  );
 
   public static final String NAME = ProtobufSchema.TYPE;
 
@@ -35,6 +42,11 @@ public class ProtobufFormat extends ConnectFormat {
   @Override
   public String name() {
     return NAME;
+  }
+
+  @Override
+  public Set<SerdeFeature> supportedFeatures() {
+    return SUPPORTED_FEATURES;
   }
 
   @Override

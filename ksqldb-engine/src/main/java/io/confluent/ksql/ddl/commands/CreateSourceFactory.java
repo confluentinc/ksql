@@ -93,7 +93,7 @@ public final class CreateSourceFactory {
     final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
         schema,
         topic.getValueFormat().getFormat(),
-        statement.getProperties().getWrapSingleValues(),
+        statement.getProperties().getSerdeOptions(),
         ksqlConfig
     );
 
@@ -139,10 +139,11 @@ public final class CreateSourceFactory {
         statement.getProperties(),
         schema
     );
+
     final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
         schema,
         topic.getValueFormat().getFormat(),
-        statement.getProperties().getWrapSingleValues(),
+        statement.getProperties().getSerdeOptions(),
         ksqlConfig
     );
 
@@ -230,7 +231,7 @@ public final class CreateSourceFactory {
     Set<SerdeOption> build(
         LogicalSchema schema,
         Format valueFormat,
-        Optional<Boolean> wrapSingleValues,
+        Set<SerdeOption> explicitOptions,
         KsqlConfig ksqlConfig
     );
   }

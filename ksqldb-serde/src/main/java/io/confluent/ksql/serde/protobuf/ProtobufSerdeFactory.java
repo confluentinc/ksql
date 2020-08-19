@@ -18,7 +18,6 @@ package io.confluent.ksql.serde.protobuf;
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.connect.protobuf.ProtobufConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
@@ -42,12 +41,6 @@ public class ProtobufSerdeFactory implements KsqlSerdeFactory {
 
   @Override
   public void validate(final PersistenceSchema schema) {
-    if (schema.isUnwrapped()) {
-      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE
-          + "' can not be set to 'false' for '" + ProtobufFormat.NAME
-          + "' as it does not support unwrapping");
-    }
-
     SchemaWalker.visit(schema.serializedSchema(), new SchemaValidator());
   }
 

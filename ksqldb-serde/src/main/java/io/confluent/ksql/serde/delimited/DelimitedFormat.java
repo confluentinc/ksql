@@ -20,10 +20,14 @@ import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import java.util.Optional;
 import java.util.Set;
 
 public final class DelimitedFormat implements Format {
+
+  private static final Set<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+  );
 
   public static final String DELIMITER = "delimiter";
   public static final String NAME = "DELIMITED";
@@ -34,8 +38,8 @@ public final class DelimitedFormat implements Format {
   }
 
   @Override
-  public boolean supportsWrapping() {
-    return false;
+  public Set<SerdeFeature> supportedFeatures() {
+    return SUPPORTED_FEATURES;
   }
 
   @Override

@@ -3,8 +3,14 @@
   "timestamp" : 1581572092561,
   "path" : "query-validation-tests/identifiers.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO INT, BAR INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "aliased source with AS",
@@ -36,7 +42,7 @@
     "statements" : [ "CREATE STREAM INPUT (FOO INTEGER, BAR INTEGER) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  I.FOO FOO,\n  I.BAR BAR\nFROM INPUT I\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
@@ -44,7 +50,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {

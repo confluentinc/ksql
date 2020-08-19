@@ -3,8 +3,14 @@
   "timestamp" : 1588893935409,
   "path" : "query-validation-tests/key-field.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ALIASED INT, BAR INT> NOT NULL"
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` INTEGER KEY, `ALIASED` INTEGER, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table | initially set | no key change | key in value | aliasing",
@@ -36,17 +42,17 @@
     "statements" : [ "CREATE TABLE INPUT (K INT PRIMARY KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT K, foo AS aliased, bar FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "TABLE",
-        "schema" : "`K` INTEGER KEY, `ALIASED` INTEGER, `BAR` INTEGER",
+        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "schema" : "`K` INTEGER KEY, `ALIASED` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

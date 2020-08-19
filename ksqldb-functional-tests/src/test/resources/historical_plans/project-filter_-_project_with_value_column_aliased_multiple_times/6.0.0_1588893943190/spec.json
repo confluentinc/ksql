@@ -3,8 +3,14 @@
   "timestamp" : 1588893943190,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<NAME VARCHAR, NAME2 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING, `NAME2` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "project with value column aliased multiple times",
@@ -35,17 +41,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT ID, name, name as name2 FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `NAME2` STRING",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `NAME` STRING",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `NAME2` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

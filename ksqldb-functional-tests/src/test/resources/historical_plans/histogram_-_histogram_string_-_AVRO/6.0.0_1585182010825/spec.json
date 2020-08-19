@@ -3,10 +3,22 @@
   "timestamp" : 1585182010825,
   "path" : "query-validation-tests/histogram.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE VARCHAR> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE VARCHAR> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE VARCHAR, KSQL_AGG_VARIABLE_0 MAP<VARCHAR, BIGINT>> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, COUNTS MAP<VARCHAR, BIGINT>> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` STRING, `KSQL_AGG_VARIABLE_0` MAP<STRING, BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COUNTS` MAP<STRING, BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "histogram string - AVRO",
@@ -122,17 +134,17 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE STRING) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='AVRO');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  HISTOGRAM(TEST.VALUE) COUNTS\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COUNTS` MAP<STRING, BIGINT>",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` STRING",
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COUNTS` MAP<STRING, BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

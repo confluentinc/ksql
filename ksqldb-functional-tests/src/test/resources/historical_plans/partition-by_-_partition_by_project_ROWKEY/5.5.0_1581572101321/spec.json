@@ -3,8 +3,14 @@
   "timestamp" : 1581572101321,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<OLDKEY VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `OLDKEY` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "partition by project ROWKEY",
@@ -34,17 +40,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT INPUT.ROWKEY OLDKEY\nFROM INPUT INPUT\nPARTITION BY INPUT.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `OLDKEY` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `OLDKEY` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

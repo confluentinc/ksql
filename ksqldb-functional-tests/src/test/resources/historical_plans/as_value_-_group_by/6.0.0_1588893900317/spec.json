@@ -3,10 +3,22 @@
   "timestamp" : 1588893900317,
   "path" : "query-validation-tests/as_value.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID INT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID INT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `ID` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `ID` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_0` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "group by",
@@ -37,17 +49,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT AS_VALUE(ID) AS K, COUNT(1) FROM INPUT GROUP BY AS_VALUE(ID);" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`K` INTEGER KEY, `KSQL_COL_0` BIGINT",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`K` INTEGER KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

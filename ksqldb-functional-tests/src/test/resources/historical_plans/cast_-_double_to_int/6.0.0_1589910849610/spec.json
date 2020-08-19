@@ -3,8 +3,14 @@
   "timestamp" : 1589910849610,
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
-    "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<COL0 DOUBLE, COL1 DOUBLE> NOT NULL",
-    "CSAS_OUT_0.OUT" : "STRUCT<VAL INT> NOT NULL"
+    "CSAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL0` DOUBLE, `COL1` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUT_0.OUT" : {
+      "schema" : "`ID` STRING KEY, `VAL` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "double to int",
@@ -51,17 +57,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col0 DOUBLE, col1 DOUBLE) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS INT) as VAL FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `VAL` INTEGER",
+        "schema" : "`ID` STRING KEY, `COL0` DOUBLE, `COL1` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `COL0` DOUBLE, `COL1` DOUBLE",
+        "schema" : "`ID` STRING KEY, `VAL` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

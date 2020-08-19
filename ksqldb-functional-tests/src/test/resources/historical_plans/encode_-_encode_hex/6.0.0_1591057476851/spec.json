@@ -3,8 +3,14 @@
   "timestamp" : 1591057476851,
   "path" : "query-validation-tests/encode.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT_STRING VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ASCII VARCHAR, UTF8 VARCHAR, BASE64 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `INPUT_STRING` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `ASCII` STRING, `UTF8` STRING, `BASE64` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "encode hex",

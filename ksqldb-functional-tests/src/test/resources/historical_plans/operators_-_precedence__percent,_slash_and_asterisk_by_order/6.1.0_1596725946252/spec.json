@@ -3,8 +3,14 @@
   "timestamp" : 1596725946252,
   "path" : "query-validation-tests/operators.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<VAL INT, VAL2 INT, VAL3 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`IGNORED` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`VAL` INTEGER, `VAL2` INTEGER, `VAL3` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "precedence: percent, slash and asterisk by order",
@@ -34,17 +40,17 @@
     "statements" : [ "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT 6 % 4 / 2 * 6 AS VAL, 6 / 2 % 2 * 2 AS VAL2, 2 * 3 % 4 AS VAL3 FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`VAL` INTEGER, `VAL2` INTEGER, `VAL3` INTEGER",
+        "schema" : "`IGNORED` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`IGNORED` INTEGER",
+        "schema" : "`VAL` INTEGER, `VAL2` INTEGER, `VAL3` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

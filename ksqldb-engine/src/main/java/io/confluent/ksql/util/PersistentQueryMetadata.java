@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -133,8 +132,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkDataSource.getName();
   }
 
-  public Map<String, String> getSchemasDescription() {
-    return schemas.getSchemasDescription();
+  public Map<String, PhysicalSchema> getSchemas() {
+    return schemas.getSchemas();
   }
 
   public PhysicalSchema getPhysicalSchema() {

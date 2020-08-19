@@ -3,14 +3,38 @@
   "timestamp" : 1588893938152,
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : "STRUCT<V0 BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : "STRUCT<V0 BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.L_Join.Left" : "STRUCT<S1_V0 BIGINT, S1_ROWTIME BIGINT, S1_ID INT> NOT NULL",
-    "CSAS_OUTPUT_0.L_Join.Right" : "STRUCT<S2_V0 BIGINT, S2_ROWTIME BIGINT, S2_ID INT, S2_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<V0 BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S1_V0 BIGINT, S1_ROWTIME BIGINT, S1_ID INT, S2_V0 BIGINT, S2_ROWTIME BIGINT, S2_ID INT, S2_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<S3_V0 BIGINT, S3_ROWTIME BIGINT, S3_ID INT, S3_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1_V0 BIGINT, S2_V0 BIGINT, S3_V0 BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.L_Join.Left" : {
+      "schema" : "`ID` INTEGER KEY, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.L_Join.Right" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `S2_V0` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S2_V0` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S2_V0` BIGINT, `S3_V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `S3_V0` BIGINT, `S3_ROWTIME` BIGINT, `S3_ID` INTEGER, `S3_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "only viable in projection",
@@ -66,17 +90,17 @@
     "statements" : [ "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');", "CREATE STREAM S2 (ID INT KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');", "CREATE STREAM S3 (ID INT KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT S1.ID, s1.V0, s2.V0, s3.V0 FROM S1 JOIN S2 WITHIN 10 seconds ON S1.ID = abs(S2.ID) JOIN S3 WITHIN 10 seconds ON abs(S2.ID) = abs(S3.ID);" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "S3",
         "type" : "STREAM",
-        "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S2_V0` BIGINT, `S3_V0` BIGINT",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S2",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S2_V0` BIGINT, `S3_V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -90,7 +114,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S3",
+        "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {

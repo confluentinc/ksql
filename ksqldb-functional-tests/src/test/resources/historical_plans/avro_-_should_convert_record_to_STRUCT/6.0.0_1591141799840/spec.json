@@ -3,8 +3,14 @@
   "timestamp" : 1591141799840,
   "path" : "query-validation-tests/avro.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 STRUCT<F1 INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 STRUCT<F1 INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`C1` STRUCT<`F1` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`C1` STRUCT<`F1` INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should convert record to STRUCT",
@@ -54,7 +60,7 @@
     "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`C1` STRUCT<`F1` INTEGER>",
         "keyFormat" : {
@@ -62,7 +68,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`C1` STRUCT<`F1` INTEGER>",
         "keyFormat" : {

@@ -3,8 +3,14 @@
   "timestamp" : 1594164309836,
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
-    "CTAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CTAS_TS_0.TS" : "STRUCT<SINK_TS BIGINT, ID BIGINT> NOT NULL"
+    "CTAS_TS_0.TS" : {
+      "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "override output timestamp for CTAS",
@@ -59,17 +65,17 @@
     "statements" : [ "CREATE TABLE TEST (K STRING PRIMARY KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE TS WITH (timestamp='sink_ts') AS SELECT K, id as sink_ts, id FROM test;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TS",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TS",
         "type" : "TABLE",
-        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -3,10 +3,22 @@
   "timestamp" : 1585182020881,
   "path" : "query-validation-tests/min-group-by.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 2), KSQL_AGG_VARIABLE_0 DECIMAL(4, 2)> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, MIN DECIMAL(4, 2)> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MIN` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "min decimal group by",
@@ -177,17 +189,17 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE DECIMAL(4, 2)) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='AVRO');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  MIN(TEST.VALUE) MIN\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MIN` DECIMAL(4, 2)",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MIN` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
         },

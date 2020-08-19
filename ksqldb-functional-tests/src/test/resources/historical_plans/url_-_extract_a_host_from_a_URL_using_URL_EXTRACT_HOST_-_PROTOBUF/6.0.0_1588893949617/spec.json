@@ -3,8 +3,14 @@
   "timestamp" : 1588893949617,
   "path" : "query-validation-tests/url.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<HOST VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `HOST` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "extract a host from a URL using URL_EXTRACT_HOST - PROTOBUF",

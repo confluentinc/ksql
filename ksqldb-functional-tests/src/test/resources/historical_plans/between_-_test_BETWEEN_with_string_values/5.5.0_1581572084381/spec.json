@@ -3,8 +3,14 @@
   "timestamp" : 1581572084381,
   "path" : "query-validation-tests/between.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SOURCE VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<THING VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `THING` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "test BETWEEN with string values",

@@ -3,8 +3,14 @@
   "timestamp" : 1581572100753,
   "path" : "query-validation-tests/math.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<I INT, L BIGINT, D DOUBLE> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I DOUBLE, L DOUBLE, D DOUBLE> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "exp",
@@ -86,17 +92,17 @@
     "statements" : [ "CREATE STREAM INPUT (I INTEGER, L BIGINT, D DOUBLE) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  EXP(INPUT.I) I,\n  EXP(INPUT.L) L,\n  EXP(INPUT.D) D\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+        "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE",
+        "schema" : "`ROWKEY` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

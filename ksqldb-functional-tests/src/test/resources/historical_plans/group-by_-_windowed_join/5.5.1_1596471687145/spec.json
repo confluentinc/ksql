@@ -3,12 +3,30 @@
   "timestamp" : 1596471687145,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
-    "CTAS_TEST_0.KafkaTopic_Right.Source" : "STRUCT<ID VARCHAR, REGIONID VARCHAR> NOT NULL",
-    "CTAS_TEST_0.KafkaTopic_Left.Source" : "STRUCT<ID VARCHAR> NOT NULL",
-    "CTAS_TEST_0.Join.Left" : "STRUCT<B_ID VARCHAR, B_ROWTIME BIGINT, B_ROWKEY VARCHAR> NOT NULL",
-    "CTAS_TEST_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL",
-    "CTAS_TEST_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 VARCHAR, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT, KSQL_AGG_VARIABLE_1 BIGINT> NOT NULL",
-    "CTAS_TEST_0.TEST" : "STRUCT<A_ID VARCHAR, COUNT BIGINT> NOT NULL"
+    "CTAS_TEST_0.Join.Left" : {
+      "schema" : "`ROWKEY` STRING KEY, `B_ID` STRING, `B_ROWTIME` BIGINT, `B_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_TEST_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_TEST_0.TEST" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `A_ID` STRING, `COUNT` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_TEST_0.Aggregate.GroupBy" : {
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_TEST_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `REGIONID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_TEST_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "windowed join",

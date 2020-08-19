@@ -3,10 +3,22 @@
   "timestamp" : 1589910893348,
   "path" : "query-validation-tests/test-custom-udaf.json",
   "schemas" : {
-    "CTAS_RESULT_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR, VAL STRUCT<A INT, B INT>> NOT NULL",
-    "CTAS_RESULT_0.Aggregate.GroupBy" : "STRUCT<ID VARCHAR, VAL STRUCT<A INT, B INT>> NOT NULL",
-    "CTAS_RESULT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID VARCHAR, VAL STRUCT<A INT, B INT>, KSQL_AGG_VARIABLE_0 STRUCT<A INT, B INT>> NOT NULL",
-    "CTAS_RESULT_0.RESULT" : "STRUCT<RESULT STRUCT<A INT, B INT>> NOT NULL"
+    "CTAS_RESULT_0.RESULT" : {
+      "schema" : "`ID` STRING KEY, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_RESULT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_RESULT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>, `KSQL_AGG_VARIABLE_0` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_RESULT_0.KsqlTopic.Source" : {
+      "schema" : "`K` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "test_udaf with struct",
@@ -81,17 +93,17 @@
     "statements" : [ "CREATE STREAM TEST (K BIGINT KEY, id VARCHAR, val STRUCT<A INT, B INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE RESULT AS SELECT ID, test_udaf(val) as result FROM TEST GROUP BY ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "RESULT",
-        "type" : "TABLE",
-        "schema" : "`ID` STRING KEY, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`K` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
+        "name" : "RESULT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

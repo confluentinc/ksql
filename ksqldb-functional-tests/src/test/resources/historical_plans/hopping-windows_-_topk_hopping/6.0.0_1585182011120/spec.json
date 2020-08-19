@@ -3,10 +3,22 @@
   "timestamp" : 1585182011120,
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE DOUBLE> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE DOUBLE, KSQL_INTERNAL_COL_2 INT> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE DOUBLE, KSQL_AGG_VARIABLE_0 ARRAY<DOUBLE>> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, TOPK ARRAY<DOUBLE>> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE, `KSQL_AGG_VARIABLE_0` ARRAY<DOUBLE>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOPK` ARRAY<DOUBLE>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE, `KSQL_INTERNAL_COL_2` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "topk hopping",
@@ -81,6 +93,14 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE DOUBLE) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  TOPK(TEST.VALUE, 2) TOPK\nFROM TEST TEST\nWINDOW HOPPING ( SIZE 30 SECONDS , ADVANCE BY 10 SECONDS ) \nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOPK` ARRAY<DOUBLE>",
@@ -88,14 +108,6 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
-        "keyFormat" : {
-          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

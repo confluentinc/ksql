@@ -3,8 +3,14 @@
   "timestamp" : 1589910845253,
   "path" : "query-validation-tests/as_value.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID_COPY INT, V1 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `ID_COPY` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "key column",
@@ -36,17 +42,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, V0 INT, V1 INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `ID_COPY` INTEGER, `V1` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `ID_COPY` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

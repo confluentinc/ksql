@@ -3,8 +3,14 @@
   "timestamp" : 1589910888698,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<C1 BIGINT, C2 INT> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<C1 BIGINT, C2 INT> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Filter on IS DISTINCT FROM",
@@ -62,7 +68,7 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');", "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS DISTINCT FROM c2;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER",
         "keyFormat" : {
@@ -70,7 +76,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S1",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER",
         "keyFormat" : {

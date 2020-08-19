@@ -3,8 +3,14 @@
   "timestamp" : 1582752383729,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 BOOLEAN> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 BOOLEAN> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `V0` BOOLEAN",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `V0` BOOLEAN",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "validate boolean elements OK - JSON_SR",
@@ -48,7 +54,7 @@
     "statements" : [ "CREATE STREAM INPUT (V0 BOOLEAN) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON_SR');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` BOOLEAN",
         "keyFormat" : {
@@ -56,7 +62,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` BOOLEAN",
         "keyFormat" : {

@@ -3,8 +3,14 @@
   "timestamp" : 1596716177940,
   "path" : "query-validation-tests/replace.json",
   "schemas" : {
-    "CSAS_JSONIFIED_0.KsqlTopic.Source" : "STRUCT<MESSAGE VARCHAR> NOT NULL",
-    "CSAS_JSONIFIED_0.JSONIFIED" : "STRUCT<KSQL_COL_0 VARCHAR> NOT NULL"
+    "CSAS_JSONIFIED_0.JSONIFIED" : {
+      "schema" : "`KSQL_COL_0` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_JSONIFIED_0.KsqlTopic.Source" : {
+      "schema" : "`MESSAGE` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Extract escaped JSON",

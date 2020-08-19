@@ -3,8 +3,14 @@
   "timestamp" : 1588893936960,
   "path" : "query-validation-tests/map.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<A_MAP MAP<VARCHAR, INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `A_MAP` MAP<STRING, INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "string map",
@@ -37,17 +43,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, A_MAP MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, A_MAP['expected'], A_MAP['missing'] FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` INTEGER",
+        "schema" : "`ID` STRING KEY, `A_MAP` MAP<STRING, INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `A_MAP` MAP<STRING, INTEGER>",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

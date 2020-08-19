@@ -3,8 +3,14 @@
   "timestamp" : 1591141842059,
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 ARRAY<VARCHAR>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 ARRAY<VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`C1` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`C1` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should support arrays",
@@ -36,7 +42,7 @@
     "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`C1` ARRAY<STRING>",
         "keyFormat" : {
@@ -44,7 +50,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`C1` ARRAY<STRING>",
         "keyFormat" : {

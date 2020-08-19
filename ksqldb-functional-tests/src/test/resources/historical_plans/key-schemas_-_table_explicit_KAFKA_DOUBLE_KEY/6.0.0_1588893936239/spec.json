@@ -3,8 +3,14 @@
   "timestamp" : 1588893936239,
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, KEY DOUBLE> NOT NULL"
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` DOUBLE KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` DOUBLE KEY, `ID` BIGINT, `KEY` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table explicit KAFKA DOUBLE KEY",
@@ -61,17 +67,17 @@
     "statements" : [ "CREATE TABLE INPUT (K DOUBLE PRIMARY KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');", "CREATE TABLE OUTPUT as SELECT K, ID, AS_VALUE(K) as KEY FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "TABLE",
-        "schema" : "`K` DOUBLE KEY, `ID` BIGINT, `KEY` DOUBLE",
+        "schema" : "`K` DOUBLE KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`K` DOUBLE KEY, `ID` BIGINT",
+        "schema" : "`K` DOUBLE KEY, `ID` BIGINT, `KEY` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -3,8 +3,14 @@
   "timestamp" : 1581572104096,
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` BIGINT, `ID` BIGINT, `MY_ARR` ARRAY<BIGINT>, `BAR` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table function with no alias",

@@ -3,8 +3,14 @@
   "timestamp" : 1590180402882,
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
-    "CSAS_SESSION_STARTS_1.KsqlTopic.Source" : "STRUCT<COUNT BIGINT> NOT NULL",
-    "CSAS_SESSION_STARTS_1.SESSION_STARTS" : "STRUCT<COUNT BIGINT> NOT NULL"
+    "CSAS_SESSION_STARTS_1.KsqlTopic.Source" : {
+      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_SESSION_STARTS_1.SESSION_STARTS" : {
+      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "session start stream",
@@ -155,6 +161,14 @@
         },
         "serdeOptions" : [ ]
       }, {
+        "name" : "DATA",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `USER_ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "SESSIONS",
         "type" : "TABLE",
         "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
@@ -170,14 +184,6 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "DATA",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `USER_ID` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

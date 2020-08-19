@@ -3,8 +3,14 @@
   "timestamp" : 1581572092806,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
-    "InsertQuery_1.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
-    "InsertQuery_1.OUTPUT" : "STRUCT<DATA VARCHAR> NOT NULL"
+    "InsertQuery_1.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "serdeOptions" : [ ]
+    },
+    "InsertQuery_1.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "simple",
@@ -42,7 +48,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE2",
+        "name" : "SOURCE1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
@@ -50,7 +56,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE1",
+        "name" : "SOURCE2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {

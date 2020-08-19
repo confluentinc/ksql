@@ -3,8 +3,14 @@
   "timestamp" : 1589910888818,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<C1 BIGINT, C2 INT, C3 VARCHAR> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<C1 BIGINT, C2 INT, C3 VARCHAR> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "CSAS with custom Kafka topic name",
@@ -34,7 +40,7 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');", "CREATE STREAM S1 WITH (KAFKA_TOPIC='topic_s') AS SELECT * FROM TEST WHERE C1 = 4294967296;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
         "keyFormat" : {
@@ -42,7 +48,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S1",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
         "keyFormat" : {

@@ -3,8 +3,14 @@
   "timestamp" : 1582734341981,
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
-    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_TS_0.TS" : "STRUCT<SINK_TS BIGINT, ID BIGINT> NOT NULL"
+    "CSAS_TS_0.TS" : {
+      "schema" : "`ROWKEY` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "override output timestamp for CSAS",
@@ -59,17 +65,17 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM TS WITH (TIMESTAMP='sink_ts') AS SELECT\n  TEST.ID SINK_TS,\n  TEST.ID ID\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TS",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TS",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

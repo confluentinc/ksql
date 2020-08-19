@@ -3,8 +3,14 @@
   "timestamp" : 1589910887761,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_REPARTITIONED_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
-    "CSAS_REPARTITIONED_0.REPARTITIONED" : "STRUCT<ID BIGINT, VALUE BIGINT, K BIGINT> NOT NULL"
+    "CSAS_REPARTITIONED_0.KsqlTopic.Source" : {
+      "schema" : "`K` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_REPARTITIONED_0.REPARTITIONED" : {
+      "schema" : "`NAME` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `K` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "partition by with null value",
@@ -38,17 +44,17 @@
     "statements" : [ "CREATE STREAM TEST (K BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) with (kafka_topic='test_topic', value_format = 'delimited');", "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;" ],
     "post" : {
       "sources" : [ {
-        "name" : "REPARTITIONED",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`NAME` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `K` BIGINT",
+        "schema" : "`K` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "REPARTITIONED",
         "type" : "STREAM",
-        "schema" : "`K` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "schema" : "`NAME` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `K` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -15,19 +15,6 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Delimiter;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.KsqlException;
-import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
-
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.array;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.map;
@@ -35,6 +22,18 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.struct;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
+
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.Delimiter;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.Test;
 
 public class KsqlDelimitedSerdeFactoryTest {
 

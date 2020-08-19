@@ -3,8 +3,14 @@
   "timestamp" : 1581572100239,
   "path" : "query-validation-tests/key-field.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream | initially set | partition by expression | key in value | no aliasing",
@@ -35,17 +41,17 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY INTEGER KEY, FOO INTEGER, BAR INTEGER) WITH (KAFKA_TOPIC='input_topic', KEY='foo', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT (INPUT.FOO + INPUT.BAR) KSQL_COL_0\nFROM INPUT INPUT\nPARTITION BY (INPUT.FOO + INPUT.BAR)\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `KSQL_COL_0` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `KSQL_COL_0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -3,8 +3,14 @@
   "timestamp" : 1581572092523,
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE BIGINT, WSTART BIGINT, WEND BIGINT, KEY BIGINT> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "import hopping stream with non-STRING key",
@@ -142,9 +148,9 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_SIZE='30 seconds', WINDOW_TYPE='HoPping');", "CREATE STREAM S2 AS SELECT\n  *,\n  TEST.WINDOWSTART WSTART,\n  TEST.WINDOWEND WEND,\n  TEST.ROWKEY KEY\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "HOPPING",
@@ -152,9 +158,9 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "HOPPING",

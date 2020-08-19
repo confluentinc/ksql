@@ -3,8 +3,14 @@
   "timestamp" : 1589910859947,
   "path" : "query-validation-tests/extract-json-field.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ARRAY_FIELD ARRAY<VARCHAR>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COL1 VARCHAR, COL2 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ARRAY_FIELD` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `COL1` STRING, `COL2` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "extract JSON array field",

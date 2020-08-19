@@ -3,8 +3,14 @@
   "timestamp" : 1589910847064,
   "path" : "query-validation-tests/avro.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<EXPECTED INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<EXPECTED INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `EXPECTED` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `EXPECTED` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should filter out columns with unsupported types",
@@ -55,7 +61,7 @@
     "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `EXPECTED` INTEGER",
         "keyFormat" : {
@@ -63,7 +69,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `EXPECTED` INTEGER",
         "keyFormat" : {

@@ -3,10 +3,22 @@
   "timestamp" : 1585181998295,
   "path" : "query-validation-tests/average-udaf.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE DOUBLE> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<VALUE DOUBLE, ROWKEY VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<VALUE DOUBLE, ROWKEY VARCHAR, KSQL_AGG_VARIABLE_0 STRUCT<SUM DOUBLE, COUNT BIGINT>> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<AVG DOUBLE> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` DOUBLE, `ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` DOUBLE, `ROWKEY` STRING, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` DOUBLE, `COUNT` BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `AVG` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "average double",
@@ -108,17 +120,17 @@
     "statements" : [ "CREATE STREAM INPUT (VALUE DOUBLE) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT AVG(INPUT.VALUE) AVG\nFROM INPUT INPUT\nGROUP BY INPUT.ROWKEY\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `AVG` DOUBLE",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `VALUE` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `VALUE` DOUBLE",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `AVG` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

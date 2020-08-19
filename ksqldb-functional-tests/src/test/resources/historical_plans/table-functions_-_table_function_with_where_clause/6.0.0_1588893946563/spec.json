@@ -3,8 +3,14 @@
   "timestamp" : 1588893946563,
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT, F1 ARRAY<INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<F0 INT, VAL INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `F0` INTEGER, `F1` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `F0` INTEGER, `VAL` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table function with where clause",

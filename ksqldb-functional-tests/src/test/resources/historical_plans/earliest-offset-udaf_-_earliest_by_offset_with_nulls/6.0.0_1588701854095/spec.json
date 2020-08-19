@@ -3,10 +3,22 @@
   "timestamp" : 1588701854095,
   "path" : "query-validation-tests/earliest-offset-udaf.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, F0 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, F0 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, F0 INT, KSQL_AGG_VARIABLE_0 STRUCT<SEQ BIGINT, VAL INT>> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, L0 INT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_AGG_VARIABLE_0` STRUCT<`SEQ` BIGINT, `VAL` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `L0` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "earliest by offset with nulls",
@@ -52,17 +64,17 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY BIGINT KEY, ID BIGINT, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');", "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0 FROM INPUT GROUP BY ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `L0` INTEGER",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F0` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `L0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

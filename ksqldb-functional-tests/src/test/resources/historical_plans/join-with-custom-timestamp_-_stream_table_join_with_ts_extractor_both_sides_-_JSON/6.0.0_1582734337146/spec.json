@@ -3,10 +3,22 @@
   "timestamp" : 1582734337146,
   "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
-    "CSAS_S1_JOIN_T1_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 VARCHAR, RTS BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_T1_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_T1_0.Join.Left" : "STRUCT<S1_ID BIGINT, S1_NAME VARCHAR, S1_TS BIGINT, S1_ROWTIME BIGINT, S1_ROWKEY BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_T1_0.S1_JOIN_T1" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT, F1 VARCHAR, F2 VARCHAR> NOT NULL"
+    "CSAS_S1_JOIN_T1_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_T1_0.S1_JOIN_T1" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_T1_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S1_ID` BIGINT, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_T1_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream table join with ts extractor both sides - JSON",

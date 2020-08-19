@@ -3,8 +3,14 @@
   "timestamp" : 1581572105125,
   "path" : "query-validation-tests/url.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ENCODED VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `ENCODED` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "encode a url parameter using ENCODE_URL_PARAM - JSON",

@@ -3,11 +3,26 @@
   "timestamp" : 1589910859035,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<F0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<F0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<I1_F0 INT, I1_ROWTIME BIGINT, I1_K VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<I2_F0 INT, I2_ROWTIME BIGINT, I2_K VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I1_F0 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`K` STRING KEY, `F0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`I1_K` STRING KEY, `I1_F0` INTEGER, `I1_ROWTIME` BIGINT, `I1_K` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`I1_K` STRING KEY, `I1_F0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K` STRING KEY, `F0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`I2_K` STRING KEY, `I2_F0` INTEGER, `I2_ROWTIME` BIGINT, `I2_K` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "join qualified select star left",
@@ -58,7 +73,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT_2",
+        "name" : "INPUT_1",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `F0` INTEGER",
         "keyFormat" : {
@@ -66,7 +81,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT_1",
+        "name" : "INPUT_2",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `F0` INTEGER",
         "keyFormat" : {

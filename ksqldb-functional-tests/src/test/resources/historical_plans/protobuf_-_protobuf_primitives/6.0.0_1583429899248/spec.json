@@ -3,8 +3,14 @@
   "timestamp" : 1583429899248,
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<I INT, L BIGINT, D DOUBLE, B BOOLEAN, S VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I INT, L BIGINT, D DOUBLE, B BOOLEAN, S VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "protobuf primitives",
@@ -44,7 +50,7 @@
     "statements" : [ "CREATE STREAM INPUT (I INTEGER, L BIGINT, D DOUBLE, B BOOLEAN, S STRING) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
         "keyFormat" : {
@@ -52,7 +58,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
         "keyFormat" : {

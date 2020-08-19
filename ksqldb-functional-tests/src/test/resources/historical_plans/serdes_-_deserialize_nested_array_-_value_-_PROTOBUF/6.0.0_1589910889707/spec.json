@@ -3,8 +3,14 @@
   "timestamp" : 1589910889707,
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO ARRAY<VARCHAR>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO ARRAY<VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "deserialize nested array - value - PROTOBUF",
@@ -56,7 +62,7 @@
     "statements" : [ "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<STRING>",
         "keyFormat" : {
@@ -64,7 +70,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<STRING>",
         "keyFormat" : {

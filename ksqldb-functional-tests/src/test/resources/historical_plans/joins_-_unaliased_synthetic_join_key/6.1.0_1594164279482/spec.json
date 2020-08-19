@@ -3,9 +3,18 @@
   "timestamp" : 1594164279482,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
-    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<V0 INT, V1 INT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<L_ID INT, R_ID INT, L_V0 INT, R_V1 INT> NOT NULL"
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "unaliased synthetic join key",
@@ -63,6 +72,14 @@
     "statements" : [ "CREATE TABLE L (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT ROWKEY, L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R on L.id = R.id;" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER",
@@ -72,14 +89,6 @@
         "serdeOptions" : [ ]
       }, {
         "name" : "L",
-        "type" : "TABLE",
-        "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {

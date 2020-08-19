@@ -3,10 +3,22 @@
   "timestamp" : 1589910892515,
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE ARRAY<INT>> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID VARCHAR, VALUE ARRAY<INT>> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID VARCHAR, VALUE ARRAY<INT>, KSQL_AGG_VARIABLE_0 INT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<SUM_VAL INT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `VALUE` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<INTEGER>, `KSQL_AGG_VARIABLE_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `SUM_VAL` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "sum list of ints into a single int",
@@ -72,17 +84,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, VALUE ARRAY<integer>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT ID, sum_list(VALUE) AS sum_val FROM INPUT group by ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ID` STRING KEY, `SUM_VAL` INTEGER",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VALUE` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `VALUE` ARRAY<INTEGER>",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `SUM_VAL` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

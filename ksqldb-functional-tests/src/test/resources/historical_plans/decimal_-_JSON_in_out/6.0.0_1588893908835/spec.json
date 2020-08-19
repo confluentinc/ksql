@@ -3,8 +3,14 @@
   "timestamp" : 1588893908835,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
-    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(21, 19)> NOT NULL",
-    "CSAS_TEST2_0.TEST2" : "STRUCT<DEC DECIMAL(21, 19)> NOT NULL"
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "JSON in/out",

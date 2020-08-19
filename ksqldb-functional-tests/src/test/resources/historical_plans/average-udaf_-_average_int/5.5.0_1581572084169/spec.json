@@ -3,10 +3,22 @@
   "timestamp" : 1581572084169,
   "path" : "query-validation-tests/average-udaf.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 VARCHAR, KSQL_AGG_VARIABLE_0 STRUCT<SUM INT, COUNT BIGINT>> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<AVG DOUBLE> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` STRING KEY, `KSQL_INTERNAL_COL_0` INTEGER, `KSQL_INTERNAL_COL_1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` STRING KEY, `KSQL_INTERNAL_COL_0` INTEGER, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` INTEGER, `COUNT` BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `AVG` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "average int",
@@ -108,17 +120,17 @@
     "statements" : [ "CREATE STREAM INPUT (VALUE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT AVG(INPUT.VALUE) AVG\nFROM INPUT INPUT\nGROUP BY INPUT.ROWKEY\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `AVG` DOUBLE",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `VALUE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `VALUE` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `AVG` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

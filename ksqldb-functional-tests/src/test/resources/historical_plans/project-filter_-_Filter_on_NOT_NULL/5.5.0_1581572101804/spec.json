@@ -3,8 +3,14 @@
   "timestamp" : 1581572101804,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<C1 BIGINT, C2 INT, C3 VARCHAR> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<C1 BIGINT, C2 INT, C3 VARCHAR> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Filter on NOT NULL",
@@ -38,7 +44,7 @@
     "statements" : [ "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM S1 AS SELECT *\nFROM TEST TEST\nWHERE (TEST.C1 IS NOT NULL)\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
         "keyFormat" : {
@@ -46,7 +52,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
         "keyFormat" : {

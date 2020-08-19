@@ -3,8 +3,14 @@
   "timestamp" : 1581572102327,
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "VARCHAR",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "deserialize anonymous primitive - value - with coercion - JSON",
@@ -34,14 +40,6 @@
     "statements" : [ "CREATE STREAM INPUT (FOO STRING) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON', WRAP_SINGLE_VALUE=false);", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
@@ -49,6 +47,14 @@
           "format" : "KAFKA"
         },
         "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

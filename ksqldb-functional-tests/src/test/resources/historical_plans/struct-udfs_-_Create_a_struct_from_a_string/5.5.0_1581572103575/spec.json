@@ -3,8 +3,14 @@
   "timestamp" : 1581572103575,
   "path" : "query-validation-tests/struct-udfs.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<VALUE STRUCT<A VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` STRUCT<`A` STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Create a struct from a string",

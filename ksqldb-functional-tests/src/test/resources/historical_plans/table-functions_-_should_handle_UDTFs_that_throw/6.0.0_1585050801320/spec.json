@@ -3,8 +3,14 @@
   "timestamp" : 1585050801320,
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SHOULDTHROW BOOLEAN> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<SHOULDTHROW BOOLEAN, KSQL_COL_0 BOOLEAN> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_0` BOOLEAN",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should handle UDTFs that throw",

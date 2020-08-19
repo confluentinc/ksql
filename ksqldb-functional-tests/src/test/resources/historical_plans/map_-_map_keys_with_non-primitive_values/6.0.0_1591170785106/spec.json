@@ -1,10 +1,16 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591170785106,
-  "path" : "query-validation-tests\\map.json",
+  "path" : "query-validation-tests/map.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<A_MAP MAP<VARCHAR, ARRAY<INT>>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KEYS ARRAY<VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `A_MAP` MAP<STRING, ARRAY<INTEGER>>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KEYS` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "map_keys with non-primitive values",
@@ -76,9 +82,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (id STRING KEY, a_map MAP<STRING, ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_sort(map_keys(a_map)) as keys FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `A_MAP` MAP<STRING, ARRAY<INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KEYS` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -89,7 +112,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

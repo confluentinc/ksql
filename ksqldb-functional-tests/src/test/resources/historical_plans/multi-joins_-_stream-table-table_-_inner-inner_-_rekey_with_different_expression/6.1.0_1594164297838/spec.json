@@ -3,12 +3,30 @@
   "timestamp" : 1594164297838,
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<V0 BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : "STRUCT<V0 BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : "STRUCT<K INT, V0 BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.L_Join.Left" : "STRUCT<S1_K INT, S1_V0 BIGINT, S1_ROWTIME BIGINT, S1_ID INT, S1_KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S1_K INT, S1_V0 BIGINT, S1_ROWTIME BIGINT, S1_ID INT, S1_KSQL_COL_0 INT, T2_V0 BIGINT, T2_ROWTIME BIGINT, T2_ID INT, KSQL_COL_0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1_V0 BIGINT, T2_V0 BIGINT, T3_V0 BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.L_Join.Left" : {
+      "schema" : "`S1_KSQL_COL_0` INTEGER KEY, `S1_K` INTEGER, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `S1_K` INTEGER, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_KSQL_COL_0` INTEGER, `T2_V0` BIGINT, `T2_ROWTIME` BIGINT, `T2_ID` INTEGER, `KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`T3_ID` INTEGER KEY, `S1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `K` INTEGER, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream-table-table - inner-inner - rekey with different expression",
@@ -73,14 +91,6 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "T3",
-        "type" : "TABLE",
-        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "T2",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
@@ -92,6 +102,14 @@
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `K` INTEGER, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "T3",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

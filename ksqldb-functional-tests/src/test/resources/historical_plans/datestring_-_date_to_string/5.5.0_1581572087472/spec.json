@@ -3,8 +3,14 @@
   "timestamp" : 1581572087472,
   "path" : "query-validation-tests/datestring.json",
   "schemas" : {
-    "CSAS_DATE_STREAM_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, START_DATE INT, DATE_FORMAT VARCHAR> NOT NULL",
-    "CSAS_DATE_STREAM_0.DATE_STREAM" : "STRUCT<ID BIGINT, CUSTOM_FORMATTED_START_DATE VARCHAR> NOT NULL"
+    "CSAS_DATE_STREAM_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_DATE_STREAM_0.DATE_STREAM" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CUSTOM_FORMATTED_START_DATE` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "date to string",

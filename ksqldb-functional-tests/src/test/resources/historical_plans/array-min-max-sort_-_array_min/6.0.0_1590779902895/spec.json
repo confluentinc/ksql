@@ -1,10 +1,16 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1590779902895,
-  "path" : "query-validation-tests\\array-min-max-sort.json",
+  "path" : "query-validation-tests/array-min-max-sort.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<BOOL_ARRAY ARRAY<BOOLEAN>, INT_ARRAY ARRAY<INT>, BIGINT_ARRAY ARRAY<BIGINT>, DOUBLE_ARRAY ARRAY<DOUBLE>, STRING_ARRAY ARRAY<VARCHAR>, DECIMAL_ARRAY ARRAY<DECIMAL(2, 1)>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<BOOL_MIN BOOLEAN, INT_MIN INT, BIGINT_MIN BIGINT, DOUBLE_MIN DOUBLE, STRING_MIN VARCHAR, DECIMAL_MIN DECIMAL(2, 1)> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `BOOL_MIN` BOOLEAN, `INT_MIN` INTEGER, `BIGINT_MIN` BIGINT, `DOUBLE_MIN` DOUBLE, `STRING_MIN` STRING, `DECIMAL_MIN` DECIMAL(2, 1)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "array_min",
@@ -87,9 +93,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, bool_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, array_min(bool_array) as bool_min, array_min(int_array) as int_min, array_min(bigint_array) as bigint_min, array_min(double_array) as double_min, array_min(string_array) as string_min, array_min(decimal_array) as decimal_min FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOL_MIN` BOOLEAN, `INT_MIN` INTEGER, `BIGINT_MIN` BIGINT, `DOUBLE_MIN` DOUBLE, `STRING_MIN` STRING, `DECIMAL_MIN` DECIMAL(2, 1)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -100,7 +123,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

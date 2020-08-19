@@ -3,8 +3,14 @@
   "timestamp" : 1591141820194,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
-    "INSERTQUERY_1.KsqlTopic.Source" : "STRUCT<K VARCHAR, DATA VARCHAR> NOT NULL",
-    "INSERTQUERY_1.OUTPUT" : "STRUCT<K VARCHAR, DATA VARCHAR> NOT NULL"
+    "INSERTQUERY_1.OUTPUT" : {
+      "schema" : "`K` STRING, `DATA` STRING",
+      "serdeOptions" : [ ]
+    },
+    "INSERTQUERY_1.KsqlTopic.Source" : {
+      "schema" : "`K` STRING, `DATA` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "streams with no key columns",
@@ -62,7 +68,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE2",
+        "name" : "SOURCE1",
         "type" : "STREAM",
         "schema" : "`K` STRING, `DATA` STRING",
         "keyFormat" : {
@@ -70,7 +76,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE1",
+        "name" : "SOURCE2",
         "type" : "STREAM",
         "schema" : "`K` STRING, `DATA` STRING",
         "keyFormat" : {

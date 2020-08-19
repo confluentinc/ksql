@@ -3,8 +3,14 @@
   "timestamp" : 1581572104014,
   "path" : "query-validation-tests/table.json",
   "schemas" : {
-    "CTAS_T1_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CTAS_T1_0.T1" : "STRUCT<ID BIGINT> NOT NULL"
+    "CTAS_T1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_T1_0.T1" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should reuse source topic for change log by default",
@@ -30,7 +36,7 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE T1 AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "T1",
+        "name" : "TEST",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
@@ -38,7 +44,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "T1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {

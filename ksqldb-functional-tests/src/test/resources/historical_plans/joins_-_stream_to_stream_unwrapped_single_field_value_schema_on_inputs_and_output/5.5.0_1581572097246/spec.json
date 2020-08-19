@@ -3,11 +3,26 @@
   "timestamp" : 1581572097246,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "BIGINT",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "BIGINT",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S1_ID BIGINT, S1_ROWTIME BIGINT, S1_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<S2_ID BIGINT, S2_ROWTIME BIGINT, S2_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "BIGINT"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`ROWKEY` STRING KEY, `S1_ID` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`ROWKEY` STRING KEY, `S2_ID` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream to stream unwrapped single field value schema on inputs and output",
@@ -62,7 +77,7 @@
         },
         "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
       }, {
-        "name" : "S2",
+        "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
@@ -70,7 +85,7 @@
         },
         "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
       }, {
-        "name" : "S1",
+        "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {

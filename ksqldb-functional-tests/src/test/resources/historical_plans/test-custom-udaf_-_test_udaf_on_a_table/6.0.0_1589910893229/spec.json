@@ -3,10 +3,22 @@
   "timestamp" : 1589910893229,
   "path" : "query-validation-tests/test-custom-udaf.json",
   "schemas" : {
-    "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR, REGION VARCHAR> NOT NULL",
-    "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : "STRUCT<REGION VARCHAR, ID BIGINT> NOT NULL",
-    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Aggregate.Materialize" : "STRUCT<REGION VARCHAR, ID BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_SUM_ID_BY_REGION_0.SUM_ID_BY_REGION" : "STRUCT<KSQL_COL_0 BIGINT> NOT NULL"
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : {
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_SUM_ID_BY_REGION_0.SUM_ID_BY_REGION" : {
+      "schema" : "`REGION` STRING KEY, `KSQL_COL_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `REGION` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "test_udaf on a table",
@@ -76,17 +88,17 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE SUM_ID_BY_REGION AS SELECT REGION, test_udaf(id) FROM TEST GROUP BY REGION;" ],
     "post" : {
       "sources" : [ {
-        "name" : "SUM_ID_BY_REGION",
+        "name" : "TEST",
         "type" : "TABLE",
-        "schema" : "`REGION` STRING KEY, `KSQL_COL_0` BIGINT",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `REGION` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "SUM_ID_BY_REGION",
         "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `REGION` STRING",
+        "schema" : "`REGION` STRING KEY, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

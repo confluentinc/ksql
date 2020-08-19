@@ -3,10 +3,22 @@
   "timestamp" : 1584639516855,
   "path" : "query-validation-tests/window-bounds.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, KSQL_COL_0 BIGINT, KSQL_COL_1 BIGINT, COUNT BIGINT> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `COUNT` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "in expressions",
@@ -84,6 +96,14 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='DELIMITED');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  (TEST.WINDOWSTART / 2) KSQL_COL_0,\n  (TEST.WINDOWEND / TEST.ID) KSQL_COL_1,\n  COUNT(1) COUNT\nFROM TEST TEST\nWINDOW TUMBLING ( SIZE 30 SECONDS ) \nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `COUNT` BIGINT",
@@ -91,14 +111,6 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

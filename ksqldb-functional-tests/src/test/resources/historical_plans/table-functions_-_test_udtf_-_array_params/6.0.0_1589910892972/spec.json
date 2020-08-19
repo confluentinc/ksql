@@ -3,8 +3,14 @@
   "timestamp" : 1589910892972,
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 ARRAY<INT>, F1 ARRAY<BIGINT>, F2 ARRAY<DOUBLE>, F3 ARRAY<BOOLEAN>, F4 ARRAY<VARCHAR>, F5 ARRAY<DECIMAL(20, 10)>, F6 ARRAY<STRUCT<A VARCHAR>>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `F0` ARRAY<INTEGER>, `F1` ARRAY<BIGINT>, `F2` ARRAY<DOUBLE>, `F3` ARRAY<BOOLEAN>, `F4` ARRAY<STRING>, `F5` ARRAY<DECIMAL(20, 10)>, `F6` ARRAY<STRUCT<`A` STRING>>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "test_udtf - array params",

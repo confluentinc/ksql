@@ -39,6 +39,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -47,6 +48,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
+import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
@@ -71,10 +73,12 @@ public class TestExecutorTest {
 
   private static final String SINK_TOPIC_NAME = "sink_topic";
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
+  private static final PhysicalSchema PHYSICAL_SCHEMA =
+      PhysicalSchema.from(LOGICAL_SCHEMA, Collections.emptySet());
 
   @Mock
   private StubKafkaService kafkaService;
@@ -139,7 +143,7 @@ public class TestExecutorTest {
 
     when(metaStore.getAllDataSources()).thenReturn(allSources);
 
-    givenDataSourceTopic(SCHEMA);
+    givenDataSourceTopic(LOGICAL_SCHEMA);
   }
 
   @Test
@@ -171,8 +175,8 @@ public class TestExecutorTest {
   @Test
   public void shouldVerifyTopologySchemas() {
     // Given:
-    givenExpectedTopology("a-topology", ImmutableMap.of("matching", "schemas"));
-    givenActualTopology("a-topology", ImmutableMap.of("matching", "schemas"));
+    givenExpectedTopology("a-topology", ImmutableMap.of("matching", new SchemaNode(LOGICAL_SCHEMA.toString(), Collections.emptySet())));
+    givenActualTopology("a-topology", ImmutableMap.of("matching", PHYSICAL_SCHEMA));
 
     // When:
     executor.buildAndExecuteQuery(testCase, listener);
@@ -205,8 +209,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnSchemasMismatch() {
     // Given:
-    givenExpectedTopology("the-topology", ImmutableMap.of("expected", "schemas"));
-    givenActualTopology("the-topology", ImmutableMap.of("actual", "schemas"));
+    givenExpectedTopology("the-topology", ImmutableMap.of("expected", new SchemaNode("wrong schema", Collections.emptySet())));
+    givenActualTopology("the-topology", ImmutableMap.of("actual", PHYSICAL_SCHEMA));
 
     // When:
     final AssertionError e = assertThrows(
@@ -361,7 +365,7 @@ public class TestExecutorTest {
     when(expectedTopologyAndConfig.getTopology()).thenReturn(topology);
   }
 
-  private void givenExpectedTopology(final String topology, final Map<String, String> schemas) {
+  private void givenExpectedTopology(final String topology, final Map<String, SchemaNode> schemas) {
     givenExpectedTopology(topology);
     when(expectedTopologyAndConfig.getSchemas()).thenReturn(schemas);
   }
@@ -370,7 +374,7 @@ public class TestExecutorTest {
     when(testCase.getGeneratedTopologies()).thenReturn(ImmutableList.of(topology));
   }
 
-  private void givenActualTopology(final String topology, final Map<String, String> schemas) {
+  private void givenActualTopology(final String topology, final Map<String, PhysicalSchema> schemas) {
     givenActualTopology(topology);
     when(testCase.getGeneratedSchemas()).thenReturn(schemas);
   }

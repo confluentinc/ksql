@@ -3,8 +3,14 @@
   "timestamp" : 1589910847652,
   "path" : "query-validation-tests/binary-arithmetic.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COL1 BIGINT, COL2 DOUBLE> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BIGINT, KSQL_COL_1 DOUBLE, KSQL_COL_2 BIGINT, KSQL_COL_3 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`COL0` INTEGER KEY, `COL1` BIGINT, `COL2` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`COL0` INTEGER KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` DOUBLE, `KSQL_COL_2` BIGINT, `KSQL_COL_3` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "in projection",
@@ -38,17 +44,17 @@
     "statements" : [ "CREATE STREAM INPUT (col0 INT KEY, col1 BIGINT, col2 DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT col0, col0+col1, col2+10, col1*25, 12*4+2 FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`COL0` INTEGER KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` DOUBLE, `KSQL_COL_2` BIGINT, `KSQL_COL_3` INTEGER",
+        "schema" : "`COL0` INTEGER KEY, `COL1` BIGINT, `COL2` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`COL0` INTEGER KEY, `COL1` BIGINT, `COL2` DOUBLE",
+        "schema" : "`COL0` INTEGER KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` DOUBLE, `KSQL_COL_2` BIGINT, `KSQL_COL_3` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

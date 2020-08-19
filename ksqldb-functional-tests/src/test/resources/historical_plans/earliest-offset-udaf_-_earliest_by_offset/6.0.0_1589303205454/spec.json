@@ -3,10 +3,22 @@
   "timestamp" : 1589303205454,
   "path" : "query-validation-tests/earliest-offset-udaf.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR, KSQL_AGG_VARIABLE_0 STRUCT<SEQ BIGINT, VAL INT>, KSQL_AGG_VARIABLE_1 STRUCT<SEQ BIGINT, VAL BIGINT>, KSQL_AGG_VARIABLE_2 STRUCT<SEQ BIGINT, VAL DOUBLE>, KSQL_AGG_VARIABLE_3 STRUCT<SEQ BIGINT, VAL BOOLEAN>, KSQL_AGG_VARIABLE_4 STRUCT<SEQ BIGINT, VAL VARCHAR>> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<L0 INT, L1 BIGINT, L2 DOUBLE, L3 BOOLEAN, L4 VARCHAR> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING, `KSQL_AGG_VARIABLE_0` STRUCT<`SEQ` BIGINT, `VAL` INTEGER>, `KSQL_AGG_VARIABLE_1` STRUCT<`SEQ` BIGINT, `VAL` BIGINT>, `KSQL_AGG_VARIABLE_2` STRUCT<`SEQ` BIGINT, `VAL` DOUBLE>, `KSQL_AGG_VARIABLE_3` STRUCT<`SEQ` BIGINT, `VAL` BOOLEAN>, `KSQL_AGG_VARIABLE_4` STRUCT<`SEQ` BIGINT, `VAL` STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `L0` INTEGER, `L1` BIGINT, `L2` DOUBLE, `L3` BOOLEAN, `L4` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "earliest by offset",
@@ -104,17 +116,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0, EARLIEST_BY_OFFSET(F1) AS L1, EARLIEST_BY_OFFSET(F2) AS L2, EARLIEST_BY_OFFSET(F3) AS L3, EARLIEST_BY_OFFSET(F4) AS L4 FROM INPUT GROUP BY ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `L0` INTEGER, `L1` BIGINT, `L2` DOUBLE, `L3` BOOLEAN, `L4` STRING",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `L0` INTEGER, `L1` BIGINT, `L2` DOUBLE, `L3` BOOLEAN, `L4` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

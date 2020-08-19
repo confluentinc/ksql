@@ -3,8 +3,14 @@
   "timestamp" : 1589910848892,
   "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ORDERUNITS DOUBLE> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<CASE_RESULT VARCHAR> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `ORDERUNITS` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ID` STRING KEY, `CASE_RESULT` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "searched case returning null in first branch",
@@ -58,17 +64,17 @@
     "statements" : [ "CREATE STREAM orders (ID STRING KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN null WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "ORDERS",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `CASE_RESULT` STRING",
+        "schema" : "`ID` STRING KEY, `ORDERUNITS` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "ORDERS",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `ORDERUNITS` DOUBLE",
+        "schema" : "`ID` STRING KEY, `CASE_RESULT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

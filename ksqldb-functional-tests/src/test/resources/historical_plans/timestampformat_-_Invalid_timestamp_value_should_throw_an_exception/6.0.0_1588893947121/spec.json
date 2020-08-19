@@ -3,8 +3,14 @@
   "timestamp" : 1588893947121,
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
-    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, EVENT_TS VARCHAR> NOT NULL",
-    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT, EVENT_TS VARCHAR> NOT NULL"
+    "CSAS_TS_0.TS" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Invalid timestamp value should throw an exception",
@@ -24,7 +30,7 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, EVENT_TS string) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM TS WITH (timestamp='event_ts', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX') AS SELECT K, id, event_ts FROM test;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TS",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
         "keyFormat" : {
@@ -32,7 +38,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TS",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
         "keyFormat" : {

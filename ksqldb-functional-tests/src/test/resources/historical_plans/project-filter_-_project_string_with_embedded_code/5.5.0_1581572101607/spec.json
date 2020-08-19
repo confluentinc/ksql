@@ -3,8 +3,14 @@
   "timestamp" : 1581572101607,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<X VARCHAR> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ROWKEY` STRING KEY, `X` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "project string with embedded code",
@@ -30,17 +36,17 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM S1 AS SELECT '\" + new java.util.function.Supplier<String>(){public String get() {return \"boom\";}}.get() + \"' X\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `X` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `X` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

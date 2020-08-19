@@ -3,8 +3,14 @@
   "timestamp" : 1581572102085,
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<SELECT INT, with.dot INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `SELECT` INTEGER, `with.dot` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "math using fields that require quotes",

@@ -3,8 +3,14 @@
   "timestamp" : 1589910893013,
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR, F5 DECIMAL(20, 10), F6 STRUCT<A VARCHAR>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 VARCHAR, KSQL_COL_5 DECIMAL(30, 10), KSQL_COL_6 STRUCT<A VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING, `F5` DECIMAL(20, 10), `F6` STRUCT<`A` STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT, `KSQL_COL_2` DOUBLE, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` STRING, `KSQL_COL_5` DECIMAL(30, 10), `KSQL_COL_6` STRUCT<`A` STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "test_udtf - return vals",

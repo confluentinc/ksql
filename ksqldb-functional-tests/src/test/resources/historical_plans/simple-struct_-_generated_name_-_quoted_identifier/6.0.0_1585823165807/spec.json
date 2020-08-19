@@ -3,8 +3,14 @@
   "timestamp" : 1585823165807,
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<mixedCase STRUCT<moreMixedCase INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<moreMixedCase INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `mixedCase` STRUCT<`moreMixedCase` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `moreMixedCase` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "generated name - quoted identifier",
@@ -36,17 +42,17 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY STRING KEY, `mixedCase` STRUCT<`moreMixedCase` INTEGER>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');", "CREATE STREAM OUTPUT AS SELECT INPUT.`mixedCase`->`moreMixedCase` `moreMixedCase`\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `moreMixedCase` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `mixedCase` STRUCT<`moreMixedCase` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `mixedCase` STRUCT<`moreMixedCase` INTEGER>",
+        "schema" : "`ROWKEY` STRING KEY, `moreMixedCase` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

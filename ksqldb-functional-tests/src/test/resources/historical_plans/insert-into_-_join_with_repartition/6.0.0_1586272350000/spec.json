@@ -3,11 +3,26 @@
   "timestamp" : 1586272350000,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
-    "InsertQuery_0.KafkaTopic_Left.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
-    "InsertQuery_0.KafkaTopic_Right.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
-    "InsertQuery_0.Join.Left" : "STRUCT<S1_DATA VARCHAR, S1_ROWTIME BIGINT, S1_ROWKEY VARCHAR> NOT NULL",
-    "InsertQuery_0.Join.Right" : "STRUCT<S2_DATA VARCHAR, S2_ROWTIME BIGINT, S2_ROWKEY VARCHAR> NOT NULL",
-    "InsertQuery_0.OUTPUT" : "STRUCT<DATA VARCHAR, I INT> NOT NULL"
+    "InsertQuery_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING, `I` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "InsertQuery_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "serdeOptions" : [ ]
+    },
+    "InsertQuery_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "serdeOptions" : [ ]
+    },
+    "InsertQuery_0.Join.Left" : {
+      "schema" : "`ROWKEY` STRING KEY, `S1_DATA` STRING, `S1_ROWTIME` BIGINT, `S1_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "InsertQuery_0.Join.Right" : {
+      "schema" : "`ROWKEY` STRING KEY, `S2_DATA` STRING, `S2_ROWTIME` BIGINT, `S2_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "join with repartition",
@@ -116,7 +131,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE2",
+        "name" : "SOURCE1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {
@@ -124,7 +139,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SOURCE1",
+        "name" : "SOURCE2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
         "keyFormat" : {

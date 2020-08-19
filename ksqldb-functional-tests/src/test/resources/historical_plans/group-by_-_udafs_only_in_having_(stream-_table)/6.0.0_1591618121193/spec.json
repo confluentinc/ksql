@@ -3,10 +3,22 @@
   "timestamp" : 1591618121193,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<NAME VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<NAME VARCHAR, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<LEN INT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`NAME` STRING KEY, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`NAME` STRING KEY, `NAME` STRING, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`NAME` STRING KEY, `LEN` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "udafs only in having (stream->table)",
@@ -56,17 +68,17 @@
     "statements" : [ "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT NAME, LEN(NAME) AS LEN FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 2;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`NAME` STRING KEY, `LEN` INTEGER",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`NAME` STRING",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`NAME` STRING KEY, `LEN` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

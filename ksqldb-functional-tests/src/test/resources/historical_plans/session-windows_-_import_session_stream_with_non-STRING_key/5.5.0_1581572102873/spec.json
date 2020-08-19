@@ -3,8 +3,14 @@
   "timestamp" : 1581572102873,
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, WSTART BIGINT, WEND BIGINT, KEY INT> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "import session stream with non-STRING key",
@@ -122,18 +128,18 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_TYPE='SESSION');", "CREATE STREAM S2 AS SELECT\n  *,\n  INPUT.WINDOWSTART WSTART,\n  INPUT.WINDOWEND WEND,\n  INPUT.ROWKEY KEY\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"

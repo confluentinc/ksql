@@ -3,8 +3,14 @@
   "timestamp" : 1589910888476,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_EVENTSTEST_0.KsqlTopic.Source" : "STRUCT<ID INT, FIELD0 VARCHAR> NOT NULL",
-    "CSAS_EVENTSTEST_0.EVENTSTEST" : "STRUCT<ID INT, FIELD1 VARCHAR, FIELD0 VARCHAR> NOT NULL"
+    "CSAS_EVENTSTEST_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_EVENTSTEST_0.EVENTSTEST" : {
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "WHERE with many comparisons. This tests the fix for #1784",

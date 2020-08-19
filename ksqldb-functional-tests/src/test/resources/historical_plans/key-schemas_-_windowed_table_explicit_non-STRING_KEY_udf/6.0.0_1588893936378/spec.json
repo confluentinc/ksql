@@ -3,10 +3,22 @@
   "timestamp" : 1588893936378,
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<K BIGINT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<K BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<EXP DOUBLE, KSQL_COL_0 BIGINT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`K` BIGINT KEY, `K` BIGINT, `KSQL_INTERNAL_COL_1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` BIGINT KEY, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`K` BIGINT KEY, `K` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_0` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "windowed table explicit non-STRING KEY udf",
@@ -42,6 +54,14 @@
     "statements" : [ "CREATE STREAM INPUT (K BIGINT KEY, VALUE BIGINT) WITH (kafka_topic='input', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT K, EXP(K) AS EXP, COUNT(1) FROM INPUT WINDOW TUMBLING (SIZE 30 SECONDS) GROUP BY K;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`K` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_0` BIGINT",
@@ -49,14 +69,6 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`K` BIGINT KEY, `VALUE` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

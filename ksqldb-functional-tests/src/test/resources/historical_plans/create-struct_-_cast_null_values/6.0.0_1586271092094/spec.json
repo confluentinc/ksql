@@ -3,8 +3,14 @@
   "timestamp" : 1586271092094,
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S STRUCT<F1 INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `IGNORED` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`F1` INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "cast null values",
@@ -34,17 +40,17 @@
     "statements" : [ "CREATE STREAM INPUT (IGNORED STRING) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT STRUCT(F1:=CAST(null AS INTEGER)) S\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`F1` INTEGER>",
+        "schema" : "`ROWKEY` STRING KEY, `IGNORED` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `IGNORED` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`F1` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

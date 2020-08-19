@@ -3,8 +3,14 @@
   "timestamp" : 1588107644049,
   "path" : "query-validation-tests/create-type.json",
   "schemas" : {
-    "CTAS_COPY_0.KsqlTopic.Source" : "STRUCT<PERSON STRUCT<NAME VARCHAR, ADDRESS STRUCT<NUMBER INT, STREET VARCHAR, CITY VARCHAR>>> NOT NULL",
-    "CTAS_COPY_0.COPY" : "STRUCT<PERSON STRUCT<NAME VARCHAR, ADDRESS STRUCT<NUMBER INT, STREET VARCHAR, CITY VARCHAR>>> NOT NULL"
+    "CTAS_COPY_0.COPY" : {
+      "schema" : "`ROWKEY` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_COPY_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "create nested type",
@@ -48,7 +54,7 @@
     "statements" : [ "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;", "CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;", "CREATE TABLE people (person PERSON) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE copy AS SELECT * FROM people;" ],
     "post" : {
       "sources" : [ {
-        "name" : "PEOPLE",
+        "name" : "COPY",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
         "keyFormat" : {
@@ -56,7 +62,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "COPY",
+        "name" : "PEOPLE",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
         "keyFormat" : {

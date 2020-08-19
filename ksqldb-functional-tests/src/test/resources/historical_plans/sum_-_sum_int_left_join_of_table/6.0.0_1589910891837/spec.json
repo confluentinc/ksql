@@ -3,11 +3,26 @@
   "timestamp" : 1589910891837,
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<TOTAL INT> NOT NULL",
-    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<TOTAL INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<T1_ID BIGINT, T2_TOTAL INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<T1_ID BIGINT, T2_TOTAL INT, KSQL_AGG_VARIABLE_0 INT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<SUM INT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `TOTAL` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `TOTAL` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`T1_ID` BIGINT KEY, `SUM` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "sum int left join of table",

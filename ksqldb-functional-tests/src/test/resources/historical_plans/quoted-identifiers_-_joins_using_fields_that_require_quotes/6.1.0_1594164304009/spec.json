@@ -3,10 +3,22 @@
   "timestamp" : 1594164304009,
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
-    "CSAS_JOINED_0.KafkaTopic_Right.Source" : "STRUCT<field 0 VARCHAR> NOT NULL",
-    "CSAS_JOINED_0.KafkaTopic_Left.Source" : "STRUCT<SELECT VARCHAR, field! VARCHAR> NOT NULL",
-    "CSAS_JOINED_0.Join.Left" : "STRUCT<L_SELECT VARCHAR, L_field! VARCHAR, L_ROWTIME BIGINT, L_the key VARCHAR> NOT NULL",
-    "CSAS_JOINED_0.JOINED" : "STRUCT<L_the key VARCHAR, L_field! VARCHAR, R_with.dot VARCHAR, R_field 0 VARCHAR> NOT NULL"
+    "CSAS_JOINED_0.KafkaTopic_Left.Source" : {
+      "schema" : "`the key` STRING KEY, `SELECT` STRING, `field!` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_JOINED_0.JOINED" : {
+      "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_JOINED_0.KafkaTopic_Right.Source" : {
+      "schema" : "`with.dot` STRING KEY, `field 0` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_JOINED_0.Join.Left" : {
+      "schema" : "`L_SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_the key` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "joins using fields that require quotes",
@@ -56,14 +68,6 @@
     "statements" : [ "CREATE STREAM L (`the key` STRING KEY, `SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (`with.dot` STRING PRIMARY KEY, `field 0` VARCHAR) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM JOINED as SELECT * FROM L LEFT JOIN R ON L.`SELECT` = R.`with.dot`;" ],
     "post" : {
       "sources" : [ {
-        "name" : "L",
-        "type" : "STREAM",
-        "schema" : "`the key` STRING KEY, `SELECT` STRING, `field!` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "R",
         "type" : "TABLE",
         "schema" : "`with.dot` STRING KEY, `field 0` STRING",
@@ -75,6 +79,14 @@
         "name" : "JOINED",
         "type" : "STREAM",
         "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`the key` STRING KEY, `SELECT` STRING, `field!` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

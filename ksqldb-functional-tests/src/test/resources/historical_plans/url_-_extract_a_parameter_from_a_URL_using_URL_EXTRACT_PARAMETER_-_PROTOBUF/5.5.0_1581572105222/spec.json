@@ -3,8 +3,14 @@
   "timestamp" : 1581572105222,
   "path" : "query-validation-tests/url.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<PARAM_A VARCHAR, PARAM_B VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `PARAM_A` STRING, `PARAM_B` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "extract a parameter from a URL using URL_EXTRACT_PARAMETER - PROTOBUF",

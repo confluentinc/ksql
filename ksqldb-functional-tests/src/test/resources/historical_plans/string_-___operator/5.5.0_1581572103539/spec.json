@@ -3,8 +3,14 @@
   "timestamp" : 1581572103539,
   "path" : "query-validation-tests/string.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<TEXT VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<TEXT VARCHAR, KSQL_COL_1 BOOLEAN> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_1` BOOLEAN",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "< operator",
@@ -78,17 +84,17 @@
     "statements" : [ "CREATE STREAM INPUT (TEXT STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.TEXT TEXT,\n  (INPUT.TEXT < 'b2') KSQL_COL_1\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_1` BOOLEAN",
+        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `TEXT` STRING, `KSQL_COL_1` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
         },

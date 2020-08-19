@@ -3,10 +3,22 @@
   "timestamp" : 1585182011202,
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID INT> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID INT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID INT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<COUNT BIGINT> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `COUNT` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "count",
@@ -158,6 +170,14 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY INTEGER KEY, ID INTEGER) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE S2 AS SELECT COUNT(1) COUNT\nFROM TEST TEST\nWINDOW HOPPING ( SIZE 5 SECONDS , ADVANCE BY 1 SECONDS ) \nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `COUNT` BIGINT",
@@ -165,14 +185,6 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 5000
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

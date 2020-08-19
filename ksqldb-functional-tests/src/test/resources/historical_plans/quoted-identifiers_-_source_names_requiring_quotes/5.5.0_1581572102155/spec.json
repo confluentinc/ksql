@@ -3,8 +3,14 @@
   "timestamp" : 1581572102155,
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
-    "CSAS_foo-too_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR> NOT NULL",
-    "CSAS_foo-too_0.foo-too" : "STRUCT<ID VARCHAR> NOT NULL"
+    "CSAS_foo-too_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_foo-too_0.foo-too" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "source names requiring quotes",

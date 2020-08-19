@@ -3,10 +3,22 @@
   "timestamp" : 1581572095968,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_LEFT_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
-    "CSAS_LEFT_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
-    "CSAS_LEFT_JOIN_0.Join.Left" : "STRUCT<T_ID BIGINT, T_NAME VARCHAR, T_VALUE BIGINT, T_ROWTIME BIGINT, T_ROWKEY BIGINT> NOT NULL",
-    "CSAS_LEFT_JOIN_0.LEFT_JOIN" : "STRUCT<T_ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
+    "CSAS_LEFT_JOIN_0.LEFT_JOIN" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_LEFT_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_LEFT_JOIN_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_LEFT_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream table left join - PROTOBUF",
@@ -147,17 +159,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "LEFT_JOIN",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "LEFT_JOIN",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

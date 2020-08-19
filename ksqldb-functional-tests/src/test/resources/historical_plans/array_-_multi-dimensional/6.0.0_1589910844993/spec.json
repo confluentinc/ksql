@@ -3,8 +3,14 @@
   "timestamp" : 1589910844993,
   "path" : "query-validation-tests/array.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COL0 ARRAY<ARRAY<INT>>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL0` ARRAY<ARRAY<INTEGER>>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "multi-dimensional",
@@ -34,17 +40,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col0 ARRAY<ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, col0[1][2] FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `KSQL_COL_0` INTEGER",
+        "schema" : "`ID` STRING KEY, `COL0` ARRAY<ARRAY<INTEGER>>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `COL0` ARRAY<ARRAY<INTEGER>>",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

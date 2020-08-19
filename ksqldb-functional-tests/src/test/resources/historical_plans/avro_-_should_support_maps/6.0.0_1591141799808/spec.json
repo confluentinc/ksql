@@ -3,8 +3,14 @@
   "timestamp" : 1591141799808,
   "path" : "query-validation-tests/avro.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 MAP<VARCHAR, BIGINT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 MAP<VARCHAR, BIGINT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`C1` MAP<STRING, BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`C1` MAP<STRING, BIGINT>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should support maps",
@@ -50,7 +56,7 @@
     "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`C1` MAP<STRING, BIGINT>",
         "keyFormat" : {
@@ -58,7 +64,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`C1` MAP<STRING, BIGINT>",
         "keyFormat" : {

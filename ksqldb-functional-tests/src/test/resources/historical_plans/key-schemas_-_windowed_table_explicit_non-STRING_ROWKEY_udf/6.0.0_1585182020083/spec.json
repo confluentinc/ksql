@@ -3,10 +3,22 @@
   "timestamp" : 1585182020083,
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ROWKEY BIGINT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ROWKEY BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<EXP DOUBLE, KSQL_COL_0 BIGINT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ROWKEY` BIGINT, `KSQL_INTERNAL_COL_1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ROWKEY` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_0` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "windowed table explicit non-STRING ROWKEY udf",
@@ -42,6 +54,14 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY BIGINT KEY, VALUE BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  EXP(INPUT.ROWKEY) EXP,\n  COUNT(1) KSQL_COL_0\nFROM INPUT INPUT\nWINDOW TUMBLING ( SIZE 30 SECONDS ) \nGROUP BY INPUT.ROWKEY\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `EXP` DOUBLE, `KSQL_COL_0` BIGINT",
@@ -49,14 +69,6 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `VALUE` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

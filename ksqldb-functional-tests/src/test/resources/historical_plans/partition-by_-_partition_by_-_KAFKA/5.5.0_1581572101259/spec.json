@@ -3,8 +3,14 @@
   "timestamp" : 1581572101259,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "partition by - KAFKA",
@@ -30,17 +36,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INTEGER) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='KAFKA');", "CREATE STREAM OUTPUT AS SELECT INPUT.ID ID\nFROM INPUT INPUT\nPARTITION BY INPUT.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

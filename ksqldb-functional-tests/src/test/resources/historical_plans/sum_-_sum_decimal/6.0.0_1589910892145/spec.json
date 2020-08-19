@@ -3,10 +3,22 @@
   "timestamp" : 1589910892145,
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<VALUE DECIMAL(4, 1)> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 1)> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE DECIMAL(4, 1), KSQL_AGG_VARIABLE_0 DECIMAL(4, 1)> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<SUM DECIMAL(4, 1)> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 1), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 1)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 1)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `SUM` DECIMAL(4, 1)",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 1)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "sum decimal",
@@ -95,17 +107,17 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4,1)) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE S2 as SELECT ID, sum(value) AS SUM FROM test group by id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `SUM` DECIMAL(4, 1)",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 1)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 1)",
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `SUM` DECIMAL(4, 1)",
         "keyFormat" : {
           "format" : "KAFKA"
         },

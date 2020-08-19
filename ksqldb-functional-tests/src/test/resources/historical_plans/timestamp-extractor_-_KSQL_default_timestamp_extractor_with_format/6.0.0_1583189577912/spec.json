@@ -3,8 +3,14 @@
   "timestamp" : 1583189577912,
   "path" : "query-validation-tests/timestamp-extractor.json",
   "schemas" : {
-    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, TS VARCHAR> NOT NULL",
-    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT> NOT NULL"
+    "CSAS_TS_0.TS" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "KSQL default timestamp extractor with format",
@@ -57,17 +63,17 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, TS STRING) WITH (KAFKA_TOPIC='test_topic', TIMESTAMP='ts', TIMESTAMP_FORMAT='yy-MM-dd HH:mm:ssX', VALUE_FORMAT='JSON');", "CREATE STREAM TS AS SELECT TEST.ID ID\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TS",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TS",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `TS` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

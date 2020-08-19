@@ -3,8 +3,14 @@
   "timestamp" : 1588893909479,
   "path" : "query-validation-tests/delimited.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE INT> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE INT> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "select delimited value_format into another format - JSON",
@@ -36,7 +42,7 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter=',');", "CREATE STREAM S2 WITH(value_format='JSON') as SELECT K, id, name, value FROM test;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {
@@ -44,7 +50,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S2",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {

@@ -3,9 +3,18 @@
   "timestamp" : 1581572097364,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID1 BIGINT, ID2 BIGINT> NOT NULL"
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID1` BIGINT, `ID2` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table to table wrapped single field value schema on inputs",

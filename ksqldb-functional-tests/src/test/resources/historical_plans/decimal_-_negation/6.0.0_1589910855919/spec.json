@@ -3,8 +3,14 @@
   "timestamp" : 1589910855919,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
-    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(7, 5)> NOT NULL",
-    "CSAS_TEST2_0.TEST2" : "STRUCT<NEGATED DECIMAL(7, 5)> NOT NULL"
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ID` STRING KEY, `NEGATED` DECIMAL(7, 5)",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(7, 5)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "negation",

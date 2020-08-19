@@ -3,8 +3,14 @@
   "timestamp" : 1591141842371,
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<some.key VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<old.key VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`old.key` STRING KEY, `some.key` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`some.key` STRING KEY, `old.key` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "partition by quoted field",

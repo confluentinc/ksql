@@ -3,8 +3,14 @@
   "timestamp" : 1589910848782,
   "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<ORDERID BIGINT, ORDERUNITS DOUBLE> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<CASE_RESAULT BIGINT> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `ORDERID` BIGINT, `ORDERUNITS` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ID` STRING KEY, `CASE_RESAULT` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "searched case with arithmetic expression in result",
@@ -61,17 +67,17 @@
     "statements" : [ "CREATE STREAM orders (ID STRING KEY, orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN orderid + 2 END AS case_resault FROM orders;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1",
+        "name" : "ORDERS",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `CASE_RESAULT` BIGINT",
+        "schema" : "`ID` STRING KEY, `ORDERID` BIGINT, `ORDERUNITS` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "ORDERS",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `ORDERID` BIGINT, `ORDERUNITS` DOUBLE",
+        "schema" : "`ID` STRING KEY, `CASE_RESAULT` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

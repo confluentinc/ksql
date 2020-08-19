@@ -3,8 +3,14 @@
   "timestamp" : 1589910854687,
   "path" : "query-validation-tests/create_array.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<A INT, B INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<L ARRAY<INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `A` INTEGER, `B` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `L` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "construct a list from two elements",

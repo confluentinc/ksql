@@ -3,8 +3,14 @@
   "timestamp" : 1589910893409,
   "path" : "query-validation-tests/timestamp-extractor.json",
   "schemas" : {
-    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, TS VARCHAR> NOT NULL",
-    "CSAS_TS_0.TS" : "STRUCT<ID BIGINT> NOT NULL"
+    "CSAS_TS_0.TS" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "KSQL default timestamp extractor with format",
@@ -57,17 +63,17 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, TS varchar) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='ts', timestamp_format='yy-MM-dd HH:mm:ssX');", "CREATE STREAM TS AS SELECT K, id FROM test;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TS",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TS",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` STRING",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

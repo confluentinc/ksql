@@ -3,11 +3,26 @@
   "timestamp" : 1588893933184,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<A BIGINT, B STRUCT<C INT>> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<X BIGINT, Y STRUCT<Z INT>> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S1_A BIGINT, S1_B STRUCT<C INT>, S1_ROWTIME BIGINT, S1_ID INT, S1_C INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<S2_X BIGINT, S2_Y STRUCT<Z INT>, S2_ROWTIME BIGINT, S2_ID INT, S2_Z INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S1_ID INT, S1_A BIGINT, S1_B STRUCT<C INT>, S2_ID INT, S2_X BIGINT, S2_Y STRUCT<Z INT>, S1_ROWTIME BIGINT, S2_ROWTIME BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `X` BIGINT, `Y` STRUCT<`Z` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`C` INTEGER KEY, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_C` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `S1_ID` INTEGER, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S2_ID` INTEGER, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `A` BIGINT, `B` STRUCT<`C` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`Z` INTEGER KEY, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_Z` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "on struct field",
@@ -153,17 +168,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S2",
+        "name" : "S1",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `X` BIGINT, `Y` STRUCT<`Z` INTEGER>",
+        "schema" : "`ID` INTEGER KEY, `A` BIGINT, `B` STRUCT<`C` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `A` BIGINT, `B` STRUCT<`C` INTEGER>",
+        "schema" : "`ID` INTEGER KEY, `X` BIGINT, `Y` STRUCT<`Z` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

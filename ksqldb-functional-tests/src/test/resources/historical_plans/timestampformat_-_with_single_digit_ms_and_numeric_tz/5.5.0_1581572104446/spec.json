@@ -3,8 +3,14 @@
   "timestamp" : 1581572104446,
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
-    "CSAS_TS_0.KsqlTopic.Source" : "STRUCT<EVENT_TIMESTAMP VARCHAR> NOT NULL",
-    "CSAS_TS_0.TS" : "STRUCT<ETS BIGINT> NOT NULL"
+    "CSAS_TS_0.TS" : {
+      "schema" : "`ROWKEY` STRING KEY, `ETS` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `EVENT_TIMESTAMP` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "with single digit ms and numeric tz",
@@ -36,17 +42,17 @@
     "statements" : [ "CREATE STREAM TEST (EVENT_TIMESTAMP STRING) WITH (KAFKA_TOPIC='test_topic', TIMESTAMP='event_timestamp', TIMESTAMP_FORMAT='yyyy-MM-dd''T''HH:mm:ss.SX', VALUE_FORMAT='JSON');", "CREATE STREAM TS AS SELECT STRINGTOTIMESTAMP(TEST.EVENT_TIMESTAMP, 'yyyy-MM-dd''T''HH:mm:ss.SX') ETS\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TS",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ETS` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `EVENT_TIMESTAMP` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "TS",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `EVENT_TIMESTAMP` STRING",
+        "schema" : "`ROWKEY` STRING KEY, `ETS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

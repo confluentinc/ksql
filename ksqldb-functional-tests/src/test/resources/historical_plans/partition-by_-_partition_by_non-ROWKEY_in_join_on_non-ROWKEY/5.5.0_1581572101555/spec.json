@@ -3,11 +3,26 @@
   "timestamp" : 1581572101555,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<A VARCHAR, B VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<C VARCHAR, D VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<L_A VARCHAR, L_B VARCHAR, L_ROWTIME BIGINT, L_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<R_C VARCHAR, R_D VARCHAR, R_ROWTIME BIGINT, R_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<L_ROWKEY VARCHAR, R_ROWKEY VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `C` STRING, `D` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`ROWKEY` STRING KEY, `L_A` STRING, `L_B` STRING, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `L_ROWKEY` STRING, `R_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `A` STRING, `B` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`ROWKEY` STRING KEY, `R_C` STRING, `R_D` STRING, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "partition by non-ROWKEY in join on non-ROWKEY",
@@ -50,6 +65,14 @@
     "statements" : [ "CREATE STREAM L (A STRING, B STRING) WITH (KAFKA_TOPIC='LEFT', KEY='A', VALUE_FORMAT='JSON');", "CREATE STREAM R (C STRING, D STRING) WITH (KAFKA_TOPIC='RIGHT', KEY='C', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  L.ROWKEY L_ROWKEY,\n  R.ROWKEY R_ROWKEY\nFROM L L\nINNER JOIN R R WITHIN 10 SECONDS ON ((L.B = R.D))\nPARTITION BY L.B\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `C` STRING, `D` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `L_ROWKEY` STRING, `R_ROWKEY` STRING",
@@ -61,14 +84,6 @@
         "name" : "L",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `A` STRING, `B` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `C` STRING, `D` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

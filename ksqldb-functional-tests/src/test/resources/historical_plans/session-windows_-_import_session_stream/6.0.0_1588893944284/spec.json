@@ -3,8 +3,14 @@
   "timestamp" : 1588893944284,
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<WINDOWSTART BIGINT, WINDOWEND BIGINT, ID BIGINT> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`K` INTEGER KEY, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`K` INTEGER KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "import session stream",
@@ -122,7 +128,7 @@
     "statements" : [ "CREATE STREAM INPUT (K INT KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='SESSION');", "CREATE STREAM S2 as SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
@@ -131,7 +137,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "S2",
         "type" : "STREAM",
         "schema" : "`K` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {

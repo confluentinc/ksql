@@ -3,8 +3,14 @@
   "timestamp" : 1588893921502,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
-    "INSERTQUERY_0.KsqlTopic.Source" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL",
-    "INSERTQUERY_0.SINK" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL"
+    "INSERTQUERY_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "serdeOptions" : [ ]
+    },
+    "INSERTQUERY_0.SINK" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "convert formats: AVRO to JSON",
@@ -86,7 +92,7 @@
     "statements" : [ "CREATE STREAM SOURCE (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='source', value_format='AVRO');", "CREATE STREAM SINK (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='sink', value_format='JSON');", "INSERT INTO SINK SELECT * FROM SOURCE;" ],
     "post" : {
       "sources" : [ {
-        "name" : "SOURCE",
+        "name" : "SINK",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
         "keyFormat" : {
@@ -94,7 +100,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "SINK",
+        "name" : "SOURCE",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
         "keyFormat" : {

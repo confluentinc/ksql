@@ -3,10 +3,22 @@
   "timestamp" : 1590167855197,
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KafkaTopic_L_Left.Source" : "STRUCT<V0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.KafkaTopic_L_Right.Source" : "STRUCT<V0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<V0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<T1_V0 BIGINT, T2_V0 BIGINT, T3_V0 BIGINT> NOT NULL"
+    "CTAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `T1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table-table-table - inner-full",
@@ -103,7 +115,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "T3",
+        "name" : "T2",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {
@@ -111,7 +123,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "T2",
+        "name" : "T3",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {

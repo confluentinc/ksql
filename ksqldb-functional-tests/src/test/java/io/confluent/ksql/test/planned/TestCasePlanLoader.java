@@ -29,6 +29,7 @@ import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.PathLocation;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.model.TopicNode;
@@ -50,6 +51,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -235,7 +237,7 @@ public final class TestCasePlanLoader {
         version,
         timestamp,
         testCase.getOriginalFileName().toString(),
-        testInfo.getSchemasDescription(),
+        testInfo.getSchemas(),
         testCodeNode
     );
 
@@ -325,8 +327,11 @@ public final class TestCasePlanLoader {
       this.sources = ImmutableList.copyOf(knownSources);
     }
 
-    public Map<String, String> getSchemasDescription() {
-      return queryMetadata.getSchemasDescription();
+    public Map<String, SchemaNode> getSchemas() {
+      return queryMetadata.getSchemas().entrySet().stream()
+          .collect(Collectors.toMap(
+              Entry::getKey,
+              e -> SchemaNode.fromPhysicalSchema(e.getValue())));
     }
 
     public List<PostTopicNode> getTopics() {

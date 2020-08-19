@@ -3,8 +3,14 @@
   "timestamp" : 1588893902295,
   "path" : "query-validation-tests/binary-comparison.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID2 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BOOLEAN> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `ID2` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `KSQL_COL_0` BOOLEAN",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "is distinct from",
@@ -82,17 +88,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, ID2 INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, ID IS DISTINCT FROM ID2 FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `KSQL_COL_0` BOOLEAN",
+        "schema" : "`ID` INTEGER KEY, `ID2` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `ID2` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `KSQL_COL_0` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
         },

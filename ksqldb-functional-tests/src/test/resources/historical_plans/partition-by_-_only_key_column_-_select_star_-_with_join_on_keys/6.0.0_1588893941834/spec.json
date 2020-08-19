@@ -3,11 +3,26 @@
   "timestamp" : 1588893941834,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<B INT, C INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<Y INT, Z INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<L_B INT, L_C INT, L_ROWTIME BIGINT, L_A INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_X INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<L_C INT, L_ROWTIME BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_X INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`X` INTEGER KEY, `Y` INTEGER, `Z` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `L_ROWTIME` BIGINT, `L_A` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_B` INTEGER KEY, `L_C` INTEGER, `L_ROWTIME` BIGINT, `L_A` INTEGER, `R_Y` INTEGER, `R_Z` INTEGER, `R_ROWTIME` BIGINT, `R_X` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`X` INTEGER KEY, `R_Y` INTEGER, `R_Z` INTEGER, `R_ROWTIME` BIGINT, `R_X` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "only key column - select star - with join on keys",
@@ -57,6 +72,14 @@
     "statements" : [ "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');", "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.A = R.X PARTITION BY L.B;" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`X` INTEGER KEY, `Y` INTEGER, `Z` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`L_B` INTEGER KEY, `L_C` INTEGER, `L_ROWTIME` BIGINT, `L_A` INTEGER, `R_Y` INTEGER, `R_Z` INTEGER, `R_ROWTIME` BIGINT, `R_X` INTEGER",
@@ -68,14 +91,6 @@
         "name" : "L",
         "type" : "STREAM",
         "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`X` INTEGER KEY, `Y` INTEGER, `Z` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

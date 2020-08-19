@@ -3,12 +3,30 @@
   "timestamp" : 1594853229724,
   "path" : "query-validation-tests/timestamp-to-string.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<NAME VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<WLAN_SA ARRAY<VARCHAR>> NOT NULL",
-    "CTAS_OUTPUT_0.Join.Left" : "STRUCT<P_WLAN_SA ARRAY<VARCHAR>, P_ROWTIME BIGINT, P_K VARCHAR, P_KSQL_COL_0 VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<D_NAME VARCHAR, P_ROWTIME BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<D_NAME VARCHAR, P_ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`P_KSQL_COL_0` STRING KEY, `P_WLAN_SA` ARRAY<STRING>, `P_ROWTIME` BIGINT, `P_K` STRING, `P_KSQL_COL_0` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "timestamp to string in join",
@@ -51,6 +69,14 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, WLAN_SA ARRAY<VARCHAR>) WITH (kafka_topic='input', value_format='JSON');", "CREATE TABLE DEVICES (ROWKEY STRING PRIMARY KEY, NAME VARCHAR) WITH (kafka_topic='devices', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT D.NAME AS DEVICE_NAME, TIMESTAMPTOSTRING(MIN(P.ROWTIME),'yyyy-MM-dd HH:mm:ss zzz','Europe/London') FROM INPUT P INNER JOIN DEVICES D ON P.WLAN_SA[1] = D.ROWKEY GROUP BY D.NAME emit changes;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
@@ -62,14 +88,6 @@
         "name" : "DEVICES",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

@@ -3,8 +3,14 @@
   "timestamp" : 1581572087589,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
-    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<A DECIMAL(4, 2), B DOUBLE> NOT NULL",
-    "CSAS_TEST2_0.TEST2" : "STRUCT<RESULT DOUBLE> NOT NULL"
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ROWKEY` STRING KEY, `RESULT` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "addition with double",

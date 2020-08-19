@@ -3,10 +3,22 @@
   "timestamp" : 1588893900948,
   "path" : "query-validation-tests/average-udaf.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<VALUE INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID VARCHAR, VALUE INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID VARCHAR, VALUE INT, KSQL_AGG_VARIABLE_0 STRUCT<SUM INT, COUNT BIGINT>> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<AVG DOUBLE> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` INTEGER, `COUNT` BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "average int",
@@ -108,17 +120,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, VALUE integer) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, avg(value) AS avg FROM INPUT group by ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VALUE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `VALUE` INTEGER",
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
         },

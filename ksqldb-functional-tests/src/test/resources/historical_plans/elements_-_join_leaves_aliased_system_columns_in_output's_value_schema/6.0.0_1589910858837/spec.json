@@ -3,11 +3,26 @@
   "timestamp" : 1589910858837,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<F0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<F1 INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<L_F0 INT, L_ROWTIME BIGINT, L_K VARCHAR, L_WINDOWSTART BIGINT, L_WINDOWEND BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<R_F1 INT, R_ROWTIME BIGINT, R_K VARCHAR, R_WINDOWSTART BIGINT, R_WINDOWEND BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<TIME BIGINT, WSTART BIGINT, WEND BIGINT, F0 INT, F1 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`K` STRING KEY, `F1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`L_K` STRING KEY, `L_F0` INTEGER, `L_ROWTIME` BIGINT, `L_K` STRING, `L_WINDOWSTART` BIGINT, `L_WINDOWEND` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_K` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `F0` INTEGER, `F1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K` STRING KEY, `F0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`R_K` STRING KEY, `R_F1` INTEGER, `R_ROWTIME` BIGINT, `R_K` STRING, `R_WINDOWSTART` BIGINT, `R_WINDOWEND` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "join leaves aliased system columns in output's value schema",

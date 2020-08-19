@@ -3,8 +3,14 @@
   "timestamp" : 1581572084995,
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
-    "CSAS_OUT_0.KsqlTopic.Source" : "STRUCT<FOO INT> NOT NULL",
-    "CSAS_OUT_0.OUT" : "STRUCT<VAL DECIMAL(2, 1)> NOT NULL"
+    "CSAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUT_0.OUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `VAL` DECIMAL(2, 1)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "integer to decimal",
@@ -82,17 +88,17 @@
     "statements" : [ "CREATE STREAM TEST (FOO INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM OUT AS SELECT CAST(TEST.FOO AS DECIMAL(2, 1)) VAL\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUT",
+        "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `VAL` DECIMAL(2, 1)",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "OUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `VAL` DECIMAL(2, 1)",
         "keyFormat" : {
           "format" : "KAFKA"
         },

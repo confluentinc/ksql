@@ -3,8 +3,14 @@
   "timestamp" : 1591141842093,
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "protobuf inference - other scalars",
@@ -44,7 +50,7 @@
     "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT",
         "keyFormat" : {
@@ -52,7 +58,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT",
         "keyFormat" : {

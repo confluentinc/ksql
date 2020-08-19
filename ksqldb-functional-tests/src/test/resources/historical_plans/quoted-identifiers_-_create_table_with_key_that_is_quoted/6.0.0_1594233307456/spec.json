@@ -3,8 +3,14 @@
   "timestamp" : 1594233307456,
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<V VARCHAR> NOT NULL"
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`some.key` STRING KEY, `V` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`some.key` STRING KEY, `V` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "create table with key that is quoted",

@@ -3,8 +3,14 @@
   "timestamp" : 1581572088085,
   "path" : "query-validation-tests/delimited.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE INT> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE INT> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "select delimited value_format with TAB separated values using custom delimiter character",
@@ -62,7 +68,7 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, NAME STRING, VALUE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_DELIMITER='TAB', VALUE_FORMAT='DELIMITED');", "CREATE STREAM S2 AS SELECT\n  TEST.ID ID,\n  TEST.NAME NAME,\n  TEST.VALUE VALUE\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {
@@ -70,7 +76,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "TEST",
+        "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {

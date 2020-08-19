@@ -3,11 +3,26 @@
   "timestamp" : 1589910878008,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<ID VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<T_ID VARCHAR, T_ROWTIME BIGINT, T_K VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<TT_ID VARCHAR, TT_ROWTIME BIGINT, TT_K VARCHAR, TT_KSQL_COL_0 VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<TT_ID VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`K` STRING KEY, `ID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`T_ID` STRING KEY, `T_ID` STRING, `T_ROWTIME` BIGINT, `T_K` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`T_ID` STRING KEY, `TT_ID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K` STRING KEY, `ID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`TT_KSQL_COL_0` STRING KEY, `TT_ID` STRING, `TT_ROWTIME` BIGINT, `TT_K` STRING, `TT_KSQL_COL_0` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream stream join - contains function",
@@ -50,6 +65,14 @@
     "statements" : [ "CREATE STREAM TEST1 (K STRING KEY, ID varchar) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM TEST2 (K STRING KEY, ID varchar) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT T.ID, tt.ID FROM test1 t join test2 tt WITHIN 30 SECONDS ON t.id = SUBSTRING(tt.id, 2);" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`T_ID` STRING KEY, `TT_ID` STRING",
@@ -59,14 +82,6 @@
         "serdeOptions" : [ ]
       }, {
         "name" : "TEST1",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "TEST2",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` STRING",
         "keyFormat" : {

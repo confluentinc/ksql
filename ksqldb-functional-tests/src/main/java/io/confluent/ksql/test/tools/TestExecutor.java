@@ -18,6 +18,7 @@ package io.confluent.ksql.test.tools;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
 
@@ -44,6 +45,7 @@ import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
+import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
@@ -59,6 +61,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -302,15 +305,23 @@ public class TestExecutor implements Closeable {
               + "THIS IS BAD!",
           actualTopology, is(expectedTopology));
 
-      final Map<String, String> generated = testCase.getGeneratedSchemas();
-      for (final Map.Entry<String, String> e : expected.getSchemas().entrySet()) {
+      final Map<String, SchemaNode> generatedSchemas =
+          testCase.getGeneratedSchemas().entrySet().stream()
+              .collect(Collectors.toMap(
+                  Entry::getKey,
+                  e -> SchemaNode.fromPhysicalSchema(e.getValue())));
+      for (final Map.Entry<String, SchemaNode> e : expected.getSchemas().entrySet()) {
         assertThat("Schemas used by topology differ "
                 + "from those used by previous versions"
                 + " of KSQL - this is likely to mean there is a non-backwards compatible change."
                 + "\n"
                 + "THIS IS BAD!",
-            generated, hasEntry(e.getKey(), e.getValue()));
+            generatedSchemas, hasEntry(e.getKey(), e.getValue()));
       }
+      assertThat("Number of schemas generated from topology does not match that from previous "
+              + "versions of KSQL - this likely means there is a non-backwards compatible change.\n"
+              + "THIS IS BAD!",
+          generatedSchemas.entrySet(), hasSize(expected.getSchemas().size()));
     });
   }
 

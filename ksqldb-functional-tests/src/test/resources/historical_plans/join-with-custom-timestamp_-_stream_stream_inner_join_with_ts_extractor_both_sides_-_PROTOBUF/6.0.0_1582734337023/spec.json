@@ -3,11 +3,26 @@
   "timestamp" : 1582734337023,
   "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
-    "CSAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 VARCHAR, RTS BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_S2_0.Join.Left" : "STRUCT<S1_ID BIGINT, S1_NAME VARCHAR, S1_TS BIGINT, S1_ROWTIME BIGINT, S1_ROWKEY BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_S2_0.Join.Right" : "STRUCT<S2_ID BIGINT, S2_F1 VARCHAR, S2_F2 VARCHAR, S2_RTS BIGINT, S2_ROWTIME BIGINT, S2_ROWKEY BIGINT> NOT NULL",
-    "CSAS_S1_JOIN_S2_0.S1_JOIN_S2" : "STRUCT<ID BIGINT, NAME VARCHAR, TS BIGINT, F1 VARCHAR, F2 VARCHAR> NOT NULL"
+    "CSAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_S2_0.Join.Right" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S2_ID` BIGINT, `S2_F1` STRING, `S2_F2` STRING, `S2_RTS` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_S2_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S1_ID` BIGINT, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_S2_0.S1_JOIN_S2" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream stream inner join with ts extractor both sides - PROTOBUF",
@@ -113,9 +128,9 @@
     "statements" : [ "CREATE STREAM S1 (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, TS BIGINT) WITH (KAFKA_TOPIC='s1', KEY='ID', TIMESTAMP='TS', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM S2 (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING, F2 STRING, RTS BIGINT) WITH (KAFKA_TOPIC='s2', KEY='ID', TIMESTAMP='RTS', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM S1_JOIN_S2 WITH (TIMESTAMP='TS') AS SELECT\n  S1.ID ID,\n  S1.NAME NAME,\n  S1.TS TS,\n  S2.F1 F1,\n  S2.F2 F2\nFROM S1 S1\nINNER JOIN S2 S2 WITHIN 11 SECONDS ON ((S1.ID = S2.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
+        "name" : "S1_JOIN_S2",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -129,9 +144,9 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "S1_JOIN_S2",
+        "name" : "S2",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

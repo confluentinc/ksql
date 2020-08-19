@@ -3,8 +3,14 @@
   "timestamp" : 1588893935970,
   "path" : "query-validation-tests/key-field.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO0 INT, FOO1 INT, FOO2 INT, FOO3 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` INTEGER KEY, `FOO0` INTEGER, `FOO1` INTEGER, `FOO2` INTEGER, `FOO3` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "multiple copies of key field in projection",
@@ -38,17 +44,17 @@
     "statements" : [ "CREATE STREAM INPUT (K INT KEY, foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, foo as foo0, foo as foo1, AS_VALUE(K) as foo2, AS_VALUE(K) as foo3 FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`K` INTEGER KEY, `FOO0` INTEGER, `FOO1` INTEGER, `FOO2` INTEGER, `FOO3` INTEGER",
+        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "schema" : "`K` INTEGER KEY, `FOO0` INTEGER, `FOO1` INTEGER, `FOO2` INTEGER, `FOO3` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

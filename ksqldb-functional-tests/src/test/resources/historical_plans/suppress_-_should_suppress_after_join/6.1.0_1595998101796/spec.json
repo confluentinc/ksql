@@ -3,11 +3,26 @@
   "timestamp" : 1595998101796,
   "path" : "query-validation-tests/suppress.json",
   "schemas" : {
-    "CTAS_OUTPUT_1.KsqlTopic.Source" : "STRUCT<L_B INT, L_C INT, R_A INT, R_B INT, R_C INT> NOT NULL",
-    "CTAS_OUTPUT_1.Aggregate.GroupBy" : "STRUCT<L_A INT, ROWTIME BIGINT> NOT NULL",
-    "CTAS_OUTPUT_1.Aggregate.Aggregate.Materialize" : "STRUCT<L_A INT, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_1.Suppress.Suppress" : "STRUCT<COUNT BIGINT> NOT NULL",
-    "CTAS_OUTPUT_1.OUTPUT" : "STRUCT<COUNT BIGINT> NOT NULL"
+    "CTAS_OUTPUT_1.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`L_A` INTEGER KEY, `L_A` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_1.KsqlTopic.Source" : {
+      "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_1.OUTPUT" : {
+      "schema" : "`L_A` INTEGER KEY, `COUNT` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_1.Aggregate.GroupBy" : {
+      "schema" : "`L_A` INTEGER KEY, `L_A` INTEGER, `ROWTIME` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_1.Suppress.Suppress" : {
+      "schema" : "`L_A` INTEGER KEY, `COUNT` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should suppress after join",
@@ -125,6 +140,14 @@
     "statements" : [ "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');", "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');", "CREATE STREAM JOINED_OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 1 SECONDS ON L.A = R.A;", "CREATE TABLE OUTPUT AS SELECT L_A, COUNT(*) as COUNT FROM JOINED_OUTPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY L_A EMIT FINAL;" ],
     "post" : {
       "sources" : [ {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`L_A` INTEGER KEY, `COUNT` BIGINT",
@@ -135,25 +158,17 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "L",
-        "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "R",
-        "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "JOINED_OUTPUT",
         "type" : "STREAM",
         "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

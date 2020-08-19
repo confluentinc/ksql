@@ -3,10 +3,22 @@
   "timestamp" : 1581572102116,
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
-    "CSAS_JOINED_0.KafkaTopic_Right.Source" : "STRUCT<with.dot VARCHAR> NOT NULL",
-    "CSAS_JOINED_0.KafkaTopic_Left.Source" : "STRUCT<SELECT VARCHAR, field! VARCHAR> NOT NULL",
-    "CSAS_JOINED_0.Join.Left" : "STRUCT<L_SELECT VARCHAR, L_field! VARCHAR, L_ROWTIME BIGINT, L_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_JOINED_0.JOINED" : "STRUCT<field! VARCHAR> NOT NULL"
+    "CSAS_JOINED_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `SELECT` STRING, `field!` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_JOINED_0.JOINED" : {
+      "schema" : "`ROWKEY` STRING KEY, `field!` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_JOINED_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_JOINED_0.Join.Left" : {
+      "schema" : "`ROWKEY` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "joins using fields that require quotes",
@@ -53,14 +65,6 @@
     "statements" : [ "CREATE STREAM L (`SELECT` STRING, `field!` STRING) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON');", "CREATE TABLE R (`with.dot` STRING) WITH (KAFKA_TOPIC='right_topic', KEY='`with.dot`', VALUE_FORMAT='JSON');", "CREATE STREAM JOINED AS SELECT L.`field!` `field!`\nFROM L L\nLEFT OUTER JOIN R R ON ((L.`SELECT` = R.`with.dot`))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "L",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `SELECT` STRING, `field!` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "R",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING",
@@ -72,6 +76,14 @@
         "name" : "JOINED",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `field!` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `SELECT` STRING, `field!` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

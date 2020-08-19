@@ -3,8 +3,14 @@
   "timestamp" : 1589910887720,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V0 VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<V0 VARCHAR, K VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `V0` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_0` BIGINT KEY, `V0` STRING, `K` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "with STRING -> BIGINT cast",
@@ -35,17 +41,17 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, V0 STRING) with (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS select * from INPUT partition by CAST(V0 AS BIGINT);" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`KSQL_COL_0` BIGINT KEY, `V0` STRING, `K` STRING",
+        "schema" : "`K` STRING KEY, `V0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `V0` STRING",
+        "schema" : "`KSQL_COL_0` BIGINT KEY, `V0` STRING, `K` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },

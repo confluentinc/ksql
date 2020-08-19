@@ -3,10 +3,22 @@
   "timestamp" : 1581572096849,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL",
-    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT> NOT NULL",
-    "CSAS_INNER_JOIN_0.Join.Left" : "STRUCT<T_ID BIGINT, T_NAME VARCHAR, T_VALUE BIGINT, T_ROWTIME BIGINT, T_ROWKEY BIGINT> NOT NULL",
-    "CSAS_INNER_JOIN_0.INNER_JOIN" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE BIGINT, F1 VARCHAR, F2 BIGINT> NOT NULL"
+    "CSAS_INNER_JOIN_0.INNER_JOIN" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_INNER_JOIN_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "join using ROWKEY in the criteria - right rowkey in projection",

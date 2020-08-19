@@ -3,11 +3,26 @@
   "timestamp" : 1589910868979,
   "path" : "query-validation-tests/identifiers.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<BAR INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<BAR INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<I1_BAR INT, I1_ROWTIME BIGINT, I1_FOO INT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<INPUT_2_BAR INT, INPUT_2_ROWTIME BIGINT, INPUT_2_FOO INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<I1_BAR INT, INPUT_2_BAR INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`I1_FOO` INTEGER KEY, `I1_BAR` INTEGER, `I1_ROWTIME` BIGINT, `I1_FOO` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`I1_FOO` INTEGER KEY, `I1_BAR` INTEGER, `INPUT_2_BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`INPUT_2_FOO` INTEGER KEY, `INPUT_2_BAR` INTEGER, `INPUT_2_ROWTIME` BIGINT, `INPUT_2_FOO` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "aliased left unaliased right",
@@ -56,7 +71,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT_2",
+        "name" : "INPUT_1",
         "type" : "STREAM",
         "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER",
         "keyFormat" : {
@@ -64,7 +79,7 @@
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT_1",
+        "name" : "INPUT_2",
         "type" : "STREAM",
         "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER",
         "keyFormat" : {

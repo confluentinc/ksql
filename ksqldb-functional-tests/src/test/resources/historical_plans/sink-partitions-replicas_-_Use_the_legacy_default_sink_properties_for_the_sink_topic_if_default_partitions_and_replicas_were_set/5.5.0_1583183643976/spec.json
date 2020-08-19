@@ -3,8 +3,14 @@
   "timestamp" : 1583183643976,
   "path" : "query-validation-tests/sink-partitions-replicas.json",
   "schemas" : {
-    "CSAS_S_0.KsqlTopic.Source" : "STRUCT<C1 INT> NOT NULL",
-    "CSAS_S_0.S" : "STRUCT<C1 INT> NOT NULL"
+    "CSAS_S_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `C1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S_0.S" : {
+      "schema" : "`ROWKEY` STRING KEY, `C1` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "Use the legacy default sink properties for the sink topic if default partitions and replicas were set",

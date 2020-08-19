@@ -3,8 +3,14 @@
   "timestamp" : 1588893901952,
   "path" : "query-validation-tests/binary-comparison.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<B BIGINT, C DOUBLE, D DECIMAL(4, 3), E VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 BOOLEAN, KSQL_COL_1 BOOLEAN, KSQL_COL_2 BOOLEAN, KSQL_COL_3 BOOLEAN, KSQL_COL_4 BOOLEAN> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` BIGINT, `C` DOUBLE, `D` DECIMAL(4, 3), `E` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` BOOLEAN",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "less than",
@@ -60,17 +66,17 @@
     "statements" : [ "CREATE STREAM INPUT (A INT KEY, B BIGINT, C DOUBLE, D DECIMAL(4,3), E STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT A, A < 1, B < 11, C < 1.1, D < 1.20, E < 'foo' FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` BOOLEAN",
+        "schema" : "`A` INTEGER KEY, `B` BIGINT, `C` DOUBLE, `D` DECIMAL(4, 3), `E` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `B` BIGINT, `C` DOUBLE, `D` DECIMAL(4, 3), `E` STRING",
+        "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
         },

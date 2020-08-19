@@ -3,8 +3,14 @@
   "timestamp" : 1582734342024,
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, EVENT_TS BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<EVENT_TS BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `EVENT_TS` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "timestamp column of source should not influence sink",
@@ -50,17 +56,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT, EVENT_TS BIGINT) WITH (KAFKA_TOPIC='test_topic', TIMESTAMP='EVENT_TS', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT INPUT.ID EVENT_TS\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `EVENT_TS` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` BIGINT",
+        "schema" : "`ROWKEY` STRING KEY, `EVENT_TS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

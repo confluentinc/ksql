@@ -3,8 +3,14 @@
   "timestamp" : 1590712166450,
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 ARRAY<STRUCT<A INT>>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<STRUCT<`A` INTEGER>>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "duplicate structs in array",
@@ -38,17 +44,17 @@
     "statements" : [ "CREATE STREAM INPUT (id VARCHAR) WITH (kafka_topic='test',value_format='json',partitions=1);", "CREATE STREAM OUTPUT AS SELECT ROWKEY id, array[struct(a:=123),struct(a:=123)] from INPUT emit changes;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<STRUCT<`A` INTEGER>>",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<STRUCT<`A` INTEGER>>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

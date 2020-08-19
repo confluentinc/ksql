@@ -3,10 +3,22 @@
   "timestamp" : 1585182026503,
   "path" : "query-validation-tests/window-bounds.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<IGNORED INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ROWKEY INT, KSQL_INTERNAL_COL_1 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ROWKEY INT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<COUNT BIGINT, WSTART BIGINT, WEND BIGINT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `COUNT` BIGINT, `WSTART` BIGINT, `WEND` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "windowed group by - non-aggregate window bounds in SELECT",
@@ -81,6 +93,14 @@
     "statements" : [ "CREATE STREAM INPUT (ROWKEY INTEGER KEY, IGNORED INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  COUNT(1) COUNT,\n  INPUT.WINDOWSTART WSTART,\n  INPUT.WINDOWEND WEND\nFROM INPUT INPUT\nWINDOW TUMBLING ( SIZE 1 SECONDS ) \nGROUP BY INPUT.ROWKEY\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `COUNT` BIGINT, `WSTART` BIGINT, `WEND` BIGINT",
@@ -88,14 +108,6 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 1000
-        },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       } ],

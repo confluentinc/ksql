@@ -3,8 +3,14 @@
   "timestamp" : 1581572100956,
   "path" : "query-validation-tests/math.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V DECIMAL(33, 16)> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<R0 DECIMAL(17, 0), R00 DECIMAL(33, 16), R1 DECIMAL(33, 16), R2 DECIMAL(33, 16), R10 DECIMAL(33, 16), 1R DECIMAL(33, 16), 2R DECIMAL(33, 16)> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `V` DECIMAL(33, 16)",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `R0` DECIMAL(17, 0), `R00` DECIMAL(33, 16), `R1` DECIMAL(33, 16), `R2` DECIMAL(33, 16), `R10` DECIMAL(33, 16), `1R` DECIMAL(33, 16), `2R` DECIMAL(33, 16)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "round with large DECIMAL values",

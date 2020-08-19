@@ -3,8 +3,14 @@
   "timestamp" : 1589910887366,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ADDRESS STRUCT<STREET VARCHAR, TOWN VARCHAR>, AGE INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT, AGE INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `AGE` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "struct field - with alias",
@@ -39,17 +45,17 @@
     "statements" : [ "CREATE STREAM INPUT (ID INT KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>, AGE INT) with (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS select ADDRESS->TOWN AS K, ID, AGE from INPUT partition by ADDRESS->TOWN;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
+        "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` INTEGER, `AGE` INTEGER",
+        "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "serdeOptions" : [ ]
       }, {
-        "name" : "INPUT",
+        "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER",
+        "schema" : "`K` STRING KEY, `ID` INTEGER, `AGE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },

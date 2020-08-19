@@ -3,8 +3,14 @@
   "timestamp" : 1588893908517,
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
-    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR> NOT NULL",
-    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : "STRUCT<S STRUCT< >> NOT NULL"
+    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : {
+      "schema" : "`ID` STRING KEY, `S` STRUCT< >",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "empty struct creation",

@@ -3,10 +3,22 @@
   "timestamp" : 1588893913637,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V1 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<V0 INT, V1 INT, KSQL_INTERNAL_COL_2 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<V0 INT, V1 INT, KSQL_AGG_VARIABLE_0 INT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<SUM INT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `V0` INTEGER, `V1` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`V0` INTEGER KEY, `V1` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `V0` INTEGER, `V1` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `SUM` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "complex UDAF params matching HAVING",

@@ -3,8 +3,14 @@
   "timestamp" : 1581572087788,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
-    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<A DECIMAL(4, 2), B DECIMAL(4, 2)> NOT NULL",
-    "CSAS_TEST2_0.TEST2" : "STRUCT<RESULT BOOLEAN> NOT NULL"
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ROWKEY` STRING KEY, `RESULT` BOOLEAN",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "less than - decimal decimal",

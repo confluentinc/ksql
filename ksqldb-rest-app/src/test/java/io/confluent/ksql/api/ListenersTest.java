@@ -33,6 +33,8 @@ import org.junit.Test;
 
 public class ListenersTest extends BaseApiTest {
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
+
   @Test
   public void shouldSupportOneListener() {
     //Given:
@@ -129,15 +131,15 @@ public class ListenersTest extends BaseApiTest {
         "Invalid listener URI"));
   }
 
-  private KsqlRestConfig createConfig(String listeners, boolean tls) {
+  private static KsqlRestConfig createConfig(String listeners, boolean tls) {
     Map<String, Object> config = new HashMap<>();
     config.put(KsqlRestConfig.LISTENERS_CONFIG, listeners);
     config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
 
     if (tls) {
-      String keyStorePath = ServerKeyStore.keyStoreProps()
+      String keyStorePath = SERVER_KEY_STORE.keyStoreProps()
           .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-      String keyStorePassword = ServerKeyStore.keyStoreProps()
+      String keyStorePassword = SERVER_KEY_STORE.keyStoreProps()
           .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
 
       config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath);
@@ -151,5 +153,4 @@ public class ListenersTest extends BaseApiTest {
     stopServer();
     stopClient();
   }
-
 }

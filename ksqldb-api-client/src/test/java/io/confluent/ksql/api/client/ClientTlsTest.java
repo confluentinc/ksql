@@ -22,26 +22,23 @@ import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import javax.net.ssl.SSLHandshakeException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClientTlsTest extends ClientTest {
 
-  protected static final Logger log = LoggerFactory.getLogger(ClientTlsTest.class);
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
-  protected static final String TRUST_STORE_PATH = ServerKeyStore.keyStoreProps()
+  protected static final String TRUST_STORE_PATH = SERVER_KEY_STORE.keyStoreProps()
       .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-  protected static final String TRUST_STORE_PASSWORD = ServerKeyStore.keyStoreProps()
+  protected static final String TRUST_STORE_PASSWORD = SERVER_KEY_STORE.keyStoreProps()
       .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-  protected static final String KEY_STORE_PATH = ServerKeyStore.keyStoreProps()
+  protected static final String KEY_STORE_PATH = SERVER_KEY_STORE.keyStoreProps()
       .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-  protected static final String KEY_STORE_PASSWORD = ServerKeyStore.keyStoreProps()
+  protected static final String KEY_STORE_PASSWORD = SERVER_KEY_STORE.keyStoreProps()
       .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
 
   @Override

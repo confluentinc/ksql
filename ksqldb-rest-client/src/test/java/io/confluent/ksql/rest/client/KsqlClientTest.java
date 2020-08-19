@@ -44,7 +44,6 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -71,6 +70,8 @@ import org.junit.Test;
 import org.reactivestreams.Subscription;
 
 public class KsqlClientTest {
+
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
   private Vertx vertx;
   private FakeApiServer server;
@@ -731,9 +732,9 @@ public class KsqlClientTest {
         .setHost("localhost")
         .setSsl(true)
         .setKeyStoreOptions(new JksOptions()
-            .setPath(ServerKeyStore.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+            .setPath(SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
             .setPassword(
-                ServerKeyStore.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
+                SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
 
     startServer(serverOptions);
     serverUri = URI.create("https://localhost:" + server.getPort());

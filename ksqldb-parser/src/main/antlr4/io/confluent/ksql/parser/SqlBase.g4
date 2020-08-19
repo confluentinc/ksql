@@ -358,7 +358,7 @@ nonReserved
     | FINAL
     | ESCAPE
     | REPLACE
-    | ASSERT | OFFSET
+    | ASSERT
     ;
 
 EMIT: 'EMIT';

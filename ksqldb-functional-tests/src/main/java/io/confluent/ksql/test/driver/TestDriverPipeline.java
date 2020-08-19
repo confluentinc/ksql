@@ -111,13 +111,18 @@ public class TestDriverPipeline {
   private final ListMultimap<String, Input> inputs;
   private final ListMultimap<String, Output> outputs;
   private final ListMultimap<String, TestRecord<Struct, GenericRow>> outputCache;
-  private final Map<String, Iterator<TestRecord<Struct, GenericRow>>> outputIterators;
+
+  // this map indexes into the outputCache to track which records we've already
+  // read - we don't need to worry about concurrent modification while iterating
+  // because appends only happen at the end of the outputCache
+  private final Map<String, Integer> assertPositions;
 
   public TestDriverPipeline() {
     inputs = ArrayListMultimap.create();
     outputs = ArrayListMultimap.create();
     outputCache = ArrayListMultimap.create();
-    outputIterators = new HashMap<>();
+
+    assertPositions = new HashMap<>();
   }
 
   public void addDriver(
@@ -182,7 +187,7 @@ public class TestDriverPipeline {
     for (final Input input : inputs) {
       input.topic.pipeInput(key, value, timestampMs);
 
-      // handle the fallout of piping in a record (propegation)
+      // handle the fallout of piping in a record (propagation)
       for (final Output receiver : input.receivers) {
         for (final TestRecord<Struct, GenericRow> record : receiver.topic.readRecordsToList()) {
           outputCache.put(receiver.name, record);
@@ -207,7 +212,19 @@ public class TestDriverPipeline {
   }
 
   public Iterator<TestRecord<Struct, GenericRow>> getRecordsForTopic(final String topic) {
-    return outputIterators.computeIfAbsent(topic, name -> outputCache.get(topic).iterator());
+    return new Iterator<TestRecord<Struct, GenericRow>>() {
+      @Override
+      public boolean hasNext() {
+        final int idx = assertPositions.getOrDefault(topic, 0);
+        return outputCache.get(topic).size() > idx;
+      }
+
+      @Override
+      public TestRecord<Struct, GenericRow> next() {
+        final int idx = assertPositions.merge(topic, 0, (old, zero) -> old + 1);
+        return outputCache.get(topic).get(idx);
+      }
+    };
   }
 
 }

@@ -144,6 +144,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return physicalPlan;
   }
 
+  public DataSource getSink() {
+    return sinkDataSource;
+  }
+
   @VisibleForTesting
   Optional<MaterializationProvider> getMaterializationProvider() {
     return materializationProvider;

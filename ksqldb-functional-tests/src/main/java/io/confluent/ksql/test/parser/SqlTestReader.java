@@ -78,7 +78,7 @@ public final class SqlTestReader implements Iterator<TestStatement> {
   }
 
   /**
-   * @param file     the test file
+   * @param file the test file
    */
   public static SqlTestReader of(
       final Path file
@@ -128,7 +128,8 @@ public final class SqlTestReader implements Iterator<TestStatement> {
       cachedStatement = true;
     }
 
-    // if there's no cachedStatement at this point, we've hit EOF
+    // if there's no cachedStatement at this point, then all that's left is the directives
+    // so we can just use EOF (tks.size()) as our stopping point
     final int currIdx = cachedStatement ? testStatement.getStart().getTokenIndex() : tks.size();
     while (directiveIdx < currIdx) {
       final Token tok = tks.get(directiveIdx++);

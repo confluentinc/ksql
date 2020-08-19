@@ -57,6 +57,10 @@ public class TestDirective {
     return contents;
   }
 
+  public NodeLocation getLocation() {
+    return location;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -79,21 +83,13 @@ public class TestDirective {
 
   @Override
   public String toString() {
-    return "TestDirective{"
-        + "type=" + type
-        + ", contents='" + contents + '\''
-        + '}';
-  }
-
-  public NodeLocation getLocation() {
-    return location;
+    return "--@" + type.getTypeName() + ": " + contents;
   }
 
   public enum Type {
     TEST("test"),
     EXPECTED_ERROR("expected.error"),
     EXPECTED_MESSAGE("expected.message"),
-    ENABLED("enabled"),
     UNKNOWN("UNKNOWN")
     ;
 

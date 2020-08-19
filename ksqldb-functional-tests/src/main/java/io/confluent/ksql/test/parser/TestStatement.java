@@ -17,9 +17,10 @@ package io.confluent.ksql.test.parser;
 
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.AssertStatement;
-import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -71,7 +72,7 @@ public final class TestStatement {
     }
   }
 
-  public void handle(
+  public void consume(
       final Consumer<ParsedStatement> parsedStatementConsumer,
       final Consumer<AssertStatement> assertStatementConsumer,
       final Consumer<TestDirective> testDirectiveConsumer
@@ -85,40 +86,28 @@ public final class TestStatement {
     }
   }
 
-  public boolean hasEngineStatement() {
-    return engineStatement != null;
-  }
-
-  public ParsedStatement getEngineStatement() {
-    if (!hasEngineStatement()) {
-      throw new NoSuchElementException("engineStatement");
+  public <T> T apply(
+      final Function<ParsedStatement, T> parsedStatementFunction,
+      final Function<AssertStatement, T> assertStatementFunction,
+      final Function<TestDirective, T> testDirectiveFunction
+  ) {
+    if (engineStatement != null) {
+      return parsedStatementFunction.apply(engineStatement);
+    } else if (assertStatement != null) {
+      return assertStatementFunction.apply(assertStatement);
+    } else if (directive != null) {
+      return testDirectiveFunction.apply(directive);
     }
 
-    return engineStatement;
+    throw new IllegalStateException("Should not happen if TestStatement is properly implemented");
   }
 
-  public boolean hasAssertStatement() {
-    return assertStatement != null;
-  }
-
-  public AssertStatement getAssertStatement() {
-    if (!hasAssertStatement()) {
-      throw new NoSuchElementException("assertStatement");
+  public <T> Optional<T> consumeDirective(final Function<TestDirective, T> fun) {
+    if (directive == null) {
+      return Optional.empty();
     }
 
-    return assertStatement;
-  }
-
-  public boolean hasDirective() {
-    return directive != null;
-  }
-
-  public TestDirective getDirective() {
-    if (!hasDirective()) {
-      throw new NoSuchElementException("directive");
-    }
-
-    return directive;
+    return Optional.ofNullable(fun.apply(directive));
   }
 
   @Override

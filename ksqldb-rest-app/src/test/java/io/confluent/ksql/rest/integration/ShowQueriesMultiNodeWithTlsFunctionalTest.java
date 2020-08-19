@@ -42,6 +42,8 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class ShowQueriesMultiNodeWithTlsFunctionalTest {
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
+
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
@@ -51,14 +53,14 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG,
           "http://localhost:8088,https://localhost:8189")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8189")
-      .withProperties(ServerKeyStore.keyStoreProps())
+      .withProperties(SERVER_KEY_STORE.keyStoreProps())
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG,
           "http://localhost:8098,https://localhost:8199")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8199")
-      .withProperties(ServerKeyStore.keyStoreProps())
+      .withProperties(SERVER_KEY_STORE.keyStoreProps())
       .build();
 
   @ClassRule

@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.test.model.LocationWithinFile;
 import io.confluent.ksql.test.parser.TestDirective;
 import io.confluent.ksql.test.parser.TestStatement;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -33,7 +34,7 @@ import java.util.Optional;
  * to automatically populate the statement that produced it as well as the
  * location in the file.
  */
-public class KsqlTestException extends AssertionError {
+public class KsqlTestException extends KsqlException {
 
   public KsqlTestException(
       final TestStatement statement,
@@ -72,7 +73,7 @@ public class KsqlTestException extends AssertionError {
         parsedStatement.getStatement());
 
     return String.format(
-        "Test failure for statement `%s` (%s):\n\t%s\n\t%s",
+        "Test failure for statement `%s` (%s):%n\t%s%n\t%s",
         parsedStatement.getStatementText(),
         loc.map(NodeLocation::toString).orElse("unknown"),
         message,

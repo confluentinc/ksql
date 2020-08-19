@@ -116,6 +116,16 @@
       }
     },
     {
+      "name": "WRAP_SINGLE_VALUE=false",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='PROTOBUF');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'WRAP_SINGLE_VALUE' can not be set to 'false' for 'PROTOBUF' as it does not support unwrapping"
+      }
+    },
+    {
       "name": "should convert enum to STRING",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",

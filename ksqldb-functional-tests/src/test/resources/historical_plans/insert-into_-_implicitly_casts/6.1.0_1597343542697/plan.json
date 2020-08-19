@@ -1,0 +1,141 @@
+{
+  "plan" : [ {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM SOURCE (IGNORED STRING) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='AVRO');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "SOURCE",
+      "schema" : "`IGNORED` STRING",
+      "topicName" : "source",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        }
+      },
+      "orReplace" : false
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM TARGET (C1 DECIMAL(5, 2), C2 DECIMAL(5, 2)) WITH (KAFKA_TOPIC='target', VALUE_FORMAT='AVRO');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "TARGET",
+      "schema" : "`C1` DECIMAL(5, 2), `C2` DECIMAL(5, 2)",
+      "topicName" : "target",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : {
+          "format" : "AVRO"
+        }
+      },
+      "orReplace" : false
+    }
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "INSERT INTO TARGET SELECT\n  1 C1,\n  2.0 C2\nFROM SOURCE SOURCE\nEMIT CHANGES",
+    "queryPlan" : {
+      "sources" : [ "SOURCE" ],
+      "sink" : "TARGET",
+      "physicalPlan" : {
+        "@type" : "streamSinkV1",
+        "properties" : {
+          "queryContext" : "TARGET"
+        },
+        "source" : {
+          "@type" : "streamSelectV1",
+          "properties" : {
+            "queryContext" : "Project"
+          },
+          "source" : {
+            "@type" : "streamSourceV1",
+            "properties" : {
+              "queryContext" : "KsqlTopic/Source"
+            },
+            "topicName" : "source",
+            "formats" : {
+              "keyFormat" : {
+                "format" : "KAFKA"
+              },
+              "valueFormat" : {
+                "format" : "AVRO"
+              }
+            },
+            "sourceSchema" : "`IGNORED` STRING"
+          },
+          "selectExpressions" : [ "1.00 AS C1", "2.00 AS C2" ]
+        },
+        "formats" : {
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          }
+        },
+        "topicName" : "target"
+      },
+      "queryId" : "INSERTQUERY_0"
+    }
+  } ],
+  "configs" : {
+    "ksql.extension.dir" : "ext",
+    "ksql.streams.cache.max.bytes.buffering" : "0",
+    "ksql.security.extension.class" : null,
+    "metric.reporters" : "",
+    "ksql.transient.prefix" : "transient_",
+    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+    "ksql.output.topic.name.prefix" : "",
+    "ksql.query.pull.enable.standby.reads" : "false",
+    "ksql.streams.max.task.idle.ms" : "0",
+    "ksql.query.error.max.queue.size" : "10",
+    "ksql.internal.topic.min.insync.replicas" : "1",
+    "ksql.streams.shutdown.timeout.ms" : "300000",
+    "ksql.internal.topic.replicas" : "1",
+    "ksql.insert.into.values.enabled" : "true",
+    "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
+    "ksql.query.pull.max.qps" : "2147483647",
+    "ksql.access.validator.enable" : "auto",
+    "ksql.streams.bootstrap.servers" : "localhost:0",
+    "ksql.query.pull.metrics.enabled" : "false",
+    "ksql.create.or.replace.enabled" : "false",
+    "ksql.metrics.extension" : null,
+    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.cast.strings.preserve.nulls" : "true",
+    "ksql.authorization.cache.max.entries" : "10000",
+    "ksql.pull.queries.enable" : "true",
+    "ksql.suppress.enabled" : "true",
+    "ksql.sink.window.change.log.additional.retention" : "1000000",
+    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.query.persistent.active.limit" : "2147483647",
+    "ksql.persistence.wrap.single.values" : "true",
+    "ksql.authorization.cache.expiry.time.secs" : "30",
+    "ksql.query.retry.backoff.initial.ms" : "15000",
+    "ksql.suppress.buffer.size" : "-1",
+    "ksql.schema.registry.url" : "",
+    "ksql.properties.overrides.denylist" : "",
+    "ksql.streams.auto.offset.reset" : "earliest",
+    "ksql.connect.url" : "http://localhost:8083",
+    "ksql.service.id" : "some.ksql.service.id",
+    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+    "ksql.enable.metastore.backup" : "false",
+    "ksql.streams.commit.interval.ms" : "2000",
+    "ksql.streams.auto.commit.interval.ms" : "0",
+    "ksql.streams.topology.optimization" : "all",
+    "ksql.query.retry.backoff.max.ms" : "900000",
+    "ksql.streams.num.stream.threads" : "4",
+    "ksql.timestamp.throw.on.invalid" : "false",
+    "ksql.metrics.tags.custom" : "",
+    "ksql.udfs.enabled" : "true",
+    "ksql.udf.enable.security.manager" : "true",
+    "ksql.connect.worker.config" : "",
+    "ksql.udf.collect.metrics" : "false",
+    "ksql.persistent.prefix" : "query_",
+    "ksql.metastore.backup.location" : "",
+    "ksql.error.classifier.regex" : ""
+  }
+}

@@ -57,12 +57,19 @@ public class DefaultKsqlParser implements KsqlParser {
       final SqlBaseParser.StatementsContext statementsContext = getParseTree(sql);
 
       return statementsContext.singleStatement().stream()
-          .map(stmt -> ParsedStatement.of(getStatementString(stmt), stmt))
+          .map(DefaultKsqlParser::parsedStatement)
           .collect(Collectors.toList());
 
     } catch (final Exception e) {
       throw new ParseFailedException(e.getMessage(), sql, e);
     }
+  }
+
+  public static ParsedStatement parsedStatement(final SingleStatementContext statement) {
+    return ParsedStatement.of(
+        getStatementString(statement),
+        statement
+    );
   }
 
   @Override

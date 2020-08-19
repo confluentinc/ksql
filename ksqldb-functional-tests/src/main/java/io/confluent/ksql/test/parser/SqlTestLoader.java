@@ -17,7 +17,11 @@ package io.confluent.ksql.test.parser;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.test.KsqlTestException;
+import io.confluent.ksql.test.loader.TestLoader;
+import io.confluent.ksql.test.model.TestLocation;
+import io.confluent.ksql.test.parser.SqlTestLoader.SqlTest;
 import io.confluent.ksql.test.parser.TestDirective.Type;
+import io.confluent.ksql.test.tools.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,43 +31,45 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The {@code SqlTestLoader} loads the test files that should be run
  * by the Ksql testing tool based on a path and optional filters.
  */
-public class SqlTestLoader {
+public class SqlTestLoader implements TestLoader<SqlTest> {
 
-  private final Predicate<Test> shouldRun;
+  private final Predicate<SqlTest> shouldRun;
+  private final Path path;
 
-  public SqlTestLoader() {
-    this(t -> true);
+  public SqlTestLoader(final Path path) {
+    this(t -> true, path);
   }
 
   /**
    * @param testFilter filters out which tests to run
+   * @param path       the top-level dir to load
    */
-  public SqlTestLoader(final Predicate<Test> testFilter) {
+  public SqlTestLoader(final Predicate<SqlTest> testFilter, final Path path) {
     this.shouldRun = Objects.requireNonNull(testFilter, "testFilter");
+    this.path = Objects.requireNonNull(path, "path");
   }
 
-  /**
-   * @param path a directory containing all test files to run
-   *
-   * @return a list of tests to run
-   */
-  public List<Test> loadDirectory(final Path path) throws IOException {
-    final SqlTestLoader loader = new SqlTestLoader();
+  @Override
+  public Stream<SqlTest> load() throws IOException {
     final List<Path> files = Files
         .find(path, Integer.MAX_VALUE, (filePath, fileAttr) -> fileAttr.isRegularFile())
         .collect(Collectors.toList());
 
-    final ImmutableList.Builder<Test> builder = ImmutableList.builder();
+    final ImmutableList.Builder<SqlTest> builder = ImmutableList.builder();
+    final List<String> whiteList = TestLoader.getWhiteList();
     for (final Path file : files) {
-      builder.addAll(loader.loadTest(file));
+      if (whiteList.isEmpty() || whiteList.stream().anyMatch(file::endsWith)) {
+        builder.addAll(loadTest(file));
+      }
     }
 
-    return builder.build();
+    return builder.build().stream();
   }
 
   /**
@@ -71,8 +77,8 @@ public class SqlTestLoader {
    *
    * @return the list of tests to run
    */
-  public List<Test> loadTest(final Path path) throws IOException {
-    final ImmutableList.Builder<Test> builder = ImmutableList.builder();
+  public List<SqlTest> loadTest(final Path path) throws IOException {
+    final ImmutableList.Builder<SqlTest> builder = ImmutableList.builder();
 
     List<TestStatement> statements = null;
     String name = null;
@@ -87,7 +93,7 @@ public class SqlTestLoader {
       if (nextName.isPresent()) {
         // flush the previous test
         if (statements != null) {
-          builder.add(new Test(path, name, statements));
+          builder.add(new SqlTest(path, name, statements));
         }
 
         statements = new ArrayList<>();
@@ -99,7 +105,7 @@ public class SqlTestLoader {
       statements.add(statement);
     }
 
-    builder.add(new Test(path, name, statements));
+    builder.add(new SqlTest(path, name, statements));
     return builder.build().stream().filter(shouldRun).collect(ImmutableList.toImmutableList());
   }
 
@@ -107,13 +113,13 @@ public class SqlTestLoader {
    * Represents a tuple of (test name, file, test statements) that constitute a ksql
    * test.
    */
-  public static class Test {
+  public static class SqlTest implements Test {
 
     private final Path file;
     private final String name;
     private final List<TestStatement> statements;
 
-    public Test(final Path file, final String name, final List<TestStatement> statements) {
+    public SqlTest(final Path file, final String name, final List<TestStatement> statements) {
       this.file = file;
       this.name = name;
       this.statements = statements;
@@ -125,6 +131,11 @@ public class SqlTestLoader {
 
     public String getName() {
       return name;
+    }
+
+    @Override
+    public TestLocation getTestLocation() {
+      return () -> file;
     }
 
     public List<TestStatement> getStatements() {

@@ -50,6 +50,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.KsqlTestException;
 import io.confluent.ksql.test.driver.TestDriverPipeline.TopicInfo;
 import io.confluent.ksql.test.parser.SqlTestLoader;
+import io.confluent.ksql.test.parser.SqlTestLoader.SqlTest;
 import io.confluent.ksql.test.parser.TestDirective;
 import io.confluent.ksql.test.parser.TestStatement;
 import io.confluent.ksql.test.tools.TestFunctionRegistry;
@@ -115,10 +116,9 @@ public class KsqlTesterTest {
   @Parameterized.Parameters(name = "{0}")
   public static Object[][] data() throws IOException {
     final Path testDir = Paths.get(KsqlTesterTest.class.getResource(TEST_DIR).getFile());
-    final SqlTestLoader loader = new SqlTestLoader();
-    return loader.loadDirectory(testDir)
-        .stream()
-        .map(SqlTestLoader.Test::asObjectArray)
+    final SqlTestLoader loader = new SqlTestLoader(testDir);
+    return loader.load()
+        .map(SqlTest::asObjectArray)
         .toArray(Object[][]::new);
   }
 

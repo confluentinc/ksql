@@ -66,6 +66,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertTombstoneContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
@@ -94,6 +95,7 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
@@ -1262,6 +1264,31 @@ public class AstBuilder {
           visit(context.values().valueExpression(), Expression.class));
 
       return new AssertValues(targetLocation, insertValues);
+    }
+
+    @Override
+    public Node visitAssertTombstone(final AssertTombstoneContext context) {
+      final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
+      final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
+
+      final List<ColumnName> keyColumns;
+      if (context.columns() != null) {
+        keyColumns = context.columns().identifier()
+            .stream()
+            .map(ParserUtil::getIdentifierText)
+            .map(ColumnName::of)
+            .collect(Collectors.toList());
+      } else {
+        keyColumns = ImmutableList.of();
+      }
+
+      final InsertValues insertValues = new InsertValues(
+          targetLocation,
+          targetName,
+          keyColumns,
+          visit(context.values().valueExpression(), Expression.class));
+
+      return new AssertTombstone(targetLocation, insertValues);
     }
 
     @Override

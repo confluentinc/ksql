@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 import io.confluent.ksql.util.Pair;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,6 +100,8 @@ public class CommandRunnerTest {
   private Function<List<QueuedCommand>, List<QueuedCommand>> compactor;
   @Mock
   private Consumer<QueuedCommand> incompatibleCommandChecker;
+  @Mock
+  private Deserializer<Command> commandDeserializer;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
@@ -112,9 +115,9 @@ public class CommandRunnerTest {
     when(clusterTerminate.getStatement())
         .thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
 
-    when(queuedCommand1.getAndDeserializeCommand()).thenReturn(command);
-    when(queuedCommand2.getAndDeserializeCommand()).thenReturn(command);
-    when(queuedCommand3.getAndDeserializeCommand()).thenReturn(command);
+    when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    when(queuedCommand3.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand1);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);
@@ -135,7 +138,8 @@ public class CommandRunnerTest {
         "",
         clock,
         compactor,
-        incompatibleCommandChecker
+        incompatibleCommandChecker,
+        commandDeserializer
     );
   }
 
@@ -158,7 +162,7 @@ public class CommandRunnerTest {
   public void shouldRunThePriorCommandsWithTerminateCorrectly() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
-    when(queuedCommand1.getAndDeserializeCommand()).thenReturn(clusterTerminate);
+    when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.processPriorCommands();
@@ -176,7 +180,7 @@ public class CommandRunnerTest {
   public void shouldEarlyOutIfRestoreContainsTerminate() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
-    when(queuedCommand2.getAndDeserializeCommand()).thenReturn(clusterTerminate);
+    when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.processPriorCommands();
@@ -298,7 +302,7 @@ public class CommandRunnerTest {
   public void shouldEarlyOutIfNewCommandsContainsTerminate() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
-    when(queuedCommand2.getAndDeserializeCommand()).thenReturn(clusterTerminate);
+    when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.fetchAndRunCommands();

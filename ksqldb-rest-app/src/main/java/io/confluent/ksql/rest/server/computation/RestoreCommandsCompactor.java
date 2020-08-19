@@ -71,11 +71,13 @@ public final class RestoreCommandsCompactor {
       final QueuedCommand cmd = it.next();
 
       // Find known queries:
-      if (cmd.getAndDeserializeCommand().getPlan().isPresent()
-          && cmd.getAndDeserializeCommand().getPlan().get().getQueryPlan().isPresent()
+      final Command command =
+          cmd.getAndDeserializeCommand(InternalTopicSerdes.deserializer(Command.class));
+      if (command.getPlan().isPresent()
+          && command.getPlan().get().getQueryPlan().isPresent()
       ) {
         final QueryId queryId =
-            cmd.getAndDeserializeCommand().getPlan().get().getQueryPlan().get().getQueryId();
+            command.getPlan().get().getQueryPlan().get().getQueryId();
         queries.putIfAbsent(queryId, cmd);
       }
 
@@ -113,7 +115,8 @@ public final class RestoreCommandsCompactor {
   }
 
   private static Optional<QueuedCommand> buildNewCmdWithoutQuery(final QueuedCommand cmd) {
-    final Command command = cmd.getAndDeserializeCommand();
+    final Command command =
+        cmd.getAndDeserializeCommand(InternalTopicSerdes.deserializer(Command.class));
     if (!command.getPlan().isPresent() || !command.getPlan().get().getDdlCommand().isPresent()) {
       // No DDL command, so no command at all if we remove the query plan. (Likely INSERT INTO cmd).
       return Optional.empty();

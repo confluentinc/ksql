@@ -133,8 +133,10 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
           record.topic(),
           record.partition(),
           record.offset(),
-          InternalTopicSerdes.deserializer(CommandId.class).deserialize(record.topic(), record.key()),
-          InternalTopicSerdes.deserializer(Command.class).deserialize(record.topic(), record.value())
+          InternalTopicSerdes.deserializer(CommandId.class)
+              .deserialize(record.topic(), record.key()),
+          InternalTopicSerdes.deserializer(Command.class)
+              .deserialize(record.topic(), record.value())
       );
     } catch (Exception e) {
       LOG.error("Failed to deserialize command topic record when backing it up: {}:{}",

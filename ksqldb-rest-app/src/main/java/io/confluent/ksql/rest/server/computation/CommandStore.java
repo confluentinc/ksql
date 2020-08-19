@@ -50,6 +50,8 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +74,10 @@ public class CommandStore implements CommandQueue, Closeable {
   private final Duration commandQueueCatchupTimeout;
   private final Map<String, Object> kafkaConsumerProperties;
   private final Map<String, Object> kafkaProducerProperties;
+  private final Serializer<CommandId> commandIdSerializer;
+  private final Serializer<Command> commandSerializer;
+  private final Deserializer<CommandId> commandIdDeserializer;
+  
 
   public static final class Factory {
 
@@ -122,7 +128,10 @@ public class CommandStore implements CommandQueue, Closeable {
           new SequenceNumberFutureStore(),
           kafkaConsumerProperties,
           kafkaProducerProperties,
-          commandQueueCatchupTimeout
+          commandQueueCatchupTimeout,
+          InternalTopicSerdes.serializer(),
+          InternalTopicSerdes.serializer(),
+          InternalTopicSerdes.deserializer(CommandId.class)
       );
     }
   }
@@ -133,7 +142,10 @@ public class CommandStore implements CommandQueue, Closeable {
       final SequenceNumberFutureStore sequenceNumberFutureStore,
       final Map<String, Object> kafkaConsumerProperties,
       final Map<String, Object> kafkaProducerProperties,
-      final Duration commandQueueCatchupTimeout
+      final Duration commandQueueCatchupTimeout,
+      final Serializer<CommandId> commandIdSerializer,
+      final Serializer<Command> commandSerializer,
+      final Deserializer<CommandId> commandIdDeserializer
   ) {
     this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandStatusMap = Maps.newConcurrentMap();
@@ -146,6 +158,12 @@ public class CommandStore implements CommandQueue, Closeable {
     this.kafkaProducerProperties =
         Objects.requireNonNull(kafkaProducerProperties, "kafkaProducerProperties");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
+    this.commandIdSerializer =
+        Objects.requireNonNull(commandIdSerializer, "commandIdSerializer");
+    this.commandSerializer =
+        Objects.requireNonNull(commandSerializer, "commandSerializer");
+    this.commandIdDeserializer =
+        Objects.requireNonNull(commandIdDeserializer, "commandIdDeserializer");
   }
 
   @Override
@@ -224,9 +242,7 @@ public class CommandStore implements CommandQueue, Closeable {
         Optional<CommandStatusFuture> commandStatusFuture = Optional.empty();
         try {
           final CommandId commandId =
-              InternalTopicSerdes
-                  .deserializer(CommandId.class)
-                  .deserialize(commandTopicName, record.key());
+              commandIdDeserializer.deserialize(commandTopicName, record.key());
           commandStatusFuture = Optional.ofNullable(commandStatusMap.remove(commandId));
         } catch (Exception e) {
           LOG.warn(
@@ -280,8 +296,8 @@ public class CommandStore implements CommandQueue, Closeable {
   public Producer<CommandId, Command> createTransactionalProducer() {
     return new KafkaProducer<>(
         kafkaProducerProperties,
-        InternalTopicSerdes.serializer(),
-        InternalTopicSerdes.serializer()
+        commandIdSerializer,
+        commandSerializer
     );
   }
 

@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +74,7 @@ public class CommandRunner implements Closeable {
   private final Duration commandRunnerHealthTimeout;
   private final Clock clock;
 
+  private final Deserializer<Command> commandDeserializer;
   private final Consumer<QueuedCommand> incompatibleCommandChecker;
   private boolean deserializationErrorThrown;
 
@@ -90,7 +92,8 @@ public class CommandRunner implements Closeable {
       final ServerState serverState,
       final String ksqlServiceId,
       final Duration commandRunnerHealthTimeout,
-      final String metricsGroupPrefix
+      final String metricsGroupPrefix,
+      final Deserializer<Command> commandDeserializer
   ) {
     this(
         statementExecutor,
@@ -106,8 +109,9 @@ public class CommandRunner implements Closeable {
         RestoreCommandsCompactor::compact,
         queuedCommand -> {
           queuedCommand.getAndDeserializeCommandId();
-          queuedCommand.getAndDeserializeCommand();
-        }
+          queuedCommand.getAndDeserializeCommand(commandDeserializer);
+        },
+        commandDeserializer
     );
   }
 
@@ -125,7 +129,8 @@ public class CommandRunner implements Closeable {
       final String metricsGroupPrefix,
       final Clock clock,
       final Function<List<QueuedCommand>, List<QueuedCommand>> compactor,
-      final Consumer<QueuedCommand> incompatibleCommandChecker
+      final Consumer<QueuedCommand> incompatibleCommandChecker,
+      final Deserializer<Command> commandDeserializer
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
@@ -144,6 +149,8 @@ public class CommandRunner implements Closeable {
     this.compactor = Objects.requireNonNull(compactor, "compactor");
     this.incompatibleCommandChecker =
         Objects.requireNonNull(incompatibleCommandChecker, "incompatibleCommandChecker");
+    this.commandDeserializer =
+        Objects.requireNonNull(commandDeserializer, "commandDeserializer");
     this.deserializationErrorThrown = false;
   }
 
@@ -190,10 +197,11 @@ public class CommandRunner implements Closeable {
 
       LOG.info("Restoring previous state from {} commands.", compatibleCommands.size());
 
-      final Optional<QueuedCommand> terminateCmd = findTerminateCommand(compatibleCommands);
+      final Optional<QueuedCommand> terminateCmd =
+          findTerminateCommand(compatibleCommands, commandDeserializer);
       if (terminateCmd.isPresent()) {
         LOG.info("Cluster previously terminated: terminating.");
-        terminateCluster(terminateCmd.get().getAndDeserializeCommand());
+        terminateCluster(terminateCmd.get().getAndDeserializeCommand(commandDeserializer));
         return;
       }
 
@@ -237,9 +245,10 @@ public class CommandRunner implements Closeable {
     }
 
     final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(commands);
-    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(compatibleCommands);
+    final Optional<QueuedCommand> terminateCmd =
+        findTerminateCommand(compatibleCommands, commandDeserializer);
     if (terminateCmd.isPresent()) {
-      terminateCluster(terminateCmd.get().getAndDeserializeCommand());
+      terminateCluster(terminateCmd.get().getAndDeserializeCommand(commandDeserializer));
       return;
     }
 
@@ -254,14 +263,16 @@ public class CommandRunner implements Closeable {
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
-    LOG.info("Executing statement: " + queuedCommand.getAndDeserializeCommand().getStatement());
+    final String commandStatement =
+        queuedCommand.getAndDeserializeCommand(commandDeserializer).getStatement();
+    LOG.info("Executing statement: " + commandStatement);
 
     final Runnable task = () -> {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        LOG.info("Executed statement: " + queuedCommand.getAndDeserializeCommand().getStatement());
+        LOG.info("Executed statement: " + commandStatement);
       }
     };
 
@@ -277,10 +288,11 @@ public class CommandRunner implements Closeable {
   }
 
   private static Optional<QueuedCommand> findTerminateCommand(
-      final List<QueuedCommand> restoreCommands
+      final List<QueuedCommand> restoreCommands,
+      final Deserializer<Command> commandDeserializer
   ) {
     return restoreCommands.stream()
-        .filter(command -> command.getAndDeserializeCommand().getStatement()
+        .filter(command -> command.getAndDeserializeCommand(commandDeserializer).getStatement()
             .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))
         .findFirst();
   }

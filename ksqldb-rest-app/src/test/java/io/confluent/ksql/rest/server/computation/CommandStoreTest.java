@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,6 +55,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.RecordBatch;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,6 +84,12 @@ public class CommandStoreTest {
   private CommandTopic commandTopic;
   @Mock
   private Producer<CommandId, Command> transactionalProducer;
+  @Mock
+  private Serializer<CommandId> commandIdSerializer;
+  @Mock
+  private Serializer<Command> commandSerializer;
+  @Mock
+  private Deserializer<CommandId> commandIdDeserializer;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -138,7 +147,10 @@ public class CommandStoreTest {
         sequenceNumberFutureStore,
         Collections.emptyMap(),
         Collections.emptyMap(),
-        TIMEOUT
+        TIMEOUT,
+        commandIdSerializer,
+        commandSerializer,
+        commandIdDeserializer
     );
   }
 
@@ -179,6 +191,7 @@ public class CommandStoreTest {
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
+    when(commandIdDeserializer.deserialize(any(), any())).thenReturn(commandId);
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
     commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
@@ -203,6 +216,7 @@ public class CommandStoreTest {
           return testFuture;
         }
     );
+    when(commandIdDeserializer.deserialize(any(),any())).thenReturn(commandId);
 
     // When:
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
@@ -217,6 +231,8 @@ public class CommandStoreTest {
     final ConsumerRecords<byte[], byte[]> records = buildRecords(
         commandId, null,
         commandId, command);
+    final Deserializer<Command> commandDeserializer = mock(Deserializer.class);
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
     when(commandTopic.getNewCommands(any())).thenReturn(records);
 
     // When:	
@@ -229,7 +245,7 @@ public class CommandStoreTest {
         commands.get(0).getAndDeserializeCommandId(),
         equalTo(commandId));
     assertThat(
-        commands.get(0).getAndDeserializeCommand(),
+        commands.get(0).getAndDeserializeCommand(commandDeserializer),
         equalTo(command));
   }
 

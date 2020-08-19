@@ -17,10 +17,10 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.entity.CommandId;
-
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.kafka.common.serialization.Deserializer;
 
 public class QueuedCommand {
   private final byte[] commandId;
@@ -69,8 +69,8 @@ public class QueuedCommand {
     return InternalTopicSerdes.deserializer(CommandId.class).deserialize("", commandId);
   }
 
-  Command getAndDeserializeCommand() {
-    return InternalTopicSerdes.deserializer(Command.class).deserialize("", command);
+  Command getAndDeserializeCommand(final Deserializer<Command> deserializer) {
+    return deserializer.deserialize("", command);
   }
 
   public Optional<CommandStatusFuture> getStatus() {

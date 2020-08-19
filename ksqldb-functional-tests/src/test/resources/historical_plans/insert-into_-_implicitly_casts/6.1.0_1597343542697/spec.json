@@ -3,8 +3,14 @@
   "timestamp" : 1597343542697,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
-    "INSERTQUERY_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
-    "INSERTQUERY_0.TARGET" : "STRUCT<C1 DECIMAL(3, 2), C2 DECIMAL(3, 2)> NOT NULL"
+    "INSERTQUERY_0.KsqlTopic.Source" : {
+      "schema" : "`IGNORED` STRING",
+      "serdeOptions" : [ ]
+    },
+    "INSERTQUERY_0.TARGET" : {
+      "schema" : "`C1` DECIMAL(3, 2), `C2` DECIMAL(3, 2)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "implicitly casts",
@@ -84,6 +90,23 @@
     } ],
     "statements" : [ "CREATE STREAM SOURCE (ignored VARCHAR) WITH (kafka_topic='source', value_format='AVRO');", "CREATE STREAM TARGET (c1 DECIMAL(5,2), c2 DECIMAL(5,2)) WITH (kafka_topic='target', value_format='AVRO');", "INSERT INTO TARGET SELECT 1 as c1, 2.0 as c2 FROM SOURCE;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TARGET",
+        "type" : "STREAM",
+        "schema" : "`C1` DECIMAL(5, 2), `C2` DECIMAL(5, 2)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "SOURCE",
+        "type" : "STREAM",
+        "schema" : "`IGNORED` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "source",

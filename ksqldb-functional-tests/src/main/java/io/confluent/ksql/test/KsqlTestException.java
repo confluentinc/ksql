@@ -89,7 +89,7 @@ public class KsqlTestException extends KsqlException {
       final Path file
   ) {
     return String.format(
-        "Test failure for assert `%s` (%s):\n\t%s\n\t%s",
+        "Test failure for assert `%s` (%s):%n\t%s%n\t%s",
         SqlFormatter.formatSql(assertStatement),
         assertStatement.getLocation().map(Objects::toString).orElse("unknown"),
         message,
@@ -105,7 +105,7 @@ public class KsqlTestException extends KsqlException {
       final Path file
   ) {
     return String.format(
-        "Test failure during directive evaluation `%s` (%s):\n\t%s\t%s",
+        "Test failure during directive evaluation `%s` (%s):%n\t%s%n\t%s",
         directive,
         directive.getLocation(),
         message,

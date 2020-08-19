@@ -300,16 +300,6 @@ public class AggregateAnalyzer {
       this.dereferenceCollector = requireNonNull(dereferenceCollector, "dereferenceCollector");
     }
 
-    /*@Override
-    public Void process(final Expression node, final Void context) {
-      if (groupBy.contains(node)) {
-        foundExpressionInGroupBy = true;
-      }
-      super.process(node, context);
-      foundExpressionInGroupBy = false;
-      return null;
-    }*/
-
     @Override
     public Void visitFunctionCall(final FunctionCall node, final Void context) {
       final FunctionName functionName = node.getName();
@@ -350,7 +340,9 @@ public class AggregateAnalyzer {
         final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {
-      if (!foundExpressionInGroupBy || visitedAggFunction) {
+      if (!foundExpressionInGroupBy
+          || visitedAggFunction
+          || SystemColumns.isWindowBound(node.getColumnName())) {
         dereferenceCollector.accept(aggFunctionName, node);
       }
       if (!SystemColumns.isWindowBound(node.getColumnName())) {

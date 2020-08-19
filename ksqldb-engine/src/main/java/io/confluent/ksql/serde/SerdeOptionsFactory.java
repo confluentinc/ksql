@@ -15,27 +15,21 @@
 
 package io.confluent.ksql.serde;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.Set;
 
 /**
- * Factory / Util class for building the {@link SerdeOption} sets required by the engine.
+ * Validated set of {@link SerdeOption}s.
+ *
+ * <p>The class ensures no invalid combinations of options are possible.
  */
-public final class SerdeOptions {
+public final class SerdeOptionsFactory {
 
-  private static final ImmutableSet<SerdeOption> WRAPPING_OPTIONS = ImmutableSet.of(
-      SerdeOption.WRAP_SINGLE_VALUES, SerdeOption.UNWRAP_SINGLE_VALUES
-  );
-
-  private SerdeOptions() {
+  private SerdeOptionsFactory() {
   }
 
   /**
@@ -47,14 +41,14 @@ public final class SerdeOptions {
    * @param ksqlConfig the session config, used to retrieve defaults.
    * @return the set of serde options the statement defines.
    */
-  public static Set<SerdeOption> buildForCreateStatement(
+  public static SerdeOptions buildForCreateStatement(
       final LogicalSchema schema,
       final Format valueFormat,
-      final Set<SerdeOption> explicitOptions,
+      final SerdeOptions explicitOptions,
       final KsqlConfig ksqlConfig
   ) {
-    final boolean singleField = schema.valueConnectSchema().fields().size() == 1;
-    return build(singleField, valueFormat, explicitOptions, ksqlConfig);
+    final boolean singleColumn = schema.valueConnectSchema().fields().size() == 1;
+    return build(singleColumn, valueFormat, explicitOptions, ksqlConfig);
   }
 
   /**
@@ -67,31 +61,30 @@ public final class SerdeOptions {
    * @param ksqlConfig the session config, used to retrieve defaults.
    * @return the set of serde options the statement defines.
    */
-  public static Set<SerdeOption> buildForCreateAsStatement(
+  public static SerdeOptions buildForCreateAsStatement(
       final List<ColumnName> valueColumnNames,
       final Format valueFormat,
-      final Set<SerdeOption> wrapSingleValues,
+      final SerdeOptions wrapSingleValues,
       final KsqlConfig ksqlConfig
   ) {
-    final boolean singleField = valueColumnNames.size() == 1;
-    return build(singleField, valueFormat, wrapSingleValues, ksqlConfig);
+    final boolean singleColumn = valueColumnNames.size() == 1;
+    return build(singleColumn, valueFormat, wrapSingleValues, ksqlConfig);
   }
 
-  private static Set<SerdeOption> build(
-      final boolean singleField,
+  private static SerdeOptions build(
+      final boolean singleColumn,
       final Format valueFormat,
-      final Set<SerdeOption> explicitOptions,
+      final SerdeOptions explicitOptions,
       final KsqlConfig ksqlConfig
   ) {
-    final Set<SerdeOption> wrappingOptions = Sets.intersection(explicitOptions, WRAPPING_OPTIONS);
-    if (wrappingOptions.isEmpty()) {
-      if (!singleField) {
-        return SerdeOption.none();
+    if (!explicitOptions.valueWrapping().isPresent()) {
+      if (!singleColumn) {
+        return SerdeOptions.of();
       }
 
       final Boolean valueWrapping = ksqlConfig.getBoolean(KsqlConfig.KSQL_WRAP_SINGLE_VALUES);
       if (valueWrapping == null) {
-        return SerdeOption.none();
+        return SerdeOptions.of();
       }
 
       final SerdeOption option = valueWrapping
@@ -99,17 +92,13 @@ public final class SerdeOptions {
           : SerdeOption.UNWRAP_SINGLE_VALUES;
 
       if (!valueFormat.supportsFeature(option.requiredFeature())) {
-        return SerdeOption.none();
+        return SerdeOptions.of();
       }
 
-      return SerdeOption.of(option);
+      return SerdeOptions.of(option);
     }
 
-    if (wrappingOptions.size() != 1) {
-      throw new IllegalStateException("Conflicting wrapping settings: " + explicitOptions);
-    }
-
-    final SerdeOption wrappingOption = Iterables.getOnlyElement(wrappingOptions);
+    final SerdeOption wrappingOption = explicitOptions.valueWrapping().get();
 
     if (!valueFormat.supportedFeatures().contains(wrappingOption.requiredFeature())) {
       final boolean value = wrappingOption == SerdeOption.WRAP_SINGLE_VALUES;
@@ -118,7 +107,7 @@ public final class SerdeOptions {
           + value + "'.");
     }
 
-    if (!singleField) {
+    if (!singleColumn) {
       throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE
           + "' is only valid for single-field value schemas");
     }

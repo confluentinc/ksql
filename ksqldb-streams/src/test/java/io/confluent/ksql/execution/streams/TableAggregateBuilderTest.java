@@ -39,6 +39,7 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -53,7 +54,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
@@ -92,7 +93,7 @@ public class TableAggregateBuilderTest {
   );
   private static final PhysicalSchema PHYSICAL_AGGREGATE_SCHEMA = PhysicalSchema.from(
       AGGREGATE_SCHEMA,
-      SerdeOption.none()
+      SerdeOptions.of()
   );
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
@@ -171,7 +172,7 @@ public class TableAggregateBuilderTest {
     aggregate = new TableAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOptions.of()),
         NON_AGG_COLUMNS,
         FUNCTIONS
     );

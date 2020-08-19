@@ -32,7 +32,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TestDataProvider;
@@ -166,7 +166,7 @@ public class ReplaceIntTest {
         .build();
 
     public Provider(final String k, final String col1, final int col2) {
-      super("SOURCE", PhysicalSchema.from(LOGICAL_SCHEMA, SerdeOption.none()), rows(k, col1, col2));
+      super("SOURCE", PhysicalSchema.from(LOGICAL_SCHEMA, SerdeOptions.of()), rows(k, col1, col2));
     }
 
     private static Multimap<String, GenericRow> rows(

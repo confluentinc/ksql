@@ -39,12 +39,11 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -73,7 +72,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> into(
       final String kafkaTopicName,
       final ValueFormat valueFormat,
-      final Set<SerdeOption> options,
+      final SerdeOptions options,
       final QueryContext.Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
@@ -172,7 +171,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,
         sourceTableStep,
-        Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
+        Formats.of(groupedKeyFormat, valueFormat, SerdeOptions.of()),
         groupByExpressions
     );
 
@@ -256,7 +255,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         contextStacker,
         sourceTableStep,
         refinementInfo,
-        Formats.of(keyFormat, valueFormat, SerdeOption.none())
+        Formats.of(keyFormat, valueFormat, SerdeOptions.of())
     );
 
     return new SchemaKTable<>(

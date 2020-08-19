@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -36,8 +37,8 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.TopicFactory;
@@ -45,7 +46,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 public final class CreateSourceFactory {
 
@@ -57,7 +57,7 @@ public final class CreateSourceFactory {
   public CreateSourceFactory(final ServiceContext serviceContext) {
     this(
         serviceContext,
-        SerdeOptions::buildForCreateStatement,
+        SerdeOptionsFactory::buildForCreateStatement,
         new GenericKeySerDe(),
         new GenericRowSerDe()
     );
@@ -90,7 +90,7 @@ public final class CreateSourceFactory {
         schema
     );
 
-    final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
+    final SerdeOptions serdeOptions = serdeOptionsSupplier.build(
         schema,
         topic.getValueFormat().getFormat(),
         statement.getProperties().getSerdeOptions(),
@@ -104,8 +104,7 @@ public final class CreateSourceFactory {
         schema,
         timestampColumn,
         topic.getKafkaTopicName(),
-        io.confluent.ksql.execution.plan.Formats
-            .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo(),
         Optional.of(statement.isOrReplace())
     );
@@ -140,7 +139,7 @@ public final class CreateSourceFactory {
         schema
     );
 
-    final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
+    final SerdeOptions serdeOptions = serdeOptionsSupplier.build(
         schema,
         topic.getValueFormat().getFormat(),
         statement.getProperties().getSerdeOptions(),
@@ -154,8 +153,7 @@ public final class CreateSourceFactory {
         schema,
         timestampColumn,
         topic.getKafkaTopicName(),
-        io.confluent.ksql.execution.plan.Formats
-            .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
+        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
         topic.getKeyFormat().getWindowInfo(),
         Optional.of(statement.isOrReplace())
     );
@@ -228,10 +226,10 @@ public final class CreateSourceFactory {
   @FunctionalInterface
   interface SerdeOptionsSupplier {
 
-    Set<SerdeOption> build(
+    SerdeOptions build(
         LogicalSchema schema,
         Format valueFormat,
-        Set<SerdeOption> explicitOptions,
+        SerdeOptions explicitOptions,
         KsqlConfig ksqlConfig
     );
   }

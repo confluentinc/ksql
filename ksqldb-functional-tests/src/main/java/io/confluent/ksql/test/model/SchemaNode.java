@@ -17,26 +17,29 @@ package io.confluent.ksql.test.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class SchemaNode {
 
-  private String logicalSchema;
-  private Set<SerdeOption> serdeOptions;
+  private final String logicalSchema;
+  private final ImmutableSet<SerdeOption> serdeOptions;
 
   public SchemaNode(
-      @JsonProperty("schema") final String logicalSchema,
-      @JsonProperty("serdeOptions") final Set<SerdeOption> serdeOptions
+      @JsonProperty(value = "schema", required = true) final String logicalSchema,
+      @JsonProperty("serdeOptions") final Optional<Set<SerdeOption>> serdeOptions
   ) {
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
-    this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions");
+    this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions")
+        .map(ImmutableSet::copyOf)
+        .orElseGet(ImmutableSet::of);
   }
 
-  @JsonProperty("schema")
-  public String getLogicalSchema() {
+  public String getSchema() {
     return logicalSchema;
   }
 
@@ -74,7 +77,7 @@ public class SchemaNode {
   public static SchemaNode fromPhysicalSchema(final PhysicalSchema physicalSchema) {
     return new SchemaNode(
         physicalSchema.logicalSchema().toString(),
-        physicalSchema.serdeOptions()
+        Optional.of(physicalSchema.serdeOptions().all())
     );
   }
 }

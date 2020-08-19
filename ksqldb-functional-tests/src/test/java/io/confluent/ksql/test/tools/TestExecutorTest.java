@@ -45,6 +45,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
@@ -53,7 +54,6 @@ import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -78,7 +78,7 @@ public class TestExecutorTest {
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
   private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(LOGICAL_SCHEMA, Collections.emptySet());
+      PhysicalSchema.from(LOGICAL_SCHEMA, SerdeOptions.of());
 
   @Mock
   private StubKafkaService kafkaService;
@@ -175,7 +175,7 @@ public class TestExecutorTest {
   @Test
   public void shouldVerifyTopologySchemas() {
     // Given:
-    givenExpectedTopology("a-topology", ImmutableMap.of("matching", new SchemaNode(LOGICAL_SCHEMA.toString(), Collections.emptySet())));
+    givenExpectedTopology("a-topology", ImmutableMap.of("matching", new SchemaNode(LOGICAL_SCHEMA.toString(), Optional.of(ImmutableSet.of()))));
     givenActualTopology("a-topology", ImmutableMap.of("matching", PHYSICAL_SCHEMA));
 
     // When:
@@ -209,7 +209,7 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnSchemasMismatch() {
     // Given:
-    givenExpectedTopology("the-topology", ImmutableMap.of("expected", new SchemaNode("wrong schema", Collections.emptySet())));
+    givenExpectedTopology("the-topology", ImmutableMap.of("expected", new SchemaNode("wrong schema", Optional.of(ImmutableSet.of()))));
     givenActualTopology("the-topology", ImmutableMap.of("actual", PHYSICAL_SCHEMA));
 
     // When:
@@ -394,7 +394,7 @@ public class TestExecutorTest {
     when(dataSource.getKafkaTopicName()).thenReturn(TestExecutorTest.SINK_TOPIC_NAME);
     when(dataSource.getName()).thenReturn(sourceName);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
-    when(dataSource.getSerdeOptions()).thenReturn(Collections.emptySet());
+    when(dataSource.getSerdeOptions()).thenReturn(SerdeOptions.of());
     allSources.put(sourceName, dataSource);
   }
 

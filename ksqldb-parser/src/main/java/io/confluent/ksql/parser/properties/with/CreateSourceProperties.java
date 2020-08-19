@@ -31,6 +31,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -39,7 +40,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -153,7 +153,7 @@ public final class CreateSourceProperties {
     return builder.build();
   }
 
-  public Set<SerdeOption> getSerdeOptions() {
+  public SerdeOptions getSerdeOptions() {
     final ImmutableSet.Builder<SerdeOption> builder = ImmutableSet.builder();
 
     final Boolean wrapping = props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE);
@@ -161,7 +161,7 @@ public final class CreateSourceProperties {
       builder.add(wrapping ? SerdeOption.WRAP_SINGLE_VALUES : SerdeOption.UNWRAP_SINGLE_VALUES);
     }
 
-    return builder.build();
+    return SerdeOptions.of(builder.build());
   }
 
   public CreateSourceProperties withSchemaId(final int id) {

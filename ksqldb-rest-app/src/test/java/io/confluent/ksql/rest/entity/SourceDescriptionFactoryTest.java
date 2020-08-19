@@ -34,7 +34,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -85,7 +85,7 @@ public class SourceDescriptionFactoryTest {
         "query",
         SourceName.of("stream"),
         schema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         timestampColumn,
         false,
         topic

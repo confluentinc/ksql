@@ -283,7 +283,7 @@ public class KsqlTesterTest {
         ).createSerde(
             PersistenceSchema.from(
                 sinkSource.getSchema().keyConnectSchema(),
-                sinkSource.getSerdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES)),
+                sinkSource.getSerdeOptions().all().contains(SerdeOption.UNWRAP_SINGLE_VALUES)),
             config,
             serviceContext.getSchemaRegistryClientFactory(),
             Struct.class
@@ -295,7 +295,7 @@ public class KsqlTesterTest {
         sinkSource.getKsqlTopic().getValueFormat().getFormatInfo(),
         PersistenceSchema.from(
             sinkSource.getSchema().valueConnectSchema(),
-            sinkSource.getSerdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES)),
+            sinkSource.getSerdeOptions().all().contains(SerdeOption.UNWRAP_SINGLE_VALUES)),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",

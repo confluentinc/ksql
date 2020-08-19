@@ -13,6 +13,7 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -20,19 +21,17 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Optional;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,9 +55,11 @@ public class DdlCommandExecTest {
       .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("F3"), SqlTypes.STRING)
       .build();
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
-  private static final Set<SerdeOption> SERDE_OPTIONS = SerdeOption.none();
+  private static final ValueFormat VALUE_FORMAT = ValueFormat
+      .of(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final KeyFormat KEY_FORMAT = KeyFormat
+      .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
+  private static final SerdeOptions SERDE_OPTIONS = SerdeOptions.of();
 
   private CreateStreamCommand createStream;
   private CreateTableCommand createTable;
@@ -297,10 +298,7 @@ public class DdlCommandExecTest {
         schema,
         Optional.of(timestampColumn),
         "topic",
-        io.confluent.ksql.execution.plan.Formats.of(
-            KEY_FORMAT,
-            VALUE_FORMAT,
-            SERDE_OPTIONS),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SERDE_OPTIONS),
         Optional.empty(),
         Optional.of(allowReplace)
     );
@@ -312,10 +310,7 @@ public class DdlCommandExecTest {
         SCHEMA,
         Optional.of(timestampColumn),
         "topic",
-        io.confluent.ksql.execution.plan.Formats.of(
-            KEY_FORMAT,
-            VALUE_FORMAT,
-            SERDE_OPTIONS),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SERDE_OPTIONS),
         Optional.of(windowInfo),
         Optional.of(false)
     );
@@ -327,11 +322,7 @@ public class DdlCommandExecTest {
         SCHEMA,
         Optional.of(timestampColumn),
         TOPIC_NAME,
-        io.confluent.ksql.execution.plan.Formats.of(
-            KEY_FORMAT,
-            VALUE_FORMAT,
-            SERDE_OPTIONS
-        ),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SERDE_OPTIONS),
         Optional.of(windowInfo),
         Optional.of(false)
     );
@@ -343,11 +334,7 @@ public class DdlCommandExecTest {
         SCHEMA,
         Optional.of(timestampColumn),
         TOPIC_NAME,
-        io.confluent.ksql.execution.plan.Formats.of(
-            KEY_FORMAT,
-            VALUE_FORMAT,
-            SERDE_OPTIONS
-        ),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SERDE_OPTIONS),
         Optional.empty(),
         Optional.of(false)
     );

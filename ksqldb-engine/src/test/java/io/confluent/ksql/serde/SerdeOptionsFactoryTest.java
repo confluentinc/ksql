@@ -18,18 +18,15 @@ package io.confluent.ksql.serde;
 import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.PROTOBUF;
-import static io.confluent.ksql.serde.SerdeOptions.buildForCreateAsStatement;
-import static io.confluent.ksql.serde.SerdeOptions.buildForCreateStatement;
+import static io.confluent.ksql.serde.SerdeOptionsFactory.buildForCreateAsStatement;
+import static io.confluent.ksql.serde.SerdeOptionsFactory.buildForCreateStatement;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -37,14 +34,13 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SerdeOptionsTest {
+public class SerdeOptionsFactoryTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -75,15 +71,15 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
         FormatFactory.JSON,
-        ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -94,29 +90,29 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
         FormatFactory.JSON,
-        ImmutableSet.of(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
   public void shouldDefaultToNoSingleValueWrappingIfNoExplicitAndNoConfigDefault() {
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
         FormatFactory.JSON,
-        ImmutableSet.of(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(ImmutableSet.of()));
+    assertThat(result, is(SerdeOptions.of()));
   }
 
   @Test
@@ -127,15 +123,15 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
         FormatFactory.KAFKA,
-        ImmutableSet.of(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(ImmutableSet.of()));
+    assertThat(result, is(SerdeOptions.of()));
   }
 
   @Test
@@ -146,15 +142,15 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         MULTI_FIELD_SCHEMA,
         FormatFactory.JSON,
-        ImmutableSet.of(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result, is(SerdeOptions.of()));
   }
 
   @Test
@@ -165,7 +161,7 @@ public class SerdeOptionsTest {
         () -> buildForCreateStatement(
             MULTI_FIELD_SCHEMA,
             JSON,
-            ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES),
+            SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
             ksqlConfig
         )
     );
@@ -183,7 +179,7 @@ public class SerdeOptionsTest {
         () -> buildForCreateStatement(
             SINGLE_FIELD_SCHEMA,
             PROTOBUF,
-            ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+            SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
             ksqlConfig
         )
     );
@@ -200,15 +196,15 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = buildForCreateAsStatement(
+    final SerdeOptions result = buildForCreateAsStatement(
         SINGLE_COLUMN_NAME,
         FormatFactory.AVRO,
-        ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES),
+        SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, hasItem(SerdeOption.WRAP_SINGLE_VALUES));
+    assertThat(result, is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -219,15 +215,15 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = buildForCreateAsStatement(
+    final SerdeOptions result = buildForCreateAsStatement(
         SINGLE_COLUMN_NAME,
         FormatFactory.JSON,
-        ImmutableSet.of(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -238,15 +234,15 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = buildForCreateAsStatement(
+    final SerdeOptions result = buildForCreateAsStatement(
         MULTI_FIELD_NAMES,
         FormatFactory.AVRO,
-        ImmutableSet.of(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result, is(SerdeOptions.of()));
   }
 
   @Test
@@ -257,7 +253,7 @@ public class SerdeOptionsTest {
         () -> buildForCreateAsStatement(
             MULTI_FIELD_NAMES,
             JSON,
-            ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES),
+            SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
             ksqlConfig
         )
     );
@@ -274,7 +270,7 @@ public class SerdeOptionsTest {
         () -> buildForCreateAsStatement(
             SINGLE_COLUMN_NAME,
             DELIMITED,
-            ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES),
+            SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
             ksqlConfig
         )
     );

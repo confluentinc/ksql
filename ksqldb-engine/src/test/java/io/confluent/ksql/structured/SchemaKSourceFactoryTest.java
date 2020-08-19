@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -43,11 +42,11 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,7 +62,7 @@ public class SchemaKSourceFactoryTest {
       .valueColumn(ColumnName.of("BAR"), SqlTypes.STRING)
       .build();
 
-  private static final Set<SerdeOption> SERDE_OPTIONS = ImmutableSet
+  private static final SerdeOptions SERDE_OPTIONS = SerdeOptions
       .of(SerdeOption.UNWRAP_SINGLE_VALUES);
 
   private static final String TOPIC_NAME = "fred";

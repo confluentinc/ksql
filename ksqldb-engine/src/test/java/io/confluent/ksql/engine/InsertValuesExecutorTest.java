@@ -65,6 +65,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
@@ -76,7 +77,6 @@ import java.math.MathContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
@@ -173,7 +173,7 @@ public class InsertValuesExecutorTest {
     when(serviceContext.getKafkaClientSupplier()).thenReturn(kafkaClientSupplier);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
-    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
 
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(valueSerde);
@@ -210,7 +210,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldInsertWrappedSingleField() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         valueColumnNames(SINGLE_VALUE_COLUMN_SCHEMA),
@@ -231,7 +231,7 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceStreamWithSchema(
         SINGLE_VALUE_COLUMN_SCHEMA,
-        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)
     );
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -372,7 +372,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNullKeyForSourceWithKeyField() {
     // Given:
-    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allAndPseudoColumnNames(BIG_SCHEMA),
@@ -404,7 +404,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNegativeValueExpression() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0, COL1),
@@ -426,7 +426,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleUdfs() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0),
@@ -447,7 +447,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNestedUdfs() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0),
@@ -474,7 +474,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldAllowUpcast() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0, COL1),
@@ -496,7 +496,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenInsertValuesOnReservedInternalTopic() {
     // Given
     givenDataSourceWithSchema("_confluent-ksql-default__command-topic", SCHEMA,
-        SerdeOption.none(), false);
+        SerdeOptions.of(), false);
 
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
         PreparedStatement.of(
@@ -528,7 +528,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenInsertValuesOnProcessingLogTopic() {
     // Given
     givenDataSourceWithSchema("default_ksql_processing_log", SCHEMA,
-        SerdeOption.none(), false);
+        SerdeOptions.of(), false);
 
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
         PreparedStatement.of(
@@ -678,7 +678,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowIfColumnDoesNotExistInSchema() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(
@@ -702,7 +702,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFailOnDowncast() {
     // Given:
-    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(INT_COL),
@@ -724,7 +724,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleStreamsWithNoKeyField() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(K0, COL0, COL1),
@@ -746,7 +746,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleTablesWithNoKeyField() {
     // Given:
-    givenSourceTableWithSchema(SerdeOption.none());
+    givenSourceTableWithSchema(SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(K0, COL0, COL1),
@@ -768,7 +768,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleStreamsWithNoKeyFieldAndNoRowKeyProvided() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none());
+    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0, COL1),
@@ -789,7 +789,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnTablesWithNoKeyFieldAndNoRowKeyProvided() {
     // Given:
-    givenSourceTableWithSchema(SerdeOption.none());
+    givenSourceTableWithSchema(SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0, COL1),
@@ -812,7 +812,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnTablesWithKeyFieldAndNullKeyFieldValueProvided() {
     // Given:
-    givenSourceTableWithSchema(SerdeOption.none());
+    givenSourceTableWithSchema(SerdeOptions.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL1),
@@ -880,13 +880,13 @@ public class InsertValuesExecutorTest {
 
   private void givenSourceStreamWithSchema(
       final LogicalSchema schema,
-      final Set<SerdeOption> serdeOptions
+      final SerdeOptions serdeOptions
   ) {
     givenDataSourceWithSchema(TOPIC_NAME, schema, serdeOptions, false);
   }
 
   private void givenSourceTableWithSchema(
-      final Set<SerdeOption> serdeOptions
+      final SerdeOptions serdeOptions
   ) {
     givenDataSourceWithSchema(TOPIC_NAME, SCHEMA, serdeOptions, true);
   }
@@ -894,7 +894,7 @@ public class InsertValuesExecutorTest {
   private void givenDataSourceWithSchema(
       final String topicName,
       final LogicalSchema schema,
-      final Set<SerdeOption> serdeOptions,
+      final SerdeOptions serdeOptions,
       final boolean table
   ) {
     final KsqlTopic topic = new KsqlTopic(

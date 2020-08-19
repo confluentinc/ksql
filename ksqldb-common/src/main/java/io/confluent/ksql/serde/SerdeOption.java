@@ -16,9 +16,7 @@
 package io.confluent.ksql.serde;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.Set;
 
 public enum SerdeOption {
 
@@ -55,13 +53,5 @@ public enum SerdeOption {
   @JsonCreator
   public static SerdeOption fromString(final String value) {
     return SerdeOption.valueOf(value);
-  }
-
-  public static Set<SerdeOption> none() {
-    return ImmutableSet.of();
-  }
-
-  public static Set<SerdeOption> of(final SerdeOption... options) {
-    return ImmutableSet.copyOf(options);
   }
 }

@@ -146,7 +146,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -179,7 +179,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema.Type;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -2309,7 +2308,7 @@ public class KsqlResourceTest {
               "statementText",
               SourceName.of(sourceName),
               schema,
-              SerdeOption.none(),
+              SerdeOptions.of(),
               Optional.empty(),
               false,
               ksqlTopic
@@ -2321,7 +2320,7 @@ public class KsqlResourceTest {
               "statementText",
               SourceName.of(sourceName),
               schema,
-              SerdeOption.none(),
+              SerdeOptions.of(),
               Optional.empty(),
               false,
               ksqlTopic

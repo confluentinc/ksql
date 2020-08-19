@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -26,12 +25,11 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -39,7 +37,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final boolean doCreateInto;
-  private final ImmutableSet<SerdeOption> serdeOptions;
+  private final SerdeOptions serdeOptions;
   private final SourceName intoSourceName;
 
   public KsqlStructuredDataOutputNode(
@@ -50,12 +48,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlTopic ksqlTopic,
       final OptionalInt limit,
       final boolean doCreateInto,
-      final Set<SerdeOption> serdeOptions,
+      final SerdeOptions serdeOptions,
       final SourceName intoSourceName
   ) {
     super(id, source, schema, limit, timestampColumn);
 
-    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+    this.serdeOptions = requireNonNull(serdeOptions, "serdeOptions");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
@@ -71,7 +69,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return ksqlTopic;
   }
 
-  public Set<SerdeOption> getSerdeOptions() {
+  public SerdeOptions getSerdeOptions() {
     return serdeOptions;
   }
 

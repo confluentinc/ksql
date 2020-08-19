@@ -7,7 +7,21 @@ keywords: ksqlDB, client
 ---
 
 If you're interested in using ksqlDB from a programming language we don't yet support, we've created
-this guide to make it easy to add your own [ksqlDB client](index.md). Thanks for your contribution!
+this guide to make it easy to add your own [ksqlDB client](index.md).
+If you'd like to contribute your client to the main ksqlDB project, see [below](#contributing-your-client-to-the-main-ksqldb-repository). 
+
+Overview
+--------
+
+Clients for ksqlDB communicate with ksqlDB servers via HTTP.
+Different types of requests are sent to different server endpoints. Some server endpoints
+follow the traditional request-response pattern whereas others use HTTP/2 streaming, for example,
+to stream the results of push queries back to the client, or to accept a stream of rows
+to insert into a ksqlDB stream.
+
+The sections below cover the different types of requests clients should support.
+Links to the relevant server endpoint documentation for each type of request include
+details about the request and response formats. 
 
 Functionality
 -------------
@@ -19,9 +33,6 @@ Clients should support the following functionality:
 - [Listing existing streams, tables, topics, and queries](#listing-existing-streams-tables-topics-and-queries)
 - [Creation and deletion of streams and tables](#creation-and-deletion-of-streams-and-tables)
 - [Terminating persistent queries](#terminating-persistent-queries)
-
-The easiest way for a ksqlDB client to implement each of these pieces of functionality is to send HTTP
-requests to the ksqlDB server. See below for the relevant server endpoints.
 
 ### Push and pull queries ###
 
@@ -40,7 +51,9 @@ The metadata includes:
 The client must expose these metadata fields as part of its API. In particular, the query ID is used for
 [terminating push queries](#terminating-push-queries).
 
-The client representation of result rows must support all of the different data types supported by ksqlDB:
+The client representation of result rows must support all of the different [data types](../../concepts/schemas.md#sql-data-types)
+supported by ksqlDB. The following table contains examples of how different types are represented
+in the metadata header returned from the `/query-stream` server endpoint:
 
 | Data type | Example column type string in metadata |
 |-----------|----------------------------------------|
@@ -55,6 +68,9 @@ The client representation of result rows must support all of the different data 
 | STRUCT    | STRUCT<\`F1\` STRING, \`F2\` INTEGER>  |
 
 Array, map, and struct types may be recursively nested within each other, and may contain any of the other types as well.
+Though ksqlDB supports [custom type definitions](../../concepts/schemas.md#custom-types),
+custom types are expanded into base types in the metadata header from the `/query-stream` endpoint,
+so no special handling for custom types is required of the client. 
 
 Users of the client may wish to receive result rows in different ways:
 - Do not block. Rather, perform an action asynchronously on each new row as it arrives
@@ -68,6 +84,9 @@ uses [Reactive Streams](http://www.reactive-streams.org/) for its asynchronous s
 
 Terminate push queries by sending HTTP requests to the [`/close-query` server endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#terminating-queries).
 The client must expose an interface that enables users to pass in a push query ID to be passed to this endpoint.
+The query ID associated with a push query is returned as part of the server response when a push
+query is issued, and must be exposed by the [client method(s) for issuing push queries](#push-and-pull-queries)
+in order for the user to terminate the push query. 
 
 As explained in the [server endpoint documentation](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#terminating-queries),
 the body of the HTTP request specifies the query ID. For successful requests, the response body will be empty.
@@ -151,25 +170,28 @@ The client must expose options for specifying the address of the ksqlDB server t
 Additional options that are important to expose include:
 - Support for TLS-enabled ksqlDB servers
 - Support for mutual-TLS-enabled ksqlDB servers
-- Support for ksqlDB servers with HTTP basic authentication enabled
+- Support for ksqlDB servers with HTTP basic authentication enabled.
 
 As an example, users specify options for the Java client via a [ClientOptions](api/io/confluent/ksql/api/client/ClientOptions.html)
 object that is passed when [creating a Client instance](api/io/confluent/ksql/api/client/Client.html#create(io.confluent.ksql.api.client.ClientOptions)).
 
-It may also be nice to support configuring multiple ksqlDB server addresses, so the client may route requests
-to a different server if one is down.
+Additional configuration options that are nice to support include
+- Custom HTTP request headers, to support connecting to ksqlDB servers configured with custom
+  authentication mechanisms
+- Support for configuring multiple ksqlDB server addresses, so the client may route requests
+  to a different server if one is down.
 
-
-Process
--------
+Contributing your client to the main ksqlDB repository
+------------------------------------------------------
 
 Thanks for your interest in contributing a client!
 
 To get started:
 - Open [KLIP](../../../design-proposals/README.md) to propose the client you'd like to implement. The KLIP should include a high-level design and example interfaces.
-- Contribute code to [ksql repo](https://github.com/confluentinc/ksql)
-- Testing: Besides unit tests in the relevant language, there should also be integration tests to spin up a ksqlDB server and validate client behavior. TODO how to make this easier?
+- Contribute code to [ksql repository](https://github.com/confluentinc/ksql)
+- Testing: Besides unit tests in the relevant language, there should also be integration tests to spin up a ksqlDB server and validate client behavior.
 - Add a new docs page for the client with example usage to the [ksqlDB clients page](index.md).
 
-Don't hesitate to reach out in the #ksqldb-dev channel of our community Slack for guidance at any
-point in the process. Thanks for your contribution!
+Don't hesitate to reach out in the #ksqldb-dev channel of our community Slack
+(found of the [Confluent Community Slack](https://launchpass.com/confluentcommunity))
+for guidance at any point in the process. Thanks for your contribution!

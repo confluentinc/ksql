@@ -458,7 +458,7 @@ public class CreateSourceFactoryTest {
     verify(serdeOptionsSupplier).build(
         schema,
         statement.getProperties().getValueFormat(),
-        statement.getProperties().getWrapSingleValues(),
+        statement.getProperties().getSerdeOptions(),
         ksqlConfig
     );
     assertThat(cmd.getFormats().getOptions(), is(SOME_SERDE_OPTIONS));

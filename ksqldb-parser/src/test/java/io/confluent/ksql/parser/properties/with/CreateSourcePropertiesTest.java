@@ -24,12 +24,14 @@ import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_SIZE_PROPER
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_TYPE_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -41,6 +43,7 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -87,7 +90,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getFormatInfo(), is(FormatInfo.of("AvRo")));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
-    assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
+    assertThat(properties.getSerdeOptions(), is(empty()));
   }
 
   @Test
@@ -331,7 +334,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(true)));
+    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -357,7 +360,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(true)));
+    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -370,7 +373,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(false)));
+    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test

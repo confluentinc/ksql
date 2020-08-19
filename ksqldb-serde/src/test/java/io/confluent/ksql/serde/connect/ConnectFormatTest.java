@@ -29,7 +29,9 @@ import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -111,6 +113,11 @@ public class ConnectFormatTest {
 
     @Override
     public String name() {
+      return null;
+    }
+
+    @Override
+    public Set<SerdeFeature> supportedFeatures() {
       return null;
     }
 

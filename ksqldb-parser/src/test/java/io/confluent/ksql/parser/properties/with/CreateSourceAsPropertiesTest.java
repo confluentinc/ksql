@@ -20,10 +20,12 @@ import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -31,6 +33,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -57,7 +60,7 @@ public class CreateSourceAsPropertiesTest {
     assertThat(properties.getFormatInfo(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
-    assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
+    assertThat(properties.getSerdeOptions(), is(empty()));
   }
 
   @Test
@@ -144,7 +147,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("true")));
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(true)));
+    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -164,7 +167,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.WRAP_SINGLE_VALUE, new StringLiteral("true")));
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(true)));
+    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -174,7 +177,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.WRAP_SINGLE_VALUE.toLowerCase(), new StringLiteral("false")));
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(false)));
+    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
 

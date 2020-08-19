@@ -1,6 +1,76 @@
 {
   "tests": [
     {
+      "name": "serialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": true}},
+        {"topic": "OUTPUT", "value": {"FOO": false}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "OUTPUT", "value": {"FOO": []}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "OUTPUT", "value": {"FOO": {}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 0}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
       "name": "protobuf primitives",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');",
@@ -122,7 +192,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "'WRAP_SINGLE_VALUE' can not be set to 'false' for 'PROTOBUF' as it does not support unwrapping"
+        "message": "Format 'PROTOBUF' does not support 'WRAP_SINGLE_VALUE' set to 'false'."
       }
     },
     {

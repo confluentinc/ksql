@@ -91,11 +91,7 @@ public class AnalyzerFunctionalTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
     );
 
-    analyzer = new Analyzer(
-        jsonMetaStore,
-        "",
-        DEFAULT_SERDE_OPTIONS
-    );
+    analyzer = new Analyzer(jsonMetaStore, "");
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
@@ -110,7 +106,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -126,7 +122,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -142,7 +138,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -185,7 +181,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -201,7 +197,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -216,7 +212,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -238,7 +234,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -278,7 +274,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -301,7 +297,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -326,7 +322,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -351,7 +347,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(

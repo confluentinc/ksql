@@ -88,7 +88,7 @@ public class CommandFactoriesTest {
   );
   private static final String SOME_TYPE_NAME = "newtype";
   private static final Map<String, Object> OVERRIDES = ImmutableMap.of(
-      KsqlConfig.KSQL_WRAP_SINGLE_VALUES, !defaultConfigValue(KsqlConfig.KSQL_WRAP_SINGLE_VALUES)
+      KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
   );
 
   @Mock
@@ -351,9 +351,5 @@ public class CommandFactoriesTest {
     when(te.getType()).thenReturn(type);
     when(te.getNamespace()).thenReturn(namespace);
     return te;
-  }
-
-  private static boolean defaultConfigValue(final String config) {
-    return new KsqlConfig(emptyMap()).getBoolean(config);
   }
 }

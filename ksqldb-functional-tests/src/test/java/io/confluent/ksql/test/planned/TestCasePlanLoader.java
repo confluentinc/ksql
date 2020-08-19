@@ -26,8 +26,10 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.model.KsqlVersion;
+import io.confluent.ksql.test.model.PathLocation;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.TestCase;
@@ -87,7 +89,7 @@ public final class TestCasePlanLoader {
             "Historical test directory not found: " + plansDir))
         .stream()
         .map(plansDir::resolve)
-        .filter(predicate::test)
+        .filter(predicate)
         .flatMap(dir -> PlannedTestUtils.loadContents(dir.toString())
             .orElseGet(ImmutableList::of)
             .stream()
@@ -109,7 +111,10 @@ public final class TestCasePlanLoader {
         CURRENT_VERSION,
         System.currentTimeMillis(),
         BASE_CONFIG.getAllConfigPropsWithSecretsObfuscated(),
-        TestCaseBuilderUtil.extractSimpleTestName(testCase.getTestFile(), testCase.getName())
+        TestCaseBuilderUtil.extractSimpleTestName(
+            testCase.getOriginalFileName().toString(),
+            testCase.getName()
+        )
     );
   }
 
@@ -171,18 +176,22 @@ public final class TestCasePlanLoader {
     final PlannedTestPath topologyPath = versionDir.resolve(PlannedTestPath.TOPOLOGY_FILE);
 
     return new TestCasePlan(
+        new PathLocation(versionDir.absolutePath()),
         parseJson(specPath, JsonTestLoader.OBJECT_MAPPER, TestCaseSpecNode.class),
         parseJson(planPath, PlannedTestUtils.PLAN_MAPPER, TestCasePlanNode.class),
         slurp(topologyPath)
     );
   }
 
-  private static <T> T parseJson(final PlannedTestPath path, final ObjectMapper mapper,
-      final Class<T> type) {
+  private static <T> T parseJson(
+      final PlannedTestPath path,
+      final ObjectMapper mapper,
+      final Class<T> type
+  ) {
     try {
       return mapper.readValue(slurp(path), type);
     } catch (final IOException e) {
-      throw new TestFrameworkException("Error parsing json in file: " + path, e);
+      throw new TestFrameworkException("Error parsing json in file://" + path.absolutePath(), e);
     }
   }
 
@@ -218,14 +227,14 @@ public final class TestCasePlanLoader {
         testCase.statements(),
         testCase.properties(),
         null,
-        testCase.getPostConditions().asNode(testInfo.getTopics()).orElse(null),
+        testCase.getPostConditions().asNode(testInfo.getTopics(), testInfo.getSources()),
         true
     );
 
     final TestCaseSpecNode spec = new TestCaseSpecNode(
         version,
         timestamp,
-        testCase.getTestFile(),
+        testCase.getOriginalFileName().toString(),
         testInfo.getSchemasDescription(),
         testCodeNode
     );
@@ -233,6 +242,7 @@ public final class TestCasePlanLoader {
     final TestCasePlanNode plan = new TestCasePlanNode(testInfo.getPlans(), configs);
 
     return new TestCasePlan(
+        new PathLocation(Paths.get("").toAbsolutePath()), // not used
         spec,
         plan,
         testInfo.getTopologyDescription()
@@ -254,7 +264,7 @@ public final class TestCasePlanLoader {
   }
 
   private static TestInfoGatherer executeTestCaseAndGatherInfo(final TestCase testCase) {
-    try (final TestExecutor testExecutor = TestExecutor.create()) {
+    try (final TestExecutor testExecutor = TestExecutor.create(Optional.empty())) {
       final TestInfoGatherer listener = new TestInfoGatherer();
       testExecutor.buildAndExecuteQuery(testCase, listener);
       return listener;
@@ -263,7 +273,7 @@ public final class TestCasePlanLoader {
           + System.lineSeparator()
           + "failed test: " + testCase.getName()
           + System.lineSeparator()
-          + "in file: " + testCase.getTestFile(),
+          + "in " + testCase.getTestLocation(),
           e
       );
     }
@@ -290,6 +300,7 @@ public final class TestCasePlanLoader {
     private final Builder<KsqlPlan> plansBuilder = new Builder<>();
     private PersistentQueryMetadata queryMetadata = null;
     private List<PostTopicNode> topics = ImmutableList.of();
+    private List<SourceNode> sources = ImmutableList.of();
 
     @Override
     public void acceptPlan(final ConfiguredKsqlPlan plan) {
@@ -302,12 +313,16 @@ public final class TestCasePlanLoader {
     }
 
     @Override
-    public void runComplete(final List<PostTopicNode> knownTopics) {
+    public void runComplete(
+        final List<PostTopicNode> knownTopics,
+        final List<SourceNode> knownSources
+    ) {
       if (queryMetadata == null) {
         throw new AssertionError("test case does not build a query");
       }
 
       this.topics = ImmutableList.copyOf(knownTopics);
+      this.sources = ImmutableList.copyOf(knownSources);
     }
 
     public Map<String, String> getSchemasDescription() {
@@ -316,6 +331,10 @@ public final class TestCasePlanLoader {
 
     public List<PostTopicNode> getTopics() {
       return topics;
+    }
+
+    public List<SourceNode> getSources() {
+      return sources;
     }
 
     public List<KsqlPlan> getPlans() {

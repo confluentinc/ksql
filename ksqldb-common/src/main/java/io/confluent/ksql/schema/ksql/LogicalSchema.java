@@ -159,6 +159,27 @@ public final class LogicalSchema {
         .isPresent();
   }
 
+  /**
+   * Returns True if this schema is compatible with {@code other} schema.
+   */
+  public boolean compatibleSchema(final LogicalSchema other) {
+    if (columns().size() != other.columns().size()) {
+      return false;
+    }
+
+    for (int i = 0; i < columns().size(); i++) {
+      final Column s1Column = columns().get(i);
+      final Column s2Column = other.columns().get(i);
+      final SqlType s2Type = s2Column.type();
+
+      if (!s1Column.equalsIgnoreType(s2Column) || !s1Column.canImplicitlyCast(s2Type)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

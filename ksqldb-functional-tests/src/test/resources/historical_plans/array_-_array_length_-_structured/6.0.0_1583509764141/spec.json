@@ -49,9 +49,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (ARRAY_ARRAY ARRAY<ARRAY<BOOLEAN>>, MAP_ARRAY ARRAY<MAP<STRING, INTEGER>>, STRUCT_ARRAY ARRAY<STRUCT<V BIGINT>>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  ARRAY_LENGTH(INPUT.ARRAY_ARRAY) ARRAY_LEN,\n  ARRAY_LENGTH(INPUT.MAP_ARRAY) MAP_LEN,\n  ARRAY_LENGTH(INPUT.STRUCT_ARRAY) STRUCT_LEN\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ARRAY_LEN` INTEGER, `MAP_LEN` INTEGER, `STRUCT_LEN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ARRAY_ARRAY` ARRAY<ARRAY<BOOLEAN>>, `MAP_ARRAY` ARRAY<MAP<STRING, INTEGER>>, `STRUCT_ARRAY` ARRAY<STRUCT<`V` BIGINT>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -62,7 +79,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

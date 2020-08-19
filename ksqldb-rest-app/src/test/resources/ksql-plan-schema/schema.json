@@ -63,6 +63,10 @@
         },
         "windowInfo" : {
           "$ref" : "#/definitions/WindowInfo"
+        },
+        "orReplace" : {
+          "type" : "boolean",
+          "default" : false
         }
       },
       "title" : "createStreamV1",
@@ -157,6 +161,10 @@
         },
         "windowInfo" : {
           "$ref" : "#/definitions/WindowInfo"
+        },
+        "orReplace" : {
+          "type" : "boolean",
+          "default" : false
         }
       },
       "title" : "createTableV1",
@@ -671,6 +679,9 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "forceChangelog" : {
+          "type" : "boolean"
         }
       },
       "title" : "tableSourceV1",
@@ -850,6 +861,31 @@
       "title" : "tableSinkV1",
       "required" : [ "@type", "properties", "source", "formats", "topicName" ]
     },
+    "TableSuppress" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "tableSuppressV1" ],
+          "default" : "tableSuppressV1"
+        },
+        "properties" : {
+          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
+        },
+        "source" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "refinementInfo" : {
+          "$ref" : "#/definitions/RefinementInfo"
+        },
+        "internalFormats" : {
+          "$ref" : "#/definitions/Formats"
+        }
+      },
+      "title" : "tableSuppressV1",
+      "required" : [ "@type", "properties", "source", "refinementInfo", "internalFormats" ]
+    },
     "TableTableJoin" : {
       "type" : "object",
       "additionalProperties" : false,
@@ -878,6 +914,17 @@
       },
       "title" : "tableTableJoinV1",
       "required" : [ "@type", "properties", "joinType", "leftSource", "rightSource" ]
+    },
+    "RefinementInfo" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "outputRefinement" : {
+          "type" : "string",
+          "enum" : [ "CHANGES", "FINAL" ]
+        }
+      },
+      "required" : [ "outputRefinement" ]
     },
     "ExecutionStep" : {
       "oneOf" : [ {
@@ -922,6 +969,8 @@
         "$ref" : "#/definitions/TableSelect"
       }, {
         "$ref" : "#/definitions/TableSink"
+      }, {
+        "$ref" : "#/definitions/TableSuppress"
       }, {
         "$ref" : "#/definitions/TableTableJoin"
       } ]

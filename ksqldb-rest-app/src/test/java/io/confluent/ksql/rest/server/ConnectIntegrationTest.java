@@ -95,7 +95,7 @@ public class ConnectIntegrationTest {
 
   @AfterClass
   public static void tearDownClass() {
-    CONNECT.triggerShutdown();
+    CONNECT.shutdown();
   }
 
   private KsqlRestClient ksqlRestClient;

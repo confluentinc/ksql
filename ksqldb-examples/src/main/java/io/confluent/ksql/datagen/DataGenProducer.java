@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -49,12 +50,31 @@ public class DataGenProducer {
     this.valueSerializerFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
+  // Protected for test purpose.
+  protected static void validateTimestampColumnType(
+      final Optional<String> timestampColumnName,
+      final Schema avroSchema
+  ) {
+    if (timestampColumnName.isPresent()) {
+      if (avroSchema.getField(timestampColumnName.get()) == null) {
+        throw new IllegalArgumentException("The indicated timestamp field does not exist: "
+            + timestampColumnName.get());
+      }
+      if (avroSchema.getField(timestampColumnName.get()).schema().getType() != Type.LONG) {
+        throw new IllegalArgumentException("The timestamp column type should be bigint/long. "
+            + timestampColumnName.get() + " type is "
+            + avroSchema.getField(timestampColumnName.get()).schema().getType());
+      }
+    }
+  }
+
   @SuppressWarnings("InfiniteLoopStatement")
   public void populateTopic(
       final Properties props,
       final Generator generator,
       final String kafkaTopicName,
       final String key,
+      final Optional<String> timestampColumnName,
       final int messageCount,
       final boolean printRows,
       final Optional<RateLimiter> rateLimiter
@@ -64,7 +84,10 @@ public class DataGenProducer {
       throw new IllegalArgumentException("Key field does not exist: " + key);
     }
 
-    final RowGenerator rowGenerator = new RowGenerator(generator, key);
+    validateTimestampColumnType(timestampColumnName, avroSchema);
+
+
+    final RowGenerator rowGenerator = new RowGenerator(generator, key, timestampColumnName);
 
     final Serializer<Struct> keySerializer =
         getKeySerializer(rowGenerator.keySchema());
@@ -114,9 +137,14 @@ public class DataGenProducer {
     rateLimiter.ifPresent(RateLimiter::acquire);
 
     final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
+    final Long timestamp = rowGenerator.getTimestampFieldIndex().isPresent()
+        ? (Long) genericRowPair.getRight().get(rowGenerator.getTimestampFieldIndex().get())
+        : null;
 
     final ProducerRecord<Struct, GenericRow> producerRecord = new ProducerRecord<>(
         kafkaTopicName,
+        (Integer) null,
+        timestamp,
         genericRowPair.getLeft(),
         genericRowPair.getRight()
     );

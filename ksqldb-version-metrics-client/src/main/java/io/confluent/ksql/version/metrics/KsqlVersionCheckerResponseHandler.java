@@ -18,9 +18,10 @@ package io.confluent.ksql.version.metrics;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.support.metrics.submitters.ResponseHandler;
 import java.io.IOException;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,17 +41,17 @@ public class KsqlVersionCheckerResponseHandler implements ResponseHandler {
   }
 
   @Override
-  public void handle(final HttpResponse response) {
-    final int statusCode = response.getStatusLine().getStatusCode();
+  public void handle(final ClassicHttpResponse response) {
+    final int statusCode = response.getCode();
     try {
       if (statusCode == HttpStatus.SC_OK && response.getEntity().getContent() != null) {
 
         final String content = EntityUtils.toString(response.getEntity());
         if (content.length() > 0) {
-          log.warn(content.toString());
+          log.warn(content);
         }
       }
-    } catch (final IOException e) {
+    } catch (final ParseException | IOException e) {
       log.error("Error while parsing the Version check response ", e);
     }
   }

@@ -24,8 +24,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class TestUtils {
+  private static int MIN_EPHEMERAL_PORT = 1024;
+  private static int MAX_EPHEMERAL_PORT = 65535;
+  private static int MAX_PORT_TRIES = 10;
 
   public static List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
     final List<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
@@ -75,5 +79,27 @@ public class TestUtils {
     final int port = s.getLocalPort();
     s.close();
     return port;
+  }
+
+  /**
+   * This is similar to the above method, but it retries within a range and chooses at random, so
+   * conflicts are hopefully rare. Also, since it tries at random over the range, it hopefully
+   * minimizes the chance of a race occurring.
+   * @return
+   * @throws IOException
+   */
+  public static int findFreeLocalPort() {
+    for (int i = 0; i < MAX_PORT_TRIES; i++) {
+      final int portToTry =
+          ThreadLocalRandom.current().nextInt(MIN_EPHEMERAL_PORT, MAX_EPHEMERAL_PORT);
+      try (
+          ServerSocket socket = new ServerSocket(portToTry);
+      ) {
+        return socket.getLocalPort();
+      } catch (IOException e) {
+        // In use
+      }
+    }
+    throw new RuntimeException("Couldn't find free port");
   }
 }

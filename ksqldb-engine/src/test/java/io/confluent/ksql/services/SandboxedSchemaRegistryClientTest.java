@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -61,6 +62,7 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("testCompatibility", String.class, Schema.class)
           .ignore("testCompatibility", String.class, ParsedSchema.class)
           .ignore("deleteSubject", String.class)
+          .ignore("getAllSubjects")
           .build();
     }
 
@@ -125,6 +127,18 @@ public final class SandboxedSchemaRegistryClientTest {
       // Then:
       assertThat(first, is(true));
       assertThat(second, is(false));
+    }
+
+    @Test
+    public void shouldGetAllSubjects() throws Exception {
+      // Given:
+      when(delegate.getAllSubjects()).thenReturn(ImmutableSet.of("foo"));
+
+      // When:
+      final Collection<String> subjects = sandboxedClient.getAllSubjects();
+
+      // Then:
+      assertThat(subjects, is(ImmutableSet.of("foo")));
     }
 
     @Test

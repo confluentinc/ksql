@@ -189,9 +189,26 @@
     } ],
     "statements" : [ "CREATE STREAM ORDERS (ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRUCT<ITEMID BIGINT, NAME STRING, CATEGORY STRUCT<ID BIGINT, NAME STRING>>, ORDERUNITS DOUBLE, ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<STRING, DOUBLE>, ADDRESS STRUCT<NUMBER BIGINT, STREET STRING, CITY STRING, STATE STRING, ZIPCODE BIGINT>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S5 AS SELECT\n  (ORDERS.ITEMID->ITEMID * 10) ITEMID,\n  CONCAT(ORDERS.ITEMID->CATEGORY->NAME, '_HELLO') CNAME,\n  LEN(ORDERS.ADDRESS->STATE) STATE_LENGTH\nFROM ORDERS ORDERS\nWHERE ((ORDERS.ADDRESS->STATE LIKE '%1') OR (ORDERS.ADDRESS->STATE LIKE '%9'))\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S5",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ITEMID` BIGINT, `CNAME` STRING, `STATE_LENGTH` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "ORDERS",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S5",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -202,7 +219,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S5",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

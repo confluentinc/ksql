@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.math;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -63,6 +64,7 @@ is +ve or -ve to get consistent behaviour.
 */
 @UdfDescription(
     name = "Round",
+    category = FunctionCategory.MATHEMATICAL,
     description = Round.DESCRIPTION,
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

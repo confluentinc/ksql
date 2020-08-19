@@ -37,11 +37,12 @@ import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.AsValue;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.planner.JoinTree.Join;
@@ -63,6 +64,7 @@ import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
+import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
@@ -71,6 +73,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.GrammaticalJoiner;
@@ -90,24 +93,26 @@ public class LogicalPlanner {
 
   private final KsqlConfig ksqlConfig;
   private final RewrittenAnalysis analysis;
-  private final FunctionRegistry functionRegistry;
+  private final MetaStore metaStore;
   private final AggregateAnalyzer aggregateAnalyzer;
   private final ColumnReferenceRewriter refRewriter;
 
   public LogicalPlanner(
       final KsqlConfig ksqlConfig,
       final ImmutableAnalysis analysis,
-      final FunctionRegistry functionRegistry
+      final MetaStore metaStore
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.refRewriter =
         new ColumnReferenceRewriter(analysis.getFromSourceSchemas(false).isJoin());
     this.analysis = new RewrittenAnalysis(analysis, refRewriter::process);
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.aggregateAnalyzer = new AggregateAnalyzer(functionRegistry);
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+    this.aggregateAnalyzer = new AggregateAnalyzer(metaStore);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public OutputNode buildPlan() {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     PlanNode currentNode = buildSourceNode();
 
     if (analysis.getWhereExpression().isPresent()) {
@@ -136,6 +141,21 @@ public class LogicalPlanner {
         throw new KsqlException(loc + "WINDOW clause requires a GROUP BY clause.");
       }
       currentNode = buildUserProjectNode(currentNode);
+    }
+
+    if (analysis.getRefinementInfo().isPresent()
+        && analysis.getRefinementInfo().get().getOutputRefinement() == OutputRefinement.FINAL) {
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SUPPRESS_ENABLED)) {
+        throw new KsqlException("Suppression is currently disabled. You can enable it by setting "
+            + KsqlConfig.KSQL_SUPPRESS_ENABLED + " to true");
+      }
+      if (!(analysis.getGroupBy().isPresent() && analysis.getWindowExpression().isPresent())) {
+        throw new KsqlException("EMIT FINAL is only supported for windowed aggregations.");
+      }
+      currentNode = buildSuppressNode(
+          currentNode,
+          analysis.getRefinementInfo().get()
+      );
     }
 
     return buildOutputNode(currentNode);
@@ -207,13 +227,20 @@ public class LogicalPlanner {
     return timestampColumn;
   }
 
+  private Optional<LogicalSchema> getTargetSchema() {
+    return analysis.getInto().filter(i -> !i.isCreate())
+        .map(i -> metaStore.getSource(i.getName()))
+        .map(target -> target.getSchema());
+  }
+
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
     final GroupBy groupBy = analysis.getGroupBy()
         .orElseThrow(IllegalStateException::new);
 
     final List<SelectExpression> projectionExpressions = SelectionUtil.buildSelectExpressions(
         sourcePlanNode,
-        analysis.getSelectItems()
+        analysis.getSelectItems(),
+        getTargetSchema()
     );
 
     final LogicalSchema schema =
@@ -227,7 +254,7 @@ public class LogicalPlanner {
     if (analysis.getHavingExpression().isPresent()) {
       final FilterTypeValidator validator = new FilterTypeValidator(
           sourcePlanNode.getSchema(),
-          functionRegistry,
+          metaStore,
           FilterType.HAVING);
 
       validator.validateFilterExpression(analysis.getHavingExpression().get());
@@ -238,7 +265,7 @@ public class LogicalPlanner {
         sourcePlanNode,
         schema,
         groupBy,
-        functionRegistry,
+        metaStore,
         analysis,
         aggregateAnalysis,
         projectionExpressions,
@@ -251,8 +278,8 @@ public class LogicalPlanner {
         new PlanNodeId("Project"),
         parentNode,
         analysis.getSelectItems(),
-        analysis.getInto().isPresent(),
-        functionRegistry
+        analysis.getInto(),
+        metaStore
     );
   }
 
@@ -274,7 +301,7 @@ public class LogicalPlanner {
   ) {
     final FilterTypeValidator validator = new FilterTypeValidator(
         sourcePlanNode.getSchema(),
-        functionRegistry,
+        metaStore,
         FilterType.WHERE);
 
     validator.validateFilterExpression(filterExpression);
@@ -322,7 +349,7 @@ public class LogicalPlanner {
   }
 
   private FlatMapNode buildFlatMapNode(final PlanNode sourcePlanNode) {
-    return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, functionRegistry, analysis);
+    return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, metaStore, analysis);
   }
 
   private PlanNode buildSourceForJoin(
@@ -469,6 +496,17 @@ public class LogicalPlanner {
     );
   }
 
+  private SuppressNode buildSuppressNode(
+      final PlanNode sourcePlanNode,
+      final RefinementInfo refinementInfo
+  ) {
+    return new SuppressNode(
+        new PlanNodeId("Suppress"),
+        sourcePlanNode,
+        refinementInfo
+    );
+  }
+
   private LogicalSchema buildAggregateSchema(
       final PlanNode sourcePlanNode,
       final GroupBy groupBy,
@@ -480,7 +518,7 @@ public class LogicalPlanner {
         sourceSchema
             .withPseudoAndKeyColsInValue(analysis.getWindowExpression().isPresent()),
         projectionExpressions,
-        functionRegistry
+        metaStore
     );
 
     final List<Expression> groupByExps = groupBy.getGroupingExpressions();
@@ -524,7 +562,7 @@ public class LogicalPlanner {
       );
     } else {
       final ExpressionTypeManager typeManager =
-          new ExpressionTypeManager(sourceSchema, functionRegistry);
+          new ExpressionTypeManager(sourceSchema, metaStore);
 
       final Expression expression = groupByExps.get(0);
 
@@ -576,7 +614,7 @@ public class LogicalPlanner {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
         partitionBy,
-        functionRegistry
+        metaStore
     );
   }
 

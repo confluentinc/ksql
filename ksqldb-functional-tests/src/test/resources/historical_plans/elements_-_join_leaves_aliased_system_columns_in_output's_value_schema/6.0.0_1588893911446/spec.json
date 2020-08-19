@@ -68,9 +68,40 @@
     } ],
     "statements" : [ "CREATE STREAM LEFT_STREAM (K STRING KEY, F0 INT) WITH (kafka_topic='left', value_format='JSON', window_type='tumbling', window_size='1 second');", "CREATE STREAM RIGHT_STREAM (K STRING KEY, F1 INT) WITH (kafka_topic='right', value_format='JSON', window_type='tumbling', window_size='1 second');", "CREATE STREAM OUTPUT as SELECT l.K, l.ROWTIME AS TIME, l.WINDOWSTART AS WSTART, l.WINDOWEND AS WEND, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.k = r.k;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`L_K` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `F0` INTEGER, `F1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 1000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "RIGHT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `F1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 1000
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "LEFT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 1000
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -82,8 +113,7 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          },
-          "partitions" : 4
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
@@ -99,7 +129,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "name" : "left",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -111,9 +141,10 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "partitions" : 4
         }, {
-          "name" : "left",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

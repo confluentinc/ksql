@@ -63,9 +63,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ROWKEY INTEGER KEY, F1 INTEGER) WITH (KAFKA_TOPIC='test_topic', KEY='f1', VALUE_FORMAT='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT\n  TEST.F1 F1,\n  COUNT(*) KSQL_COL_0\nFROM TEST TEST\nGROUP BY TEST.F1\nHAVING (SUM(TEST.F1) > 1)\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` INTEGER KEY, `F1` INTEGER, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `F1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -86,7 +103,7 @@
             "format" : "DELIMITED"
           }
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

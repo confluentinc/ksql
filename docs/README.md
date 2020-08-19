@@ -58,6 +58,7 @@ The ksqlDB documentation build uses these plugins and extensions:
 - **mkdocs-git-revision-date-plugin:** page last updated in GitHub
 - **pymdown-extensions:** adds features to the standard Python Markdown library
 - **mkdocs-material:** docs site theme
+- **mkdocs-redirects:** redirects for moved content
 
 Install the plugins and extensions by using the `pip` installer:
 
@@ -67,6 +68,7 @@ pip install mkdocs-macros-plugin
 pip install mkdocs-git-revision-date-plugin
 pip install pymdown-extensions
 pip install mkdocs-material
+pip install mkdocs-redirects
 ```
 
 Build the docs

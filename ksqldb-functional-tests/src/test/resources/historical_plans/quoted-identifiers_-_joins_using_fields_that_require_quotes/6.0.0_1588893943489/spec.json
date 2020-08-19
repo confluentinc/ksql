@@ -52,6 +52,31 @@
     } ],
     "statements" : [ "CREATE STREAM L (K STRING KEY, `SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (K STRING PRIMARY KEY, `with.dot` VARCHAR) WITH (kafka_topic='right_topic', value_format='JSON', key='`with.dot`');", "CREATE STREAM JOINED as SELECT L.`SELECT`, L.`field!` FROM L LEFT JOIN R ON L.`SELECT` = R.`with.dot`;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SELECT` STRING, `field!` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `with.dot` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "JOINED",
+        "type" : "STREAM",
+        "schema" : "`SELECT` STRING KEY, `field!` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "JOINED",
@@ -64,16 +89,6 @@
             "format" : "JSON"
           },
           "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
         }, {
           "name" : "left_topic",
           "keyFormat" : {
@@ -96,6 +111,16 @@
             "format" : "JSON"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
         } ]
       }
     }

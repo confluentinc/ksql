@@ -108,19 +108,33 @@
     } ],
     "statements" : [ "CREATE STREAM S1 (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, TS BIGINT) WITH (KAFKA_TOPIC='s1', KEY='ID', TIMESTAMP='TS', VALUE_FORMAT='JSON');", "CREATE STREAM S2 (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING, F2 STRING, RTS BIGINT) WITH (KAFKA_TOPIC='s2', KEY='ID', TIMESTAMP='RTS', VALUE_FORMAT='JSON');", "CREATE STREAM S1_JOIN_S2 WITH (TIMESTAMP='TS') AS SELECT\n  S1.ID ID,\n  S1.NAME NAME,\n  S1.TS TS,\n  S2.F1 F1,\n  S2.F2 F2\nFROM S1 S1\nINNER JOIN S2 S2 WITHIN 11 SECONDS ON ((S1.ID = S2.ID))\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S1_JOIN_S2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S1_JOIN_S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_S2_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
@@ -131,7 +145,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_S2_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "name" : "s2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -139,7 +153,8 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "partitions" : 4
         }, {
           "name" : "s1",
           "keyFormat" : {
@@ -152,7 +167,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "s2",
+          "name" : "S1_JOIN_S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -162,6 +177,16 @@
             "format" : "JSON"
           },
           "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_S2_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
         } ]
       }
     }

@@ -263,11 +263,43 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE STREAM INNER_JOIN AS SELECT *\nFROM TEST TT\nINNER JOIN TEST_STREAM T WITHIN 11 SECONDS ON ((T.ID = TT.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "INNER_JOIN",
-        "type" : "stream"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT, `TT_ID` BIGINT, `TT_NAME` STRING, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_F1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "INNER_JOIN",
           "keyFormat" : {
             "formatInfo" : {
@@ -280,17 +312,6 @@
           "partitions" : 4
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

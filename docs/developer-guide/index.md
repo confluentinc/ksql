@@ -7,6 +7,7 @@ description: Learn to create ksqlDB applications
 
 These topics show how to develop ksqlDB applications.
 
+- [ksqlDB SQL quick reference](ksqldb-reference/quick-reference.md)
 - [Develop with ksqlDB clients](ksqldb-clients/index.md)
 - [Configure ksqlDB CLI](../operate-and-deploy/installation/cli-config.md) 
 - [Create a ksqlDB Stream](create-a-stream.md)
@@ -16,7 +17,7 @@ These topics show how to develop ksqlDB applications.
 - [Implement a User-defined Function (UDF, UDAF, and UDTF)](implement-a-udf)
 - [Partition Data to Enable Joins](joins/partition-data.md)
 - [Syntax Reference](syntax-reference.md)
-- [Serialization](serialization.md)
+- [Serialization Formats](serialization.md)
 - [Testing Tool](test-and-debug/ksqldb-testing-tool.md)
 - [ksqlDB REST API Reference](api.md)
 - [Processing Log](test-and-debug/processing-log.md)

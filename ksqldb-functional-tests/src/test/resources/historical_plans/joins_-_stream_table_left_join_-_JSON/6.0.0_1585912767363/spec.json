@@ -135,11 +135,43 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, F1 STRING, F2 BIGINT) WITH (KAFKA_TOPIC='test_table', KEY='ID', VALUE_FORMAT='JSON');", "CREATE STREAM LEFT_JOIN AS SELECT\n  T.ID T_ID,\n  T.NAME NAME,\n  T.VALUE VALUE,\n  TT.F1 F1,\n  TT.F2 F2\nFROM TEST T\nLEFT OUTER JOIN TEST_TABLE TT ON ((T.ID = TT.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "TEST_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "LEFT_JOIN",
-        "type" : "stream"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "LEFT_JOIN",
           "keyFormat" : {
             "formatInfo" : {
@@ -152,17 +184,6 @@
           "partitions" : 4
         }, {
           "name" : "test_table",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

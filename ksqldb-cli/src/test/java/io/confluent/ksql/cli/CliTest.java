@@ -784,8 +784,8 @@ public class CliTest {
   @Test
   public void shouldListFunctions() {
     assertRunListCommand("functions", hasRows(
-        row("TIMESTAMPTOSTRING", "SCALAR"),
-        row("EXTRACTJSONFIELD", "SCALAR"),
+        row("TIMESTAMPTOSTRING", "DATE / TIME"),
+        row("EXTRACTJSONFIELD", "JSON"),
         row("TOPK", "AGGREGATE")
     ));
   }
@@ -896,13 +896,11 @@ public class CliTest {
     // variations for Udfs are loaded non-deterministically. Don't assume which variation is first
     String expectedVariation =
         "\tVariation   : EXPLODE(list ARRAY<T>)\n"
-            + "\tReturns     : T\n"
-            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+            + "\tReturns     : T";
     assertThat(outputString, containsString(expectedVariation));
 
     expectedVariation = "\tVariation   : EXPLODE(input ARRAY<DECIMAL>)\n"
-            + "\tReturns     : DECIMAL\n"
-        + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+        + "\tReturns     : DECIMAL";
     assertThat(outputString, containsString(expectedVariation));
   }
 

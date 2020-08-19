@@ -255,9 +255,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (V DOUBLE) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  ROUND(TEST.V) R0,\n  ROUND(TEST.V, 0) R00,\n  ROUND(TEST.V, 1) R1,\n  ROUND(TEST.V, 2) R2,\n  ROUND(TEST.V, 10) R10,\n  ROUND(TEST.V, -1) 1R,\n  ROUND(TEST.V, -2) 2R\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `R0` BIGINT, `R00` DOUBLE, `R1` DOUBLE, `R2` DOUBLE, `R10` DOUBLE, `1R` DOUBLE, `2R` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `V` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -268,7 +285,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

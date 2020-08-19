@@ -48,6 +48,7 @@ class QueryStreamWriter implements StreamingOutput {
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
   private volatile boolean connectionClosed;
+  private boolean closed;
 
   QueryStreamWriter(
       final TransientQueryMetadata queryMetadata,
@@ -104,7 +105,7 @@ class QueryStreamWriter implements StreamingOutput {
       log.error("Exception occurred while writing to connection stream: ", exception);
       outputException(out, exception);
     } finally {
-      queryMetadata.close();
+      close();
     }
   }
 
@@ -112,6 +113,14 @@ class QueryStreamWriter implements StreamingOutput {
     objectMapper.writeValue(output, row);
     output.write(",\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
+  }
+
+  @Override
+  public synchronized void close() {
+    if (!closed) {
+      queryMetadata.close();
+      closed = true;
+    }
   }
 
   private StreamedRow buildHeader() {

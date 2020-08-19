@@ -58,9 +58,26 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE TS WITH (TIMESTAMP='sink_ts') AS SELECT\n  TEST.ID SINK_TS,\n  TEST.ID ID\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TS",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "TS",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -71,7 +88,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "TS",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

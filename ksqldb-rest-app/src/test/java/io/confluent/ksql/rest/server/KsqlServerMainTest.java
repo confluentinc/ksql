@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.rest.server;
 
+import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -27,6 +29,8 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.File;
+import java.util.concurrent.Executor;
+import org.easymock.Capture;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
@@ -40,12 +44,14 @@ public class KsqlServerMainTest {
 
   @Mock(MockType.NICE)
   private Executable executable;
+  @Mock(MockType.NICE)
+  private Executor shutdownHandler;
 
   private final File mockStreamsStateDir = mock(File.class);
 
   @Before
   public void setUp() {
-    main = new KsqlServerMain(executable);
+    main = new KsqlServerMain(executable, shutdownHandler);
     when(mockStreamsStateDir.exists()).thenReturn(true);
     when(mockStreamsStateDir.mkdirs()).thenReturn(true);
     when(mockStreamsStateDir.isDirectory()).thenReturn(true);
@@ -57,7 +63,7 @@ public class KsqlServerMainTest {
   @Test
   public void shouldStopAppOnJoin() throws Exception {
     // Given:
-    executable.triggerShutdown();
+    executable.shutdown();
     expectLastCall();
     replay(executable);
 
@@ -74,7 +80,7 @@ public class KsqlServerMainTest {
     executable.startAsync();
     expectLastCall().andThrow(new RuntimeException("Boom"));
 
-    executable.triggerShutdown();
+    executable.shutdown();
     expectLastCall();
     replay(executable);
 
@@ -85,6 +91,24 @@ public class KsqlServerMainTest {
     } catch (final Exception e) {
       // Expected
     }
+
+    // Then:
+    verify(executable);
+  }
+
+  @Test
+  public void shouldNotifyAppOnTerminate() throws Exception {
+    // Given:
+    final Capture<Runnable> captureShutdownHandler = newCapture();
+    shutdownHandler.execute(capture(captureShutdownHandler));
+    executable.notifyTerminated();
+    expectLastCall();
+    replay(shutdownHandler, executable);
+    main.tryStartApp();
+    final Runnable handler = captureShutdownHandler.getValue();
+
+    // When:
+    handler.run();
 
     // Then:
     verify(executable);
@@ -106,7 +130,7 @@ public class KsqlServerMainTest {
     assertThat(e.getMessage(), containsString(
         "Could not create the kafka streams state directory: /var/lib/kafka-streams\n"
         + " Make sure the directory exists and is writable for KSQL server \n"
-        + " or its parend directory is writbale by KSQL server\n"
+        + " or its parent directory is writable by KSQL server\n"
         + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
         + " the properties file."));
   }
@@ -126,7 +150,7 @@ public class KsqlServerMainTest {
     assertThat(e.getMessage(), containsString(
         "/var/lib/kafka-streams is not a directory.\n"
             + " Make sure the directory exists and is writable for KSQL server \n"
-            + " or its parend directory is writbale by KSQL server\n"
+            + " or its parent directory is writable by KSQL server\n"
             + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
             + " the properties file."));
   }

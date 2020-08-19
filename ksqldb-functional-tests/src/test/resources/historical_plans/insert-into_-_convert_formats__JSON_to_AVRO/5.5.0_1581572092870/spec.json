@@ -85,19 +85,25 @@
     } ],
     "statements" : [ "CREATE STREAM SOURCE (A BIGINT, B STRING) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');", "CREATE STREAM SINK (A BIGINT, B STRING) WITH (KAFKA_TOPIC='sink', VALUE_FORMAT='AVRO');", "INSERT INTO SINK SELECT *\nFROM SOURCE SOURCE\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "SOURCE",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "SINK",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "sink",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "partitions" : 4
-        }, {
           "name" : "source",
           "keyFormat" : {
             "formatInfo" : {
@@ -106,6 +112,17 @@
           },
           "valueFormat" : {
             "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "sink",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
           },
           "partitions" : 4
         } ]

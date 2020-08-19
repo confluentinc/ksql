@@ -30,6 +30,10 @@ import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -40,8 +44,10 @@ import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
+import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
+import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -78,6 +84,7 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
+      .put(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 0L)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .build();
 
@@ -88,7 +95,7 @@ public class TestExecutor implements Closeable {
   private final TopologyBuilder topologyBuilder;
   private final TopicInfoCache topicInfoCache;
 
-  public static TestExecutor create() {
+  public static TestExecutor create(final Optional<String> extensionDir) {
     final StubKafkaService kafkaService = StubKafkaService.create();
     final StubKafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
     final ServiceContext serviceContext = getServiceContext(kafkaClientSupplier);
@@ -96,7 +103,7 @@ public class TestExecutor implements Closeable {
     return new TestExecutor(
         kafkaService,
         serviceContext,
-        getKsqlEngine(serviceContext),
+        getKsqlEngine(serviceContext, extensionDir),
         TestExecutorUtil::buildStreamsTopologyTestDrivers
     );
   }
@@ -164,7 +171,8 @@ public class TestExecutor implements Closeable {
           );
         }
 
-        topologyTestDriverContainer.getOutputTopicNames()
+        topologyTestDriverContainer.getTopologyTestDriver()
+            .producedTopicNames()
             .forEach(topicInfoCache::get);
       }
 
@@ -194,10 +202,14 @@ public class TestExecutor implements Closeable {
             );
           })
           .collect(Collectors.toList());
+      final List<SourceNode> knownSources = ksqlEngine.getMetaStore().getAllDataSources().values()
+          .stream()
+          .map(SourceNode::fromDataSource)
+          .collect(Collectors.toList());
 
       testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), knownTopics);
 
-      listener.runComplete(knownTopics);
+      listener.runComplete(knownTopics, knownSources);
 
     } catch (final RuntimeException e) {
       final Optional<Matcher<Throwable>> expectedExceptionMatcher = testCase.expectedException();
@@ -250,7 +262,7 @@ public class TestExecutor implements Closeable {
 
     int i = 0;
     while (actualIt.hasNext() && expectedIt.hasNext()) {
-      final Record expectedRecord = topicInfo.coerceRecordKey(expectedIt.next(), i);
+      final Record expectedRecord = topicInfo.coerceRecord(expectedIt.next(), i);
       final ProducerRecord<?, ?> actualProducerRecord = actualIt.next();
 
       validateCreatedMessage(
@@ -312,7 +324,7 @@ public class TestExecutor implements Closeable {
 
         final TopicInfo topicInfo = topicInfoCache.get(record.getTopicName());
 
-        final Record coerced = topicInfo.coerceRecordKey(record, inputRecordIndex);
+        final Record coerced = topicInfo.coerceRecord(record, inputRecordIndex);
 
         processSingleRecord(
             coerced.asProducerRecord(),
@@ -428,12 +440,22 @@ public class TestExecutor implements Closeable {
         new StubKafkaTopicClient(),
         () -> schemaRegistryClient,
         () -> new DefaultConnectClient("http://localhost:8083", Optional.empty()),
-        DisabledKsqlClient::instance
+        DisabledKsqlClient::instance,
+        new StubKafkaConsumerGroupClient()
     );
   }
 
-  static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
-    final MutableMetaStore metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
+  static KsqlEngine getKsqlEngine(final ServiceContext serviceContext,
+      final Optional<String> extensionDir) {
+    final FunctionRegistry functionRegistry;
+    if (extensionDir.isPresent()) {
+      final MutableFunctionRegistry mutable = new InternalFunctionRegistry();
+      UdfLoaderUtil.load(mutable, extensionDir.get());
+      functionRegistry = mutable;
+    } else {
+      functionRegistry = TestFunctionRegistry.INSTANCE.get();
+    }
+    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     return new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),

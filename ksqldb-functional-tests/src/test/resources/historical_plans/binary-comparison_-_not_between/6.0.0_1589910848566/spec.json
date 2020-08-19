@@ -116,9 +116,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (A INT KEY, B BIGINT, C DOUBLE, D DECIMAL(4,3), E STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT A, A NOT BETWEEN 0 AND 2, B NOT BETWEEN 10 AND 12, C NOT BETWEEN 1.0 AND 1.11, D NOT BETWEEN 1.19 AND 1.21, E NOT BETWEEN 'eoo' AND 'goo' FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` BIGINT, `C` DOUBLE, `D` DECIMAL(4, 3), `E` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -129,7 +146,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

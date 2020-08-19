@@ -14,12 +14,14 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 
 @UdfDescription(
     name = "RPad",
+    category = FunctionCategory.STRING,
     description = "Pads the input string, starting from the end, with the specified padding"
         + " string until the target length is reached. If the input string is longer than the"
         + " specified target length it will be truncated. If the padding string is empty or"

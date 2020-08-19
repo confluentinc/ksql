@@ -99,14 +99,29 @@ public class PlanNodeTest {
   @Test
   public void shouldResolveAliasedSelectStarByCallingOnlyCorrectParent() {
     // When:
-    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.of(SOURCE_2_NAME)
-    );
+    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.of(SOURCE_2_NAME));
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(columns, contains(COL2, COL3));
 
     verify(source1, never()).resolveSelectStar(any());
+    verify(source2).resolveSelectStar(Optional.of(SOURCE_2_NAME));
+  }
+
+  @Test
+  public void shouldResolveAliasedSelectStarByCallingParentIfParentHasNoSourceName() {
+    // Given:
+    when(source1.getSourceName()).thenReturn(Optional.empty());
+
+    // When:
+    final Stream<ColumnName> result = planNode.resolveSelectStar(Optional.of(SOURCE_2_NAME));
+
+    // Then:
+    final List<ColumnName> columns = result.collect(Collectors.toList());
+    assertThat(columns, contains(COL0, COL1, COL2, COL3));
+
+    verify(source1).resolveSelectStar(Optional.of(SOURCE_2_NAME));
     verify(source2).resolveSelectStar(Optional.of(SOURCE_2_NAME));
   }
 

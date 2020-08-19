@@ -26,10 +26,12 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
+import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +45,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TestExecutorUtilTest {
 
+  @Mock
+  private TestLocation location;
   private ServiceContext serviceContext;
   private KsqlEngine ksqlEngine;
   private KsqlConfig ksqlConfig;
@@ -58,11 +62,11 @@ public class TestExecutorUtilTest {
         .readValue(new File("src/test/resources/testing_tool_tests.json"), QttTestFile.class);
     final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
     testCase = TestCaseBuilder.buildTests(testCaseNode,
-        new File("src/test/resources/testing_tool_tests.json").toPath()
-    ).get(0);
+        Paths.get("src/test/resources/testing_tool_tests.json"),
+        testName -> location).get(0);
 
     serviceContext = TestExecutor.getServiceContext();
-    ksqlEngine = TestExecutor.getKsqlEngine(serviceContext);
+    ksqlEngine = TestExecutor.getKsqlEngine(serviceContext, Optional.empty());
     ksqlConfig = new KsqlConfig(TestExecutor.baseConfig());
     stubKafkaService = StubKafkaService.create();
   }

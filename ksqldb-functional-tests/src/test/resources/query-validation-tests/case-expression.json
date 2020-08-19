@@ -169,6 +169,21 @@
       "outputs": [
         {"topic": "OUTPUT",  "value": {"KSQL_COL_0": 300}}
       ]
+    },
+    {
+      "name": "as param to UDAF",
+      "statements": [
+        "CREATE STREAM russell_3k_trades (tickerId VARCHAR KEY, quantity INT, price INT, buy BOOLEAN) WITH (kafka_topic='test_topic',value_format='json');",
+        "CREATE TABLE russell_3k_hourly AS SELECT tickerId, count(*) as tradeCount, sum(quantity) as tradeVolumn, min(CASE WHEN buy THEN price ELSE null END) as minBuyPrice, max(CASE WHEN buy THEN price ELSE null END) as maxBuyPrice, min(CASE WHEN buy THEN null ELSE price END) as minSellPrice, max(CASE WHEN buy THEN null ELSE price END) as maxSellPrice FROM russell_3k_trades WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY tickerId;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "AEIS", "value": {"userId":"bob67", "quantity": 76, "price": 120125102, "buy": true}},
+        {"topic": "test_topic", "key": "AEIS", "value": {"userId":"bob67", "quantity": 10, "price": 100125102, "buy": false}}
+      ],
+      "outputs": [
+        {"topic": "RUSSELL_3K_HOURLY", "key": "AEIS", "window": {"start": 0, "end": 3600000, "type": "time"}, "value": {"TRADECOUNT":1, "TRADEVOLUMN":76, "MINBUYPRICE":120125102, "MAXBUYPRICE":120125102, "MINSELLPRICE":null, "MAXSELLPRICE":null}},
+        {"topic": "RUSSELL_3K_HOURLY", "key": "AEIS", "window": {"start": 0, "end": 3600000, "type": "time"}, "value": {"TRADECOUNT":2, "TRADEVOLUMN":86, "MINBUYPRICE":120125102, "MAXBUYPRICE":120125102, "MINSELLPRICE":100125102, "MAXSELLPRICE":100125102}}
+      ]
     }
   ]
 }

@@ -81,6 +81,7 @@ public class DataGenTest {
         null,
         "topic",
         "key",
+        null,
         0,
         "srUrl",
         null,

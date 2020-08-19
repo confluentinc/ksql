@@ -47,6 +47,7 @@ nav:
       - Join Index: developer-guide/joins/index.md
       - Joining collections: developer-guide/joins/join-streams-and-tables.md
       - Partitioning requirements: developer-guide/joins/partition-data.md
+      - Synthetic key columns: developer-guide/joins/synthetic-keys.md
     - Architecture: concepts/ksqldb-architecture.md
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - Serialization: developer-guide/serialization.md
@@ -58,7 +59,6 @@ nav:
     - Create a Stream: developer-guide/create-a-stream.md
     - Create a Table: developer-guide/create-a-table.md
     - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
-    - Implement a User-defined Function (UDF, UDAF, and UDTF): developer-guide/implement-a-udf.md
     - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
     - Example Queries: tutorials/examples.md
     - Test and Debug:
@@ -72,9 +72,12 @@ nav:
       - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
       - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
       - Use connector management: how-to-guides/use-connector-management.md
+      - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
+      - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:
+      - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
       - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
       - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
@@ -112,6 +115,7 @@ nav:
       - Scalar functions: developer-guide/ksqldb-reference/scalar-functions.md
       - Aggregation functions: developer-guide/ksqldb-reference/aggregate-functions.md
       - Table Functions: developer-guide/ksqldb-reference/table-functions.md
+    - Metrics: reference/metrics.md
     - REST API:
       - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
       - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
@@ -136,6 +140,7 @@ nav:
               - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
+      - Monitoring: operate-and-deploy/monitoring.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md
@@ -149,6 +154,7 @@ nav:
       - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
   - Frequently Asked Questions: faq.md
+
 markdown_extensions:
     - toc:
         permalink: true
@@ -166,6 +172,9 @@ plugins:
     - search
     - git-revision-date # Must come before the macros plugin
     - macros
+    - redirects:
+        redirect_maps:
+            developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
 
 extra:
     site:
@@ -199,9 +208,11 @@ extra:
         # Build-related string tokens
         kafkaversion: 2.5
         kafkarelease: 5.5.0-ccs
-        ksqldbversion: 0.10.0
-        release: 0.10.0
+        ksqldbversion: 0.11.0
+        ksqldbcpversion: 6.1.0-beta200715032424
+        release: 0.11.0
         cprelease: 5.5.0
         releasepostbranch: 5.5.0-post
         scalaversion: 2.12
         version: 5.5
+        voluble_version: 0.3.1

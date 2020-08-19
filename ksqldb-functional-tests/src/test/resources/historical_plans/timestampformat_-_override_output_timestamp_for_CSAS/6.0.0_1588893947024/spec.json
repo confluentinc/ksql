@@ -58,9 +58,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM TS WITH (timestamp='sink_ts') AS SELECT K, id as sink_ts, id FROM test;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TS",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "TS",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -71,7 +88,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "TS",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

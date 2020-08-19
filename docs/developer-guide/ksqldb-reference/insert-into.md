@@ -43,8 +43,3 @@ Records written into the stream are not timestamp-ordered with respect
 to other queries. Therefore, the topic partitions of the output stream
 may contain out-of-order records even if the source stream for the query
 is ordered by timestamp.
-
-Example
--------
-
-TODO: example

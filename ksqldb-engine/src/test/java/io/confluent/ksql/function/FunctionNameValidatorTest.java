@@ -43,14 +43,15 @@ public class FunctionNameValidatorTest {
   }
 
   @Test
-  public void shouldNotAllowKsqlReservedWordsExceptSubstringAndConcat() {
+  public void shouldNotAllowKsqlReservedWordsExceptSubstringAndConcatAndReplace() {
     final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
     final int maxTokenType = vocabulary.getMaxTokenType();
     for(int i = 0; i < maxTokenType; i++) {
       final String symbolicName = vocabulary.getSymbolicName(i);
       if (symbolicName != null) {
         if (symbolicName.equalsIgnoreCase("substring")
-            || symbolicName.equalsIgnoreCase("concat")) {
+            || symbolicName.equalsIgnoreCase("concat")
+            || symbolicName.equalsIgnoreCase("replace")) {
           assertTrue(validator.test(symbolicName));
         } else {
           assertFalse(validator.test(symbolicName));

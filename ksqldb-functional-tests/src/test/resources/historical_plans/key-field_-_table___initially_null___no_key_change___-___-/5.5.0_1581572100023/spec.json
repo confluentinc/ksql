@@ -34,15 +34,25 @@
     "statements" : [ "CREATE TABLE INPUT (BAR INTEGER) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "table"
-      }, {
         "name" : "OUTPUT",
-        "type" : "table"
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -53,7 +63,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

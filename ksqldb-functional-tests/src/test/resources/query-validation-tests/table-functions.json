@@ -349,6 +349,23 @@
         {"topic": "OUTPUT", "key": "a", "value": {"SHOULDTHROW": false, "KSQL_COL_0": 0}},
         {"topic": "OUTPUT", "key": "c", "value": {"SHOULDTHROW": false, "KSQL_COL_0": 0}}
       ]
+    },
+    {
+      "name": "stream without key",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, EXPLODE(MY_ARR) VAL, ID AS ID2 FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": 0, "MY_ARR": [1, 2]}},
+        {"topic": "test_topic", "key": "should be ignored", "value": {"ID": 1, "MY_ARR": [3, 4]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 0, "VAL": 1, "ID2": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 0, "VAL": 2, "ID2": 0}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 1, "VAL": 3, "ID2": 1}},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 1, "VAL": 4, "ID2": 1}}
+      ]
     }
   ]
 }

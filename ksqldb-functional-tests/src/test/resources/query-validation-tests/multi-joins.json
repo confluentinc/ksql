@@ -1029,6 +1029,24 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Can't join `S1` with `T3` since the number of partitions don't match. `S1` partitions = 1; `T3` partitions = 2. Please repartition either one so that the number of partitions match."
       }
+    },
+    {
+      "name": "scoped include all columns",
+      "statements": [
+        "CREATE STREAM S1 (A INT KEY, B INT) WITH (kafka_topic='S1', value_format='JSON');",
+        "CREATE STREAM S2 (A INT KEY, B INT) WITH (kafka_topic='S2', value_format='JSON');",
+        "CREATE STREAM S3 (A INT KEY, B INT) WITH (kafka_topic='S3', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT s1.*, s2.*, s3.* FROM S1 INNER JOIN S2 WITHIN 10 SECONDS ON S1.A = S2.A INNER JOIN S3 WITHIN 10 SECONDS ON S1.A = S3.A WHERE S1.B < 5;"
+      ],
+      "inputs": [
+        {"topic": "S1", "key": 0, "value": {"B": 1}, "timestamp": 10},
+        {"topic": "S2", "key": 0, "value": {"B": -1}, "timestamp": 11},
+        {"topic": "S3", "key": 0, "value": {"B": 9}, "timestamp": 12},
+        {"topic": "S1", "key": 0, "value": {"B": 9}, "timestamp": 13}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_B": 1, "S2_A": 0, "S2_B": -1, "S3_A": 0, "S3_B": 9}, "timestamp":  12}
+      ]
     }
   ]
 }

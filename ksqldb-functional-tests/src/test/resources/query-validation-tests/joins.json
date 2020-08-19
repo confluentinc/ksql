@@ -47,6 +47,30 @@
       }
     },
     {
+      "name": "matching columns in both sides = select left.* and right.* with WHERE",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT l.*, r.* FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A WHERE R.B < 5;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10},
+        {"topic": "RIGHT", "key": 0, "value": {"B": -1, "C": -2}, "timestamp": 11},
+        {"topic": "RIGHT", "key": 0, "value": {"B": 9, "C": 10}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"R_A": 0, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, R_A INT, R_B INT, R_C INT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
       "name": "aliased join key",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -1391,6 +1415,7 @@
         {"topic": "OUTPUT", "key": 0, "value": {"NAME1": "a", "NAME2": "b"}, "timestamp": 10},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME1": null, "NAME2": "b"}, "timestamp": 20},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME1": null, "NAME2": null}, "timestamp": 30},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME1": null, "NAME2": null}, "timestamp": 40},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 50}
       ]
     },

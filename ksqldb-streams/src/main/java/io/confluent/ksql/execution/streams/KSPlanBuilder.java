@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
@@ -282,6 +283,17 @@ public final class KSPlanBuilder implements PlanBuilder {
     final KTableHolder<K> source = tableSink.getSource().build(this);
     TableSinkBuilder.build(source, tableSink, queryBuilder);
     return source;
+  }
+
+  @Override
+  public <K> KTableHolder<K> visitTableSuppress(final TableSuppress<K> tableSuppress) {
+    final KTableHolder<K>  source = tableSuppress.getSource().build(this);
+    return new TableSuppressBuilder().build(
+        source,
+        tableSuppress,
+        queryBuilder,
+        source.getKeySerdeFactory()
+    );
   }
 
   @Override

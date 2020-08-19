@@ -49,9 +49,34 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT_1 (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON', KEY='FOO');", "CREATE STREAM INPUT_2 (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='t2', value_format='JSON', KEY='FOO');", "CREATE STREAM OUTPUT AS SELECT INPUT_1.FOO, INPUT_1.BAR, I2.BAR FROM INPUT_1 JOIN INPUT_2 AS I2 WITHIN 1 MINUTE ON INPUT_1.FOO = I2.FOO;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`INPUT_1_FOO` INTEGER KEY, `INPUT_1_BAR` INTEGER, `I2_BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT_2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT_1",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -59,8 +84,7 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          },
-          "partitions" : 4
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
@@ -72,17 +96,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
-          "name" : "t1",
+          "name" : "t2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -93,7 +107,18 @@
           },
           "partitions" : 4
         }, {
-          "name" : "t2",
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "t1",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

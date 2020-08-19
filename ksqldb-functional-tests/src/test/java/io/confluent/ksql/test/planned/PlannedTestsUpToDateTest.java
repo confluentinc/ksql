@@ -87,6 +87,8 @@ public class PlannedTestsUpToDateTest {
     assertThat(
         "Current query plan differs from latest for: " + testCase.getName() + ". "
             + System.lineSeparator()
+            + "location: " + testCase.getTestLocation()
+            + System.lineSeparator()
             + "Please re-generate QTT plans by running temporarily commenting out the @Ignore and"
             + "then running PlannedTestGeneratorTest.manuallyGeneratePlans()."
             + System.lineSeparator()

@@ -65,8 +65,8 @@ The following is a template test file:
       "name": "my first positive test",
       "description": "an example positive test where the output is verified",
       "statements": [
-        "CREATE STREAM input (ID bigint KEY, NAME STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE STREAM output AS SELECT ** FROM input WHERE id < 10;"
+        "CREATE STREAM input (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT * FROM input WHERE id < 10;"
       ],
       "inputs": [
         {"topic": "input_topic", "key": 8, "value": {"name": "bob"}, "timestamp": 0},
@@ -80,7 +80,7 @@ The following is a template test file:
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ID BIGINT KEY, NAME STRING"}
         ]
       }
     },
@@ -92,14 +92,14 @@ The following is a template test file:
         "max": "5.4.1"
       },
       "statements": [
-        "CREATE STREAM test (ID name) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "INSERT INTO test (name, number) VALUES ('foo', 45)",
-        "INSERT INTO test (name, number) VALUES ('bar', 646)",
-        "CREATE STREAM output AS SELECT value FROM test;"
+        "CREATE STREAM test (name VARCHAR KEY, number INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "INSERT INTO test (name, number) VALUES ('foo', 45);",
+        "INSERT INTO test (name, number) VALUES ('bar', 646);",
+        "CREATE STREAM output AS SELECT name, number FROM test;"
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "foo", "value": {"number": 45}},
-        {"topic": "OUTPUT", "key": 0, "value": {"number": 646}}
+        {"topic": "OUTPUT", "key": "foo", "value": {"NUMBER": 45}},
+        {"topic": "OUTPUT", "key": "bar", "value": {"NUMBER": 646}}
       ]
     },
     {
@@ -306,17 +306,21 @@ A post condition can define the list of sources that must exist in the metastore
 {
   "name": "S1",
   "type": "table",
-  "schema": "ID BIGINT KEY, FOO STRING, KSQL_COL_1 BIGINT"
+  "schema": "ID BIGINT KEY, FOO STRING, KSQL_COL_1 BIGINT",
+  "keyFormat": {"format": "KAFKA"},
+  "serdeOptions": ["UNWRAP_SINGLE_VALUES"]
 }
 ```
 
 Each source can define the following attributes:
 
-| Attribute   | Description |
-|-------------|:------------|
-| name        | (Required) The name of the source. |
-| type        | (Required) Specifies if the source is a STREAM or TABLE. |
-| schema      | (Optional) Specifies the SQL schema for the source. |
+| Attribute    | Description |
+|--------------|:------------|
+| name         | (Required) The name of the source. |
+| type         | (Required) Specifies if the source is a STREAM or TABLE. |
+| schema       | (Optional) Specifies the SQL schema for the source. |
+| keyFormat    | (Optional) Key serialization format for the source. |
+| serdeOptions | (Optional) List of expected serde options for the source. |
 
 #### Topics
 

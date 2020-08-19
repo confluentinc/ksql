@@ -1,0 +1,144 @@
+{
+  "version" : "6.1.0",
+  "timestamp" : 1594164273171,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<USER INT, REGION VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<REGION VARCHAR, ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<REGION VARCHAR, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 VARCHAR, KSQL_COL_1 BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "field with field used in function in projection (table->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "1,r0"
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2,r1"
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : "3,r0"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : null
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2,r0"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r0",
+      "value" : "0,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : "1,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r0",
+      "value" : "0,2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r0",
+      "value" : "0,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : "1,0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r0",
+      "value" : "0,2"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT region, SUBSTRING(region, 2, 1), COUNT(*) FROM TEST GROUP BY region;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`REGION` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `USER` INTEGER, `REGION` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        } ]
+      }
+    }
+  }
+}

@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.metastore.model;
 
-import static org.mockito.Mockito.mock;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -26,8 +29,17 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Optional;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class StructuredDataSourceTest {
+
+  @Mock
+  private KsqlTopic topic;
+  @Mock
+  private KsqlTopic topic2;
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
@@ -99,10 +111,203 @@ public class StructuredDataSourceTest {
     new TestStructuredDataSource(schema);
   }
 
+  @Test
+  public void shouldEnforceSameNameCompatbility() {
+    // Given:
+    final KsqlStream<String> streamA = new KsqlStream<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.empty(),
+        true,
+        topic
+    );
+    final KsqlStream<String> streamB = new KsqlStream<>(
+        "sql",
+        SourceName.of("B"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.empty(),
+        true,
+        topic
+    );
+
+    // When:
+    final Optional<String> err = streamA.canUpgradeTo(streamB);
+
+    // Then:
+    assertThat(err.isPresent(), is(true));
+    assertThat(err.get(), containsString("has name = `A` which is not upgradeable to `B`"));
+  }
+
+  @Test
+  public void shouldEnforceSameSerdeOptions() {
+    // Given:
+    final KsqlStream<String> streamA = new KsqlStream<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.empty(),
+        true,
+        topic
+    );
+    final KsqlStream<String> streamB = new KsqlStream<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+        Optional.empty(),
+        true,
+        topic
+    );
+
+    // When:
+    final Optional<String> err = streamA.canUpgradeTo(streamB);
+
+    // Then:
+    assertThat(err.isPresent(), is(true));
+    assertThat(err.get(), containsString("has serdeOptions = [] which is not upgradeable to [UNWRAP_SINGLE_VALUES]"));
+  }
+
+  @Test
+  public void shouldEnforceSameTimestampColumn() {
+    // Given:
+    final KsqlStream<String> streamA = new KsqlStream<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.empty(),
+        true,
+        topic
+    );
+    final KsqlStream<String> streamB = new KsqlStream<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.of(new TimestampColumn(ColumnName.of("foo"), Optional.empty())),
+        true,
+        topic
+    );
+
+    // When:
+    final Optional<String> err = streamA.canUpgradeTo(streamB);
+
+    // Then:
+    assertThat(err.isPresent(), is(true));
+    assertThat(err.get(), containsString("has timestampColumn = Optional.empty which is not upgradeable to Optional[TimestampColumn{column=`foo`, format=Optional.empty}]"));
+  }
+
+  @Test
+  public void shouldEnforceSameTopic() {
+    // Given:
+    final KsqlStream<String> streamA = new KsqlStream<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.empty(),
+        true,
+        topic
+    );
+    final KsqlStream<String> streamB = new KsqlStream<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.empty(),
+        true,
+        topic2
+    );
+
+    // When:
+    final Optional<String> err = streamA.canUpgradeTo(streamB);
+
+    // Then:
+    assertThat(err.isPresent(), is(true));
+    assertThat(err.get(), containsString("has topic = topic which is not upgradeable to topic2"));
+  }
+
+  @Test
+  public void shouldEnforceSameType() {
+    // Given:
+    final KsqlStream<String> streamA = new KsqlStream<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.empty(),
+        true,
+        topic
+    );
+    final KsqlTable<String> streamB = new KsqlTable<>(
+        "sql",
+        SourceName.of("A"),
+        SOME_SCHEMA,
+        SerdeOption.none(),
+        Optional.empty(),
+        true,
+        topic
+    );
+
+    // When:
+    final Optional<String> err = streamA.canUpgradeTo(streamB);
+
+    // Then:
+    assertThat(err.isPresent(), is(true));
+    assertThat(err.get(), containsString("has type = KSTREAM which is not upgradeable to KTABLE"));
+  }
+
+  @Test
+  public void shouldEnforceNoRemovedColumns() {
+    // Given:
+    final LogicalSchema someSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("f1"), SqlTypes.BIGINT)
+        .build();
+
+    final LogicalSchema otherSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final Optional<String> s = StructuredDataSource.checkSchemas(someSchema, otherSchema);
+
+    // Then:
+    assertThat(s.isPresent(), is(true));
+    assertThat(s.get(), containsString("The following columns are changed or missing: [`f1` BIGINT]"));
+  }
+
+  @Test
+  public void shouldEnforceNoTypeChange() {
+    // Given:
+    final LogicalSchema someSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+        .build();
+
+    final LogicalSchema otherSchema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
+        .build();
+
+    // When:
+    final Optional<String> s = StructuredDataSource.checkSchemas(someSchema, otherSchema);
+
+    // Then:
+    assertThat(s.isPresent(), is(true));
+    assertThat(s.get(), containsString("The following columns are changed or missing: [`f0` BIGINT]"));
+  }
+
   /**
    * Test class to allow the abstract base class to be instantiated.
    */
-  private static final class TestStructuredDataSource extends StructuredDataSource<String> {
+  private final class TestStructuredDataSource extends StructuredDataSource<String> {
 
     private TestStructuredDataSource(
         final LogicalSchema schema
@@ -115,7 +320,7 @@ public class StructuredDataSourceTest {
           Optional.empty(),
           DataSourceType.KSTREAM,
           false,
-          mock(KsqlTopic.class)
+          topic
       );
     }
   }

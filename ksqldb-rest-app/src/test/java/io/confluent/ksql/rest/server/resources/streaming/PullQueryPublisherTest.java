@@ -24,11 +24,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -66,7 +68,7 @@ public class PullQueryPublisherTest {
   @Mock
   private PullQueryExecutor pullQueryExecutor;
   @Mock
-  private TableRowsEntity entity;
+  private TableRows entity;
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
 
@@ -80,7 +82,8 @@ public class PullQueryPublisherTest {
         statement,
         pullQueryExecutor);
 
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenReturn(entity);
+    PullQueryResult result = new PullQueryResult(entity, Optional.empty());
+    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenReturn(result);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());

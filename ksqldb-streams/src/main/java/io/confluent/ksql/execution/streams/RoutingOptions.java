@@ -23,4 +23,6 @@ public interface RoutingOptions {
   long getOffsetLagAllowed();
 
   boolean skipForwardRequest();
+
+  boolean isDebugRequest();
 }

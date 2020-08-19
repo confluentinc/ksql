@@ -111,6 +111,23 @@
     } ],
     "statements" : [ "CREATE STREAM ORDERS (ADDRESS STRUCT<CITY STRING, STATE STRING>, ITEMID STRUCT<NAME STRING>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S1 AS SELECT (CASE WHEN (ORDERS.ADDRESS->STATE = 'STATE_1') THEN ORDERS.ITEMID->NAME WHEN (ORDERS.ADDRESS->STATE = 'STATE_3') THEN ORDERS.ADDRESS->CITY ELSE 'default' END) CASE_RESAULT\nFROM ORDERS ORDERS\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `CASE_RESAULT` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "ORDERS",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S1",

@@ -20,7 +20,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -30,16 +31,20 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.RepartitionNode;
+import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,7 +59,9 @@ public class LogicalPlannerTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
     ksqlConfig = new KsqlConfig(Collections.emptyMap());
+
   }
+
 
   @Test
   public void shouldCreatePlanWithTableAsSource() {
@@ -130,6 +137,18 @@ public class LogicalPlannerTest {
     final PlanNode rightSource = joinNode.getSources().get(0);
     assertThat(rightSource, instanceOf(ProjectNode.class));
     assertThat(rightSource.getSources().get(0), instanceOf(RepartitionNode.class));
+  }
+
+  @Test
+  public void testSuppressLogicalPlan() {
+    final String simpleQuery = "SELECT col1,COUNT(*) as COUNT FROM test2 WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY col1 EMIT FINAL;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    assertThat(logicalPlan.getSources().get(0), instanceOf(SuppressNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(AggregateNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0), instanceOf(DataSourceNode.class));
+    assertThat(logicalPlan.getSchema().value().size(), equalTo( 2));
+    Assert.assertNotNull(((SuppressNode) logicalPlan.getSources().get(0)).getRefinementInfo());
   }
 
   private static SelectExpression selectCol(final String column, final String alias) {
@@ -284,6 +303,40 @@ public class LogicalPlannerTest {
     final String simpleQuery = "SELECT * FROM TEST2 INNER JOIN TEST3 ON TEST2.COL0=TEST3.COL0 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
+  }
+
+  @Test
+  public void shouldCreateTableOutputForTableSuppress() {
+    final String simpleQuery = "SELECT col1,COUNT(*) as COUNT FROM test2 WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY col1 EMIT FINAL;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+    assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
+  }
+
+  @Test
+  public void shouldThrowOnNonWindowedAggregationSuppressions() {
+    final String simpleQuery = "SELECT * FROM test2 EMIT FINAL;";
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> buildLogicalPlan(simpleQuery)
+    );
+
+    assertThat(e.getMessage(), containsString("EMIT FINAL is only supported for windowed aggregations."));
+  }
+
+  @Test
+  public void shouldThrowOnSuppressDisabledInConfig() {
+    // Given:
+    KsqlConfig ksqlConfigSuppressDisabled = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SUPPRESS_ENABLED, false));
+    final String simpleQuery = "SELECT col1,COUNT(*) as COUNT FROM test2 WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY col1 EMIT FINAL;";
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AnalysisTestUtil.buildLogicalPlan(ksqlConfigSuppressDisabled, simpleQuery, metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Suppression is currently disabled. You can enable it by setting ksql.suppress.enabled to true"));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

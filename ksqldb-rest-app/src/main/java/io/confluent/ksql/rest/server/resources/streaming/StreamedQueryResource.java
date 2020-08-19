@@ -22,19 +22,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
+import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -80,6 +84,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final PullQueryExecutor pullQueryExecutor;
   private Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Time time;
+  private final DenyListPropertyValidator denyListPropertyValidator;
 
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
@@ -89,7 +94,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(
         ksqlEngine,
@@ -100,7 +106,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         activenessRegistrar,
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator
     );
   }
 
@@ -116,7 +123,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -130,6 +138,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.authorizationValidator = authorizationValidator;
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
+    this.denyListPropertyValidator =
+        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.time = Time.SYSTEM;
   }
 
@@ -211,6 +221,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
               statement.getStatement())
       );
 
+      final Map<String, Object> configProperties = request.getConfigOverrides();
+      denyListPropertyValidator.validateAll(configProperties);
+
       if (statement.getStatement() instanceof Query) {
         final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
 
@@ -218,7 +231,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
           final EndpointResponse response = handlePullQuery(
               securityContext.getServiceContext(),
               queryStmt,
-              request.getConfigOverrides(),
+              configProperties,
               request.getRequestProperties(),
               isInternalRequest
           );
@@ -234,7 +247,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         return handlePushQuery(
             securityContext.getServiceContext(),
             queryStmt,
-            request.getConfigOverrides(),
+            configProperties,
             connectionClosedFuture
         );
       }
@@ -242,7 +255,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       if (statement.getStatement() instanceof PrintTopic) {
         return handlePrintTopic(
             securityContext.getServiceContext(),
-            request.getConfigOverrides(),
+            configProperties,
             (PreparedStatement<PrintTopic>) statement,
             connectionClosedFuture);
       }
@@ -269,14 +282,18 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
-    final TableRowsEntity entity = pullQueryExecutor
+    final PullQueryResult result = pullQueryExecutor
         .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
+    final TableRows tableRows = result.getTableRows();
+    final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
+        .map(KsqlNode::location)
+        .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));
 
-    final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
+    final StreamedRow header = StreamedRow.header(tableRows.getQueryId(), tableRows.getSchema());
 
-    final List<StreamedRow> rows = entity.getRows().stream()
+    final List<StreamedRow> rows = tableRows.getRows().stream()
         .map(StreamedQueryResource::toGenericRow)
-        .map(StreamedRow::row)
+        .map(row -> StreamedRow.row(row, host))
         .collect(Collectors.toList());
 
     rows.add(0, header);

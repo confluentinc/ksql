@@ -41,9 +41,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, A STRUCT<B MAP<STRING, STRUCT<C ARRAY<STRUCT<D INT>>>>>) WITH (kafka_topic='test_topic', value_format='json');", "CREATE STREAM OUTPUT as SELECT K, A->B['key$Name[]']->C[1]->D FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `D` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `A` STRUCT<`B` MAP<STRING, STRUCT<`C` ARRAY<STRUCT<`D` INTEGER>>>>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -54,7 +71,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

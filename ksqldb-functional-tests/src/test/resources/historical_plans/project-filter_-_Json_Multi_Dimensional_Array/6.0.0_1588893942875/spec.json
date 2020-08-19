@@ -91,9 +91,26 @@
     } ],
     "statements" : [ "CREATE STREAM array_array (K STRING KEY, ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<VARCHAR>>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S3 as SELECT K, ID, ARRAY_COL[1][1][1] AS array_item FROM array_array;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S3",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "ARRAY_ARRAY",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S3",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -104,7 +121,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S3",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

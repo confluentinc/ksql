@@ -36,9 +36,26 @@
       "ksql.output.topic.name.prefix" : "some-prefix-"
     },
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SOURCE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SOURCE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "Fred",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -49,7 +66,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "Fred",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -64,6 +64,11 @@ public class LazyServiceContext implements ServiceContext {
   }
 
   @Override
+  public KafkaConsumerGroupClient getConsumerGroupClient() {
+    return serviceContextSupplier.get().getConsumerGroupClient();
+  }
+
+  @Override
   public void close() {
     serviceContextSupplier.get().close();
   }

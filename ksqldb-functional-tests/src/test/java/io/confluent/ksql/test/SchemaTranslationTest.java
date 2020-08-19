@@ -14,6 +14,8 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
+import io.confluent.ksql.test.model.TestFileContext;
+import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
@@ -117,15 +119,16 @@ public class SchemaTranslationTest {
     }
 
     @Override
-    public Stream<TestCase> buildTests(final Path testPath) {
+    public Stream<TestCase> buildTests(final TestFileContext ctx) {
       if (tests.isEmpty()) {
-        throw new IllegalArgumentException(testPath + ": test file did not contain any tests");
+        throw new IllegalArgumentException(ctx.getFileLocation() + ": test file did not contain any tests");
       }
 
       try {
-        return tests.stream().flatMap(node -> node.buildTests(testPath));
+        return tests.stream()
+            .map(node -> node.buildTest(ctx.getOriginalFileName(), ctx.getFileLocation()));
       } catch (final Exception e) {
-        throw new IllegalArgumentException(testPath + ": " + e.getMessage(), e);
+        throw new IllegalArgumentException(ctx.getFileLocation() + ": " + e.getMessage(), e);
       }
     }
   }
@@ -159,9 +162,9 @@ public class SchemaTranslationTest {
       }
     }
 
-    Stream<TestCase> buildTests(final Path testPath) {
+    TestCase buildTest(final Path originalFileName, final TestLocation location) {
 
-      final String testName = buildTestName(testPath, name, "");
+      final String testName = buildTestName(originalFileName, name, "");
 
       try {
         final Topic srcTopic = new Topic(TOPIC_NAME, Optional.of(schema));
@@ -179,8 +182,9 @@ public class SchemaTranslationTest {
                     " FROM " + TOPIC_NAME + ";")
             );
 
-        return Stream.of(new TestCase(
-            testPath,
+        return new TestCase(
+            location,
+            originalFileName,
             name,
             VersionBounds.allVersions(),
             Collections.emptyMap(),
@@ -190,7 +194,7 @@ public class SchemaTranslationTest {
             ImmutableList.of(DDL_STATEMENT, csasStatement),
             Optional.empty(),
             PostConditions.NONE
-        ));
+        );
       } catch (final Exception e) {
         throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);
       }

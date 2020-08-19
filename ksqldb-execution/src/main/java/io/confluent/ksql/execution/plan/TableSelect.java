@@ -102,6 +102,11 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
+  public StepType type() {
+    return StepType.PASSIVE;
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;

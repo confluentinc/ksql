@@ -75,7 +75,7 @@ public class DdlCommandExec {
           withQuery,
           getKsqlTopic(createStream)
       );
-      metaStore.putSource(ksqlStream);
+      metaStore.putSource(ksqlStream, createStream.isOrReplace());
       return new DdlCommandResult(true, "Stream created");
     }
 
@@ -90,7 +90,7 @@ public class DdlCommandExec {
           withQuery,
           getKsqlTopic(createTable)
       );
-      metaStore.putSource(ksqlTable);
+      metaStore.putSource(ksqlTable, createTable.isOrReplace());
       return new DdlCommandResult(true, "Table created");
     }
 

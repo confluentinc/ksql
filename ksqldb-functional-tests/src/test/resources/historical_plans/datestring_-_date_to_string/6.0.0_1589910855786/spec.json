@@ -86,9 +86,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID bigint KEY, START_DATE int, DATE_FORMAT varchar) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM DATE_STREAM AS select ID, datetostring(START_DATE, DATE_FORMAT) as CUSTOM_FORMATTED_START_DATE from test;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "DATE_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `CUSTOM_FORMATTED_START_DATE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "DATE_STREAM",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -99,7 +116,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "DATE_STREAM",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

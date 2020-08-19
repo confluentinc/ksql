@@ -24,6 +24,7 @@ import com.google.common.collect.Streams;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
+import io.confluent.ksql.test.model.TestFileContext;
 import io.confluent.ksql.test.planned.PlannedTestLoader;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestCaseBuilder;
@@ -108,10 +109,16 @@ public class QueryTranslationTest {
     }
 
     @Override
-    public Stream<TestCase> buildTests(final Path testPath) {
+    public Stream<TestCase> buildTests(
+        final TestFileContext ctx
+    ) {
       return tests
           .stream()
-          .flatMap(node -> TestCaseBuilder.buildTests(node, testPath).stream());
+          .flatMap(node -> TestCaseBuilder.buildTests(
+              node,
+              ctx.getOriginalFileName(),
+              ctx::getTestLocation
+          ).stream());
     }
   }
 }

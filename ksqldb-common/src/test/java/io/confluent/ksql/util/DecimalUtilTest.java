@@ -510,4 +510,56 @@ public class DecimalUtilTest {
         () -> cast("abc", 2, 1)
     );
   }
+
+  @Test
+  public void shouldAllowImplicitlyCastOnEqualSchema() {
+    // Given:
+    final SqlDecimal s1 = SqlTypes.decimal(5, 2);
+    final SqlDecimal s2 = SqlTypes.decimal(5, 2);
+
+    // When:
+    final boolean compatible = DecimalUtil.canImplicitlyCast(s1, s2);
+
+    // Then:
+    assertThat(compatible, is(true));
+  }
+
+  @Test
+  public void shouldAllowImplicitlyCastOnHigherPrecisionAndScale() {
+    // Given:
+    final SqlDecimal s1 = SqlTypes.decimal(5, 2);
+    final SqlDecimal s2 = SqlTypes.decimal(6, 3);
+
+    // When:
+    final boolean compatible = DecimalUtil.canImplicitlyCast(s1, s2);
+
+    // Then:
+    assertThat(compatible, is(true));
+  }
+
+  @Test
+  public void shouldAllowImplicitlyCastOnHigherScale() {
+    // Given:
+    final SqlDecimal s1 = SqlTypes.decimal(2, 1);
+    final SqlDecimal s2 = SqlTypes.decimal(2, 2);
+
+    // When:
+    final boolean compatible = DecimalUtil.canImplicitlyCast(s1, s2);
+
+    // Then:
+    assertThat(compatible, is(false));
+  }
+
+  @Test
+  public void shouldAllowImplicitlyCastOnLowerPrecision() {
+    // Given:
+    final SqlDecimal s1 = SqlTypes.decimal(2, 1);
+    final SqlDecimal s2 = SqlTypes.decimal(1, 1);
+
+    // When:
+    final boolean compatible = DecimalUtil.canImplicitlyCast(s1, s2);
+
+    // Then:
+    assertThat(compatible, is(false));
+  }
 }

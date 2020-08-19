@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
@@ -41,7 +42,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -239,7 +239,7 @@ public class TopicInfoCache {
     }
 
     /**
-     * Coerce the key value to the correct type.
+     * Coerce the key & value to the correct type.
      *
      * <p>The type of the key loaded from the JSON test case file may not be the exact match on
      * type, e.g. JSON will load a small number as an integer, but the key type of the source might
@@ -249,13 +249,14 @@ public class TopicInfoCache {
      * @param msgIndex the index of the message, displayed in the error message
      * @return a new Record with the correct key type.
      */
-    public Record coerceRecordKey(
+    public Record coerceRecord(
         final Record record,
         final int msgIndex
     ) {
       try {
-        final Object coerced = keyCoercer().apply(record.rawKey());
-        return record.withKey(coerced);
+        final Object coercedKey = coerceKey(record.rawKey());
+        final Object coercedValue = coerceValue(record.value());
+        return record.withKeyValue(coercedKey, coercedValue);
       } catch (final Exception e) {
         throw new AssertionError(
             "Topic '" + record.getTopicName() + "', message " + msgIndex
@@ -265,11 +266,11 @@ public class TopicInfoCache {
       }
     }
 
-    private Function<Object, Object> keyCoercer() {
+    private Object coerceKey(final Object key) {
       if (schema.key().isEmpty()) {
-        // No key column - pass the key in as a string to allow tests to pass in data that should
-        // be ignored:
-        return key -> key == null ? null : String.valueOf(key);
+        // No key column
+        // - pass the key in as a string to allow tests to pass in data that should be ignored:
+        return key == null ? null : String.valueOf(key);
       }
 
       final SqlType keyType = schema
@@ -277,9 +278,9 @@ public class TopicInfoCache {
           .get(0)
           .type();
 
-      return key -> DefaultSqlValueCoercer.INSTANCE
+      return DefaultSqlValueCoercer.INSTANCE
           .coerce(key, keyType)
-          .orElseThrow(() -> new AssertionError("Invalid key value for topic " + topicName + "."
+          .orElseThrow(() -> new AssertionError("Invalid key for topic " + topicName + "."
               + System.lineSeparator()
               + "Expected KeyType: " + keyType
               + System.lineSeparator()
@@ -288,6 +289,38 @@ public class TopicInfoCache {
               + ", key: " + key + "."
               + System.lineSeparator()
               + "This is likely caused by the key type in the test-case not matching the schema."
+          ))
+          .orElse(null);
+    }
+
+    private Object coerceValue(final Object value) {
+      // Only KAFKA format needs any value coercion at the moment:
+      if (!(valueFormat.getFormat() instanceof KafkaFormat)) {
+        return value;
+      }
+
+      if (schema.value().size() != 1) {
+        // Wrong column count:
+        // - pass the value as-is for negative testing:
+        return value == null ? null : String.valueOf(value);
+      }
+
+      final SqlType valueType = schema
+          .value()
+          .get(0)
+          .type();
+
+      return DefaultSqlValueCoercer.INSTANCE
+          .coerce(value, valueType)
+          .orElseThrow(() -> new AssertionError("Invalid value for topic " + topicName + "."
+              + System.lineSeparator()
+              + "Expected ValueType: " + valueType
+              + System.lineSeparator()
+              + "Actual ValueType: " + SchemaConverters.javaToSqlConverter()
+              .toSqlType(value.getClass())
+              + ", value: " + value + "."
+              + System.lineSeparator()
+              + "This is likely caused by the value type in the test-case not matching the schema."
           ))
           .orElse(null);
     }

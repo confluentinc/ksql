@@ -81,6 +81,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.streams.KafkaStreams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

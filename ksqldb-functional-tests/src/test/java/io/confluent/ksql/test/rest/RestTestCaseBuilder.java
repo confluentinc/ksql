@@ -15,17 +15,15 @@
 
 package io.confluent.ksql.test.rest;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.TestFileContext;
+import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCaseBuilderUtil;
 import io.confluent.ksql.test.tools.Topic;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -37,11 +35,15 @@ import org.hamcrest.Matcher;
  */
 final class RestTestCaseBuilder {
 
-  private final FunctionRegistry functionRegistry = TestFunctionRegistry.INSTANCE.get();
+  private RestTestCaseBuilder() {
+  }
 
-  static List<RestTestCase> buildTests(final RestTestCaseNode test, final Path testPath) {
+  static Stream<RestTestCase> buildTests(
+      final RestTestCaseNode test,
+      final TestFileContext ctx
+  ) {
     if (!test.isEnabled()) {
-      return ImmutableList.of();
+      return Stream.of();
     }
 
     try {
@@ -49,9 +51,10 @@ final class RestTestCaseBuilder {
           ? Stream.of(Optional.empty())
           : test.formats().stream().map(Optional::of);
 
+      final TestLocation location = ctx.getTestLocation(test.name());
+
       return formats
-          .map(format -> createTest(test, format, testPath))
-          .collect(Collectors.toList());
+          .map(format -> createTest(test, format, location));
     } catch (final Exception e) {
       throw new AssertionError("Invalid test '" + test.name() + "': " + e.getMessage(), e);
     }
@@ -60,10 +63,10 @@ final class RestTestCaseBuilder {
   private static RestTestCase createTest(
       final RestTestCaseNode test,
       final Optional<String> explicitFormat,
-      final Path testPath
+      final TestLocation location
   ) {
     final String testName = TestCaseBuilderUtil.buildTestName(
-        testPath,
+        location.getTestPath(),
         test.name(),
         explicitFormat
     );
@@ -90,7 +93,7 @@ final class RestTestCaseBuilder {
           .collect(Collectors.toList());
 
       return new RestTestCase(
-          testPath,
+          location,
           testName,
           test.properties(),
           topics,

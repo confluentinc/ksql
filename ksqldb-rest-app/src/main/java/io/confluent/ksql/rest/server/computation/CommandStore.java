@@ -19,6 +19,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
+import io.confluent.ksql.rest.server.CommandTopicBackup;
+import io.confluent.ksql.rest.server.CommandTopicBackupImpl;
+import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
@@ -69,8 +73,8 @@ public class CommandStore implements CommandQueue, Closeable {
     }
 
     public static CommandStore create(
+        final KsqlConfig ksqlConfig,
         final String commandTopicName,
-        final String transactionId,
         final Duration commandQueueCatchupTimeout,
         final Map<String, Object> kafkaConsumerProperties,
         final Map<String, Object> kafkaProducerProperties
@@ -81,16 +85,34 @@ public class CommandStore implements CommandQueue, Closeable {
       );
       kafkaProducerProperties.put(
           ProducerConfig.TRANSACTIONAL_ID_CONFIG,
-          transactionId
+          ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
       );
       kafkaProducerProperties.put(
           ProducerConfig.ACKS_CONFIG,
           "all"
       );
 
+      CommandTopicBackup commandTopicBackup = new CommandTopicBackupNoOp();
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ENABLE_METASTORE_BACKUP)) {
+        if (ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION).isEmpty()) {
+          throw new KsqlException(String.format("Metastore backups is enabled, but location "
+              + "is empty. Please specify the location with the property '%s'",
+              KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION));
+        }
+
+        commandTopicBackup = new CommandTopicBackupImpl(
+            ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION),
+            commandTopicName)
+        ;
+      }
+
       return new CommandStore(
           commandTopicName,
-          new CommandTopic(commandTopicName, kafkaConsumerProperties),
+          new CommandTopic(
+              commandTopicName,
+              kafkaConsumerProperties,
+              commandTopicBackup
+          ),
           new SequenceNumberFutureStore(),
           kafkaConsumerProperties,
           kafkaProducerProperties,

@@ -33,6 +33,23 @@
     } ],
     "statements" : [ "CREATE STREAM `foo-source` (ID STRING) WITH (KAFKA_TOPIC='foo-source', VALUE_FORMAT='JSON');", "CREATE STREAM `foo-too` AS SELECT `foo-source`.ID ID\nFROM `foo-source` `foo-source`\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "foo-too",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "foo-source",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "foo-source",

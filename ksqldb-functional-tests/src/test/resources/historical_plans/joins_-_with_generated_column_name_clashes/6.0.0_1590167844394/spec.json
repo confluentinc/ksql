@@ -64,8 +64,28 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "table",
-        "schema" : "ROWKEY_6 INT KEY, ROWKEY INT, ROWKEY_3 INT, ROWKEY_1 INT, ROWKEY_5 INT"
+        "type" : "TABLE",
+        "schema" : "`ROWKEY_6` INTEGER KEY, `ROWKEY` INTEGER, `ROWKEY_3` INTEGER, `ROWKEY_1` INTEGER, `ROWKEY_5` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "L",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

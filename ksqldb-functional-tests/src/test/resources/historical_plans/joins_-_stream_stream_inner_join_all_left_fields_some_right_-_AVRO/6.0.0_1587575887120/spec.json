@@ -173,8 +173,43 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='AVRO', key='ID');", "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='AVRO', key='ID');", "CREATE STREAM INNER_JOIN as SELECT t.*, tt.f1 FROM test t inner join TEST_STREAM tt WITHIN 11 SECONDS ON t.id = tt.id;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INNER_JOIN",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `F1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          }
+        }, {
           "name" : "INNER_JOIN",
           "keyFormat" : {
             "formatInfo" : {
@@ -187,16 +222,6 @@
           "partitions" : 4
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          }
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

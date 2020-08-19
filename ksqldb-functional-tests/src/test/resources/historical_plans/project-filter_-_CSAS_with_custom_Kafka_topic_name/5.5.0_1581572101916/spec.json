@@ -33,9 +33,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE STREAM S1 WITH (KAFKA_TOPIC='topic_s') AS SELECT *\nFROM TEST TEST\nWHERE (TEST.C1 = 4294967296)\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "test_topic",
+          "name" : "topic_s",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -46,7 +63,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "topic_s",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

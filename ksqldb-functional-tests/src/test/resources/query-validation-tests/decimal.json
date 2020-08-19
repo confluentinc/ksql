@@ -21,10 +21,10 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"DEC": "10.1234512345123451234"}}
+        {"topic": "test", "value": {"DEC": 10.1234512345123451234}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"DEC": "10.1234512345123451234"}}
+        {"topic": "TEST2", "value": {"DEC": 10.1234512345123451234}}
       ]
     },
     {
@@ -38,10 +38,10 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"DEC": "10.1234512345123451234"}}
+        {"topic": "test", "value": {"DEC": 10.1234512345123451234}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"DEC": "10.1234512345123451234"}}
+        {"topic": "TEST2", "value": {"DEC": 10.1234512345123451234}}
       ]
     },
     {
@@ -64,7 +64,7 @@
         {"topic": "OUTPUT", "value": {"DEC": 0.1}},
         {"topic": "OUTPUT", "value": {"DEC": 0.01}},
         {"topic": "OUTPUT", "value": {"DEC": 0.001}},
-        {"topic": "OUTPUT", "value": {"DEC": 0.00010}}
+        {"topic": "OUTPUT", "value": {"DEC": 0.0001}}
       ],
       "post": {
         "sources": [
@@ -74,9 +74,50 @@
       }
     },
     {
-      "enabled": false,
+      "name": "AVRO should not trim trailing zeros",
+      "comment": "Avro decimals ALWAYS have a scale that matches the schema.",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='Avro');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"DEC": 10.0000}},
+        {"topic": "test", "value": {"DEC": 1.0000}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"DEC": 10.0000}},
+        {"topic": "OUTPUT", "value": {"DEC": 1.0000}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"}
+        ]
+      }
+    },
+    {
+      "name": "DELIMITED should not trim trailing zeros",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='Delimited');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "10.0000"},
+        {"topic": "test", "value":  "1.0000"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value":  "10.0000"},
+        {"topic": "OUTPUT", "value":  "1.0000"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"}
+        ]
+      }
+    },
+    {
       "name": "JSON should not trim trailing zeros",
-      "comment": "Disabled until https://github.com/confluentinc/ksql/issues/4710 is done",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -91,8 +132,63 @@
       ],
       "post": {
         "sources": [
-          {"name": "INPUT", "type": "stream", "schema": "ROWKEY STRING KEY, DEC DECIMAL(6,4)"},
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY STRING KEY, DEC DECIMAL(6,4)"}
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"}
+        ]
+      }
+    },
+    {
+      "name": "JSON_SR should not trim trailing zeros",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"DEC": 10.0}},
+        {"topic": "test", "value": {"DEC": 1.0000}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"DEC": 10.0}},
+        {"topic": "OUTPUT", "value": {"DEC": 1.0000}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"}
+        ]
+      }
+    },
+    {
+      "name": "PROTOBUF does not yet support DECIMAL",
+      "comment": "Adding support covered by https://github.com/confluentinc/ksql/issues/5762",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='PROTOBUF');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'PROTOBUF' format does not support type 'DECIMAL'. See https://github.com/confluentinc/ksql/issues/5762."
+      }
+    },
+    {
+      "enabled": false,
+      "name": "PROTOBUF should not trim trailing zeros",
+      "comment": "Enable once https://github.com/confluentinc/ksql/issues/5762 fixed",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"DEC": 10.0}},
+        {"topic": "test", "value": {"DEC": 1.0000}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"DEC": 10.0}},
+        {"topic": "OUTPUT", "value": {"DEC": 1.0000}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"}
         ]
       }
     },
@@ -103,10 +199,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, -dec AS negated FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"DEC": "10.12345"}}
+        {"topic": "test", "value": {"DEC": 10.12345}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"NEGATED": "-10.12345"}}
+        {"topic": "TEST2", "value": {"NEGATED": -10.12345}}
       ]
     },
     {
@@ -116,9 +212,9 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a + b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "5.10"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "-5.00"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "0.00"}}
+        {"topic": "test", "value": {"A": 10.01, "B": 5.10}},
+        {"topic": "test", "value": {"A": 10.01, "B": -5.00}},
+        {"topic": "test", "value": {"A": 10.01, "B": 0.00}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": "15.11"}},
@@ -133,9 +229,9 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a + b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  5.1}},
-        {"topic": "test", "value": {"A": "10.01", "B":  -5.0}},
-        {"topic": "test", "value": {"A": "10.01", "B":  0.0}}
+        {"topic": "test", "value": {"A": 10.01, "B": 5.1}},
+        {"topic": "test", "value": {"A": 10.01, "B": -5.0}},
+        {"topic": "test", "value": {"A": 10.01, "B": 0.0}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": 15.11}},
@@ -150,14 +246,14 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a + b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B": 5}},
-        {"topic": "test", "value": {"A": "10.01", "B": -5}},
-        {"topic": "test", "value": {"A": "10.01", "B": 0}}
+        {"topic": "test", "value": {"A": 10.01, "B": 5}},
+        {"topic": "test", "value": {"A": 10.01, "B": -5}},
+        {"topic": "test", "value": {"A": 10.01, "B": 0}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"RESULT": "15.01"}},
-        {"topic": "TEST2", "value": {"RESULT": "5.01"}},
-        {"topic": "TEST2", "value": {"RESULT": "10.01"}}
+        {"topic": "TEST2", "value": {"RESULT": 15.01}},
+        {"topic": "TEST2", "value": {"RESULT": 5.01}},
+        {"topic": "TEST2", "value": {"RESULT": 10.01}}
       ]
     },
     {
@@ -167,10 +263,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a + a + b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "5.10"}}
+        {"topic": "test", "value": {"A": 10.01, "B": 5.10}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"RESULT": "25.12"}}
+        {"topic": "TEST2", "value": {"RESULT": 25.12}}
       ]
     },
     {
@@ -180,14 +276,14 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a - b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.10", "B":  "5.10"}},
-        {"topic": "test", "value": {"A": "10.10", "B":  "-5.00"}},
-        {"topic": "test", "value": {"A": "10.10", "B":  "0.00"}}
+        {"topic": "test", "value": {"A": 10.10, "B": 5.10}},
+        {"topic": "test", "value": {"A": 10.10, "B": -5.00}},
+        {"topic": "test", "value": {"A": 10.10, "B": 0.00}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"RESULT": "5.00"}},
-        {"topic": "TEST2", "value": {"RESULT": "15.10"}},
-        {"topic": "TEST2", "value": {"RESULT": "10.10"}}
+        {"topic": "TEST2", "value": {"RESULT": 5.00}},
+        {"topic": "TEST2", "value": {"RESULT": 15.10}},
+        {"topic": "TEST2", "value": {"RESULT": 10.10}}
       ]
     },
     {
@@ -197,14 +293,14 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a * b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.10", "B":  "02.00"}},
-        {"topic": "test", "value": {"A": "10.10", "B":  "-02.00"}},
-        {"topic": "test", "value": {"A": "10.10", "B":  "00.00"}}
+        {"topic": "test", "value": {"A": 10.10, "B": 2.00}},
+        {"topic": "test", "value": {"A": 10.10, "B": -2.00}},
+        {"topic": "test", "value": {"A": 10.10, "B": 0.00}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"RESULT": "20.2000"}},
-        {"topic": "TEST2", "value": {"RESULT": "-20.2000"}},
-        {"topic": "TEST2", "value": {"RESULT": "0.0000"}}
+        {"topic": "TEST2", "value": {"RESULT": 20.2000}},
+        {"topic": "TEST2", "value": {"RESULT": -20.2000}},
+        {"topic": "TEST2", "value": {"RESULT": 0.0000}}
       ]
     },
     {
@@ -217,13 +313,13 @@
         "The last record causes division by zero, the error is logged and a null value is output"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.10", "B":  "02.00"}},
-        {"topic": "test", "value": {"A": "10.10", "B":  "-02.00"}},
-        {"topic": "test", "value": {"A": "10.10", "B":  "00.00"}}
+        {"topic": "test", "value": {"A": 10.10, "B": 2.00}},
+        {"topic": "test", "value": {"A": 10.10, "B": -2.00}},
+        {"topic": "test", "value": {"A": 10.10, "B": 0.00}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"RESULT": "5.0500000"}},
-        {"topic": "TEST2", "value": {"RESULT": "-5.0500000"}},
+        {"topic": "TEST2", "value": {"RESULT": 5.0500000}},
+        {"topic": "TEST2", "value": {"RESULT": -5.0500000}},
         {"topic": "TEST2", "value": {"RESULT": null}}
       ]
     },
@@ -237,13 +333,13 @@
         "The last record causes modulo by zero, the error is logged and a null value is output"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.10", "B":  "02.00"}},
-        {"topic": "test", "value": {"A": "10.10", "B":  "-02.00"}},
-        {"topic": "test", "value": {"A": "10.10", "B":  "00.00"}}
+        {"topic": "test", "value": {"A": 10.10, "B": 2.00}},
+        {"topic": "test", "value": {"A": 10.10, "B": -2.00}},
+        {"topic": "test", "value": {"A": 10.10, "B": 0.00}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"RESULT": "0.10"}},
-        {"topic": "TEST2", "value": {"RESULT": "0.10"}},
+        {"topic": "TEST2", "value": {"RESULT": 0.10}},
+        {"topic": "TEST2", "value": {"RESULT": 0.10}},
         {"topic": "TEST2", "value": {"RESULT": null}}
       ]
     },
@@ -254,10 +350,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a = b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "value": {"A": null, "B":  null}}
+        {"topic": "test", "value": {"A": 10.01, "B": 10.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 12.01}},
+        {"topic": "test", "value": {"A": null, "B": 10.01}},
+        {"topic": "test", "value": {"A": null, "B": null}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": true}},
@@ -273,10 +369,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a <> b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "value": {"A": null, "B":  null}}
+        {"topic": "test", "value": {"A": 10.01, "B": 10.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 12.01}},
+        {"topic": "test", "value": {"A": null, "B": 10.01}},
+        {"topic": "test", "value": {"A": null, "B": null}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": false}},
@@ -292,10 +388,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a IS DISTINCT FROM b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "value": {"A": null, "B":  null}}
+        {"topic": "test", "value": {"A": 10.01, "B": 10.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 12.01}},
+        {"topic": "test", "value": {"A": null, "B": 10.01}},
+        {"topic": "test", "value": {"A": null, "B": null}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": false}},
@@ -311,10 +407,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a < b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "value": {"A": null, "B":  null}}
+        {"topic": "test", "value": {"A": 10.01, "B": 10.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 12.01}},
+        {"topic": "test", "value": {"A": null, "B": 10.01}},
+        {"topic": "test", "value": {"A": null, "B": null}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": false}},
@@ -330,10 +426,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a < b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.010"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.012"}},
-        {"topic": "test", "value": {"A": null, "B":  "10.010"}},
-        {"topic": "test", "value": {"A": null, "B":  null}}
+        {"topic": "test", "value": {"A": 10.01, "B": 10.010}},
+        {"topic": "test", "value": {"A": 10.01, "B": 10.012}},
+        {"topic": "test", "value": {"A": null, "B": 10.010}},
+        {"topic": "test", "value": {"A": null, "B": null}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": false}},
@@ -349,11 +445,11 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a <= b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "03.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "value": {"A": null, "B":  "10.01"}},
-        {"topic": "test", "value": {"A": null, "B":  null}}
+        {"topic": "test", "value": {"A": 10.01, "B": 3.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 10.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 12.01}},
+        {"topic": "test", "value": {"A": null, "B": 10.01}},
+        {"topic": "test", "value": {"A": null, "B": null}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": false}},
@@ -370,10 +466,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a >= b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "03.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "value": {"A": 10.01, "B": 3.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 10.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 12.01}},
+        {"topic": "test", "value": {"A": null, "B": 10.01}},
         {"topic": "test", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
@@ -391,10 +487,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a > b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  "03.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "10.01"}},
-        {"topic": "test", "value": {"A": "10.01", "B":  "12.01"}},
-        {"topic": "test", "value": {"A": null, "B":  "10.01"}},
+        {"topic": "test", "value": {"A": 10.01, "B": 3.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 10.01}},
+        {"topic": "test", "value": {"A": 10.01, "B": 12.01}},
+        {"topic": "test", "value": {"A": null, "B": 10.01}},
         {"topic": "test", "value": {"A": null, "B":  null}}
       ],
       "outputs": [
@@ -412,10 +508,10 @@
         "CREATE STREAM TEST2 AS SELECT ID, (a < b) AS RESULT FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"A": "10.01", "B":  1}},
-        {"topic": "test", "value": {"A": "10.01", "B":  12}},
-        {"topic": "test", "value": {"A": null, "B":  12}},
-        {"topic": "test", "value": {"A": null, "B":  null}}
+        {"topic": "test", "value": {"A": 10.01, "B": 1}},
+        {"topic": "test", "value": {"A": 10.01, "B": 12}},
+        {"topic": "test", "value": {"A": null, "B": 12}},
+        {"topic": "test", "value": {"A": null, "B": null}}
       ],
       "outputs": [
         {"topic": "TEST2", "value": {"RESULT": false}},

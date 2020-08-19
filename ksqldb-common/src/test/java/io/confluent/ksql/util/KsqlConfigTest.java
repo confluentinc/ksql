@@ -216,9 +216,9 @@ public class KsqlConfigTest {
   @Test
   public void shouldSetStreamsConfigAdminClientProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(AdminClientConfig.RETRIES_CONFIG, 3));
+        Collections.singletonMap(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 3));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
-        AdminClientConfig.RETRIES_CONFIG);
+        AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG);
     assertThat(result, equalTo(3));
   }
 
@@ -316,11 +316,13 @@ public class KsqlConfigTest {
     ));
 
     // Then:
-    assertThat(cloned.originals(), is(ImmutableMap.of(
-        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, "true",
-        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
-    )));
+    assertThat(cloned.originals(), is(ImmutableMap.builder()
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id")
+        .put(KsqlConfig.KSQL_WRAP_SINGLE_VALUES, "true")
+        .put(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob")
+        .putAll(KsqlConfig.NON_KSQL_DEFAULTS)
+        .build()
+    ));
   }
 
   @Test
@@ -574,5 +576,51 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.ACKS_CONFIG, "all"));
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
     assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
+  }
+
+  @Test
+  public void shouldDefaultStreamsMinTaskIdleConfig() {
+    // When:
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
+
+    // Then:
+    assertThat(
+        ksqlConfig.getKsqlStreamConfigProps(),
+        hasEntry(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 500L)
+    );
+  }
+
+  @Test
+  public void shouldUsePrefixedStreamsMinTaskIdleConfig() {
+    // Given:
+    final ImmutableMap<String, ?> props = ImmutableMap.of(
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 100L
+    );
+
+    // When:
+    final KsqlConfig ksqlConfig = new KsqlConfig(props);
+
+    // Then:
+    assertThat(
+        ksqlConfig.getKsqlStreamConfigProps(),
+        hasEntry(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 100L)
+    );
+  }
+
+  @Test
+  public void shouldUseNonPrefixedStreamsMinTaskIdleConfig() {
+    // Given:
+    final ImmutableMap<String, ?> props = ImmutableMap.of(
+        StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 1000L
+    );
+
+    // When:
+    final KsqlConfig ksqlConfig = new KsqlConfig(props);
+
+    // Then:
+    assertThat(
+        ksqlConfig.getKsqlStreamConfigProps(),
+        hasEntry(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 1000L)
+    );
   }
 }

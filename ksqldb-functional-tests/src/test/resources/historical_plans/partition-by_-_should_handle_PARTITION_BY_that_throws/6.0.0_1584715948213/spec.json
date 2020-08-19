@@ -54,6 +54,23 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, SHOULDTHROW BOOLEAN) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='json');", "CREATE STREAM REPARTITIONED AS SELECT TEST.ID ID\nFROM TEST TEST\nPARTITION BY BAD_UDF(TEST.SHOULDTHROW)\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "REPARTITIONED",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "REPARTITIONED",

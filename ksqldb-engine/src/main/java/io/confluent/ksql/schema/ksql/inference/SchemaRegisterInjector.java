@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -73,7 +75,8 @@ public class SchemaRegisterInjector implements Injector {
         cs.getStatement().getProperties().getKafkaTopic(),
         cs.getStatement().getProperties().getFormatInfo(),
         cs.getConfig(),
-        cs.getStatementText()
+        cs.getStatementText(),
+        false
     );
   }
 
@@ -96,7 +99,8 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
         cas.getConfig(),
-        cas.getStatementText()
+        cas.getStatementText(),
+        true
     );
   }
 
@@ -105,7 +109,8 @@ public class SchemaRegisterInjector implements Injector {
       final String topic,
       final FormatInfo formatInfo,
       final KsqlConfig config,
-      final String statementText
+      final String statementText,
+      final boolean registerIfSchemaExists
   ) {
     final Format format = FormatFactory.of(formatInfo);
     if (!format.supportsSchemaInference()) {
@@ -115,10 +120,14 @@ public class SchemaRegisterInjector implements Injector {
     if (config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) != null
         && !config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).isEmpty()) {
       try {
-        serviceContext.getSchemaRegistryClient().register(
-            topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-            format.toParsedSchema(schema.withoutPseudoAndKeyColsInValue().value(), formatInfo)
-        );
+        final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
+        final String subject = topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+        final ParsedSchema parsedSchema =
+            format.toParsedSchema(schema.withoutPseudoAndKeyColsInValue().value(), formatInfo);
+
+        if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
+          srClient.register(subject, parsedSchema);
+        }
       } catch (IOException | RestClientException e) {
         throw new KsqlStatementException("Could not register schema for topic.", statementText, e);
       }

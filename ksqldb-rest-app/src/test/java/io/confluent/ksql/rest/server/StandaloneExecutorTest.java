@@ -25,7 +25,6 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,6 +50,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
@@ -62,7 +62,6 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Table;
@@ -71,6 +70,7 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -129,6 +129,9 @@ public class StandaloneExecutorTest {
   private static final SourceName SOME_NAME = SourceName.of("Bob");
   private static final String SOME_TOPIC = "some-topic";
 
+  private static final RefinementInfo REFINEMENT_INFO =
+      RefinementInfo.of(OutputRefinement.CHANGES);
+
   private static final CreateSourceProperties JSON_PROPS = CreateSourceProperties.from(
       ImmutableMap.of(
           "VALUE_FORMAT", new StringLiteral("json"),
@@ -143,7 +146,7 @@ public class StandaloneExecutorTest {
   );
 
   private static final CreateStream CREATE_STREAM = new CreateStream(
-      SOME_NAME, SOME_ELEMENTS, true, JSON_PROPS);
+      SOME_NAME, SOME_ELEMENTS, false, true, JSON_PROPS);
 
   private static final CreateStreamAsSelect CREATE_STREAM_AS_SELECT = new CreateStreamAsSelect(
       SourceName.of("stream"),
@@ -156,10 +159,11 @@ public class StandaloneExecutorTest {
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
-          ResultMaterialization.CHANGES,
+          Optional.of(REFINEMENT_INFO),
           false,
           OptionalInt.empty()
       ),
+      false,
       false,
       CreateSourceAsProperties.none()
   );
@@ -190,6 +194,7 @@ public class StandaloneExecutorTest {
       .of("sql 0", new CreateStream(
           SourceName.of("CS 0"),
           SOME_ELEMENTS,
+          false,
           true,
           JSON_PROPS
       ));
@@ -201,6 +206,7 @@ public class StandaloneExecutorTest {
       .of("sql 1", new CreateStream(
           SourceName.of("CS 1"),
           SOME_ELEMENTS,
+          false,
           true,
           JSON_PROPS
       ));
@@ -361,8 +367,7 @@ public class StandaloneExecutorTest {
     // Then:
     verify(versionChecker).start(eq(KsqlModuleType.SERVER), captor.capture());
     assertThat(captor.getValue().getProperty("confluent.support.metrics.enable"), equalTo("false"));
-    standaloneExecutor.triggerShutdown();
-    standaloneExecutor.awaitTerminated();
+    standaloneExecutor.shutdown();
   }
 
   @Test
@@ -504,7 +509,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsStatement() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
 
     givenQueryFileParsesTo(cs);
 
@@ -519,7 +524,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCtStatement() {
     // Given:
     final PreparedStatement<CreateTable> ct = PreparedStatement.of("CT",
-        new CreateTable(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
+        new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
 
     givenQueryFileParsesTo(ct);
 
@@ -537,7 +542,7 @@ public class StandaloneExecutorTest {
         new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
 
     givenQueryFileParsesTo(setProp, cs);
 
@@ -560,7 +565,7 @@ public class StandaloneExecutorTest {
         new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
 
     givenQueryFileParsesTo(cs, setProp);
 
@@ -585,7 +590,7 @@ public class StandaloneExecutorTest {
         new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
 
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(cs, emptyMap(), ksqlConfig);
 
@@ -602,7 +607,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsasStatements() {
     // Given:
     final PreparedStatement<?> csas = PreparedStatement.of("CSAS1",
-        new CreateStreamAsSelect(SOME_NAME, query, false, CreateSourceAsProperties.none()));
+        new CreateStreamAsSelect(SOME_NAME, query, false, false, CreateSourceAsProperties.none()));
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
@@ -620,7 +625,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCtasStatements() {
     // Given:
     final PreparedStatement<?> ctas = PreparedStatement.of("CTAS",
-        new CreateTableAsSelect(SOME_NAME, query, false, CreateSourceAsProperties.none()));
+        new CreateTableAsSelect(SOME_NAME, query, false, false, CreateSourceAsProperties.none()));
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(ctas, emptyMap(), ksqlConfig);
 
     givenQueryFileParsesTo(ctas);
@@ -712,7 +717,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldCloseEngineOnStop() {
     // When:
-    standaloneExecutor.triggerShutdown();
+    standaloneExecutor.shutdown();
 
     // Then:
     verify(ksqlEngine).close();
@@ -721,7 +726,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldCloseServiceContextOnStop() {
     // When:
-    standaloneExecutor.triggerShutdown();
+    standaloneExecutor.shutdown();
 
     // Then:
     verify(serviceContext).close();
@@ -774,7 +779,7 @@ public class StandaloneExecutorTest {
   public void shouldThrowOnCreateStatementWithNoElements() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, TableElements.of(), false, JSON_PROPS));
+        new CreateStream(SOME_NAME, TableElements.of(), false, false, JSON_PROPS));
 
     givenQueryFileParsesTo(cs);
 
@@ -792,7 +797,7 @@ public class StandaloneExecutorTest {
   public void shouldSupportSchemaInference() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, TableElements.of(), false, AVRO_PROPS));
+        new CreateStream(SOME_NAME, TableElements.of(), false, false, AVRO_PROPS));
 
     givenQueryFileParsesTo(cs);
 

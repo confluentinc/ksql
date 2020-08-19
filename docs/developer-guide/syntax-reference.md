@@ -3,105 +3,115 @@ layout: page
 title: ksqlDB Syntax Reference
 tagline:  Syntax for ksqlDB queries and statements
 description: Syntax Reference for statements and queries in ksqlDB
-keywords: ksqldb, syntax, api
+keywords: ksqldb, sql, syntax, query, api
 ---
 
-ksqlDB SQL has similar semantics to ANSI SQL:
+The ksqlDB SQL language enables queries, transforms, aggregations, joins, and
+other operations on streaming data. ksqlDB SQL has a familiar syntax that's similar to
+[ANSI SQL](https://blog.ansi.org/2018/10/sql-standard-iso-iec-9075-2016-ansi-x3-135/).
 
--   Terminate SQL statements with a semicolon `;`.
--   Escape single-quote characters (`'`) inside string literals by using
-    two successive single quotes (`''`). For example, to escape `'T'`,
-    write `''T''`.
+## SQL quick reference
 
-Terminology
------------
+For a summary of supported SQL statements and keywords, see the
+[ksqlDB SQL quick reference](../ksqldb-reference/quick-reference).
 
-When using ksqlDB, the following terminology is used.
+## SQL statements
+
+- Terminate SQL statements with a semicolon character (`;`).
+- Statements can span multiple lines.
+- The hyphen character (`-`) isn't supported in names for streams,
+  tables, topics, and columns.
+- Don't use quotes around stream names or table names when you CREATE them.
+- Escape single-quote characters (`'`) inside string literals by using
+  two successive single quotes (`''`). For example, to escape `'T'`,
+  write `''T''`.
+- Use backticks around column and source names with characters that are
+  unparseable by ksqlDB or when you want to control case. For more information,
+  see [How to control the case of identifiers](../how-to-guides/control-the-case-of-identifiers.md).
+
+### Statement parser and grammar
+
+The ksqlDB statement parser is based on [ANTLR](https://www.antlr.org/)
+and is implemented in the
+[io.confluent.ksql.parser](https://github.com/confluentinc/ksql/tree/master/ksqldb-parser/src/main)
+package. The grammar is defined in
+[SqlBase.g4](https://github.com/confluentinc/ksql/blob/master/ksqldb-parser/src/main/antlr4/io/confluent/ksql/parser/SqlBase.g4).
+For more information, see
+[ANTLR Grammar Structure](https://github.com/antlr/antlr4/blob/master/doc/grammars.md).
+
+## Terminology
+
+ksqlDB SQL uses standard relational database terminology and extends it for
+stream processing.
 
 ### Stream
 
-A stream is an unbounded sequence of structured data ("facts"). For
-example, we could have a stream of financial transactions such as "Alice
-sent $100 to Bob, then Charlie sent $50 to Bob". Facts in a stream are
-immutable, which means new facts can be inserted to a stream, but
-existing facts can never be updated or deleted. Streams can be created
-from an {{ site.aktm }} topic or derived from an existing stream. A
-stream's underlying data is durably stored (persisted) within a Kafka
-topic on the Kafka brokers.
+A ksqlDB stream is an unbounded sequence of structured data. Each individual
+unit of data represents a _fact_ and may be referred to as a "record", "message",
+or "event". For example, a stream could be a sequence of financial transactions,
+like "Alice sent $100 to Bob, then Charlie sent $50 to Bob".
+
+Facts in a stream are _immutable_, which means that new facts can be inserted
+into a stream, but existing facts can never be updated or deleted.
+
+You can create a stream from an {{ site.aktm }} topic or derive one from an
+existing stream. A stream's underlying data is durably stored, or _persisted_,
+in a topic on the {{ site.ak }} brokers.
+
+Create a stream by using the [CREATE STREAM](./ksqldb-reference/create-stream.md)
+or [CREATE STREAM AS SELECT](./ksqldb-reference/create-stream-as-select.md) statements. 
 
 ### Table
 
-A table is a view of a stream, or another table, and represents a
-collection of evolving facts. For example, we could have a table that
-contains the latest financial information such as "Bob's current account
-balance is $150". It is the equivalent of a traditional database table
-but enriched by streaming semantics such as windowing. Facts in a table
-are mutable, which means new facts can be inserted to the table, and
-existing facts can be updated or deleted. Tables can be created from a
-Kafka topic or derived from existing streams and tables. In both cases,
-a table's underlying data is durably stored (persisted) within a Kafka
-topic on the Kafka brokers.
+A ksqlDB table is a view of a stream or another table. A table represents a
+collection of evolving facts. For example, a table might contain the latest
+financial information for an account, like "Bob's current balance is $150".
+A ksqlDB table is the equivalent of a traditional database table, enriched
+with streaming semantics, like windowing.
 
-### STRUCT
+Facts in a table are _mutable_, which means that new facts can be inserted to
+the table, and existing facts can be updated and deleted.
 
-You can read nested data, in Avro, Protobuf, JSON, and JSON_SR
-formats, by using the `STRUCT` type in CREATE STREAM and CREATE TABLE
-statements. You can use the `STRUCT` type in these SQL statements:
+You can create a table from a {{ site.ak }} topic or derive one from an existing
+stream or table. In both cases, a table's underlying data is durably persisted
+in a topic on the {{ site.ak }} brokers.
 
--   CREATE STREAM/TABLE (from a topic)
--   CREATE STREAM/TABLE AS SELECT (from existing streams/tables)
--   SELECT (non-persistent query)
+Create a table by using the [CREATE TABLE](./ksqldb-reference/create-table.md)
+or [CREATE TABLE AS SELECT](./ksqldb-reference/create-table-as-select.md) statements.
 
-Use the following syntax to declare nested data:
+### Join
 
-```sql
-STRUCT<FieldName FieldType, ...>
-```
+You can use ksqlDB to merge streams of events in real time by using the JOIN
+statement, which has a SQL join syntax. A ksqlDB join and a relational
+database join are similar in that they both combine data from two or more sources
+based on common values. The result of a ksqlDB join is a new stream or table
+that's populated with the column values that you specify in a SELECT statement.
 
-!!! note
-    ksqlDB doesn't support reading nested data from CSV-formatted data.
+For more information, see [Joins](joins/index.md).
 
-The `STRUCT` type requires you to specify a list of fields. For each
-field, you specify the field name and field type. The field type can be
-any of the supported ksqlDB types, including the complex types `MAP`,
-`ARRAY`, and `STRUCT`.
+### Aggregation
 
-!!! note
-		`Properties` is not a valid field name.
+ksqlDB supports several aggregate functions, like COUNT and SUM. You can
+use these to build stateful aggregates on streaming data. For the full
+list, see [Aggregate functions](ksqldb-reference/aggregate-functions.md).
 
-Here's an example CREATE STREAM statement that uses a `STRUCT` to
-encapsulate a street address and a postal code:
+You can create your own aggregation logic by implementing a User Defined
+Aggregation Function (UDAF). For more information, see
+[UDAFs](../concepts/functions.md#udafs).
 
-```sql
-CREATE STREAM orders (
-  ID BIGINT KEY,
-  address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
-```
+### Window
 
-Access the fields in a `STRUCT` by using the dereference operator
-(`->`):
+The WINDOW clause controls how to group input records that have the same key
+into a *window*, for operations like aggregations or joins. Windows are tracked
+per record key.
 
-```sql
-SELECT address->city, address->zip FROM orders;
-```
+Windowing adds two additional system columns to the data, which provide
+the window bounds: `WINDOWSTART` and `WINDOWEND`.
 
-For more info, see [Operators](ksqldb-reference/operators.md).
+For more information, see
+[Time and Windows](../concepts/time-and-windows-in-ksqldb-queries.md).
 
-You can create a `STRUCT` in a query by specifying the names of the columns
-and expressions that construct the values, separated by commas. The following
-example SELECT statement creates a schema that has a `STRUCT`.
-
-```sql
-SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals
-```
-
-If `col0` is a string and `col1` is an integer, the resulting schema is:
-
-```sql
-col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>
-```
-
-### ksqlDB Time Units
+### Time units
 
 The following list shows valid time units for the SIZE, ADVANCE BY,
 SESSION, and WITHIN clauses.
@@ -113,9 +123,9 @@ SESSION, and WITHIN clauses.
 -   MILLISECOND, MILLISECONDS
 
 For more information, see
-[Windows in ksqlDB Queries](../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
+[Windows in SQL Queries](../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
 
-### ksqlDB Timestamp Formats
+### Timestamp formats
 
 Time-based operations, like windowing, process records according to the
 timestamp in `ROWTIME`. By default, the implicit `ROWTIME` pseudo column is the
@@ -168,72 +178,12 @@ CREATE STREAM TEST (id BIGINT KEY, event_timestamp VARCHAR)
 For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
-ksqlDB CLI Commands
------------------
+## Data types
 
-The ksqlDB CLI commands can be run after
-[starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli).
-You can view the ksqlDB CLI help by running
-`<path-to-confluent>/bin/ksql --help`.
+ksqlDB supports the following data types. For information on how ksqlDB
+serializes different data types, see [ksqlDB Serialization](serialization.md).
 
-!!! tip
-      You can search and browse your command history in the ksqlDB CLI
-      with `Ctrl-R`. After pressing `Ctrl-R`, start typing the command or any
-      part of the command to show an auto-complete of past commands.
-
-```
-NAME
-        ksql - KSQL CLI
-
-SYNOPSIS
-        ksql [ --config-file <configFile> ] [ {-h | --help} ]
-                [ --output <outputFormat> ]
-                [ --query-row-limit <streamedQueryRowLimit> ]
-                [ --query-timeout <streamedQueryTimeoutMs> ] [--] <server>
-
-OPTIONS
-        --config-file <configFile>
-            A file specifying configs for Ksql and its underlying Kafka Streams
-            instance(s). Refer to KSQL documentation for a list of available
-            configs.
-
-        -h, --help
-            Display help information
-
-        --output <outputFormat>
-            The output format to use (either 'JSON' or 'TABULAR'; can be changed
-            during REPL as well; defaults to TABULAR)
-
-        --query-row-limit <streamedQueryRowLimit>
-            An optional maximum number of rows to read from streamed queries
-
-            This options value must fall in the following range: value >= 1
-
-
-        --query-timeout <streamedQueryTimeoutMs>
-            An optional time limit (in milliseconds) for streamed queries
-
-            This options value must fall in the following range: value >= 1
-
-
-        --
-            This option can be used to separate command-line options from the
-            list of arguments (useful when arguments might be mistaken for
-            command-line options)
-
-        <server>
-            The address of the Ksql server to connect to (ex:
-            http://confluent.io:9098)
-
-            This option may occur a maximum of 1 times
-```
-
-ksqlDB data types
----------------
-
-ksqlDB supports the following data types.
-
-### Primitive Types
+### Primitive types
 
 ksqlDB supports the following primitive data types:
 
@@ -245,7 +195,9 @@ ksqlDB supports the following primitive data types:
 
 ### Array
 
-`ARRAY<ElementType>`
+```sql
+ARRAY<ElementType>
+```
 
 !!! note
 		The `DELIMITED` format doesn't support arrays.
@@ -254,8 +206,8 @@ ksqlDB supports fields that are arrays of another type. All the elements
 in the array must be of the same type. The element type can be any valid
 SQL type.
 
-The elements of an array are zero-indexed and can be accessed by using
-the `[]` operator passing in the index. For example, `SOME_ARRAY[0]`
+The elements of an array are one-indexed and can be accessed by using
+the `[]` operator passing in the index. For example, `SOME_ARRAY[1]`
 retrieves the first element from the array. For more information, see
 [Operators](ksqldb-reference/operators.md).
 
@@ -270,7 +222,7 @@ The following example creates an array from a stream named `s1`.
 SELECT ARRAY[1, 2] FROM s1 EMIT CHANGES;
 ```
 
-Starting in version 0.8.0, the built-in AS_ARRAY function syntax for
+Starting in version 0.7.1, the built-in AS_ARRAY function syntax for
 creating arrays doesn't work. Replace AS_ARRAY with the ARRAY constructor
 syntax. For example, replace this legacy query:
 
@@ -286,7 +238,9 @@ CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL1, ABS(col3) V
 
 ### Map
 
-`MAP<KeyType, ValueType>`
+```sql
+MAP<KeyType, ValueType>
+```
 
 !!! note
 		The `DELIMITED` format doesn't support maps.
@@ -314,34 +268,81 @@ SELECT MAP(k1:=v1, k2:=v1*2) FROM s1 EMIT CHANGES;
 
 ### Struct
 
-`STRUCT<FieldName FieldType, ...>`
+```sql
+STRUCT<FieldName FieldType, ...>
+```
+
+ksqlDB supports fields that are structs. A struct represents strongly typed
+structured, or nested, data. A struct is an ordered collection of named fields
+that have a specific type. The field types can be any valid SQL type.
+
+Access the fields of a struct by using the `->` operator. For example,
+`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field.
+
+You can define a struct within a `CREATE TABLE` or `CREATE STREAM`
+statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For
+example, the following statement defines a struct with
+three fields, with the supplied names and types.
+
+```sql
+STRUCT<ID BIGINT, NAME STRING, AGE INT>
+```
+
+You can read structured data in Avro, Protobuf, JSON, and JSON_SR
+formats by using the `STRUCT` type in CREATE STREAM and CREATE TABLE
+statements.
 
 !!! note
 		The `DELIMITED` format doesn't support structs.
 
-ksqlDB supports fields that are structs. A struct represents strongly
-typed structured data. A struct is an ordered collection of named fields
-that have a specific type. The field types can be any valid SQL type.
+You can use the `STRUCT` type in these SQL statements:
 
-Access the fields of a struct by using the `->` operator. For example,
-`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
-more information, see [Operators](ksqldb-reference/operators.md).
+-   CREATE STREAM/TABLE (from a topic)
+-   CREATE STREAM/TABLE AS SELECT (from existing streams/tables)
+-   SELECT (non-persistent query)
 
-You can define a structs within a `CREATE TABLE` or `CREATE STREAM`
-statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For
-example, `STRUCT<ID BIGINT, NAME STRING, AGE INT>` defines a struct with
-three fields, with the supplied name and type.
+The `STRUCT` type requires a list of fields. For each field, you specify the
+field name and field type. The field type can be any of the supported ksqlDB
+types, including the complex types `MAP`, `ARRAY`, and `STRUCT`.
 
-Also, you can output a struct from a query by using a SELECT statement.
-The following example creates a struct from a stream named `s1`.
+!!! note
+		`Properties` is not a valid field name.
+
+The following example CREATE STREAM statement uses a `STRUCT` to
+encapsulate a street address and a postal code.
 
 ```sql
-SELECT STRUCT(f1 := v1, f2 := v2) FROM s1 EMIT CHANGES;
+CREATE STREAM orders (
+  ID BIGINT KEY,
+  address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
+```
+
+Access the fields in `address` by using the dereference operator
+(`->`):
+
+```sql
+SELECT address->city, address->zip FROM orders;
+```
+
+You can create a `STRUCT` in a query by specifying the names of the columns
+and expressions that construct the values, separated by commas. The following
+example SELECT statement creates a schema that has a `STRUCT`.
+
+```sql
+SELECT STRUCT(name := col0, ageInDogYears := col1*7) AS dogs FROM animals
+```
+
+If `col0` is a string and `col1` is an integer, the resulting schema is:
+
+```sql
+col0 STRUCT<name VARCHAR, ageInDogYears INTEGER>
 ```
 
 ### Decimal
 
-`DECIMAL(Precision, Scale)`
+```sql
+DECIMAL(Precision, Scale)
+```
 
 ksqlDB supports fields that are numeric data types with fixed precision and scale:
 
@@ -370,19 +371,7 @@ will be `DECIMAL(p, s)` where `p` is the total number of numeric characters in t
 - **Boolean constants** are the unquoted strings that are exactly (case-insensitive) `TRUE`
 or `FALSE`.
 
-SQL statements
---------------
-
-- SQL statements must be terminated with a semicolon (`;`).
-- Statements can be spread over multiple lines.
-- The hyphen character, `-`, isn't supported in names for streams,
-  tables, topics, and columns.
-- Don't use quotes around stream names or table names when you CREATE them.
-- Use backticks around column and source names with characters that are
-  unparseable by ksqlDB or when you want to control case.
-
-Quoted identifiers for source and column names
-----------------------------------------------
+## Quoted identifiers for source and column names
 
 Quoted identifiers in column names and source names are supported. If you have
 names that ksqlDB can't parse, or if you need to control the case of your
@@ -427,12 +416,12 @@ CREATE STREAM `foo-too` AS SELECT * FROM `foo-bar`;
 !!! note
     By default, ksqlDB converts source and column names automatically to all
     capital letters. Use quoted identifiers to override this behavior and
-    fully control your source and column names.
+    fully control your source and column names. For more information, see
+    [How to control the case of identifiers](../how-to-guides/control-the-case-of-identifiers.md). 
 
-Key Requirements
-----------------
+## Key Requirements
 
-### Message Keys
+### Message keys
 
 The `CREATE STREAM` and `CREATE TABLE` statements define streams and tables over data in 
 {{ site.ak }} topics. They allow you to specify which columns should be read from the Kafka message
@@ -441,7 +430,7 @@ respectively.
 
 Example:
 
-```sql
+```sql hl_lines="2,3"
 CREATE TABLE users (
     userId INT PRIMARY KEY, -- userId will be read from the Kafka message key 
     registertime BIGINT,    -- all other columns from the value
@@ -466,7 +455,7 @@ column require an internal repartition, but joins on the stream's `KEY` column d
     messages. The use case will determine if these ordering guarantees are
     acceptable.
 
-### What To Do If Your Key Is Not Set or Is In A Different Format
+### What to do if your key is not set or is in a different format
 
 ### Streams
 
@@ -487,17 +476,14 @@ the value data, and *one* of the following statements is true:
 -   It's acceptable for the messages in the topic to be re-ordered before
     being inserted into the table.
 
-First create a stream which you'll use to have ksqlDB write the message
-key, and then declare the table on the output topic of this stream.
+Create a stream that writes the message key, and declare the table on the
+output topic of this stream.
 
-Example:
-
--   Goal: You want to create a table from a topic, which is keyed by
-    userid of type INT.
--   Problem: The required key is present as a column (aptly named
-    `userid`) in the message value as a string containing the integer,
-    but the actual message key in {{ site.ak }} contains the userId in
-    a format ksqlDB does not recognise.
+For example, imagine that you need to create a table from a topic that's keyed
+by a `userid` of type INT. But the required key is in the message _value_ as a
+column named `userid`, which is a string containing the integer, and the
+_actual_ message key in {{ site.ak }} contains the `userId` in a format that
+ksqlDB doesn't recognize.
 
 ```sql
 -- Create a stream on the original topic without a KEY columns:
@@ -563,3 +549,62 @@ CREATE TABLE users_table_2 (
 
 For more information, see
 [Partition Data to Enable Joins](joins/partition-data.md).
+
+## ksqlDB CLI commands
+
+The ksqlDB CLI commands can be run after
+[starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli).
+You can view the ksqlDB CLI help by running
+`<path-to-confluent>/bin/ksql --help`.
+
+!!! tip
+      You can search and browse your command history in the ksqlDB CLI
+      with `Ctrl-R`. After pressing `Ctrl-R`, start typing the command or any
+      part of the command to show an auto-complete of past commands.
+
+```
+NAME
+        ksql - KSQL CLI
+
+SYNOPSIS
+        ksql [ --config-file <configFile> ] [ {-h | --help} ]
+                [ --output <outputFormat> ]
+                [ --query-row-limit <streamedQueryRowLimit> ]
+                [ --query-timeout <streamedQueryTimeoutMs> ] [--] <server>
+
+OPTIONS
+        --config-file <configFile>
+            A file specifying configs for Ksql and its underlying Kafka Streams
+            instance(s). Refer to KSQL documentation for a list of available
+            configs.
+
+        -h, --help
+            Display help information
+
+        --output <outputFormat>
+            The output format to use (either 'JSON' or 'TABULAR'; can be changed
+            during REPL as well; defaults to TABULAR)
+
+        --query-row-limit <streamedQueryRowLimit>
+            An optional maximum number of rows to read from streamed queries
+
+            This options value must fall in the following range: value >= 1
+
+
+        --query-timeout <streamedQueryTimeoutMs>
+            An optional time limit (in milliseconds) for streamed queries
+
+            This options value must fall in the following range: value >= 1
+
+
+        --
+            This option can be used to separate command-line options from the
+            list of arguments (useful when arguments might be mistaken for
+            command-line options)
+
+        <server>
+            The address of the Ksql server to connect to (ex:
+            http://confluent.io:9098)
+
+            This option may occur a maximum of 1 times
+```

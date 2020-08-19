@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,7 @@ public class KsqlServerMain {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
 
+  private final Executor shutdownHandler;
   private final Executable executable;
 
   public static void main(final String[] args) {
@@ -55,29 +58,46 @@ public class KsqlServerMain {
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final Executable executable = createExecutable(
           properties, queriesFile, installDir, ksqlConfig);
-      new KsqlServerMain(executable).tryStartApp();
+      new KsqlServerMain(
+          executable,
+          r -> Runtime.getRuntime().addShutdownHook(new Thread(r))
+      ).tryStartApp();
     } catch (final Exception e) {
       log.error("Failed to start KSQL", e);
       System.exit(-1);
     }
   }
 
-  KsqlServerMain(final Executable executable) {
+  KsqlServerMain(final Executable executable, final Executor shutdownHandler) {
     this.executable = Objects.requireNonNull(executable, "executable");
+    this.shutdownHandler = Objects.requireNonNull(shutdownHandler, "shutdownHandler");
   }
 
   void tryStartApp() throws Exception {
+    final CountDownLatch latch = new CountDownLatch(1);
+    shutdownHandler.execute(() -> {
+      executable.notifyTerminated();
+      try {
+        latch.await();
+      } catch (final InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    });
     try {
-      log.info("Starting server");
-      executable.startAsync();
-      log.info("Server up and running");
-      executable.awaitTerminated();
-    } catch (Throwable t) {
-      log.error("Unhandled exception in server startup", t);
-      throw t;
+      try {
+        log.info("Starting server");
+        executable.startAsync();
+        log.info("Server up and running");
+        executable.awaitTerminated();
+      } catch (Throwable t) {
+        log.error("Unhandled exception in server startup", t);
+        throw t;
+      } finally {
+        log.info("Server shutting down");
+        executable.shutdown();
+      }
     } finally {
-      log.info("Server shutting down");
-      executable.triggerShutdown();
+      latch.countDown();
     }
   }
 
@@ -115,7 +135,7 @@ public class KsqlServerMain {
         throw new KsqlServerException("Could not create the kafka streams state directory: "
             + streamsStateDir.getPath()
             + "\n Make sure the directory exists and is writable for KSQL server "
-            + "\n or its parend directory is writbale by KSQL server"
+            + "\n or its parent directory is writable by KSQL server"
             + "\n or change it to a writable directory by setting '"
             + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
             + "' config in the properties file."
@@ -126,7 +146,7 @@ public class KsqlServerMain {
       throw new KsqlServerException(streamsStateDir.getPath()
           + " is not a directory."
           + "\n Make sure the directory exists and is writable for KSQL server "
-          + "\n or its parend directory is writbale by KSQL server"
+          + "\n or its parent directory is writable by KSQL server"
           + "\n or change it to a writable directory by setting '"
           + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
           + "' config in the properties file."

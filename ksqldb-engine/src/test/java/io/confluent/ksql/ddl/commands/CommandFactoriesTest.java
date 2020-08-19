@@ -157,7 +157,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForCreateStream() {
     // Given:
-    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
 
     // When:
     final DdlCommand result = commandFactories
@@ -170,7 +170,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForStreamWithOverriddenProperties() {
     // Given:
-    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
 
     // When:
     commandFactories.create(sqlExpression, statement, ksqlConfig, OVERRIDES);
@@ -187,7 +187,7 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        true, withProperties);
+        false, true, withProperties);
 
     // When:
     final DdlCommand result = commandFactories
@@ -205,7 +205,7 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        true, withProperties);
+        false, true, withProperties);
 
     // When:
     commandFactories.create(sqlExpression, statement, ksqlConfig, OVERRIDES);
@@ -266,7 +266,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateDropType() {
     // Given:
-    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME);
+    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME, false);
 
     // When:
     final DropTypeCommand cmd = (DropTypeCommand) commandFactories.create(
@@ -304,7 +304,7 @@ public class CommandFactoriesTest {
     );
 
     final DdlStatement statement =
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
 
     // When:
     final DdlCommand cmd = commandFactories
@@ -329,7 +329,7 @@ public class CommandFactoriesTest {
     );
 
     final DdlStatement statement =
-        new CreateTable(SOME_NAME, ELEMENTS_WITH_PK, true, withProperties);
+        new CreateTable(SOME_NAME, ELEMENTS_WITH_PK, false, true, withProperties);
 
     // When:
     final DdlCommand cmd = commandFactories

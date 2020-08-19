@@ -64,7 +64,7 @@ Follow these steps to create your custom functions:
       FUNCTION statement to display details about your custom functions.
 
 For a detailed walkthrough on creating a UDF, see
-[Implement a User-defined Function (UDF and UDAF)](../developer-guide/implement-a-udf.md).
+[the how-to guide for creating a user-defined function](../../how-to-guides/create-a-user-defined-function).
 
 ### Creating UDFs, UDAFs, and UDTFs
 
@@ -258,6 +258,7 @@ commands.
 |-------------|----------------------------------------------------------------------|----------|
 | name        | The case-insensitive name of the UDF(s) represented by this class.   | Yes      |
 | description | A string describing generally what the function(s) in this class do. | Yes      |
+| category    | For grouping similar functions in the output of SHOW FUNCTIONS.      | No       |
 | author      | The author of the UDF.                                               | No       |
 | version     | The version of the UDF.                                              | No       |
 
@@ -680,6 +681,9 @@ types.
 with richer information, including the parameter schema. This annotation is
 required if the SQL type can't be inferred from the Java type, like `STRUCT`.
 
+For an example UDTF implementation, see
+[Data Enrichment in ksqlDB Using UDTFs](https://www.confluent.io/blog/infrastructure-monitoring-with-ksqldb-udtf/).
+
 ##### Null Handling
 
 If a UDTF uses primitive types in its signature, this indicates that the
@@ -941,9 +945,11 @@ Metric collection can be enabled by setting the config
 `ksql.udf.collect.metrics` to `true`. This defaults to `false` and is
 generally not recommended for production usage, as metrics are
 collected on each invocation and introduce some overhead to
-processing time.
+processing time. See more details in the
+[UDF metrics reference section](../../reference/metrics/#user-defined-functions).
 
 ### Suggested Reading
 
+- [Data Enrichment in ksqlDB Using UDTFs](https://www.confluent.io/blog/infrastructure-monitoring-with-ksqldb-udtf/)
 - [ksqlDB UDFs and UDAFs Made Easy](https://www.confluent.io/blog/kafka-ksql-udf-udaf-with-maven-made-easy/)
 - [How to Build a UDF and/or UDAF in ksqlDB 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)

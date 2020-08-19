@@ -1,0 +1,162 @@
+{
+  "version" : "6.0.0",
+  "timestamp" : 1594233262517,
+  "path" : "query-validation-tests/collect-list.json",
+  "schemas" : {
+    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<VALUE INT> NOT NULL",
+    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE INT> NOT NULL",
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE INT, KSQL_AGG_VARIABLE_0 ARRAY<INT>> NOT NULL",
+    "CTAS_S2_0.S2" : "STRUCT<COLLECTED ARRAY<INT>> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "collect_list int table - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "VALUE" : 0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "VALUE" : 100
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "VALUE" : 500
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : {
+        "VALUE" : 100
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "COLLECTED" : [ 0 ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "COLLECTED" : [ ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "COLLECTED" : [ 100 ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "COLLECTED" : [ 500 ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "COLLECTED" : [ ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "COLLECTED" : [ 100 ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 VALUE = 1;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, VALUE integer) WITH (kafka_topic='test_topic',value_format='PROTOBUF');", "CREATE TABLE S2 as SELECT ID, collect_list(value) as collected FROM test group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          }
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

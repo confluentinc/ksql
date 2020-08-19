@@ -18,6 +18,8 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
@@ -34,6 +36,7 @@ import io.confluent.ksql.util.OrderDataProvider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
@@ -82,8 +85,10 @@ public class JoinIntTest {
     TEST_HARNESS.ensureTopics(itemTableTopicJson, itemTableTopicAvro,
         orderStreamTopicJson, orderStreamTopicAvro);
 
-    TEST_HARNESS.produceRows(itemTableTopicJson, ITEM_DATA_PROVIDER, JSON, () -> now - 500);
-    TEST_HARNESS.produceRows(itemTableTopicAvro, ITEM_DATA_PROVIDER, AVRO, () -> now - 500);
+    // we want the table events to always be present (less than the ts in the stream
+    // including the time extractor)
+    TEST_HARNESS.produceRows(itemTableTopicJson, ITEM_DATA_PROVIDER, JSON, () -> 0L);
+    TEST_HARNESS.produceRows(itemTableTopicAvro, ITEM_DATA_PROVIDER, AVRO, () -> 0L);
 
     TEST_HARNESS.produceRows(orderStreamTopicJson, ORDER_DATA_PROVIDER, JSON, () -> now);
     TEST_HARNESS.produceRows(orderStreamTopicAvro, ORDER_DATA_PROVIDER, AVRO, () -> now);
@@ -252,6 +257,7 @@ public class JoinIntTest {
         genericRow("ORDER_1", "home cinema", 1L)
     );
 
+    final AtomicInteger attempts = new AtomicInteger();
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
       results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
@@ -262,6 +268,10 @@ public class JoinIntTest {
 
       final boolean success = results.equals(expectedResults);
       if (!success) {
+        final int failedAttempts = attempts.getAndIncrement();
+        if (failedAttempts >= 5) {
+          return true;
+        }
         try {
           // The join may not be triggered fist time around due to order in which the
           // consumer pulls the records back. So we publish again to make the stream
@@ -273,6 +283,8 @@ public class JoinIntTest {
       }
       return success;
     }, 120000, "failed to complete join correctly");
+
+    assertThat(results, is(expectedResults));
   }
 
   private void createStreams() {

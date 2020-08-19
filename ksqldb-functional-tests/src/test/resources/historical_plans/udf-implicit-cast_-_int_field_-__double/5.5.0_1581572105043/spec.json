@@ -37,9 +37,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, LAT1 DOUBLE, LON1 DOUBLE, LAT2 INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM DISTANCE_STREAM AS SELECT\n  TEST.ID ID,\n  GEO_DISTANCE(TEST.LAT1, TEST.LON1, TEST.LAT2, 0) CALCULATED_DISTANCE\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE, `LAT2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "DISTANCE_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "DISTANCE_STREAM",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -50,7 +67,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "DISTANCE_STREAM",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -22,10 +22,11 @@ import java.util.Optional;
 public final class UdfLoaderUtil {
   private UdfLoaderUtil() {}
 
-  public static FunctionRegistry load(final MutableFunctionRegistry functionRegistry) {
+  public static FunctionRegistry load(final MutableFunctionRegistry functionRegistry,
+      final String extensionDir) {
     new UserFunctionLoader(
         functionRegistry,
-        new File("src/test/resources/udf-example.jar"),
+        new File(extensionDir),
         UdfLoaderUtil.class.getClassLoader(),
         value -> false, Optional.empty(), true
     )
@@ -34,12 +35,17 @@ public final class UdfLoaderUtil {
     return functionRegistry;
   }
 
+  public static FunctionRegistry load(final MutableFunctionRegistry functionRegistry) {
+    return load(functionRegistry, "src/test/resources/udf-example.jar");
+  }
+
   public static UdfFactory createTestUdfFactory(final KsqlScalarFunction udf) {
     final UdfMetadata metadata = new UdfMetadata(
         udf.name().text(),
         udf.getDescription(),
         "Test Author",
         "",
+        FunctionCategory.OTHER,
         KsqlScalarFunction.INTERNAL_PATH
     );
 

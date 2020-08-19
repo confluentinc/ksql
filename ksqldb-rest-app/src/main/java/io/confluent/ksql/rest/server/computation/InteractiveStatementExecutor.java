@@ -246,8 +246,9 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       }
     }
     final String successMessage = getSuccessMessage(result);
+    final Optional<QueryId> queryId = result.getQuery().map(QueryMetadata::getQueryId);
     final CommandStatus successStatus =
-        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
+        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, queryId);
     putFinalStatus(commandId, commandStatusFuture, successStatus);
   }
 
@@ -269,6 +270,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final long offset
   ) {
     String successMessage = "";
+    Optional<QueryId> queryId = Optional.empty();
     if (statement.getStatement() instanceof ExecutableDdlStatement) {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
@@ -277,9 +279,11 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table " + name + " created and running" : "Stream " + name + " created and running";
       successMessage += ". Created by query with query ID: " + query.getQueryId();
+      queryId = Optional.of(query.getQueryId());
     } else if (statement.getStatement() instanceof InsertInto) {
       final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
       successMessage = "Insert Into query is running with query ID: " + query.getQueryId();
+      queryId = Optional.of(query.getQueryId());
     } else if (statement.getStatement() instanceof TerminateQuery) {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
       successMessage = "Query terminated.";
@@ -291,7 +295,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     }
 
     final CommandStatus successStatus =
-        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
+        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, queryId);
 
     putFinalStatus(commandId, commandStatusFuture, successStatus);
   }

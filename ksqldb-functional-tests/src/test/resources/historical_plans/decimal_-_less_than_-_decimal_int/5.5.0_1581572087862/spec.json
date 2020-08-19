@@ -100,9 +100,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (A DECIMAL(4, 2), B INTEGER) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='AVRO');", "CREATE STREAM TEST2 AS SELECT (TEST.A < TEST.B) RESULT\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `RESULT` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "TEST2",
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -113,7 +130,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test",
+          "name" : "TEST2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

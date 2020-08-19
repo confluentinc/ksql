@@ -1,0 +1,114 @@
+{
+  "version" : "6.1.0",
+  "timestamp" : 1597343542697,
+  "path" : "query-validation-tests/insert-into.json",
+  "schemas" : {
+    "INSERTQUERY_0.KsqlTopic.Source" : "STRUCT<IGNORED VARCHAR> NOT NULL",
+    "INSERTQUERY_0.TARGET" : "STRUCT<C1 DECIMAL(3, 2), C2 DECIMAL(3, 2)> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "implicitly casts",
+    "inputs" : [ {
+      "topic" : "source",
+      "key" : null,
+      "value" : {
+        "ignored" : "v1"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "target",
+      "key" : null,
+      "value" : {
+        "C1" : 1.00,
+        "C2" : 2.00
+      }
+    } ],
+    "topics" : [ {
+      "name" : "source",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "IGNORED",
+          "type" : [ "null", "string" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "target",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "C1",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 2,
+            "precision" : 5,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "2",
+              "connect.decimal.precision" : "5"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        }, {
+          "name" : "C2",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 2,
+            "precision" : 5,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "2",
+              "connect.decimal.precision" : "5"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE (ignored VARCHAR) WITH (kafka_topic='source', value_format='AVRO');", "CREATE STREAM TARGET (c1 DECIMAL(5,2), c2 DECIMAL(5,2)) WITH (kafka_topic='target', value_format='AVRO');", "INSERT INTO TARGET SELECT 1 as c1, 2.0 as c2 FROM SOURCE;" ],
+    "post" : {
+      "topics" : {
+        "topics" : [ {
+          "name" : "source",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "target",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -127,9 +127,14 @@ public final class SqlFormatter {
       }
 
       if (!node.isPullQuery()) {
-        append(indent, "EMIT ");
-        append(indent, node.getResultMaterialization().toString())
-            .append('\n');
+        if (node.getRefinement().isPresent()) {
+          append(indent, "EMIT ");
+          append(indent, node.getRefinement()
+              .get()
+              .getOutputRefinement()
+              .toString())
+              .append('\n');
+        }
       }
 
       if (node.getLimit().isPresent()) {
@@ -234,15 +239,13 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitCreateStream(final CreateStream node, final Integer indent) {
-      builder.append("CREATE STREAM ");
-      formatCreate(node);
+      formatCreate(node, "STREAM");
       return null;
     }
 
     @Override
     protected Void visitCreateTable(final CreateTable node, final Integer indent) {
-      builder.append("CREATE TABLE ");
-      formatCreate(node);
+      formatCreate(node, "TABLE");
       return null;
     }
 
@@ -277,8 +280,7 @@ public final class SqlFormatter {
         final CreateStreamAsSelect node,
         final Integer indent
     ) {
-      builder.append("CREATE STREAM ");
-      formatCreateAs(node, indent);
+      formatCreateAs("STREAM", node, indent);
       return null;
     }
 
@@ -287,8 +289,7 @@ public final class SqlFormatter {
         final CreateTableAsSelect node,
         final Integer indent
     ) {
-      builder.append("CREATE TABLE ");
-      formatCreateAs(node, indent);
+      formatCreateAs("TABLE", node, indent);
       return null;
     }
 
@@ -452,7 +453,16 @@ public final class SqlFormatter {
       return Strings.repeat(INDENT, indent);
     }
 
-    private void formatCreate(final CreateSource node) {
+    private void formatCreate(final CreateSource node, final String type) {
+      builder.append("CREATE ");
+
+      if (node.isOrReplace()) {
+        builder.append("OR REPLACE ");
+      }
+
+      builder.append(type);
+      builder.append(" ");
+
       if (node.isNotExists()) {
         builder.append("IF NOT EXISTS ");
       }
@@ -481,7 +491,20 @@ public final class SqlFormatter {
       builder.append(";");
     }
 
-    private void formatCreateAs(final CreateAsSelect node, final Integer indent) {
+    private void formatCreateAs(
+        final String source,
+        final CreateAsSelect node,
+        final Integer indent
+    ) {
+      builder.append("CREATE ");
+
+      if (node.isOrReplace()) {
+        builder.append("OR REPLACE ");
+      }
+
+      builder.append(source);
+      builder.append(" ");
+
       if (node.isNotExists()) {
         builder.append("IF NOT EXISTS ");
       }

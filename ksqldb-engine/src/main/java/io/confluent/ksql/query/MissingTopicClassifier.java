@@ -48,7 +48,12 @@ public class MissingTopicClassifier implements QueryErrorClassifier {
 
   @Override
   public Type classify(final Throwable e) {
-    LOG.info("Attempting to classify error for {}", queryId);
+    LOG.info(
+        "Attempting to classify missing topic error. Query ID: {} Required topics: {}",
+        queryId,
+        requiredTopics
+    );
+
     for (String requiredTopic : requiredTopics) {
       if (!topicClient.isTopicExists(requiredTopic)) {
         LOG.warn("Query {} requires topic {} which cannot be found.", queryId, requiredTopic);

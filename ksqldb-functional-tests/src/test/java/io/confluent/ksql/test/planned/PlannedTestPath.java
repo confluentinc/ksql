@@ -71,6 +71,10 @@ public final class PlannedTestPath {
     return findBaseDir().resolve(path);
   }
 
+  public Path absolutePath() {
+    return relativePath().toAbsolutePath().normalize();
+  }
+
   private static Path findBaseDir() {
     Path path = Paths.get("./ksqldb-functional-tests");
     if (Files.exists(path)) {

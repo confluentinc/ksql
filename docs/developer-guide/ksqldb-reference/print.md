@@ -19,7 +19,7 @@ PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
 Description
 -----------
 
-Print the contents of Kafka topics to the ksqlDB CLI.
+Print the contents of {{ site.ak }} topics to the ksqlDB CLI.
 
 The _topicName_ is case sensitive. Quote the name if it contains invalid characters.
 See [Valid Identifiers](../../concepts/schemas.md#valid-identifiers) for more information.

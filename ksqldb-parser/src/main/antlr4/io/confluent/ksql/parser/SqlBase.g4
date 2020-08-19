@@ -19,8 +19,21 @@ tokens {
     DELIMITER
 }
 
+// channel names aren't supported in combined lexer/parser grammars
+// so we just generate this constants into the SqlBaseLexer and use
+// the corresponding numberliteral in this file
+@lexer::members {
+    public static final int COMMENTS = 2;
+    public static final int WHITESPACE = 3;
+    public static final int DIRECTIVES = 4;
+}
+
 statements
     : (singleStatement)* EOF
+    ;
+
+testStatement
+    : (singleStatement | assertStatement ';') EOF?
     ;
 
 singleStatement
@@ -49,15 +62,15 @@ statement
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | CREATE STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
-    | CREATE STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createStreamAs
-    | CREATE TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
-    | CREATE TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createTableAs
     | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
     | INSERT INTO sourceName query                                          #insertInto
@@ -67,7 +80,13 @@ statement
     | DROP CONNECTOR identifier                                             #dropConnector
     | EXPLAIN  (statement | identifier)                                     #explain
     | CREATE TYPE identifier AS type                                        #registerType
-    | DROP TYPE identifier                                                  #dropType
+    | DROP TYPE (IF EXISTS)? identifier                                     #dropType
+    ;
+
+assertStatement
+    : ASSERT VALUES sourceName (columns)? VALUES values                     #assertValues
+    | ASSERT STREAM sourceName (tableElements)? (WITH tableProperties)?     #assertStream
+    | ASSERT TABLE sourceName (tableElements)? (WITH tableProperties)?      #assertTable
     ;
 
 query
@@ -84,6 +103,7 @@ query
 
 resultMaterialization
     : CHANGES
+    | FINAL
     ;
 
 tableElements
@@ -335,11 +355,15 @@ nonReserved
     | PRIMARY | KEY
     | EMIT
     | CHANGES
+    | FINAL
     | ESCAPE
+    | REPLACE
+    | ASSERT | OFFSET
     ;
 
 EMIT: 'EMIT';
 CHANGES: 'CHANGES';
+FINAL: 'FINAL';
 SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';
@@ -463,6 +487,8 @@ NAMESPACE: 'NAMESPACE';
 MATERIALIZED: 'MATERIALIZED';
 VIEW: 'VIEW';
 PRIMARY: 'PRIMARY';
+REPLACE: 'REPLACE';
+ASSERT: 'ASSERT';
 
 IF: 'IF';
 
@@ -538,15 +564,19 @@ fragment LETTER
     ;
 
 SIMPLE_COMMENT
-    : '--' ~[\r\n]* '\r'? '\n'? -> channel(HIDDEN)
+    : '--' ~'@' ~[\r\n]* '\r'? '\n'? -> channel(2) // channel(COMMENTS)
+    ;
+
+DIRECTIVE_COMMENT
+    : '--@' ~[\r\n]* '\r'? '\n'? -> channel(4) // channel(DIRECTIVES)
     ;
 
 BRACKETED_COMMENT
-    : '/*' .*? '*/' -> channel(HIDDEN)
+    : '/*' .*? '*/' -> channel(2) // channel(COMMENTS)
     ;
 
 WS
-    : [ \r\n\t]+ -> channel(HIDDEN)
+    : [ \r\n\t]+ -> channel(3) // channel(WHITESPACE)
     ;
 
 // Catch-all for anything we can't recognize.

@@ -20,11 +20,11 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.Topic;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +34,7 @@ import org.hamcrest.Matcher;
 
 class RestTestCase implements Test {
 
-  private final Path testPath;
+  private final TestLocation location;
   private final String name;
   private final Map<String, Object> properties;
   private final ImmutableList<Topic> topics;
@@ -45,7 +45,7 @@ class RestTestCase implements Test {
   private final Optional<Matcher<RestResponse<?>>> expectedError;
 
   RestTestCase(
-      final Path testPath,
+      final TestLocation location,
       final String name,
       final Map<String, Object> properties,
       final Collection<Topic> topics,
@@ -56,7 +56,7 @@ class RestTestCase implements Test {
       final Optional<Matcher<RestResponse<?>>> expectedError
   ) {
     this.name = requireNonNull(name, "name");
-    this.testPath = requireNonNull(testPath, "testPath");
+    this.location = requireNonNull(location, "testPath");
     this.properties = immutableCopyOf(requireNonNull(properties, "properties"));
     this.topics = immutableCopyOf(requireNonNull(topics, "topics"));
     this.inputRecords = immutableCopyOf(requireNonNull(inputRecords, "inputRecords"));
@@ -72,8 +72,8 @@ class RestTestCase implements Test {
   }
 
   @Override
-  public String getTestFile() {
-    return testPath.toString();
+  public TestLocation getTestLocation() {
+    return location;
   }
 
   List<Topic> getTopics() {

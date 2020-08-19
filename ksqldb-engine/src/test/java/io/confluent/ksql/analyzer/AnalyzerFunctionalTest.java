@@ -179,7 +179,7 @@ public class AnalyzerFunctionalTest {
         ksqlTopic
     );
 
-    newAvroMetaStore.putSource(ksqlStream);
+    newAvroMetaStore.putSource(ksqlStream, false);
 
     final List<Statement> statements = parse(simpleQuery, newAvroMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
@@ -392,7 +392,7 @@ public class AnalyzerFunctionalTest {
         topic
     );
 
-    jsonMetaStore.putSource(stream);
+    jsonMetaStore.putSource(stream, false);
   }
 
   private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {

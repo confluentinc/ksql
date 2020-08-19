@@ -33,6 +33,23 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='delimited');", "CREATE STREAM REPARTITIONED AS SELECT\n  TEST.NAME NAME,\n  TEST.ID ID\nFROM TEST TEST\nPARTITION BY TEST.NAME\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "REPARTITIONED",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "REPARTITIONED",

@@ -82,24 +82,29 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "table",
+        "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `COUNT` BIGINT, `WSTART` BIGINT, `WEND` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 1000
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 1.000000000
             }
           },
           "valueFormat" : {
@@ -121,10 +126,14 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 1.000000000
             }
           },
           "valueFormat" : {

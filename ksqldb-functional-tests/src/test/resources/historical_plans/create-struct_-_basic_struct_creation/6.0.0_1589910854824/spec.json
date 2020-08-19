@@ -39,13 +39,25 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR, col2 ARRAY<VARCHAR>) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT(F1 := COL1, F2 := COL2, F3 := SUBSTRING(col1, 2)) AS s FROM INPUT;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` STRING, `COL2` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "BIG_STRUCT",
-        "type" : "stream",
-        "schema" : "ID STRING KEY, S STRUCT<F1 STRING, F2 ARRAY<STRING>, F3 STRING>"
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `S` STRUCT<`F1` STRING, `F2` ARRAY<STRING>, `F3` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "BIG_STRUCT",
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -56,7 +68,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test",
+          "name" : "BIG_STRUCT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

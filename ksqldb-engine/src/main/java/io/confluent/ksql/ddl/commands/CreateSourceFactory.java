@@ -106,7 +106,8 @@ public final class CreateSourceFactory {
         topic.getKafkaTopicName(),
         io.confluent.ksql.execution.plan.Formats
             .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
-        topic.getKeyFormat().getWindowInfo()
+        topic.getKeyFormat().getWindowInfo(),
+        Optional.of(statement.isOrReplace())
     );
   }
 
@@ -154,7 +155,8 @@ public final class CreateSourceFactory {
         topic.getKafkaTopicName(),
         io.confluent.ksql.execution.plan.Formats
             .of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
-        topic.getKeyFormat().getWindowInfo()
+        topic.getKeyFormat().getWindowInfo(),
+        Optional.of(statement.isOrReplace())
     );
   }
 

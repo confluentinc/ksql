@@ -18,10 +18,13 @@ package io.confluent.ksql.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.util.Map;
@@ -45,6 +48,8 @@ public class TransientQueryMetadataTest {
   private static final long CLOSE_TIMEOUT = 10L;
 
   @Mock
+  private KafkaStreamsBuilder kafkaStreamsBuilder;
+  @Mock
   private KafkaStreams kafkaStreams;
   @Mock
   private LogicalSchema logicalSchema;
@@ -64,24 +69,30 @@ public class TransientQueryMetadataTest {
 
   @Before
   public void setUp()  {
+    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
+
     query = new TransientQueryMetadata(
         SQL,
-        kafkaStreams,
         logicalSchema,
         sourceNames,
         EXECUTION_PLAN,
         rowQueue,
         QUERY_ID,
         topology,
+        kafkaStreamsBuilder,
         props,
         overrides,
         closeCallback,
-        CLOSE_TIMEOUT
+        CLOSE_TIMEOUT,
+        10
     );
   }
 
   @Test
   public void shouldCloseQueueBeforeTopologyToAvoidDeadLock() {
+    // Given:
+    query.start();
+
     // When:
     query.close();
 
@@ -93,6 +104,9 @@ public class TransientQueryMetadataTest {
 
   @Test
   public void shouldCallCloseOnStop() {
+    // Given:
+    query.start();
+
     // When:
     query.stop();
 

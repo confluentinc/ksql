@@ -65,9 +65,28 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (SOURCE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON', WINDOW_TYPE='Session');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nWHERE (('2020-02-10T08:31:44.001+0000' <= INPUT.WINDOWSTART) AND (INPUT.WINDOWEND <= '2020-02-10T08:31:45.001+0000'))\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `SOURCE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -81,7 +100,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -64,6 +64,9 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
@@ -89,6 +92,9 @@ import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AssertStatement;
+import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -122,7 +128,6 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -141,6 +146,7 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
@@ -178,6 +184,10 @@ public class AstBuilder {
   }
 
   public WindowExpression buildWindowExpression(final ParserRuleContext parseTree) {
+    return build(Optional.empty(), parseTree);
+  }
+
+  public AssertStatement buildAssertStatement(final ParserRuleContext parseTree) {
     return build(Optional.empty(), parseTree);
   }
 
@@ -257,6 +267,7 @@ public class AstBuilder {
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
+          context.REPLACE() != null,
           context.EXISTS() != null,
           CreateSourceProperties.from(properties)
       );
@@ -274,6 +285,7 @@ public class AstBuilder {
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
+          context.REPLACE() != null,
           context.EXISTS() != null,
           CreateSourceProperties.from(properties)
       );
@@ -290,6 +302,7 @@ public class AstBuilder {
           ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
+          context.REPLACE() != null,
           CreateSourceAsProperties.from(properties)
       );
     }
@@ -305,6 +318,7 @@ public class AstBuilder {
           ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
+          context.REPLACE() != null,
           CreateSourceAsProperties.from(properties)
       );
     }
@@ -395,23 +409,34 @@ public class AstBuilder {
 
       final boolean pullQuery = context.EMIT() == null && !buildingPersistentQuery;
 
-      final ResultMaterialization resultMaterialization = Optional
-          .ofNullable(context.resultMaterialization())
-          .map(rm -> rm.CHANGES() == null
-              ? ResultMaterialization.FINAL
-              : ResultMaterialization.CHANGES
-          )
-          .orElse(buildingPersistentQuery
-              ? ResultMaterialization.CHANGES
-              : ResultMaterialization.FINAL
-          );
+      final Optional<OutputRefinement> outputRefinement;
+
+      if (pullQuery) {
+        outputRefinement = Optional.empty();
+      } else if (buildingPersistentQuery) {
+        outputRefinement = Optional.of(Optional
+            .ofNullable(context.resultMaterialization())
+            .map(rm -> rm.FINAL() == null
+                ? OutputRefinement.CHANGES
+                : OutputRefinement.FINAL
+            )
+            .orElse(OutputRefinement.CHANGES));
+        // Else must be a push query, which must specify a materialization
+      } else {
+        outputRefinement = Optional
+            .of(context.resultMaterialization().CHANGES() == null
+                ? OutputRefinement.FINAL
+                : OutputRefinement.CHANGES
+            );
+      }
+      final Optional<RefinementInfo> refinementInfo = outputRefinement.map(RefinementInfo::of);
+
 
       final OptionalInt limit = getLimit(context.limitClause());
 
       final Optional<PartitionBy> partitionBy =
           visitIfPresent(context.partitionBy, Expression.class)
               .map(e -> new PartitionBy(getLocation(context.PARTITION()), e));
-
       return new Query(
           getLocation(context),
           select,
@@ -421,7 +446,7 @@ public class AstBuilder {
           visitIfPresent(context.groupBy(), GroupBy.class),
           partitionBy,
           visitIfPresent(context.having, Expression.class),
-          resultMaterialization,
+          refinementInfo,
           pullQuery,
           limit
       );
@@ -638,7 +663,11 @@ public class AstBuilder {
 
     @Override
     public Node visitDropType(final DropTypeContext ctx) {
-      return new DropType(getLocation(ctx), getIdentifierText(ctx.identifier()));
+      return new DropType(
+          getLocation(ctx),
+          getIdentifierText(ctx.identifier()),
+          ctx.EXISTS() != null
+      );
     }
 
     @Override
@@ -1209,6 +1238,72 @@ public class AstBuilder {
           typeParser.getType(context.type())
       );
     }
+
+    @Override
+    public Node visitAssertValues(final AssertValuesContext context) {
+      final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
+      final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
+
+      final List<ColumnName> columns;
+      if (context.columns() != null) {
+        columns = context.columns().identifier()
+            .stream()
+            .map(ParserUtil::getIdentifierText)
+            .map(ColumnName::of)
+            .collect(Collectors.toList());
+      } else {
+        columns = ImmutableList.of();
+      }
+
+      final InsertValues insertValues = new InsertValues(
+          targetLocation,
+          targetName,
+          columns,
+          visit(context.values().valueExpression(), Expression.class));
+
+      return new AssertValues(targetLocation, insertValues);
+    }
+
+    @Override
+    public Node visitAssertStream(final AssertStreamContext context) {
+      final List<TableElement> elements = context.tableElements() == null
+          ? ImmutableList.of()
+          : visit(context.tableElements().tableElement(), TableElement.class);
+
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
+      final CreateStream createStream = new CreateStream(
+          getLocation(context),
+          ParserUtil.getSourceName(context.sourceName()),
+          TableElements.of(elements),
+          false,
+          false,
+          CreateSourceProperties.from(properties)
+      );
+
+      return new AssertStream(getLocation(context), createStream);
+    }
+
+    @Override
+    public Node visitAssertTable(final AssertTableContext context) {
+      final List<TableElement> elements = context.tableElements() == null
+          ? ImmutableList.of()
+          : visit(context.tableElements().tableElement(), TableElement.class);
+
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
+      final CreateTable createTable = new CreateTable(
+          getLocation(context),
+          ParserUtil.getSourceName(context.sourceName()),
+          TableElements.of(elements),
+          false,
+          false,
+          CreateSourceProperties.from(properties)
+      );
+
+      return new AssertTable(getLocation(context), createTable);
+    }
+
 
     private void throwOnUnknownNameOrAlias(final SourceName name) {
       if (sources.isPresent() && !sources.get().contains(name)) {

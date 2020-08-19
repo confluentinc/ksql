@@ -27,6 +27,7 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
+import io.confluent.ksql.test.model.TestFileContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -126,7 +127,7 @@ public class RestQueryTranslationTest {
           + System.lineSeparator()
           + "failed test: " + testCase.getName()
           + System.lineSeparator()
-          + "in file: " + testCase.getTestFile(),
+          + "in file: " + testCase.getTestLocation(),
           e
       );
     }
@@ -145,7 +146,6 @@ public class RestQueryTranslationTest {
   static class RqttTestFile implements TestFile<RestTestCase> {
 
     private final List<RestTestCaseNode> tests;
-    private final RestTestCaseBuilder builder = new RestTestCaseBuilder();
 
     RqttTestFile(@JsonProperty("tests") final List<RestTestCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
@@ -156,10 +156,10 @@ public class RestQueryTranslationTest {
     }
 
     @Override
-    public Stream<RestTestCase> buildTests(final Path testPath) {
+    public Stream<RestTestCase> buildTests(final TestFileContext ctx) {
       return tests
           .stream()
-          .flatMap(node -> RestTestCaseBuilder.buildTests(node, testPath).stream());
+          .flatMap(node -> RestTestCaseBuilder.buildTests(node, ctx));
     }
   }
 }

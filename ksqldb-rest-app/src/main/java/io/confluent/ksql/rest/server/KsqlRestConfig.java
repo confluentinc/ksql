@@ -299,6 +299,26 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String KSQL_AUTHENTICATION_PLUGIN_DOC = "An extension class that allows "
       + " custom authentication to be plugged in.";
 
+  public static final String KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG =
+      KSQL_CONFIG_PREFIX + "internal." + SSL_CLIENT_AUTHENTICATION_CONFIG;
+
+  protected static final String KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_DOC =
+      "SSL mutual auth for internal requests. Set to NONE to disable SSL client authentication, "
+          + "set to REQUESTED to request but not require SSL client authentication, and set to "
+          + "REQUIRED to require SSL for internal client authentication.";
+
+  public static final String KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG =
+      "ksql.ssl.keystore.alias.external";
+  private static final String KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_DOC =
+      "The key store certificate alias to be used for external client requests. If not set, "
+          + "the system will fall back on the Vert.x default choice";
+
+  public static final String KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG =
+      "ksql.ssl.keystore.alias.internal";
+  private static final String KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_DOC =
+      "The key store certificate alias to be used for internal client requests. If not set, "
+          + "the system will fall back on the Vert.x default choice";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -416,6 +436,27 @@ public class KsqlRestConfig extends AbstractConfig {
             Importance.MEDIUM,
             ""
         ).define(
+            KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
+            Type.STRING,
+            SSL_CLIENT_AUTHENTICATION_NONE,
+            SSL_CLIENT_AUTHENTICATION_VALIDATOR,
+            Importance.MEDIUM,
+            KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_DOC
+        ).define(
+            KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_DOC
+        )
+        .define(
+            KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_DOC
+        )
+        .define(
             ADVERTISED_LISTENER_CONFIG,
             Type.STRING,
             null,
@@ -782,7 +823,10 @@ public class KsqlRestConfig extends AbstractConfig {
             : SSL_CLIENT_AUTHENTICATION_NONE;
       }
     }
+    return getClientAuth(clientAuth);
+  }
 
+  private ClientAuth getClientAuth(final String clientAuth) {
     switch (clientAuth) {
       case SSL_CLIENT_AUTHENTICATION_NONE:
         return ClientAuth.NONE;
@@ -793,6 +837,10 @@ public class KsqlRestConfig extends AbstractConfig {
       default:
         throw new ConfigException("Unknown client auth: " + clientAuth);
     }
+  }
+
+  public ClientAuth getClientAuthInternal() {
+    return getClientAuth(getString(KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
   }
 
   /**

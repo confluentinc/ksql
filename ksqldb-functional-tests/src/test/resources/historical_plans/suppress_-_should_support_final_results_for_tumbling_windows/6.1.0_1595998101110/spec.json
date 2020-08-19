@@ -1,0 +1,171 @@
+{
+  "version" : "6.1.0",
+  "timestamp" : 1595998101110,
+  "path" : "query-validation-tests/suppress.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID VARCHAR, ROWTIME BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID VARCHAR, ROWTIME BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.Suppress.Suppress" : "STRUCT<COUNT BIGINT> NOT NULL",
+    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<COUNT BIGINT> NOT NULL"
+  },
+  "testCase" : {
+    "name" : "should support final results for tumbling windows",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 5
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : {
+        "COUNT" : 4
+      },
+      "timestamp" : 1,
+      "window" : {
+        "start" : 0,
+        "end" : 2,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : {
+        "COUNT" : 1
+      },
+      "timestamp" : 2,
+      "window" : {
+        "start" : 2,
+        "end" : 4,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 2
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 0.002000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Suppress-store-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 0.002000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            },
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 0.002000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -61,6 +62,8 @@ public class QueryMetadataTest {
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
+  private KafkaStreamsBuilder kafkaStreamsBuilder;
+  @Mock
   private Topology topoplogy;
   @Mock
   private KafkaStreams kafkaStreams;
@@ -73,20 +76,23 @@ public class QueryMetadataTest {
 
   @Before
   public void setup() {
+    when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
+
     cleanUp = false;
     query = new QueryMetadata(
         "foo",
-        kafkaStreams,
         SOME_SCHEMA,
         SOME_SOURCES,
         "bar",
         QUERY_APPLICATION_ID,
         topoplogy,
+        kafkaStreamsBuilder,
         Collections.emptyMap(),
         Collections.emptyMap(),
         closeCallback,
         closeTimeout,
-        QUERY_ID, QueryErrorClassifier.DEFAULT_CLASSIFIER) {
+        QUERY_ID, QueryErrorClassifier.DEFAULT_CLASSIFIER,
+        10) {
       @Override
       public void stop() {
         doClose(cleanUp);
@@ -100,16 +106,35 @@ public class QueryMetadataTest {
     when(kafkaStreams.state()).thenReturn(State.CREATED);
 
     // When:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // Then:
     verify(listener).onChange(State.CREATED, State.CREATED);
   }
 
   @Test
+  public void shouldGetUptimeFromStateListener() {
+    // Given:
+    when(kafkaStreams.state()).thenReturn(State.RUNNING);
+    when(listener.uptime()).thenReturn(5L);
+
+    // When:
+    query.setQueryStateListener(listener);
+
+    // Then:
+    assertThat(query.uptime(), is(5L));
+  }
+
+  @Test
+  public void shouldReturnZeroUptimeIfNoStateListenerSet() {
+    // When/Then:
+    assertThat(query.uptime(), is(0L));
+  }
+
+  @Test
   public void shouldConnectAnyListenerToStreamAppOnStart() {
     // Given:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // When:
     query.start();
@@ -121,7 +146,7 @@ public class QueryMetadataTest {
   @Test
   public void shouldCloseAnyListenerOnClose() {
     // Given:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // When:
     query.close();

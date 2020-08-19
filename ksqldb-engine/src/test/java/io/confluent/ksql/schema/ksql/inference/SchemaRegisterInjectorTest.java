@@ -23,11 +23,13 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -52,6 +54,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -62,6 +65,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Optional;
+import org.apache.avro.Schema;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,6 +94,8 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
+  private KafkaConsumerGroupClient consumerGroupClient;
+  @Mock
   private KsqlExecutionContext executionContext;
   @Mock
   private KsqlExecutionContext executionSandbox;
@@ -113,6 +119,7 @@ public class SchemaRegisterInjectorTest {
 
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(serviceContext.getConsumerGroupClient()).thenReturn(consumerGroupClient);
 
     when(executionContext.createSandbox(any())).thenReturn(executionSandbox);
 
@@ -137,7 +144,7 @@ public class SchemaRegisterInjectorTest {
         false,
         sourceTopic
     );
-    metaStore.putSource(source);
+    metaStore.putSource(source, false);
   }
 
   @Test
@@ -166,7 +173,7 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateSource()
+  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateSourceIfSubjectDoesntExist()
       throws IOException, RestClientException {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
@@ -176,6 +183,23 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     verify(schemaRegistryClient).register("expectedName-value", AVRO_SCHEMA);
+  }
+
+  @SuppressWarnings("deprecation") // make sure deprecated method is not called
+  @Test
+  public void shouldNotReplaceExistingSchemaForSchemaRegistryEnabledFormatCreateSource()
+      throws IOException, RestClientException {
+    // Given:
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
+    when(schemaRegistryClient.testCompatibility(eq("expectedName-value"), any(ParsedSchema.class))).thenReturn(true);
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient, never()).register(any(), any(ParsedSchema.class));
+    verify(schemaRegistryClient, never()).register(any(), any(Schema.class));
   }
 
   @Test

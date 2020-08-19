@@ -143,17 +143,28 @@
     "post" : {
       "sources" : [ {
         "name" : "S2",
-        "type" : "stream",
+        "type" : "STREAM",
         "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 30000
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 30000
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -168,7 +179,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

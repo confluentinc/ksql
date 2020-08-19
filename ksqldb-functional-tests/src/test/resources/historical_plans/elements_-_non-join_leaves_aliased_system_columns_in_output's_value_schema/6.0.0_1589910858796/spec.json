@@ -48,9 +48,28 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, F0 INT) WITH (kafka_topic='input', value_format='JSON', window_type='session');", "CREATE STREAM OUTPUT AS SELECT K, F0, ROWTIME AS TIME, WINDOWSTART AS WSTART, WINDOWEND AS WEND FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `F0` INTEGER, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -64,7 +83,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

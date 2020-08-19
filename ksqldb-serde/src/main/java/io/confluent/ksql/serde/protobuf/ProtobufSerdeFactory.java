@@ -18,6 +18,8 @@ package io.confluent.ksql.serde.protobuf;
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.connect.protobuf.ProtobufConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
@@ -25,19 +27,28 @@ import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 
 public class ProtobufSerdeFactory implements KsqlSerdeFactory {
 
   @Override
   public void validate(final PersistenceSchema schema) {
-    // Supports all types
+    if (schema.isUnwrapped()) {
+      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE
+          + "' can not be set to 'false' for '" + ProtobufFormat.NAME
+          + "' as it does not support unwrapping");
+    }
+
+    SchemaWalker.visit(schema.serializedSchema(), new SchemaValidator());
   }
 
   @Override
@@ -67,7 +78,7 @@ public class ProtobufSerdeFactory implements KsqlSerdeFactory {
     );
   }
 
-  private KsqlConnectSerializer createSerializer(
+  private static KsqlConnectSerializer createSerializer(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
@@ -81,7 +92,7 @@ public class ProtobufSerdeFactory implements KsqlSerdeFactory {
     );
   }
 
-  private KsqlConnectDeserializer createDeserializer(
+  private static KsqlConnectDeserializer createDeserializer(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
@@ -94,7 +105,7 @@ public class ProtobufSerdeFactory implements KsqlSerdeFactory {
     );
   }
 
-  private ProtobufConverter getConverter(
+  private static ProtobufConverter getConverter(
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig
   ) {
@@ -112,4 +123,19 @@ public class ProtobufSerdeFactory implements KsqlSerdeFactory {
     return converter;
   }
 
+  private static class SchemaValidator implements SchemaWalker.Visitor<Void, Void> {
+
+    public Void visitBytes(final Schema schema) {
+      if (DecimalUtil.isDecimal(schema)) {
+        throw new KsqlException("The '" + ProtobufFormat.NAME + "' format does not support type "
+            + "'DECIMAL'. See https://github.com/confluentinc/ksql/issues/5762.");
+      }
+      return null;
+    }
+
+    @Override
+    public Void visitSchema(final Schema schema) {
+      return null;
+    }
+  }
 }

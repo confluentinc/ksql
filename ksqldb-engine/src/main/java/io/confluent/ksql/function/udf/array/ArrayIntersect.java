@@ -16,6 +16,7 @@ package io.confluent.ksql.function.udf.array;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -24,6 +25,7 @@ import java.util.Set;
 
 @UdfDescription(
     name = "array_intersect",
+    category = FunctionCategory.ARRAY,
     description = "Returns an array of all the distinct elements from the intersection of both"
         + " input arrays, or NULL if either input array is NULL. The order of entries in the"
         + " output is the same as in the first input array.")

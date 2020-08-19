@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.string;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -29,6 +30,7 @@ import org.apache.commons.codec.binary.Hex;
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 @UdfDescription(name = "encode",
     author = KsqlConstants.CONFLUENT_AUTHOR,
+    category = FunctionCategory.STRING,
     description = "Takes an input string s, which is encoded as input_encoding, "
         + "and encodes it as output_encoding. The accepted input and output encodings are: "
         + "hex, utf8, ascii and base64. Throws exception if provided encodings are not supported.")

@@ -151,8 +151,12 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public List<WindowedRow> get(final Struct key, final Range<Instant> windowStart) {
-      final List<WindowedRow> result = table.get(key, windowStart);
+    public List<WindowedRow> get(
+        final Struct key,
+        final Range<Instant> windowStart,
+        final Range<Instant> windowEnd
+    ) {
+      final List<WindowedRow> result = table.get(key, windowStart, windowEnd);
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 

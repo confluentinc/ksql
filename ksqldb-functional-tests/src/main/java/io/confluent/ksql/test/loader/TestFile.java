@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.test.loader;
 
+import io.confluent.ksql.test.model.TestFileContext;
 import io.confluent.ksql.test.tools.Test;
-import java.nio.file.Path;
 import java.util.stream.Stream;
 
 public interface TestFile<TestTypeT extends Test> {
 
-  Stream<TestTypeT> buildTests(Path testPath);
+  Stream<TestTypeT> buildTests(TestFileContext ctx);
 }

@@ -927,7 +927,7 @@ public class InsertValuesExecutorTest {
     }
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
-    metaStore.putSource(dataSource);
+    metaStore.putSource(dataSource, false);
 
     when(engine.getMetaStore()).thenReturn(metaStore);
   }

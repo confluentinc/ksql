@@ -80,9 +80,36 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (K BIGINT KEY, id VARCHAR, val STRUCT<A INT, B INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE RESULT AS SELECT ID, test_udaf(val) as result FROM TEST GROUP BY ID;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "RESULT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "RESULT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_RESULT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -103,17 +130,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_RESULT_0-Aggregate-GroupBy-repartition",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          }
-        }, {
-          "name" : "test_topic",
+          "name" : "RESULT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

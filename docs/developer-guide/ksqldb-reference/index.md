@@ -6,16 +6,18 @@ description: Learn to program ksqlDB to create streaming applications.
 keywords: ksqldb, api, reference, function, operator, metadata, connector, query
 ---
 
-Functions and Operators
------------------------
+## SQL Quick Reference
+
+- [SQL Quick Reference](quick-reference.md)
+
+## Functions and Operators
 
 - [Aggregate Functions](aggregate-functions.md)
 - [Operators](operators.md)
 - [Scalar Functions](scalar-functions.md)
 - [Table Functions](table-functions.md)
 
-Streams and Tables
-------------------
+## Streams and Tables
 
 - [CREATE STREAM AS SELECT](create-stream-as-select.md)
 - [CREATE STREAM](create-stream.md)
@@ -28,32 +30,27 @@ Streams and Tables
 - [INSERT VALUES](insert-values.md)
 - [PRINT](print.md)
 
-
-Queries
--------
+## Queries
 
 - [SELECT (Pull Query)](select-pull-query.md)
 - [SELECT (Push Query)](select-push-query.md)
 - [EXPLAIN](explain.md)
 - [TERMINATE](terminate.md)
 
-Connectors
-----------
+## Connectors
 
 - [CREATE CONNECTOR](create-connector.md)
 - [DESCRIBE CONNECTOR](describe-connector.md)
 - [DROP CONNECTOR](drop-connector.md)
 - [SHOW CONNECTORS](show-connectors.md)
 
-Custom Types
-------------
+## Custom Types
 
 - [CREATE TYPE](create-type.md)
-- [DROP TYPE](drop-table.md)
+- [DROP TYPE](drop-type.md)
 - [SHOW TYPES](show-types.md)
 
-Metadata
---------
+## Metadata
 
 - [DESCRIBE FUNCTION](describe-function.md)
 - [SHOW FUNCTIONS](show-functions.md)
@@ -64,8 +61,7 @@ Metadata
 - [SHOW TOPICS](show-topics.md)
 - [SPOOL](spool.md)
 
-Execution
----------
+## Execution
 
 - [RUN SCRIPT](run-script.md)
 

@@ -45,19 +45,25 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (JSON STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='KAFKA');", "CREATE STREAM OUTPUT WITH (VALUE_FORMAT='JSON') AS SELECT\n  EXTRACTJSONFIELD(INPUT.JSON, '$.array[-1]') COL1,\n  EXTRACTJSONFIELD(INPUT.JSON, '$.array[0]') COL2,\n  EXTRACTJSONFIELD(INPUT.JSON, '$.array[1]') COL3\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `JSON` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
@@ -66,6 +72,17 @@
           },
           "valueFormat" : {
             "format" : "KAFKA"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
           },
           "partitions" : 4
         } ]

@@ -140,6 +140,10 @@ final class EngineContext {
     return parser.parse(sql);
   }
 
+  QueryIdGenerator idGenerator() {
+    return queryIdGenerator;
+  }
+
   PreparedStatement<?> prepare(final ParsedStatement stmt) {
     try {
       final PreparedStatement<?> preparedStatement = parser.prepare(stmt, metaStore);
@@ -158,8 +162,8 @@ final class EngineContext {
   QueryEngine createQueryEngine(final ServiceContext serviceContext) {
     return new QueryEngine(
         serviceContext,
-        processingLogContext,
-        queryIdGenerator);
+        processingLogContext
+    );
   }
 
   QueryExecutor createQueryExecutor(
@@ -207,10 +211,17 @@ final class EngineContext {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final QueryId queryId = persistentQuery.getQueryId();
 
-      if (persistentQueries.putIfAbsent(queryId, persistentQuery) != null) {
-        throw new IllegalStateException("Query already registered:" + queryId);
+      // don't use persistentQueries.put(queryId) here because oldQuery.close()
+      // will remove any query with oldQuery.getQueryId() from the map of persistent
+      // queries
+      final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
+      if (oldQuery != null) {
+        oldQuery.getPhysicalPlan()
+            .validateUpgrade(((PersistentQueryMetadata) query).getPhysicalPlan());
+        oldQuery.close();
       }
 
+      persistentQueries.put(queryId, persistentQuery);
       metaStore.updateForPersistentQuery(
           queryId.toString(),
           persistentQuery.getSourceNames(),

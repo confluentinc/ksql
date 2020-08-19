@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
@@ -25,8 +24,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
@@ -66,7 +63,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     validate(source, intoSourceName);
   }
 
-  public boolean isDoCreateInto() {
+  public boolean createInto() {
     return doCreateInto;
   }
 
@@ -83,15 +80,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
-  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
-    final String base = queryIdGenerator.getNext().toUpperCase();
-    if (!doCreateInto) {
-      return new QueryId("INSERTQUERY_" + base);
-    }
-    if (getNodeOutputType().equals(DataSourceType.KTABLE)) {
-      return new QueryId("CTAS_" + getId().toString().toUpperCase() + "_" + base);
-    }
-    return new QueryId("CSAS_" + getId().toString().toUpperCase() + "_" + base);
+  public Optional<SourceName> getSinkName() {
+    return Optional.of(intoSourceName);
   }
 
   @Override

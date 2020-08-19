@@ -38,6 +38,12 @@ public class KsqlRequestConfig extends AbstractConfig {
   private static final String KSQL_REQUEST_INTERNAL_REQUEST_DOC =
       "Indicates whether a KsqlRequest came from another server ";
 
+  public static final String KSQL_DEBUG_REQUEST =
+      "request.ksql.debug.request";
+  public static final boolean KSQL_DEBUG_REQUEST_DEFAULT = false;
+  private static final String KSQL_DEBUG_REQUEST_DOC =
+      "Indicates whether a KsqlRequest should contain debugging information.";
+
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
         .define(
@@ -52,6 +58,12 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_INTERNAL_REQUEST_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_INTERNAL_REQUEST_DOC
+        ).define(
+            KSQL_DEBUG_REQUEST,
+            Type.BOOLEAN,
+            KSQL_DEBUG_REQUEST_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_DEBUG_REQUEST_DOC
         );
     return configDef;
   }

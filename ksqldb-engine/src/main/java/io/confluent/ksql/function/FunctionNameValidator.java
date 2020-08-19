@@ -44,7 +44,7 @@ class FunctionNameValidator implements Predicate<String> {
 
   // These are in the reserved words set, but we already use them for function names
   private static final Set<String> ALLOWED_KSQL_WORDS
-      = ImmutableSet.copyOf(Arrays.asList("concat", "substring"));
+      = ImmutableSet.copyOf(Arrays.asList("concat", "substring", "replace"));
 
   private static final Set<String> KSQL_RESERVED_WORDS = createFromVocabulary();
 

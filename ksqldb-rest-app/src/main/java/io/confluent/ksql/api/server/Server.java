@@ -17,17 +17,21 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.util.KeystoreUtil;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
+import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -89,6 +93,10 @@ public class Server {
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
     this.maxPushQueryCount = config.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
+    if (!OpenSsl.isAvailable()) {
+      log.warn("OpenSSL does not appear to be installed. ksqlDB will fall back to using the JDK "
+          + "TLS implementation. OpenSSL is recommended for better performance.");
+    }
   }
 
   public synchronized void start() {
@@ -117,7 +125,7 @@ public class Server {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https")),
+                listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false)),
             this, isInternalListener);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
@@ -271,56 +279,74 @@ public class Server {
   }
 
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
-      final String host, final int port, final boolean tls) {
+      final String host, final int port, final boolean tls,
+      final boolean isInternalListener) {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(host)
         .setPort(port)
         .setReuseAddress(true)
         .setReusePort(true)
-        .setIdleTimeout(60).setIdleTimeoutUnit(TimeUnit.SECONDS)
+        .setIdleTimeout(10 * 60).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
         .setPerFrameWebSocketCompressionSupported(true);
 
     if (tls) {
-      options.setUseAlpn(true).setSsl(true);
+      final String ksConfigName = isInternalListener
+           ? KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG
+           : KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG;
+      final ClientAuth clientAuth = isInternalListener
+          ? ksqlRestConfig.getClientAuthInternal()
+          : ksqlRestConfig.getClientAuth();
 
-      final String keyStorePath = ksqlRestConfig
-          .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-      final Password keyStorePassword = ksqlRestConfig
-          .getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-      if (keyStorePath != null && !keyStorePath.isEmpty()) {
-        final String keyStoreType =
-            ksqlRestConfig.getString(KsqlRestConfig.SSL_KEYSTORE_TYPE_CONFIG);
-        if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
-          options.setKeyStoreOptions(
-              new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
-        } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
-          options.setPfxKeyCertOptions(
-              new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
-        }
+      final String alias = ksqlRestConfig.getString(ksConfigName);
+      setTlsOptions(ksqlRestConfig, options, alias, clientAuth);
+    }
+    return options;
+  }
+
+  private static void setTlsOptions(
+      final KsqlRestConfig ksqlRestConfig,
+      final HttpServerOptions options,
+      final String keyStoreAlias,
+      final ClientAuth clientAuth
+  ) {
+    options.setUseAlpn(true).setSsl(true);
+
+    final String keyStorePath = ksqlRestConfig
+        .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+    final Password keyStorePassword = ksqlRestConfig
+        .getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+    if (keyStorePath != null && !keyStorePath.isEmpty()) {
+      final String keyStoreType =
+          ksqlRestConfig.getString(KsqlRestConfig.SSL_KEYSTORE_TYPE_CONFIG);
+      if (keyStoreAlias != null && !keyStoreAlias.isEmpty()) {
+        options.setKeyStoreOptions(new JksOptions().setValue(KeystoreUtil.getKeyStore(
+            keyStoreType,
+            keyStorePath,
+            Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
+            Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
+            keyStoreAlias))
+            .setPassword(keyStorePassword.value()));
+      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+        options.setKeyStoreOptions(
+            new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
+      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+        options.setPfxKeyCertOptions(
+            new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
       }
-
-      final String trustStorePath = ksqlRestConfig
-          .getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-      final Password trustStorePassword = ksqlRestConfig
-          .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-      if (trustStorePath != null && !trustStorePath.isEmpty()) {
-        final String trustStoreType =
-            ksqlRestConfig.getString(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG);
-        if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
-          options.setTrustStoreOptions(
-              new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
-        } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
-          options.setPfxTrustOptions(
-              new PfxOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
-        }
-      }
-
-      options.setClientAuth(ksqlRestConfig.getClientAuth());
     }
 
-    return options;
+    final String trustStorePath = ksqlRestConfig
+        .getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+    final Password trustStorePassword = ksqlRestConfig
+        .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+    if (trustStorePath != null && !trustStorePath.isEmpty()) {
+      options.setTrustStoreOptions(
+          new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+    }
+
+    options.setClientAuth(clientAuth);
   }
 
   private static List<URI> parseListeners(final KsqlRestConfig config) {

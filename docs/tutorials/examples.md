@@ -345,7 +345,7 @@ zipcode for each user:
 
 ```sql
 CREATE STREAM pageviews_interest_contact AS
-  SELECT interests[0] AS first_interest,
+  SELECT interests[1] AS first_interest,
          contactinfo['zipcode'] AS zipcode,
          contactinfo['city'] AS city,
          viewtime,

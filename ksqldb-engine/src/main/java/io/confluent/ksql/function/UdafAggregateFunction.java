@@ -18,16 +18,12 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Avg;
-import org.apache.kafka.common.metrics.stats.Max;
-import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.metrics.stats.WindowedCount;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
@@ -48,115 +44,18 @@ public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, 
       final List<ParameterInfo> arguments,
       final String description,
       final Optional<Metrics> metrics,
-      final String method) {
-
+      final String method
+  ) {
     super(functionName, udafIndex, udaf::initialize, aggregateType,
         outputType, arguments, description);
 
-    this.udaf = udaf;
+    this.udaf = Objects.requireNonNull(udaf, "udaf");
 
-    final String aggSensorName = String.format("aggregate-%s-%s", functionName, method);
-    final String mapSensorName = String.format("map-%s-%s", functionName, method);
-    final String mergeSensorName = String.format("merge-%s-%s", functionName, method);
+    final String groupName = String.format("ksql-udaf-%s-%s", functionName, method);
 
-    initMetrics(metrics, functionName, method, aggSensorName, mapSensorName, mergeSensorName);
-  }
-
-  private void initMetrics(
-      final Optional<Metrics> maybeMetrics,
-      final String name,
-      final String method,
-      final String aggSensorName,
-      final String mapSensorName,
-      final String mergeSensorName) {
-    if (maybeMetrics.isPresent()) {
-      final String groupName = String.format("ksql-udaf-%s-%s", name, method);
-      final Metrics metrics = maybeMetrics.get();
-
-      if (metrics.getSensor(aggSensorName) == null) {
-        final Sensor sensor = metrics.sensor(aggSensorName);
-        sensor.add(metrics.metricName(
-            aggSensorName + "-avg",
-            groupName,
-            String.format("Average time for an aggregate invocation of %s %s udaf", name, method)),
-            new Avg());
-        sensor.add(metrics.metricName(
-            aggSensorName + "-max",
-            groupName,
-            String.format("Max time for an aggregate invocation of %s %s udaf", name, method)),
-            new Max());
-        sensor.add(metrics.metricName(
-            aggSensorName + "-count",
-            groupName,
-            String.format("Total number of aggregate invocations of %s %s udaf", name, method)),
-            new WindowedCount());
-        sensor.add(metrics.metricName(
-            aggSensorName + "-rate",
-            groupName,
-            String.format("The average number of occurrences of aggregate "
-                + "%s %s operation per second udaf", name, method)),
-            new Rate(TimeUnit.SECONDS, new WindowedCount()));
-        this.aggregateSensor = Optional.of(sensor);
-      }
-
-      if (metrics.getSensor(mapSensorName) == null) {
-        final Sensor sensor = metrics.sensor(mapSensorName);
-        sensor.add(metrics.metricName(
-            mapSensorName + "-avg",
-            groupName,
-            String.format("Average time for a map invocation of %s %s udaf", name, method)),
-            new Avg());
-        sensor.add(metrics.metricName(
-            mapSensorName + "-max",
-            groupName,
-            String.format("Max time for a map invocation of %s %s udaf", name, method)),
-            new Max());
-        sensor.add(metrics.metricName(
-            mapSensorName + "-count",
-            groupName,
-            String.format("Total number of map invocations of %s %s udaf", name, method)),
-            new WindowedCount());
-        sensor.add(metrics.metricName(
-            mapSensorName + "-rate",
-            groupName,
-            String.format("The average number of occurrences of map "
-                + "%s %s operation per second udaf", name, method)),
-            new Rate(TimeUnit.SECONDS, new WindowedCount()));
-        this.mapSensor = Optional.of(sensor);
-      }
-
-      if (metrics.getSensor(mergeSensorName) == null) {
-        final Sensor sensor = metrics.sensor(mergeSensorName);
-        sensor.add(metrics.metricName(
-            mergeSensorName + "-avg",
-            groupName,
-            String.format("Average time for a merge invocation of %s %s udaf", name, method)),
-            new Avg());
-        sensor.add(metrics.metricName(
-            mergeSensorName + "-max",
-            groupName,
-            String.format("Max time for a merge invocation of %s %s udaf", name, method)),
-            new Max());
-        sensor.add(metrics.metricName(
-            mergeSensorName + "-count",
-            groupName,
-            String.format("Total number of merge invocations of %s %s udaf", name, method)),
-            new WindowedCount());
-        sensor.add(metrics.metricName(
-            mergeSensorName + "-rate",
-            groupName,
-            String.format(
-                "The average number of occurrences of merge %s %s operation per second udaf",
-                name, method)),
-            new Rate(TimeUnit.SECONDS, new WindowedCount()));
-        this.mergeSensor = Optional.of(sensor);
-      }
-    } else {
-      this.aggregateSensor = Optional.empty();
-      this.mapSensor = Optional.empty();
-      this.mergeSensor = Optional.empty();
-    }
-
+    this.aggregateSensor = getSensor(metrics, functionName, method, groupName, "aggregate");
+    this.mapSensor = getSensor(metrics, functionName, method, groupName, "map");
+    this.mergeSensor = getSensor(metrics, functionName, method, groupName, "merge");
   }
 
   @Override
@@ -172,6 +71,36 @@ public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, 
   @Override
   public Function<A, O> getResultMapper() {
     return (v1) -> timed(mapSensor, () -> udaf.map(v1));
+  }
+
+  private static Optional<Sensor> getSensor(
+      final Optional<Metrics> maybeMetrics,
+      final String name,
+      final String method,
+      final String groupName,
+      final String step
+  ) {
+    if (!maybeMetrics.isPresent()) {
+      return Optional.empty();
+    }
+
+    final Metrics metrics = maybeMetrics.get();
+
+    final String sensorName = step + "-" + name + "-" + method;
+
+    final Sensor existing = metrics.getSensor(sensorName);
+    if (existing != null) {
+      return Optional.of(existing);
+    }
+
+    final Sensor newSensor = FunctionMetrics.getInvocationSensor(
+        metrics,
+        sensorName,
+        groupName,
+        name + " " + method + " udaf's " + step + " step"
+    );
+
+    return Optional.of(newSensor);
   }
 
   private static <T> T timed(final Optional<Sensor> maybeSensor, final Supplier<T> task) {

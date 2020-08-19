@@ -31,10 +31,10 @@ public class QueuedCommand {
       final Optional<CommandStatusFuture> status,
       final Long offset
   ) {
-    this.commandId = Objects.requireNonNull(commandId);
-    this.command = Objects.requireNonNull(command);
-    this.status = Objects.requireNonNull(status);
-    this.offset = Objects.requireNonNull(offset);
+    this.commandId = Objects.requireNonNull(commandId, "commandId");
+    this.command = Objects.requireNonNull(command,"command");
+    this.status = Objects.requireNonNull(status, "status");
+    this.offset = Objects.requireNonNull(offset, "offset");
   }
 
   public CommandId getCommandId() {

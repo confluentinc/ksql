@@ -19,7 +19,7 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.INNER;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.LEFT;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.OUTER;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE_FORCE_CHANGELOG;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static java.util.Optional.empty;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -216,11 +216,11 @@ public class JoinNodeTest {
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
-        builder.build(), SOURCE_NODE);
+        builder.build(), SOURCE_NODE_FORCE_CHANGELOG);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name)
         .collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KTABLE-SOURCE-0000000001")));
+    assertThat(successors, equalTo(Collections.singletonList("KTABLE-SOURCE-0000000002")));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test2")));
   }
 

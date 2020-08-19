@@ -17,20 +17,25 @@ package io.confluent.ksql.util;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -39,58 +44,64 @@ import org.apache.kafka.streams.Topology;
  */
 public class PersistentQueryMetadata extends QueryMetadata {
 
-  private final KsqlTopic resultTopic;
-  private final SourceName sinkName;
+  private final DataSource sinkDataSource;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
-  private final DataSourceType dataSourceType;
-  private final Optional<MaterializationProvider> materializationProvider;
+  private final ExecutionStep<?> physicalPlan;
+  private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
+      materializationProviderBuilder;
+
+  private Optional<MaterializationProvider> materializationProvider;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
       final String statementString,
-      final KafkaStreams kafkaStreams,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
-      final SourceName sinkName,
+      final DataSource sinkDataSource,
       final String executionPlan,
       final QueryId id,
-      final DataSourceType dataSourceType,
-      final Optional<MaterializationProvider> materializationProvider,
+      final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
+          materializationProviderBuilder,
       final String queryApplicationId,
-      final KsqlTopic resultTopic,
       final Topology topology,
+      final KafkaStreamsBuilder kafkaStreamsBuilder,
       final QuerySchemas schemas,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
-      final QueryErrorClassifier errorClassifier
+      final QueryErrorClassifier errorClassifier,
+      final ExecutionStep<?> physicalPlan,
+      final int maxQueryErrorsQueueSize
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
-        kafkaStreams,
         schema.logicalSchema(),
         sourceNames,
         executionPlan,
         queryApplicationId,
         topology,
+        kafkaStreamsBuilder,
         streamsProperties,
         overriddenProperties,
         closeCallback,
         closeTimeout,
         id,
-        errorClassifier
+        errorClassifier,
+        maxQueryErrorsQueueSize
     );
 
-    this.resultTopic = requireNonNull(resultTopic, "resultTopic");
-    this.sinkName = Objects.requireNonNull(sinkName, "sinkName");
+    this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
     this.resultSchema = requireNonNull(schema, "schema");
-    this.materializationProvider =
-        requireNonNull(materializationProvider, "materializationProvider");
-    this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
+    this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
+    this.materializationProviderBuilder =
+        requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
+
+    this.materializationProvider = materializationProviderBuilder
+        .flatMap(builder -> builder.apply(getKafkaStreams()));
   }
 
   private PersistentQueryMetadata(
@@ -98,12 +109,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final Consumer<QueryMetadata> closeCallback
   ) {
     super(other, closeCallback);
-    this.resultTopic = other.resultTopic;
-    this.sinkName = other.sinkName;
+    this.sinkDataSource = other.sinkDataSource;
     this.schemas = other.schemas;
     this.resultSchema = other.resultSchema;
     this.materializationProvider = other.materializationProvider;
-    this.dataSourceType = other.dataSourceType;
+    this.physicalPlan = other.physicalPlan;
+    this.materializationProviderBuilder = other.materializationProviderBuilder;
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
@@ -111,27 +122,32 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   public DataSourceType getDataSourceType() {
-    return dataSourceType;
+    return sinkDataSource.getDataSourceType();
   }
 
   public KsqlTopic getResultTopic() {
-    return resultTopic;
+    return sinkDataSource.getKsqlTopic();
   }
 
   public SourceName getSinkName() {
-    return sinkName;
+    return sinkDataSource.getName();
   }
 
   public Map<String, String> getSchemasDescription() {
     return schemas.getSchemasDescription();
   }
 
-  public String getSchemasString() {
-    return schemas.toString();
-  }
-
   public PhysicalSchema getPhysicalSchema() {
     return resultSchema;
+  }
+
+  public ExecutionStep<?> getPhysicalPlan() {
+    return physicalPlan;
+  }
+
+  @VisibleForTesting
+  Optional<MaterializationProvider> getMaterializationProvider() {
+    return materializationProvider;
   }
 
   public Optional<Materialization> getMaterialization(
@@ -142,7 +158,24 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  public void stop() {
+  public synchronized void stop() {
     doClose(false);
+  }
+
+  public synchronized void restart() {
+    if (isClosed()) {
+      throw new IllegalStateException(String.format(
+          "Query with application id %s is already closed, cannot restart.",
+          getQueryApplicationId()));
+    }
+
+    closeKafkaStreams();
+
+    final KafkaStreams newKafkaStreams = buildKafkaStreams();
+    materializationProvider = materializationProviderBuilder.flatMap(
+        builder -> builder.apply(newKafkaStreams));
+
+    resetKafkaStreams(newKafkaStreams);
+    start();
   }
 }

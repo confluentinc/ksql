@@ -59,9 +59,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (IGNORED STRING) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT COUNT(1) KSQL_COL_0\nFROM INPUT INPUT\nGROUP BY INPUT.ROWKEY\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `IGNORED` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -82,7 +99,7 @@
             "format" : "DELIMITED"
           }
         }, {
-          "name" : "input_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

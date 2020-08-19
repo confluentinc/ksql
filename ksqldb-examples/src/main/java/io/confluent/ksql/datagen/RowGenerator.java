@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
@@ -53,8 +54,12 @@ public class RowGenerator {
   private final ConnectSchema keySchema;
   private final ConnectSchema valueSchema;
   private final int keyFieldIndex;
+  private final Optional<Integer> timestampFieldIndex;
 
-  public RowGenerator(final Generator generator, final String keyFieldName) {
+  public RowGenerator(
+      final Generator generator,
+      final String keyFieldName,
+      final Optional<String> timestampFieldName) {
     this.generator = Objects.requireNonNull(generator, "generator");
     this.avroData = new AvroData(1);
     final LogicalSchema ksqlSchema = buildLogicalSchema(generator, avroData, keyFieldName);
@@ -63,6 +68,11 @@ public class RowGenerator {
     this.keyFieldIndex = ksqlSchema.findValueColumn(ColumnName.of(keyFieldName))
         .map(Column::index)
         .orElseThrow(IllegalStateException::new);
+    this.timestampFieldIndex = timestampFieldName.isPresent()
+        ? ksqlSchema.findValueColumn(ColumnName.of(timestampFieldName.get()))
+        .map(column -> Optional.of(column.index()))
+        .orElseThrow(IllegalStateException::new)
+        : Optional.empty();
   }
 
   public ConnectSchema keySchema() {
@@ -71,6 +81,10 @@ public class RowGenerator {
 
   public ConnectSchema valueSchema() {
     return valueSchema;
+  }
+
+  public Optional<Integer> getTimestampFieldIndex() {
+    return timestampFieldIndex;
   }
 
   public Pair<Struct, GenericRow> generateRow() {

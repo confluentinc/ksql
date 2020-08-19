@@ -25,13 +25,13 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Map;
 import java.util.Optional;
@@ -55,7 +55,7 @@ public class AnalysisTest {
       .build();
 
   @Mock
-  private ResultMaterialization resultMaterialization;
+  private RefinementInfo refinementInfo;
   @Mock
   private KsqlStream<?> dataSource;
   @Mock
@@ -67,7 +67,7 @@ public class AnalysisTest {
 
   @Before
   public void setUp() {
-    analysis = new Analysis(resultMaterialization, sourceSchemasFactory);
+    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory);
 
     when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
   }

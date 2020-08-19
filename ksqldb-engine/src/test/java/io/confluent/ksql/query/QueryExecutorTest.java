@@ -37,7 +37,6 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.KafkaStreamsBuilder.BuildResult;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -180,8 +179,7 @@ public class QueryExecutorTest {
     when(sink.getName()).thenReturn(SINK_NAME);
     when(sink.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
-    when(kafkaStreamsBuilder.buildKafkaStreams(any(), any()))
-        .thenReturn(new BuildResult(topology, kafkaStreams));
+    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -199,6 +197,7 @@ public class QueryExecutorTest {
     when(topology.describe()).thenReturn(topoDesc);
     when(topoDesc.subtopologies()).thenReturn(ImmutableSet.of());
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(streamsBuilder.build(any())).thenReturn(topology);
     queryBuilder = new QueryExecutor(
         ksqlConfig,
         OVERRIDES,
@@ -208,8 +207,12 @@ public class QueryExecutorTest {
         closeCallback,
         kafkaStreamsBuilder,
         streamsBuilder,
-        ksqlMaterializationFactory,
-        ksMaterializationFactory
+        new MaterializationProviderBuilderFactory(
+            ksqlConfig,
+            serviceContext,
+            ksMaterializationFactory,
+            ksqlMaterializationFactory
+        )
     );
   }
 
@@ -235,14 +238,14 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
-    verify(kafkaStreamsBuilder).buildKafkaStreams(any(), propertyCaptor.capture());
+    verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
     assertThat(queryMetadata.getStreamsProperties(), equalTo(propertyCaptor.getValue()));
   }
 
   @Test
   public void shouldBuildPersistentQueryCorrectly() {
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -268,7 +271,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldBuildPersistentQueryWithCorrectStreamsApp() {
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -283,9 +286,9 @@ public class QueryExecutorTest {
   }
 
   @Test
-  public void shouldBuildPersistentQueryWithCorrectMaterializationProvider() {
+  public void shouldStartPersistentQueryWithCorrectMaterializationProvider() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -293,6 +296,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.start();
 
     // When:
     final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
@@ -304,7 +308,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldCreateKSMaterializationCorrectly() {
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -328,9 +332,9 @@ public class QueryExecutorTest {
   }
 
   @Test
-  public void shouldMaterializeCorrectly() {
+  public void shouldMaterializeCorrectlyOnStart() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -338,6 +342,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.start();
 
     // When:
     queryMetadata.getMaterialization(QUERY_ID_2, stacker);
@@ -356,7 +361,7 @@ public class QueryExecutorTest {
     // Given:
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.empty());
 
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -375,7 +380,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldCreateExpectedServiceId() {
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -395,7 +400,7 @@ public class QueryExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldAddMetricsInterceptorsToStreamsConfig() {
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -420,11 +425,11 @@ public class QueryExecutorTest {
   private void shouldUseProvidedOptimizationConfig(final Object value) {
     // Given:
     final Map<String, Object> properties =
-        Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION, value);
+        Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, value);
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(properties);
 
     // When:
-    queryBuilder.buildQuery(
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -432,10 +437,11 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.start();
 
     // Then:
     final Map<String, Object> captured = capturedStreamsProperties();
-    assertThat(captured.get(StreamsConfig.TOPOLOGY_OPTIMIZATION), equalTo(value));
+    assertThat(captured.get(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG), equalTo(value));
   }
 
   @Test
@@ -482,7 +488,7 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -506,7 +512,7 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -531,7 +537,7 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -560,7 +566,7 @@ public class QueryExecutorTest {
     when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);
 
     // When:
-    queryBuilder.buildQuery(
+    queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -625,7 +631,7 @@ public class QueryExecutorTest {
   }
 
   private Map<String, Object> capturedStreamsProperties() {
-    verify(kafkaStreamsBuilder).buildKafkaStreams(any(), propertyCaptor.capture());
+    verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
     return propertyCaptor.getValue();
   }
 

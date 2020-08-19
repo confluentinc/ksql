@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.math;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -22,6 +23,7 @@ import io.confluent.ksql.util.KsqlConstants;
 @SuppressWarnings("WeakerAccess") // Invoked via reflection
 @UdfDescription(
     name = "sqrt",
+    category = FunctionCategory.MATHEMATICAL,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "The square root of a value."
 )

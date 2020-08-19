@@ -27,12 +27,14 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
@@ -100,17 +102,20 @@ final class EngineExecutor {
     return new EngineExecutor(engineContext, serviceContext, ksqlConfig, overriddenProperties);
   }
 
-  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   ExecuteResult execute(final KsqlPlan plan) {
-    final Optional<String> ddlResult = plan.getDdlCommand()
-        .map(ddl -> executeDdl(ddl, plan.getStatementText(), plan.getQueryPlan().isPresent()));
+    if (!plan.getQueryPlan().isPresent()) {
+      final String ddlResult = plan
+          .getDdlCommand()
+          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false))
+          .orElseThrow(
+              () -> new IllegalStateException(
+                  "DdlResult should be present if there is no physical plan."));
+      return ExecuteResult.of(ddlResult);
+    }
 
-    final Optional<PersistentQueryMetadata> queryMetadata = plan.getQueryPlan()
-        .map(qp -> executePersistentQuery(qp, plan.getStatementText()));
-
-    return queryMetadata
-        .map(ExecuteResult::of)
-        .orElseGet(() -> ExecuteResult.of(ddlResult.get()));
+    final QueryPlan queryPlan = plan.getQueryPlan().get();
+    plan.getDdlCommand().map(ddl -> executeDdl(ddl, plan.getStatementText(), true));
+    return ExecuteResult.of(executePersistentQuery(queryPlan, plan.getStatementText()));
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
@@ -163,7 +168,7 @@ final class EngineExecutor {
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
-          statement.getStatementText(),
+          statement,
           outputNode
       );
 
@@ -193,21 +198,29 @@ final class EngineExecutor {
       final Query query,
       final Optional<Sink> sink) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
+    final KsqlConfig config = this.ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties);
     final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
         query,
         sink,
         engineContext.getMetaStore(),
-        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
+        config
     );
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)
     );
+    final QueryId queryId = QueryIdUtil.buildId(
+        engineContext.getMetaStore(),
+        engineContext.idGenerator(),
+        outputNode,
+        config.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED)
+    );
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         ksqlConfig,
         overriddenProperties,
-        engineContext.getMetaStore()
+        engineContext.getMetaStore(),
+        queryId
     );
     return new ExecutorPlans(logicalPlan, physicalPlan);
   }
@@ -225,10 +238,10 @@ final class EngineExecutor {
   }
 
   private Optional<DdlCommand> maybeCreateSinkDdl(
-      final String sql,
+      final ConfiguredStatement<?> cfgStatement,
       final KsqlStructuredDataOutputNode outputNode
   ) {
-    if (!outputNode.isDoCreateInto()) {
+    if (!outputNode.createInto()) {
       validateExistingSink(outputNode);
       return Optional.empty();
     }
@@ -239,6 +252,7 @@ final class EngineExecutor {
         outputNode.getSerdeOptions()
     );
 
+    final Statement statement = cfgStatement.getStatement();
     final CreateSourceCommand ddl;
     if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
       ddl = new CreateStreamCommand(
@@ -247,7 +261,9 @@ final class EngineExecutor {
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
-          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo()
+          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+          Optional.of(
+              statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace())
       );
     } else {
       ddl = new CreateTableCommand(
@@ -256,12 +272,14 @@ final class EngineExecutor {
           outputNode.getTimestampColumn(),
           outputNode.getKsqlTopic().getKafkaTopicName(),
           formats,
-          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo()
+          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+          Optional.of(
+              statement instanceof CreateAsSelect && ((CreateAsSelect) statement).isOrReplace())
       );
     }
 
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-    AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(cfgStatement.getStatementText(), ddl, srClient);
     return Optional.of(ddl);
   }
 
@@ -287,7 +305,7 @@ final class EngineExecutor {
     final LogicalSchema resultSchema = outputNode.getSchema();
     final LogicalSchema existingSchema = existing.getSchema();
 
-    if (!resultSchema.equals(existingSchema)) {
+    if (!resultSchema.compatibleSchema(existingSchema)) {
       throw new KsqlException("Incompatible schema between results and sink."
           + System.lineSeparator()
           + "Result schema is " + resultSchema
@@ -355,7 +373,7 @@ final class EngineExecutor {
         serviceContext
     );
 
-    final PersistentQueryMetadata queryMetadata = executor.buildQuery(
+    final PersistentQueryMetadata queryMetadata = executor.buildPersistentQuery(
         statementText,
         queryPlan.getQueryId(),
         engineContext.getMetaStore().getSource(queryPlan.getSink()),

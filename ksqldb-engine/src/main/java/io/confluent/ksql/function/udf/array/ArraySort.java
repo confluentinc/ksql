@@ -18,6 +18,7 @@ import static java.util.Comparator.naturalOrder;
 import static java.util.Comparator.nullsLast;
 
 import com.google.common.collect.Lists;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -29,6 +30,7 @@ import java.util.List;
  */
 @UdfDescription(
     name = "array_sort",
+    category = FunctionCategory.ARRAY,
     description = "Sort an array of primitive values, according to their natural sort order. Any "
         + "NULLs in the array will be placed at the end.")
 public class ArraySort {

@@ -88,6 +88,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
@@ -116,6 +117,7 @@ public class SqlToJavaVisitor {
       "java.util.HashMap",
       "java.util.Map",
       "java.util.List",
+      "java.util.Objects",
       "java.util.ArrayList",
       "com.google.common.collect.ImmutableList",
       "com.google.common.collect.ImmutableMap",
@@ -158,9 +160,13 @@ public class SqlToJavaVisitor {
   private final Function<FunctionName, String> funNameToCodeName;
   private final Function<ColumnName, String> colRefToCodeName;
   private final Function<CreateStructExpression, String> structToCodeName;
+  private final KsqlConfig ksqlConfig;
 
   public static SqlToJavaVisitor of(
-      final LogicalSchema schema, final FunctionRegistry functionRegistry, final CodeGenSpec spec
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final CodeGenSpec spec,
+      final KsqlConfig ksqlConfig
   ) {
     final Multiset<FunctionName> nameCounts = HashMultiset.create();
     return new SqlToJavaVisitor(
@@ -171,7 +177,8 @@ public class SqlToJavaVisitor {
           final int index = nameCounts.add(name, 1);
           return spec.getUniqueNameForFunction(name, index);
         },
-        spec::getStructSchemaName);
+        spec::getStructSchemaName,
+        ksqlConfig);
   }
 
   @VisibleForTesting
@@ -179,7 +186,8 @@ public class SqlToJavaVisitor {
       final LogicalSchema schema, final FunctionRegistry functionRegistry,
       final Function<ColumnName, String> colRefToCodeName,
       final Function<FunctionName, String> funNameToCodeName,
-      final Function<CreateStructExpression, String> structToCodeName
+      final Function<CreateStructExpression, String> structToCodeName,
+      final KsqlConfig ksqlConfig
   ) {
     this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     this.schema = Objects.requireNonNull(schema, "schema");
@@ -187,6 +195,7 @@ public class SqlToJavaVisitor {
     this.colRefToCodeName = Objects.requireNonNull(colRefToCodeName, "colRefToCodeName");
     this.funNameToCodeName = Objects.requireNonNull(funNameToCodeName, "funNameToCodeName");
     this.structToCodeName = Objects.requireNonNull(structToCodeName, "structToCodeName");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   public String process(final Expression expression) {
@@ -562,7 +571,7 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, SqlType> visitCast(final Cast node, final Void context) {
       final Pair<String, SqlType> expr = process(node.getExpression(), context);
-      return CastVisitor.getCast(expr, node.getType().getSqlType());
+      return CastVisitor.getCast(expr, node.getType().getSqlType(), ksqlConfig);
     }
 
     @Override
@@ -642,9 +651,11 @@ public class SqlToJavaVisitor {
       if (schema.baseType() == SqlBaseType.DECIMAL) {
         final SqlDecimal decimal = (SqlDecimal) schema;
         final String leftExpr =
-            CastVisitor.getCast(left, DecimalUtil.toSqlDecimal(left.right)).getLeft();
+            CastVisitor.getCast(
+                left, DecimalUtil.toSqlDecimal(left.right), ksqlConfig).getLeft();
         final String rightExpr =
-            CastVisitor.getCast(right, DecimalUtil.toSqlDecimal(right.right)).getLeft();
+            CastVisitor.getCast(
+                right, DecimalUtil.toSqlDecimal(right.right), ksqlConfig).getLeft();
 
         return new Pair<>(
             String.format(
@@ -660,11 +671,11 @@ public class SqlToJavaVisitor {
       } else {
         final String leftExpr =
             left.getRight().baseType() == SqlBaseType.DECIMAL
-                ? CastVisitor.getCast(left, SqlTypes.DOUBLE).getLeft()
+                ? CastVisitor.getCast(left, SqlTypes.DOUBLE, ksqlConfig).getLeft()
                 : left.getLeft();
         final String rightExpr =
             right.getRight().baseType() == SqlBaseType.DECIMAL
-                ? CastVisitor.getCast(right, SqlTypes.DOUBLE).getLeft()
+                ? CastVisitor.getCast(right, SqlTypes.DOUBLE, ksqlConfig).getLeft()
                 : right.getLeft();
 
         return new Pair<>(
@@ -903,7 +914,8 @@ public class SqlToJavaVisitor {
     private CastVisitor() {
     }
 
-    static Pair<String, SqlType> getCast(final Pair<String, SqlType> expr, final SqlType sqlType) {
+    static Pair<String, SqlType> getCast(
+        final Pair<String, SqlType> expr, final SqlType sqlType, final KsqlConfig ksqlConfig) {
       final SqlType sourceType = expr.getRight();
       if (sourceType == null || sqlType.equals(sourceType)) {
         // sourceType is null if source is SQL NULL
@@ -911,18 +923,18 @@ public class SqlToJavaVisitor {
       }
 
       return CASTERS.getOrDefault(sqlType.baseType(), CastVisitor::unsupportedCast)
-          .cast(expr, sqlType);
+          .cast(expr, sqlType, ksqlConfig);
     }
 
     private static Pair<String, SqlType> unsupportedCast(
-        final Pair<String, SqlType> expr, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
     ) {
       throw new KsqlFunctionException("Cast of " + expr.getRight()
             + " to " + returnType + " is not supported");
     }
 
     private static Pair<String, SqlType> castString(
-        final Pair<String, SqlType> expr, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
     ) {
       final SqlType schema = expr.getRight();
       final String exprStr;
@@ -932,19 +944,23 @@ public class SqlToJavaVisitor {
         final int scale = decimal.getScale();
         exprStr = String.format("DecimalUtil.format(%d, %d, %s)", precision, scale, expr.getLeft());
       } else {
-        exprStr = "String.valueOf(" + expr.getLeft() + ")";
+        if (ksqlConfig.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)) {
+          exprStr = "Objects.toString(" + expr.getLeft() + ", null)";
+        } else {
+          exprStr = "String.valueOf(" + expr.getLeft() + ")";
+        }
       }
       return new Pair<>(exprStr, returnType);
     }
 
     private static Pair<String, SqlType> castBoolean(
-        final Pair<String, SqlType> expr, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
     ) {
       return new Pair<>(getCastToBooleanString(expr.getRight(), expr.getLeft()), returnType);
     }
 
     private static Pair<String, SqlType> castInteger(
-        final Pair<String, SqlType> expr, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
     ) {
       final String exprStr = getCastString(
           expr.getRight(),
@@ -956,7 +972,7 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castLong(
-        final Pair<String, SqlType> expr, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
     ) {
       final String exprStr = getCastString(
           expr.getRight(),
@@ -968,7 +984,7 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castDouble(
-        final Pair<String, SqlType> expr, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
     ) {
       final String exprStr = getCastString(
           expr.getRight(),
@@ -980,7 +996,7 @@ public class SqlToJavaVisitor {
     }
 
     private static Pair<String, SqlType> castDecimal(
-        final Pair<String, SqlType> expr, final SqlType returnType
+        final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
     ) {
       if (!(returnType instanceof SqlDecimal)) {
         throw new KsqlException("Expected decimal type: " + returnType);
@@ -1062,7 +1078,8 @@ public class SqlToJavaVisitor {
 
       Pair<String, SqlType> cast(
           Pair<String, SqlType> expr,
-          SqlType returnType
+          SqlType returnType,
+          KsqlConfig ksqlConfig
       );
     }
   }

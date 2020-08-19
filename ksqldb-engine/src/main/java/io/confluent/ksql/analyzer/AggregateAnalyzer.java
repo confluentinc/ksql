@@ -20,7 +20,10 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -69,14 +72,9 @@ public class AggregateAnalyzer {
     private final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
     private final FunctionRegistry functionRegistry;
     private final Set<Expression> groupBy;
-    private boolean foundExpressionInGroupBy = false;
 
-
-    // The list of columns from the source schema that are used in aggregate columns, but not as
-    // parameters to the aggregate functions and which are not part of the GROUP BY clause:
-    private final List<Expression> aggSelectsNotPartOfGroupBy = new ArrayList<>();
-
-    // The list of non-aggregate select expression which are not part of the GROUP BY clause:
+    // The list of expressions that appear in the SELECT clause outside of aggregate functions.
+    // Used for throwing an error if these columns are not part of the GROUP BY clause.
     private final List<Expression> nonAggSelectsNotPartOfGroupBy = new ArrayList<>();
 
     // The list of columns from the source schema that are used in the HAVING clause outside
@@ -114,7 +112,6 @@ public class AggregateAnalyzer {
       final AggregateVisitor visitor = new AggregateVisitor(
           this,
           groupBy,
-          foundExpressionInGroupBy,
           (aggFuncName, node) -> {
             if (aggFuncName.isPresent()) {
               throwOnWindowBoundColumnIfWindowedAggregate(node);
@@ -126,13 +123,7 @@ public class AggregateAnalyzer {
           });
 
       visitor.process(expression, null);
-
-      if (visitor.visitedAggFunction) {
-        captureAggregateSelectNotPartOfGroupBy(nonAggParams);
-      } else {
-        captureNonAggregateSelectNotPartOfGroupBy(expression, nonAggParams);
-      }
-
+      captureNonAggregateSelectNotPartOfGroupBy(expression, nonAggParams);
       aggregateAnalysis.addFinalSelectExpression(expression);
     }
 
@@ -140,7 +131,6 @@ public class AggregateAnalyzer {
       final AggregateVisitor visitor = new AggregateVisitor(
           this,
           groupBy,
-          foundExpressionInGroupBy,
           (aggFuncName, node) -> {
             if (aggFuncName.isPresent()) {
               throw new KsqlException("GROUP BY does not support aggregate functions: "
@@ -156,7 +146,6 @@ public class AggregateAnalyzer {
       final AggregateVisitor visitor = new AggregateVisitor(
           this,
           groupBy,
-          foundExpressionInGroupBy,
           (aggFuncName, node) ->
             throwOnWindowBoundColumnIfWindowedAggregate(node));
 
@@ -167,12 +156,11 @@ public class AggregateAnalyzer {
       final AggregateVisitor visitor = new AggregateVisitor(
           this,
           groupBy,
-          foundExpressionInGroupBy,
           (aggFuncName, node) -> {
             throwOnWindowBoundColumnIfWindowedAggregate(node);
 
             if (!aggFuncName.isPresent()) {
-              captureNoneAggregateHavingNotPartOfGroupBy(node);
+              captureNonAggregateHavingNotPartOfGroupBy(node);
             }
           });
 
@@ -187,10 +175,10 @@ public class AggregateAnalyzer {
         return;
       }
 
-      // For non-windowed sources, with a windowed GROUP BY, they are only supported in selects:
       if (!(node instanceof ColumnReferenceExp)) {
         return;
       }
+      // For non-windowed sources, with a windowed GROUP BY, they are only supported in selects:
       if (SystemColumns.isWindowBound(((ColumnReferenceExp)node).getColumnName())) {
         throw new KsqlException(
             "Window bounds column " + node + " can only be used in the SELECT clause of "
@@ -228,16 +216,7 @@ public class AggregateAnalyzer {
         final Expression expression,
         final Set<Expression> nonAggParams
     ) {
-
-      boolean matchesGroupBy = false;
-      // If the non-Agg expression is a function, then all its arguments must be part of the
-      // grouping columns. Note, they may be nested inside other functions.
-      /*if (expression instanceof FunctionCall) {
-        matchesGroupBy = functionContainsOnlyGroupingColumns(expression, true);
-      } else {
-        matchesGroupBy = groupBy.contains(expression);
-      }*/
-      matchesGroupBy = groupBy.contains(expression);
+      final boolean matchesGroupBy = groupBy.contains(expression);
       if (matchesGroupBy) {
         return;
       }
@@ -251,15 +230,7 @@ public class AggregateAnalyzer {
       nonAggSelectsNotPartOfGroupBy.add(expression);
     }
 
-    private void captureAggregateSelectNotPartOfGroupBy(
-        final Set<Expression> nonAggParams
-    ) {
-      nonAggParams.stream()
-          .filter(param -> !groupBy.contains(param))
-          .forEach(aggSelectsNotPartOfGroupBy::add);
-    }
-
-    private void captureNoneAggregateHavingNotPartOfGroupBy(final Expression nonAggColumn) {
+    private void captureNonAggregateHavingNotPartOfGroupBy(final Expression nonAggColumn) {
       if (groupBy.contains(nonAggColumn)) {
         return;
       }
@@ -287,21 +258,7 @@ public class AggregateAnalyzer {
             "Non-aggregate SELECT expression(s) not part of GROUP BY: "
                 + unmatchedSelects
                 + System.lineSeparator()
-                + "Either add the column to the GROUP BY or remove it from the SELECT."
-        );
-      }
-
-      final String unmatchedSelectsAgg = aggSelectsNotPartOfGroupBy.stream()
-          .map(Objects::toString)
-          .collect(Collectors.joining(", "));
-
-      if (!unmatchedSelectsAgg.isEmpty()) {
-        throw new KsqlException(
-            "Column used in aggregate SELECT expression(s) outside of aggregate functions "
-                + "not part of GROUP BY: "
-                + unmatchedSelectsAgg
-                + System.lineSeparator()
-                + "Either add the column to the GROUP BY or remove it from the SELECT."
+                + "Either add the column(s) to the GROUP BY or remove them from the SELECT."
         );
       }
 
@@ -334,16 +291,24 @@ public class AggregateAnalyzer {
     private AggregateVisitor(
         final AggAnalyzer aggAnalyzer,
         final Set<Expression> groupBy,
-        final boolean foundExpressionInGroupBy,
         final BiConsumer<Optional<FunctionName>, Expression> dereferenceCollector
     ) {
       this.defaultArgument = aggAnalyzer.analysis.getDefaultArgument();
       this.aggregateAnalysis = aggAnalyzer.aggregateAnalysis;
       this.functionRegistry = aggAnalyzer.functionRegistry;
       this.groupBy = groupBy;
-      this.foundExpressionInGroupBy = foundExpressionInGroupBy;
       this.dereferenceCollector = requireNonNull(dereferenceCollector, "dereferenceCollector");
     }
+
+    /*@Override
+    public Void process(final Expression node, final Void context) {
+      if (groupBy.contains(node)) {
+        foundExpressionInGroupBy = true;
+      }
+      super.process(node, context);
+      foundExpressionInGroupBy = false;
+      return null;
+    }*/
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final Void context) {
@@ -371,6 +336,7 @@ public class AggregateAnalyzer {
         foundExpressionInGroupBy = true;
       }
       super.visitFunctionCall(functionCall, context);
+      foundExpressionInGroupBy = false;
 
       if (aggregateFunc) {
         aggFunctionName = Optional.empty();
@@ -387,8 +353,8 @@ public class AggregateAnalyzer {
       if (!foundExpressionInGroupBy || visitedAggFunction) {
         dereferenceCollector.accept(aggFunctionName, node);
       }
-      foundExpressionInGroupBy = false;
       if (!SystemColumns.isWindowBound(node.getColumnName())) {
+        // Used to infer the required columns in the INPUT schema of the aggregate node
         aggregateAnalysis.addRequiredColumn(node);
       }
       return null;
@@ -408,7 +374,39 @@ public class AggregateAnalyzer {
         foundExpressionInGroupBy = true;
       }
       super.visitSubscriptExpression(node, context);
+      foundExpressionInGroupBy = false;
       return null;
     }
+
+    @Override
+    public Void visitArithmeticBinary(final ArithmeticBinaryExpression node, final Void context) {
+      if (groupBy.contains(node)) {
+        foundExpressionInGroupBy = true;
+      }
+      super.visitArithmeticBinary(node, context);
+      foundExpressionInGroupBy = false;
+      return null;
+    }
+
+    @Override
+    public Void visitStructExpression(final CreateStructExpression node, final Void context) {
+      if (groupBy.contains(node)) {
+        foundExpressionInGroupBy = true;
+      }
+      super.visitStructExpression(node, context);
+      foundExpressionInGroupBy = false;
+      return null;
+    }
+
+    @Override
+    public Void visitDereferenceExpression(final DereferenceExpression node, final Void context) {
+      if (groupBy.contains(node)) {
+        foundExpressionInGroupBy = true;
+      }
+      super.visitDereferenceExpression(node, context);
+      foundExpressionInGroupBy = false;
+      return null;
+    }
+
   }
 }

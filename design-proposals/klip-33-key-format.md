@@ -3,11 +3,28 @@
 **Author**: @big-andy-coates | 
 **Release Target**: 0.13 | 
 **Status**: In Discussion | 
-**Discussion**: _link to the design discussion PR_
+**Discussion**: https://github.com/confluentinc/ksql/pull/6017
 
 **tl;dr:** ksqlDB currently only supports keys compatible with the `KAFKA` format. This limits the
            data ksqlDB can work with. Extending the set of key formats ksqlDB supports immediately
            opens up the use of ksqlDB with previously incompatible datasets.
+           
+           
+## Outstanding questions / decisions:
+
+* DataGen: Do we end-of-life our DataGen in favour of the datagen connector or update DataGen to support
+  other key formats?
+  - switching to th datagen connector is more work.
+  - enhancing DataGen may be redundant work.
+  - we could choose to do neither in the scope of this KLIP, leaving DataGen only publishing `KAFKA`
+    format, if acceptable.
+    
+* Cost based optimiser: Do we price the cost of repartitioning tables _slightly_ less than streams?
+  Based on the BIG _assumption_ that streams, _on average_, see higher throughput than tables.
+  
+* How to handle key-less streams? If the default key format is one that supports the schema registry,
+  should we / can we register an empty schema? If not, how can we differentiate a missing schema, i.e.
+  an error, from a key-less stream?
            
 ## Motivation and background
 
@@ -40,13 +57,12 @@ To open ksqlDB up to new problems spaces and to drive adoption, ksqlDB should su
 
  * Addition of a new optional `KEY_FORMAT` property in the `WITH` clause, to set the key format.
  * Addition of a new optional `FORMAT` property in the `WITH` clause, to set both the key & value formats.
- * Addition of new server configuration to provide defaults for key and value formats.
- * Removal of requirement for `VALUE_FORMAT` property in the `WITH` clause of CT/CS statements, where
-   the server configuration provides a default.
+ * Addition of new server configuration to provide defaults for key format.
  * Support for additional key column data types, where the key format supports it:
     * `DECIMAL`
     * `BOOLEAN`
  * Support of the following key formats:
+    * `KAFKA`: the current key format.
     * `DELIMITED`: single key columns as a single string value.
     * `JSON` / `JSON_SR`: single key column as an anonymous value, i.e. not within a JSON object.
     * `AVRO`: single key column as an anonymous value, i.e. not within an Avro record.
@@ -81,8 +97,10 @@ and tables.
 * `KEY_FORMAT`: sets the key format, works long the same lines as the existing `VALUE_FORMAT`.
 * `FORMAT`: sets both the key and value format with a single property.
 
-The existing `VALUE_FORMAT` property will no longer be required, if the server config provides a 
-default. (See below).
+`KEY_FORMAT` will not be a required property _if_ `ksql.persistence.default.format.key` is set.
+
+Providing `FORMAT` will set both the key and value formats. Providing `FORMAT` along with either 
+`KEY_FORMAT` or `VALUE_FORMAT` will result in an error.
 
 ### Server configs
 
@@ -90,11 +108,8 @@ The following new configuration options will be added. These configurations can 
 within the application property file, or locally, via the `SET` command.
 
 * `ksql.persistence.default.format.key`: the default key format.
-* `ksql.persistence.default.format.value`: the default value format.
 
 ## Design
-
-### New CREATE properties
 
 The new `KEY_FORMAT` or `FORMAT` property will be supported where ever the current `VALUE_FORMAT` is
 supported. Namely:
@@ -102,9 +117,6 @@ supported. Namely:
  * In `CRREATE STREAM` and `CREATE TABLE` statements.
  * In `CREATE STREAM AS SELECT` and `CREATE TABLE AS SELECT` statements.
  
-Providing `FORMAT` will set both the key and value formats. Providing `FORMAT` along with either 
-`KEY_FORMAT` or `VALUE_FORMAT` will result in an error.
-
 The key format will follow the same inheritance rules as the current value format. Namely: any 
 derived stream will inherit the format of its leftmost source, unless the format is explicitly set
 in the with clause.
@@ -148,51 +160,11 @@ CREATE STREAM ENRICHED_BIDS AS
 
 For formats that support integration with the schema registry, the key schema will be read and 
 registered with the Schema Registry as needed, following the same pattern as the value schema in 
-the current product.
+the current product. 
 
-### New server config
-
-In addition to new `CREATE` properties, the user will also be able to set default key and value 
-formats using system configuration. 
-
-`KEY_FORMAT` will not be a required property _if_ `ksql.persistence.default.format.key` is set. 
-`VALUE_FORMAT` is currently a required property, but will no longer be required _if_ 
-`ksql.persistence.default.format.value` is set.
-
-Somewhat unrelated, but small, we propose also changing the `KAFKA_TOPIC` property from _required_ to 
-_optional_ in `CREATE STREAM` and `CREATE TABLE` statements. If not supplied, it will default to the 
-uppercase name of the stream or table.  This matches the behaviour of the property in 
-`CREATE STREAM AS SELECT` and `CREATE TABLE AS SELECT` statements, where it is already optional.
-
-To additional configurations will be added to control topic names:
-
-* `ksql.persistence.topic.name.case`: if `lower`, defaults ksql to using lowercase topics names
-  where topic names are not explicitly provided. This includes matching a `CREATE TABLE` or 
-  `CREATE STREAM` statement to an existing topic. Default: `upper`.
-* `ksql.persistence.topic.name.case.insensitive`: if `true`, matching a `CREATE TABLE` or 
-  `CREATE STREAM` statement to an existing topic will be case insensitive. Multiple matches will 
-  result in an error. Default: `false`.
-
-With these changes there will no longer be any required `CREATE` properties. This means the `WITH` 
-clause for `CREATE` statements for streams and tables would be optional. We propose this makes the 
-syntax more intuitive for those already familiar with SQL. This would make a `CREATE TABLE` 
-statement ANSI standard.
-
-```sql
-SET 'ksql.persistence.default.format.key'='Avro';
-SET 'ksql.persistence.default.format.value'='Avro';
-
-CREATE TABLE USERS (
-  ID BIGINT PRIMARY KEY,
-  NAME STRING
-);
-
-CREATE STREAM BIDS (
-  ITEM_ID BIGINT KEY,
-  USER_ID BIGINT,
-  AMMOUNT INT
-);
-```
+If a `CREATE TABLE` or `CREATE STREAM` statement does not include a `KEY_FORMAT` property, the 
+key format is picked up from the `ksql.persistence.default.format.key` system configuration. If this
+is not set, then an error is returned.
 
 ### Implementation
 
@@ -211,10 +183,34 @@ strategy has been used.
 
 The introduction of additional key formats means that while the deserialized key from both sides of 
 a join may match, the serialized binary data may differ if the key serialization format is different.
-To accommodate this, ksqlDB will automagically repartition the right side of a join to match the key
-format of the left side.  Such repartitioning is possible and safe, even for tables, because the 
-logical key of the data will not have changed, only the serialization format. This ensures the 
-ordering of updates to a specific key are maintained across the repartition.
+To accommodate this, ksqlDB will automagically repartition one side of a join to match the key
+format of the other.  
+
+Choosing which side to reparation can not be driven by the size of the data, as in a traditional 
+database system, as the size of the data is potentially infinite and the throughput of each side of
+a join, unknown.
+
+Hence the optimiser will base which side to repartition using an algorithm to minimise the number
+of reparations.  For an N way join, the engine will determine which sources need to be repartitioned
+anyway, as they are joining on something other than the key, and which don't. Changing the key 
+format of a source that needs to be repartitioned anyway is 'free'. Changing the key format of a 
+source that doesn't already need a repartition will have a fixed cost.  The formats with the lowest
+repartitioning cost wins. 
+
+**Q: we could price repartitioning tables _slightly_ less than streams if we think there's any 
+reason to assume that _on average_ they see less throughput**
+
+Such repartitioning is possible and safe... ish, even for tables, because the logical key of the 
+data will not have changed, only the serialization format. This ensures the ordering of updates to 
+a specific key are maintained across the repartition. Of course, the repartitioning can, and 
+probably will, introduce out-of-order data, as the records are shuffled across partitions. This 
+phenomenon already exists for other implicit repartitions, and will be documented.   
+
+To ensure query plans written after this work are forward compatible with future enhancements to 
+support single key columns wrapped in JSON object, Avro records, etc, and ultimately multiple key 
+columns, a new `UNWRAP_SINGLE_KEY` value will be added to `SerdeOption` and explicitly set on all
+source, sink and internal topics. See [Future multi-column key work](#future-multi-column-key-work) 
+below for more info.
 
 ## Test plan
 
@@ -237,22 +233,18 @@ The KLIP will be broken down into the following deliverables:
     
     * Addition of a new optional `KEY_FORMAT` property in the `WITH` clause, to set the key format.
     * Addition of a new optional `FORMAT` property in the `WITH` clause, to set both the key & value formats.
-    * Addition of new server configuration to provide defaults for key and value formats.
-    * Removal of requirement for `VALUE_FORMAT` property in the `WITH` clause of CT/CS statements, where
-      the server configuration provides a default.
+    * Addition of new server configuration to provide defaults for key format.
     * Support for additional key column data types, as JSON supports them:
         * `DECIMAL`
         * `BOOLEAN`
-    * Full support of these key formats for all supported SQL syntax  
-1. **Auto-repartitioning on key format mismatch**. Adds support for automatic repartitioning of 
-   streams and tables for joins where key formats do not match.
+    * Full support of the key format for all supported SQL syntax.  
 1. **Schema Registry support**: Adds support for reading and writing schemas to and from the schema
    registry.
 1. **JSON_SR support** Adds support for the `JSON_SR` key format, inc. schema registry integration.
 1. **Avro support** Adds support for the `AVRO` key format, inc. schema registry integration.
 1. **Delimited support**: Adds support for the `DELIMITED` key format.
-1. **Optional KAFKA_TOPIC property**: makes the `KAFKA_TOPIC` property optional everywhere and add
-   configuration to control case and case sensitivity of topic names.
+1. **Auto-repartitioning on key format mismatch**. Adds support for automatic repartitioning of 
+   streams and tables for joins where key formats do not match.
 1. **Blog post**: write a blog post about the new features. (Potentially more than once if 
   work span multiple releases).
    
@@ -265,11 +257,11 @@ New server config and new `CREATE` properties will be added to main docs site.
 There are no incompatible changes within the proposal, so no demos and examples _must_ change.
 However, it probably pays to update some to highlight the new features. We propose updating the 
 Kafka micro site examples to leverage the new functionality, as these have automated testing.  
-It may be worth changing the ksqlDB quickstart too - TBD, as this will require extending DataGen 
-to support other key formats. Something we may want in scope anyway - or should be end-of-life 
-DataGen in favour of the datagen connector?
+It may be worth changing the ksqlDB quickstart too. 
 
 ## Compatibility Implications
+
+### Default to `KAFKA` key format
 
 As mentioned above, existing query plays already include key formats for all topics. So existing
 queries will continue to work.
@@ -290,7 +282,142 @@ CREATE TABLE USERS (
 config shipped with ccloud and on-prem releases has `ksql.persistence.default.format.key` set to 
 `KAFKA`.
 
-Assuming the default key format is set, existing SQL will run unchanged. 
+Assuming the default key format is set, existing SQL will run unchanged.
+
+### Future multi-column key work
+
+ksqlDB supports allowing the user to choose between serializing a single value column as 
+an anonymous value, or within an envelope of some kind, via the `WRAP_SINGLE_VALUE` property. For 
+example, the following expects the value to a `JSON` serialized number, _not_ a JSON object with 
+a `foo` numeric field.   
+
+```sql
+CREATE STREAM INPUT (
+   K STRING KEY, 
+   foo INT
+  ) WITH (
+    WRAP_SINGLE_VALUE=false, 
+    kafka_topic='input_topic', 
+    value_format='JSON'
+  );
+```
+
+The is also a system configuration `ksql.persistence.wrap.single.values` that can be used to provide
+a default for wrapping / unwrapping single values. 
+
+Where the user explicitly requests wrapping or unwrapping of single values, either via the `WITH` 
+clause property or the system configuration, the query plan's `formats` has either the 
+`WRAP_SINGLE_VALUES` or `UNWRAP_SINGLE_VALUES` `SerdeOption` set on the source and/or sink topics.
+
+These options are used to ensure correct serialization and deserialization when the query is executed.
+If neither option is set, the formats default wrapping is used, e.g. `KAFKA` defaults to unwrapped, 
+where as `JSON` defaults to `wrapped`.
+
+This KLIP adds the ability to serialized a single key column as an anonymous value. Future work will
+extend this to support wrapped single columns and then multiple columns. This future work will need 
+to maintain backwards compatibility and allow users to choose how single key values should be 
+serialized. It will introduce a `WRAP_SINGLE_KEY` property and a `ksql.persistence.wrap.single.keys`
+configuration.
+
+To ensure query plans written by this KLIP are forwards compatible with this planned work, all query
+plans will explicitly set the `UNWRAP_SINGLE_KEYS` `SerdeOption` on all source, internal and sink 
+topics, ensuring the correct (de)serialization options once ksqlDB supports these more next features. 
+
+### Internal topics
+
+NB: ksqlDB makes no claims of guaranteeing future versions will use the same formats for internal
+    topics for new queries.  
+
+Internal topics have their key format serialized as part of the query plan, i.e. all current plans
+have `KAFKA` as the key format.  This means all existing plans are forward compatible with this
+KLIP.
+
+When generating query plans, internal topics inherit their key, (and value), format from their 
+leftmost parent. This KLIP does not propose to change this, except where an automatic repartition 
+is required to align key formats to enable a join, as already noted. New plans, generated after this
+KLIP, may have key formats other than `KAFKA` for source, sink and internal topics. 
+
+No changes around internal topics are needed to maintain compatibility.  
+
+### Schema inference
+
+The introduction of key formats that support schema inference, i.e. loading the key schema
+from the schema registry, introduces some edge cases we must account for.
+
+kqlDB already supports 'partial schemas', where the value format supports schema inference and the 
+user explicitly provides the key definition: 
+
+```sql
+--- table created with values using schema inference.
+CREATE TABLE FOO (
+   ID BIGINT PRIMARY KEY
+) WITH (
+   KAFKA_TOPIC='foo',
+   KEY_FORMAT='KAFKA',
+   VALUE_FORMAT='AVRO'
+);
+```
+
+If the key format supports schema inference as well, then this could become:
+
+```sql
+--- table created with keys and values using schema inference.
+CREATE TABLE FOO WITH (
+   KAFKA_TOPIC='foo',
+   KEY_FORMAT='KAFKA',
+   VALUE_FORMAT='AVRO'
+);
+```
+
+One edge case is key-less streams. A user can currently define a key-less stream with:
+
+```sql
+-- key-less stream with explicitly provided columns: 
+CREATE STREAM FOO (
+   VAL STRING
+) WITH (
+    KAFKA_TOPIC='foo',
+    VALUE_FORMAT='DELIMITED'
+);
+
+-- key-less stream with value columns using schema inference:
+CREATE STREAM FOO WITH (
+    KAFKA_TOPIC='foo',
+    VALUE_FORMAT='DELIMITED'
+);
+```
+
+If the `ksql.persistence.default.format.key` system configuration is providing a default key format,
+and that format supports schema inference, then it may not be possible to differentiation a key-less
+stream from a stream where the key schema is missing. 
+
+It is likely the schema registry does not support registering an 'empty' schema. Even if this is
+possible today, will all future formats support such a concept?
+
+We may want to introduce some kind of syntax to represent 'schema inference' in the statement. For 
+example, we could use an ellipse to represent key and value inference and a dash to represent no
+schema. For example, (`WITH` clause removed for clarity):
+
+```sql
+-- table created with keys and values using schema inference:
+CREATE TABLE USERS (..., ...);
+
+-- stream created with keys and values using schema inference:
+CREATE STREAM BIDS (..., ...);
+
+-- key-less stream created with values using schema inference: 
+CREATE STREAM BIDS (-, ...);
+
+-- table created with keys using schema inference and explicit value columns:
+CREATE TABLE USERS (..., VAL STRING);
+
+-- table created with values using schema inference and explicit key columns:
+CREATE TABLE USERS (VAL STRING PRIMARY KEY, ...);
+``` 
+
+We can continue to maintain backwards compatibility with existing syntax for some number of releases,
+though this new syntax would be needed to express a key-less stream if the default key format supports
+schema inference.
 
 ## Security Implications
 

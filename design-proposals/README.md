@@ -73,5 +73,5 @@ Next KLIP number: **34**
 | KLIP-30: Lambda Functions                                                                            | Proposal         |             |       | [Discussion](https://github.com/confluentinc/ksql/pull/5661) |
 | [KLIP-31: Metastore Backups](klip-31-metastore-backups.md)              | Merged |  0.11.0           |  6.0.0     | [Discussion](https://github.com/confluentinc/ksql/pull/5741)|
 | [KLIP-32: SQL-based testing tool](klip-32-sql-testing-tool.md)                                      | Proposal | | | |
-| KLIP-33: Key format.                                                                  |  | | | |
-
+| KLIP-33: Key format.                                                                  | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6017) |
+| KLIP-34: Optional WITH for CREATE TABLE and CREATE STREAM                                            | Proposal | | | |

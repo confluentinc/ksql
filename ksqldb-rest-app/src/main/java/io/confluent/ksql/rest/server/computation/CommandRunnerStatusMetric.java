@@ -35,7 +35,6 @@ public class CommandRunnerStatusMetric implements Closeable {
   
   private final Metrics metrics;
   private final MetricName metricName;
-  private final String metricGroupName;
 
   CommandRunnerStatusMetric(
       final String ksqlServiceId,
@@ -58,7 +57,7 @@ public class CommandRunnerStatusMetric implements Closeable {
       final String metricsGroupPrefix
   ) {
     this.metrics =  Objects.requireNonNull(metrics, "metrics");
-    this.metricGroupName = metricsGroupPrefix + METRIC_GROUP_POST_FIX;
+    final String metricGroupName = metricsGroupPrefix + METRIC_GROUP_POST_FIX;
     this.metricName = metrics.metricName(
         "status",
         ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,

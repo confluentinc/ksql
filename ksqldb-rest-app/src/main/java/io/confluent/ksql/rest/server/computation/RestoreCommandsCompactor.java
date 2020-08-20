@@ -71,16 +71,19 @@ public final class RestoreCommandsCompactor {
       final QueuedCommand cmd = it.next();
 
       // Find known queries:
-      if (cmd.getCommand().getPlan().isPresent()
-          && cmd.getCommand().getPlan().get().getQueryPlan().isPresent()
+      final Command command =
+          cmd.getAndDeserializeCommand(InternalTopicSerdes.deserializer(Command.class));
+      if (command.getPlan().isPresent()
+          && command.getPlan().get().getQueryPlan().isPresent()
       ) {
-        final QueryId queryId = cmd.getCommand().getPlan().get().getQueryPlan().get().getQueryId();
+        final QueryId queryId =
+            command.getPlan().get().getQueryPlan().get().getQueryId();
         queries.putIfAbsent(queryId, cmd);
       }
 
       // Find TERMINATE's that match known queries:
-      if (cmd.getCommandId().getType() == Type.TERMINATE) {
-        final QueryId queryId = new QueryId(cmd.getCommandId().getEntity());
+      if (cmd.getAndDeserializeCommandId().getType() == Type.TERMINATE) {
+        final QueryId queryId = new QueryId(cmd.getAndDeserializeCommandId().getEntity());
         final QueuedCommand terminated = queries.remove(queryId);
         if (terminated != null) {
           terminatedQueries.add(terminated);
@@ -112,7 +115,8 @@ public final class RestoreCommandsCompactor {
   }
 
   private static Optional<QueuedCommand> buildNewCmdWithoutQuery(final QueuedCommand cmd) {
-    final Command command = cmd.getCommand();
+    final Command command =
+        cmd.getAndDeserializeCommand(InternalTopicSerdes.deserializer(Command.class));
     if (!command.getPlan().isPresent() || !command.getPlan().get().getDdlCommand().isPresent()) {
       // No DDL command, so no command at all if we remove the query plan. (Likely INSERT INTO cmd).
       return Optional.empty();
@@ -127,8 +131,8 @@ public final class RestoreCommandsCompactor {
     );
 
     return Optional.of(new QueuedCommand(
-        cmd.getCommandId(),
-        newCommand,
+        InternalTopicSerdes.serializer().serialize("", cmd.getAndDeserializeCommandId()),
+        InternalTopicSerdes.serializer().serialize("", newCommand),
         cmd.getStatus(),
         cmd.getOffset()
     ));

@@ -27,6 +27,7 @@ import java.io.Closeable;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -35,8 +36,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,9 +74,14 @@ public class CommandRunner implements Closeable {
   private final Duration commandRunnerHealthTimeout;
   private final Clock clock;
 
+  private final Deserializer<Command> commandDeserializer;
+  private final Consumer<QueuedCommand> incompatibleCommandChecker;
+  private boolean deserializationErrorThrown;
+
   public enum CommandRunnerStatus {
     RUNNING,
-    ERROR
+    ERROR,
+    DEGRADED
   }
 
   public CommandRunner(
@@ -83,7 +92,8 @@ public class CommandRunner implements Closeable {
       final ServerState serverState,
       final String ksqlServiceId,
       final Duration commandRunnerHealthTimeout,
-      final String metricsGroupPrefix
+      final String metricsGroupPrefix,
+      final Deserializer<Command> commandDeserializer
   ) {
     this(
         statementExecutor,
@@ -96,7 +106,12 @@ public class CommandRunner implements Closeable {
         commandRunnerHealthTimeout,
         metricsGroupPrefix,
         Clock.systemUTC(),
-        RestoreCommandsCompactor::compact
+        RestoreCommandsCompactor::compact,
+        queuedCommand -> {
+          queuedCommand.getAndDeserializeCommandId();
+          queuedCommand.getAndDeserializeCommand(commandDeserializer);
+        },
+        commandDeserializer
     );
   }
 
@@ -113,7 +128,9 @@ public class CommandRunner implements Closeable {
       final Duration commandRunnerHealthTimeout,
       final String metricsGroupPrefix,
       final Clock clock,
-      final Function<List<QueuedCommand>, List<QueuedCommand>> compactor
+      final Function<List<QueuedCommand>, List<QueuedCommand>> compactor,
+      final Consumer<QueuedCommand> incompatibleCommandChecker,
+      final Deserializer<Command> commandDeserializer
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
@@ -130,6 +147,11 @@ public class CommandRunner implements Closeable {
         new CommandRunnerStatusMetric(ksqlServiceId, this, metricsGroupPrefix);
     this.clock = Objects.requireNonNull(clock, "clock");
     this.compactor = Objects.requireNonNull(compactor, "compactor");
+    this.incompatibleCommandChecker =
+        Objects.requireNonNull(incompatibleCommandChecker, "incompatibleCommandChecker");
+    this.commandDeserializer =
+        Objects.requireNonNull(commandDeserializer, "commandDeserializer");
+    this.deserializationErrorThrown = false;
   }
 
   /**
@@ -146,6 +168,16 @@ public class CommandRunner implements Closeable {
    */
   @Override
   public void close() {
+    if (!closed) {
+      closeEarly();
+    }
+    commandRunnerStatusMetric.close();
+  }
+
+  /**
+   * Closes the poll-execute loop before the server shuts down
+   */
+  private void closeEarly() {
     try {
       closed = true;
       commandStore.wakeup();
@@ -153,7 +185,6 @@ public class CommandRunner implements Closeable {
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
-    commandRunnerStatusMetric.close();
   }
 
   /**
@@ -162,17 +193,19 @@ public class CommandRunner implements Closeable {
   public void processPriorCommands() {
     try {
       final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
+      final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
 
-      LOG.info("Restoring previous state from {} commands.", restoreCommands.size());
+      LOG.info("Restoring previous state from {} commands.", compatibleCommands.size());
 
-      final Optional<QueuedCommand> terminateCmd = findTerminateCommand(restoreCommands);
+      final Optional<QueuedCommand> terminateCmd =
+          findTerminateCommand(compatibleCommands, commandDeserializer);
       if (terminateCmd.isPresent()) {
         LOG.info("Cluster previously terminated: terminating.");
-        terminateCluster(terminateCmd.get().getCommand());
+        terminateCluster(terminateCmd.get().getAndDeserializeCommand(commandDeserializer));
         return;
       }
 
-      final List<QueuedCommand> compacted = compactor.apply(restoreCommands);
+      final List<QueuedCommand> compacted = compactor.apply(compatibleCommands);
 
       compacted.forEach(
           command -> {
@@ -211,14 +244,16 @@ public class CommandRunner implements Closeable {
       return;
     }
 
-    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
+    final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(commands);
+    final Optional<QueuedCommand> terminateCmd =
+        findTerminateCommand(compatibleCommands, commandDeserializer);
     if (terminateCmd.isPresent()) {
-      terminateCluster(terminateCmd.get().getCommand());
+      terminateCluster(terminateCmd.get().getAndDeserializeCommand(commandDeserializer));
       return;
     }
 
-    LOG.debug("Found {} new writes to command topic", commands.size());
-    for (final QueuedCommand command : commands) {
+    LOG.debug("Found {} new writes to command topic", compatibleCommands.size());
+    for (final QueuedCommand command : compatibleCommands) {
       if (closed) {
         return;
       }
@@ -228,14 +263,16 @@ public class CommandRunner implements Closeable {
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
-    LOG.info("Executing statement: " + queuedCommand.getCommand().getStatement());
+    final String commandStatement =
+        queuedCommand.getAndDeserializeCommand(commandDeserializer).getStatement();
+    LOG.info("Executing statement: " + commandStatement);
 
     final Runnable task = () -> {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        LOG.info("Executed statement: " + queuedCommand.getCommand().getStatement());
+        LOG.info("Executed statement: " + commandStatement);
       }
     };
 
@@ -251,10 +288,11 @@ public class CommandRunner implements Closeable {
   }
 
   private static Optional<QueuedCommand> findTerminateCommand(
-      final List<QueuedCommand> restoreCommands
+      final List<QueuedCommand> restoreCommands,
+      final Deserializer<Command> commandDeserializer
   ) {
     return restoreCommands.stream()
-        .filter(command -> command.getCommand().getStatement()
+        .filter(command -> command.getAndDeserializeCommand(commandDeserializer).getStatement()
             .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))
         .findFirst();
   }
@@ -272,6 +310,10 @@ public class CommandRunner implements Closeable {
   }
 
   CommandRunnerStatus checkCommandRunnerStatus() {
+    if (deserializationErrorThrown) {
+      return CommandRunnerStatus.DEGRADED;
+    }
+
     final Pair<QueuedCommand, Instant> currentCommand = currentCommandRef.get();
     if (currentCommand == null) {
       return lastPollTime.get() == null
@@ -285,14 +327,33 @@ public class CommandRunner implements Closeable {
         ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
   }
 
+  private List<QueuedCommand> checkForIncompatibleCommands(final List<QueuedCommand> commands) {
+    final List<QueuedCommand> compatibleCommands = new ArrayList<>();
+    try {
+      for (final QueuedCommand command : commands) {
+        incompatibleCommandChecker.accept(command);
+        compatibleCommands.add(command);
+      }
+    } catch (SerializationException e) {
+      LOG.info("Deserialization error detected when processing record", e);
+      deserializationErrorThrown = true;
+    }
+    return compatibleCommands;
+  }
+
   private class Runner implements Runnable {
 
     @Override
     public void run() {
       try {
         while (!closed) {
-          LOG.trace("Polling for new writes to command topic");
-          fetchAndRunCommands();
+          if (deserializationErrorThrown) {
+            LOG.warn("CommandRunner entering degraded state after failing to deserialize command");
+            closeEarly();
+          } else {
+            LOG.trace("Polling for new writes to command topic");
+            fetchAndRunCommands();
+          }
         }
       } catch (final WakeupException wue) {
         if (!closed) {

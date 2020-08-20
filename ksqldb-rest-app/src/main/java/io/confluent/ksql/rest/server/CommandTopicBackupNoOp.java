@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 public class CommandTopicBackupNoOp implements CommandTopicBackup {
@@ -26,7 +24,7 @@ public class CommandTopicBackupNoOp implements CommandTopicBackup {
   }
 
   @Override
-  public void writeRecord(final ConsumerRecord<CommandId, Command> record) {
+  public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
     // no-op
   }
 

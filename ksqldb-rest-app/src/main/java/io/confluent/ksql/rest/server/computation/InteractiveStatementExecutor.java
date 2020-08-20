@@ -44,6 +44,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +63,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   private final StatementParser statementParser;
   private final SpecificQueryIdGenerator queryIdGenerator;
   private final Map<CommandId, CommandStatus> statusStore;
+  private final Deserializer<Command> commandDeserializer;
   private KsqlConfig ksqlConfig;
 
   private enum Mode {
@@ -77,7 +80,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         serviceContext,
         ksqlEngine,
         new StatementParser(ksqlEngine),
-        queryIdGenerator
+        queryIdGenerator,
+        InternalTopicSerdes.deserializer(Command.class)
     );
   }
 
@@ -86,12 +90,14 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
-      final SpecificQueryIdGenerator queryIdGenerator
+      final SpecificQueryIdGenerator queryIdGenerator,
+      final Deserializer<Command> commandDeserializer
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
+    this.commandDeserializer = Objects.requireNonNull(commandDeserializer, "commandDeserializer");
     this.statusStore = new ConcurrentHashMap<>();
   }
 
@@ -117,8 +123,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     throwIfNotConfigured();
 
     handleStatementWithTerminatedQueries(
-        queuedCommand.getCommand(),
-        queuedCommand.getCommandId(),
+        queuedCommand.getAndDeserializeCommand(commandDeserializer),
+        queuedCommand.getAndDeserializeCommandId(),
         queuedCommand.getStatus(),
         Mode.EXECUTE,
         queuedCommand.getOffset()
@@ -129,8 +135,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     throwIfNotConfigured();
 
     handleStatementWithTerminatedQueries(
-        queuedCommand.getCommand(),
-        queuedCommand.getCommandId(),
+        queuedCommand.getAndDeserializeCommand(commandDeserializer),
+        queuedCommand.getAndDeserializeCommandId(),
         queuedCommand.getStatus(),
         Mode.RESTORE,
         queuedCommand.getOffset()

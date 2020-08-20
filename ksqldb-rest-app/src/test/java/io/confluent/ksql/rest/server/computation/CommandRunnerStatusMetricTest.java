@@ -93,6 +93,15 @@ public class CommandRunnerStatusMetricTest {
   }
 
   @Test
+  public void shouldUpdateToDegradedState() {
+    // When:
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.DEGRADED);
+
+    // Then:
+    assertThat(currentGaugeValue(), is(CommandRunner.CommandRunnerStatus.DEGRADED.name()));
+  }
+
+  @Test
   public void shouldRemoveMetricOnClose() {
     // When:
     commandRunnerStatusMetric.close();

@@ -221,7 +221,8 @@ public class RecoveryTest {
           serverState,
           "ksql-service-id",
           Duration.ofMillis(2000),
-          ""
+          "",
+          InternalTopicSerdes.deserializer(Command.class)
       );
 
       this.ksqlResource = new KsqlResource(

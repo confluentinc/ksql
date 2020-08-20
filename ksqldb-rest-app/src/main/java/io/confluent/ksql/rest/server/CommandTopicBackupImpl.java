@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ticker;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
@@ -125,7 +126,27 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   }
 
   @Override
-  public void writeRecord(final ConsumerRecord<CommandId, Command> record) {
+  public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
+    final ConsumerRecord<CommandId, Command> deserializedRecord;
+    try {
+      deserializedRecord = new ConsumerRecord<>(
+          record.topic(),
+          record.partition(),
+          record.offset(),
+          InternalTopicSerdes.deserializer(CommandId.class)
+              .deserialize(record.topic(), record.key()),
+          InternalTopicSerdes.deserializer(Command.class)
+              .deserialize(record.topic(), record.value())
+      );
+    } catch (Exception e) {
+      LOG.error("Failed to deserialize command topic record when backing it up: {}:{}",
+          record.key(), record.value());
+      return;
+    }
+    writeCommandToBackup(deserializedRecord);
+  }
+
+  void writeCommandToBackup(final ConsumerRecord<CommandId, Command> record) {
     if (isRestoring()) {
       if (isRecordInLatestReplay(record)) {
         // Ignore backup because record was already replayed

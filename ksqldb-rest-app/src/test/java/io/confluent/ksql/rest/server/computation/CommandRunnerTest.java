@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -43,11 +44,20 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.Pair;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,6 +98,10 @@ public class CommandRunnerTest {
   private ExecutorService executor;
   @Mock
   private Function<List<QueuedCommand>, List<QueuedCommand>> compactor;
+  @Mock
+  private Consumer<QueuedCommand> incompatibleCommandChecker;
+  @Mock
+  private Deserializer<Command> commandDeserializer;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
@@ -101,9 +115,12 @@ public class CommandRunnerTest {
     when(clusterTerminate.getStatement())
         .thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
 
-    when(queuedCommand1.getCommand()).thenReturn(command);
-    when(queuedCommand2.getCommand()).thenReturn(command);
-    when(queuedCommand3.getCommand()).thenReturn(command);
+    when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    when(queuedCommand3.getAndDeserializeCommand(commandDeserializer)).thenReturn(command);
+    doNothing().when(incompatibleCommandChecker).accept(queuedCommand1);
+    doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
+    doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);
 
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -120,7 +137,9 @@ public class CommandRunnerTest {
         Duration.ofMillis(COMMAND_RUNNER_HEALTH_TIMEOUT),
         "",
         clock,
-        compactor
+        compactor,
+        incompatibleCommandChecker,
+        commandDeserializer
     );
   }
 
@@ -142,8 +161,8 @@ public class CommandRunnerTest {
   @Test
   public void shouldRunThePriorCommandsWithTerminateCorrectly() {
     // Given:
-    givenQueuedCommands(queuedCommand1);
-    when(queuedCommand1.getCommand()).thenReturn(clusterTerminate);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.processPriorCommands();
@@ -161,7 +180,7 @@ public class CommandRunnerTest {
   public void shouldEarlyOutIfRestoreContainsTerminate() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
-    when(queuedCommand2.getCommand()).thenReturn(clusterTerminate);
+    when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.processPriorCommands();
@@ -196,6 +215,41 @@ public class CommandRunnerTest {
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
 
     verify(statementExecutor, never()).handleRestore(queuedCommand2);
+  }
+
+  @Test
+  public void shouldProcessPartialListOfCommandsOnDeserializationExceptionInRestore() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand3);
+
+    // When:
+    commandRunner.processPriorCommands();
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+    verify(statementExecutor, never()).handleRestore(queuedCommand3);
+    
+  }
+
+  @Test
+  public void shouldProcessPartialListOfCommandsOnDeserializationExceptionInFetch() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
+
+    // When:
+    commandRunner.processPriorCommands();
+
+    // Then:
+    verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    verify(statementExecutor, never()).handleRestore(queuedCommand2);
+    verify(statementExecutor, never()).handleRestore(queuedCommand3);
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
   }
 
   @Test
@@ -248,7 +302,7 @@ public class CommandRunnerTest {
   public void shouldEarlyOutIfNewCommandsContainsTerminate() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
-    when(queuedCommand2.getCommand()).thenReturn(clusterTerminate);
+    when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
     // When:
     commandRunner.fetchAndRunCommands();
@@ -344,6 +398,49 @@ public class CommandRunnerTest {
     final InOrder inOrder = inOrder(executor);
     inOrder.verify(executor).execute(any(Runnable.class));
     inOrder.verify(executor).shutdown();
+  }
+
+  @Test
+  public void shouldNotStartCommandRunnerThreadIfSerializationExceptionInRestore() throws Exception {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand3);
+
+    // When:
+    commandRunner.processPriorCommands();
+    commandRunner.start();
+
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+
+    // Then:
+    final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(commandStore).close();
+    verify(commandStore, never()).getNewCommands(any());
+    verify(statementExecutor, times(2)).handleRestore(any());
+  }
+
+  @Test
+  public void shouldCloseEarlyWhenSerializationExceptionInFetch() throws Exception {
+    // Given:
+    when(commandStore.getNewCommands(any()))
+        .thenReturn(Collections.singletonList(queuedCommand1))
+        .thenReturn(Collections.singletonList(queuedCommand2));
+    doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
+    
+    // When:
+    commandRunner.start();
+    verify(commandStore, never()).close();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+
+    // Then:
+    final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(commandStore).close();
   }
 
   @Test

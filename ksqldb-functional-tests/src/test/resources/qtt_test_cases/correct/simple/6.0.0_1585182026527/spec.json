@@ -3,8 +3,14 @@
   "timestamp" : 1581572101717,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S1_0.KsqlTopic.Source" : "STRUCT<C1 BIGINT, C2 INT, C3 VARCHAR> NOT NULL",
-    "CSAS_S1_0.S1" : "STRUCT<C1 BIGINT, C2 INT, C3 VARCHAR> NOT NULL"
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema": "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+      "serdeOptions": [ ]
+    },
+    "CSAS_S1_0.S1" : {
+      "schema": "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+      "serdeOptions": [ ]
+    }
   },
   "testCase" : {
     "name" : "Filter on string literal",

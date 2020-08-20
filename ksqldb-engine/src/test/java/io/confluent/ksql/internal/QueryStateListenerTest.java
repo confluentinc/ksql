@@ -23,10 +23,16 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Ticker;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
@@ -42,9 +48,13 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 @RunWith(MockitoJUnitRunner.class)
 public class QueryStateListenerTest {
-
+  private static final long SOME_TIME = 1;
   private static final MetricName METRIC_NAME_1 =
       new MetricName("bob", "g1", "d1", ImmutableMap.of());
   private static final MetricName METRIC_NAME_2 =
@@ -52,6 +62,8 @@ public class QueryStateListenerTest {
 
   @Mock
   private Metrics metrics;
+  @Mock
+  private Ticker ticker;
   @Captor
   private ArgumentCaptor<Gauge<String>> gaugeCaptor;
   private QueryStateListener listener;
@@ -62,7 +74,7 @@ public class QueryStateListenerTest {
         .thenReturn(METRIC_NAME_1)
         .thenReturn(METRIC_NAME_2);
 
-    listener = new QueryStateListener(metrics, "", "app-id");
+    listener = new QueryStateListener(metrics, "", "app-id", ticker);
   }
 
   @Test
@@ -142,6 +154,97 @@ public class QueryStateListenerTest {
     // Then:
     verify(metrics).removeMetric(METRIC_NAME_1);
     verify(metrics).removeMetric(METRIC_NAME_2);
+  }
+
+  @Test
+  public void shouldResetUptime() {
+    // Given:
+    final Multimap<State, State> states = ArrayListMultimap.create();
+
+    states.put(State.CREATED, State.RUNNING);
+    states.put(State.CREATED, State.REBALANCING);
+    states.put(State.ERROR, State.RUNNING);
+    states.put(State.ERROR, State.REBALANCING);
+
+    // These states transitions are not valid for Kafka streams, but KSQL does not know about it
+    states.put(State.NOT_RUNNING, State.RUNNING);
+    states.put(State.NOT_RUNNING, State.REBALANCING);
+    states.put(State.PENDING_SHUTDOWN, State.RUNNING);
+    states.put(State.PENDING_SHUTDOWN, State.REBALANCING);
+
+    final long tickForUptime = states.size();
+    long nextTick = 1;
+    for (final Map.Entry<State, State> stateTransition : states.entries()) {
+      final State from = stateTransition.getKey();
+      final State to = stateTransition.getValue();
+
+      // When:
+      when(ticker.read()).thenReturn(nextTick++).thenReturn(tickForUptime);
+      listener.onChange(to, from);
+
+      // Then:
+      verify(ticker).read();
+      assertThat(listener.uptime(), is(tickForUptime - nextTick + 1));
+
+      reset(ticker);
+    }
+  }
+
+  @Test
+  public void shouldNotResetUptime() {
+    // Given:
+    final Multimap<State, State> states = ArrayListMultimap.create();
+    states.put(State.RUNNING, State.REBALANCING);
+    states.put(State.REBALANCING, State.RUNNING);
+    states.put(State.RUNNING, State.RUNNING);
+    states.put(State.REBALANCING, State.REBALANCING);
+
+    // Set the initial time, and verify it won't change
+    when(ticker.read()).thenReturn(SOME_TIME);
+    listener.onChange(State.RUNNING, State.CREATED);
+    reset(ticker);
+
+    final long tickForUptime = states.size();
+    for (final Map.Entry<State, State> stateTransition : states.entries()) {
+      final State from = stateTransition.getKey();
+      final State to = stateTransition.getValue();
+
+      // When:
+      listener.onChange(to, from);
+
+      // Then:
+      verify(ticker, never()).read();
+      when(ticker.read()).thenReturn(tickForUptime);
+      assertThat(listener.uptime(), is(tickForUptime - SOME_TIME));
+
+      reset(ticker);
+    }
+  }
+
+  @Test
+  public void shouldReturnZeroUptime() {
+    // Given:
+    final Multimap<State, State> states = ArrayListMultimap.create();
+    states.put(State.RUNNING, State.ERROR);
+    states.put(State.REBALANCING, State.ERROR);
+    states.put(State.RUNNING, State.PENDING_SHUTDOWN);
+    states.put(State.REBALANCING, State.PENDING_SHUTDOWN);
+    states.put(State.RUNNING, State.NOT_RUNNING);
+    states.put(State.REBALANCING, State.NOT_RUNNING);
+    states.put(State.RUNNING, State.CREATED);
+    states.put(State.REBALANCING, State.CREATED);
+
+    for (final Map.Entry<State, State> stateTransition : states.entries()) {
+      final State from = stateTransition.getKey();
+      final State to = stateTransition.getValue();
+
+      // When:
+      listener.onChange(to, from);
+
+      // Then:
+      verify(ticker, never()).read();
+      assertThat(listener.uptime(), is(0L));
+    }
   }
 
   private String currentGaugeValue(final MetricName name) {

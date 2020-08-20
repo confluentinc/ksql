@@ -35,22 +35,20 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class TlsTest extends ApiTest {
+public class TlsTest extends BaseApiTest {
 
-  protected static final Logger log = LoggerFactory.getLogger(TlsTest.class);
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
   @Override
   protected KsqlRestConfig createServerConfig() {
-    String keyStorePath = ServerKeyStore.keyStoreProps()
+    String keyStorePath = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-    String keyStorePassword = ServerKeyStore.keyStoreProps()
+    String keyStorePassword = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-    String trustStorePath = ServerKeyStore.keyStoreProps()
+    String trustStorePath = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    String trustStorePassword = ServerKeyStore.keyStoreProps()
+    String trustStorePassword = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
     Map<String, Object> config = new HashMap<>();
@@ -71,9 +69,9 @@ public class TlsTest extends ApiTest {
     // for this test file, the client must use a different trust store location than the server
     // since the client store should always be valid even when the server store is loaded with an
     // invalid cert
-    String clientTrustStorePath = ServerKeyStore.clientKeyStoreProps()
+    String clientTrustStorePath = SERVER_KEY_STORE.clientKeyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    String clientTrustStorePassword = ServerKeyStore.clientKeyStoreProps()
+    String clientTrustStorePassword = SERVER_KEY_STORE.clientKeyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
     return new WebClientOptions().setSsl(true).
@@ -97,7 +95,8 @@ public class TlsTest extends ApiTest {
 
     try {
       // When: load expired key store
-      ServerKeyStore.loadExpiredServerKeyStore();
+      SERVER_KEY_STORE.loadExpiredServerKeyStore();
+
       assertThatEventually(
           "Should fail to execute query with expired key store",
           () -> {
@@ -118,9 +117,11 @@ public class TlsTest extends ApiTest {
           TimeUnit.SECONDS.toMillis(1),
           TimeUnit.SECONDS.toMillis(1)
       );
-    } finally { // restore cert regardless of failure above so as to not affect other tests
+    } finally {
+      // restore cert regardless of failure above so as to not affect other tests
       // When: load valid store
-      ServerKeyStore.loadValidServerKeyStore();
+      SERVER_KEY_STORE.loadValidServerKeyStore();
+
       assertThatEventually(
           "Should successfully execute query with valid key store",
           () -> {

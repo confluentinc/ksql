@@ -3,8 +3,14 @@
   "timestamp" : 1584374409217,
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, MY_ARR ARRAY<BIGINT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, VAL BIGINT, ID2 BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MY_ARR` ARRAY<BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VAL` BIGINT, `ID2` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "with duplicate columns",
@@ -67,9 +73,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  EXPLODE(TEST.MY_ARR) VAL,\n  TEST.ID ID2\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VAL` BIGINT, `ID2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MY_ARR` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -80,7 +103,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

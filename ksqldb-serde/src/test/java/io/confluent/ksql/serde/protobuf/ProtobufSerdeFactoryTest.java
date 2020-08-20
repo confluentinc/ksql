@@ -34,6 +34,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ProtobufSerdeFactoryTest {
 
+  private static final ConnectSchema SCHEMA = (ConnectSchema) SchemaBuilder.struct()
+      .field("f0", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA))
+      .build();
+
   @Mock
   private PersistenceSchema schema;
 
@@ -42,6 +46,9 @@ public class ProtobufSerdeFactoryTest {
   @Before
   public void setUp() {
     factory = new ProtobufSerdeFactory();
+
+    when(schema.serializedSchema())
+        .thenReturn(SCHEMA);
   }
 
   @Test
@@ -74,6 +81,35 @@ public class ProtobufSerdeFactoryTest {
 
     when(schema.serializedSchema())
         .thenReturn(schemaWithOutDecimal);
+
+    // When:
+    factory.validate(schema);
+
+    // Then (did not throw)
+  }
+
+  @Test
+  public void shouldThrowIfUnwrapped() {
+    // Given:
+    when(schema.isUnwrapped())
+        .thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory.validate(schema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("'WRAP_SINGLE_VALUE' can not be set to 'false' for 'PROTOBUF' "
+        + "as it does not support unwrapping"));
+  }
+
+  @Test
+  public void shouldNotThrowIfWrapped() {
+    // Given:
+    when(schema.isUnwrapped())
+        .thenReturn(false);
 
     // When:
     factory.validate(schema);

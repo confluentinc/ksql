@@ -3,8 +3,14 @@
   "timestamp" : 1588893920944,
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<WINDOWSTART BIGINT, WINDOWEND BIGINT, ID BIGINT, VALUE BIGINT> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`K` BIGINT KEY, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` BIGINT, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "import hopping stream",
@@ -142,18 +148,29 @@
     "statements" : [ "CREATE STREAM TEST (K BIGINT KEY, ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', WINDOW_TYPE='HoPping', WINDOW_SIZE='30 seconds');", "CREATE STREAM S2 as SELECT * FROM test;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "stream",
+        "name" : "TEST",
+        "type" : "STREAM",
         "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 30000
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 30000
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -168,7 +185,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -3,8 +3,14 @@
   "timestamp" : 1591141842077,
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 STRUCT<F1 INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 STRUCT<F1 INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`C1` STRUCT<`F1` INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`C1` STRUCT<`F1` INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should convert nested types to STRUCT",
@@ -40,23 +46,24 @@
     "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`C1` STRUCT<`F1` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "C1 STRUCT<F1 INT>"
+        "type" : "STREAM",
+        "schema" : "`C1` STRUCT<`F1` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "PROTOBUF"
-          },
-          "partitions" : 4
-        }, {
           "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
@@ -67,6 +74,17 @@
             "format" : "PROTOBUF"
           },
           "partitions" : 1
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
         } ]
       }
     }

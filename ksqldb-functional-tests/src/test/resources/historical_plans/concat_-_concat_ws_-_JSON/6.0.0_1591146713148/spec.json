@@ -1,10 +1,16 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591146713148,
-  "path" : "query-validation-tests\\concat.json",
+  "path" : "query-validation-tests/concat.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<S1 VARCHAR, C1 VARCHAR, C2 VARCHAR, C3 VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COMBINED VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `S1` STRING, `C1` STRING, `C2` STRING, `C3` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `COMBINED` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "concat_ws - JSON",
@@ -81,9 +87,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, S1 STRING, C1 STRING, C2 STRING, C3 STRING) WITH (kafka_topic='input_topic',value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, CONCAT_WS(S1, C1, C2, C3, NULL, 'literal') AS COMBINED FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `S1` STRING, `C1` STRING, `C2` STRING, `C3` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `COMBINED` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -94,7 +117,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -362,4 +362,5 @@ CREATE STREAM impressions2 as select * from impressions EMIT CHANGES;
 Suggested Resources
 -------------------
 
+- [Podcast: Testing ksqlDB Applications ft. Viktor Gamov](https://developer.confluent.io/podcast/testing-ksqldb-applications-ft-viktor-gamov)
 - [Easy Ways to Generate Test Data in Kafka](https://www.confluent.io/blog/easy-ways-generate-test-data-kafka/)

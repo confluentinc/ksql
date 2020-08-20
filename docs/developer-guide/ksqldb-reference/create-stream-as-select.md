@@ -65,12 +65,17 @@ The key of the resulting stream is determined by the following rules, in order o
 
 The projection must include all columns required in the result, including any key columns.
 
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB registers the value schema of the new stream with {{ site.sr }} automatically. 
+The schema is registered under the subject `<topic-name>-value`.
+
 The WITH clause for the result supports the following properties:
 
 |     Property      |                                             Description                                              |
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC       | The name of the Kafka topic that backs this stream. If this property is not set, then the name of the stream in upper case will be used as default. |
-| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. Supported formats: `JSON`, `DELIMITED` (comma-separated value), `AVRO`, `KAFKA`, and `PROTOBUF`. If this property is not set, the format of the input stream/table is used. For more information, see [Serialization Formats](../serialization.md#serialization-formats). |
+| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). If this property is not set, the format of the input stream/table is used. |
 | VALUE_DELIMITER   | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
 | PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-side stream or table. |
 | REPLICAS          | The replication factor for the topic. If this property is not set, then the number of replicas of the input stream or table will be used. In join queries, the property values are taken from the left-side stream or table. |

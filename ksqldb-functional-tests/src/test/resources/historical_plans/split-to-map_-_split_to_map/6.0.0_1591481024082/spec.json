@@ -1,10 +1,16 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591481024082,
-  "path" : "query-validation-tests\\split-to-map.json",
+  "path" : "query-validation-tests/split-to-map.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<INPUT VARCHAR, ENTRYDELIM VARCHAR, KVDELIM VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<RESULT MAP<VARCHAR, VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `INPUT` STRING, `ENTRYDELIM` STRING, `KVDELIM` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `RESULT` MAP<STRING, STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "split_to_map",
@@ -171,9 +177,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (id STRING KEY, input STRING, entryDelim STRING, kvDelim STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, split_to_map(input, entryDelim, kvDelim) as result FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `INPUT` STRING, `ENTRYDELIM` STRING, `KVDELIM` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `RESULT` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -184,7 +207,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

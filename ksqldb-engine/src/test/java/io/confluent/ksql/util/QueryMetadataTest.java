@@ -113,6 +113,25 @@ public class QueryMetadataTest {
   }
 
   @Test
+  public void shouldGetUptimeFromStateListener() {
+    // Given:
+    when(kafkaStreams.state()).thenReturn(State.RUNNING);
+    when(listener.uptime()).thenReturn(5L);
+
+    // When:
+    query.setQueryStateListener(listener);
+
+    // Then:
+    assertThat(query.uptime(), is(5L));
+  }
+
+  @Test
+  public void shouldReturnZeroUptimeIfNoStateListenerSet() {
+    // When/Then:
+    assertThat(query.uptime(), is(0L));
+  }
+
+  @Test
   public void shouldConnectAnyListenerToStreamAppOnStart() {
     // Given:
     query.setQueryStateListener(listener);

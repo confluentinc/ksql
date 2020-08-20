@@ -54,6 +54,8 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class SslClientAuthFunctionalTest {
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
+
   private static final String TOPIC_NAME = new OrderDataProvider().topicName();
 
   private static final String JSON_KSQL_REQUEST = UrlEscapers.urlFormParameterEscaper()
@@ -63,10 +65,9 @@ public class SslClientAuthFunctionalTest {
 
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-  @SuppressWarnings("deprecation")
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperties(ServerKeyStore.keyStoreProps())
+      .withProperties(SERVER_KEY_STORE.keyStoreProps())
       .withProperty(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
           KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0")
@@ -94,15 +95,13 @@ public class SslClientAuthFunctionalTest {
 
   @Test
   public void shouldNotBeAbleToUseCliIfClientDoesNotProvideCertificate() {
-
     // Given:
     givenClientConfiguredWithoutCertificate();// Then:
-
 
     // When:
     final Exception e = assertThrows(
         KsqlRestClientException.class,
-        () -> canMakeCliRequest()
+        this::canMakeCliRequest
     );
 
     // Then:
@@ -123,7 +122,7 @@ public class SslClientAuthFunctionalTest {
   }
 
   @Test
-  public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() throws Exception {
+  public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() {
     // Given:
     givenClientConfiguredWithoutCertificate();
 
@@ -147,9 +146,9 @@ public class SslClientAuthFunctionalTest {
 
   private void givenClientConfiguredWithCertificate() {
 
-    String clientCertPath = ServerKeyStore.keyStoreProps()
+    String clientCertPath = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    String clientCertPassword = ServerKeyStore.keyStoreProps()
+    String clientCertPassword = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
     // HTTP:

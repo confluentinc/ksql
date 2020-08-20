@@ -1,10 +1,16 @@
 {
   "version" : "6.1.0",
   "timestamp" : 1594957049270,
-  "path" : "query-validation-tests\\array-remove.json",
+  "path" : "query-validation-tests/array-remove.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<BOOLS ARRAY<BOOLEAN>, BAD_BOOL BOOLEAN, INTS ARRAY<INT>, BAD_INT INT, BIGINTS ARRAY<BIGINT>, BAD_BIGINT BIGINT, DOUBLES ARRAY<DOUBLE>, BAD_DOUBLE DOUBLE, STRINGS ARRAY<VARCHAR>, BAD_STRING VARCHAR, DECIMALS ARRAY<DECIMAL(2, 1)>, BAD_DECIMAL DECIMAL(2, 1)> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<BOOLS ARRAY<BOOLEAN>, INTS ARRAY<INT>, BIGINTS ARRAY<BIGINT>, DOUBLES ARRAY<DOUBLE>, STRINGS ARRAY<VARCHAR>, DECIMALS ARRAY<DECIMAL(2, 1)>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `BAD_BOOL` BOOLEAN, `INTS` ARRAY<INTEGER>, `BAD_INT` INTEGER, `BIGINTS` ARRAY<BIGINT>, `BAD_BIGINT` BIGINT, `DOUBLES` ARRAY<DOUBLE>, `BAD_DOUBLE` DOUBLE, `STRINGS` ARRAY<STRING>, `BAD_STRING` STRING, `DECIMALS` ARRAY<DECIMAL(2, 1)>, `BAD_DECIMAL` DECIMAL(2, 1)",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "array_remove with all primitive types",
@@ -161,9 +167,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (id STRING KEY, bools ARRAY<BOOLEAN>, bad_bool BOOLEAN, ints ARRAY<INT>, bad_int INT, bigints ARRAY<BIGINT>, bad_bigint BIGINT, doubles ARRAY<DOUBLE>, bad_double DOUBLE, strings ARRAY<STRING>, bad_string STRING, decimals ARRAY<DECIMAL(2,1)>, bad_decimal DECIMAL(2,1)) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_remove(bools, bad_bool) as bools, array_remove(ints, bad_int) as ints, array_remove(bigints, bad_bigint) as bigints, array_remove(doubles, bad_double) as doubles, array_remove(strings, bad_string) as strings, array_remove(decimals, bad_decimal) as decimals FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `BAD_BOOL` BOOLEAN, `INTS` ARRAY<INTEGER>, `BAD_INT` INTEGER, `BIGINTS` ARRAY<BIGINT>, `BAD_BIGINT` BIGINT, `DOUBLES` ARRAY<DOUBLE>, `BAD_DOUBLE` DOUBLE, `STRINGS` ARRAY<STRING>, `BAD_STRING` STRING, `DECIMALS` ARRAY<DECIMAL(2, 1)>, `BAD_DECIMAL` DECIMAL(2, 1)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -174,7 +197,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

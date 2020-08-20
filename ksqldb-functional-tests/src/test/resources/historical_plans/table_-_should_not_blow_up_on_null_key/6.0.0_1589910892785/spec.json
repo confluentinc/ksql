@@ -3,8 +3,14 @@
   "timestamp" : 1589910892785,
   "path" : "query-validation-tests/table.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT> NOT NULL"
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should not blow up on null key",
@@ -41,9 +47,26 @@
     } ],
     "statements" : [ "CREATE TABLE INPUT (K STRING PRIMARY KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT as SELECT * FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -54,7 +77,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

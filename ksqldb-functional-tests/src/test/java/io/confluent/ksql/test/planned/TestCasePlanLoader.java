@@ -29,6 +29,8 @@ import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.PathLocation;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.SchemaNode;
+import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.TestCase;
@@ -49,6 +51,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -226,7 +229,7 @@ public final class TestCasePlanLoader {
         testCase.statements(),
         testCase.properties(),
         null,
-        testCase.getPostConditions().asNode(testInfo.getTopics()).orElse(null),
+        testCase.getPostConditions().asNode(testInfo.getTopics(), testInfo.getSources()),
         true
     );
 
@@ -234,7 +237,7 @@ public final class TestCasePlanLoader {
         version,
         timestamp,
         testCase.getOriginalFileName().toString(),
-        testInfo.getSchemasDescription(),
+        testInfo.getSchemas(),
         testCodeNode
     );
 
@@ -299,6 +302,7 @@ public final class TestCasePlanLoader {
     private final Builder<KsqlPlan> plansBuilder = new Builder<>();
     private PersistentQueryMetadata queryMetadata = null;
     private List<PostTopicNode> topics = ImmutableList.of();
+    private List<SourceNode> sources = ImmutableList.of();
 
     @Override
     public void acceptPlan(final ConfiguredKsqlPlan plan) {
@@ -311,20 +315,31 @@ public final class TestCasePlanLoader {
     }
 
     @Override
-    public void runComplete(final List<PostTopicNode> knownTopics) {
+    public void runComplete(
+        final List<PostTopicNode> knownTopics,
+        final List<SourceNode> knownSources
+    ) {
       if (queryMetadata == null) {
         throw new AssertionError("test case does not build a query");
       }
 
       this.topics = ImmutableList.copyOf(knownTopics);
+      this.sources = ImmutableList.copyOf(knownSources);
     }
 
-    public Map<String, String> getSchemasDescription() {
-      return queryMetadata.getSchemasDescription();
+    public Map<String, SchemaNode> getSchemas() {
+      return queryMetadata.getSchemas().entrySet().stream()
+          .collect(Collectors.toMap(
+              Entry::getKey,
+              e -> SchemaNode.fromPhysicalSchema(e.getValue())));
     }
 
     public List<PostTopicNode> getTopics() {
       return topics;
+    }
+
+    public List<SourceNode> getSources() {
+      return sources;
     }
 
     public List<KsqlPlan> getPlans() {

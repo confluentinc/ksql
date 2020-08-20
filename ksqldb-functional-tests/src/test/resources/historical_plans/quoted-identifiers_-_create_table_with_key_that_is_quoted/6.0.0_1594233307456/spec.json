@@ -3,8 +3,14 @@
   "timestamp" : 1594233307456,
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<V VARCHAR> NOT NULL"
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`some.key` STRING KEY, `V` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`some.key` STRING KEY, `V` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "create table with key that is quoted",
@@ -33,8 +39,36 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (`some.key` STRING PRIMARY KEY, v VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT * FROM TEST;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`some.key` STRING KEY, `V` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`some.key` STRING KEY, `V` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
           "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
@@ -55,17 +89,6 @@
           "valueFormat" : {
             "format" : "JSON"
           }
-        }, {
-          "name" : "test_topic",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

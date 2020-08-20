@@ -515,6 +515,22 @@
       ]
     },
     {
+      "name": "expressions used in non-aggregate function in select whose children are not part of group-by",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, INT>, col2 MAP<VARCHAR, INT>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT col1['foo']+col2['bar'] AS G1, AS_VALUE(col1['foo']+col2['bar']), COUNT(*) FROM input GROUP BY col1['foo']+col2['bar'];"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": {"a" : 1}, "col2": {"b" : 1}}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": {"foo" : 1}, "col2": {"bar" : 1}}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": {"bar" : 1}, "col2": {"foo" : 1}}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": {"foo" : 1}, "col2": {"foo" : 1}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 2, "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 1}}
+      ]
+    },
+    {
       "name": "unknown function",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",

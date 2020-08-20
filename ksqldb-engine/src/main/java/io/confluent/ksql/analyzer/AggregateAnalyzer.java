@@ -20,14 +20,10 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -36,6 +32,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -276,6 +273,20 @@ public class AggregateAnalyzer {
     }
   }
 
+  /**
+   * This visitor performs two tasks: Create the input schema to the AggregateNode and validations.
+   *
+   * For creating the input schema, it checks if any expression along the path from the root
+   * expression to the leaf (UnqualifiedColumnReference) is part of the groupBy. If at least one is,
+   * then the UnqualifiedColumnReference is added to the schema.
+   *
+   * For validation, the visitor checks that:
+   * 1) expressions in non-aggregate functions are part of the grouping clause,
+   * 2) aggregate functions are not nested
+   * 3) window clauses (windowstart, windowend) don't appear in aggregate functions or groupBy
+   * 4) aggregate functions don't appear in the groupBy clause
+   * 5) expressions in the having clause are either aggregate functions or grouping keys
+   */
   private static final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
 
     private final BiConsumer<Optional<FunctionName>, Expression> dereferenceCollector;
@@ -283,10 +294,10 @@ public class AggregateAnalyzer {
     private final MutableAggregateAnalysis aggregateAnalysis;
     private final FunctionRegistry functionRegistry;
     private final Set<Expression> groupBy;
-    private boolean foundExpressionInGroupBy;
+    private Pair<Expression, Boolean> currentlyInExpressionPartOfGroupBy;
 
     private Optional<FunctionName> aggFunctionName = Optional.empty();
-    private boolean visitedAggFunction = false;
+    private boolean currentlyInAggregateFunction = false;
 
     private AggregateVisitor(
         final AggAnalyzer aggAnalyzer,
@@ -298,6 +309,19 @@ public class AggregateAnalyzer {
       this.functionRegistry = aggAnalyzer.functionRegistry;
       this.groupBy = groupBy;
       this.dereferenceCollector = requireNonNull(dereferenceCollector, "dereferenceCollector");
+    }
+
+    @Override
+    public Void process(final Expression node, final Void context) {
+      if (groupBy.contains(node) && currentlyInExpressionPartOfGroupBy == null) {
+        currentlyInExpressionPartOfGroupBy = new Pair<>(node, true);
+      }
+      super.process(node, context);
+      if (currentlyInExpressionPartOfGroupBy != null
+          && currentlyInExpressionPartOfGroupBy.getLeft() == node) {
+        currentlyInExpressionPartOfGroupBy = null;
+      }
+      return null;
     }
 
     @Override
@@ -315,18 +339,14 @@ public class AggregateAnalyzer {
               + aggFunctionName.get().text() + "(" + functionName.text() + "())");
         }
 
-        visitedAggFunction = true;
+        currentlyInAggregateFunction = true;
         aggFunctionName = Optional.of(functionName);
 
         functionCall.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
         aggregateAnalysis.addAggFunction(functionCall);
       }
 
-      if (groupBy.contains(functionCall)) {
-        foundExpressionInGroupBy = true;
-      }
       super.visitFunctionCall(functionCall, context);
-      foundExpressionInGroupBy = false;
 
       if (aggregateFunc) {
         aggFunctionName = Optional.empty();
@@ -340,8 +360,8 @@ public class AggregateAnalyzer {
         final UnqualifiedColumnReferenceExp node,
         final Void context
     ) {
-      if (!foundExpressionInGroupBy
-          || visitedAggFunction
+      if (currentlyInExpressionPartOfGroupBy == null
+          || currentlyInAggregateFunction
           || SystemColumns.isWindowBound(node.getColumnName())) {
         dereferenceCollector.accept(aggFunctionName, node);
       }
@@ -359,46 +379,5 @@ public class AggregateAnalyzer {
     ) {
       throw new UnsupportedOperationException("Should of been converted to unqualified");
     }
-
-    @Override
-    public Void visitSubscriptExpression(final SubscriptExpression node, final Void context) {
-      if (groupBy.contains(node)) {
-        foundExpressionInGroupBy = true;
-      }
-      super.visitSubscriptExpression(node, context);
-      foundExpressionInGroupBy = false;
-      return null;
-    }
-
-    @Override
-    public Void visitArithmeticBinary(final ArithmeticBinaryExpression node, final Void context) {
-      if (groupBy.contains(node)) {
-        foundExpressionInGroupBy = true;
-      }
-      super.visitArithmeticBinary(node, context);
-      foundExpressionInGroupBy = false;
-      return null;
-    }
-
-    @Override
-    public Void visitStructExpression(final CreateStructExpression node, final Void context) {
-      if (groupBy.contains(node)) {
-        foundExpressionInGroupBy = true;
-      }
-      super.visitStructExpression(node, context);
-      foundExpressionInGroupBy = false;
-      return null;
-    }
-
-    @Override
-    public Void visitDereferenceExpression(final DereferenceExpression node, final Void context) {
-      if (groupBy.contains(node)) {
-        foundExpressionInGroupBy = true;
-      }
-      super.visitDereferenceExpression(node, context);
-      foundExpressionInGroupBy = false;
-      return null;
-    }
-
   }
 }

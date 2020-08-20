@@ -26,6 +26,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Optional;
+import org.apache.hc.core5.http.HttpStatus;
 
 public final class DropConnectorExecutor {
 
@@ -43,7 +44,7 @@ public final class DropConnectorExecutor {
         serviceContext.getConnectClient().delete(connectorName);
 
     if (response.error().isPresent()) {
-      if (ifExists && response.httpCode() == 404) {
+      if (ifExists && response.httpCode() == HttpStatus.SC_NOT_FOUND) {
         return Optional.of(new WarningEntity(statement.getStatementText(),
                 "Connector '" + connectorName + "' does not exist."));
       } else {

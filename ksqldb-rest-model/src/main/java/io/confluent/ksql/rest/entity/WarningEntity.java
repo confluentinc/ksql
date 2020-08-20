@@ -60,7 +60,7 @@ public class WarningEntity extends KsqlEntity {
 
   @Override
   public String toString() {
-    return "ErrorEntity{"
+    return "WarningEntity{"
             + "message='" + message + '\''
             + '}';
   }

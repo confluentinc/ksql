@@ -3,10 +3,22 @@
   "timestamp" : 1589910853223,
   "path" : "query-validation-tests/collect-set.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<VALUE INT> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE INT> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE INT, KSQL_AGG_VARIABLE_0 ARRAY<INT>> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<COLLECTED ARRAY<INT>> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "collect_set int - PROTOBUF",
@@ -73,19 +85,25 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE integer) WITH (kafka_topic='test_topic',value_format='PROTOBUF');", "CREATE TABLE S2 as SELECT ID, collect_set(value) as collected FROM test group by id;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "PROTOBUF"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
             "formatInfo" : {
@@ -97,6 +115,17 @@
           }
         }, {
           "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

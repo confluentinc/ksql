@@ -35,7 +35,6 @@ Note that the WINDOW clause can only be used if the `from_item` is a stream and 
 a `GROUP BY` clause.
 
 Note that EMIT `output_refinement` defaults to `CHANGES` unless explicitly set to `FINAL` on a
-
 windowed aggregation.
 
 Joins to streams can use any stream column. If the join criteria is not the key column of the stream
@@ -70,12 +69,17 @@ The primary key of the resulting table is determined by the following rules, in 
  
 The projection must include all columns required in the result, including any primary key columns.
 
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
+The schema is registered under the subject `<topic-name>-value`.
+
 The WITH clause supports the following properties:
 
 |     Property      |                                             Description                                              |
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC       | The name of the Kafka topic that backs this table. If this property is not set, then the name of the table will be used as default. |
-| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. Supported formats: `JSON`, `JSON_SR`, `DELIMITED` (comma-separated value), `AVRO`, `KAFKA`, and `PROTOBUF`. If this property is not set, then the format of the input stream/table is used. For more information, see [Serialization Formats](../serialization.md#serialization-formats). |
+| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). If this property is not set, then the format of the input stream/table is used. |
 | VALUE_DELIMITER   | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
 | PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-side stream or table. |
 | REPLICAS          | The replication factor for the topic. If this property is not set, then the number of replicas of the input stream or table will be used. In join queries, the property values are taken from the left-side stream or table. |

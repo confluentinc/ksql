@@ -3,8 +3,14 @@
   "timestamp" : 1581572104999,
   "path" : "query-validation-tests/tumbling-windows.json",
   "schemas" : {
-    "CSAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, VALUE BIGINT> NOT NULL",
-    "CSAS_S2_0.S2" : "STRUCT<ID BIGINT, VALUE BIGINT, KEY VARCHAR> NOT NULL"
+    "CSAS_S2_0.S2" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `KEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "import tumbling stream",
@@ -102,18 +108,29 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_SIZE='30 seconds', WINDOW_TYPE='Tumbling');", "CREATE STREAM S2 AS SELECT\n  *,\n  TEST.ROWKEY KEY\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S2",
-        "type" : "stream",
-        "schema" : "ROWKEY STRING KEY, ID BIGINT, VALUE BIGINT, KEY STRING",
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `KEY` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -128,7 +145,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -39,8 +39,7 @@ public final class ModelTester {
       final Object deserialized = OBJECT_MAPPER.readValue(json, original.getClass());
 
       // Then:
-      final String reSerialized = OBJECT_MAPPER.writeValueAsString(deserialized);
-      assertThat(reSerialized, is(json));
+      assertThat(deserialized, is(original));
     } catch (JsonProcessingException e) {
       throw new AssertionError(e);
     }

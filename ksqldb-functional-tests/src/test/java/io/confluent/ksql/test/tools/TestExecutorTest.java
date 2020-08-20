@@ -35,9 +35,11 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -46,10 +48,12 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
+import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -69,10 +73,12 @@ public class TestExecutorTest {
 
   private static final String SINK_TOPIC_NAME = "sink_topic";
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
+  private static final PhysicalSchema PHYSICAL_SCHEMA =
+      PhysicalSchema.from(LOGICAL_SCHEMA, Collections.emptySet());
 
   @Mock
   private StubKafkaService kafkaService;
@@ -137,7 +143,7 @@ public class TestExecutorTest {
 
     when(metaStore.getAllDataSources()).thenReturn(allSources);
 
-    givenDataSourceTopic(SCHEMA);
+    givenDataSourceTopic(LOGICAL_SCHEMA);
   }
 
   @Test
@@ -169,8 +175,8 @@ public class TestExecutorTest {
   @Test
   public void shouldVerifyTopologySchemas() {
     // Given:
-    givenExpectedTopology("a-topology", ImmutableMap.of("matching", "schemas"));
-    givenActualTopology("a-topology", ImmutableMap.of("matching", "schemas"));
+    givenExpectedTopology("a-topology", ImmutableMap.of("matching", new SchemaNode(LOGICAL_SCHEMA.toString(), Collections.emptySet())));
+    givenActualTopology("a-topology", ImmutableMap.of("matching", PHYSICAL_SCHEMA));
 
     // When:
     executor.buildAndExecuteQuery(testCase, listener);
@@ -203,8 +209,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnSchemasMismatch() {
     // Given:
-    givenExpectedTopology("the-topology", ImmutableMap.of("expected", "schemas"));
-    givenActualTopology("the-topology", ImmutableMap.of("actual", "schemas"));
+    givenExpectedTopology("the-topology", ImmutableMap.of("expected", new SchemaNode("wrong schema", Collections.emptySet())));
+    givenActualTopology("the-topology", ImmutableMap.of("actual", PHYSICAL_SCHEMA));
 
     // When:
     final AssertionError e = assertThrows(
@@ -220,7 +226,7 @@ public class TestExecutorTest {
   }
 
   @Test
-  public void shouldFailOnTwoLittleOutput() {
+  public void shouldFailOnTooLittleOutput() {
     // Given:
     final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0));
@@ -243,7 +249,7 @@ public class TestExecutorTest {
   }
 
   @Test
-  public void shouldFailOnTwoMuchOutput() {
+  public void shouldFailOnTooMuchOutput() {
     // Given:
     final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
     final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
@@ -359,7 +365,7 @@ public class TestExecutorTest {
     when(expectedTopologyAndConfig.getTopology()).thenReturn(topology);
   }
 
-  private void givenExpectedTopology(final String topology, final Map<String, String> schemas) {
+  private void givenExpectedTopology(final String topology, final Map<String, SchemaNode> schemas) {
     givenExpectedTopology(topology);
     when(expectedTopologyAndConfig.getSchemas()).thenReturn(schemas);
   }
@@ -368,7 +374,7 @@ public class TestExecutorTest {
     when(testCase.getGeneratedTopologies()).thenReturn(ImmutableList.of(topology));
   }
 
-  private void givenActualTopology(final String topology, final Map<String, String> schemas) {
+  private void givenActualTopology(final String topology, final Map<String, PhysicalSchema> schemas) {
     givenActualTopology(topology);
     when(testCase.getGeneratedSchemas()).thenReturn(schemas);
   }
@@ -380,11 +386,16 @@ public class TestExecutorTest {
     when(topic.getValueFormat())
         .thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())));
 
+    final SourceName sourceName = SourceName.of(TestExecutorTest.SINK_TOPIC_NAME + "_source");
+
     final DataSource dataSource = mock(DataSource.class);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getSchema()).thenReturn(schema);
     when(dataSource.getKafkaTopicName()).thenReturn(TestExecutorTest.SINK_TOPIC_NAME);
-    allSources.put(SourceName.of(TestExecutorTest.SINK_TOPIC_NAME + "_source"), dataSource);
+    when(dataSource.getName()).thenReturn(sourceName);
+    when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(dataSource.getSerdeOptions()).thenReturn(Collections.emptySet());
+    allSources.put(sourceName, dataSource);
   }
 
   private static ProducerRecord<?, ?> producerRecord(

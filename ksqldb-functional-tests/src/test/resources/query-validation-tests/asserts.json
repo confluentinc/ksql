@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "should not parse ASSERT",
+      "statements": [
+        "ASSERT VALUES foo (id INT) VALUES (123);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "mismatched input 'ASSERT'"
+      }
+    }
+  ]
+}

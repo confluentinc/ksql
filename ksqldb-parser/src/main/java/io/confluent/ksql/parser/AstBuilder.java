@@ -64,6 +64,9 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
@@ -89,6 +92,9 @@ import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AssertStatement;
+import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -178,6 +184,10 @@ public class AstBuilder {
   }
 
   public WindowExpression buildWindowExpression(final ParserRuleContext parseTree) {
+    return build(Optional.empty(), parseTree);
+  }
+
+  public AssertStatement buildAssertStatement(final ParserRuleContext parseTree) {
     return build(Optional.empty(), parseTree);
   }
 
@@ -1228,6 +1238,72 @@ public class AstBuilder {
           typeParser.getType(context.type())
       );
     }
+
+    @Override
+    public Node visitAssertValues(final AssertValuesContext context) {
+      final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
+      final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
+
+      final List<ColumnName> columns;
+      if (context.columns() != null) {
+        columns = context.columns().identifier()
+            .stream()
+            .map(ParserUtil::getIdentifierText)
+            .map(ColumnName::of)
+            .collect(Collectors.toList());
+      } else {
+        columns = ImmutableList.of();
+      }
+
+      final InsertValues insertValues = new InsertValues(
+          targetLocation,
+          targetName,
+          columns,
+          visit(context.values().valueExpression(), Expression.class));
+
+      return new AssertValues(targetLocation, insertValues);
+    }
+
+    @Override
+    public Node visitAssertStream(final AssertStreamContext context) {
+      final List<TableElement> elements = context.tableElements() == null
+          ? ImmutableList.of()
+          : visit(context.tableElements().tableElement(), TableElement.class);
+
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
+      final CreateStream createStream = new CreateStream(
+          getLocation(context),
+          ParserUtil.getSourceName(context.sourceName()),
+          TableElements.of(elements),
+          false,
+          false,
+          CreateSourceProperties.from(properties)
+      );
+
+      return new AssertStream(getLocation(context), createStream);
+    }
+
+    @Override
+    public Node visitAssertTable(final AssertTableContext context) {
+      final List<TableElement> elements = context.tableElements() == null
+          ? ImmutableList.of()
+          : visit(context.tableElements().tableElement(), TableElement.class);
+
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
+      final CreateTable createTable = new CreateTable(
+          getLocation(context),
+          ParserUtil.getSourceName(context.sourceName()),
+          TableElements.of(elements),
+          false,
+          false,
+          CreateSourceProperties.from(properties)
+      );
+
+      return new AssertTable(getLocation(context), createTable);
+    }
+
 
     private void throwOnUnknownNameOrAlias(final SourceName name) {
       if (sources.isPresent() && !sources.get().contains(name)) {

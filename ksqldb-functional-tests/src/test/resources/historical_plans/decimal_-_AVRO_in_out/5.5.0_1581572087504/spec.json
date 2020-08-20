@@ -3,8 +3,14 @@
   "timestamp" : 1581572087504,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
-    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<DEC DECIMAL(21, 19)> NOT NULL",
-    "CSAS_TEST2_0.TEST2" : "STRUCT<DEC DECIMAL(21, 19)> NOT NULL"
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "AVRO in/out",
@@ -56,9 +62,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (DEC DECIMAL(21, 19)) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='AVRO');", "CREATE STREAM TEST2 AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "TEST2",
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -69,7 +92,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test",
+          "name" : "TEST2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

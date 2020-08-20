@@ -45,6 +45,11 @@ Each column is defined by:
    from the {{ site.ak }} message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column(s)
    are NON NULL. Any records in the Kafka topic with NULL key columns are dropped.
    
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+spare you from defining columns manually in your `CREATE TABLE` statements.
+   
 Each row within the table has a `ROWTIME` pseudo column, which represents the _last modified time_ 
 of the row. The timestamp has milliseconds accuracy. The timestamp is used by ksqlDB when updating
 a row, during any windowing operations and during joins, where data from each side of a join is 
@@ -58,7 +63,7 @@ The WITH clause supports the following properties:
 |        Property         |                                            Description                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic exists with different partition/replica counts. |
-| VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats: `JSON`, `JSON_SR`, `DELIMITED` (comma-separated value), `AVRO`, `KAFKA`, and `PROTOBUF`. For more information, see [Serialization Formats](../serialization.md#serialization-formats). |
+| VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). |
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a TABLE without an existing topic (the command will fail if the topic does not exist). |
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is set, then the default Kafka cluster configuration for replicas will be used for creating a new topic. |
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
@@ -78,11 +83,20 @@ Example
 -------
 
 ```sql
+-- table with declared columns: 
 CREATE TABLE users (
      id BIGINT PRIMARY KEY,
      usertimestamp BIGINT,
      gender VARCHAR,
      region_id VARCHAR
+   ) WITH (
+     KAFKA_TOPIC = 'my-users-topic', 
+     VALUE_FORMAT = 'JSON'
+   );
+
+-- table with value columns loaded from Schema Registry: 
+CREATE TABLE users (
+     id BIGINT PRIMARY KEY
    ) WITH (
      KAFKA_TOPIC = 'my-users-topic', 
      VALUE_FORMAT = 'JSON'

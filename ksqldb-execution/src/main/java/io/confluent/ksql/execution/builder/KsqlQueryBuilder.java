@@ -25,7 +25,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
@@ -52,7 +51,7 @@ public final class KsqlQueryBuilder {
   private final KeySerdeFactory keySerdeFactory;
   private final ValueSerdeFactory valueSerdeFactory;
   private final QueryId queryId;
-  private final LinkedHashMap<String, PersistenceSchema> schemas = new LinkedHashMap<>();
+  private final LinkedHashMap<String, PhysicalSchema> schemas = new LinkedHashMap<>();
 
   public static KsqlQueryBuilder of(
       final StreamsBuilder streamsBuilder,
@@ -183,7 +182,7 @@ public final class KsqlQueryBuilder {
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
-    track(loggerNamePrefix, schema.valueSchema());
+    track(loggerNamePrefix, schema);
 
     return valueSerdeFactory.create(
         format,
@@ -195,7 +194,7 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  private void track(final String loggerNamePrefix, final PersistenceSchema schema) {
+  private void track(final String loggerNamePrefix, final PhysicalSchema schema) {
     if (schemas.containsKey(loggerNamePrefix)) {
       throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
     }

@@ -28,7 +28,7 @@ import org.apache.kafka.test.TestUtils;
 /**
  * Util class for working with test key & trust stores.
  */
-final class KeyStoreUtil {
+public final class KeyStoreUtil {
   private KeyStoreUtil() {
   }
 
@@ -57,7 +57,7 @@ final class KeyStoreUtil {
    * @param path                the path to write to.
    * @param base64EncodedStore  the base64 encoded store content.
    */
-  static void putStore(final Path path, final String base64EncodedStore) {
+  public static void putStore(final Path path, final String base64EncodedStore) {
     try {
       final byte[] decoded = Base64.getDecoder().decode(base64EncodedStore);
       Files.write(path, decoded);

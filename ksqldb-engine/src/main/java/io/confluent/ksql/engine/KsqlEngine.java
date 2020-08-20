@@ -234,11 +234,23 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  @Override
-  public void close() {
-    allLiveQueries.forEach(QueryMetadata::stop);
+  /**
+   * @param closeQueries whether or not to clean up the local state for any running queries
+   */
+  public void close(final boolean closeQueries) {
+    if (closeQueries) {
+      allLiveQueries.forEach(QueryMetadata::close);
+    } else {
+      allLiveQueries.forEach(QueryMetadata::stop);
+    }
+
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
+  }
+
+  @Override
+  public void close() {
+    close(false);
   }
 
   /**

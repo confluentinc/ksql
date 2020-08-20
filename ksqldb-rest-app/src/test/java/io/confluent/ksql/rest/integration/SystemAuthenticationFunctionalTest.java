@@ -76,6 +76,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(Enclosed.class)
 public class SystemAuthenticationFunctionalTest {
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
   private static final TemporaryFolder TMP = new TemporaryFolder();
 
   static {
@@ -111,7 +112,7 @@ public class SystemAuthenticationFunctionalTest {
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-      .putAll(ServerKeyStore.keyStoreProps())
+      .putAll(SERVER_KEY_STORE.keyStoreProps())
       .build();
 
   private static Map<String, String> internalKeyStoreProps(boolean node1) {

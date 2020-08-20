@@ -3,11 +3,26 @@
   "timestamp" : 1589910880390,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<IMPRESSION_ID BIGINT, URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<URL VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<I_IMPRESSION_ID BIGINT, I_URL VARCHAR, I_ROWTIME BIGINT, I_USER VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Right" : "STRUCT<C_URL VARCHAR, C_ROWTIME BIGINT, C_USER VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<IMPRESSION_ID BIGINT, URL VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`USER` STRING KEY, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`I_USER` STRING KEY, `I_IMPRESSION_ID` BIGINT, `I_URL` STRING, `I_ROWTIME` BIGINT, `I_USER` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`C_USER` STRING KEY, `C_URL` STRING, `C_ROWTIME` BIGINT, `C_USER` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "with where",
@@ -58,9 +73,34 @@
     } ],
     "statements" : [ "CREATE STREAM impressions (user VARCHAR KEY, impression_id BIGINT, url VARCHAR) WITH (kafka_topic='impressions', value_format='JSON');", "CREATE STREAM clicks (user VARCHAR KEY, url VARCHAR) WITH (kafka_topic='clicks', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT I.USER, IMPRESSION_ID, I.URL AS URL FROM impressions i JOIN clicks c WITHIN 1 minute ON i.user = c.user WHERE i.url = c.url;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "CLICKS",
+        "type" : "STREAM",
+        "schema" : "`USER` STRING KEY, `URL` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "IMPRESSIONS",
+        "type" : "STREAM",
+        "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -68,8 +108,7 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          },
-          "partitions" : 4
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
@@ -81,7 +120,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "name" : "clicks",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -89,9 +128,10 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "partitions" : 4
         }, {
-          "name" : "clicks",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

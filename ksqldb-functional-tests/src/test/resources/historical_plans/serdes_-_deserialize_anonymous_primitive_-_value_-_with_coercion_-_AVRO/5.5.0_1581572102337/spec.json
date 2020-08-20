@@ -3,8 +3,14 @@
   "timestamp" : 1581572102337,
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "VARCHAR",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "deserialize anonymous primitive - value - with coercion - AVRO",
@@ -33,19 +39,25 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (FOO STRING) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='AVRO', WRAP_SINGLE_VALUE=false);", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "partitions" : 4
-        }, {
           "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
@@ -56,6 +68,17 @@
             "format" : "AVRO"
           },
           "partitions" : 1
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
         } ]
       }
     }

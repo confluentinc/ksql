@@ -29,7 +29,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Set;
 import java.util.function.BiFunction;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.KTable;
@@ -96,7 +95,7 @@ public final class TableSuppressBuilder {
 
     final Suppressed.StrictBufferConfig strictBufferConfig;
     final long maxBytes = queryBuilder.getKsqlConfig().getLong(
-        KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE);
+        KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE_BYTES);
 
     if (maxBytes < 0) {
       strictBufferConfig = Suppressed.BufferConfig.unbounded();

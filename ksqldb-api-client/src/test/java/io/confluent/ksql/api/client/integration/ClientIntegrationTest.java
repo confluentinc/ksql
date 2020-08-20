@@ -49,6 +49,7 @@ import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
@@ -871,6 +872,65 @@ public class ClientIntegrationTest {
             + "EMIT CHANGES;"));
     assertThat(queries.get(0).getSink(), is(Optional.of(AGG_TABLE)));
     assertThat(queries.get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
+  }
+
+  @Test
+  public void shouldDescribeSource() throws Exception {
+    // When
+    final SourceDescription description = client.describeSource(TEST_STREAM).get();
+
+    // Then
+    assertThat(description.name(), is(TEST_STREAM));
+    assertThat(description.type(), is("STREAM"));
+    assertThat(description.fields(), hasSize(TEST_COLUMN_NAMES.size()));
+    for (int i = 0; i < TEST_COLUMN_NAMES.size(); i++) {
+      assertThat(description.fields().get(i).name(), is(TEST_COLUMN_NAMES.get(i)));
+      assertThat(description.fields().get(i).type().getType(), is(TEST_COLUMN_TYPES.get(i).getType()));
+      final boolean isKey = TEST_COLUMN_NAMES.get(i).equals(TEST_DATA_PROVIDER.key());
+      assertThat(description.fields().get(i).isKey(), is(isKey));
+    }
+    assertThat(description.topic(), is(TEST_TOPIC));
+    assertThat(description.keyFormat(), is("KAFKA"));
+    assertThat(description.valueFormat(), is("JSON"));
+    assertThat(description.readQueries(), hasSize(1));
+    assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
+    assertThat(description.readQueries().get(0).getId(), is("CTAS_" + AGG_TABLE + "_0"));
+    assertThat(description.readQueries().get(0).getSql(), is(
+        "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+            + "  " + TEST_STREAM + ".STR STR,\n"
+            + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
+            + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
+            + "GROUP BY " + TEST_STREAM + ".STR\n"
+            + "EMIT CHANGES;"));
+    assertThat(description.readQueries().get(0).getSink(), is(Optional.of(AGG_TABLE)));
+    assertThat(description.readQueries().get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
+    assertThat(description.writeQueries(), hasSize(0));
+    assertThat(description.timestampColumn(), is(Optional.empty()));
+    assertThat(description.windowType(), is(Optional.empty()));
+    assertThat(description.sqlStatement(), is(
+        "CREATE STREAM " + TEST_STREAM + " (`STR` STRING KEY, `LONG` BIGINT, "
+            + "`DEC` DECIMAL(4, 2), `ARRAY` ARRAY<STRING>, `MAP` MAP<STRING, STRING>, "
+            + "`STRUCT` STRUCT<`F1` INTEGER>, `COMPLEX` STRUCT<`DECIMAL` DECIMAL(2, 1), "
+            + "`STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, `ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, "
+            + "`ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, `ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, "
+            + "`MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, `MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, "
+            + "`MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>) WITH "
+            + "(kafka_topic='" + TEST_TOPIC + "', value_format='json');"));
+  }
+
+  @Test
+  public void shouldHandleErrorResponseFromDescribeSource() {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.describeSource("NONEXISTENT").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
+    assertThat(e.getCause().getMessage(), containsString("Could not find STREAM/TABLE 'NONEXISTENT' in the Metastore"));
+    assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
   }
 
   private Client createClient() {

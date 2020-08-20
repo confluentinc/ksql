@@ -17,7 +17,7 @@ These topics show how to develop ksqlDB applications.
 - [Implement a User-defined Function (UDF, UDAF, and UDTF)](implement-a-udf)
 - [Partition Data to Enable Joins](joins/partition-data.md)
 - [Syntax Reference](syntax-reference.md)
-- [Serialization](serialization.md)
+- [Serialization Formats](serialization.md)
 - [Testing Tool](test-and-debug/ksqldb-testing-tool.md)
 - [ksqlDB REST API Reference](api.md)
 - [Processing Log](test-and-debug/processing-log.md)

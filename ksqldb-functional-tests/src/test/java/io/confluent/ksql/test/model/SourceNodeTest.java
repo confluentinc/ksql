@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.test.model;
 
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.serde.SerdeOption;
+import java.util.Collections;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -24,11 +27,36 @@ public class SourceNodeTest {
       "bob",
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
-      Optional.of(KeyFormatNodeTest.INSTANCE)
+      Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES))
+  );
+  static final SourceNode INSTANCE_WITHOUT_SERDE_OPTIONS = new SourceNode(
+      "bob",
+      "stream",
+      Optional.of("ROWKEY INT KEY, NAME STRING"),
+      Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.empty()
+  );
+  static final SourceNode INSTANCE_WITH_EMPTY_SERDE_OPTIONS = new SourceNode(
+      "bob",
+      "stream",
+      Optional.of("ROWKEY INT KEY, NAME STRING"),
+      Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of(Collections.emptySet())
   );
 
   @Test
   public void shouldRoundTrip() {
     ModelTester.assertRoundTrip(INSTANCE);
+  }
+
+  @Test
+  public void shouldRoundTripWithoutSerdeOptions() {
+    ModelTester.assertRoundTrip(INSTANCE_WITHOUT_SERDE_OPTIONS);
+  }
+
+  @Test
+  public void shouldRoundTripWithEmptySerdeOptions() {
+    ModelTester.assertRoundTrip(INSTANCE_WITH_EMPTY_SERDE_OPTIONS);
   }
 }

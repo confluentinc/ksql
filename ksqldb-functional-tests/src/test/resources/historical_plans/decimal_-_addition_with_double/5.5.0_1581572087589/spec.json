@@ -3,8 +3,14 @@
   "timestamp" : 1581572087589,
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
-    "CSAS_TEST2_0.KsqlTopic.Source" : "STRUCT<A DECIMAL(4, 2), B DOUBLE> NOT NULL",
-    "CSAS_TEST2_0.TEST2" : "STRUCT<RESULT DOUBLE> NOT NULL"
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ROWKEY` STRING KEY, `RESULT` DOUBLE",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "addition with double",
@@ -87,9 +93,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (A DECIMAL(4, 2), B DOUBLE) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='AVRO');", "CREATE STREAM TEST2 AS SELECT (TEST.A + TEST.B) RESULT\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `RESULT` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "TEST2",
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -100,7 +123,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test",
+          "name" : "TEST2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

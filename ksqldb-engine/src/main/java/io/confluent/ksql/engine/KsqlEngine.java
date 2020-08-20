@@ -285,8 +285,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
 
     if (query.hasEverBeenStarted()) {
-      SchemaRegistryUtil
-          .cleanupInternalTopicSchemas(applicationId, serviceContext.getSchemaRegistryClient());
+      SchemaRegistryUtil.cleanupInternalTopicSchemas(
+          applicationId,
+          serviceContext.getSchemaRegistryClient(),
+          query instanceof TransientQueryMetadata);
+
       serviceContext.getTopicClient().deleteInternalTopics(applicationId);
     }
 

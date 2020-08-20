@@ -24,8 +24,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -95,10 +95,11 @@ public class Command {
     this.plan = requireNonNull(plan, "plan");
     this.version = requireNonNull(version, "version");
 
-    if (expectedVersion != version.orElse(0)) {
-      throw new KsqlException(
+    if (expectedVersion < version.orElse(0)) {
+      throw new IncomaptibleKsqlCommandVersionException(
           "Received a command from an incompatible command topic version. "
-              + "Expected " + expectedVersion + " but got " + version.orElse(0));
+              + "Expected version less than or equal to " + expectedVersion
+              + " but got " + version.orElse(0));
     }
   }
 

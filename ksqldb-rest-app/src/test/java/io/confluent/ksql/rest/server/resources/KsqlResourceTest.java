@@ -132,6 +132,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -277,6 +278,8 @@ public class KsqlResourceTest {
   @Mock
   private CommandStore commandStore;
   @Mock
+  private CommandRunner commandRunner;
+  @Mock
   private ActivenessRegistrar activenessRegistrar;
   @Mock
   private Function<ServiceContext, Injector> schemaInjectorFactory;
@@ -339,6 +342,7 @@ public class KsqlResourceTest {
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
+    when(commandRunner.getCommandQueue()).thenReturn(commandStore);
     when(commandStore.createTransactionalProducer())
         .thenReturn(transactionalProducer);
 
@@ -399,7 +403,7 @@ public class KsqlResourceTest {
     // Given:
     ksqlResource = new KsqlResource(
         ksqlEngine,
-        commandStore,
+        commandRunner,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
@@ -430,7 +434,7 @@ public class KsqlResourceTest {
     // Given:
     ksqlResource = new KsqlResource(
         ksqlEngine,
-        commandStore,
+        commandRunner,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
@@ -2180,7 +2184,7 @@ public class KsqlResourceTest {
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
         ksqlEngine,
-        commandStore,
+        commandRunner,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
@@ -2224,7 +2228,7 @@ public class KsqlResourceTest {
     // Given:
     ksqlResource = new KsqlResource(
         ksqlEngine,
-        commandStore,
+        commandRunner,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(

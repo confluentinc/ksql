@@ -719,16 +719,6 @@ public final class KsqlRestApplication implements Executable {
         denyListPropertyValidator
     );
 
-    final KsqlResource ksqlResource = new KsqlResource(
-        ksqlEngine,
-        commandStore,
-        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime,
-        authorizationValidator,
-        errorHandler,
-        denyListPropertyValidator
-    );
-
     final List<String> managedTopics = new LinkedList<>();
     managedTopics.add(commandTopicName);
     if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
@@ -746,6 +736,16 @@ public final class KsqlRestApplication implements Executable {
             KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
         metricsPrefix,
         InternalTopicSerdes.deserializer(Command.class)
+    );
+  
+    final KsqlResource ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandRunner,
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        versionChecker::updateLastRequestTime,
+        authorizationValidator,
+        errorHandler,
+        denyListPropertyValidator
     );
 
     final QueryMonitor queryMonitor = new QueryMonitor(ksqlConfig, ksqlEngine);

@@ -19,6 +19,12 @@ import io.confluent.ksql.util.ErrorMessageUtil;
 
 public class DefaultErrorMessages implements ErrorMessages {
 
+  static String COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE =
+      "The server has encountered an incompatible entry in its log "
+          + "and cannot process further DDL statements."
+          + System.lineSeparator()
+          + "This is most likely due to the service being rolled back to an earlier version.";
+
   @Override
   public String kafkaAuthorizationErrorMessage(final Exception e) {
     return ErrorMessageUtil.buildErrorMessage(e);
@@ -41,5 +47,10 @@ public class DefaultErrorMessages implements ErrorMessages {
   @Override
   public String schemaRegistryUnconfiguredErrorMessage(final Exception e) {
     return ErrorMessageUtil.buildErrorMessage(e);
+  }
+
+  @Override
+  public String commandRunnerDegradedErrorMessage() {
+    return COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE;
   }
 }

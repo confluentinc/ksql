@@ -37,7 +37,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.ServerUtil;
-import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
@@ -93,7 +93,7 @@ public class KsqlResource implements KsqlConfigurable {
           .build();
 
   private final KsqlEngine ksqlEngine;
-  private final CommandQueue commandQueue;
+  private final CommandRunner commandRunner;
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
@@ -107,7 +107,7 @@ public class KsqlResource implements KsqlConfigurable {
 
   public KsqlResource(
       final KsqlEngine ksqlEngine,
-      final CommandQueue commandQueue,
+      final CommandRunner commandRunner,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
@@ -116,7 +116,7 @@ public class KsqlResource implements KsqlConfigurable {
   ) {
     this(
         ksqlEngine,
-        commandQueue,
+        commandRunner,
         distributedCmdResponseTimeout,
         activenessRegistrar,
         Injectors.DEFAULT,
@@ -128,7 +128,7 @@ public class KsqlResource implements KsqlConfigurable {
 
   KsqlResource(
       final KsqlEngine ksqlEngine,
-      final CommandQueue commandQueue,
+      final CommandRunner commandRunner,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
@@ -137,7 +137,7 @@ public class KsqlResource implements KsqlConfigurable {
       final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
+    this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.activenessRegistrar =
@@ -180,17 +180,19 @@ public class KsqlResource implements KsqlConfigurable {
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
             config,
-            commandQueue,
+            commandRunner.getCommandQueue(),
             distributedCmdResponseTimeout,
             injectorFactory,
             authorizationValidator,
             new ValidatedCommandFactory(),
-            errorHandler
+            errorHandler,
+            () -> commandRunner.checkCommandRunnerStatus()
+                == CommandRunner.CommandRunnerStatus.DEGRADED
         ),
         ksqlEngine,
         config,
         new DefaultCommandQueueSync(
-            commandQueue,
+            commandRunner.getCommandQueue(),
             KsqlResource::shouldSynchronize,
             distributedCmdResponseTimeout
         )
@@ -239,7 +241,7 @@ public class KsqlResource implements KsqlConfigurable {
 
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
-          commandQueue,
+          commandRunner.getCommandQueue(),
           request,
           distributedCmdResponseTimeout);
 

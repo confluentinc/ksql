@@ -68,6 +68,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
@@ -130,6 +132,8 @@ public class DistributingExecutorTest {
   private Command command;
   @Mock
   private Errors errorHandler;
+  @Mock
+  private Supplier<Boolean> commandRunnerDegraded;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -146,6 +150,7 @@ public class DistributingExecutorTest {
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
     when(executionContext.getMetaStore()).thenReturn(metaStore);
     when(executionContext.createSandbox(any())).thenReturn(sandboxContext);
+    when(commandRunnerDegraded.get()).thenReturn(false);
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
     when(validatedCommandFactory.create(any(), any())).thenReturn(command);
@@ -160,7 +165,8 @@ public class DistributingExecutorTest {
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         Optional.of(authorizationValidator),
         validatedCommandFactory,
-        errorHandler
+        errorHandler,
+        commandRunnerDegraded
     );
   }
 
@@ -223,6 +229,18 @@ public class DistributingExecutorTest {
     // Then:
     assertThat(commandStatusEntity,
         equalTo(new CommandStatusEntity("", CS_COMMAND, SUCCESS_STATUS, 1L)));
+  }
+
+  @Test
+  public void shouldNotInitTransactionWhenCommandRunnerDegraded() {
+    // When:
+    when(commandRunnerDegraded.get()).thenReturn(true);
+
+    // Then:
+    assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
   }
 
   @Test

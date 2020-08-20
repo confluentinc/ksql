@@ -648,9 +648,9 @@ See the [API reference](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-
 for more information.  
 
 Describe specific streams and tables<a name="describe-source"></a>
-------------------------------------------------------------------------
+------------------------------------------------------------------
 
-Starting with ksqlDB 0.12.0, the `describeSource()` method allows client apps
+Starting with ksqlDB 0.12.0, the `describeSource()` method enables client apps
 to fetch metadata for existing ksqlDB streams and tables.
 The metadata returned from this method includes the stream or table's underlying
 topic name, column names and associated types, serialization formats, queries that

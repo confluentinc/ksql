@@ -118,7 +118,10 @@ public class KsqlTesterTest {
     final Path testDir = Paths.get(KsqlTesterTest.class.getResource(TEST_DIR).getFile());
     final SqlTestLoader loader = new SqlTestLoader(testDir);
     return loader.load()
-        .map(SqlTest::asObjectArray)
+        .map(test -> new Object[]{
+            "(" + test.getFile().toFile().getName() + ") " + test.getName(),
+            test.getFile(),
+            test.getStatements()})
         .toArray(Object[][]::new);
   }
 

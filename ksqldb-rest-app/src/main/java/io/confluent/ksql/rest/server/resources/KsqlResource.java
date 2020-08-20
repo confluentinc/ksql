@@ -34,8 +34,10 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
@@ -61,12 +63,14 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
@@ -276,6 +280,11 @@ public class KsqlResource implements KsqlConfigurable {
       );
 
       LOG.info("Processed successfully: " + request);
+      addCommandRunnerDegradedWarning(
+          entities,
+          errorHandler,
+          () -> commandRunner.checkCommandRunnerStatus()
+              == CommandRunner.CommandRunnerStatus.DEGRADED);
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
@@ -314,5 +323,18 @@ public class KsqlResource implements KsqlConfigurable {
             throw new KsqlRestException(Errors.badRequest("Invalid pattern: " + pattern));
           }
         });
+  }
+
+  private static void addCommandRunnerDegradedWarning(
+      final KsqlEntityList entityList,
+      final Errors errorHandler,
+      final Supplier<Boolean> commandRunnerDegraded
+  ) {
+    if (commandRunnerDegraded.get()) {
+      for (final KsqlEntity entity: entityList) {
+        entity.updateWarnings(Collections.singletonList(
+            new KsqlWarning(errorHandler.commandRunnerDegradedErrorMessage())));
+      }
+    }
   }
 }

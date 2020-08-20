@@ -9,23 +9,6 @@
            data ksqlDB can work with. Extending the set of key formats ksqlDB supports immediately
            opens up the use of ksqlDB with previously incompatible datasets.
            
-           
-## Outstanding questions / decisions:
-
-* DataGen: Do we end-of-life our DataGen in favour of the datagen connector or update DataGen to support
-  other key formats?
-  - switching to th datagen connector is more work.
-  - enhancing DataGen may be redundant work.
-  - we could choose to do neither in the scope of this KLIP, leaving DataGen only publishing `KAFKA`
-    format, if acceptable.
-    
-* Cost based optimiser: Do we price the cost of repartitioning tables _slightly_ less than streams?
-  Based on the BIG _assumption_ that streams, _on average_, see higher throughput than tables.
-  
-* How to handle key-less streams? If the default key format is one that supports the schema registry,
-  should we / can we register an empty schema? If not, how can we differentiate a missing schema, i.e.
-  an error, from a key-less stream?
-           
 ## Motivation and background
 
 Data stored in Kafka has a key and a value. These can be serialized using different formats, but are
@@ -196,9 +179,6 @@ anyway, as they are joining on something other than the key, and which don't. Ch
 format of a source that needs to be repartitioned anyway is 'free'. Changing the key format of a 
 source that doesn't already need a repartition will have a fixed cost.  The formats with the lowest
 repartitioning cost wins. 
-
-**Q: we could price repartitioning tables _slightly_ less than streams if we think there's any 
-reason to assume that _on average_ they see less throughput**
 
 Such repartitioning is possible and safe... ish, even for tables, because the logical key of the 
 data will not have changed, only the serialization format. This ensures the ordering of updates to 

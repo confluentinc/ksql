@@ -21,6 +21,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -37,11 +38,17 @@ public final class DropConnectorExecutor {
       final ServiceContext serviceContext
   ) {
     final String connectorName = statement.getStatement().getConnectorName();
+    final boolean ifExists = statement.getStatement().getIfExists();
     final ConnectResponse<String> response =
         serviceContext.getConnectClient().delete(connectorName);
 
     if (response.error().isPresent()) {
-      return Optional.of(new ErrorEntity(statement.getStatementText(), response.error().get()));
+      if (ifExists && response.httpCode() == 404) {
+        return Optional.of(new WarningEntity(statement.getStatementText(),
+                "Connector '" + connectorName + "' does not exist."));
+      } else {
+        return Optional.of(new ErrorEntity(statement.getStatementText(), response.error().get()));
+      }
     }
 
     return Optional.of(new DropConnectorEntity(statement.getStatementText(), connectorName));

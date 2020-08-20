@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
@@ -48,15 +49,25 @@ public class DropConnectorExecutorTest {
 
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
-  private static final DropConnector CREATE_CONNECTOR = new DropConnector(Optional.empty(), "foo");
+  private static final DropConnector DROP_CONNECTOR =
+          new DropConnector(Optional.empty(), false, "foo");
+  private static final DropConnector DROP_CONNECTOR_IF_EXISTS =
+          new DropConnector(Optional.empty(), true, "foo");
 
   private static final ConfiguredStatement<DropConnector> DROP_CONNECTOR_CONFIGURED =
       ConfiguredStatement.of(
           PreparedStatement.of(
               "DROP CONNECTOR \"foo\"",
-              CREATE_CONNECTOR),
+              DROP_CONNECTOR),
           ImmutableMap.of(),
           CONFIG);
+  private static final ConfiguredStatement<DropConnector> DROP_CONNECTOR_IF_EXISTS_CONFIGURED =
+      ConfiguredStatement.of(
+           PreparedStatement.of(
+               "DROP CONNECTOR \"foo\"",
+               DROP_CONNECTOR_IF_EXISTS),
+           ImmutableMap.of(),
+           CONFIG);
 
   @Mock
   private ServiceContext serviceContext;
@@ -106,10 +117,28 @@ public class DropConnectorExecutorTest {
     // When:
     final Optional<KsqlEntity> entity = DropConnectorExecutor
         .execute(DROP_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+    final Optional<KsqlEntity> entityIfExists = DropConnectorExecutor
+            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
     assertThat(entity.get(), instanceOf(ErrorEntity.class));
+    assertThat("Expected non-empty response", entityIfExists.isPresent());
+    assertThat(entityIfExists.get(), instanceOf(ErrorEntity.class));
   }
 
+  @Test
+  public void shouldReturnWarningIfNotExist() {
+    // Given:
+    when(connectClient.delete(anyString()))
+            .thenReturn(ConnectResponse.failure("Danger Mouse!", HttpStatus.SC_NOT_FOUND));
+
+    // When:
+    final Optional<KsqlEntity> entity = DropConnectorExecutor
+            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+
+    // Then:
+    assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(WarningEntity.class));
+  }
 }

@@ -394,6 +394,7 @@ public class AstBuilder {
     public Node visitDropConnector(final DropConnectorContext context) {
       return new DropConnector(
           getLocation(context),
+          context.EXISTS() != null,
           ParserUtil.getIdentifierText(context.identifier())
       );
     }

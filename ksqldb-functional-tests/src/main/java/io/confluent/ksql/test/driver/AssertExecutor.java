@@ -21,7 +21,6 @@ import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.AssertTable;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;

@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
@@ -368,6 +369,21 @@ public final class SqlFormatter {
       visitColumns(node.getStatement().getColumns());
 
       builder.append("VALUES ");
+
+      visitExpressionList(node.getStatement().getValues());
+
+      return null;
+    }
+
+    @Override
+    public Void visitAssertTombstone(final AssertTombstone node, final Integer context) {
+      builder.append("ASSERT NULL VALUES ");
+      builder.append(escapedName(node.getStatement().getTarget()));
+      builder.append(" ");
+
+      visitColumns(node.getStatement().getColumns());
+
+      builder.append("KEY ");
 
       visitExpressionList(node.getStatement().getValues());
 

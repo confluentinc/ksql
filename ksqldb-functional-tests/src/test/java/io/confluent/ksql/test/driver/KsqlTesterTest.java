@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -268,13 +269,15 @@ public class KsqlTesterTest {
     );
   }
 
-  private void doAssert(final AssertStatement assertStatement) {
-    if (assertStatement instanceof AssertValues) {
-      AssertExecutor.assertValues(engine, config, (AssertValues) assertStatement, driverPipeline);
-    } else if (assertStatement instanceof AssertStream) {
-      AssertExecutor.assertStream(((AssertStream) assertStatement));
-    } else if (assertStatement instanceof AssertTable) {
-      AssertExecutor.assertTable(((AssertTable) assertStatement));
+  private void doAssert(final AssertStatement statement) {
+    if (statement instanceof AssertValues) {
+      AssertExecutor.assertValues(engine, config, (AssertValues) statement, driverPipeline);
+    } else if (statement instanceof AssertTombstone) {
+      AssertExecutor.assertTombstone(engine, config, (AssertTombstone) statement, driverPipeline);
+    } else if (statement instanceof AssertStream) {
+      AssertExecutor.assertStream(((AssertStream) statement));
+    } else if (statement instanceof AssertTable) {
+      AssertExecutor.assertTable(((AssertTable) statement));
     }
   }
 

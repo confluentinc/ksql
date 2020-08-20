@@ -85,6 +85,7 @@ statement
 
 assertStatement
     : ASSERT VALUES sourceName (columns)? VALUES values                     #assertValues
+    | ASSERT NULL VALUES sourceName (columns)? KEY values                   #assertTombstone
     | ASSERT STREAM sourceName (tableElements)? (WITH tableProperties)?     #assertStream
     | ASSERT TABLE sourceName (tableElements)? (WITH tableProperties)?      #assertTable
     ;

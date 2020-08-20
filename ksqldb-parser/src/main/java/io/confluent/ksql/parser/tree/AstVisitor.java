@@ -193,4 +193,8 @@ public abstract class AstVisitor<R, C> {
   public R visitAssertTable(final AssertTable node, final C context) {
     return visitStatement(node.getStatement(), context);
   }
+
+  public R visitAssertTombstone(final AssertTombstone node, final C context) {
+    return visitStatement(node.getStatement(), context);
+  }
 }

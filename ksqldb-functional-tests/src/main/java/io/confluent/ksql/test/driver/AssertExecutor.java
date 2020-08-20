@@ -22,12 +22,14 @@ import io.confluent.ksql.engine.generic.KsqlGenericRecord;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.AssertTable;
 import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Iterator;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.test.TestRecord;
 
@@ -47,13 +49,33 @@ public final class AssertExecutor {
       final TestDriverPipeline driverPipeline
   ) {
     final InsertValues values = assertValues.getStatement();
+    assertContent(engine, config, values, driverPipeline, false);
+  }
+
+  public static void assertTombstone(
+      final KsqlExecutionContext engine,
+      final KsqlConfig config,
+      final AssertTombstone assertTombstone,
+      final TestDriverPipeline driverPipeline
+  ) {
+    final InsertValues values = assertTombstone.getStatement();
+    assertContent(engine, config, values, driverPipeline, true);
+  }
+
+  private static void assertContent(
+      final KsqlExecutionContext engine,
+      final KsqlConfig config,
+      final InsertValues values,
+      final TestDriverPipeline driverPipeline,
+      final boolean isTombstone
+  ) {
     final boolean compareTimestamp = values
         .getColumns()
         .stream()
         .anyMatch(SystemColumns.ROWTIME_NAME::equals);
 
     final DataSource dataSource = engine.getMetaStore().getSource(values.getTarget());
-    final KsqlGenericRecord expected = new GenericRecordFactory(
+    KsqlGenericRecord expected = new GenericRecordFactory(
         config, engine.getMetaStore(), System::currentTimeMillis
     ).build(
         values.getColumns(),
@@ -61,6 +83,13 @@ public final class AssertExecutor {
         dataSource.getSchema(),
         dataSource.getDataSourceType()
     );
+
+    if (isTombstone) {
+      if (expected.value.values().stream().anyMatch(Objects::nonNull)) {
+        throw new KsqlException("Unexpected value columns specified in ASSERT NULL VALUES.");
+      }
+      expected = KsqlGenericRecord.of(expected.key, null, expected.ts);
+    }
 
     final Iterator<TestRecord<Struct, GenericRow>> records = driverPipeline
         .getRecordsForTopic(dataSource.getKafkaTopicName());

@@ -141,14 +141,6 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
     public List<TestStatement> getStatements() {
       return statements;
     }
-
-    /**
-     * @return an {@code Object[]} representation of this class used for Parameterized
-     *         JUnit testing. The representation is [name, file, statements]
-     */
-    public Object[] asObjectArray() {
-      return new Object[]{name, file, statements};
-    }
   }
 
 }

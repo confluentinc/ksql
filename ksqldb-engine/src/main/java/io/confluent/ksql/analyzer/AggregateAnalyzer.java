@@ -32,7 +32,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -276,16 +275,19 @@ public class AggregateAnalyzer {
   /**
    * This visitor performs two tasks: Create the input schema to the AggregateNode and validations.
    *
-   * For creating the input schema, it checks if any expression along the path from the root
+   * <p>For creating the input schema, it checks if any expression along the path from the root
    * expression to the leaf (UnqualifiedColumnReference) is part of the groupBy. If at least one is,
    * then the UnqualifiedColumnReference is added to the schema.
    *
-   * For validation, the visitor checks that:
-   * 1) expressions in non-aggregate functions are part of the grouping clause,
-   * 2) aggregate functions are not nested
-   * 3) window clauses (windowstart, windowend) don't appear in aggregate functions or groupBy
-   * 4) aggregate functions don't appear in the groupBy clause
-   * 5) expressions in the having clause are either aggregate functions or grouping keys
+   * <p>For validation, the visitor checks that:
+   * <ol>
+   *  <li> expressions not in aggregate functions are part of the grouping clause </li>
+   *  <li> aggregate functions are not nested </li>
+   *  <li> window clauses (windowstart, windowend) don't appear in aggregate functions or
+   *  groupBy </li>
+   *  <li> aggregate functions don't appear in the groupBy clause </li>
+   *  <li> expressions in the having clause are either aggregate functions or grouping keys </li>
+   * </ol>
    */
   private static final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
 
@@ -294,7 +296,7 @@ public class AggregateAnalyzer {
     private final MutableAggregateAnalysis aggregateAnalysis;
     private final FunctionRegistry functionRegistry;
     private final Set<Expression> groupBy;
-    private Pair<Expression, Boolean> currentlyInExpressionPartOfGroupBy;
+    private Expression currentlyInExpressionPartOfGroupBy;
 
     private Optional<FunctionName> aggFunctionName = Optional.empty();
     private boolean currentlyInAggregateFunction = false;
@@ -314,11 +316,11 @@ public class AggregateAnalyzer {
     @Override
     public Void process(final Expression node, final Void context) {
       if (groupBy.contains(node) && currentlyInExpressionPartOfGroupBy == null) {
-        currentlyInExpressionPartOfGroupBy = new Pair<>(node, true);
+        currentlyInExpressionPartOfGroupBy = node;
       }
       super.process(node, context);
       if (currentlyInExpressionPartOfGroupBy != null
-          && currentlyInExpressionPartOfGroupBy.getLeft() == node) {
+          && currentlyInExpressionPartOfGroupBy == node) {
         currentlyInExpressionPartOfGroupBy = null;
       }
       return null;

@@ -268,8 +268,20 @@ public abstract class QueryMetadata {
     queryStateListener.ifPresent(this::setQueryStateListener);
   }
 
+  protected void startKafkaStreams() {
+    kafkaStreams.start();
+  }
+
   protected void closeKafkaStreams() {
     kafkaStreams.close(Duration.ofMillis(closeTimeout));
+  }
+
+  protected void cleanUpKafkaStreams() {
+    kafkaStreams.cleanUp();
+  }
+
+  protected void closeStateListener() {
+    queryStateListener.ifPresent(QueryStateListener::close);
   }
 
   protected KafkaStreams buildKafkaStreams() {
@@ -306,10 +318,10 @@ public abstract class QueryMetadata {
     closeKafkaStreams();
 
     if (cleanUp) {
-      kafkaStreams.cleanUp();
+      cleanUpKafkaStreams();
     }
 
-    queryStateListener.ifPresent(QueryStateListener::close);
+    closeStateListener();
 
     if (cleanUp) {
       closeCallback.accept(this);
@@ -320,7 +332,7 @@ public abstract class QueryMetadata {
   public void start() {
     LOG.info("Starting query with application id: {}", queryApplicationId);
     everStarted = true;
-    kafkaStreams.start();
+    startKafkaStreams();
   }
 
   public void clearErrors() {

@@ -40,12 +40,13 @@ import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.Optional;
+import org.apache.kafka.common.utils.Time;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
@@ -59,6 +60,9 @@ public class PullQueryExecutorTest {
     public final TemporaryEngine engine = new TemporaryEngine()
         .withConfigs(ImmutableMap.of(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG, false));
 
+    @Mock
+    private Time time;
+
     @Test
     public void shouldThrowExceptionIfConfigDisabled() {
       // Given:
@@ -70,13 +74,13 @@ public class PullQueryExecutorTest {
           engine.getKsqlConfig()
       );
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(),
+          engine.getEngine().getServiceId(), time);
 
       // When:
       final Exception e = assertThrows(
           KsqlException.class,
-          () -> pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty(),
-              Optional.empty())
+          () -> pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty(), 0L)
       );
 
       // Then:
@@ -128,10 +132,14 @@ public class PullQueryExecutorTest {
     public final TemporaryEngine engine = new TemporaryEngine()
         .withConfigs(ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG, 2));
 
+    @Mock
+    private Time time;
+
     @Test
     public void shouldRateLimit() {
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(),
+          engine.getEngine().getServiceId(), time);
 
       // When:
       pullQueryExecutor.checkRateLimit();

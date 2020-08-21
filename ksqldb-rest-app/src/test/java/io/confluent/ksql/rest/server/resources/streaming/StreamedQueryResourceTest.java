@@ -101,6 +101,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -138,6 +139,7 @@ public class StreamedQueryResourceTest {
   private static final String PULL_QUERY_STRING =
       "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
   private static final String PRINT_TOPIC = "Print TEST_TOPIC;";
+  private static final String SERVICE_ID = "service_id";
 
   private static final RoutingFilterFactory ROUTING_FILTER_FACTORY =
       (routingOptions, hosts, active, applicationQueryId, storeName, partition) ->
@@ -163,6 +165,8 @@ public class StreamedQueryResourceTest {
   private Errors errorsHandler;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private Time time;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -187,7 +191,7 @@ public class StreamedQueryResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     pullQueryExecutor = new PullQueryExecutor(
-        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG);
+        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, SERVICE_ID, time);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,

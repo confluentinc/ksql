@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import static java.util.Optional.empty;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -37,7 +35,6 @@ import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
@@ -82,8 +79,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private KsqlConfig ksqlConfig;
   private final PullQueryExecutor pullQueryExecutor;
-  private Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final Time time;
   private final DenyListPropertyValidator denyListPropertyValidator;
 
   public StreamedQueryResource(
@@ -140,7 +135,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
-    this.time = Time.SYSTEM;
   }
 
   @Override
@@ -150,13 +144,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
 
     ksqlConfig = config;
-    final Boolean collectMetrics = ksqlConfig.getBoolean(
-        KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED);
-    this.pullQueryMetrics = collectMetrics
-        ? Optional.of(new PullQueryExecutorMetrics(
-        ksqlEngine.getServiceId(),
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
-        : empty();
   }
 
   public EndpointResponse streamQuery(
@@ -165,7 +152,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest
   ) {
-    final long startTime = time.nanoseconds();
+    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
@@ -175,14 +162,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
         commandQueue, request, commandQueueCatchupTimeout);
 
-    return handleStatement(securityContext, request, statement, startTime, connectionClosedFuture,
-        isInternalRequest);
-  }
-
-  public void closeMetrics() {
-    if (pullQueryMetrics != null) {
-      pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
-    }
+    return handleStatement(securityContext, request, statement, connectionClosedFuture,
+        isInternalRequest, startTimeNanos);
   }
 
   private void throwIfNotConfigured() {
@@ -209,9 +190,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request,
       final PreparedStatement<?> statement,
-      final long startTime,
       final CompletableFuture<Void> connectionClosedFuture,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final long startTimeNanos
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -233,14 +214,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
               queryStmt,
               configProperties,
               request.getRequestProperties(),
-              isInternalRequest
+              isInternalRequest,
+              startTimeNanos
           );
-          if (pullQueryMetrics.isPresent()) {
-            //Record latency at microsecond scale
-            final double latency = (time.nanoseconds() - startTime) / 1000f;
-            pullQueryMetrics.get().recordLatency(latency);
-            pullQueryMetrics.get().recordRate(1);
-          }
           return response;
         }
 
@@ -277,13 +253,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final PreparedStatement<Query> statement,
       final Map<String, Object> configOverrides,
       final Map<String, Object> requestProperties,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final long startTimeNanos
   ) {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
 
     final PullQueryResult result = pullQueryExecutor
-        .execute(configured, serviceContext, pullQueryMetrics, isInternalRequest);
+        .execute(configured, serviceContext, isInternalRequest, startTimeNanos);
     final TableRows tableRows = result.getTableRows();
     final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
         .map(KsqlNode::location)

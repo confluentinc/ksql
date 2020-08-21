@@ -130,6 +130,7 @@
         <jetty.version>9.4.28.v20200408</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
+        <apache.io.version>2.6</apache.io.version>
     </properties>
 
     <dependencyManagement>
@@ -396,6 +397,12 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${lang3.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${apache.io.version}</version>
             </dependency>
 
             <dependency>

@@ -57,6 +57,7 @@ import io.confluent.ksql.test.tools.TestFunctionRegistry;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -66,6 +67,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -74,7 +76,9 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -92,6 +96,9 @@ public class KsqlTesterTest {
       .put(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 0L)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .build();
+
+  @Rule
+  public final TemporaryFolder tmpFolder = TemporaryFolder.builder().build();
 
   // parameterized
   private final Path file;
@@ -203,9 +210,10 @@ public class KsqlTesterTest {
     final Topology topology = query.getTopology();
     final Properties properties = new Properties();
     properties.putAll(query.getStreamsProperties());
+    properties.put(StreamsConfig.STATE_DIR_CONFIG, tmpFolder.getRoot().getAbsolutePath());
 
     final TopologyTestDriver driver = new TopologyTestDriver(topology, properties);
-    query.onStop(driver::close);
+    query.onStop(deleteState -> closeDriver(driver, properties, deleteState));
 
     final List<TopicInfo> inputTopics = query
         .getSourceNames()
@@ -222,6 +230,38 @@ public class KsqlTesterTest {
     );
 
     driverPipeline.addDriver(driver, inputTopics, outputInfo);
+  }
+
+  private void closeDriver(
+      final TopologyTestDriver driver,
+      final Properties properties,
+      final boolean deleteState
+  ) {
+    // this is a hack that lets us close the driver (releasing the lock on the state
+    // directory) without actually cleaning up the resources. This essentially simulates
+    // the behavior we have in QueryMetadata#close vs QueryMetadata#stop
+    //
+    // in production we have the additional safeguard of changelog topics, but the
+    // test driver doesn't support pre-loading state stores from changelog topics,
+    // so we're stuck with the solution of preserving the state store
+    final String appId = properties.getProperty(StreamsConfig.APPLICATION_ID_CONFIG);
+    final File stateDir = tmpFolder.getRoot().toPath().resolve(appId).toFile();
+    final File tmp = tmpFolder.getRoot().toPath().resolve("tmp_" + appId).toFile();
+
+    try {
+      if (!deleteState && stateDir.exists()) {
+        FileUtils.copyDirectory(stateDir, tmp);
+      }
+
+      driver.close();
+
+      if (tmp.exists()) {
+        FileUtils.copyDirectory(tmp, stateDir);
+        FileUtils.deleteDirectory(tmp);
+      }
+    } catch (final IOException e) {
+      throw new KsqlException(e);
+    }
   }
 
   private void createTopics(final PreparedStatement<?> engineStatement) {

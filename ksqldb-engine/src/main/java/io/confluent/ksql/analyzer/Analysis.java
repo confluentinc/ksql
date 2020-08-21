@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -41,7 +40,6 @@ import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -275,28 +273,23 @@ public class Analysis implements ImmutableAnalysis {
     private final SourceName name;
     private final KsqlTopic topic;
     private final boolean create;
-    private final ImmutableSet<SerdeOption> defaultSerdeOptions;
 
     public static Into of(
         final SourceName name,
         final boolean create,
-        final KsqlTopic topic,
-        final Set<SerdeOption> defaultSerdeOptions
+        final KsqlTopic topic
     ) {
-      return new Into(name, create, topic, defaultSerdeOptions);
+      return new Into(name, create, topic);
     }
 
     private Into(
         final SourceName name,
         final boolean create,
-        final KsqlTopic topic,
-        final Set<SerdeOption> defaultSerdeOptions
+        final KsqlTopic topic
     ) {
       this.name = requireNonNull(name, "name");
       this.create = create;
       this.topic = requireNonNull(topic, "topic");
-      this.defaultSerdeOptions = ImmutableSet
-          .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
     }
 
     public SourceName getName() {
@@ -309,10 +302,6 @@ public class Analysis implements ImmutableAnalysis {
 
     public KsqlTopic getKsqlTopic() {
       return topic;
-    }
-
-    public ImmutableSet<SerdeOption> getDefaultSerdeOptions() {
-      return defaultSerdeOptions;
     }
   }
 

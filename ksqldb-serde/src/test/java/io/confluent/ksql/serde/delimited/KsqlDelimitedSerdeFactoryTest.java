@@ -29,7 +29,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Delimiter;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
@@ -98,7 +98,7 @@ public class KsqlDelimitedSerdeFactoryTest {
         .valueColumn(ColumnName.of("v0"), fieldSchema)
         .build();
 
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, SerdeOption.none());
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, SerdeOptions.of());
     return physicalSchema.valueSchema();
   }
 }

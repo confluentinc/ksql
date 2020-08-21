@@ -29,7 +29,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
 
@@ -69,7 +69,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("TEST0"),
         test1Schema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false, 
         ksqlTopic0
@@ -87,7 +87,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("TEST1"),
         test1Schema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopic1
@@ -112,7 +112,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("TEST2"),
         test2Schema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopic2
@@ -160,7 +160,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("ORDERS"),
         ordersSchema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -185,7 +185,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("TEST3"),
         testTable3,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopic3
@@ -222,7 +222,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("NESTED_STREAM"),
         nestedArrayStructMapSchema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         nestedArrayStructMapTopic
@@ -240,7 +240,7 @@ public final class MetaStoreFixture {
         "sqlexpression4",
         SourceName.of("TEST4"),
         test1Schema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopic4
@@ -265,7 +265,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("SENSOR_READINGS"),
         sensorReadingsSchema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopicSensorReadings

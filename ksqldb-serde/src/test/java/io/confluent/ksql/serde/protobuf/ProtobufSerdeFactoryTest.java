@@ -87,33 +87,4 @@ public class ProtobufSerdeFactoryTest {
 
     // Then (did not throw)
   }
-
-  @Test
-  public void shouldThrowIfUnwrapped() {
-    // Given:
-    when(schema.isUnwrapped())
-        .thenReturn(true);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> factory.validate(schema)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), is("'WRAP_SINGLE_VALUE' can not be set to 'false' for 'PROTOBUF' "
-        + "as it does not support unwrapping"));
-  }
-
-  @Test
-  public void shouldNotThrowIfWrapped() {
-    // Given:
-    when(schema.isUnwrapped())
-        .thenReturn(false);
-
-    // When:
-    factory.validate(schema);
-
-    // Then (did not throw)
-  }
 }

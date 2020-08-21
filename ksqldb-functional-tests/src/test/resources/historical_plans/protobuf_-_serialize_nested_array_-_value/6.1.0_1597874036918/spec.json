@@ -1,0 +1,108 @@
+{
+  "version" : "6.1.0",
+  "timestamp" : 1597874036918,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`FOO` ARRAY<BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`FOO` ARRAY<BIGINT>",
+      "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
+    }
+  },
+  "testCase" : {
+    "name" : "serialize nested array - value",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : [ 12, 34, 999 ]
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : [ 12, 34, 999 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : [ ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated int64 FOO = 1;\n}\n",
+      "format" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

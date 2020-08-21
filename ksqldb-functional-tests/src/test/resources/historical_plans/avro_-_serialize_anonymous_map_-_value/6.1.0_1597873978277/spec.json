@@ -1,0 +1,174 @@
+{
+  "version" : "6.1.0",
+  "timestamp" : 1597873978277,
+  "path" : "query-validation-tests/avro.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`FOO` MAP<STRING, DOUBLE>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`FOO` MAP<STRING, DOUBLE>",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    }
+  },
+  "testCase" : {
+    "name" : "serialize anonymous map - value",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : {
+          "a" : 1.1,
+          "b" : 2.2,
+          "c" : 3.456
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : {
+          "a" : 1.1,
+          "b" : 2.2,
+          "c" : null
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "a" : 1.1,
+        "b" : 2.2,
+        "c" : 3.456
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "a" : 1.1,
+        "b" : 2.2,
+        "c" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "schema" : {
+        "type" : "array",
+        "items" : {
+          "type" : "record",
+          "name" : "test",
+          "fields" : [ {
+            "name" : "key",
+            "type" : [ "null", "string" ],
+            "default" : null
+          }, {
+            "name" : "value",
+            "type" : [ "null", "double" ],
+            "default" : null
+          } ]
+        }
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "input_topic",
+      "schema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "FOO",
+          "type" : [ "null", {
+            "type" : "array",
+            "items" : {
+              "type" : "record",
+              "name" : "KsqlDataSourceSchema_FOO",
+              "fields" : [ {
+                "name" : "key",
+                "type" : [ "null", "string" ],
+                "default" : null
+              }, {
+                "name" : "value",
+                "type" : [ "null", "double" ],
+                "default" : null
+              } ],
+              "connect.internal.type" : "MapEntry"
+            },
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_FOO"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "format" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='AVRO');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` MAP<STRING, DOUBLE>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` MAP<STRING, DOUBLE>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

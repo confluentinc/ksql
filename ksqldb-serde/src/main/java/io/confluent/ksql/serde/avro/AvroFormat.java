@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Set;
@@ -30,14 +31,24 @@ import org.apache.kafka.connect.data.Schema;
 
 public final class AvroFormat extends ConnectFormat {
 
-  public static final String FULL_SCHEMA_NAME = "fullSchemaName";
-  public static final String NAME = AvroSchema.TYPE;
+  private static final Set<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.WRAP_SINGLES,
+      SerdeFeature.UNWRAP_SINGLES
+  );
 
+  public static final String FULL_SCHEMA_NAME = "fullSchemaName";
+
+  public static final String NAME = AvroSchema.TYPE;
   private final AvroData avroData = new AvroData(new AvroDataConfig(ImmutableMap.of()));
 
   @Override
   public String name() {
     return NAME;
+  }
+
+  @Override
+  public Set<SerdeFeature> supportedFeatures() {
+    return SUPPORTED_FEATURES;
   }
 
   @Override

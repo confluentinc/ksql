@@ -37,7 +37,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.UserDataProvider;
@@ -105,7 +105,7 @@ public class PullQueryFunctionalTest {
           .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
-      SerdeOption.none()
+      SerdeOptions.of()
   );
 
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp

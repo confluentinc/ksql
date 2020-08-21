@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,18 +34,47 @@ public final class Formats {
 
   private final FormatInfo keyFormat;
   private final FormatInfo valueFormat;
-  private final ImmutableSet<SerdeOption> options;
+  private final SerdeOptions options;
 
-  public Formats(
+  public static Formats of(
+      final FormatInfo keyFormat,
+      final FormatInfo valueFormat,
+      final SerdeOptions options
+  ) {
+    return new Formats(keyFormat, valueFormat, options);
+  }
+
+  public static Formats of(
+      final KeyFormat keyFormat,
+      final ValueFormat valueFormat,
+      final SerdeOptions options
+  ) {
+    return of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), options);
+  }
+
+  @JsonCreator
+  public static Formats from(
       @JsonProperty(value = "keyFormat", required = true) final FormatInfo keyFormat,
       @JsonProperty(value = "valueFormat", required = true) final FormatInfo valueFormat,
       @JsonProperty(value = "options") final Optional<Set<SerdeOption>> options
   ) {
+    final SerdeOptions validatedOptions = SerdeOptions.of(
+        Objects.requireNonNull(options, "options")
+            .map(ImmutableSet::copyOf)
+            .orElseGet(ImmutableSet::of)
+    );
+
+    return Formats.of(keyFormat, valueFormat, validatedOptions);
+  }
+
+  private Formats(
+      final FormatInfo keyFormat,
+      final FormatInfo valueFormat,
+      final SerdeOptions options
+  ) {
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
-    this.options = Objects.requireNonNull(options, "options")
-        .map(ImmutableSet::copyOf)
-        .orElseGet(ImmutableSet::of);
+    this.options = Objects.requireNonNull(options, "options");
   }
 
   public FormatInfo getKeyFormat() {
@@ -53,8 +85,15 @@ public final class Formats {
     return valueFormat;
   }
 
-  public Set<SerdeOption> getOptions() {
+  @JsonIgnore
+  public SerdeOptions getOptions() {
     return options;
+  }
+
+  @SuppressWarnings("unused") // Invoked by reflection by Jackson.
+  @JsonProperty("options")
+  public Set<SerdeOption> getOptionsSet() {
+    return options.all();
   }
 
   @Override
@@ -74,19 +113,5 @@ public final class Formats {
   @Override
   public int hashCode() {
     return Objects.hash(keyFormat, valueFormat, options);
-  }
-
-  public static Formats of(
-      final FormatInfo keyFormat,
-      final FormatInfo valueFormat,
-      final Set<SerdeOption> options) {
-    return new Formats(keyFormat, valueFormat, Optional.of(options));
-  }
-
-  public static Formats of(
-      final KeyFormat keyFormat,
-      final ValueFormat valueFormat,
-      final Set<SerdeOption> options) {
-    return of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), options);
   }
 }

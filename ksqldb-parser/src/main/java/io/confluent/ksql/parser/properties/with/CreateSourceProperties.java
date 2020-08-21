@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.properties.with;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
@@ -29,6 +30,8 @@ import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -150,8 +153,15 @@ public final class CreateSourceProperties {
     return builder.build();
   }
 
-  public Optional<Boolean> getWrapSingleValues() {
-    return Optional.ofNullable(props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
+  public SerdeOptions getSerdeOptions() {
+    final ImmutableSet.Builder<SerdeOption> builder = ImmutableSet.builder();
+
+    final Boolean wrapping = props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE);
+    if (wrapping != null) {
+      builder.add(wrapping ? SerdeOption.WRAP_SINGLE_VALUES : SerdeOption.UNWRAP_SINGLE_VALUES);
+    }
+
+    return SerdeOptions.of(builder.build());
   }
 
   public CreateSourceProperties withSchemaId(final int id) {

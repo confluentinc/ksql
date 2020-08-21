@@ -34,7 +34,7 @@ public final class MetaStoreMatchers {
   }
 
   public static Matcher<DataSource> hasSerdeOptions(
-      final Matcher<Iterable<? super SerdeOption>> expected
+      final Matcher<? super Iterable<? super SerdeOption>> expected
   ) {
     return new FeatureMatcher<DataSource, Set<SerdeOption>>(
         expected,
@@ -42,7 +42,7 @@ public final class MetaStoreMatchers {
         "serde options") {
       @Override
       protected Set<SerdeOption> featureValueOf(final DataSource actual) {
-        return actual.getSerdeOptions();
+        return actual.getSerdeOptions().all();
       }
     };
   }

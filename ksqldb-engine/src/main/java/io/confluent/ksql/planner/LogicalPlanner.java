@@ -74,8 +74,8 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -190,7 +190,7 @@ public class LogicalPlanner {
     );
   }
 
-  private Set<SerdeOption> getSerdeOptions(
+  private SerdeOptions getSerdeOptions(
       final PlanNode sourcePlanNode,
       final Into intoDataSource
   ) {
@@ -202,11 +202,11 @@ public class LogicalPlanner {
         .getValueFormat()
         .getFormat();
 
-    return SerdeOptions.buildForCreateAsStatement(
+    return SerdeOptionsFactory.buildForCreateAsStatement(
         columnNames,
         valueFormat,
-        analysis.getProperties().getWrapSingleValues(),
-        intoDataSource.getDefaultSerdeOptions()
+        analysis.getProperties().getSerdeOptions(),
+        ksqlConfig
     );
   }
 

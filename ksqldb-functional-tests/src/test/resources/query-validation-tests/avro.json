@@ -1,6 +1,442 @@
 {
   "tests": [
     {
+      "name": "deserialize anonymous primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": "int"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": 10},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous primitive - value - with coercion",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": "int"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": "10"}}
+      ]
+    },
+    {
+      "name": "deserialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": 10}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous array - value",
+      "comments": [
+        "see github issue https://github.com/confluentinc/ksql/issues/1351"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"type": "array", "items": ["null", "string"]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": ["a", "b", "c"]},
+        {"topic": "input_topic", "value": ["a", "b", null]},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous array - value - with coercion",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"type": "array", "items": ["null", "string"]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": [1, 2, 3]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["1", "2", "3"]}}
+      ]
+    },
+    {
+      "name": "deserialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null", {"type":  "array", "items": ["null", "string"]}]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "input_topic", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous array - value - non-nullable",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"type": "array", "items": "string"},
+          "format": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": ["a", "b", "c"]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}}
+      ]
+    },
+    {
+      "name": "deserialize anonymous map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"type": "map", "values": ["null", "int"]}
+        },
+        {
+          "name": "OUTPUT",
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}},
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+        ]
+      }
+    },
+    {
+      "name": "deserialize anonymous map - value - with coercion - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"type": "map", "values": ["null", "int"]},
+          "format": "AVRO"
+        },
+        {
+          "name": "OUTPUT",
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","string"],"default":null}]}}]}]},
+          "format": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": "1", "b": "2", "c": "3"}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, STRING>"}
+        ]
+      }
+    },
+    {
+      "name": "deserialize anonymous map - value - non-nullable",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "schema": {"type": "map", "values": "int"},
+          "format": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+        ]
+      }
+    },
+    {
+      "name": "serialize anonymous primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": "boolean"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": true},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null","boolean"]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": true}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize anonymous array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"type": "array", "items": ["null", "long"]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": [12, 34, null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": [12, 34, 999]},
+        {"topic": "OUTPUT", "value": [12, 34, null]},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "array", "items": ["null", "long"]}]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": [12, 34, null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, null]}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize anonymous map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": 3.456}},
+        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": null}},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize anonymous struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"F0": 1}},
+        {"topic": "OUTPUT", "value": {"F0": null}},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "schema": {"name": "ignored", "type": "record", "fields": [
+            {"name": "FOO", "type": ["null", {"name": "ignored2", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
+          ]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
       "name": "should support primitives",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');",

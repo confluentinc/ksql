@@ -25,9 +25,8 @@ import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Set;
 import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -67,7 +66,7 @@ public final class TableSuppressBuilder {
       final TableSuppress<K> step,
       final KsqlQueryBuilder queryBuilder,
       final KeySerdeFactory keySerdeFactory,
-      final BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory,
+      final BiFunction<LogicalSchema, SerdeOptions, PhysicalSchema> physicalSchemaFactory,
       final BiFunction<Serde<K>, Serde<GenericRow>, Materialized> materializedFactory
   ) {
     final PhysicalSchema physicalSchema = physicalSchemaFactory.apply(

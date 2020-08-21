@@ -99,7 +99,7 @@
           "type" : "array",
           "items" : {
             "type" : "string",
-            "enum" : [ "UNWRAP_SINGLE_VALUES" ]
+            "enum" : [ "WRAP_SINGLE_VALUES", "UNWRAP_SINGLE_VALUES" ]
           }
         }
       },

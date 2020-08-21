@@ -36,11 +36,9 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -50,7 +48,6 @@ import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
-import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -67,7 +64,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -183,7 +180,7 @@ public class SqlFormatterTest {
         "sqlexpression",
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -200,7 +197,7 @@ public class SqlFormatterTest {
         "sqlexpression",
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -212,7 +209,7 @@ public class SqlFormatterTest {
         "sqlexpression",
         SourceName.of("TABLE"),
         TABLE_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopicItems

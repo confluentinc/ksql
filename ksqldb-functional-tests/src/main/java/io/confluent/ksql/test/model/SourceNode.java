@@ -200,7 +200,7 @@ public final class SourceNode {
         dataSource.getDataSourceType().getKsqlType(),
         Optional.of(dataSource.getSchema().toString()),
         Optional.of(KeyFormatNode.fromKeyFormat(dataSource.getKsqlTopic().getKeyFormat())),
-        Optional.of(dataSource.getSerdeOptions())
+        Optional.of(dataSource.getSerdeOptions().all())
     );
   }
 }

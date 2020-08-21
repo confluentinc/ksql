@@ -44,7 +44,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -107,7 +107,7 @@ public class QueryExecutorTest {
   private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
   private static final PhysicalSchema SINK_PHYSICAL_SCHEMA = PhysicalSchema.from(
       SINK_SCHEMA,
-      SerdeOption.none()
+      SerdeOptions.of()
   );
   private static final OptionalInt LIMIT = OptionalInt.of(123);
   private static final String SERVICE_ID = "service-";
@@ -174,7 +174,7 @@ public class QueryExecutorTest {
   @Before
   public void setup() {
     when(sink.getSchema()).thenReturn(SINK_SCHEMA);
-    when(sink.getSerdeOptions()).thenReturn(SerdeOption.none());
+    when(sink.getSerdeOptions()).thenReturn(SerdeOptions.of());
     when(sink.getKsqlTopic()).thenReturn(ksqlTopic);
     when(sink.getName()).thenReturn(SINK_NAME);
     when(sink.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);

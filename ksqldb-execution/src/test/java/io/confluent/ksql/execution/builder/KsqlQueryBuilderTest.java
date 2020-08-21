@@ -43,6 +43,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -71,7 +72,7 @@ public class KsqlQueryBuilderTest {
           .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
           .build(),
-      SerdeOption.none()
+      SerdeOptions.of()
   );
 
   private static final QueryId QUERY_ID = new QueryId("fred");
@@ -244,5 +245,26 @@ public class KsqlQueryBuilderTest {
     final Map<String, PhysicalSchema> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
     assertThat(schemas.entrySet(), hasSize(1));
     assertThat(schemas.get("fred.context"), is(SOME_SCHEMA));
+  }
+
+  @Test
+  public void shouldTrackSchemasTakingIntoAccountSerdeOptions() {
+    // Given:
+    final PhysicalSchema schema = PhysicalSchema.from(
+        SOME_SCHEMA.logicalSchema(),
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)
+    );
+
+    // When:
+    ksqlQueryBuilder.buildValueSerde(
+        FORMAT_INFO,
+        schema,
+        queryContext
+    );
+
+    // Then:
+    final Map<String, PhysicalSchema> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    assertThat(schemas.entrySet(), hasSize(1));
+    assertThat(schemas.get("fred.context"), is(schema));
   }
 }

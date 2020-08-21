@@ -34,7 +34,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -42,7 +41,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.commands.CreateSourceFactory.SerdeOptionsSupplier;
@@ -70,6 +68,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -80,7 +79,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -130,7 +128,7 @@ public class CreateSourceFactoryTest {
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
 
-  private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
+  private static final SerdeOptions SOME_SERDE_OPTIONS = SerdeOptions
       .of(SerdeOption.UNWRAP_SINGLE_VALUES);
 
   @Mock
@@ -159,6 +157,7 @@ public class CreateSourceFactoryTest {
     when(topicClient.isTopicExists(any())).thenReturn(true);
     when(keySerdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(keySerde);
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(valueSerde);
+    when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SerdeOptions.of());
 
     givenCommandFactories();
   }
@@ -233,7 +232,7 @@ public class CreateSourceFactoryTest {
         );
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -251,7 +250,7 @@ public class CreateSourceFactoryTest {
         .createStreamCommand(statement, ksqlConfig);
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -265,7 +264,7 @@ public class CreateSourceFactoryTest {
         .createStreamCommand(statement, ksqlConfig);
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of()));
   }
 
   @Test
@@ -291,7 +290,7 @@ public class CreateSourceFactoryTest {
             ksqlConfig.cloneWithPropertyOverwrite(overrides));
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -309,7 +308,7 @@ public class CreateSourceFactoryTest {
         .createTableCommand(statement, ksqlConfig);
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -323,7 +322,7 @@ public class CreateSourceFactoryTest {
         .createTableCommand(statement, ksqlConfig);
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of()));
   }
 
   @Test
@@ -458,7 +457,7 @@ public class CreateSourceFactoryTest {
     verify(serdeOptionsSupplier).build(
         schema,
         statement.getProperties().getValueFormat(),
-        statement.getProperties().getWrapSingleValues(),
+        statement.getProperties().getSerdeOptions(),
         ksqlConfig
     );
     assertThat(cmd.getFormats().getOptions(), is(SOME_SERDE_OPTIONS));
@@ -610,8 +609,7 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Boom!"));
+    assertThat(e.getMessage(), containsString("Boom!"));
   }
 
   @Test
@@ -637,8 +635,7 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Boom!"));
+    assertThat(e.getMessage(), containsString("Boom!"));
   }
 
   @Test

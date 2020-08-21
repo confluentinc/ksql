@@ -42,7 +42,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
@@ -50,7 +50,6 @@ import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +68,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AnalyzerFunctionalTest {
 
-  private static final Set<SerdeOption> DEFAULT_SERDE_OPTIONS = SerdeOption.none();
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName COL2 = ColumnName.of("COL2");
@@ -91,11 +89,7 @@ public class AnalyzerFunctionalTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
     );
 
-    analyzer = new Analyzer(
-        jsonMetaStore,
-        "",
-        DEFAULT_SERDE_OPTIONS
-    );
+    analyzer = new Analyzer(jsonMetaStore, "");
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
@@ -110,7 +104,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -126,7 +120,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -142,7 +136,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -173,7 +167,7 @@ public class AnalyzerFunctionalTest {
         "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
         SourceName.of("S0"),
         schema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopic
@@ -185,7 +179,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -201,7 +195,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -216,7 +210,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -238,7 +232,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -278,7 +272,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -301,7 +295,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -326,7 +320,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -351,7 +345,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
 
     // When:
     final Exception e = assertThrows(
@@ -386,7 +380,7 @@ public class AnalyzerFunctionalTest {
         "sqlexpression",
         SourceName.of("KAFKA_SOURCE"),
         schema,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         topic

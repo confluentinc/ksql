@@ -27,6 +27,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -118,7 +119,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         true,
         topic
@@ -127,7 +128,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("B"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         true,
         topic
@@ -148,7 +149,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         true,
         topic
@@ -157,7 +158,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
         Optional.empty(),
         true,
         topic
@@ -168,7 +169,7 @@ public class StructuredDataSourceTest {
 
     // Then:
     assertThat(err.isPresent(), is(true));
-    assertThat(err.get(), containsString("has serdeOptions = [] which is not upgradeable to [UNWRAP_SINGLE_VALUES]"));
+    assertThat(err.get(), containsString("has serdeOptions = SerdeOptions[] which is not upgradeable to SerdeOptions[UNWRAP_SINGLE_VALUES]"));
   }
 
   @Test
@@ -178,7 +179,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         true,
         topic
@@ -187,7 +188,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.of(new TimestampColumn(ColumnName.of("foo"), Optional.empty())),
         true,
         topic
@@ -208,7 +209,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         true,
         topic
@@ -217,7 +218,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         true,
         topic2
@@ -238,7 +239,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         true,
         topic
@@ -247,7 +248,7 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         true,
         topic
@@ -316,7 +317,7 @@ public class StructuredDataSourceTest {
           "some SQL",
           SourceName.of("some name"),
           schema,
-          SerdeOption.none(),
+          SerdeOptions.of(),
           Optional.empty(),
           DataSourceType.KSTREAM,
           false,

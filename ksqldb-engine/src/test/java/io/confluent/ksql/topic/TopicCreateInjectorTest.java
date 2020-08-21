@@ -48,7 +48,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -110,7 +110,7 @@ public class TopicCreateInjectorTest {
         "",
         SourceName.of("SOURCE"),
         SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         sourceTopic
@@ -127,7 +127,7 @@ public class TopicCreateInjectorTest {
         "",
         SourceName.of("J_SOURCE"),
         SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         joinTopic

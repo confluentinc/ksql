@@ -1,0 +1,123 @@
+{
+  "version" : "6.1.0",
+  "timestamp" : 1597874026054,
+  "path" : "query-validation-tests/json_sr.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`FOO` ARRAY<STRING>",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`FOO` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    }
+  },
+  "testCase" : {
+    "name" : "deserialize anonymous array - value",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : [ "a", "b", "c" ]
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : [ "a", "b", null ]
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : [ "a", "b", "c" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : [ "a", "b", null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "schema" : {
+        "type" : "object",
+        "properties" : {
+          "FOO" : {
+            "connect.index" : 0,
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "array",
+              "items" : {
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "string"
+                } ]
+              }
+            } ]
+          }
+        }
+      },
+      "format" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON_SR');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

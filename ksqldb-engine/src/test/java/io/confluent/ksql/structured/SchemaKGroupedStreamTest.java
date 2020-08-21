@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
@@ -41,7 +42,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -151,7 +152,8 @@ public class SchemaKGroupedStreamTest {
             ExecutionStepFactory.streamAggregate(
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
-                io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+                Formats.of(keyFormat, valueFormat,
+                    SerdeOptions.of()),
                 NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG)
             )
@@ -181,7 +183,7 @@ public class SchemaKGroupedStreamTest {
             ExecutionStepFactory.streamWindowedAggregate(
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
-                io.confluent.ksql.execution.plan.Formats.of(expected, valueFormat, SerdeOption.none()),
+                Formats.of(expected, valueFormat, SerdeOptions.of()),
                 NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG),
                 KSQL_WINDOW_EXP

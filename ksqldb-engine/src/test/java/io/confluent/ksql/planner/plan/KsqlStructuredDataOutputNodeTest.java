@@ -37,7 +37,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -164,7 +164,7 @@ public class KsqlStructuredDataOutputNodeTest {
     verify(sourceStream).into(
         eq(SINK_KAFKA_TOPIC_NAME),
         eq(JSON_FORMAT),
-        eq(SerdeOption.none()),
+        eq(SerdeOptions.of()),
         stackerCaptor.capture(),
         eq(outputNode.getTimestampColumn())
     );
@@ -189,7 +189,7 @@ public class KsqlStructuredDataOutputNodeTest {
         ksqlTopic,
         OptionalInt.empty(),
         createInto,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         SourceName.of(PLAN_NODE_ID.toString())
     );
   }

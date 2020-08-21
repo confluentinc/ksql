@@ -17,13 +17,12 @@ package io.confluent.ksql.serde;
 
 import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
-import static io.confluent.ksql.serde.SerdeOptions.buildForCreateAsStatement;
-import static io.confluent.ksql.serde.SerdeOptions.buildForCreateStatement;
-import static java.util.Optional.of;
+import static io.confluent.ksql.serde.FormatFactory.PROTOBUF;
+import static io.confluent.ksql.serde.SerdeOptionsFactory.buildForCreateAsStatement;
+import static io.confluent.ksql.serde.SerdeOptionsFactory.buildForCreateStatement;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -34,17 +33,14 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SerdeOptionsTest {
+public class SerdeOptionsFactoryTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -60,50 +56,11 @@ public class SerdeOptionsTest {
   private static final List<ColumnName> SINGLE_COLUMN_NAME = ImmutableList.of(ColumnName.of("bob"));
   private static final List<ColumnName> MULTI_FIELD_NAMES = ImmutableList.of(ColumnName.of("bob"), ColumnName.of("vic"));
 
-  private final Set<SerdeOption> singleFieldDefaults = new HashSet<>();
   private KsqlConfig ksqlConfig;
 
   @Before
   public void setUp() {
     ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    singleFieldDefaults.clear();
-  }
-
-  @Test
-  public void shouldBuildDefaultsWithWrappedSingleValuesByDefault() {
-    // Given:
-    ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
-    ));
-
-    // When:
-    final Set<SerdeOption> result = SerdeOptions.buildDefaults(ksqlConfig);
-
-    // Then:
-    assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
-  }
-
-  @Test
-  public void shouldBuildDefaultsWithWrappedSingleValuesIfConfigured() {
-    // When:
-    final Set<SerdeOption> result = SerdeOptions.buildDefaults(ksqlConfig);
-
-    // Then:
-    assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
-  }
-
-  @Test
-  public void shouldBuildDefaultsWithUnwrappedSingleValuesIfConfigured() {
-    // Given:
-    ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
-    ));
-
-    // When:
-    final Set<SerdeOption> result = SerdeOptions.buildDefaults(ksqlConfig);
-
-    // Then:
-    assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
   @Test
@@ -114,15 +71,15 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
         FormatFactory.JSON,
-        Optional.of(false),
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -133,29 +90,48 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
         FormatFactory.JSON,
-        Optional.empty(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
-  public void shouldSingleValueWrappingFromDefaultConfigForCreateStatement() {
+  public void shouldDefaultToNoSingleValueWrappingIfNoExplicitAndNoConfigDefault() {
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
         FormatFactory.JSON,
-        Optional.empty(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result, is(SerdeOptions.of()));
+  }
+
+  @Test
+  public void shouldNotGetSingleValueWrappingFromDefaultConfigIfFormatDoesNotSupportIt() {
+    // Given:
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, true
+    ));
+
+    // When:
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
+        SINGLE_FIELD_SCHEMA,
+        FormatFactory.KAFKA,
+        SerdeOptions.of(),
+        ksqlConfig
+    );
+
+    // Then:
+    assertThat(result, is(SerdeOptions.of()));
   }
 
   @Test
@@ -166,15 +142,15 @@ public class SerdeOptionsTest {
     ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateStatement(
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         MULTI_FIELD_SCHEMA,
         FormatFactory.JSON,
-        Optional.empty(),
+        SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result, is(SerdeOptions.of()));
   }
 
   @Test
@@ -185,7 +161,7 @@ public class SerdeOptionsTest {
         () -> buildForCreateStatement(
             MULTI_FIELD_SCHEMA,
             JSON,
-            of(true),
+            SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
             ksqlConfig
         )
     );
@@ -202,53 +178,71 @@ public class SerdeOptionsTest {
         KsqlException.class,
         () -> buildForCreateStatement(
             SINGLE_FIELD_SCHEMA,
-            DELIMITED,
-            of(false),
+            PROTOBUF,
+            SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
             ksqlConfig
         )
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping"));
+    assertThat(e.getMessage(), containsString("Format 'PROTOBUF' does not support 'WRAP_SINGLE_VALUE' set to 'false'."));
   }
 
   @Test
   public void shouldGetSingleValueWrappingFromPropertiesBeforeDefaultsForCreateAsStatement() {
     // Given:
-    singleFieldDefaults.add(SerdeOption.UNWRAP_SINGLE_VALUES);
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
+    ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateAsStatement(
-        SINGLE_COLUMN_NAME, FormatFactory.AVRO, Optional.of(true), singleFieldDefaults);
+    final SerdeOptions result = buildForCreateAsStatement(
+        SINGLE_COLUMN_NAME,
+        FormatFactory.AVRO,
+        SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
+        ksqlConfig
+    );
 
     // Then:
-    assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result, is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
   public void shouldGetSingleValueWrappingFromDefaultsForCreateAsStatement() {
     // Given:
-    singleFieldDefaults.add(SerdeOption.UNWRAP_SINGLE_VALUES);
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
+    ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateAsStatement(
-        SINGLE_COLUMN_NAME, FormatFactory.JSON, Optional.empty(), singleFieldDefaults);
+    final SerdeOptions result = buildForCreateAsStatement(
+        SINGLE_COLUMN_NAME,
+        FormatFactory.JSON,
+        SerdeOptions.of(),
+        ksqlConfig
+    );
 
     // Then:
-    assertThat(result, hasItem(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
   public void shouldNotGetSingleValueWrappingFromDefaultForMultiFieldsForCreateAsStatement() {
     // Given:
-    singleFieldDefaults.add(SerdeOption.UNWRAP_SINGLE_VALUES);
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
+    ));
 
     // When:
-    final Set<SerdeOption> result = SerdeOptions.buildForCreateAsStatement(
-        MULTI_FIELD_NAMES, FormatFactory.AVRO, Optional.empty(), singleFieldDefaults);
+    final SerdeOptions result = buildForCreateAsStatement(
+        MULTI_FIELD_NAMES,
+        FormatFactory.AVRO,
+        SerdeOptions.of(),
+        ksqlConfig
+    );
 
     // Then:
-    assertThat(result, not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result, is(SerdeOptions.of()));
   }
 
   @Test
@@ -259,8 +253,8 @@ public class SerdeOptionsTest {
         () -> buildForCreateAsStatement(
             MULTI_FIELD_NAMES,
             JSON,
-            of(true),
-            singleFieldDefaults
+            SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
+            ksqlConfig
         )
     );
 
@@ -276,12 +270,12 @@ public class SerdeOptionsTest {
         () -> buildForCreateAsStatement(
             SINGLE_COLUMN_NAME,
             DELIMITED,
-            of(true),
-            singleFieldDefaults
+            SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
+            ksqlConfig
         )
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("'WRAP_SINGLE_VALUE' can not be used with format 'DELIMITED' as it does not support wrapping"));
+    assertThat(e.getMessage(), containsString("Format 'DELIMITED' does not support 'WRAP_SINGLE_VALUE' set to 'true'."));
   }
 }

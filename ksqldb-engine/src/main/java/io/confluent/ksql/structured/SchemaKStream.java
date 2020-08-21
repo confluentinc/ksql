@@ -45,14 +45,13 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
@@ -88,7 +87,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> into(
       final String kafkaTopicName,
       final ValueFormat valueFormat,
-      final Set<SerdeOption> options,
+      final SerdeOptions options,
       final QueryContext.Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
@@ -163,7 +162,7 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.LEFT,
         keyColName,
-        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+        Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
@@ -189,8 +188,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.LEFT,
         keyColName,
-        Formats.of(keyFormat, leftFormat, SerdeOption.none()),
-        Formats.of(keyFormat, rightFormat, SerdeOption.none()),
+        Formats.of(keyFormat, leftFormat, SerdeOptions.of()),
+        Formats.of(keyFormat, rightFormat, SerdeOptions.of()),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -215,7 +214,7 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.INNER,
         keyColName,
-        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+        Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
@@ -241,8 +240,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.INNER,
         keyColName,
-        Formats.of(keyFormat, leftFormat, SerdeOption.none()),
-        Formats.of(keyFormat, rightFormat, SerdeOption.none()),
+        Formats.of(keyFormat, leftFormat, SerdeOptions.of()),
+        Formats.of(keyFormat, rightFormat, SerdeOptions.of()),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -269,8 +268,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.OUTER,
         keyColName,
-        Formats.of(keyFormat, leftFormat, SerdeOption.none()),
-        Formats.of(keyFormat, rightFormat, SerdeOption.none()),
+        Formats.of(keyFormat, leftFormat, SerdeOptions.of()),
+        Formats.of(keyFormat, rightFormat, SerdeOptions.of()),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -366,7 +365,7 @@ public class SchemaKStream<K> {
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
         sourceStep,
-        Formats.of(rekeyedKeyFormat, valueFormat, SerdeOption.none()),
+        Formats.of(rekeyedKeyFormat, valueFormat, SerdeOptions.of()),
         groupByExpressions
     );
 
@@ -392,7 +391,7 @@ public class SchemaKStream<K> {
         ExecutionStepFactory.streamGroupByKey(
             contextStacker,
             (ExecutionStep) sourceStep,
-            Formats.of(rekeyedKeyFormat, valueFormat, SerdeOption.none())
+            Formats.of(rekeyedKeyFormat, valueFormat, SerdeOptions.of())
         );
     return new SchemaKGroupedStream(
         step,

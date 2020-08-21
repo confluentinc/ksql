@@ -30,7 +30,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +47,7 @@ abstract class StructuredDataSource<K> implements DataSource {
   private final Optional<TimestampColumn> timestampColumn;
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
-  private final ImmutableSet<SerdeOption> serdeOptions;
+  private final SerdeOptions serdeOptions;
   private final boolean casTarget;
 
   private static final ImmutableList<Property<?>> PROPERTIES = ImmutableList.of(
@@ -64,7 +64,7 @@ abstract class StructuredDataSource<K> implements DataSource {
       final String sqlExpression,
       final SourceName dataSourceName,
       final LogicalSchema schema,
-      final Set<SerdeOption> serdeOptions,
+      final SerdeOptions serdeOptions,
       final Optional<TimestampColumn> tsExtractionPolicy,
       final DataSourceType dataSourceType,
       final boolean casTarget,
@@ -76,7 +76,7 @@ abstract class StructuredDataSource<K> implements DataSource {
     this.timestampColumn = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
-    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+    this.serdeOptions = requireNonNull(serdeOptions, "serdeOptions");
     this.casTarget = casTarget;
 
     if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
@@ -108,7 +108,7 @@ abstract class StructuredDataSource<K> implements DataSource {
   }
 
   @Override
-  public Set<SerdeOption> getSerdeOptions() {
+  public SerdeOptions getSerdeOptions() {
     return serdeOptions;
   }
 

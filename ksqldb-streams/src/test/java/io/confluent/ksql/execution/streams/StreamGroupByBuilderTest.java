@@ -35,7 +35,7 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.function.Function;
@@ -72,10 +72,10 @@ public class StreamGroupByBuilderTest {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(SCHEMA, SerdeOption.none());
+      PhysicalSchema.from(SCHEMA, SerdeOptions.of());
 
   private static final PhysicalSchema REKEYED_PHYSICAL_SCHEMA =
-      PhysicalSchema.from(REKEYED_SCHEMA, SerdeOption.none());
+      PhysicalSchema.from(REKEYED_SCHEMA, SerdeOptions.of());
 
   private static final List<Expression> GROUP_BY_EXPRESSIONS = ImmutableList.of(
       columnReference("PAC"),
@@ -92,7 +92,7 @@ public class StreamGroupByBuilderTest {
   private static final Formats FORMATS = Formats.of(
       FormatInfo.of(FormatFactory.KAFKA.name()),
       FormatInfo.of(FormatFactory.JSON.name()),
-      SerdeOption.none()
+      SerdeOptions.of()
   );
 
   @Mock

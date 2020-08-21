@@ -46,7 +46,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -138,7 +138,7 @@ public class TemporaryEngine extends ExternalResource {
                 "statement",
                 SourceName.of(name),
                 SCHEMA,
-                SerdeOption.none(),
+                SerdeOptions.of(),
                 Optional.empty(),
                 false,
                 topic
@@ -150,7 +150,7 @@ public class TemporaryEngine extends ExternalResource {
                 "statement",
                 SourceName.of(name),
                 SCHEMA,
-                SerdeOption.none(),
+                SerdeOptions.of(),
                 Optional.empty(),
                 false,
                 topic

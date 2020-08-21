@@ -31,6 +31,8 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -57,7 +59,7 @@ public class CreateSourceAsPropertiesTest {
     assertThat(properties.getFormatInfo(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
-    assertThat(properties.getWrapSingleValues(), is(Optional.empty()));
+    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of()));
   }
 
   @Test
@@ -144,7 +146,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("true")));
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(true)));
+    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -164,7 +166,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.WRAP_SINGLE_VALUE, new StringLiteral("true")));
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(true)));
+    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -174,7 +176,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.WRAP_SINGLE_VALUE.toLowerCase(), new StringLiteral("false")));
 
     // Then:
-    assertThat(properties.getWrapSingleValues(), is(Optional.of(false)));
+    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
 

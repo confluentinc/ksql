@@ -38,7 +38,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -158,7 +158,7 @@ public class KsqlResourceFunctionalTest {
             .keyColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)
             .build(),
-        SerdeOption.none()
+        SerdeOptions.of()
     );
 
     TEST_HARNESS.getSchemaRegistryClient()

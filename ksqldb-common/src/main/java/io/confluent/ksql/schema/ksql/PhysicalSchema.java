@@ -17,13 +17,12 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
-import java.util.Set;
 import org.apache.kafka.connect.data.ConnectSchema;
 
 /**
@@ -36,13 +35,13 @@ import org.apache.kafka.connect.data.ConnectSchema;
 public final class PhysicalSchema {
 
   private final LogicalSchema logicalSchema;
-  private final ImmutableSet<SerdeOption> serdeOptions;
+  private final SerdeOptions serdeOptions;
   private final PersistenceSchema keySchema;
   private final PersistenceSchema valueSchema;
 
   public static PhysicalSchema from(
       final LogicalSchema logicalSchema,
-      final Set<SerdeOption> serdeOptions
+      final SerdeOptions serdeOptions
   ) {
     return new PhysicalSchema(logicalSchema, serdeOptions);
   }
@@ -57,7 +56,7 @@ public final class PhysicalSchema {
   /**
    * @return the serde options of this physical schema.
    */
-  public Set<SerdeOption> serdeOptions() {
+  public SerdeOptions serdeOptions() {
     return serdeOptions;
   }
 
@@ -77,10 +76,10 @@ public final class PhysicalSchema {
 
   private PhysicalSchema(
       final LogicalSchema logicalSchema,
-      final Set<SerdeOption> serdeOptions
+      final SerdeOptions serdeOptions
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
-    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
+    this.serdeOptions = requireNonNull(serdeOptions, "serdeOptions");
     this.keySchema = buildKeyPhysical(logicalSchema.keyConnectSchema());
     this.valueSchema = buildValuePhysical(logicalSchema.valueConnectSchema(), serdeOptions);
   }
@@ -120,10 +119,14 @@ public final class PhysicalSchema {
 
   private static PersistenceSchema buildValuePhysical(
       final ConnectSchema valueConnectSchema,
-      final Set<SerdeOption> serdeOptions
+      final SerdeOptions serdeOptions
   ) {
     final boolean singleField = valueConnectSchema.fields().size() == 1;
-    final boolean unwrapSingle = serdeOptions.contains(SerdeOption.UNWRAP_SINGLE_VALUES);
+
+    final boolean unwrapSingle = serdeOptions.valueWrapping()
+        .map(option -> option == SerdeOption.UNWRAP_SINGLE_VALUES)
+        .orElse(false);
+
     if (unwrapSingle && !singleField) {
       throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE + "' "
           + "is only valid for single-field value schemas");

@@ -89,7 +89,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.GrammaticalJoiner;
@@ -435,11 +434,7 @@ public final class PullQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext
   ) {
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-        executionContext.getMetaStore(),
-        "",
-        SerdeOption.none()
-    );
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(executionContext.getMetaStore(), "");
 
     return queryAnalyzer.analyze(statement.getStatement(), Optional.empty());
   }

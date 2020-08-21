@@ -68,7 +68,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
@@ -543,7 +543,7 @@ public class CliTest {
             .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
             .build(),
-        SerdeOption.none()
+        SerdeOptions.of()
     );
 
     testCreateStreamAsSelect(
@@ -694,7 +694,7 @@ public class CliTest {
             .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
             .build(),
-        SerdeOption.none()
+        SerdeOptions.of()
     );
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(

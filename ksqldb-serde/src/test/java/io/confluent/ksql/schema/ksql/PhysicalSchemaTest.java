@@ -43,9 +43,11 @@ public class PhysicalSchemaTest {
       .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
       .build();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldNPE() {
     new NullPointerTester()
+        .setDefault(SerdeOptions.class, SerdeOptions.of())
         .setDefault(LogicalSchema.class, SCHEMA_WITH_MULTIPLE_FIELDS)
         .testAllPublicStaticMethods(PhysicalSchema.class);
   }
@@ -56,6 +58,7 @@ public class PhysicalSchemaTest {
         .test(PhysicalSchema.class);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()

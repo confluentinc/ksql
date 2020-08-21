@@ -51,7 +51,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.KsqlTestException;
 import io.confluent.ksql.test.driver.TestDriverPipeline.TopicInfo;
 import io.confluent.ksql.test.parser.SqlTestLoader;
-import io.confluent.ksql.test.parser.SqlTestLoader.SqlTest;
 import io.confluent.ksql.test.parser.TestDirective;
 import io.confluent.ksql.test.parser.TestStatement;
 import io.confluent.ksql.test.tools.TestFunctionRegistry;
@@ -206,7 +205,7 @@ public class KsqlTesterTest {
     properties.putAll(query.getStreamsProperties());
 
     final TopologyTestDriver driver = new TopologyTestDriver(topology, properties);
-    query.closeAndThen(qm -> driver.close());
+    query.onStop(driver::close);
 
     final List<TopicInfo> inputTopics = query
         .getSourceNames()

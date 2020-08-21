@@ -20,6 +20,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Runnables;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -58,7 +59,7 @@ public abstract class QueryMetadata {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  private Consumer<QueryMetadata> closeCallback;
+  private final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
@@ -71,6 +72,7 @@ public abstract class QueryMetadata {
   private boolean closed = false;
   private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
+  private Runnable onStop = Runnables.doNothing();
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
@@ -142,8 +144,13 @@ public abstract class QueryMetadata {
     queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
   }
 
-  public void closeAndThen(final Consumer<QueryMetadata> andThen) {
-    this.closeCallback = closeCallback.andThen(andThen);
+  /**
+   * Set a callback to execute when the query stops. This is run on {@link #stop()}
+   * as well as {@link #close()}, unlike the {@link #closeCallback}, which is only
+   * executed on {@code close}.
+   */
+  public void onStop(final Runnable onStop) {
+    this.onStop = onStop;
   }
 
   private void uncaughtHandler(final Thread t, final Throwable e) {
@@ -278,7 +285,9 @@ public abstract class QueryMetadata {
    *
    * @see #close()
    */
-  public abstract void stop();
+  public synchronized void stop() {
+    doClose(false);
+  }
 
   /**
    * Closes the {@code QueryMetadata} and cleans up any of
@@ -289,10 +298,9 @@ public abstract class QueryMetadata {
    */
   public void close() {
     doClose(true);
-    closeCallback.accept(this);
   }
 
-  protected void doClose(final boolean cleanUp) {
+  private void doClose(final boolean cleanUp) {
     closed = true;
     closeKafkaStreams();
 
@@ -301,6 +309,11 @@ public abstract class QueryMetadata {
     }
 
     queryStateListener.ifPresent(QueryStateListener::close);
+
+    if (cleanUp) {
+      closeCallback.accept(this);
+    }
+    onStop.run();
   }
 
   public void start() {

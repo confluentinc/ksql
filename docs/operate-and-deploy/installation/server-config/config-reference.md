@@ -322,7 +322,7 @@ For more information, refer to the
 statements.
 
  !!! note
-   Not all formats support wrapping and unwrapping. If you use a format that does not support
+   Not all formats support wrapping and unwrapping. If you use a format that doesn't support
    the default value you set, the format ignores the setting. For information on which formats
    support wrapping and unwrapping, see the [serialization docs](../../../developer-guide/serialization.md).
 

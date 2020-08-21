@@ -323,7 +323,7 @@ statements.
 
  !!! note
    Not all formats support wrapping and unwrapping. If you use a format that does not support
-   the default value you set, the format will ignore the setting. For information on which formats
+   the default value you set, the format ignores the setting. For information on which formats
    support wrapping and unwrapping, see the [serialization docs](../../../developer-guide/serialization.md).
 
 ### ksql.query.pull.enable.standby.reads

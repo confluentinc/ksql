@@ -30,7 +30,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -334,7 +333,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES)));
+    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -360,7 +359,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.WRAP_SINGLE_VALUES)));
+    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -373,7 +372,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getSerdeOptions(), is(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test

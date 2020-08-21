@@ -263,6 +263,8 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(), is("fred.context = BOOLEAN"));
+    final Map<String, PhysicalSchema> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    assertThat(schemas.entrySet(), hasSize(1));
+    assertThat(schemas.get("fred.context"), is(schema));
   }
 }

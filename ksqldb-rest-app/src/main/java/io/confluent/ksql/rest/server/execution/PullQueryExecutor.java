@@ -31,7 +31,6 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;

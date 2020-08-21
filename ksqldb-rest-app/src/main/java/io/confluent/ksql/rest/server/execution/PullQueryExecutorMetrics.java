@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static org.apache.kafka.common.utils.Time.SYSTEM;
-
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
@@ -87,7 +85,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordLatency(final long startTimeNanos) {
     // Record latency at microsecond scale
-    long nowNanos = time.nanoseconds();
+    final long nowNanos = time.nanoseconds();
     final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
     this.latencySensor.record(latency);
     this.requestRateSensor.record(1);

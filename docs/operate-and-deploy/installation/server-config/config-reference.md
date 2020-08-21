@@ -277,7 +277,7 @@ statements.
 If not set and no explicit value is provided in the statement, the value format's default wrapping 
 is used.
 
-When set to the `true` ksqlDB serializes the column value nested within a JSON object, Avro record,
+When set to `true`, ksqlDB serializes the column value nested within a JSON object, Avro record,
 or Protobuf message, depending on the format in use. When set to `false`, ksqlDB persists the column
 value without any nesting, as an anonymous value.
 

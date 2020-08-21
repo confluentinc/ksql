@@ -47,9 +47,6 @@ public class LoggingDeserializerTest {
 
   private static final GenericRow SOME_ROW = genericRow("some", "fields");
   private static final byte[] SOME_BYTES = "some bytes".getBytes(StandardCharsets.UTF_8);
-  private static final ProcessingLogConfig LOG_CONFIG = new ProcessingLogConfig(ImmutableMap.of(
-      ProcessingLogConfig.INCLUDE_ROWS, true
-  ));
 
   @Mock
   private Deserializer<GenericRow> delegate;

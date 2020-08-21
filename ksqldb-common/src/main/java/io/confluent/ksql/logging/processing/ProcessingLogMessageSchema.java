@@ -58,10 +58,25 @@ public final class ProcessingLogMessageSchema {
       .optional()
       .build();
 
+  public static final String SERIALIZATION_ERROR_FIELD_MESSAGE = "errorMessage";
+  public static final String SERIALIZATION_ERROR_FIELD_RECORD = "record";
+  public static final String SERIALIZATION_ERROR_FIELD_CAUSE = "cause";
+  public static final String SERIALIZATION_ERROR_FIELD_TOPIC = "topic";
+
+  private static final Schema SERIALIZATION_ERROR_SCHEMA = SchemaBuilder.struct()
+      .name(NAMESPACE + "SerializationError")
+      .field(SERIALIZATION_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
+      .field(SERIALIZATION_ERROR_FIELD_RECORD, Schema.OPTIONAL_STRING_SCHEMA)
+      .field(SERIALIZATION_ERROR_FIELD_CAUSE, CAUSE_SCHEMA)
+      .field(SERIALIZATION_ERROR_FIELD_TOPIC, Schema.OPTIONAL_STRING_SCHEMA)
+      .optional()
+      .build();
+
   public enum MessageType {
     DESERIALIZATION_ERROR(0, DESERIALIZATION_ERROR_SCHEMA),
     RECORD_PROCESSING_ERROR(1, RECORD_PROCESSING_ERROR_SCHEMA),
-    PRODUCTION_ERROR(2, PRODUCTION_ERROR_SCHEMA);
+    PRODUCTION_ERROR(2, PRODUCTION_ERROR_SCHEMA),
+    SERIALIZATION_ERROR(3, SERIALIZATION_ERROR_SCHEMA);
 
     private final int typeId;
     private final Schema schema;
@@ -84,6 +99,7 @@ public final class ProcessingLogMessageSchema {
   public static final String DESERIALIZATION_ERROR = "deserializationError";
   public static final String RECORD_PROCESSING_ERROR = "recordProcessingError";
   public static final String PRODUCTION_ERROR = "productionError";
+  public static final String SERIALIZATION_ERROR = "serializationError";
 
   public static final Schema PROCESSING_LOG_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "ProcessingLogRecord")
@@ -91,6 +107,7 @@ public final class ProcessingLogMessageSchema {
       .field(DESERIALIZATION_ERROR, DESERIALIZATION_ERROR_SCHEMA)
       .field(RECORD_PROCESSING_ERROR, RECORD_PROCESSING_ERROR_SCHEMA)
       .field(PRODUCTION_ERROR, PRODUCTION_ERROR_SCHEMA)
+      .field(SERIALIZATION_ERROR, SERIALIZATION_ERROR_SCHEMA)
       .optional()
       .build();
 

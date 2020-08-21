@@ -95,7 +95,7 @@ public class GenericRowSerDeTest {
   @Mock
   private ProcessingLoggerFactory loggerFactory;
   @Mock
-  private Serde<Object> deletageSerde;
+  private Serde<Object> delegateSerde;
   @Mock
   private Serializer<Object> delegateSerializer;
   @Mock
@@ -107,9 +107,9 @@ public class GenericRowSerDeTest {
 
   @Before
   public void setUp() {
-    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(deletageSerde);
-    when(deletageSerde.serializer()).thenReturn(delegateSerializer);
-    when(deletageSerde.deserializer()).thenReturn(delegateDeserializer);
+    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(delegateSerde);
+    when(delegateSerde.serializer()).thenReturn(delegateSerializer);
+    when(delegateSerde.deserializer()).thenReturn(delegateDeserializer);
 
     when(delegateSerializer.serialize(any(), any())).thenReturn(SOME_BYTES);
 

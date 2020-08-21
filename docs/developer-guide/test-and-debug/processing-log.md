@@ -114,7 +114,7 @@ message.type (INT)
 
 :   An int that describes the type of the log message. Currently, the
     following types are defined: 0 (DESERIALIZATION_ERROR), 1
-    (RECORD_PROCESSING_ERROR), 2 (PRODUCTION_ERROR).
+    (RECORD_PROCESSING_ERROR), 2 (PRODUCTION_ERROR), 3 (SERIALIZATION_ERROR).
 
 message.deserializationError (STRUCT)
 
@@ -129,6 +129,15 @@ message.deserializationError.errorMessage (STRING)
 message.deserializationError.recordB64 (STRING)
 
 :   The Kafka record, encoded in Base64.
+
+message.deserializationError.cause (LIST<STRING>)
+
+:   A list of strings containing human-readable error messages
+    for the chain of exceptions that caused the main error.
+
+message.deserializationError.topic (STRING)
+
+:   The Kafka topic of the record for which deserialization failed.
 
 message.recordProcessingError (STRUCT)
 
@@ -146,6 +155,11 @@ message.recordProcessingError.record (STRING)
 
 :   The SQL record, serialized as a JSON string.
 
+message.recordProcessingError.cause (LIST<STRING>)
+
+:   A list of strings containing human-readable error messages
+    for the chain of exceptions that caused the main error.
+
 message.productionError (STRUCT)
 
 :   The contents of a message with type 2 (PRODUCTION_ERROR). Logged
@@ -155,6 +169,30 @@ message.productionError.errorMessage (STRING)
 
 :   A string containing a human-readable error message detailing the
     error encountered.
+    
+message.serializationError (STRUCT)
+
+:   The contents of a message with type 3 (SERIALIZATION_ERROR).
+    Logged when a serializer fails to serialize a ksqlDB row.
+
+message.serializationError.errorMessage (STRING)
+
+:   A string containing a human-readable error message detailing the
+    error encountered.
+
+message.serializationError.record (STRING)
+
+:   The ksqlDB row, as a human-readable string.
+
+message.serializationError.cause (LIST<STRING>)
+
+:   A list of strings containing human-readable error messages
+    for the chain of exceptions that caused the main error.
+
+message.serializationError.topic (STRING)
+
+:   The Kafka topic to which the ksqlDB row that failed to serialize
+    would have been produced.
 
 Log Stream
 ----------
@@ -223,12 +261,12 @@ ksql> describe PROCESSING_LOG;
 
 Name                 : PROCESSING_LOG
 Field   | Type
----------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  LOGGER  | VARCHAR(STRING)
  LEVEL   | VARCHAR(STRING)
  TIME    | BIGINT
- MESSAGE | STRUCT<type INTEGER, deserializationError STRUCT<errorMessage VARCHAR(STRING), recordB64 VARCHAR(STRING)>, ...> 
----------------------------------------------------------------------------------------------------------------------------
+ MESSAGE | STRUCT<type INTEGER, deserializationError STRUCT<errorMessage VARCHAR(STRING), recordB64 VARCHAR(STRING), cause ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, ...> 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```
 
 You can query the stream just like you would any other ksqlDB stream.
@@ -244,14 +282,20 @@ ksql> CREATE STREAM PROCESSING_LOG_STREAM (
              `TYPE` INTEGER,
              deserializationError STRUCT<
                  errorMessage STRING,
+                 recordB64 STRING,
                  cause ARRAY<STRING>,
-                 recordB64 STRING>,
+                `topic` STRING>,
              recordProcessingError STRUCT<
                  errorMessage STRING,
-                 cause ARRAY<STRING>,
-                 record STRING>,
+                 record STRING,
+                 cause ARRAY<STRING>>,
              productionError STRUCT<
-                 errorMessage STRING>>)
+                 errorMessage STRING>,
+             serializationError STRUCT<
+                 errorMessage STRING,
+                 record STRING,
+                 cause ARRAY<STRING>,
+                `topic` STRING>>)
          WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
 ```
 

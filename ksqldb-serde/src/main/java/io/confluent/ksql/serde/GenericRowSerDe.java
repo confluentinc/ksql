@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
+import io.confluent.ksql.logging.processing.LoggingSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -147,7 +148,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
           : wrapped(serde, schema, targetType);
 
     final Serde<GenericRow> result = Serdes.serdeFrom(
-        genericRowSerde.serializer(),
+        new LoggingSerializer<>(genericRowSerde.serializer(), processingLogger),
         new LoggingDeserializer<>(genericRowSerde.deserializer(), processingLogger)
     );
 

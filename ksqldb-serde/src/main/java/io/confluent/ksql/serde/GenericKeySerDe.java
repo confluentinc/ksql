@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
+import io.confluent.ksql.logging.processing.LoggingSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -138,7 +139,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         : wrapped(serde, targetType);
 
     final Serde<Struct> result = Serdes.serdeFrom(
-        inner.serializer(),
+        new LoggingSerializer<>(inner.serializer(), processingLogger),
         new LoggingDeserializer<>(inner.deserializer(), processingLogger)
     );
 
@@ -172,7 +173,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final Class<T> type
   ) {
     if (type != Struct.class) {
-      throw new IllegalArgumentException("Unwrapped must be of type Struct");
+      throw new IllegalArgumentException("Wrapped must be of type Struct");
     }
 
     return (Serde) innerSerde;

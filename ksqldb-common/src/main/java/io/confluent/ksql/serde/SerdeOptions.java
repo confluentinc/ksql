@@ -78,7 +78,7 @@ public final class SerdeOptions {
 
   @Override
   public String toString() {
-    return "SerdeOptions[" + options + ']';
+    return "SerdeOptions" + options;
   }
 
   private static ImmutableSet<SerdeOption> validate(final ImmutableSet<SerdeOption> options) {

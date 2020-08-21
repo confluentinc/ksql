@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **34**
+Next KLIP number: **36**
 
 | KLIP                                                                                                 | Status         | Community Release | CP Release | Discussion PR |
 |------------------------------------------------------------------------------------------------------|:--------------:|:-----------------:|:----------:|:--------------|
@@ -75,3 +75,4 @@ Next KLIP number: **34**
 | [KLIP-32: SQL-based testing tool](klip-32-sql-testing-tool.md)                                      | Proposal | | | |
 | KLIP-33: Key format.                                                                  | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6017) |
 | KLIP-34: Optional WITH for CREATE TABLE and CREATE STREAM                                            | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6065) |
+| KLIP-35: Dynamic Processing Log Levels                                                               | Proposal | | | |

@@ -49,6 +49,7 @@ To open ksqlDB up to new problems spaces and to drive adoption, ksqlDB should su
     * `DELIMITED`: single key columns as a single string value.
     * `JSON` / `JSON_SR`: single key column as an anonymous value, i.e. not within a JSON object.
     * `AVRO`: single key column as an anonymous value, i.e. not within an Avro record.
+    * `NULL`: special format indicating no data, or ignored data, e.g. a key-less stream.
   * Full support of these key formats for all supported SQL syntax.
   * Automatic repartitioning of streams and tables for joins where key formats do not match.
   * Support for reading & writing key schemas to & from the schema registry. 
@@ -59,6 +60,9 @@ To open ksqlDB up to new problems spaces and to drive adoption, ksqlDB should su
  * Support for single key columns _wrapped_ in an envelope of some kind: this will come later.
  * Support for complex key column data types, i.e. array, struct and map 
  * Support for `PROTOBUF` keys, as this requires support for wrapped keys: this will come later.
+ * Enhancing DataGen to support non-KAFKA keys.
+ * Key schema evolution. (See [key schema evolution](#key-schema-evolution)) in the compatibility 
+   section.
 
 ## Value/Return
 
@@ -147,7 +151,8 @@ the current product.
 
 If a `CREATE TABLE` or `CREATE STREAM` statement does not include a `KEY_FORMAT` property, the 
 key format is picked up from the `ksql.persistence.default.format.key` system configuration. If this
-is not set, then an error is returned.
+is not set, then an error is returned.  Note: The server config will have this set to `KAFKA` to 
+maintain backwards compatibility with current system by default.
 
 ### Implementation
 
@@ -158,7 +163,10 @@ Validation will be added to ensure only supported key formats are set, and that 
 are supported by key formats.
 
 Most existing functionality should _just work_, as the key format only comes into play during 
-(de)serialization, (obviously). The only area where additional work is expected is joins.
+(de)serialization, (obviously). The only area where additional work is expected are joins, single
+key wrapping and key-less streams.
+
+#### Joins
 
 Joins require the binary key of both sides of the join to match and both sides to be delivered to 
 the same ksqlDB node.  The former normally ensuring the latter, unless a custom partitioning 
@@ -184,13 +192,22 @@ Such repartitioning is possible and safe... ish, even for tables, because the lo
 data will not have changed, only the serialization format. This ensures the ordering of updates to 
 a specific key are maintained across the repartition. Of course, the repartitioning can, and 
 probably will, introduce out-of-order data, as the records are shuffled across partitions. This 
-phenomenon already exists for other implicit repartitions, and will be documented.   
+phenomenon already exists for other implicit repartitions, and will be documented.
+
+#### Single key wrapping   
 
 To ensure query plans written after this work are forward compatible with future enhancements to 
 support single key columns wrapped in JSON object, Avro records, etc, and ultimately multiple key 
 columns, a new `UNWRAP_SINGLE_KEY` value will be added to `SerdeOption` and explicitly set on all
 source, sink and internal topics. See [Future multi-column key work](#future-multi-column-key-work) 
-below for more info.
+below for more info / background.
+
+#### Key-less streams
+
+A new `NULL` format will be introduced to allow users to provide a `KEY_FORMAT` that informs ksqlDB
+to ignore the key.  This format will be rejected as a `VALUE_FORMAT` for now, as ksqlDB does not yet
+support value-less streams and tables. See [Schema Inference](#schema-inference) below for more 
+info / background.
 
 ## Test plan
 
@@ -218,6 +235,7 @@ The KLIP will be broken down into the following deliverables:
         * `DECIMAL`
         * `BOOLEAN`
     * Full support of the key format for all supported SQL syntax.  
+1. **NULL format**: Supported on keys only. Needed to support key-less streams once we have SR integration.
 1. **Schema Registry support**: Adds support for reading and writing schemas to and from the schema
    registry.
 1. **JSON_SR support** Adds support for the `JSON_SR` key format, inc. schema registry integration.
@@ -301,7 +319,7 @@ configuration.
 
 To ensure query plans written by this KLIP are forwards compatible with this planned work, all query
 plans will explicitly set the `UNWRAP_SINGLE_KEYS` `SerdeOption` on all source, internal and sink 
-topics, ensuring the correct (de)serialization options once ksqlDB supports these more next features. 
+topics, ensuring the correct (de)serialization options once ksqlDB supports these later features. 
 
 ### Internal topics
 
@@ -322,7 +340,7 @@ No changes around internal topics are needed to maintain compatibility.
 ### Schema inference
 
 The introduction of key formats that support schema inference, i.e. loading the key schema
-from the schema registry, introduces some edge cases we must account for.
+from the schema registry, introduces an edge cases we must account for: key-less streams.
 
 kqlDB already supports 'partial schemas', where the value format supports schema inference and the 
 user explicitly provides the key definition: 
@@ -338,7 +356,7 @@ CREATE TABLE FOO (
 );
 ```
 
-If the key format supports schema inference as well, then this could become:
+If the key format also supports schema inference as well, then this would become:
 
 ```sql
 --- table created with keys and values using schema inference.
@@ -349,7 +367,7 @@ CREATE TABLE FOO WITH (
 );
 ```
 
-One edge case is key-less streams. A user can currently define a key-less stream with:
+No problem so far. However, a user can currently define a key-less stream with:
 
 ```sql
 -- key-less stream with explicitly provided columns: 
@@ -363,41 +381,78 @@ CREATE STREAM FOO (
 -- key-less stream with value columns using schema inference:
 CREATE STREAM FOO WITH (
     KAFKA_TOPIC='foo',
-    VALUE_FORMAT='DELIMITED'
+    VALUE_FORMAT='AVRO'
 );
 ```
 
-If the `ksql.persistence.default.format.key` system configuration is providing a default key format,
-and that format supports schema inference, then it may not be possible to differentiation a key-less
-stream from a stream where the key schema is missing. 
-
-It is likely the schema registry does not support registering an 'empty' schema. Even if this is
-possible today, will all future formats support such a concept?
-
-We may want to introduce some kind of syntax to represent 'schema inference' in the statement. For 
-example, we could use an ellipse to represent key and value inference and a dash to represent no
-schema. For example, (`WITH` clause removed for clarity):
+But what happens once users can supply the key format? Key format currently defaults to `KAFKA`, but
+it doesn't make sense to force users to set `KEY_FORMAT` to `KAFKA` if there is no key!
 
 ```sql
--- table created with keys and values using schema inference:
-CREATE TABLE USERS (..., ...);
+-- BAD!
+CREATE STREAM FOO WITH (
+    KAFKA_TOPIC='foo',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='AVRO'
+);
+```
 
--- stream created with keys and values using schema inference:
-CREATE STREAM BIDS (..., ...);
+The user may also have set a default key format, via the `ksql.persistence.default.format.key` 
+system configuration, that supports schema inference. How then does a user declare a key-less 
+stream as opposed to a stream where the key schema is loaded from the Schema Registry? 
 
--- key-less stream created with values using schema inference: 
-CREATE STREAM BIDS (-, ...);
+```sql
+SET 'ksql.persistence.default.format.key''='AVRO';' 
 
--- table created with keys using schema inference and explicit value columns:
-CREATE TABLE USERS (..., VAL STRING);
+-- Is this key-less or loading its key from SR?
+CREATE STREAM FOO WITH (
+    KAFKA_TOPIC='foo',
+    VALUE_FORMAT='AVRO'
+);
+```
 
--- table created with values using schema inference and explicit key columns:
-CREATE TABLE USERS (VAL STRING PRIMARY KEY, ...);
-``` 
+We propose adding a `NULL` key format to allow users to explicitly set the key format when they
+intend a stream to be key-less:
 
-We can continue to maintain backwards compatibility with existing syntax for some number of releases,
-though this new syntax would be needed to express a key-less stream if the default key format supports
-schema inference.
+```sql
+-- explicitly key-less stream:
+CREATE STREAM FOO WITH (
+    KAFKA_TOPIC='foo',
+    KEY_FORMAT='NULL',
+    VALUE_FORMAT='AVRO'
+);
+```
+
+It will still be possible to define a key-less stream by not providing any key-column for key
+formats don't support schema inference:
+
+```sql
+-- implicitly key-less stream:
+CREATE STREAM FOO WITH (
+    KAFKA_TOPIC='foo',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='AVRO'
+);
+```
+
+### Key schema evolution
+
+Key formats that support schema inference through integration with the Schema Registry prepend
+the serialized key data with a magic byte and the id of the registered schema.
+
+If the key schema evolves, the schema id will change. Hence the serialized bytes of the same
+logical key will have changed, and meaning updates to the same logical key may now be spread across
+multiple partitions. For this reason, evolution of the key's schema is not supported.
+
+Is not supporting key schema evolution a big concern? We propose not. If the schema of the key has
+changed, then in almost all cases the key itself has changed, e.g. a new column, or a change of 
+column type. These, in themselves, will result in a different binary key. So the change of schema id
+seems a secondary issue.
+
+There are schema evolutions that would be binary compatible were it not for the schema id in the key, 
+e.g. changing the logical type of a Avro value. It would be possible to add a custom partitioner that
+ignored the magic byte and schema Id. However, we propose these are niche enough that supporting 
+them has little ROI, at present. Hence key schema evolution is out of scope.   
 
 ## Security Implications
 

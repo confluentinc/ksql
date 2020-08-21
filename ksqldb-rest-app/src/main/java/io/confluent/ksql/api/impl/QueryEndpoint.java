@@ -101,13 +101,12 @@ public class QueryEndpoint {
         statement, serviceContext, Optional.of(false), startTimeNanos);
     final TableRows tableRows = result.getTableRows();
 
-    final QueryPublisher queryPublisher = new PullQueryPublisher(
+    return new PullQueryPublisher(
         context,
         tableRows,
         colNamesFromSchema(tableRows.getSchema().columns()),
         colTypesFromSchema(tableRows.getSchema().columns())
     );
-    return queryPublisher;
   }
 
   private ConfiguredStatement<Query> createStatement(final String queryString,

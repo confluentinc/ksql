@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static org.apache.kafka.common.utils.Time.SYSTEM;
+
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
@@ -33,6 +35,7 @@ import org.apache.kafka.common.metrics.stats.Percentiles;
 import org.apache.kafka.common.metrics.stats.Percentiles.BucketSizing;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
+import org.apache.kafka.common.utils.Time;
 
 public class PullQueryExecutorMetrics implements Closeable {
 
@@ -43,17 +46,21 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Sensor localRequestsSensor;
   private final Sensor remoteRequestsSensor;
   private final Sensor latencySensor;
+  private final Sensor requestRateSensor;
   private final Sensor errorRateSensor;
   private final Metrics metrics;
   private final Map<String, String> customMetricsTags;
+  private final Time time;
   private final String ksqlServiceId;
 
   public PullQueryExecutorMetrics(
       final String ksqlServiceId,
-      final Map<String, String> customMetricsTags
+      final Map<String, String> customMetricsTags,
+      final Time time
   ) {
 
     this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
+    this.time = Objects.requireNonNull(time, "time");
     this.metrics = MetricCollectors.getMetrics();
     this.ksqlServiceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlServiceId;
@@ -61,6 +68,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
     this.latencySensor = configureRequestSensor();
+    this.requestRateSensor = configureRateSensor();
     this.errorRateSensor = configureErrorRateSensor();
   }
 
@@ -77,10 +85,12 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.remoteRequestsSensor.record(value);
   }
 
-  public void recordLatency(final long nanoSeconds) {
+  public void recordLatency(final long startTimeNanos) {
     // Record latency at microsecond scale
-    final double latency = TimeUnit.NANOSECONDS.toMicros(nanoSeconds);
+    long nowNanos = time.nanoseconds();
+    final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
     this.latencySensor.record(latency);
+    this.requestRateSensor.record(1);
   }
 
   public void recordErrorRate(final double value) {

@@ -138,24 +138,26 @@ public final class PullQueryExecutor {
   private static final String VALID_WINDOW_BOUNDS_TYPES_STRING =
       GrammaticalJoiner.and().join(VALID_WINDOW_BOUNDS_TYPES);
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   public PullQueryExecutor(
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext executionContext,
       final RoutingFilterFactory routingFilterFactory,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final String serviceId,
+      final Time time
   ) {
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
     this.pullQueryMetrics = ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED)
-        ? Optional.of(new PullQueryExecutorMetrics(ksqlEngine.getServiceId(),
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
+        ? Optional.of(new PullQueryExecutorMetrics(serviceId,
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS), time))
         : Optional.empty();
   }
 
@@ -203,11 +205,11 @@ public final class PullQueryExecutor {
       }
 
       final ImmutableAnalysis analysis = new RewrittenAnalysis(
-          analyze(statement, ksqlEngine),
+          analyze(statement, executionContext),
           new ColumnReferenceRewriter()::process
       );
 
-      final PersistentQueryMetadata query = findMaterializingQuery(ksqlEngine, analysis);
+      final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
@@ -232,14 +234,14 @@ public final class PullQueryExecutor {
 
       final PullQueryResult result = handlePullQuery(
           statement,
-          ksqlEngine,
+          executionContext,
           serviceContext,
           pullQueryContext,
           routingOptions
       );
 
       pullQueryMetrics.ifPresent(metrics ->
-          metrics.recordLatency(Time.SYSTEM.nanoseconds() - startTimeNanos));
+          metrics.recordLatency(startTimeNanos));
       return result;
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));

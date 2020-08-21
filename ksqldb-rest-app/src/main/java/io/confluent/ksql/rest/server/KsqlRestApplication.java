@@ -137,6 +137,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
@@ -699,7 +700,8 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, routingFilterFactory, ksqlConfig);
+        ksqlEngine, routingFilterFactory, ksqlConfig, ksqlEngine.getServiceId(),
+        Time.SYSTEM);
 
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));

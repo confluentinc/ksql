@@ -28,6 +28,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import java.util.Map;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.utils.Time;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,12 +47,16 @@ public class PullQueryExecutorMetricsTest {
   @Mock
   private KsqlEngine ksqlEngine;
 
+  @Mock
+  private Time time;
+
   @Before
   public void setUp() {
     MetricCollectors.initialize();
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
+    when(time.nanoseconds()).thenReturn(6000L);
 
-    pullMetrics = new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS);
+    pullMetrics = new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time);
   }
 
   @After
@@ -113,6 +118,20 @@ public class PullQueryExecutorMetricsTest {
   }
 
   @Test
+  public void shouldRecordRequestRate() {
+    // Given:
+    pullMetrics.recordLatency(3000);
+    pullMetrics.recordLatency(3000);
+    pullMetrics.recordLatency(3000);
+
+    // When:
+    final double rate = getMetricValue("-rate");
+
+    // Then:
+    assertThat(rate, closeTo(0.03, 0.001));
+  }
+
+  @Test
   public void shouldRecordLatency() {
     // Given:
     pullMetrics.recordLatency(3000);
@@ -129,7 +148,6 @@ public class PullQueryExecutorMetricsTest {
     assertThat(max, is(3.0));
     assertThat(total, is(1.0));
   }
-
 
   private double getMetricValue(final String metricName) {
     final Metrics metrics = pullMetrics.getMetrics();

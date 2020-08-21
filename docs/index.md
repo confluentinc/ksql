@@ -1,6 +1,6 @@
 ---
 layout: page
-title: ksqlDB
+title: ksqlDB Overview
 tagline: What is ksqlDB?
 description: Learn about ksqlDB, the event streaming database for creating stream processing applications with Apache Kafka®.
 keywords: ksqldb

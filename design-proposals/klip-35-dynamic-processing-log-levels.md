@@ -10,6 +10,7 @@ This is a common error scenario users face. I did a (I’ll admit unscientific) 
 1. General inquiries about functionality or feasibility
 1. Errors issuing a ksqlDB statement
 1. Errors or confusion with query results (what this KLIP addresses)
+
 Out of 62 inquiries there were 37 general questions, 6 questions about statement errors, and 6 questions about confusing/bad query results. The rest were misc (bugs, perf issues).
 
 ksqlDB already includes a nice mechanism for reporting internal details of query execution to the user - the record processing log. However, to help a user advance past the scenarios described above, the log messages required would need to be logged at a very verbose (e.g. DEBUG) level to avoid flooding the log with records. It’s not practical to run a real workload with the log configured this way.
@@ -77,7 +78,7 @@ Response Schema:
 
 Deletes customized config for the root logger (reverts to default config as specified in the log4j config file).
 
-### PUT /processing_logger/<processing logger name>/config
+### PUT /processing_logger/[processing logger name]/config
 
 Sets the processing log configuration for the logger with the given processing logger name (currently just supports setting the log level). This will set the level for all child loggers (loggers that share a common name prefix) that do not already have a level set using a longer prefix.
 
@@ -99,7 +100,7 @@ Response Fields:
 }
 ```
 
-### GET /processing_logger/<processing logger name>/level
+### GET /processing_logger/[processing logger name]/level
 
 Gets the processing log configuration for the logger with the given processing logger name.
 
@@ -112,11 +113,11 @@ Response Fields:
 }
 ```
 
-### DELETE /processing_logger/<processing logger name>/level
+### DELETE /processing_logger/[processing logger name]/level
 
 Deletes customized config for the logger with the given processing logger name.
 
-### GET /processing_logger/<processing logger name?>
+### GET /processing_logger/[processing logger name?]
 
 Lists all processing loggers and configs under the logger name if specified. If not specified, lists all loggers and configs.
 

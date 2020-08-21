@@ -30,6 +30,7 @@ Use the Java client to:
 - [Insert new rows in a streaming fashion (streamInserts())](#stream-inserts)
 - [Create and manage new streams, tables, and persistent queries (executeStatement())](#execute-statement)
 - [List streams, tables, topics, and queries](#admin-operations)
+- [Describe specific streams and tables](#describe-source)
 
 Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
 
@@ -642,6 +643,30 @@ for (QueryInfo query : queries) {
   }
 }
 ```
+
+See the [API reference](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-clients/java-client/api/io/confluent/ksql/api/client/Client.html)
+for more information.  
+
+Describe specific streams and tables<a name="describe-source"></a>
+------------------------------------------------------------------
+
+Starting with ksqlDB 0.12.0, the `describeSource()` method enables client apps
+to fetch metadata for existing ksqlDB streams and tables.
+The metadata returned from this method includes the stream or table's underlying
+topic name, column names and associated types, serialization formats, queries that
+read and write from the stream or table, and more. For more details, see the
+[API reference](api/io/confluent/ksql/api/client/Client.html#describeSource(java.lang.String)).
+
+### Example Usage ###
+
+Fetch metadata for the stream or table with name `my_source`:
+```java
+SourceDescription description = client.describeSource("my_source").get();
+System.out.println("This source is a " + description.type());
+System.out.println("This stream/table has " + description.fields().size() + " columns.");
+System.out.println(description.writeQueries().size() + " queries write to this stream/table.");
+System.out.println(description.readQueries().size() + " queries read from this stream/table.");
+``` 
 
 Tutorial Examples<a name="tutorial-examples"></a>
 -------------------------------------------------

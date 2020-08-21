@@ -255,15 +255,21 @@ CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo WHERE co
 
 ----------------------------------------------------------------------------------------------------
 --@test: add filter to PartitionBy
---@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: Upgrades not yet supported for StreamSelectKey
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 
 CREATE STREAM a (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
 CREATE STREAM b AS SELECT * FROM a PARTITION BY col1;
 
+INSERT INTO a (id, col1) VALUES (0, 0);
+ASSERT VALUES b (id, col1) VALUES (0, 0);
+
 CREATE OR REPLACE STREAM b AS SELECT * FROM a WHERE col1 > 0 PARTITION BY col1;
+
+INSERT INTO a (id, col1) VALUES (0, 0);
+INSERT INTO a (id, col1) VALUES (0, 1);
+
+ASSERT VALUES b (id, col1) VALUES (0, 1);
 
 ----------------------------------------------------------------------------------------------------
 --@test: add filter to windowed aggregation

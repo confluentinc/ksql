@@ -99,6 +99,23 @@ INSERT INTO a (id, col1, col2) VALUES (1, 1, 1);
 ASSERT VALUES b (id, col1, col2) VALUES (1, 1, 1);
 
 ----------------------------------------------------------------------------------------------------
+--@test: add columns to stream with PARTITION BY
+----------------------------------------------------------------------------------------------------
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM a (id INT KEY, col1 INT, col2 INT) WITH (kafka_topic='a', value_format='JSON');
+
+CREATE STREAM b AS SELECT id, col1 FROM a;
+
+INSERT INTO a (id, col1, col2) VALUES (1, 1, 1);
+ASSERT VALUES b (id, col1) VALUES (1, 1);
+
+CREATE OR REPLACE STREAM b AS SELECT id, col1, col2 FROM a;
+
+INSERT INTO a (id, col1, col2) VALUES (1, 1, 1);
+ASSERT VALUES b (id, col1, col2) VALUES (1, 1, 1);
+
+----------------------------------------------------------------------------------------------------
 --@test: remove column from DDL stream
 --@expected.error: io.confluent.ksql.util.KsqlException
 --@expected.message: (The following columns are changed or missing: [`COL2` INTEGER])

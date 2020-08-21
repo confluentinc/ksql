@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.driver;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -126,7 +127,9 @@ public class KsqlTesterTest {
     final SqlTestLoader loader = new SqlTestLoader(testDir);
     return loader.load()
         .map(test -> new Object[]{
-            "(" + test.getFile().toFile().getName() + ") " + test.getName(),
+            "(" + test.getFile().getParent().toFile().getName()
+                + "/" + test.getFile().toFile().getName() + ") "
+                + test.getName(),
             test.getFile(),
             test.getStatements()})
         .toArray(Object[][]::new);
@@ -175,6 +178,16 @@ public class KsqlTesterTest {
         handleExpectedException(testStatement, e);
         return;
       }
+    }
+
+    if (expectedException != null || expectedMessage != null) {
+      final String clazz = expectedException == null ? "<any>" : expectedException.getName();
+      final String msg = expectedMessage == null ? "<any>" : expectedMessage;
+      throw new KsqlTestException(
+          Iterables.getLast(statements),
+          file,
+          "Did not get expected exception of type " + clazz + " with message " + msg
+      );
     }
   }
 

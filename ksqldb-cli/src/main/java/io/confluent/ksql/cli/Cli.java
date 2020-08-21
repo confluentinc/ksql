@@ -205,7 +205,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     try {
       final ServerInfo serverInfo = restClient.getServerInfo().getResponse();
       serverVersion = serverInfo.getVersion();
-      serverStatus = serverInfo.getServerStatus();
+      serverStatus = serverInfo.getServerStatus() == null
+          ? "<unknown>" : serverInfo.getServerStatus();
     } catch (final Exception exception) {
       serverVersion = "<unknown>";
       serverStatus = "<unknown>";

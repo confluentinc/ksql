@@ -35,6 +35,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
@@ -71,6 +72,7 @@ public class MetaStoreModelTest {
           .build())
       .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())))
       .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())))
+      .put(SerdeOptions.class, SerdeOptions.of())
       .build();
 
   private final Class<?> modelClass;

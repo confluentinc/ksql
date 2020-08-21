@@ -160,11 +160,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
   }
 
-  @Override
-  public synchronized void stop() {
-    doClose(false);
-  }
-
   public synchronized void restart() {
     if (isClosed()) {
       throw new IllegalStateException(String.format(

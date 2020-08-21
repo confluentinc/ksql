@@ -72,13 +72,11 @@ public class QueryMetadataTest {
   @Mock
   private Consumer<QueryMetadata> closeCallback;
   private QueryMetadata query;
-  private boolean cleanUp;
 
   @Before
   public void setup() {
     when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
 
-    cleanUp = false;
     query = new QueryMetadata(
         "foo",
         SOME_SCHEMA,
@@ -92,11 +90,7 @@ public class QueryMetadataTest {
         closeCallback,
         closeTimeout,
         QUERY_ID, QueryErrorClassifier.DEFAULT_CLASSIFIER,
-        10) {
-      @Override
-      public void stop() {
-        doClose(cleanUp);
-      }
+        10){
     };
   }
 
@@ -214,18 +208,6 @@ public class QueryMetadataTest {
 
     // Then:
     verify(kafkaStreams, never()).cleanUp();
-  }
-
-  @Test
-  public void shouldCallCleanupOnStopIfCleanup() {
-    // Given:
-    cleanUp = true;
-
-    // When:
-    query.stop();
-
-    // Then:
-    verify(kafkaStreams).cleanUp();
   }
 
   @Test

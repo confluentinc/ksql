@@ -24,7 +24,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
@@ -34,7 +33,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
-import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -46,14 +44,10 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +55,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
-  private final Set<QueryMetadata> allLiveQueries = ConcurrentHashMap.newKeySet();
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
   private final String serviceId;
@@ -100,8 +93,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         serviceContext,
         processingLogContext,
         metaStore,
-        queryIdGenerator,
-        this::unregisterQuery);
+        queryIdGenerator
+    );
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
@@ -120,7 +113,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   public int numberOfLiveQueries() {
-    return allLiveQueries.size();
+    return primaryContext.getAllLiveQueries().size();
   }
 
   @Override
@@ -135,7 +128,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public List<QueryMetadata> getAllLiveQueries() {
-    return ImmutableList.copyOf(allLiveQueries);
+    return primaryContext.getAllLiveQueries();
   }
 
   public boolean hasActiveQueries() {
@@ -225,6 +218,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
               statement.getConfigOverrides())
           .executeQuery(statement);
       registerQuery(query);
+      primaryContext.registerQuery(query);
       return query;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -238,11 +232,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    * @param closeQueries whether or not to clean up the local state for any running queries
    */
   public void close(final boolean closeQueries) {
-    if (closeQueries) {
-      allLiveQueries.forEach(QueryMetadata::close);
-    } else {
-      allLiveQueries.forEach(QueryMetadata::stop);
-    }
+    primaryContext.getAllLiveQueries()
+      .forEach(closeQueries ? QueryMetadata::close : QueryMetadata::stop);
 
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
@@ -266,33 +257,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   private void registerQuery(final QueryMetadata query) {
-    allLiveQueries.add(query);
     engineMetrics.registerQuery(query);
   }
 
-  private void unregisterQuery(final ServiceContext serviceContext, final QueryMetadata query) {
-    final String applicationId = query.getQueryApplicationId();
-
-    if (!query.getState().equals(State.NOT_RUNNING)) {
-      log.warn(
-          "Unregistering query that has not terminated. "
-              + "This may happen when streams threads are hung. State: " + query.getState()
-      );
-    }
-
-    if (!allLiveQueries.remove(query)) {
-      return;
-    }
-
-    if (query.hasEverBeenStarted()) {
-      SchemaRegistryUtil.cleanupInternalTopicSchemas(
-          applicationId,
-          serviceContext.getSchemaRegistryClient(),
-          query instanceof TransientQueryMetadata);
-
-      serviceContext.getTopicClient().deleteInternalTopics(applicationId);
-    }
-
-    StreamsErrorCollector.notifyApplicationClose(applicationId);
-  }
 }

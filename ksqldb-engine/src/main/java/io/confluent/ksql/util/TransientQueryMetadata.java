@@ -72,6 +72,7 @@ public class TransientQueryMetadata extends QueryMetadata {
         maxQueryErrorsQueueSize
     );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
+    this.onStop(() -> isRunning.set(false));
   }
 
   public boolean isRunning() {
@@ -109,17 +110,18 @@ public class TransientQueryMetadata extends QueryMetadata {
 
   @Override
   public void stop() {
+    // for transient queries, anytime they are stopped
+    // we should also fully clean them up
     close();
   }
 
   @Override
-  protected void doClose(final boolean cleanUp) {
+  public void close() {
     // To avoid deadlock, close the queue first to ensure producer side isn't blocked trying to
     // write to the blocking queue, otherwise super.close call can deadlock:
     rowQueue.close();
 
     // Now safe to close:
-    super.doClose(cleanUp);
-    isRunning.set(false);
+    super.close();
   }
 }

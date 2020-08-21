@@ -75,3 +75,4 @@ Next KLIP number: **34**
 | [KLIP-32: SQL-based testing tool](klip-32-sql-testing-tool.md)                                      | Proposal | | | |
 | KLIP-33: Key format.                                                                  | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6017) |
 | KLIP-34: Optional WITH for CREATE TABLE and CREATE STREAM                                            | Proposal | | | |
+| KLIP-35: Dynamic Processing Log Levels                                                               | Proposal | | | |

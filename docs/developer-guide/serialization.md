@@ -199,7 +199,7 @@ Avro records can be deserialized into matching ksqlDB schemas.
 For example, given a SQL statement such as:
 
 ```sql
-CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='JSON', ...);
+CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='AVRO', ...);
 ```
 
 And an Avro record serialized with the schema:

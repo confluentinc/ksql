@@ -39,6 +39,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -200,10 +201,15 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   private void displayWelcomeMessage() {
     String serverVersion;
+    String serverStatus;
     try {
-      serverVersion = restClient.getServerInfo().getResponse().getVersion();
+      final ServerInfo serverInfo = restClient.getServerInfo().getResponse();
+      serverVersion = serverInfo.getVersion();
+      serverStatus = serverInfo.getServerStatus() == null
+          ? "<unknown>" : serverInfo.getServerStatus();
     } catch (final Exception exception) {
       serverVersion = "<unknown>";
+      serverStatus = "<unknown>";
     }
     final String cliVersion = AppInfo.getVersion();
 
@@ -228,6 +234,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         serverVersion,
         restClient.getServerAddress()
     );
+    writer.println("Server Status: " + serverStatus);
     writer.println();
     writer.println(helpReminderMessage);
     writer.println();

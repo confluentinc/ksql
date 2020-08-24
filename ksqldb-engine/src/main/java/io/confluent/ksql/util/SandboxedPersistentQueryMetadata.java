@@ -40,7 +40,6 @@ public final class SandboxedPersistentQueryMetadata extends PersistentQueryMetad
   public void close() {
     closed = true;
     closeCallback.accept(this);
-    onStop.run();
   }
 
   @Override

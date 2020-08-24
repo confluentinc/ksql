@@ -46,6 +46,7 @@ import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 
 public final class GenericKeySerDe implements KeySerdeFactory {
 
+  static final String SERIALIZER_LOGGER_NAME = "serializer";
   static final String DESERIALIZER_LOGGER_NAME = "deserializer";
 
   private final SerdeFactories serdeFactories;
@@ -131,7 +132,9 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     final Serde<T> serde = serdeFactories
         .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
 
-    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
+    final ProcessingLogger serializerProcessingLogger = processingLogContext.getLoggerFactory()
+        .getLogger(join(loggerNamePrefix, SERIALIZER_LOGGER_NAME));
+    final ProcessingLogger deserializerProcessingLogger = processingLogContext.getLoggerFactory()
         .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
 
     final Serde<Struct> inner = schema.isUnwrapped()
@@ -139,8 +142,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         : wrapped(serde, targetType);
 
     final Serde<Struct> result = Serdes.serdeFrom(
-        new LoggingSerializer<>(inner.serializer(), processingLogger),
-        new LoggingDeserializer<>(inner.deserializer(), processingLogger)
+        new LoggingSerializer<>(inner.serializer(), serializerProcessingLogger),
+        new LoggingDeserializer<>(inner.deserializer(), deserializerProcessingLogger)
     );
 
     result.configure(Collections.emptyMap(), true);

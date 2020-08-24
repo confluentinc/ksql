@@ -142,7 +142,9 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     final Serde<T> serde = serdeFactories
         .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
 
-    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
+    final ProcessingLogger serializerProcessingLogger = processingLogContext.getLoggerFactory()
+        .getLogger(join(loggerNamePrefix, GenericKeySerDe.SERIALIZER_LOGGER_NAME));
+    final ProcessingLogger deserializerProcessingLogger = processingLogContext.getLoggerFactory()
         .getLogger(join(loggerNamePrefix, GenericKeySerDe.DESERIALIZER_LOGGER_NAME));
 
     final Serde<GenericRow> genericRowSerde = schema.isUnwrapped()
@@ -150,8 +152,8 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
           : wrapped(serde, schema, targetType);
 
     final Serde<GenericRow> result = Serdes.serdeFrom(
-        new LoggingSerializer<>(genericRowSerde.serializer(), processingLogger),
-        new LoggingDeserializer<>(genericRowSerde.deserializer(), processingLogger)
+        new LoggingSerializer<>(genericRowSerde.serializer(), serializerProcessingLogger),
+        new LoggingDeserializer<>(genericRowSerde.deserializer(), deserializerProcessingLogger)
     );
 
     result.configure(Collections.emptyMap(), false);
@@ -299,7 +301,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
           throw e;
         } else {
           throw new KsqlException(
-              "Failed to prepare Struct value field '" + field.name() +  "' for serialization. "
+              "Failed to prepare Struct value field '" + field.name() + "' for serialization. "
                   + "This could happen if the value was produced by a user-defined function "
                   + "where the schema has non-optional return types. ksqlDB requires all "
                   + "schemas to be optional at all levels of the Struct: the Struct itself, "

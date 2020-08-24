@@ -1352,6 +1352,50 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotStartKafkaStreamsInSandbox() {
+    // Given:
+    givenSqlAlreadyExecuted("create table bar as select * from test2;");
+    final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
+
+    // When:
+    sandbox.getPersistentQuery(query.getQueryId()).get().start();
+
+    // Then:
+    assertThat(ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState(),
+        is(KafkaStreams.State.CREATED));
+  }
+
+  @Test
+  public void shouldNotStopKafkaStreamsInSandbox() {
+    // Given:
+    givenSqlAlreadyExecuted("create table bar as select * from test2;");
+    final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
+    ksqlEngine.getPersistentQuery(query.getQueryId()).get().start();
+
+    // When:
+    sandbox.getPersistentQuery(query.getQueryId()).get().stop();
+
+    // Then:
+    assertThat(ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState(),
+        is(KafkaStreams.State.REBALANCING));
+  }
+
+  @Test
+  public void shouldNotCloseKafkaStreamsInSandbox() {
+    // Given:
+    givenSqlAlreadyExecuted("create table bar as select * from test2;");
+    final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
+    ksqlEngine.getPersistentQuery(query.getQueryId()).get().start();
+
+    // When:
+    sandbox.getPersistentQuery(query.getQueryId()).get().close();
+
+    // Then:
+    assertThat(ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState(),
+        is(KafkaStreams.State.REBALANCING));
+  }
+
+  @Test
   public void shouldExecuteDdlStatement() {
     // Given:
     givenTopicsExist("foo");

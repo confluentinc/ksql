@@ -58,7 +58,7 @@ public abstract class QueryMetadata {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  private final Consumer<QueryMetadata> closeCallback;
+  protected final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
@@ -68,7 +68,7 @@ public abstract class QueryMetadata {
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
-  private boolean closed = false;
+  protected boolean closed = false;
   private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
   private Consumer<Boolean> onStop = (ignored) -> { };
@@ -268,20 +268,8 @@ public abstract class QueryMetadata {
     queryStateListener.ifPresent(this::setQueryStateListener);
   }
 
-  protected void startKafkaStreams() {
-    kafkaStreams.start();
-  }
-
   protected void closeKafkaStreams() {
     kafkaStreams.close(Duration.ofMillis(closeTimeout));
-  }
-
-  protected void cleanUpKafkaStreams() {
-    kafkaStreams.cleanUp();
-  }
-
-  protected void closeStateListener() {
-    queryStateListener.ifPresent(QueryStateListener::close);
   }
 
   protected KafkaStreams buildKafkaStreams() {
@@ -318,10 +306,10 @@ public abstract class QueryMetadata {
     closeKafkaStreams();
 
     if (cleanUp) {
-      cleanUpKafkaStreams();
+      kafkaStreams.cleanUp();
     }
 
-    closeStateListener();
+    queryStateListener.ifPresent(QueryStateListener::close);
 
     if (cleanUp) {
       closeCallback.accept(this);
@@ -332,7 +320,7 @@ public abstract class QueryMetadata {
   public void start() {
     LOG.info("Starting query with application id: {}", queryApplicationId);
     everStarted = true;
-    startKafkaStreams();
+    kafkaStreams.start();
   }
 
   public void clearErrors() {

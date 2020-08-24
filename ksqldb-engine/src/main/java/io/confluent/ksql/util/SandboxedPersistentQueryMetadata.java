@@ -37,22 +37,19 @@ public final class SandboxedPersistentQueryMetadata extends PersistentQueryMetad
   }
 
   @Override
-  protected void startKafkaStreams() {
+  public void close() {
+    closed = true;
+    closeCallback.accept(this);
+    onStop.run();
+  }
+
+  @Override
+  public void start() {
     // no-op
   }
 
   @Override
   protected void closeKafkaStreams() {
-    // no-op
-  }
-
-  @Override
-  protected void cleanUpKafkaStreams() {
-    // no-op
-  }
-
-  @Override
-  protected void closeStateListener() {
     // no-op
   }
 }

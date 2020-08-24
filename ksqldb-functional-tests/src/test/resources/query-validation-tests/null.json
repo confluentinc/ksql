@@ -14,7 +14,7 @@
         {"topic": "test_topic", "key": 2, "value": {"NAME": null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": null},
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": null}},
         {"topic": "OUTPUT", "key": 2, "value": {"NAME": null}}
       ]
     },
@@ -95,7 +95,7 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"A": 1, "B": "not null", "C": [1, 2, 3]}},
         {"topic": "OUTPUT", "key": null, "value": {"A": null, "B": "x", "C": [10, 20]}},
-        {"topic": "OUTPUT", "key": null, "value": null},
+        {"topic": "OUTPUT", "key": null, "value": {"A": null, "B": "x", "C": [10, 20]}},
         {"topic": "OUTPUT", "key": null, "value": {"A": 2, "B": "not null", "C": [4, 5, 6]}}
       ]
     },
@@ -125,7 +125,7 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"A": 1, "B": "not null", "C": [1, 2, 3]}},
         {"topic": "OUTPUT", "key": null, "value": {"A": 10, "B": "x", "C": [10, 20]}},
-        {"topic": "OUTPUT", "key": null, "value": null},
+        {"topic": "OUTPUT", "key": null, "value": {"A": 10, "B": "x", "C": [10, 20]}},
         {"topic": "OUTPUT", "key": 2, "value": {"A": 2, "B": "not null", "C": [4, 5, 6]}}
       ]
     },
@@ -180,6 +180,41 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid comparison expression 'null' in join '(L.A = null)'. Each side of the join comparision must contain references from exactly one source."
       }
+    },
+    {
+      "name": "filtered stream row with null value",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, A INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE NOT A = 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": {"NAME": null, "A": 2}},
+        {"topic": "test_topic", "key": 3, "value": {"NAME": "bob", "A": 3}},
+        {"topic": "test_topic", "key": 4, "value": {"NAME": "sam"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": null, "A": null}},
+        {"topic": "OUTPUT", "key": 2, "value": {"NAME": null, "A": 2}},
+        {"topic": "OUTPUT", "key": 4, "value": {"NAME": "sam", "A": null}}
+      ]
+    },
+    {
+      "name": "null values (stream->table)",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, COUNT(VAL) AS NOT_NULL, COUNT(*) AS COUNT FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 11, "value": null},
+        {"topic": "test_topic", "key": 11, "value": {"VAL": null}},
+        {"topic": "test_topic", "key": 11, "value": {"VAL": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"NOT_NULL": 0, "COUNT": 1}},
+        {"topic": "OUTPUT", "key": 11, "value": {"NOT_NULL": 0, "COUNT": 2}},
+        {"topic": "OUTPUT", "key": 11, "value": {"NOT_NULL": 1, "COUNT": 3}}
+      ]
     }
   ]
 }

@@ -52,7 +52,7 @@ public final class RestoreCommandsCompactor {
       // Whenever a new command is processed, we check if a previous command with
       // the same queryID exists - in which case, we mark that command as "shouldSkip"
       // and it will not be included in the output
-      current = CompactedNode.of(current, cmd, latestNodeWithId);
+      current = CompactedNode.maybeAppend(current, cmd, latestNodeWithId);
     }
 
     final List<QueuedCommand> compacted = new LinkedList<>();
@@ -73,7 +73,7 @@ public final class RestoreCommandsCompactor {
 
     boolean shouldSkip = false;
 
-    public static CompactedNode of(
+    public static CompactedNode maybeAppend(
         final CompactedNode prev,
         final QueuedCommand queued,
         final Map<QueryId, CompactedNode> latestNodeWithId

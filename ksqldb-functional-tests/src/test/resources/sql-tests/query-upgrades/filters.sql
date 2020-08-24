@@ -113,12 +113,6 @@ ASSERT NULL VALUES b (id) KEY (1);
 ASSERT VALUES b (id, col1) VALUES (1, -1);
 
 ----------------------------------------------------------------------------------------------------
--- following tests are here to ensure that a subset of what we expect to fail actually fails      --
--- they are not intended to be exhaustive, as those tests will come when we being to implement    --
--- more complicated upgrades                                                                      --
-----------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------
 --@test: add filter to StreamTableJoin
 --@expected.error: io.confluent.ksql.util.KsqlException
 --@expected.message: Upgrades not yet supported for StreamTableJoin
@@ -131,16 +125,133 @@ CREATE STREAM j AS SELECT s.id, s.foo, t.bar FROM s JOIN t ON s.id = t.id;
 CREATE OR REPLACE STREAM j AS SELECT s.id, s.foo, t.bar FROM s JOIN t ON s.id = t.id WHERE s.foo > 0;
 
 ----------------------------------------------------------------------------------------------------
---@test: add filter to StreamAggregate
---@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: Upgrades not yet supported for StreamAggregate
+--@test: change filter in StreamAggregate (StreamGroupByKey)
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 
 CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE TABLE bar AS SELECT id, COUNT(*) as count FROM foo WHERE col1 >= 0 GROUP BY id;
 
-CREATE TABLE bar AS SELECT id, COUNT(*) as count FROM foo GROUP BY id;
+INSERT INTO foo (id, col1) VALUES (1, 0);
+INSERT INTO foo (id, col1) VALUES (2, 0);
+
+ASSERT VALUES bar (id, count) VALUES (1, 1);
+ASSERT VALUES bar (id, count) VALUES (2, 1);
+
 CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(*) as count FROM foo WHERE col1 > 0 GROUP BY id;
+
+INSERT INTO foo (id, col1) VALUES (1, 0);
+INSERT INTO foo (id, col1) VALUES (2, 1);
+
+ASSERT VALUES bar (id, count) VALUES (2, 2);
+
+----------------------------------------------------------------------------------------------------
+--@test: change filter in StreamAggregate (StreamGroupBy)
+----------------------------------------------------------------------------------------------------
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE TABLE bar AS SELECT col1, COUNT(*) as count FROM foo WHERE col1 >= 0 GROUP BY col1;
+
+INSERT INTO foo (col1, id) VALUES (1, 0);
+INSERT INTO foo (col1, id) VALUES (2, 0);
+
+ASSERT VALUES bar (col1, count) VALUES (1, 1);
+ASSERT VALUES bar (col1, count) VALUES (2, 1);
+
+CREATE OR REPLACE TABLE bar AS SELECT col1, COUNT(*) as count FROM foo WHERE col1 > 1 GROUP BY col1;
+
+INSERT INTO foo (col1, id) VALUES (1, 0);
+INSERT INTO foo (col1, id) VALUES (2, 1);
+
+ASSERT VALUES bar (col1, count) VALUES (2, 2);
+
+----------------------------------------------------------------------------------------------------
+--@test: add filter in StreamAggregate where columns are already in input schema
+----------------------------------------------------------------------------------------------------
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo GROUP BY id;
+
+INSERT INTO foo (id, col1) VALUES (1, 0);
+INSERT INTO foo (id, col1) VALUES (2, 0);
+
+ASSERT VALUES bar (id, count) VALUES (1, 1);
+ASSERT VALUES bar (id, count) VALUES (2, 1);
+
+CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo WHERE col1 > 0 GROUP BY id;
+
+INSERT INTO foo (id, col1) VALUES (1, 0);
+INSERT INTO foo (id, col1) VALUES (2, 1);
+
+ASSERT VALUES bar (id, count) VALUES (2, 2);
+
+----------------------------------------------------------------------------------------------------
+--@test: remove filter in StreamAggregate where columns are already in input schema
+----------------------------------------------------------------------------------------------------
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo WHERE col1 > 0 GROUP BY id;
+
+INSERT INTO foo (id, col1) VALUES (1, 1);
+
+ASSERT VALUES bar (id, count) VALUES (1, 1);
+
+CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo GROUP BY id;
+
+INSERT INTO foo (id, col1) VALUES (1, 0);
+
+ASSERT VALUES bar (id, count) VALUES (1, 2);
+
+----------------------------------------------------------------------------------------------------
+--@test: change filter in StreamAggregate to another column that already exists in input
+----------------------------------------------------------------------------------------------------
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo WHERE col1 >= 0 GROUP BY id;
+
+INSERT INTO foo (id, col1) VALUES (1, 0);
+INSERT INTO foo (id, col1) VALUES (2, 0);
+
+ASSERT VALUES bar (id, count) VALUES (1, 1);
+ASSERT VALUES bar (id, count) VALUES (2, 1);
+
+CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo WHERE id > 1 GROUP BY id;
+
+INSERT INTO foo (id, col1) VALUES (1, 0);
+INSERT INTO foo (id, col1) VALUES (2, -1);
+
+ASSERT VALUES bar (id, count) VALUES (2, 2);
+
+----------------------------------------------------------------------------------------------------
+--@test: remove filter in StreamAggregate where columns are not already in input schema
+--@test: add filter in StreamAggregate where columns are not in input schema
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: StreamAggregate must have matching nonAggregateColumns. Values differ: [`ID`, `ROWTIME`, `COL1`] vs. [`ID`, `ROWTIME`]
+----------------------------------------------------------------------------------------------------
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE TABLE bar AS SELECT id, COUNT(*) as count FROM foo WHERE col1 > 0 GROUP BY id;
+
+CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(*) as count FROM foo GROUP BY id;
+
+----------------------------------------------------------------------------------------------------
+-- until we think this through a little bit more, don't allow changing non-aggregate columns
+-- to StreamAggregate nodes, though this should technically be OK
+
+--@test: add filter in StreamAggregate where columns are not in input schema
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: StreamAggregate must have matching nonAggregateColumns. Values differ: [`ID`, `ROWTIME`] vs. [`ID`, `COL1`]
+----------------------------------------------------------------------------------------------------
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE TABLE bar AS SELECT id, COUNT(*) as count FROM foo GROUP BY id;
+CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo WHERE col1 > 0 GROUP BY id;
 
 ----------------------------------------------------------------------------------------------------
 --@test: add filter to PartitionBy

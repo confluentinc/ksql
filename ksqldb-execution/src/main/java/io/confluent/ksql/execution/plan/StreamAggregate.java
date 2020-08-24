@@ -27,10 +27,20 @@ import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
+
+  private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
+      new Property("class", Object::getClass),
+      new Property("properties", ExecutionStep::getProperties),
+      new Property("internalFormats", s -> ((StreamAggregate) s).internalFormats),
+      new Property("nonAggregateColumns", s -> ((StreamAggregate) s).nonAggregateColumns),
+      new Property("aggregationFunctions", s -> ((StreamAggregate) s).aggregationFunctions)
+  );
+
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats internalFormats;
@@ -91,6 +101,12 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   @Override
   public KTableHolder<Struct> build(final PlanBuilder builder) {
     return builder.visitStreamAggregate(this);
+  }
+
+  @Override
+  public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
+    mustMatch(to, MUST_MATCH);
+    getSource().validateUpgrade(((StreamAggregate) to).source);
   }
 
   @Override

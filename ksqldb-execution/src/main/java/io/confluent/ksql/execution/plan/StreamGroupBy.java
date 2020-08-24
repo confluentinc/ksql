@@ -24,9 +24,17 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 @Immutable
 public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
+
+  private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
+      new Property("class", Object::getClass),
+      new Property("properties", ExecutionStep::getProperties),
+      new Property("groupByExpressions", s -> ((StreamGroupBy<?>) s).groupByExpressions),
+      new Property("internalFormats", s -> ((StreamGroupBy<?>) s).internalFormats)
+  );
 
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<K>> source;
@@ -75,6 +83,12 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   @Override
   public KGroupedStreamHolder build(final PlanBuilder planVisitor) {
     return planVisitor.visitStreamGroupBy(this);
+  }
+
+  @Override
+  public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
+    mustMatch(to, MUST_MATCH);
+    getSource().validateUpgrade(((StreamGroupBy<?>) to).source);
   }
 
   @Override

@@ -72,7 +72,7 @@ public class TransientQueryMetadata extends QueryMetadata {
         maxQueryErrorsQueueSize
     );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
-    this.onStop(() -> isRunning.set(false));
+    this.onStop(ignored -> isRunning.set(false));
   }
 
   public boolean isRunning() {

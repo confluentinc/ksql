@@ -20,7 +20,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.Runnables;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -72,7 +71,7 @@ public abstract class QueryMetadata {
   private boolean closed = false;
   private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
-  private Runnable onStop = Runnables.doNothing();
+  private Consumer<Boolean> onStop = (ignored) -> { };
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
@@ -148,8 +147,10 @@ public abstract class QueryMetadata {
    * Set a callback to execute when the query stops. This is run on {@link #stop()}
    * as well as {@link #close()}, unlike the {@link #closeCallback}, which is only
    * executed on {@code close}.
+   *
+   * <p>{@code onStop} accepts true iff the callback is being called from {@code close}.
    */
-  public void onStop(final Runnable onStop) {
+  public void onStop(final Consumer<Boolean> onStop) {
     this.onStop = onStop;
   }
 
@@ -313,7 +314,7 @@ public abstract class QueryMetadata {
     if (cleanUp) {
       closeCallback.accept(this);
     }
-    onStop.run();
+    onStop.accept(cleanUp);
   }
 
   public void start() {

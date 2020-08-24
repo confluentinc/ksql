@@ -2,6 +2,25 @@
     background-color: #252839;
 }
 
+.md-header-nav .ksqldb-home {
+    font-size: .65rem;
+    border: 1px solid #787a82;
+    align-self: center;
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-weight: 600;
+    background: #1b1e2b;
+}
+
+.md-header-nav .ksqldb-home i {
+    color: #787a82;
+    padding-left: 3px;
+}
+
+.md-header-nav__title {
+    padding-left: .1rem;
+}
+
 select.version {
     font-size: .65rem;
     font-family: "Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;

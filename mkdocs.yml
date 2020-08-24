@@ -1,4 +1,4 @@
-site_name: ksqlDB
+site_name: ksqlDB Documentation
 site_url: https://docs.ksqldb.io/en/latest/
 site_description: ksqlDB documentation
 site_author: Confluent
@@ -10,14 +10,16 @@ edit_uri: ""
 docs_dir: docs
 
 theme:
-    name: material    
+    name: material
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
     logo: img/logo.png # should match asset for main ksqldb.io site
+    custom_dir: docs/overrides
     features:
       - tabs
 
 extra_css:
   - stylesheets/extra.css
+  - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.2/css/all.min.css
 
 extra_javascript:
   - js/extra.js

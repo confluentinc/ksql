@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.List;
@@ -115,7 +116,7 @@ final class EngineContext {
     persistentQueries.forEach((queryId, query) ->
         sandBox.persistentQueries.put(
             query.getQueryId(),
-            query.copyWith(sandBox::closeQuery)));
+            SandboxedPersistentQueryMetadata.of(query, sandBox::closeQuery)));
 
     return sandBox;
   }

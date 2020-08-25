@@ -103,7 +103,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
         .flatMap(builder -> builder.apply(getKafkaStreams()));
   }
 
-  private PersistentQueryMetadata(
+  protected PersistentQueryMetadata(
       final PersistentQueryMetadata other,
       final Consumer<QueryMetadata> closeCallback
   ) {
@@ -114,10 +114,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.materializationProvider = other.materializationProvider;
     this.physicalPlan = other.physicalPlan;
     this.materializationProviderBuilder = other.materializationProviderBuilder;
-  }
-
-  public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
-    return new PersistentQueryMetadata(this, closeCallback);
   }
 
   public DataSourceType getDataSourceType() {

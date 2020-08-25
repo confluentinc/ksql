@@ -55,6 +55,7 @@ nav:
     - Serialization: developer-guide/serialization.md
     - Processing Guarantees: concepts/processing-guarantees.md
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
+    - Evolving Production Queries: concepts/upgrades.md
   - Developer Guide:
     - Develop ksqlDB Applications: developer-guide/index.md
     - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md

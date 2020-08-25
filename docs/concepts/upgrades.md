@@ -126,7 +126,7 @@ queries that generate analytics on their purchases:
 
 ```sql
 CREATE TABLE purchase_stats
-    AS SELECT product_id, COUNT(*) AS units_sold, AVERAGE(cost * quantity) AS average_sale
+    AS SELECT product_id, COUNT(*) AS num_sales, AVG(cost * quantity) AS average_sale
     FROM valid_purchases 
     GROUP BY product_id;
 ```
@@ -158,7 +158,7 @@ SET 'auto.offset.reset'='earliest';
 
 -- read from the start and create a new table
 CREATE TABLE purchase_stats
-    AS SELECT product_id, COUNT(*) AS num_sales, AVERAGE(cost / quantity) AS average_sale_price
+    AS SELECT product_id, COUNT(*) AS num_sales, AVG(cost * quantity) AS average_sale
     FROM valid_purchases 
     WHERE cost > 0
     GROUP BY product_id;

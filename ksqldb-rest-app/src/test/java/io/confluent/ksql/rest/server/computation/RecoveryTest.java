@@ -251,7 +251,7 @@ public class RecoveryTest {
       for (final String statement : statements) {
         final EndpointResponse response = ksqlResource.handleKsqlStatements(securityContext,
             new KsqlRequest(statement, Collections.emptyMap(), Collections.emptyMap(), null));
-        assertThat(response.getStatus(), equalTo(200));
+        assertThat("Bad response: " + response.getEntity(), response.getStatus(), equalTo(200));
         executeCommands();
       }
     }
@@ -580,6 +580,30 @@ public class RecoveryTest {
     );
     shouldRecover(commands);
   }
+
+  @Test
+  public void shouldRecoverReplaces() {
+    server1.submitCommands(
+        "CREATE STREAM A (ROWKEY STRING KEY, C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;",
+        "CREATE OR REPLACE STREAM B AS SELECT ROWKEY, C1, C2 FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverReplacesWithTerminates() {
+    server1.submitCommands(
+        "CREATE STREAM A (ROWKEY STRING KEY, C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;",
+        "CREATE OR REPLACE STREAM B AS SELECT ROWKEY, C1, C2 FROM A;",
+        "TERMINATE CSAS_B_0;",
+        "DROP STREAM B;",
+        "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
 
   @Test
   public void shouldRecoverInsertIntos() {

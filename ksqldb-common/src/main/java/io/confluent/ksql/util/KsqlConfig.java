@@ -288,7 +288,7 @@ public class KsqlConfig extends AbstractConfig {
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED = "ksql.create.or.replace.enabled";
-  public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = true;
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED_DOC =
       "Feature flag for CREATE OR REPLACE";
 

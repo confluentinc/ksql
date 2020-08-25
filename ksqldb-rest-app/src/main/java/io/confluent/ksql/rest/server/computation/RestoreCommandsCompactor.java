@@ -18,16 +18,12 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandId.Type;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import javax.annotation.Nullable;
 
 /**
  * Util for compacting the restore commands
@@ -38,10 +34,9 @@ public final class RestoreCommandsCompactor {
   }
 
   /**
-   * Compact the list of commands to restore.
-   *
-   * <p>Finds any command's whose queries plans that are later terminated. Any such commands have
-   * their query plan and associated terminate command removed.
+   * Compact the list of commands to restore. A command should be compacted if it
+   * either (1) has been terminated or (2) has a later command with the same {@code QueryId}
+   * (which may happen if a {@code CREATE OR REPLACE} is issued).
    *
    * <p>This compaction stops unnecessary creation of Streams topologies on a server restart.
    * Building such topologies is relatively slow and best avoided.
@@ -50,73 +45,92 @@ public final class RestoreCommandsCompactor {
    * @return the compacted list of commands.
    */
   static List<QueuedCommand> compact(final List<QueuedCommand> restoreCommands) {
-    final List<QueuedCommand> compacted = new LinkedList<>(restoreCommands);
+    final Map<QueryId, CompactedNode> latestNodeWithId = new HashMap<>();
+    CompactedNode current = null;
 
-    final Set<QueuedCommand> terminatedQueries =
-        findTerminatedQueriesAndRemoveTerminateCommands(compacted);
+    for (final QueuedCommand cmd : restoreCommands) {
+      // Whenever a new command is processed, we check if a previous command with
+      // the same queryID exists - in which case, we mark that command as "shouldSkip"
+      // and it will not be included in the output
+      current = CompactedNode.maybeAppend(current, cmd, latestNodeWithId);
+    }
 
-    removeQueryPlansOfTerminated(compacted, terminatedQueries);
+    final List<QueuedCommand> compacted = new LinkedList<>();
+    while (current != null) {
+      // traverse backwards and add each next node to the start of the list
+      compact(current).ifPresent(cmd -> compacted.add(0, cmd));
+      current = current.prev;
+    }
 
     return compacted;
   }
 
-  private static Set<QueuedCommand> findTerminatedQueriesAndRemoveTerminateCommands(
-      final List<QueuedCommand> commands
-  ) {
-    final Map<QueryId, QueuedCommand> queries = new HashMap<>();
-    final Set<QueuedCommand> terminatedQueries = Collections.newSetFromMap(new IdentityHashMap<>());
+  private static final class CompactedNode {
 
-    final Iterator<QueuedCommand> it = commands.iterator();
-    while (it.hasNext()) {
-      final QueuedCommand cmd = it.next();
+    final CompactedNode prev;
+    final QueuedCommand queued;
+    final Command command;
 
-      // Find known queries:
-      final Command command =
-          cmd.getAndDeserializeCommand(InternalTopicSerdes.deserializer(Command.class));
-      if (command.getPlan().isPresent()
-          && command.getPlan().get().getQueryPlan().isPresent()
-      ) {
-        final QueryId queryId =
-            command.getPlan().get().getQueryPlan().get().getQueryId();
-        queries.putIfAbsent(queryId, cmd);
+    boolean shouldSkip = false;
+
+    public static CompactedNode maybeAppend(
+        final CompactedNode prev,
+        final QueuedCommand queued,
+        final Map<QueryId, CompactedNode> latestNodeWithId
+    ) {
+      final Command command = queued.getAndDeserializeCommand(
+          InternalTopicSerdes.deserializer(Command.class)
+      );
+
+      final Optional<KsqlPlan> plan = command.getPlan();
+      if (queued.getAndDeserializeCommandId().getType() == Type.TERMINATE) {
+        final QueryId queryId = new QueryId(queued.getAndDeserializeCommandId().getEntity());
+        markShouldSkip(queryId, latestNodeWithId);
+
+        // terminate commands don't get added to the list of commands to execute
+        // because we "execute" them in this class by removing query plans from
+        // terminated queries
+        return prev;
+      } else if (!plan.isPresent() || !plan.get().getQueryPlan().isPresent()) {
+        // DDL
+        return new CompactedNode(prev, queued, command);
       }
 
-      // Find TERMINATE's that match known queries:
-      if (cmd.getAndDeserializeCommandId().getType() == Type.TERMINATE) {
-        final QueryId queryId = new QueryId(cmd.getAndDeserializeCommandId().getEntity());
-        final QueuedCommand terminated = queries.remove(queryId);
-        if (terminated != null) {
-          terminatedQueries.add(terminated);
-          it.remove();
-        }
+      final QueryId queryId = plan.get().getQueryPlan().get().getQueryId();
+      markShouldSkip(queryId, latestNodeWithId);
+      final CompactedNode node = new CompactedNode(prev, queued, command);
+
+      latestNodeWithId.put(queryId, node);
+      return node;
+    }
+
+    private static void markShouldSkip(
+        final QueryId queryId,
+        final Map<QueryId, CompactedNode> latestNodeWithId
+    ) {
+      final CompactedNode prevWithID = latestNodeWithId.get(queryId);
+      if (prevWithID != null) {
+        prevWithID.shouldSkip = true;
       }
     }
 
-    return terminatedQueries;
-  }
-
-  private static void removeQueryPlansOfTerminated(final List<QueuedCommand> compacted,
-      final Set<QueuedCommand> terminatedQueries
-  ) {
-    final ListIterator<QueuedCommand> it = compacted.listIterator();
-    while (it.hasNext()) {
-      final QueuedCommand cmd = it.next();
-      if (!terminatedQueries.remove(cmd)) {
-        continue;
-      }
-
-      final Optional<QueuedCommand> replacement = buildNewCmdWithoutQuery(cmd);
-      if (replacement.isPresent()) {
-        it.set(replacement.get());
-      } else {
-        it.remove();
-      }
+    private CompactedNode(
+        @Nullable final CompactedNode prev,
+        final QueuedCommand queued,
+        final Command command
+    ) {
+      this.prev = prev;
+      this.queued = queued;
+      this.command = command;
     }
   }
 
-  private static Optional<QueuedCommand> buildNewCmdWithoutQuery(final QueuedCommand cmd) {
-    final Command command =
-        cmd.getAndDeserializeCommand(InternalTopicSerdes.deserializer(Command.class));
+  private static Optional<QueuedCommand> compact(final CompactedNode node) {
+    final Command command = node.command;
+    if (!node.shouldSkip) {
+      return Optional.of(node.queued);
+    }
+
     if (!command.getPlan().isPresent() || !command.getPlan().get().getDdlCommand().isPresent()) {
       // No DDL command, so no command at all if we remove the query plan. (Likely INSERT INTO cmd).
       return Optional.empty();
@@ -131,10 +145,10 @@ public final class RestoreCommandsCompactor {
     );
 
     return Optional.of(new QueuedCommand(
-        InternalTopicSerdes.serializer().serialize("", cmd.getAndDeserializeCommandId()),
+        InternalTopicSerdes.serializer().serialize("", node.queued.getAndDeserializeCommandId()),
         InternalTopicSerdes.serializer().serialize("", newCommand),
-        cmd.getStatus(),
-        cmd.getOffset()
+        node.queued.getStatus(),
+        node.queued.getOffset()
     ));
   }
 }

@@ -59,6 +59,9 @@ _schema evolution_ upgrades on a limited subset of query characteristics.
 ksqlDB doesn't guarantee validity of any environments when performing an
 in-place upgrade.
 
+Any in place upgrades on windowed or joined sources, as well as upgrades on
+any table aggregation, are not yet supported.
+
 ## A motivating example
 
 Imagine a query that reads from a stream of purchases made at ksqlDB's flagship
@@ -76,12 +79,14 @@ These events have a negative `cost` column value. Since these events are now
 valid, ksqlMart needs to update the query to remove the `cost > 0.00` clause:
 
 ```sql
-CREATE OR REAPLCE valid_purchases AS SELECT * FROM purchases WHERE quantity > 0;
+CREATE OR REPLACE STREAM valid_purchases AS SELECT * FROM purchases WHERE quantity > 0;
 ```
 
 This `CREATE OR REPLACE` statement instructs ksqlDB to terminate the old query,
 and create a new one with the new semantics that will continue from the last
-event that the previous query processed.
+event that the previous query processed. Note that this means any previously 
+processed data with negative cost will not be included, even if issuing the
+query with `SET 'auto.offset.reset'='earliest';`.
 
 This query upgrade is a _simple_, _data selecting_ upgrade because it doesn't
 involve any aggregations; the only change is the criteria to emit rows. ksqlDB
@@ -115,13 +120,13 @@ the type of any field is invalid.
 ### Stateful data selection
 
 The previous examples all involve _stateless_ upgrades, but ksqlDB also enables
-_data selection_ upgrades on some stateful queries. ksqlMart, as is common with
-data-driven companies that leverage ksqlDB, also has queries that generate
-analytics on their purchases:
+_data selection_ and limitted _schema evolution_ upgrades on some stateful queries. 
+ksqlMart, as is common with data-driven companies that leverage ksqlDB, also has 
+queries that generate analytics on their purchases:
 
 ```sql
 CREATE TABLE purchase_stats
-    AS SELECT product_id, COUNT(*) AS units_sold, AVERAGE(cost / quantity) AS average_sale_price
+    AS SELECT product_id, COUNT(*) AS units_sold, AVERAGE(cost * quantity) AS average_sale
     FROM valid_purchases 
     GROUP BY product_id;
 ```
@@ -134,16 +139,17 @@ condition:
 
 ```sql
 CREATE OR REPLACE TABLE purchase_stats
-    AS SELECT product_id, COUNT(*) AS units_sold, AVERAGE(cost / quantity) AS average_sale_price
+    AS SELECT product_id, COUNT(*) AS num_sales, AVG(cost * quantity) AS average_sale
     FROM valid_purchases 
     WHERE cost > 0
     GROUP BY product_id;
 ```
 
 This updated query ensures only that _new_ refunds don't count toward the stats,
-but anything that was counted before will remain. If ksqlMart wanted to _backfill_
-the data properly, they would need to issue a replacing upgrade that read from the
-earliest offset in the `valid_purchases` stream:
+but anything that was counted before will remain.
+
+If ksqlMart wanted to _backfill_ the data properly, they would need to issue a 
+replacing upgrade that read from the earliest offset in the `valid_purchases` stream:
 
 ```sql
 TERMINATE CTAS_PURCHASE_STATS_0;
@@ -152,7 +158,7 @@ SET 'auto.offset.reset'='earliest';
 
 -- read from the start and create a new table
 CREATE TABLE purchase_stats
-    AS SELECT product_id, COUNT(*) AS units_sold, AVERAGE(cost / quantity) AS average_sale_price
+    AS SELECT product_id, COUNT(*) AS num_sales, AVERAGE(cost / quantity) AS average_sale_price
     FROM valid_purchases 
     WHERE cost > 0
     GROUP BY product_id;

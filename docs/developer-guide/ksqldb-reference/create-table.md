@@ -10,7 +10,7 @@ Synopsis
 --------
 
 ```sql
-CREATE TABLE table_name ( { column_name data_type [PRIMARY KEY] } [, ...] )
+CREATE [OR REPLACE] TABLE table_name ( { column_name data_type [PRIMARY KEY] } [, ...] )
   WITH ( property_name = expression [, ...] );
 ```
 

@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-CREATE TABLE table_name
+CREATE [OR REPLACE] TABLE table_name
   [WITH ( property_name = expression [, ...] )]
   AS SELECT  select_expr [, ...]
   FROM from_item

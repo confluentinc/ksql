@@ -55,7 +55,7 @@ Here's an example request that returns the results from the
 
 ```bash
 curl -X "POST" "http://localhost:8088/ksql" \
-     -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
+     -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
   "ksql": "LIST STREAMS;",
   "streamsProperties": {}
@@ -67,9 +67,22 @@ Here's an example request that retrieves streaming data from
 
 ```bash
 curl -X "POST" "http://localhost:8088/query" \
-     -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
+     -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
-  "ksql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
+  "sql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
+  "streamsProperties": {}
+}'
+```
+
+Provide the `--basic` and `--user` options if basic HTTPS authentication is
+enabled on the cluster, as shown in the following command.
+
+```bash hl_lines="3"
+curl -X "POST" "https://localhost:8088/ksql" \
+     -H "Accept: application/vnd.ksql.v1+json" \
+     --basic --user "<API key>:<secret>" \
+     -d $'{
+  "ksql": "LIST STREAMS;",
   "streamsProperties": {}
 }'
 ```

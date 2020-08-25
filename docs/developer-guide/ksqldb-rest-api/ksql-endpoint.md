@@ -16,11 +16,11 @@ SELECT statements use the `/query` endpoint.
       request. In contrast, SET and UNSET assignments in the ksqlDB CLI persist
       throughout the CLI session.
 
-POST /ksql
+## POST /ksql
 
 :   Run a sequence of SQL statements.
 
-JSON Parameters:
+## JSON Parameters
 
 - **ksql** (string): A semicolon-delimited sequence of SQL statements to run.
 - **streamsProperties** (map): Property overrides to run the statements with.
@@ -40,7 +40,7 @@ The response JSON is an array of result objects. The result object contents
 depend on the statement that it is returning results for. The following
 sections detail the contents of the result objects by statement.
 
-**Common Fields**
+## Common Fields
 
 The following fields are common to all responses.
 
@@ -164,7 +164,7 @@ Response JSON Object:
 - **queryDescription.topology** (string): The Kafka Streams topology that the query is running.
 - **overriddenProperties** (map): The property overrides that the query is running with.
 
-**Errors**
+## Errors
 
 If ksqlDB fails to execute a statement, it returns a response with an error
 status code (4xx/5xx). Even if an error is returned, the server may have been
@@ -183,7 +183,20 @@ The ``/ksql`` endpoint may return the following error codes in the ``error_code`
 - 40001 (BAD_STATEMENT): The request contained an invalid SQL statement.
 - 40002 (QUERY_ENDPOINT): The request contained a statement that should be issued to the ``/query`` endpoint.
 
-**Example request**
+## Examples
+
+### Example curl command
+
+```bash
+curl -X "POST" "http://<ksqldb-host-name>:8088/ksql" \
+     -H "Accept: application/vnd.ksql.v1+json" \
+     -d $'{
+  "ksql": "LIST STREAMS;",
+  "streamsProperties": {}
+}'
+```
+
+### Example request
 
 ```http
 POST /ksql HTTP/1.1
@@ -198,7 +211,7 @@ Content-Type: application/vnd.ksql.v1+json
 }
 ```
 
-**Example response**
+### Example response
 
 ```http
 HTTP/1.1 200 OK
@@ -226,8 +239,7 @@ Content-Type: application/vnd.ksql.v1+json
 ]
 ```
 
-Coordinate Multiple Requests
-----------------------------
+## Coordinate Multiple Requests
 
 To submit multiple, interdependent requests, there are two options. The
 first is to submit them as a single request, similar to the example

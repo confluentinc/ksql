@@ -183,7 +183,7 @@ abstract class StructuredDataSource<K> implements DataSource {
 
     final SetView<Column> difference = Sets.difference(colA, colB);
     if (!difference.isEmpty()) {
-      return Optional.of("The following columns are changed or missing: " + difference);
+      return Optional.of("The following columns are changed, missing or reordered: " + difference);
     }
 
     return Optional.empty();

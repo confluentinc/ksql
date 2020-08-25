@@ -32,8 +32,8 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
       new Property("properties", ExecutionStep::getProperties),
-      new Property("groupByExpressions", s -> ((StreamGroupBy<?>) s).groupByExpressions),
-      new Property("internalFormats", s -> ((StreamGroupBy<?>) s).internalFormats)
+      new Property("group by clause", s -> ((StreamGroupBy<?>) s).groupByExpressions),
+      new Property("internal formats", s -> ((StreamGroupBy<?>) s).internalFormats)
   );
 
   private final ExecutionStepPropertiesV1 properties;

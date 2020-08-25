@@ -36,9 +36,9 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
       new Property("properties", ExecutionStep::getProperties),
-      new Property("internalFormats", s -> ((StreamAggregate) s).internalFormats),
-      new Property("nonAggregateColumns", s -> ((StreamAggregate) s).nonAggregateColumns),
-      new Property("aggregationFunctions", s -> ((StreamAggregate) s).aggregationFunctions)
+      new Property("internal format", s -> ((StreamAggregate) s).internalFormats),
+      new Property("columns not part of aggregate", s -> ((StreamAggregate) s).nonAggregateColumns),
+      new Property("aggregate functions", s -> ((StreamAggregate) s).aggregationFunctions)
   );
 
   private final ExecutionStepPropertiesV1 properties;

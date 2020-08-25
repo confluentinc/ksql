@@ -37,7 +37,7 @@ CREATE OR REPLACE TABLE b AS SELECT col2, COUNT(*) FROM a GROUP BY col2;
 ----------------------------------------------------------------------------------------------------
 --@test: GROUP BY - change grouping column ordering
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: must have matching groupByExpressions. Values differ: [COL1, COL2] vs. [COL2, COL1]
+--@expected.message: StreamGroupBy must have matching group by clause. Values differ: [COL1, COL2] vs. [COL2, COL1]
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 

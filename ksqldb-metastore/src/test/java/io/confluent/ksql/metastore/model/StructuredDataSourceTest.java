@@ -281,7 +281,7 @@ public class StructuredDataSourceTest {
 
     // Then:
     assertThat(s.isPresent(), is(true));
-    assertThat(s.get(), containsString("The following columns are changed or missing: [`f1` BIGINT]"));
+    assertThat(s.get(), containsString("The following columns are changed, missing or reordered: [`f1` BIGINT]"));
   }
 
   @Test
@@ -302,7 +302,7 @@ public class StructuredDataSourceTest {
 
     // Then:
     assertThat(s.isPresent(), is(true));
-    assertThat(s.get(), containsString("The following columns are changed or missing: [`f0` BIGINT]"));
+    assertThat(s.get(), containsString("The following columns are changed, missing or reordered: [`f0` BIGINT]"));
   }
 
   /**

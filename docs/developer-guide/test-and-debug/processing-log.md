@@ -18,7 +18,7 @@ writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
 
 !!! important
 	The processing log is not for server logging, but rather for per-record
-    logging on ksqlDB applications. If you want to configure a Kafka appender
+    logging on ksqlDB applications. If you want to configure an {{ site.ak }} appender
     for the server logs, assign the `log4j.appender.kafka_appender.Topic`
     and `log4j.logger.io.confluent.ksql` configuration settings in the ksqlDB
     Server config file. For more information, see
@@ -119,7 +119,7 @@ message.type (INT)
 message.deserializationError (STRUCT)
 
 :   The contents of a message with type 0 (DESERIALIZATION_ERROR).
-    Logged when a deserializer fails to deserialize a Kafka record.
+    Logged when a deserializer fails to deserialize an {{ site.ak }} record.
 
 message.deserializationError.errorMessage (STRING)
 
@@ -128,7 +128,7 @@ message.deserializationError.errorMessage (STRING)
 
 message.deserializationError.recordB64 (STRING)
 
-:   The Kafka record, encoded in Base64.
+:   The {{ site.ak }} record, encoded in Base64.
 
 message.deserializationError.cause (LIST<STRING>)
 
@@ -137,7 +137,7 @@ message.deserializationError.cause (LIST<STRING>)
 
 message.deserializationError.topic (STRING)
 
-:   The Kafka topic of the record for which deserialization failed.
+:   The {{ site.ak }} topic of the record for which deserialization failed.
 
 message.recordProcessingError (STRUCT)
 
@@ -163,7 +163,7 @@ message.recordProcessingError.cause (LIST<STRING>)
 message.productionError (STRUCT)
 
 :   The contents of a message with type 2 (PRODUCTION_ERROR). Logged
-    when a producer fails to publish a Kafka record.
+    when a producer fails to publish an {{ site.ak }} record.
 
 message.productionError.errorMessage (STRING)
 
@@ -191,14 +191,14 @@ message.serializationError.cause (LIST<STRING>)
 
 message.serializationError.topic (STRING)
 
-:   The Kafka topic to which the ksqlDB row that failed to serialize
+:   The {{ site.ak }} topic to which the ksqlDB row that failed to serialize
     would have been produced.
 
 Log Stream
 ----------
 
 We recommend configuring the query processing log to write entries back
-to Kafka. This way, you can configure ksqlDB to set up a stream over the
+to {{ site.ak }}. This way, you can configure ksqlDB to set up a stream over the
 topic automatically.
 
 To log to Kafka, set up a Kafka appender and a special layout for

@@ -23,12 +23,14 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
+import io.confluent.ksql.logging.processing.LoggingSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.DataException;
 
 public final class GenericRowSerDe implements ValueSerdeFactory {
 
@@ -139,7 +142,9 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     final Serde<T> serde = serdeFactories
         .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
 
-    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
+    final ProcessingLogger serializerProcessingLogger = processingLogContext.getLoggerFactory()
+        .getLogger(join(loggerNamePrefix, GenericKeySerDe.SERIALIZER_LOGGER_NAME));
+    final ProcessingLogger deserializerProcessingLogger = processingLogContext.getLoggerFactory()
         .getLogger(join(loggerNamePrefix, GenericKeySerDe.DESERIALIZER_LOGGER_NAME));
 
     final Serde<GenericRow> genericRowSerde = schema.isUnwrapped()
@@ -147,8 +152,8 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
           : wrapped(serde, schema, targetType);
 
     final Serde<GenericRow> result = Serdes.serdeFrom(
-        genericRowSerde.serializer(),
-        new LoggingDeserializer<>(genericRowSerde.deserializer(), processingLogger)
+        new LoggingSerializer<>(genericRowSerde.serializer(), serializerProcessingLogger),
+        new LoggingDeserializer<>(genericRowSerde.deserializer(), deserializerProcessingLogger)
     );
 
     result.configure(Collections.emptyMap(), false);
@@ -279,10 +284,31 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
 
       final Struct struct = new Struct(schema);
       for (int i = 0; i < data.size(); i++) {
-        struct.put(schema.fields().get(i), data.get(i));
+        putField(struct, schema.fields().get(i), data.get(i));
       }
 
       return inner.serialize(topic, struct);
+    }
+
+    private void putField(final Struct struct, final Field field, final Object value) {
+      try {
+        struct.put(field, value);
+      } catch (DataException e) {
+        // Add more info to error message in case of Struct to call out struct schemas
+        // with non-optional fields from incorrectly-written UDFs as a potential cause:
+        // https://github.com/confluentinc/ksql/issues/5364
+        if (!(value instanceof Struct)) {
+          throw e;
+        } else {
+          throw new KsqlException(
+              "Failed to prepare Struct value field '" + field.name() + "' for serialization. "
+                  + "This could happen if the value was produced by a user-defined function "
+                  + "where the schema has non-optional return types. ksqlDB requires all "
+                  + "schemas to be optional at all levels of the Struct: the Struct itself, "
+                  + "schemas for all fields within the Struct, and so on.",
+              e);
+        }
+      }
     }
   }
 

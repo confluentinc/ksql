@@ -18,7 +18,7 @@ writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
 
 !!! important
 	The processing log is not for server logging, but rather for per-record
-    logging on ksqlDB applications. If you want to configure a Kafka appender
+    logging on ksqlDB applications. If you want to configure an {{ site.ak }} appender
     for the server logs, assign the `log4j.appender.kafka_appender.Topic`
     and `log4j.logger.io.confluent.ksql` configuration settings in the ksqlDB
     Server config file. For more information, see
@@ -114,12 +114,12 @@ message.type (INT)
 
 :   An int that describes the type of the log message. Currently, the
     following types are defined: 0 (DESERIALIZATION_ERROR), 1
-    (RECORD_PROCESSING_ERROR), 2 (PRODUCTION_ERROR).
+    (RECORD_PROCESSING_ERROR), 2 (PRODUCTION_ERROR), 3 (SERIALIZATION_ERROR).
 
 message.deserializationError (STRUCT)
 
 :   The contents of a message with type 0 (DESERIALIZATION_ERROR).
-    Logged when a deserializer fails to deserialize a Kafka record.
+    Logged when a deserializer fails to deserialize an {{ site.ak }} record.
 
 message.deserializationError.errorMessage (STRING)
 
@@ -128,7 +128,16 @@ message.deserializationError.errorMessage (STRING)
 
 message.deserializationError.recordB64 (STRING)
 
-:   The Kafka record, encoded in Base64.
+:   The {{ site.ak }} record, encoded in Base64.
+
+message.deserializationError.cause (LIST<STRING>)
+
+:   A list of strings containing human-readable error messages
+    for the chain of exceptions that caused the main error.
+
+message.deserializationError.topic (STRING)
+
+:   The {{ site.ak }} topic of the record for which deserialization failed.
 
 message.recordProcessingError (STRUCT)
 
@@ -146,21 +155,50 @@ message.recordProcessingError.record (STRING)
 
 :   The SQL record, serialized as a JSON string.
 
+message.recordProcessingError.cause (LIST<STRING>)
+
+:   A list of strings containing human-readable error messages
+    for the chain of exceptions that caused the main error.
+
 message.productionError (STRUCT)
 
 :   The contents of a message with type 2 (PRODUCTION_ERROR). Logged
-    when a producer fails to publish a Kafka record.
+    when a producer fails to publish an {{ site.ak }} record.
 
 message.productionError.errorMessage (STRING)
 
 :   A string containing a human-readable error message detailing the
     error encountered.
+    
+message.serializationError (STRUCT)
+
+:   The contents of a message with type 3 (SERIALIZATION_ERROR).
+    Logged when a serializer fails to serialize a ksqlDB row.
+
+message.serializationError.errorMessage (STRING)
+
+:   A string containing a human-readable error message detailing the
+    error encountered.
+
+message.serializationError.record (STRING)
+
+:   The ksqlDB row, as a human-readable string.
+
+message.serializationError.cause (LIST<STRING>)
+
+:   A list of strings containing human-readable error messages
+    for the chain of exceptions that caused the main error.
+
+message.serializationError.topic (STRING)
+
+:   The {{ site.ak }} topic to which the ksqlDB row that failed to serialize
+    would have been produced.
 
 Log Stream
 ----------
 
 We recommend configuring the query processing log to write entries back
-to Kafka. This way, you can configure ksqlDB to set up a stream over the
+to {{ site.ak }}. This way, you can configure ksqlDB to set up a stream over the
 topic automatically.
 
 To log to Kafka, set up a Kafka appender and a special layout for
@@ -223,12 +261,12 @@ ksql> describe PROCESSING_LOG;
 
 Name                 : PROCESSING_LOG
 Field   | Type
----------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  LOGGER  | VARCHAR(STRING)
  LEVEL   | VARCHAR(STRING)
  TIME    | BIGINT
- MESSAGE | STRUCT<type INTEGER, deserializationError STRUCT<errorMessage VARCHAR(STRING), recordB64 VARCHAR(STRING)>, ...> 
----------------------------------------------------------------------------------------------------------------------------
+ MESSAGE | STRUCT<type INTEGER, deserializationError STRUCT<errorMessage VARCHAR(STRING), recordB64 VARCHAR(STRING), cause ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, ...> 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```
 
 You can query the stream just like you would any other ksqlDB stream.
@@ -244,14 +282,20 @@ ksql> CREATE STREAM PROCESSING_LOG_STREAM (
              `TYPE` INTEGER,
              deserializationError STRUCT<
                  errorMessage STRING,
+                 recordB64 STRING,
                  cause ARRAY<STRING>,
-                 recordB64 STRING>,
+                `topic` STRING>,
              recordProcessingError STRUCT<
                  errorMessage STRING,
-                 cause ARRAY<STRING>,
-                 record STRING>,
+                 record STRING,
+                 cause ARRAY<STRING>>,
              productionError STRUCT<
-                 errorMessage STRING>>)
+                 errorMessage STRING>,
+             serializationError STRUCT<
+                 errorMessage STRING,
+                 record STRING,
+                 cause ARRAY<STRING>,
+                `topic` STRING>>)
          WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
 ```
 

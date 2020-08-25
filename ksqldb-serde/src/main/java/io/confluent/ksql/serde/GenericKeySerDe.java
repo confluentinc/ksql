@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
+import io.confluent.ksql.logging.processing.LoggingSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -45,6 +46,7 @@ import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 
 public final class GenericKeySerDe implements KeySerdeFactory {
 
+  static final String SERIALIZER_LOGGER_NAME = "serializer";
   static final String DESERIALIZER_LOGGER_NAME = "deserializer";
 
   private final SerdeFactories serdeFactories;
@@ -130,7 +132,9 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     final Serde<T> serde = serdeFactories
         .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
 
-    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
+    final ProcessingLogger serializerProcessingLogger = processingLogContext.getLoggerFactory()
+        .getLogger(join(loggerNamePrefix, SERIALIZER_LOGGER_NAME));
+    final ProcessingLogger deserializerProcessingLogger = processingLogContext.getLoggerFactory()
         .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
 
     final Serde<Struct> inner = schema.isUnwrapped()
@@ -138,8 +142,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         : wrapped(serde, targetType);
 
     final Serde<Struct> result = Serdes.serdeFrom(
-        inner.serializer(),
-        new LoggingDeserializer<>(inner.deserializer(), processingLogger)
+        new LoggingSerializer<>(inner.serializer(), serializerProcessingLogger),
+        new LoggingDeserializer<>(inner.deserializer(), deserializerProcessingLogger)
     );
 
     result.configure(Collections.emptyMap(), true);
@@ -172,7 +176,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final Class<T> type
   ) {
     if (type != Struct.class) {
-      throw new IllegalArgumentException("Unwrapped must be of type Struct");
+      throw new IllegalArgumentException("Wrapped must be of type Struct");
     }
 
     return (Serde) innerSerde;

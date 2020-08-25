@@ -288,6 +288,7 @@ CREATE OR REPLACE TABLE b AS SELECT id, COUNT(*)
 --@expected.message: Upgrades not yet supported for TableSuppress
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
+SET 'ksql.suppress.enabled' = 'true';
 
 CREATE STREAM a (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
 CREATE TABLE b AS SELECT id, COUNT(*)

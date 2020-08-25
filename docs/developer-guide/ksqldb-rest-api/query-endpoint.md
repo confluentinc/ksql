@@ -12,11 +12,11 @@ until the `LIMIT` specified in the statement is reached, or the client
 closes the connection. If no `LIMIT` is specified in the statement, then
 the response is streamed until the client closes the connection.
 
-POST /query
+## POST /query
 
 :   Run a ``SELECT`` statement and stream back the results.
 
-JSON Parameters:
+## JSON Parameters:
 
 - **ksql** (string): The SELECT statement to run.
 - **streamsProperties** (map): Property overrides to run the statements with.
@@ -34,7 +34,20 @@ Response JSON Object:
 - **finalMessage** (string): If this field is non-null, it contains a final message from the server. No additional rows will be returned and the server will end the response.
 - **errorMessage** (string): If this field is non-null, an error has been encountered while running the statement. No additional rows are returned and the server will end the response.
 
-**Example request**
+## Examples 
+
+### Example curl command
+
+```bash
+curl -X "POST" "http://<ksqldb-host-name>:8088/query" \
+     -d $'{
+  "ksql": "SELECT * FROM USERS;",
+  "streamsProperties": {}
+}'
+
+```
+
+### Example request
 
 ```http
 POST /query HTTP/1.1
@@ -42,14 +55,14 @@ Accept: application/vnd.ksql.v1+json
 Content-Type: application/vnd.ksql.v1+json
 
 {
-  "ksql": "SELECT * FROM pageviews;",
+  "sql": "SELECT * FROM pageviews;",
   "streamsProperties": {
     "ksql.streams.auto.offset.reset": "earliest"
   }
 }
 ```
 
-**Example response**
+### Example response
 
 ```http
 HTTP/1.1 200 OK

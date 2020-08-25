@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-CREATE STREAM stream_name ( { column_name data_type [KEY] } [, ...] )
+CREATE [OR REPLACE] STREAM stream_name ( { column_name data_type [KEY] } [, ...] )
   WITH ( property_name = expression [, ...] );
 ```
 

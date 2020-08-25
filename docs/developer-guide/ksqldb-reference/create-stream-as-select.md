@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-CREATE STREAM stream_name
+CREATE [OR REPLACE] STREAM stream_name
   [WITH ( property_name = expression [, ...] )]
   AS SELECT  select_expr [, ...]
   FROM from_stream

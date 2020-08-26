@@ -45,9 +45,9 @@ Each column is defined by:
    from the {{ site.ak }} message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column(s)
    are NON NULL. Any records in the Kafka topic with NULL key columns are dropped.
    
-For supported [serialization formats](../developer-guide/serialization.md),
+For supported [serialization formats](../serialization.md#serialization-formats),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
-ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+ksqlDB can use [Schema Inference](../../concepts/schemas.md#schema-inference) to
 spare you from defining columns manually in your `CREATE TABLE` statements.
    
 Each row within the table has a `ROWTIME` pseudo column, which represents the _last modified time_ 

@@ -410,8 +410,8 @@ which is either `Entrypoint` or `Cmd`:
 
 ```bash
 {% raw %}
-docker inspect --format='{{.Config.Entrypoint}}' confluentinc/ksqldb-server:0.11.0
-docker inspect --format='{{.Config.Cmd}}' confluentinc/ksqldb-server:0.11.0
+docker inspect --format='{{.Config.Entrypoint}}' confluentinc/ksqldb-server:0.12.0
+docker inspect --format='{{.Config.Cmd}}' confluentinc/ksqldb-server:0.12.0
 {% endraw %}
 ```
 

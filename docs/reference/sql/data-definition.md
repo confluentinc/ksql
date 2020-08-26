@@ -117,7 +117,7 @@ Syntactically, declaring a table is similar to declaring a stream. The following
 example statement declares a `current_location` table that has a key field 
 named `person`.
 
-```sql hl_lines="2"
+```sql
 CREATE TABLE current_location (
     person VARCHAR PRIMARY KEY,
     location VARCHAR

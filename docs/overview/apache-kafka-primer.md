@@ -62,8 +62,10 @@ don't need to conform to the same structure, relate to the same situation, or
 anything like that. The way you manage publication to topics is entirely a
 matter of user convention and enforcement.
 
-ksqlDB provides higher-level abstractions over a topic through _streams_ and
-_tables_. A stream or table is a {{ site.ak }} topic with a registered schema.
+ksqlDB provides higher-level abstractions over a topic through
+_[streams](../reference/sql/data-definition.md#streams)_ and
+_[tables](../reference/sql/data-definition.md#tables)_.
+A stream or table is a {{ site.ak }} topic with a registered schema.
 The schema controls the shape of records that are allowed to be stored in the
 topic. This kind of static typing makes it easier to understand what sort of
 rows are in your topic and generally helps you make fewer mistakes in your

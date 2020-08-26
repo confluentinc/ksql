@@ -99,8 +99,8 @@ partition will be consistent with all other records with the same key. When reco
 appended, they follow the correct offset order, even in the presence of
 failures or faults. When a stream's key content changes because of how a query
 wants to process the rows (via `GROUP BY` or `PARTITION BY`), the underlying
-records keys are recalculated, and the records are sent to a new partition set
-to perform the computation.
+records keys are recalculated, and the records are sent to a new partition in
+the new topic set to perform the computation.
 
 ## Producers and consumers
 

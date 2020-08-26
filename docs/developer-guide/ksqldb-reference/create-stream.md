@@ -45,9 +45,9 @@ Each column is defined by:
    If a column is not marked as a `KEY` column, ksqlDB loads it from the Kafka message's value.
    Unlike a table's `PRIMARY KEY`, a stream's keys can be NULL.
    
-For supported [serialization formats](../developer-guide/serialization.md),
+For supported [serialization formats](../serialization.md#serialization-formats),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
-ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+ksqlDB can use [Schema Inference](../../concepts/schemas.md#schema-inference) to
 spare you from defining columns manually in your `CREATE STREAM` statements.
    
 Each row within the stream has a `ROWTIME` pseudo column, which represents the _event time_ 

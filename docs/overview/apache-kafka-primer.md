@@ -109,7 +109,7 @@ the new topic set to perform the computation.
 Producers and consumers facilitate the movement of records to and from topics.
 When an application wants to either publish records or subscribe to them, it
 invokes the APIs (generally called the _client_) to do so. Clients communicate
-with the brokers over a structured network protocol.
+with the brokers (see below) over a structured network protocol.
 
 When consumers read records from a topic, they never delete them or mutate
 them in any way. This pattern of being able to repeatedly read the same
@@ -148,8 +148,8 @@ value) must be transformed to byte arrays. This enables {{ site.ak }} to work
 with an opaque series of bytes without needing to know anything about what they
 are. When records are delivered to a consumer, those byte arrays need to be
 transformed back into their original topics to be meaningful to the application.
-The process that converts to and from byte representations is called
-_serialization_.
+The processes that convert to and from byte representations are called
+_serialization_ and _deserialization_, respectively.
 
 When a producer sends a record to a topic, it must decide which serializers to
 use to convert the key and value to byte arrays. The key and value

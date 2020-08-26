@@ -201,7 +201,7 @@ consumed, exactly one consumer in the group reads it. This effectively provides
 a way for a set of processes to coordinate and load balance the consumption of
 records.
 
-Because the records in a single topic are meant to be consumed in one, each
+Because the records in a single topic are meant to be consumed by one process in the group, each
 partition in the subscription is read by only one consumer at a time. The number
 of partitions that each consumer is responsible for is defined by the total
 number of source partitions divided by the number of consumers. If a consumer
@@ -216,7 +216,7 @@ to manage group membership explicitly, because all of this happens automatically
 For example, if you deploy a persistent query with ten source partitions to a
 ksqlDB cluster with two nodes, each node processes five partitions. If you lose
 a server, the sole remaining server will rebalance automatically and process
-all ten. If you add four more servers, each rebalances to process two partitions.
+all ten. If you now add four more servers, each rebalances to process two partitions.
 
 ## Retention
 

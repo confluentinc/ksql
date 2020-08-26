@@ -86,19 +86,6 @@ INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
 ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 2);
 
 ----------------------------------------------------------------------------------------------------
---@test: make sure properties do not carry over
---@expected.error: io.confluent.ksql.util.KsqlStatementException
---@expected.message: Cannot add stream 'BAR': A stream with the same name already exists
-----------------------------------------------------------------------------------------------------
-CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
-CREATE STREAM bar AS SELECT * FROM foo;
-
-INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
-ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
-
-CREATE OR REPLACE STREAM bar AS SELECT id, col1 + 1 as col1 FROM foo;
-
-----------------------------------------------------------------------------------------------------
 --@test: bad assert statement should fail
 
 --@expected.error: io.confluent.ksql.util.KsqlException

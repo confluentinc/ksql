@@ -30,7 +30,7 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
       new Property("properties", ExecutionStep::getProperties),
-      new Property("internalFormats", s -> ((StreamGroupByKey) s).internalFormats)
+      new Property("internal formats", s -> ((StreamGroupByKey) s).internalFormats)
   );
 
   private final ExecutionStepPropertiesV1 properties;

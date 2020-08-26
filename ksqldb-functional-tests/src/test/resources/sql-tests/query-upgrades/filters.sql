@@ -227,10 +227,31 @@ INSERT INTO foo (id, col1) VALUES (2, -1);
 ASSERT VALUES bar (id, count) VALUES (2, 2);
 
 ----------------------------------------------------------------------------------------------------
+--@test: change filter in materialized table
+----------------------------------------------------------------------------------------------------
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo WHERE col1 >= 0 GROUP BY id;
+CREATE TABLE baz AS SELECT * FROM bar;
+
+INSERT INTO foo (id, col1) VALUES (1, 0);
+
+ASSERT VALUES baz (id, count) VALUES (1, 1);
+
+CREATE OR REPLACE TABLE baz AS SELECT * FROM bar WHERE count > 2;
+
+INSERT INTO foo (id, col1) VALUES (1, 0);
+INSERT INTO foo (id, col1) VALUES (1, 0);
+
+ASSERT NULL VALUES baz (id) KEY (1);
+ASSERT VALUES baz (id, count) VALUES (1, 3);
+
+----------------------------------------------------------------------------------------------------
 --@test: remove filter in StreamAggregate where columns are not already in input schema
 --@test: add filter in StreamAggregate where columns are not in input schema
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: StreamAggregate must have matching nonAggregateColumns. Values differ: [`ID`, `ROWTIME`, `COL1`] vs. [`ID`, `ROWTIME`]
+--@expected.message: StreamAggregate must have matching columns not part of aggregate. Values differ: [`ID`, `ROWTIME`, `COL1`] vs. [`ID`, `ROWTIME`]
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 
@@ -245,7 +266,7 @@ CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(*) as count FROM foo GROUP BY id
 
 --@test: add filter in StreamAggregate where columns are not in input schema
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: StreamAggregate must have matching nonAggregateColumns. Values differ: [`ID`, `ROWTIME`] vs. [`ID`, `COL1`]
+--@expected.message: StreamAggregate must have matching columns not part of aggregate. Values differ: [`ID`, `ROWTIME`] vs. [`ID`, `COL1`]
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 
@@ -255,15 +276,21 @@ CREATE OR REPLACE TABLE bar AS SELECT id, COUNT(col1) as count FROM foo WHERE co
 
 ----------------------------------------------------------------------------------------------------
 --@test: add filter to PartitionBy
---@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: Upgrades not yet supported for StreamSelectKey
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 
 CREATE STREAM a (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
 CREATE STREAM b AS SELECT * FROM a PARTITION BY col1;
 
+INSERT INTO a (id, col1) VALUES (0, 0);
+ASSERT VALUES b (id, col1) VALUES (0, 0);
+
 CREATE OR REPLACE STREAM b AS SELECT * FROM a WHERE col1 > 0 PARTITION BY col1;
+
+INSERT INTO a (id, col1) VALUES (0, 0);
+INSERT INTO a (id, col1) VALUES (0, 1);
+
+ASSERT VALUES b (id, col1) VALUES (0, 1);
 
 ----------------------------------------------------------------------------------------------------
 --@test: add filter to windowed aggregation

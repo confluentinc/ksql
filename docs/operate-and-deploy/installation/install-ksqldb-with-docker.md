@@ -410,8 +410,8 @@ which is either `Entrypoint` or `Cmd`:
 
 ```bash
 {% raw %}
-docker inspect --format='{{.Config.Entrypoint}}' confluentinc/ksqldb-server:{{ site.release }}
-docker inspect --format='{{.Config.Cmd}}' confluentinc/ksqldb-server:{{ site.release }}
+docker inspect --format='{{.Config.Entrypoint}}' confluentinc/ksqldb-server:0.11.0
+docker inspect --format='{{.Config.Cmd}}' confluentinc/ksqldb-server:0.11.0
 {% endraw %}
 ```
 
@@ -419,10 +419,10 @@ Your output should resemble:
 
 ```
     []
-    [/etc/confluent/docker/run]
+    [/usr/bin/docker/run]
 ```
 
-In this example, the default command is `/etc/confluent/docker/run`.
+In this example, the default command is `/usr/bin/docker/run`.
 
 #### Run custom commands before the ksqlDB process starts
 
@@ -446,11 +446,11 @@ ksql-server:
       mkdir -p /data/maxmind
       cd /data/maxmind
       curl https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz | tar xz 
-      /etc/confluent/docker/run
+      /usr/bin/docker/run
 ```
 
 After the `mkdir`, `cd`, `curl`, and `tar` commands run, the
-`/etc/confluent/docker/run` command starts the `ksqldb-server` image
+`/usr/bin/docker/run` command starts the `ksqldb-server` image
 with the specified settings.
 
 !!! note

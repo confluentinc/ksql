@@ -2,6 +2,9 @@
   "tests": [
     {
       "name": "should emit final result immediately at window end if grace is specified as zero",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 0 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -17,6 +20,9 @@
     },
     {
       "name": "should not emit final result before window end if grace is specified as zero",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 0 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -30,6 +36,9 @@
     },
     {
       "name": "should not emit before window end if no grace period given",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -43,6 +52,9 @@
     },
     {
       "name": "should emit at window end if no grace period given",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -58,6 +70,9 @@
     },
     {
       "name": "should include out of order events before window end plus grace period passes",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -77,6 +92,9 @@
     },
     {
       "name": "should drop out of order event after window end plus grace period passes",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -97,6 +115,9 @@
     },
     {
       "name": "should handle null values",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(COL1) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -115,6 +136,9 @@
     },
     {
       "name": "should drop events with no key",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -133,6 +157,9 @@
     },
     {
       "name": "should support final results for tumbling windows",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -152,6 +179,9 @@
     },
     {
       "name": "should support final results for tumbling windows with large jump",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 2 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -176,6 +206,9 @@
     },
     {
       "name": "should support final results for session windows",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW SESSION (5 MILLISECONDS, GRACE PERIOD 6 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -196,6 +229,9 @@
     },
     {
       "name": "should support final results for hopping windows",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW HOPPING (SIZE 5 MILLISECONDS,ADVANCE BY 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -217,6 +253,9 @@
     },
     {
       "name": "should suppress multiple keys",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"
@@ -240,6 +279,9 @@
     },
     {
       "name": "should suppress after join",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
@@ -272,6 +314,9 @@
     },
     {
       "name": "should suppress after a filter WHERE clause",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 INT) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) WHERE COL1=1 GROUP BY ID EMIT FINAL;"
@@ -292,6 +337,7 @@
     {
       "name": "should throw when max buffer size is exceeded",
       "properties": {
+        "ksql.suppress.enabled": true,
         "ksql.suppress.buffer.size.bytes": 10
       },
       "statements": [
@@ -313,6 +359,9 @@
     },
     {
       "name": "should throw on non windowed tables",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT GROUP BY ID EMIT FINAL;"
@@ -324,6 +373,9 @@
     },
     {
       "name": "should throw if no group by for aggregation",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) EMIT FINAL;"
@@ -335,6 +387,9 @@
     },
     {
       "name": "should throw if no aggregation is present for group by",
+      "properties": {
+        "ksql.suppress.enabled": true
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COL1 FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"

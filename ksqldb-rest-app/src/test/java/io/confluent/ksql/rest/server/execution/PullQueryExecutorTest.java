@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
 import org.apache.kafka.common.utils.Time;
 import org.junit.Rule;
@@ -79,7 +80,7 @@ public class PullQueryExecutorTest {
 
       // When:
       final Exception e = assertThrows(
-          KsqlException.class,
+          KsqlStatementException.class,
           () -> pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty(), 0L)
       );
 

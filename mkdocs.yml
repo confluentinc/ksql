@@ -209,11 +209,11 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 2.5
+        kafkaversion: 2.6
         kafkarelease: 5.5.0-ccs
-        ksqldbversion: 0.11.0
+        ksqldbversion: 0.12.0
         ksqldbcpversion: 6.1.0-beta200715032424
-        release: 0.11.0
+        release: 0.12.0
         cprelease: 5.5.0
         releasepostbranch: 5.5.0-post
         scalaversion: 2.12

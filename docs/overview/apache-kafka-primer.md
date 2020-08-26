@@ -33,8 +33,8 @@ The _timestamp_ denotes when the event happened. There are a few different "kind
 of time that can be tracked. These aren’t discussed here, but they’re useful to
 [learn about](../../../concepts/time-and-windows-in-ksqldb-queries/#time-semantics) nonetheless.
 
-The _topic_ and _partition_ describe which larger collection of events
-this event belongs to, and the _offset_ describes its exact position within
+The _topic_ and _partition_ describe which larger collection and subset of events
+this particular event belongs to, and the _offset_ describes its exact position within
 that larger collection (more on that below).
 
 Finally, the _headers_ carry arbitrary, user-supplied metadata about the record.

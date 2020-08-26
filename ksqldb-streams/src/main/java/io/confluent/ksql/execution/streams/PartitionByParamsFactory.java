@@ -126,16 +126,15 @@ public final class PartitionByParamsFactory {
     final ColumnName newKeyName = partitionByCol
         .orElseGet(() -> ColumnNames.uniqueAliasFor(partitionBy, sourceSchema));
 
-    final Builder builder = LogicalSchema.builder()
-        .valueColumns(sourceSchema.value());
-
+    final Builder builder = LogicalSchema.builder();
     if (keyType != null) {
       builder.keyColumn(newKeyName, keyType);
+    }
+    builder.valueColumns(sourceSchema.value());
 
-      if (!partitionByCol.isPresent()) {
-        // New key column added, copy in to value schema:
-        builder.valueColumn(newKeyName, keyType);
-      }
+    if (keyType != null && !partitionByCol.isPresent()) {
+      // New key column added, copy in to value schema:
+      builder.valueColumn(newKeyName, keyType);
     }
 
     return builder.build();

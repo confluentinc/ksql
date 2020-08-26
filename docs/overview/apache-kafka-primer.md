@@ -218,10 +218,13 @@ ksqlDB cluster with two nodes, each node processes five partitions. If you lose
 a server, the sole remaining server will rebalance automatically and process
 all ten. If you now add four more servers, each rebalances to process two partitions.
 
-## Retention
+## Retention and compaction
 
-When you create a topic, you must set a retention duration. Retention
-defines how long a record is stored before it's deleted. Retention is one of the
+It is often desirable to clean up older records after some period of time.
+Retention and compaction are two different options for doing this. They are both
+optional and can be used in conjunction.
+
+Retention defines how long a record is stored before it's deleted. Retention is one of the
 only ways to delete a record in a topic. This parameter is
 particularly important in stream processing because it defines the time
 horizon that you can replay a stream of events. Replay is useful if you're
@@ -232,9 +235,7 @@ ksqlDB enables you to control the retention of the underlying topics of base
 streams and tables directly, so it's important to understand the concept. For
 more information see [Topics and Logs in the Kafka docs](https://kafka.apache.org/documentation/#intro_topics).
 
-## Compaction
-
-Compaction is a process that runs in the background on each {{ site.ak }}
+Compaction, by contrast, is a process that runs in the background on each {{ site.ak }}
 broker that periodically deletes all but the latest record per key. It is an
 optional, opt-in process. Compaction is particularly useful when your records
 represent some kind of updates to a piece of a state, and the latest update is

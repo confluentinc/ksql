@@ -99,6 +99,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -569,6 +570,34 @@ public class KsqlResourceTest {
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
         QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), queryHostState),
         QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1), queryHostState)));
+  }
+
+  @Test
+  public void shouldHaveKsqlWarningIfCommandRunnerDegraded() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
+        .build();
+
+    givenSource(
+        DataSourceType.KSTREAM, "new_stream", "new_topic",
+        schema);
+
+    // When:
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.DEGRADED);
+    when(errorsHandler.commandRunnerDegradedErrorMessage()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE);
+
+    final SourceDescriptionList descriptionList1 = makeSingleRequest(
+        "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
+    final SourceDescriptionList descriptionList2 = makeSingleRequest(
+        "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
+
+    assertThat(descriptionList1.getWarnings().size(), is(1));
+    assertThat(descriptionList1.getWarnings().get(0).getMessage(), is(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE));
+    assertThat(descriptionList2.getWarnings().size(), is(0));
   }
 
   @Test

@@ -19,7 +19,7 @@ import io.confluent.ksql.util.ErrorMessageUtil;
 
 public class DefaultErrorMessages implements ErrorMessages {
 
-  static String COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE =
+  public static final String COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE =
       "The server has encountered an incompatible entry in its log "
           + "and cannot process further DDL statements."
           + System.lineSeparator()

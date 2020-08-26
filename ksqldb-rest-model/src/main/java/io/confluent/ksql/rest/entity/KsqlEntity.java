@@ -18,7 +18,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -61,7 +62,7 @@ public abstract class KsqlEntity {
 
   public KsqlEntity(final String statementText, final List<KsqlWarning> warnings) {
     this.statementText = statementText;
-    this.warnings = warnings == null ? Collections.emptyList() : ImmutableList.copyOf(warnings);
+    this.warnings = warnings == null ? new ArrayList<>() : new ArrayList<>(warnings);
   }
 
   public String getStatementText() {
@@ -70,5 +71,9 @@ public abstract class KsqlEntity {
 
   public List<KsqlWarning> getWarnings() {
     return warnings;
+  }
+  
+  public void updateWarnings(final List<KsqlWarning> warnings) {
+    this.warnings.addAll(warnings);
   }
 }

@@ -31,22 +31,16 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableSuppress;
-import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Set;
 import java.util.function.BiFunction;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.internals.suppress.FinalResultsSuppressionBuilder;
 import org.apache.kafka.streams.processor.StateStore;
 import org.junit.Before;
@@ -98,7 +92,7 @@ public class TableSuppressBuilderTest {
       .getQueryContext();
 
   private TableSuppress<Struct> tableSuppress;
-  private BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory;
+  private BiFunction<LogicalSchema, SerdeOptions, PhysicalSchema> physicalSchemaFactory;
   private BiFunction<Serde<Struct>, Serde<GenericRow>, Materialized> materializedFactory;
   private Long maxBytes = 300L;
   private TableSuppressBuilder builder;

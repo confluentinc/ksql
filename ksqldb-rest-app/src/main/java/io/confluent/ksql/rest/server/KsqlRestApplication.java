@@ -60,9 +60,11 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
@@ -137,6 +139,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
@@ -251,7 +254,8 @@ public final class KsqlRestApplication implements Executable {
     this.denyListPropertyValidator =
         requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
 
-    this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
+    this.serverInfoResource =
+        new ServerInfoResource(serviceContext, ksqlConfigNoPort, commandRunner);
     if (heartbeatAgent.isPresent()) {
       this.heartbeatResource = Optional.of(new HeartbeatResource(heartbeatAgent.get()));
       this.clusterStatusResource = Optional.of(new ClusterStatusResource(
@@ -466,7 +470,7 @@ public final class KsqlRestApplication implements Executable {
   public void shutdown() {
     log.info("ksqlDB shutdown called");
     try {
-      streamedQueryResource.closeMetrics();
+      pullQueryExecutor.closeMetrics();
     } catch (final Exception e) {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
@@ -699,7 +703,8 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, routingFilterFactory, ksqlConfig);
+        ksqlEngine, routingFilterFactory, ksqlConfig, ksqlEngine.getServiceId(),
+        Time.SYSTEM);
 
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
@@ -714,16 +719,6 @@ public final class KsqlRestApplication implements Executable {
         authorizationValidator,
         errorHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
-    );
-
-    final KsqlResource ksqlResource = new KsqlResource(
-        ksqlEngine,
-        commandStore,
-        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime,
-        authorizationValidator,
-        errorHandler,
         denyListPropertyValidator
     );
 
@@ -742,7 +737,18 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         Duration.ofMillis(restConfig.getLong(
             KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
-        metricsPrefix
+        metricsPrefix,
+        InternalTopicSerdes.deserializer(Command.class)
+    );
+  
+    final KsqlResource ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandRunner,
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        versionChecker::updateLastRequestTime,
+        authorizationValidator,
+        errorHandler,
+        denyListPropertyValidator
     );
 
     final QueryMonitor queryMonitor = new QueryMonitor(ksqlConfig, ksqlEngine);

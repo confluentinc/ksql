@@ -288,7 +288,7 @@ public class KsqlConfig extends AbstractConfig {
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED = "ksql.create.or.replace.enabled";
-  public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = true;
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED_DOC =
       "Feature flag for CREATE OR REPLACE";
 
@@ -304,7 +304,7 @@ public class KsqlConfig extends AbstractConfig {
       + "KSQL metastore backup files are located.";
 
   public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
-  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = true;
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
@@ -594,7 +594,7 @@ public class KsqlConfig extends AbstractConfig {
         ).define(
             KSQL_WRAP_SINGLE_VALUES,
             ConfigDef.Type.BOOLEAN,
-            true,
+            null,
             ConfigDef.Importance.LOW,
             "Controls how KSQL will serialize a value whose schema contains only a "
                 + "single column. The setting only sets the default for `CREATE STREAM`, "

@@ -42,6 +42,7 @@ import io.confluent.ksql.cli.console.table.builder.TableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.WarningEntityTableBuilder;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -81,6 +82,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
@@ -173,6 +175,8 @@ public class Console implements Closeable {
               tablePrinter(TypeList.class, TypeListTableBuilder::new))
           .put(ErrorEntity.class,
               tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
+          .put(WarningEntity.class,
+              tablePrinter(WarningEntity.class, WarningEntityTableBuilder::new))
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(

@@ -17,24 +17,18 @@ package io.confluent.ksql.util;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.connect.SchemaFormatter;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.testing.EffectivelyImmutable;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Pojo for holding data about the persistence schemas in use at the different stages within a
+ * Pojo for holding data about the physical schemas in use at the different stages within a
  * topology of a query.
  *
  * <p>Contains an ordered mapping of 'logger name prefix' to the schema used,
@@ -47,37 +41,21 @@ import java.util.stream.Collectors;
 @Immutable
 public final class QuerySchemas {
 
-  @EffectivelyImmutable
-  private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
-
-  @EffectivelyImmutable
-  private final SchemaFormatter schemaFormatter;
   private final ImmutableList<Entry> schemas;
 
-  public static QuerySchemas of(final LinkedHashMap<String, PersistenceSchema> schemas) {
-    return new QuerySchemas(schemas, FORMATTER);
-  }
-
-  @VisibleForTesting
-  QuerySchemas(
-      final LinkedHashMap<String, PersistenceSchema> schemas,
-      final SchemaFormatter schemaFormatter
-  ) {
-    this(
-        schemas.entrySet().stream()
-            .map(e -> new Entry(e.getKey(), e.getValue()))
-            .collect(Collectors.toList()),
-        schemaFormatter
-    );
+  public static QuerySchemas of(final LinkedHashMap<String, PhysicalSchema> schemas) {
+    return new QuerySchemas(schemas);
   }
 
   private QuerySchemas(
-      final List<Entry> schemas,
-      final SchemaFormatter schemaFormatter
+      final LinkedHashMap<String, PhysicalSchema> schemas
   ) {
-    this.schemas = ImmutableList.copyOf(requireNonNull(schemas, "schemas"));
-    this.schemaFormatter = requireNonNull(schemaFormatter, "schemaFormatter");
+    requireNonNull(schemas, "schemas");
+    this.schemas = ImmutableList.copyOf(
+        schemas.entrySet().stream()
+            .map(e -> new Entry(e.getKey(), e.getValue()))
+            .collect(Collectors.toList())
+    );
   }
 
   @Override
@@ -97,10 +75,10 @@ public final class QuerySchemas {
     return Objects.hash(schemas);
   }
 
-  public Map<String, String> getSchemasDescription() {
-    final ImmutableMap.Builder<String, String> builder = new Builder<>();
+  public Map<String, PhysicalSchema> getSchemas() {
+    final ImmutableMap.Builder<String, PhysicalSchema> builder = new Builder<>();
     for (final Entry e : schemas) {
-      builder.put(e.loggerNamePrefix, schemaFormatter.format(e.schema.serializedSchema()));
+      builder.put(e.loggerNamePrefix, e.schema);
     }
     return builder.build();
   }
@@ -108,7 +86,7 @@ public final class QuerySchemas {
   @Override
   public String toString() {
     return schemas.stream()
-        .map(e -> e.loggerNamePrefix + " = " + schemaFormatter.format(e.schema.serializedSchema()))
+        .map(e -> e.loggerNamePrefix + " = " + e.schema)
         .collect(Collectors.joining(System.lineSeparator()));
   }
 
@@ -116,11 +94,11 @@ public final class QuerySchemas {
   private static final class Entry {
 
     private final String loggerNamePrefix;
-    private final PersistenceSchema schema;
+    private final PhysicalSchema schema;
 
     private Entry(
         final String loggerNamePrefix,
-        final PersistenceSchema schema
+        final PhysicalSchema schema
     ) {
       this.loggerNamePrefix = requireNonNull(loggerNamePrefix, "loggerNamePrefix");
       this.schema = requireNonNull(schema, "schema");

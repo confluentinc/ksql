@@ -28,7 +28,6 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import java.util.List;
@@ -58,7 +57,7 @@ public final class AnalysisTestUtil {
 
     private Analyzer(final String queryStr, final MetaStore metaStore) {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-          metaStore, "", SerdeOption.none());
+          metaStore, "");
       final Statement statement = parseStatement(queryStr, metaStore);
       final Query query = statement instanceof QueryContainer
           ? ((QueryContainer) statement).getQuery()

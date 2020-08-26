@@ -58,7 +58,7 @@ public abstract class QueryMetadata {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  private final Consumer<QueryMetadata> closeCallback;
+  protected final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Long closeTimeout;
@@ -68,9 +68,10 @@ public abstract class QueryMetadata {
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
-  private boolean closed = false;
+  protected boolean closed = false;
   private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
+  private Consumer<Boolean> onStop = (ignored) -> { };
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
@@ -140,6 +141,17 @@ public abstract class QueryMetadata {
     this.queryStateListener = Optional.of(queryStateListener);
     kafkaStreams.setStateListener(queryStateListener);
     queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
+  }
+
+  /**
+   * Set a callback to execute when the query stops. This is run on {@link #stop()}
+   * as well as {@link #close()}, unlike the {@link #closeCallback}, which is only
+   * executed on {@code close}.
+   *
+   * <p>{@code onStop} accepts true iff the callback is being called from {@code close}.
+   */
+  public void onStop(final Consumer<Boolean> onStop) {
+    this.onStop = onStop;
   }
 
   private void uncaughtHandler(final Thread t, final Throwable e) {
@@ -274,7 +286,9 @@ public abstract class QueryMetadata {
    *
    * @see #close()
    */
-  public abstract void stop();
+  public synchronized void stop() {
+    doClose(false);
+  }
 
   /**
    * Closes the {@code QueryMetadata} and cleans up any of
@@ -285,10 +299,9 @@ public abstract class QueryMetadata {
    */
   public void close() {
     doClose(true);
-    closeCallback.accept(this);
   }
 
-  protected void doClose(final boolean cleanUp) {
+  private void doClose(final boolean cleanUp) {
     closed = true;
     closeKafkaStreams();
 
@@ -297,6 +310,11 @@ public abstract class QueryMetadata {
     }
 
     queryStateListener.ifPresent(QueryStateListener::close);
+
+    if (cleanUp) {
+      closeCallback.accept(this);
+    }
+    onStop.accept(cleanUp);
   }
 
   public void start() {

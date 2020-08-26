@@ -56,14 +56,12 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
@@ -135,7 +133,7 @@ public class SourceBuilderTest {
   private static final long A_WINDOW_END = 20L;
   private static final long A_ROWTIME = 456L;
 
-  private final Set<SerdeOption> SERDE_OPTIONS = new HashSet<>();
+  private final SerdeOptions SERDE_OPTIONS = SerdeOptions.of();
   private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS);
   private static final String TOPIC_NAME = "topic";
 

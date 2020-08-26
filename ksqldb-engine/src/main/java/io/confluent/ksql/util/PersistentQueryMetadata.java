@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -104,7 +103,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
         .flatMap(builder -> builder.apply(getKafkaStreams()));
   }
 
-  private PersistentQueryMetadata(
+  protected PersistentQueryMetadata(
       final PersistentQueryMetadata other,
       final Consumer<QueryMetadata> closeCallback
   ) {
@@ -115,10 +114,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.materializationProvider = other.materializationProvider;
     this.physicalPlan = other.physicalPlan;
     this.materializationProviderBuilder = other.materializationProviderBuilder;
-  }
-
-  public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
-    return new PersistentQueryMetadata(this, closeCallback);
   }
 
   public DataSourceType getDataSourceType() {
@@ -133,8 +128,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkDataSource.getName();
   }
 
-  public Map<String, String> getSchemasDescription() {
-    return schemas.getSchemasDescription();
+  public Map<String, PhysicalSchema> getSchemas() {
+    return schemas.getSchemas();
   }
 
   public PhysicalSchema getPhysicalSchema() {
@@ -143,6 +138,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public ExecutionStep<?> getPhysicalPlan() {
     return physicalPlan;
+  }
+
+  public DataSource getSink() {
+    return sinkDataSource;
   }
 
   @VisibleForTesting
@@ -155,11 +154,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final QueryContext.Stacker contextStacker
   ) {
     return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
-  }
-
-  @Override
-  public synchronized void stop() {
-    doClose(false);
   }
 
   public synchronized void restart() {

@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -48,7 +49,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -304,8 +305,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamGroupByKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                io.confluent.ksql.execution.plan.Formats
-                    .of(expectedKeyFormat, valueFormat, SerdeOption.none())
+                Formats.of(expectedKeyFormat, valueFormat, SerdeOptions.of())
             )
         )
     );
@@ -357,8 +357,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamGroupBy(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                io.confluent.ksql.execution.plan.Formats
-                    .of(expectedKeyFormat, valueFormat, SerdeOption.none()),
+                Formats.of(expectedKeyFormat, valueFormat, SerdeOptions.of()),
                 groupBy
             )
         )
@@ -433,8 +432,7 @@ public class SchemaKStreamTest {
                   childContextStacker,
                   testcase.left,
                   KEY,
-                  io.confluent.ksql.execution.plan.Formats
-                      .of(keyFormat, valueFormat, SerdeOption.none()),
+                  Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
                   initialSchemaKStream.getSourceStep(),
                   schemaKTable.getSourceTableStep()
               )

@@ -29,12 +29,12 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.LoggingDeserializer;
+import io.confluent.ksql.logging.processing.LoggingSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.GenericKeySerDe.UnwrappedKeySerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.Collections;
@@ -202,7 +202,7 @@ public class GenericKeySerDeTest {
   }
 
   @Test
-  public void shouldUseInnerSerializerForWrappedSchema() {
+  public void shouldUseLoggingSerializer() {
     // When:
     final Serde<Struct> result = factory.create(
         FORMAT,
@@ -214,23 +214,7 @@ public class GenericKeySerDeTest {
     );
 
     // Then:
-    assertThat(result.serializer(), is(innerSerializer));
-  }
-
-  @Test
-  public void shouldUseUnwrappingSerializerForUnwrappedSchema() {
-    // When:
-    final Serde<Struct> result = factory.create(
-        FORMAT,
-        UNWRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    assertThat(result.serializer(), is(instanceOf(UnwrappedKeySerializer.class)));
+    assertThat(result.serializer(), is(instanceOf(LoggingSerializer.class)));
   }
 
   @Test

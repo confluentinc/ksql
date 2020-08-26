@@ -3,8 +3,14 @@
   "timestamp" : 1589910849195,
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 ARRAY<INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 ARRAY<INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `F0` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "array to array with same schema",
@@ -33,9 +39,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, f0 ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as ARRAY<INTEGER>) FROM TEST;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `F0` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -46,7 +69,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

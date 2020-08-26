@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class ServerKeyStore {
 
-  protected static final Logger log = LoggerFactory.getLogger(ServerKeyStore.class);
+  private static final Logger log = LoggerFactory.getLogger(ServerKeyStore.class);
 
   private static final String BASE64_ENCODED_STORE =
       "/u3+7QAAAAIAAAACAAAAAgAGY2Fyb290AAABYgp9KI4ABVguNTA5AAADLDCCAygwggIQAgkAvZW/3jNCgKgwDQYJKoZI"
@@ -129,10 +129,11 @@ public final class ServerKeyStore {
   private static final String KEY_PASSWORD = "password";
   private static final String KEYSTORE_PASSWORD = "password";
   private static final String TRUSTSTORE_PASSWORD = "password";
-  private static final AtomicReference<Path> keyStorePath = new AtomicReference<>();
-  private static final AtomicReference<Path> clientKeyStorePath = new AtomicReference<>();
 
-  private ServerKeyStore() {
+  private final AtomicReference<Path> keyStorePath = new AtomicReference<>();
+  private final AtomicReference<Path> clientKeyStorePath = new AtomicReference<>();
+
+  public ServerKeyStore() {
   }
 
   /**
@@ -140,7 +141,7 @@ public final class ServerKeyStore {
    *         The store at this path may be replaced with an expired store via the method
    *         {@link #loadExpiredServerKeyStore}.
    */
-  public static Map<String, String> keyStoreProps() {
+  public Map<String, String> keyStoreProps() {
     return ImmutableMap.of(
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath(),
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PASSWORD,
@@ -155,7 +156,7 @@ public final class ServerKeyStore {
    *         In contrast to {@link #keyStoreProps}, the store at this path will not replaced
    *         with an expired store when the method {@link #loadExpiredServerKeyStore} is called.
    */
-  public static Map<String, String> clientKeyStoreProps() {
+  public Map<String, String> clientKeyStoreProps() {
     return ImmutableMap.of(
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, clientKeyStorePath(),
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PASSWORD,
@@ -165,17 +166,17 @@ public final class ServerKeyStore {
     );
   }
 
-  public static void loadExpiredServerKeyStore() {
+  public void loadExpiredServerKeyStore() {
     KeyStoreUtil.putStore(Paths.get(keyStorePath()), EXPIRED_BASE64_ENCODED_STORE);
     log.info("Loaded expired store");
   }
 
-  public static void loadValidServerKeyStore() {
+  public void loadValidServerKeyStore() {
     KeyStoreUtil.putStore(Paths.get(keyStorePath()), BASE64_ENCODED_STORE);
     log.info("Loaded valid store");
   }
 
-  private static String keyStorePath() {
+  private String keyStorePath() {
     final Path path = keyStorePath.updateAndGet(existing -> {
       if (existing != null) {
         return existing;
@@ -187,7 +188,7 @@ public final class ServerKeyStore {
     return path.toAbsolutePath().toString();
   }
 
-  private static String clientKeyStorePath() {
+  private String clientKeyStorePath() {
     final Path path = clientKeyStorePath.updateAndGet(existing -> {
       if (existing != null) {
         return existing;

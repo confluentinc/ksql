@@ -1,10 +1,16 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591248420429,
-  "path" : "query-validation-tests\\array-set-functions.json",
+  "path" : "query-validation-tests/array-set-functions.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<DUMMY INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<A1 ARRAY<VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `DUMMY` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `A1` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "array_except with literals",
@@ -45,9 +51,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (id STRING KEY, dummy INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_except(array['foo', 'bar', 'foo'], array['bar', 'baz']) as a1 FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `DUMMY` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `A1` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -58,7 +81,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

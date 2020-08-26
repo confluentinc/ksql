@@ -3,10 +3,22 @@
   "timestamp" : 1585912758234,
   "path" : "query-validation-tests/collect-list.json",
   "schemas" : {
-    "CTAS_S2_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, NAME VARCHAR, VALUE MAP<VARCHAR, BOOLEAN>> NOT NULL",
-    "CTAS_S2_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, VALUE MAP<VARCHAR, BOOLEAN>, KSQL_INTERNAL_COL_2 BOOLEAN> NOT NULL",
-    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, VALUE MAP<VARCHAR, BOOLEAN>, KSQL_AGG_VARIABLE_0 ARRAY<BOOLEAN>> NOT NULL",
-    "CTAS_S2_0.S2" : "STRUCT<ID BIGINT, COLLECTED ARRAY<BOOLEAN>> NOT NULL"
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_AGG_VARIABLE_0` ARRAY<BOOLEAN>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<BOOLEAN>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_INTERNAL_COL_2` BOOLEAN",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "collect_list bool map table - JSON",
@@ -91,19 +103,25 @@
     } ],
     "statements" : [ "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, NAME STRING, VALUE MAP<STRING, BOOLEAN>) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  COLLECT_LIST(TEST.VALUE['key1']) COLLECTED\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<BOOLEAN>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S2",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
             "formatInfo" : {
@@ -113,6 +131,17 @@
           "valueFormat" : {
             "format" : "JSON"
           }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
@@ -124,7 +153,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "test_topic",
+          "name" : "S2",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

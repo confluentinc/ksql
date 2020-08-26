@@ -3,8 +3,14 @@
   "timestamp" : 1581572102825,
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "serialization should default to wrapped values",
@@ -33,9 +39,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (FOO STRING) WITH (KAFKA_TOPIC='input_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -46,7 +69,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

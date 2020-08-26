@@ -3,10 +3,22 @@
   "timestamp" : 1581572099928,
   "path" : "query-validation-tests/key-field.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<FOO INT, BAR INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<KSQL_INTERNAL_COL_0 INT, KSQL_INTERNAL_COL_1 BIGINT, KSQL_AGG_VARIABLE_0 BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ALIASED INT, KSQL_COL_1 BIGINT> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `KSQL_INTERNAL_COL_0` INTEGER, `KSQL_INTERNAL_COL_1` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `KSQL_INTERNAL_COL_0` INTEGER, `KSQL_INTERNAL_COL_1` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `ALIASED` INTEGER, `KSQL_COL_1` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream | initially set | group by (same) | key in value | aliasing",
@@ -39,14 +51,24 @@
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
-        "type" : "stream"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       }, {
         "name" : "OUTPUT",
-        "type" : "table"
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` INTEGER KEY, `ALIASED` INTEGER, `KSQL_COL_1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -67,7 +89,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "input_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

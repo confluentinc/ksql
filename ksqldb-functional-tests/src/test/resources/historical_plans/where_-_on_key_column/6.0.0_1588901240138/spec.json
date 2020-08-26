@@ -3,8 +3,14 @@
   "timestamp" : 1588901240138,
   "path" : "query-validation-tests/where.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<NAME VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<NAME VARCHAR> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "on key column",
@@ -58,13 +64,25 @@
     "statements" : [ "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE id < 10;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ID INT KEY, NAME STRING"
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -75,7 +93,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -3,8 +3,14 @@
   "timestamp" : 1581572100639,
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` DOUBLE KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` DOUBLE KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "filter by non-STRING ROWKEY in UDF",
@@ -57,9 +63,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (ROWKEY DOUBLE KEY, ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nWHERE (EXP(INPUT.ROWKEY) >= 1)\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` DOUBLE KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` DOUBLE KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -70,7 +93,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

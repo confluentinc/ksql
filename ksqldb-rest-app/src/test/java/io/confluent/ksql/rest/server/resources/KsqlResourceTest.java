@@ -99,6 +99,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -132,6 +133,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -146,7 +148,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -179,7 +181,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema.Type;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -277,6 +278,8 @@ public class KsqlResourceTest {
   @Mock
   private CommandStore commandStore;
   @Mock
+  private CommandRunner commandRunner;
+  @Mock
   private ActivenessRegistrar activenessRegistrar;
   @Mock
   private Function<ServiceContext, Injector> schemaInjectorFactory;
@@ -339,6 +342,7 @@ public class KsqlResourceTest {
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
+    when(commandRunner.getCommandQueue()).thenReturn(commandStore);
     when(commandStore.createTransactionalProducer())
         .thenReturn(transactionalProducer);
 
@@ -399,7 +403,7 @@ public class KsqlResourceTest {
     // Given:
     ksqlResource = new KsqlResource(
         ksqlEngine,
-        commandStore,
+        commandRunner,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
@@ -430,7 +434,7 @@ public class KsqlResourceTest {
     // Given:
     ksqlResource = new KsqlResource(
         ksqlEngine,
-        commandStore,
+        commandRunner,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
@@ -566,6 +570,34 @@ public class KsqlResourceTest {
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
         QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), queryHostState),
         QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1), queryHostState)));
+  }
+
+  @Test
+  public void shouldHaveKsqlWarningIfCommandRunnerDegraded() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
+        .build();
+
+    givenSource(
+        DataSourceType.KSTREAM, "new_stream", "new_topic",
+        schema);
+
+    // When:
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.DEGRADED);
+    when(errorsHandler.commandRunnerDegradedErrorMessage()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE);
+
+    final SourceDescriptionList descriptionList1 = makeSingleRequest(
+        "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
+    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
+    final SourceDescriptionList descriptionList2 = makeSingleRequest(
+        "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
+
+    assertThat(descriptionList1.getWarnings().size(), is(1));
+    assertThat(descriptionList1.getWarnings().get(0).getMessage(), is(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE));
+    assertThat(descriptionList2.getWarnings().size(), is(0));
   }
 
   @Test
@@ -2180,7 +2212,7 @@ public class KsqlResourceTest {
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
         ksqlEngine,
-        commandStore,
+        commandRunner,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
@@ -2224,7 +2256,7 @@ public class KsqlResourceTest {
     // Given:
     ksqlResource = new KsqlResource(
         ksqlEngine,
-        commandStore,
+        commandRunner,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
@@ -2309,7 +2341,7 @@ public class KsqlResourceTest {
               "statementText",
               SourceName.of(sourceName),
               schema,
-              SerdeOption.none(),
+              SerdeOptions.of(),
               Optional.empty(),
               false,
               ksqlTopic
@@ -2321,7 +2353,7 @@ public class KsqlResourceTest {
               "statementText",
               SourceName.of(sourceName),
               schema,
-              SerdeOption.none(),
+              SerdeOptions.of(),
               Optional.empty(),
               false,
               ksqlTopic

@@ -49,6 +49,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,6 +149,7 @@ public class WSQueryEndpoint {
       final KsqlSecurityContext ksqlSecurityContext) {
 
     try {
+      final long startTimeNanos = Time.SYSTEM.nanoseconds();
 
       activenessRegistrar.updateLastRequestTime();
 
@@ -184,7 +186,7 @@ public class WSQueryEndpoint {
           ksqlSecurityContext);
 
       if (statement instanceof Query) {
-        handleQuery(requestContext, (Query) statement);
+        handleQuery(requestContext, (Query) statement, startTimeNanos);
       } else if (statement instanceof PrintTopic) {
         handlePrintTopic(requestContext, (PrintTopic) statement);
       } else {
@@ -250,7 +252,8 @@ public class WSQueryEndpoint {
     }
   }
 
-  private void handleQuery(final RequestContext info, final Query query) {
+  private void handleQuery(final RequestContext info, final Query query,
+      final long startTimeNanos) {
     final Map<String, Object> clientLocalProperties = info.request.getConfigOverrides();
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
@@ -270,7 +273,8 @@ public class WSQueryEndpoint {
           exec,
           configured,
           streamSubscriber,
-          pullQueryExecutor
+          pullQueryExecutor,
+          startTimeNanos
       );
     } else {
       pushQueryPublisher.start(
@@ -331,13 +335,14 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService ignored,
       final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
-      final PullQueryExecutor pullQueryExecutor
-
+      final PullQueryExecutor pullQueryExecutor,
+      final long startTimeNanos
   ) {
     new PullQueryPublisher(
         serviceContext,
         query,
-        pullQueryExecutor
+        pullQueryExecutor,
+        startTimeNanos
     ).subscribe(streamSubscriber);
   }
 
@@ -371,7 +376,8 @@ public class WSQueryEndpoint {
         ListeningScheduledExecutorService exec,
         ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber,
-        PullQueryExecutor pullQueryExecutor);
+        PullQueryExecutor pullQueryExecutor,
+        long startTimeNanos);
 
   }
 

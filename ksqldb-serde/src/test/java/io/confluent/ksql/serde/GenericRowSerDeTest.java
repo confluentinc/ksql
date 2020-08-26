@@ -35,6 +35,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -82,6 +83,15 @@ public class GenericRowSerDeTest {
               .build(),
           true);
 
+  private static final PersistenceSchema STRUCT_FIELD_SCHEMA =
+      PersistenceSchema.from(
+          (ConnectSchema) SchemaBuilder.struct()
+              .field("f0", SchemaBuilder.struct().optional()
+                  .field("g0", Schema.OPTIONAL_STRING_SCHEMA)
+                  .build())
+              .build(),
+          false);
+
   private static final String SOME_TOPIC = "fred";
   private static final byte[] SOME_BYTES = "Vic".getBytes(StandardCharsets.UTF_8);
   private static final Map<String, ?> SOME_CONFIG = ImmutableMap.of("some", "thing");
@@ -95,7 +105,7 @@ public class GenericRowSerDeTest {
   @Mock
   private ProcessingLoggerFactory loggerFactory;
   @Mock
-  private Serde<Object> deletageSerde;
+  private Serde<Object> delegateSerde;
   @Mock
   private Serializer<Object> delegateSerializer;
   @Mock
@@ -107,9 +117,9 @@ public class GenericRowSerDeTest {
 
   @Before
   public void setUp() {
-    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(deletageSerde);
-    when(deletageSerde.serializer()).thenReturn(delegateSerializer);
-    when(deletageSerde.deserializer()).thenReturn(delegateDeserializer);
+    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(delegateSerde);
+    when(delegateSerde.serializer()).thenReturn(delegateSerializer);
+    when(delegateSerde.deserializer()).thenReturn(delegateDeserializer);
 
     when(delegateSerializer.serialize(any(), any())).thenReturn(SOME_BYTES);
 
@@ -436,6 +446,62 @@ public class GenericRowSerDeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Expected single-field value. got: 2"));
+  }
+
+  @Test
+  public void shouldThrowInformativeErrorOnNonOptionalStruct() {
+    // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(STRUCT_FIELD_SCHEMA)
+        .serializer();
+
+    final Schema nonOptionalSchema = SchemaBuilder.struct()
+        .field("g0", Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+    final GenericRow row = GenericRow.genericRow(
+        new Struct(nonOptionalSchema).put("g0", "foo"));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> serializer.serialize(SOME_TOPIC, row)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to prepare Struct value field 'f0' for serialization."));
+    assertThat(e.getMessage(), containsString(
+        "This could happen if the value was produced by a user-defined function "
+        + "where the schema has non-optional return types. ksqlDB requires all "
+        + "schemas to be optional at all levels of the Struct: the Struct itself, "
+        + "schemas for all fields within the Struct, and so on."));
+  }
+
+  @Test
+  public void shouldThrowInformativeErrorOnStructWithNonOptionalField() {
+    // Given:
+    final Serializer<GenericRow> serializer = givenSerdeForSchema(STRUCT_FIELD_SCHEMA)
+        .serializer();
+
+    final Schema schemaWithNonOptionalField = SchemaBuilder.struct().optional()
+        .field("g0", Schema.STRING_SCHEMA)
+        .build();
+    final GenericRow row = GenericRow.genericRow(
+        new Struct(schemaWithNonOptionalField).put("g0", "foo"));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> serializer.serialize(SOME_TOPIC, row)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to prepare Struct value field 'f0' for serialization."));
+    assertThat(e.getMessage(), containsString(
+        "This could happen if the value was produced by a user-defined function "
+            + "where the schema has non-optional return types. ksqlDB requires all "
+            + "schemas to be optional at all levels of the Struct: the Struct itself, "
+            + "schemas for all fields within the Struct, and so on."));
   }
 
   @Test

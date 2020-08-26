@@ -3,8 +3,14 @@
   "timestamp" : 1581572102540,
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "MAP<VARCHAR, VARCHAR>",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<FOO MAP<VARCHAR, VARCHAR>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, STRING>",
+      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "deserialize anonymous map - value - with coercion - AVRO",
@@ -70,22 +76,23 @@
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY STRING KEY, FOO MAP<STRING, STRING>"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "partitions" : 4
-        }, {
           "name" : "input_topic",
           "keyFormat" : {
             "formatInfo" : {
@@ -96,6 +103,17 @@
             "format" : "AVRO"
           },
           "partitions" : 1
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
         } ]
       }
     }

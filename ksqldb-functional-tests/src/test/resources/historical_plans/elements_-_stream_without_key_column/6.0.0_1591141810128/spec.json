@@ -3,8 +3,14 @@
   "timestamp" : 1591141810128,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID INT, F0 INT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID INT, F0 INT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER, `F0` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER, `F0` INTEGER",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "stream without key column",
@@ -15,7 +21,7 @@
         "ID" : 1,
         "F0" : 2
       }
-    },{
+    }, {
       "topic" : "input",
       "key" : "foo",
       "value" : {
@@ -30,7 +36,7 @@
         "ID" : 1,
         "F0" : 2
       }
-    },{
+    }, {
       "topic" : "OUTPUT",
       "key" : null,
       "value" : {
@@ -51,16 +57,24 @@
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
-        "type" : "stream",
-        "schema" : "ID INT, F0 INT"
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       }, {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ID INT, F0 INT"
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -71,7 +85,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

@@ -52,7 +52,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -139,7 +139,7 @@ public class SchemaRegisterInjectorTest {
         "",
         SourceName.of("SOURCE"),
         SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         sourceTopic
@@ -192,7 +192,6 @@ public class SchemaRegisterInjectorTest {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
-    when(schemaRegistryClient.testCompatibility(eq("expectedName-value"), any(ParsedSchema.class))).thenReturn(true);
 
     // When:
     injector.inject(statement);

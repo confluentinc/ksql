@@ -15,14 +15,12 @@
 
 package io.confluent.ksql.rest.server;
 
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 public interface CommandTopicBackup {
   void initialize();
 
-  void writeRecord(ConsumerRecord<CommandId, Command> record);
+  void writeRecord(ConsumerRecord<byte[], byte[]> record);
 
   void close();
 }

@@ -1,10 +1,16 @@
 {
   "version" : "6.1.0",
   "timestamp" : 1594957049604,
-  "path" : "query-validation-tests\\array-remove.json",
+  "path" : "query-validation-tests/array-remove.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<LISTS ARRAY<ARRAY<VARCHAR>>, BAD_LIST ARRAY<VARCHAR>, MAPS ARRAY<MAP<VARCHAR, INT>>, BAD_MAP MAP<VARCHAR, INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<LISTS ARRAY<ARRAY<VARCHAR>>, MAPS ARRAY<MAP<VARCHAR, INT>>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `BAD_LIST` ARRAY<STRING>, `MAPS` ARRAY<MAP<STRING, INTEGER>>, `BAD_MAP` MAP<STRING, INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "array_remove with complex types",
@@ -114,9 +120,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (id STRING KEY, lists ARRAY<ARRAY<STRING>>, bad_list ARRAY<STRING>, maps ARRAY<MAP<STRING,INT>>, bad_map MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_remove(lists, bad_list) as lists, array_remove(maps, bad_map) as maps FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `BAD_LIST` ARRAY<STRING>, `MAPS` ARRAY<MAP<STRING, INTEGER>>, `BAD_MAP` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -127,7 +150,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

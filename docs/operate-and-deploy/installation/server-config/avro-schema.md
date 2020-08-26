@@ -6,7 +6,7 @@ description: Learn how integrate ksqlDB with Confluent Schema Registry
 keywords: ksqldb, schema, avro, protobuf, json, json_sr
 ---
 
-For supported [serialization formats](../developer-guide/serialization.md),
+For supported [serialization formats](../../../developer-guide/serialization.md),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB automatically retrieves (reads) and registers (writes) schemas as needed,
 which spares you from defining columns and data types  manually in `CREATE`

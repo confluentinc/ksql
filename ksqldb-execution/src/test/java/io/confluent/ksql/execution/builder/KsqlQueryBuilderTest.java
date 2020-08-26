@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.builder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -42,12 +43,14 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
@@ -69,7 +72,7 @@ public class KsqlQueryBuilderTest {
           .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
           .build(),
-      SerdeOption.none()
+      SerdeOptions.of()
   );
 
   private static final QueryId QUERY_ID = new QueryId("fred");
@@ -239,9 +242,9 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(
-        ksqlQueryBuilder.getSchemas().toString(),
-        is("fred.context = STRUCT<f0 BOOLEAN> NOT NULL"));
+    final Map<String, PhysicalSchema> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    assertThat(schemas.entrySet(), hasSize(1));
+    assertThat(schemas.get("fred.context"), is(SOME_SCHEMA));
   }
 
   @Test
@@ -249,7 +252,7 @@ public class KsqlQueryBuilderTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
         SOME_SCHEMA.logicalSchema(),
-        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES)
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)
     );
 
     // When:
@@ -260,6 +263,8 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(), is("fred.context = BOOLEAN"));
+    final Map<String, PhysicalSchema> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    assertThat(schemas.entrySet(), hasSize(1));
+    assertThat(schemas.get("fred.context"), is(schema));
   }
 }

@@ -3,8 +3,14 @@
   "timestamp" : 1583234876611,
   "path" : "query-validation-tests/avro.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<C1 MAP<VARCHAR, BIGINT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<C1 MAP<VARCHAR, BIGINT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `C1` MAP<STRING, BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `C1` MAP<STRING, BIGINT>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "should support maps",
@@ -50,23 +56,24 @@
     "statements" : [ "CREATE STREAM INPUT (C1 MAP<STRING, BIGINT>) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='AvRo');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `C1` MAP<STRING, BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY STRING KEY, C1 MAP<STRING, BIGINT>"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `C1` MAP<STRING, BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "partitions" : 4
-        }, {
           "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
@@ -77,6 +84,17 @@
             "format" : "AVRO"
           },
           "partitions" : 1
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4
         } ]
       }
     }

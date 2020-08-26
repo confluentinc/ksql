@@ -3,8 +3,14 @@
   "timestamp" : 1589910855176,
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
-    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR> NOT NULL",
-    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : "STRUCT<S STRUCT< >> NOT NULL"
+    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL1` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : {
+      "schema" : "`ID` STRING KEY, `S` STRUCT< >",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "empty struct creation",
@@ -34,13 +40,25 @@
     "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT() AS s FROM INPUT;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
         "name" : "BIG_STRUCT",
-        "type" : "stream",
-        "schema" : "ID STRING KEY, S STRUCT< >"
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `S` STRUCT< >",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "BIG_STRUCT",
+          "name" : "test",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -51,7 +69,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test",
+          "name" : "BIG_STRUCT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

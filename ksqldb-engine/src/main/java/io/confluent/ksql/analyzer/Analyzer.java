@@ -59,7 +59,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
@@ -93,22 +92,17 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
-  private final Set<SerdeOption> defaultSerdeOptions;
 
   /**
    * @param metaStore the metastore to use.
    * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
-   * @param defaultSerdeOptions the default serde options.
    */
   Analyzer(
       final MetaStore metaStore,
-      final String topicPrefix,
-      final Set<SerdeOption> defaultSerdeOptions
+      final String topicPrefix
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
-    this.defaultSerdeOptions = ImmutableSet
-        .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
   }
 
   /**
@@ -160,8 +154,7 @@ class Analyzer {
         analysis.setInto(Into.of(
             sink.getName(),
             false,
-            existing.getKsqlTopic(),
-            defaultSerdeOptions
+            existing.getKsqlTopic()
         ));
         return;
       }
@@ -199,8 +192,7 @@ class Analyzer {
       analysis.setInto(Into.of(
           sink.getName(),
           true,
-          intoKsqlTopic,
-          defaultSerdeOptions
+          intoKsqlTopic
       ));
     }
 

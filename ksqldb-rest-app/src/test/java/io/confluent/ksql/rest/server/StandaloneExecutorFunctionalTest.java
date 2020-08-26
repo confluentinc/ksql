@@ -31,7 +31,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -160,7 +160,7 @@ public class StandaloneExecutorFunctionalTest {
             .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
-        SerdeOption.none()
+        SerdeOptions.of()
     );
 
     // When:
@@ -202,7 +202,7 @@ public class StandaloneExecutorFunctionalTest {
             .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
-        SerdeOption.none()
+        SerdeOptions.of()
     );
 
     // When:
@@ -312,7 +312,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema incompatiblePhysical = PhysicalSchema.from(
         logical,
-        SerdeOption.none()
+        SerdeOptions.of()
     );
 
     TEST_HARNESS.ensureSchema(topicName, incompatiblePhysical);

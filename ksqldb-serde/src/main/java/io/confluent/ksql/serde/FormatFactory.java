@@ -35,14 +35,13 @@ public final class FormatFactory {
   public static final Format KAFKA      = new KafkaFormat();
   public static final Format DELIMITED  = new DelimitedFormat();
 
-  private FormatFactory() { }
+  private FormatFactory() {
+  }
 
   /**
    * @param formatInfo the format specification
    * @return the corresponding {@code Format} if available
-   *
-   * @throws KsqlException if the {@link FormatInfo#getFormat()} is not a builtin
-   *                       format in ksqlDB
+   * @throws KsqlException if the {@link FormatInfo#getFormat()} is not a builtin format in ksqlDB
    */
   public static Format of(final FormatInfo formatInfo) {
     final Format format = fromName(formatInfo.getFormat().toUpperCase());

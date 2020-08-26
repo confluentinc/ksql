@@ -34,6 +34,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ProtobufSerdeFactoryTest {
 
+  private static final ConnectSchema SCHEMA = (ConnectSchema) SchemaBuilder.struct()
+      .field("f0", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA))
+      .build();
+
   @Mock
   private PersistenceSchema schema;
 
@@ -42,6 +46,9 @@ public class ProtobufSerdeFactoryTest {
   @Before
   public void setUp() {
     factory = new ProtobufSerdeFactory();
+
+    when(schema.serializedSchema())
+        .thenReturn(SCHEMA);
   }
 
   @Test

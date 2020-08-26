@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -79,7 +80,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -452,8 +453,7 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableGroupBy(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                io.confluent.ksql.execution.plan.Formats
-                    .of(initialSchemaKTable.keyFormat, valueFormat, SerdeOption.none()),
+                Formats.of(initialSchemaKTable.keyFormat, valueFormat, SerdeOptions.of()),
                 groupByExpressions
             )
         )

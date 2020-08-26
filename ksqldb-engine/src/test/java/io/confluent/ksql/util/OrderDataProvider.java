@@ -26,7 +26,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import java.util.Map;
 
 public class OrderDataProvider extends TestDataProvider<String> {
@@ -42,7 +42,7 @@ public class OrderDataProvider extends TestDataProvider<String> {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOption.none());
+      .from(LOGICAL_SCHEMA, SerdeOptions.of());
 
   private static final Map<String, Double> MAP_FIELD = ImmutableMap.of(
       "key1", 1.0,

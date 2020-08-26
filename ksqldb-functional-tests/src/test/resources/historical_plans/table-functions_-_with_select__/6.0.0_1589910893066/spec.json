@@ -3,8 +3,14 @@
   "timestamp" : 1589910893066,
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<MY_ARR ARRAY<BIGINT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<MY_ARR ARRAY<BIGINT>, VAL BIGINT> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>, `VAL` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "with select *",
@@ -61,9 +67,26 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT *, EXPLODE(MY_ARR) VAL FROM TEST;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>, `VAL` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -74,7 +97,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

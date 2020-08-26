@@ -274,10 +274,12 @@ not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-refere
 [CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md)
 statements.
 
-When set to the default value, `true`, ksqlDB serializes the column value
-nested with a JSON object, Avro record, or Protobuf message, depending on the
-format in use. When set to `false`, ksqlDB persists the column value without any
-nesting.
+If not set and no explicit value is provided in the statement, the value format's default wrapping 
+is used.
+
+When set to `true`, ksqlDB serializes the column value nested within a JSON object, Avro record,
+or Protobuf message, depending on the format in use. When set to `false`, ksqlDB persists the column
+value without any nesting, as an anonymous value.
 
 For example, consider the statement:
 
@@ -303,8 +305,7 @@ format persists the single field's value as a JSON number: `10`.
 10
 ```
 
-The `AVRO` and `PROTOBUF` formats support the same properties. The properties
-control whether or not the field's value is written as a named field within a
+The properties control whether or not the field's value is written as a named field within a
 record or as an anonymous value.
 
 This setting can be toggled using the SET command
@@ -320,10 +321,10 @@ For more information, refer to the
 [CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md)
 statements.
 
-!!! note
-	 The `DELIMITED` format is not affected by the
-    `ksql.persistence.ensure.value.is.struct` setting, because it has no
-    concept of an outer record or structure.
+ !!! note
+   Not all formats support wrapping and unwrapping. If you use a format that doesn't support
+   the default value you set, the format ignores the setting. For information on which formats
+   support wrapping and unwrapping, see the [serialization docs](../../../developer-guide/serialization.md).
 
 ### ksql.query.pull.enable.standby.reads
 

@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,7 +25,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -51,6 +51,7 @@ import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PullQueryPublisherTest {
+  private static final long TIME_NANOS = 12345;
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("id"), SqlTypes.INTEGER)
@@ -80,10 +81,11 @@ public class PullQueryPublisherTest {
     publisher = new PullQueryPublisher(
         serviceContext,
         statement,
-        pullQueryExecutor);
+        pullQueryExecutor,
+        TIME_NANOS);
 
     PullQueryResult result = new PullQueryResult(entity, Optional.empty());
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenReturn(result);
+    when(pullQueryExecutor.execute(any(), any(), any(), eq(TIME_NANOS))).thenReturn(result);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -107,8 +109,7 @@ public class PullQueryPublisherTest {
     subscription.request(1);
 
     // Then:
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.empty(),
-        Optional.of(false));
+    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.of(false), TIME_NANOS);
   }
 
   @Test
@@ -121,8 +122,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(any());
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.empty(),
-        Optional.of(false));
+    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.of(false), TIME_NANOS);
   }
 
   @Test
@@ -157,7 +157,7 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
     final Throwable e = new RuntimeException("Boom!");
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenThrow(e);
+    when(pullQueryExecutor.execute(any(), any(), any(), eq(TIME_NANOS))).thenThrow(e);
 
     // When:
     subscription.request(1);

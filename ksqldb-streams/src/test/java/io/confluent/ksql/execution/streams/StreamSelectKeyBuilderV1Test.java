@@ -43,7 +43,7 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
@@ -155,12 +155,12 @@ public class StreamSelectKeyBuilderV1Test {
     // Then:
     result.getKeySerdeFactory().buildKeySerde(
         FormatInfo.of(FormatFactory.JSON.name()),
-        PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
+        PhysicalSchema.from(SOURCE_SCHEMA, SerdeOptions.of()),
         queryContext
     );
     verify(queryBuilder).buildKeySerde(
         FormatInfo.of(FormatFactory.JSON.name()),
-        PhysicalSchema.from(SOURCE_SCHEMA, SerdeOption.none()),
+        PhysicalSchema.from(SOURCE_SCHEMA, SerdeOptions.of()),
         queryContext);
   }
 

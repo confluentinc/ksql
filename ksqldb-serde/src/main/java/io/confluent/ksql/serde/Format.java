@@ -48,15 +48,16 @@ public interface Format {
   String name();
 
   /**
-   * If this format supports wrapping, primitive values can optionally
-   * be serialized anonymously (i.e. without a wrapping STRUCT and
-   * corresponding field name) - otherwise primitive values are only
-   * represented anonymously.
-   *
-   * @return whether or not this format supports wrapping
+   * @return The set of features the format supports.
    */
-  default boolean supportsWrapping() {
-    return true;
+  Set<SerdeFeature> supportedFeatures();
+
+  /**
+   * @param feature the feature to test
+   * @return {@code true} if the feature is supported
+   */
+  default boolean supportsFeature(final SerdeFeature feature) {
+    return supportedFeatures().contains(feature);
   }
 
   /**

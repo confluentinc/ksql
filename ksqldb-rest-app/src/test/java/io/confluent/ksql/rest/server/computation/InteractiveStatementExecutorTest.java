@@ -75,6 +75,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -121,6 +122,8 @@ public class InteractiveStatementExecutorTest {
   private KsqlPlan plan;
   @Mock
   private CommandStatusFuture status;
+  @Mock
+  private Deserializer<Command> commandDeserializer;
 
   private Command plannedCommand;
 
@@ -150,13 +153,15 @@ public class InteractiveStatementExecutorTest {
         serviceContext,
         ksqlEngine,
         statementParser,
-        hybridQueryIdGenerator
+        hybridQueryIdGenerator,
+        InternalTopicSerdes.deserializer(Command.class)
     );
     statementExecutorWithMocks = new InteractiveStatementExecutor(
         serviceContext,
         mockEngine,
         mockParser,
-        mockQueryIdGenerator
+        mockQueryIdGenerator,
+        commandDeserializer
     );
 
     statementExecutor.configure(ksqlConfig);
@@ -199,7 +204,8 @@ public class InteractiveStatementExecutorTest {
         serviceContext,
         mockEngine,
         mockParser,
-        mockQueryIdGenerator
+        mockQueryIdGenerator,
+        commandDeserializer
     );
 
     // When:
@@ -213,7 +219,8 @@ public class InteractiveStatementExecutorTest {
         serviceContext,
         mockEngine,
         mockParser,
-        mockQueryIdGenerator
+        mockQueryIdGenerator,
+        commandDeserializer
     );
 
     // When:
@@ -586,11 +593,14 @@ public class InteractiveStatementExecutorTest {
     // Given:
     mockReplayCSAS(new QueryId("csas-query-id"));
 
+    final Command command = new Command("CSAS", emptyMap(), emptyMap(), Optional.empty());
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
     // When:
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.CREATE),
-            new Command("CSAS", emptyMap(), emptyMap(), Optional.empty()),
+            command,
             Optional.empty(),
             2L
         )
@@ -606,12 +616,14 @@ public class InteractiveStatementExecutorTest {
     final QueryId queryId = new QueryId("csas-query-id");
     final String name = "foo";
     final PersistentQueryMetadata mockQuery = mockReplayCSAS(queryId);
+    final Command command = new Command("CSAS", emptyMap(), emptyMap(), Optional.empty());
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
 
     // When:
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, name, Action.CREATE),
-            new Command("CSAS", emptyMap(), emptyMap(), Optional.empty()),
+            command,
             Optional.empty(),
             0L
         )
@@ -672,11 +684,14 @@ public class InteractiveStatementExecutorTest {
     when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
         .thenReturn(ExecuteResult.of("SUCCESS"));
 
+    final Command command = new Command(drop, emptyMap(), emptyMap(), Optional.empty());
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
     // When:
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command(drop, emptyMap(), emptyMap(), Optional.empty()),
+            command,
             Optional.empty(),
             0L
         )
@@ -699,11 +714,14 @@ public class InteractiveStatementExecutorTest {
 
     when(mockEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
 
+    final Command command = new Command("terminate all", emptyMap(), emptyMap(), Optional.empty());
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
     // When:
     statementExecutorWithMocks.handleStatement(
         new QueuedCommand(
             new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
-            new Command("terminate all", emptyMap(), emptyMap(), Optional.empty()),
+            command,
             Optional.empty(),
             0L
         )
@@ -731,9 +749,12 @@ public class InteractiveStatementExecutorTest {
         .thenReturn(Optional.of(query))
         .thenReturn(Optional.empty());
 
+    final Command command = new Command("terminate all", emptyMap(), emptyMap(), Optional.empty());
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
     final QueuedCommand cmd = new QueuedCommand(
         new CommandId(Type.TERMINATE, "-", Action.EXECUTE),
-        new Command("terminate all", emptyMap(), emptyMap(), Optional.empty()),
+        command,
         Optional.empty(),
         0L
     );
@@ -922,13 +943,17 @@ public class InteractiveStatementExecutorTest {
     handleStatement(statementExecutor, command, commandId, commandStatus, offset);
   }
 
-  private static void handleStatement(
+  private void handleStatement(
       final InteractiveStatementExecutor statementExecutor,
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatus,
       final long offset) {
-    statementExecutor.handleStatement(new QueuedCommand(commandId, command, commandStatus, offset));
+    when(queuedCommand.getAndDeserializeCommand(any())).thenReturn(command);
+    when(queuedCommand.getAndDeserializeCommandId()).thenReturn(commandId);
+    when(queuedCommand.getStatus()).thenReturn(commandStatus);
+    when(queuedCommand.getOffset()).thenReturn(offset);
+    statementExecutor.handleStatement(queuedCommand);
   }
 
   private void terminateQueries() {

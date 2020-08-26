@@ -40,7 +40,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
@@ -76,7 +76,7 @@ public class SinkBuilderTest {
   private static final FormatInfo KEY_FORMAT = FormatInfo.of(FormatFactory.KAFKA.name());
   private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
   private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(SCHEMA.withoutPseudoAndKeyColsInValue(), SerdeOption.none());
+      PhysicalSchema.from(SCHEMA.withoutPseudoAndKeyColsInValue(), SerdeOptions.of());
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -155,7 +155,7 @@ public class SinkBuilderTest {
     // Given/When
     SinkBuilder.build(
         SCHEMA,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOptions.of()),
         Optional.of(new TimestampColumn(ColumnName.of("BLUE"), Optional.empty())),
         TOPIC,
         kStream,
@@ -279,7 +279,7 @@ public class SinkBuilderTest {
   private void buildDefaultSinkBuilder() {
     SinkBuilder.build(
         SCHEMA,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOptions.of()),
         Optional.empty(),
         TOPIC,
         kStream,

@@ -3,8 +3,14 @@
   "timestamp" : 1585912771474,
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, KEY DOUBLE> NOT NULL"
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` DOUBLE KEY, `ID` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` DOUBLE KEY, `ID` BIGINT, `KEY` DOUBLE",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "table explicit KAFKA DOUBLE ROWKEY",
@@ -61,16 +67,25 @@
     "statements" : [ "CREATE TABLE INPUT (ROWKEY DOUBLE PRIMARY KEY, ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='JSON');", "CREATE TABLE OUTPUT AS SELECT\n  INPUT.ID ID,\n  INPUT.ROWKEY KEY\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "table",
-        "schema" : "ROWKEY DOUBLE KEY, ID BIGINT, KEY DOUBLE",
+        "name" : "INPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` DOUBLE KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` DOUBLE KEY, `ID` BIGINT, `KEY` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -81,7 +96,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

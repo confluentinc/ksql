@@ -54,6 +54,7 @@ import org.junit.rules.RuleChain;
 public class SslFunctionalTest {
 
   private static final String TOPIC_NAME = new OrderDataProvider().topicName();
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
   private static final String JSON_KSQL_REQUEST = UrlEscapers.urlFormParameterEscaper()
       .escape("{"
@@ -64,7 +65,7 @@ public class SslFunctionalTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperties(ServerKeyStore.keyStoreProps())
+      .withProperties(SERVER_KEY_STORE.keyStoreProps())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0")
       .build();
 

@@ -31,7 +31,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import java.time.Duration;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -66,21 +66,21 @@ public class StreamStreamJoinBuilderTest {
       .build();
 
   private static final PhysicalSchema LEFT_PHYSICAL =
-      PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
+      PhysicalSchema.from(LEFT_SCHEMA, SerdeOptions.of());
 
   private static final PhysicalSchema RIGHT_PHYSICAL =
-      PhysicalSchema.from(RIGHT_SCHEMA, SerdeOption.none());
+      PhysicalSchema.from(RIGHT_SCHEMA, SerdeOptions.of());
 
-  private static final io.confluent.ksql.execution.plan.Formats LEFT_FMT = Formats.of(
+  private static final Formats LEFT_FMT = Formats.of(
       FormatInfo.of(FormatFactory.KAFKA.name()),
       FormatInfo.of(FormatFactory.JSON.name()),
-      SerdeOption.none()
+      SerdeOptions.of()
   );
 
-  private static final io.confluent.ksql.execution.plan.Formats RIGHT_FMT = Formats.of(
+  private static final Formats RIGHT_FMT = Formats.of(
       FormatInfo.of(FormatFactory.KAFKA.name()),
       FormatInfo.of(FormatFactory.AVRO.name()),
-      SerdeOption.none()
+      SerdeOptions.of()
   );
 
   private static final Duration BEFORE = Duration.ofMillis(1000);

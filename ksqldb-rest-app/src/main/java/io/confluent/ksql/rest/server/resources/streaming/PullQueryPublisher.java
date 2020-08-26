@@ -41,23 +41,26 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
   private final PullQueryExecutor pullQueryExecutor;
+  private final long startTimeNanos;
 
   @VisibleForTesting
   PullQueryPublisher(
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> query,
-      final PullQueryExecutor pullQueryExecutor
+      final PullQueryExecutor pullQueryExecutor,
+      final long startTimeNanos
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.query = requireNonNull(query, "query");
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
+    this.startTimeNanos = startTimeNanos;
   }
 
   @Override
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
-        () -> pullQueryExecutor.execute(query, serviceContext, Optional.empty(), Optional.of(false))
+        () -> pullQueryExecutor.execute(query, serviceContext, Optional.of(false), startTimeNanos)
     );
 
     subscriber.onSubscribe(subscription);

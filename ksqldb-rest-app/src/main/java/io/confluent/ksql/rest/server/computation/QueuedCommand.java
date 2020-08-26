@@ -15,19 +15,37 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.entity.CommandId;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.kafka.common.serialization.Deserializer;
 
 public class QueuedCommand {
-  private final CommandId commandId;
-  private final Command command;
+  private final byte[] commandId;
+  private final byte[] command;
   private final Optional<CommandStatusFuture> status;
   private final Long offset;
 
+  @VisibleForTesting
   public QueuedCommand(
       final CommandId commandId,
       final Command command,
+      final Optional<CommandStatusFuture> status,
+      final Long offset
+  ) {
+    this(
+        InternalTopicSerdes.serializer().serialize("", commandId),
+        InternalTopicSerdes.serializer().serialize("", command),
+        status,
+        offset
+    );
+  }
+
+  public QueuedCommand(
+      final byte[] commandId,
+      final byte[] command,
       final Optional<CommandStatusFuture> status,
       final Long offset
   ) {
@@ -37,16 +55,26 @@ public class QueuedCommand {
     this.offset = Objects.requireNonNull(offset, "offset");
   }
 
-  public CommandId getCommandId() {
-    return commandId;
+  @VisibleForTesting
+  byte[] getCommandId() {
+    return Arrays.copyOf(commandId, commandId.length);
+  }
+
+  @VisibleForTesting
+  byte[] getCommand() {
+    return  Arrays.copyOf(command, command.length);
+  }
+
+  CommandId getAndDeserializeCommandId() {
+    return InternalTopicSerdes.deserializer(CommandId.class).deserialize("", commandId);
+  }
+
+  Command getAndDeserializeCommand(final Deserializer<Command> deserializer) {
+    return deserializer.deserialize("", command);
   }
 
   public Optional<CommandStatusFuture> getStatus() {
     return status;
-  }
-
-  public Command getCommand() {
-    return command;
   }
 
   public Long getOffset() {
@@ -62,8 +90,8 @@ public class QueuedCommand {
       return false;
     }
     final QueuedCommand that = (QueuedCommand) o;
-    return Objects.equals(commandId, that.commandId)
-        && Objects.equals(command, that.command)
+    return Arrays.equals(commandId, that.commandId)
+        && Arrays.equals(command, that.command)
         && Objects.equals(status, that.status)
         && Objects.equals(offset, that.offset);
   }

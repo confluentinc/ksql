@@ -1,0 +1,70 @@
+{
+  "comment": "Tests for KAFKA format",
+  "tests": [
+    {
+      "name": "Wrapped single values",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input', value_format='KAFKA');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Format 'KAFKA' does not support 'WRAP_SINGLE_VALUE' set to 'true'."
+      }
+    },
+    {
+      "name": "Unwrapped single values",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input', value_format='KAFKA');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Format 'KAFKA' does not support 'WRAP_SINGLE_VALUE' set to 'false'."
+      }
+    },
+    {
+      "name": "Default single value wrapping",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "input": [{"topic": "input", "key": "foo", "value": 1}],
+      "output": [{"topic": "OUTPUT", "key": "foo", "value": 1}]
+    },
+    {
+      "name": "STRING",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (kafka_topic='input', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "input": [{"topic": "input", "key": "foo", "value": "bar"}],
+      "output": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}]
+    },
+    {
+      "name": "INT",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, foo INT) WITH (kafka_topic='input', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "input": [{"topic": "input", "key": 1, "value": 2}],
+      "output": [{"topic": "OUTPUT", "key": 1, "value": 2}]
+    },
+    {
+      "name": "BIGINT",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, foo BIGINT) WITH (kafka_topic='input', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "input": [{"topic": "input", "key": 1, "value": 2}],
+      "output": [{"topic": "OUTPUT", "key": 1, "value": 2}]
+    },
+    {
+      "name": "DOUBLE",
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE KEY, foo DOUBLE) WITH (kafka_topic='input', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "input": [{"topic": "input", "key": 1.1, "value": 2.2}],
+      "output": [{"topic": "OUTPUT", "key": 1.1, "value": 2.2}]
+    }
+  ]
+}

@@ -1,10 +1,16 @@
 {
   "version" : "6.0.0",
   "timestamp" : 1591170785216,
-  "path" : "query-validation-tests\\map.json",
+  "path" : "query-validation-tests/map.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<MAP_1 MAP<VARCHAR, INT>, MAP_2 MAP<VARCHAR, INT>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<COMBINED MAP<VARCHAR, INT>> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "map_union",
@@ -116,9 +122,26 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (id STRING KEY, map_1 MAP<STRING, INT>, map_2 MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, map_union(map_1, map_2) as combined FROM INPUT;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -129,7 +152,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

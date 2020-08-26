@@ -96,6 +96,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
   private static final Duration PRODUCE_TIMEOUT = Duration.ofSeconds(30);
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
   public static final String JAAS_KAFKA_PROPS_NAME = "KafkaServer";
 
@@ -674,7 +675,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(),
           SecurityProtocol.SASL_SSL.name());
       brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
-      brokerConfig.putAll(ServerKeyStore.keyStoreProps());
+      brokerConfig.putAll(SERVER_KEY_STORE.keyStoreProps());
       brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
 
       clientConfig.putAll(SecureKafkaHelper.getSecureCredentialsConfig(VALID_USER1));

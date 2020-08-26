@@ -148,13 +148,13 @@ public class CommandTopicBackupImplTest {
   }
 
   @Test
-  public void shouldWriteRecordsToReplayFile() throws IOException {
+  public void shouldWriteCommandToBackupToReplayFile() throws IOException {
     // Given
     commandTopicBackup.initialize();
 
     // When
     final ConsumerRecord<CommandId, Command> record = newConsumerRecord(command1);
-    commandTopicBackup.writeRecord(record);
+    commandTopicBackup.writeCommandToBackup(record);
 
     // Then
     final List<Pair<CommandId, Command>> commands =
@@ -169,13 +169,13 @@ public class CommandTopicBackupImplTest {
     // Given
     final ConsumerRecord<CommandId, Command> record = newConsumerRecord(command1);
     commandTopicBackup.initialize();
-    commandTopicBackup.writeRecord(record);
+    commandTopicBackup.writeCommandToBackup(record);
     final BackupReplayFile previousReplayFile = commandTopicBackup.getReplayFile();
 
     // When
     // A 2nd initialize call will open the latest backup and read the previous replayed commands
     commandTopicBackup.initialize();
-    commandTopicBackup.writeRecord(record);
+    commandTopicBackup.writeCommandToBackup(record);
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then
@@ -191,7 +191,7 @@ public class CommandTopicBackupImplTest {
     // Given
     final ConsumerRecord<CommandId, Command> record1 = newConsumerRecord(command1);
     commandTopicBackup.initialize();
-    commandTopicBackup.writeRecord(record1);
+    commandTopicBackup.writeCommandToBackup(record1);
     final BackupReplayFile previousReplayFile = commandTopicBackup.getReplayFile();
 
     // When
@@ -201,7 +201,7 @@ public class CommandTopicBackupImplTest {
     // Need to increase the ticker so the new file has a new timestamp
     when(ticker.read()).thenReturn(2L);
     // The write command will create a new replay file with the new command
-    commandTopicBackup.writeRecord(record2);
+    commandTopicBackup.writeCommandToBackup(record2);
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then
@@ -222,8 +222,8 @@ public class CommandTopicBackupImplTest {
     final ConsumerRecord<CommandId, Command> record1 = newConsumerRecord(command1);
     final ConsumerRecord<CommandId, Command> record2 = newConsumerRecord(command2);
     commandTopicBackup.initialize();
-    commandTopicBackup.writeRecord(record1);
-    commandTopicBackup.writeRecord(record2);
+    commandTopicBackup.writeCommandToBackup(record1);
+    commandTopicBackup.writeCommandToBackup(record2);
     final BackupReplayFile previousReplayFile = commandTopicBackup.getReplayFile();
 
     // When
@@ -232,11 +232,11 @@ public class CommandTopicBackupImplTest {
     // Need to increase the ticker so the new file has a new timestamp
     when(ticker.read()).thenReturn(2L);
     // command1 is ignored because it was previously replayed
-    commandTopicBackup.writeRecord(record1);
+    commandTopicBackup.writeCommandToBackup(record1);
     // The write command will create a new replay file with the new command, and command1 will
     // be written to have a complete backup
     final ConsumerRecord<CommandId, Command> record3 = newConsumerRecord(command3);
-    commandTopicBackup.writeRecord(record3);
+    commandTopicBackup.writeCommandToBackup(record3);
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then

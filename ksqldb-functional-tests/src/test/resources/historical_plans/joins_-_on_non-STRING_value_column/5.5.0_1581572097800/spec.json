@@ -3,10 +3,22 @@
   "timestamp" : 1581572097800,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : "STRUCT<ID BIGINT, TF INT> NOT NULL",
-    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : "STRUCT<SF BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.Join.Left" : "STRUCT<S_SF BIGINT, S_ROWTIME BIGINT, S_ROWKEY VARCHAR> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<S_ROWTIME BIGINT, S_ROWKEY VARCHAR, S_SF BIGINT, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_ID BIGINT, T_TF INT> NOT NULL"
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TF` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S_SF` BIGINT, `S_ROWTIME` BIGINT, `S_ROWKEY` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S_ROWTIME` BIGINT, `S_ROWKEY` STRING, `S_SF` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_TF` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `SF` BIGINT",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
     "name" : "on non-STRING value column",
@@ -72,25 +84,31 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY BIGINT KEY, S_ROWTIME BIGINT, S_ROWKEY STRING, S_SF BIGINT, T_ROWTIME BIGINT, T_ROWKEY BIGINT, T_ID BIGINT, T_TF INT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `S_ROWTIME` BIGINT, `S_ROWKEY` STRING, `S_SF` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_TF` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `SF` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TF` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
           "keyFormat" : {
             "formatInfo" : {
@@ -102,6 +120,17 @@
           }
         }, {
           "name" : "stream_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

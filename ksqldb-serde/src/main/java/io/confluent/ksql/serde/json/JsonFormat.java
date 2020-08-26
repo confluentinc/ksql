@@ -15,15 +15,28 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.json.JsonSchemaData;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
+import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
 
 public class JsonFormat extends ConnectFormat {
+
+  private static final Set<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.WRAP_SINGLES,
+      SerdeFeature.UNWRAP_SINGLES
+  );
+
+  @Override
+  public Set<SerdeFeature> supportedFeatures() {
+    return SUPPORTED_FEATURES;
+  }
 
   public static final String NAME = JsonSchema.TYPE;
 

@@ -91,7 +91,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
@@ -157,7 +157,7 @@ public class KsqlParserTest {
         "sqlexpression",
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -175,7 +175,7 @@ public class KsqlParserTest {
         "sqlexpression",
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
-        SerdeOption.none(),
+        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopicItems

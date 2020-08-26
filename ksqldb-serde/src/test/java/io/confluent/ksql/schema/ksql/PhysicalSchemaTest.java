@@ -25,6 +25,7 @@ import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.test.util.ImmutableTester;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
@@ -42,9 +43,11 @@ public class PhysicalSchemaTest {
       .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
       .build();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldNPE() {
     new NullPointerTester()
+        .setDefault(SerdeOptions.class, SerdeOptions.of())
         .setDefault(LogicalSchema.class, SCHEMA_WITH_MULTIPLE_FIELDS)
         .testAllPublicStaticMethods(PhysicalSchema.class);
   }
@@ -55,19 +58,20 @@ public class PhysicalSchemaTest {
         .test(PhysicalSchema.class);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none()),
-            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none())
+            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD, SerdeOptions.of()),
+            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD, SerdeOptions.of())
         )
         .addEqualityGroup(
-            PhysicalSchema.from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none())
+            PhysicalSchema.from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOptions.of())
         )
         .addEqualityGroup(
             PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD,
-                SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES))
+                SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES))
         )
         .testEquals();
   }
@@ -76,7 +80,7 @@ public class PhysicalSchemaTest {
   public void shouldNotFlattenValueSchemaWithMultipleFields() {
     // When:
     final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none());
+        .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOptions.of());
 
     // Then:
     assertThat(result.valueSchema().serializedSchema(),
@@ -89,7 +93,7 @@ public class PhysicalSchemaTest {
     final Exception e = assertThrows(
         KsqlException.class,
         () -> PhysicalSchema
-            .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES))
+            .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES))
     );
 
     // Then:
@@ -101,7 +105,7 @@ public class PhysicalSchemaTest {
   public void shouldNotFlattenValueSchemaIfNotConfiguredTo() {
     // When:
     final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none());
+        .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOptions.of());
 
     // Then:
     assertThat(result.valueSchema().serializedSchema(),
@@ -112,7 +116,7 @@ public class PhysicalSchemaTest {
   public void shouldFlattenValueSchemasWithOneFieldAndConfiguredTo() {
     // When:
     final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+        .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
     // Then:
     assertThat(result.valueSchema().serializedSchema(),

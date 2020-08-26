@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
@@ -38,7 +39,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -156,7 +157,7 @@ public class SchemaKGroupedTableTest {
             ExecutionStepFactory.tableAggregate(
                 queryContext,
                 kGroupedTable.getSourceTableStep(),
-                io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+                Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
                 NON_AGG_COLUMNS,
                 ImmutableList.of(SUM, COUNT)
             )

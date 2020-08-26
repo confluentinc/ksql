@@ -18,6 +18,7 @@ package io.confluent.ksql.test.tools;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
@@ -44,7 +45,7 @@ public class TestCase implements VersionedTest {
   private final List<String> statements;
   private final Optional<Matcher<Throwable>> expectedException;
   private List<String> generatedTopologies;
-  private Map<String, String> generatedSchemas;
+  private Map<String, PhysicalSchema> generatedSchemas;
   private final Optional<TopologyAndConfigs> expectedTopology;
   private final PostConditions postConditions;
 
@@ -174,12 +175,12 @@ public class TestCase implements VersionedTest {
     return expectedTopology;
   }
 
-  public void setGeneratedSchemas(final Map<String, String> generatedSchemas) {
+  public void setGeneratedSchemas(final Map<String, PhysicalSchema> generatedSchemas) {
     this.generatedSchemas = ImmutableMap.copyOf(
         Objects.requireNonNull(generatedSchemas, "generatedSchemas"));
   }
 
-  public Map<String, String> getGeneratedSchemas() {
+  public Map<String, PhysicalSchema> getGeneratedSchemas() {
     return generatedSchemas;
   }
 

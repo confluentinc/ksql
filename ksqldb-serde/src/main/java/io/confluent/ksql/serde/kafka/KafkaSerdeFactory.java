@@ -164,7 +164,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
         return struct;
       } catch (final Exception e) {
         throw new SerializationException(
-            "Error deserializing DELIMITED message from topic: " + topic, e);
+            "Error deserializing KAFKA message from topic: " + topic, e);
       }
     }
   }

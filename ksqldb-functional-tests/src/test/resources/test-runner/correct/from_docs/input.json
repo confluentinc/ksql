@@ -1,3 +1,4 @@
+
 {
   "inputs": [
     {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"ORDERUNITS": 2.0}},

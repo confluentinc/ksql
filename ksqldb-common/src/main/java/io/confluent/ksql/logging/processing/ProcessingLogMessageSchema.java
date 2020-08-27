@@ -24,6 +24,7 @@ public final class ProcessingLogMessageSchema {
   private static final Schema CAUSE_SCHEMA =
       SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build();
 
+  public static final String DESERIALIZATION_ERROR_FIELD_COMPONENT = "component";
   public static final String DESERIALIZATION_ERROR_FIELD_MESSAGE = "errorMessage";
   public static final String DESERIALIZATION_ERROR_FIELD_RECORD_B64 = "recordB64";
   public static final String DESERIALIZATION_ERROR_FIELD_CAUSE = "cause";
@@ -31,6 +32,7 @@ public final class ProcessingLogMessageSchema {
 
   private static final Schema DESERIALIZATION_ERROR_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "DeserializationError")
+      .field(DESERIALIZATION_ERROR_FIELD_COMPONENT, Schema.OPTIONAL_STRING_SCHEMA)
       .field(DESERIALIZATION_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
       .field(DESERIALIZATION_ERROR_FIELD_RECORD_B64, Schema.OPTIONAL_STRING_SCHEMA)
       .field(DESERIALIZATION_ERROR_FIELD_CAUSE, CAUSE_SCHEMA)
@@ -58,6 +60,7 @@ public final class ProcessingLogMessageSchema {
       .optional()
       .build();
 
+  public static final String SERIALIZATION_ERROR_FIELD_COMPONENT = "component";
   public static final String SERIALIZATION_ERROR_FIELD_MESSAGE = "errorMessage";
   public static final String SERIALIZATION_ERROR_FIELD_RECORD = "record";
   public static final String SERIALIZATION_ERROR_FIELD_CAUSE = "cause";
@@ -65,6 +68,7 @@ public final class ProcessingLogMessageSchema {
 
   private static final Schema SERIALIZATION_ERROR_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "SerializationError")
+      .field(SERIALIZATION_ERROR_FIELD_COMPONENT, Schema.OPTIONAL_STRING_SCHEMA)
       .field(SERIALIZATION_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
       .field(SERIALIZATION_ERROR_FIELD_RECORD, Schema.OPTIONAL_STRING_SCHEMA)
       .field(SERIALIZATION_ERROR_FIELD_CAUSE, CAUSE_SCHEMA)

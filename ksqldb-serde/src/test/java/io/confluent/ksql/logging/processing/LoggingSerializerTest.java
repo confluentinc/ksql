@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.GenericRow;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
@@ -50,6 +51,7 @@ public class LoggingSerializerTest {
   @Before
   public void setUp() {
     serializer = new LoggingSerializer<>(delegate, processingLogger);
+    serializer.configure(Collections.emptyMap(), false);
   }
 
   @Test
@@ -115,7 +117,7 @@ public class LoggingSerializerTest {
     );
 
     // Then:
-    verify(processingLogger).error(new SerializationError<>(e, Optional.of(SOME_ROW), "t"));
+    verify(processingLogger).error(new SerializationError<>(e, Optional.of(SOME_ROW), "t", false));
   }
 
 }

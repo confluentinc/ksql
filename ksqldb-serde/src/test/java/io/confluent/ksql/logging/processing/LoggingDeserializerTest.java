@@ -29,6 +29,7 @@ import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.LoggingDeserializer.DelayedResult;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -60,6 +61,7 @@ public class LoggingDeserializerTest {
   @Before
   public void setUp() {
     deserializer = new LoggingDeserializer<>(delegate, processingLogger);
+    deserializer.configure(Collections.emptyMap(), false);
   }
 
   @Test
@@ -139,7 +141,7 @@ public class LoggingDeserializerTest {
     );
 
     // Then:
-    verify(processingLogger).error(new DeserializationError(e, Optional.of(SOME_BYTES), "t"));
+    verify(processingLogger).error(new DeserializationError(e, Optional.of(SOME_BYTES), "t", false));
   }
 
   @Test
@@ -156,6 +158,6 @@ public class LoggingDeserializerTest {
     assertTrue(result.isError());
     assertThrows(RuntimeException.class, result::get);
     verify(processingLogger)
-        .error(new DeserializationError(result.getError(), Optional.of(SOME_BYTES), "t"));
+        .error(new DeserializationError(result.getError(), Optional.of(SOME_BYTES), "t", false));
   }
 }

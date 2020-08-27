@@ -121,6 +121,11 @@ message.deserializationError (STRUCT)
 :   The contents of a message with type 0 (DESERIALIZATION_ERROR).
     Logged when a deserializer fails to deserialize an {{ site.ak }} record.
 
+message.deserializationError.component (STRING)
+
+:   Either "key" or "value" representing the component of the row that
+    failed to deserialize.
+
 message.deserializationError.errorMessage (STRING)
 
 :   A string containing a human-readable error message detailing the
@@ -174,6 +179,11 @@ message.serializationError (STRUCT)
 
 :   The contents of a message with type 3 (SERIALIZATION_ERROR).
     Logged when a serializer fails to serialize a ksqlDB row.
+    
+message.serializationError.component (STRING)
+
+:   Either "key" or "value" representing the component of the row that
+    failed to serialize.
 
 message.serializationError.errorMessage (STRING)
 
@@ -265,7 +275,7 @@ Field   | Type
  LOGGER  | VARCHAR(STRING)
  LEVEL   | VARCHAR(STRING)
  TIME    | BIGINT
- MESSAGE | STRUCT<type INTEGER, deserializationError STRUCT<errorMessage VARCHAR(STRING), recordB64 VARCHAR(STRING), cause ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, ...> 
+ MESSAGE | STRUCT<type INTEGER, deserializationError STRUCT<component VARCHAR(STRING), errorMessage VARCHAR(STRING), recordB64 VARCHAR(STRING), cause ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, ...> 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```
 
@@ -281,6 +291,7 @@ ksql> CREATE STREAM PROCESSING_LOG_STREAM (
          MESSAGE STRUCT<
              `TYPE` INTEGER,
              deserializationError STRUCT<
+                 component STRING,
                  errorMessage STRING,
                  recordB64 STRING,
                  cause ARRAY<STRING>,
@@ -292,6 +303,7 @@ ksql> CREATE STREAM PROCESSING_LOG_STREAM (
              productionError STRUCT<
                  errorMessage STRING>,
              serializationError STRUCT<
+                 component STRING,
                  errorMessage STRING,
                  record STRING,
                  cause ARRAY<STRING>,

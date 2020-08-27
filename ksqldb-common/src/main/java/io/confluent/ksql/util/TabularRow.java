@@ -19,11 +19,8 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.cli.console.CliConfig;
-import io.confluent.ksql.cli.console.CliConfig.OnOff;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -41,10 +38,11 @@ public final class TabularRow {
 
   public static TabularRow createHeader(
       final int width,
-      final LogicalSchema schema,
-      final CliConfig config
+      final List<Column> columns,
+      final boolean shouldWrap,
+      final int configuredCellWidth
   ) {
-    final List<String> headings = schema.columns().stream()
+    final List<String> headings = columns.stream()
         .map(Column::name)
         .map(ColumnName::text)
         .collect(Collectors.toList());
@@ -53,20 +51,23 @@ public final class TabularRow {
         width,
         headings,
         true,
-        config
+        shouldWrap,
+        configuredCellWidth
     );
   }
 
   public static TabularRow createRow(
       final int width,
       final GenericRow value,
-      final CliConfig config
+      final boolean shouldWrap,
+      final int configuredCellWidth
   ) {
     return new TabularRow(
         width,
         value.values().stream().map(Objects::toString).collect(Collectors.toList()),
         false,
-        config
+        shouldWrap,
+        configuredCellWidth
     );
   }
 
@@ -74,16 +75,15 @@ public final class TabularRow {
       final int width,
       final List<String> columns,
       final boolean isHeader,
-      final CliConfig config
+      final boolean shouldWrap,
+      final int configuredCellWidth
   ) {
     this.columns = ImmutableList.copyOf(Objects.requireNonNull(columns, "columns"));
     this.isHeader = isHeader;
-    this.shouldWrap = isHeader
-        || config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString());
+    this.shouldWrap = isHeader || shouldWrap;
 
-    final int configCellWidth = config.getInt(CliConfig.COLUMN_WIDTH_CONFIG);
-    if (configCellWidth > 0) {
-      this.cellWidth = configCellWidth;
+    if (configuredCellWidth > 0) {
+      this.cellWidth = configuredCellWidth;
     } else if (!columns.isEmpty()) {
       this.cellWidth = Math.max(width / columns.size() - 2, MIN_CELL_WIDTH);
     } else {

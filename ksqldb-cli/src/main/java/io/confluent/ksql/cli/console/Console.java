@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.cli.console.CliConfig.OnOff;
 import io.confluent.ksql.cli.console.KsqlTerminal.HistoryEntry;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
@@ -384,7 +385,14 @@ public class Console implements Closeable {
       case JSON:
         break;
       case TABULAR:
-        writer().println(TabularRow.createHeader(getWidth(), schema, config));
+        writer().println(
+            TabularRow.createHeader(
+                getWidth(),
+                schema.columns(),
+                config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString()),
+                config.getInt(CliConfig.COLUMN_WIDTH_CONFIG)
+            )
+        );
         break;
       default:
         throw new RuntimeException(String.format(
@@ -431,7 +439,12 @@ public class Console implements Closeable {
 
   private void printAsTable(final GenericRow row) {
     rowCaptor.addRow(row);
-    writer().println(TabularRow.createRow(getWidth(), row, config));
+    writer().println(TabularRow.createRow(
+        getWidth(),
+        row,
+        config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString()),
+        config.getInt(CliConfig.COLUMN_WIDTH_CONFIG))
+    );
     flush();
   }
 

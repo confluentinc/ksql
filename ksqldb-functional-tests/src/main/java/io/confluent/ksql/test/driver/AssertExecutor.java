@@ -20,15 +20,22 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AssertTable;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
+import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -172,12 +179,57 @@ public final class AssertExecutor {
     return TabularRow.createRow(80, contents, false, 0);
   }
 
-  public static void assertStream(final AssertStream assertStatement) {
-    throw new UnsupportedOperationException();
+  public static void assertStream(
+      final KsqlExecutionContext engine,
+      final AssertStream assertStatement
+  ) {
+    assertSourceMatch(engine, assertStatement.getStatement());
   }
 
-  public static void assertTable(final AssertTable assertStatement) {
-    throw new UnsupportedOperationException();
+  public static void assertTable(
+      final KsqlExecutionContext engine,
+      final AssertTable assertStatement
+  ) {
+    assertSourceMatch(engine, assertStatement.getStatement());
+  }
+
+  private static void assertSourceMatch(
+      final KsqlExecutionContext engine,
+      final CreateSource statement
+  ) {
+    final SourceName source = statement.getName();
+    final DataSource dataSource = engine.getMetaStore().getSource(source);
+    final LogicalSchema actual = dataSource.getSchema();
+    final LogicalSchema expected = statement.getElements().toLogicalSchema();
+    if (!actual.equals(expected)) {
+      throw new KsqlException(
+          String.format(
+              "Expected schema does not match actual.%n\tExpected: %s%n\tActual: %s",
+              expected,
+              actual
+          )
+      );
+    }
+
+    final DataSourceType type = dataSource.getDataSourceType();
+    if (statement instanceof CreateStream && type != DataSourceType.KSTREAM) {
+      throw new KsqlException("Expected source " + source + " to be a STREAM but was " + type);
+    } else if (statement instanceof CreateTable  && type != DataSourceType.KTABLE) {
+      throw new KsqlException("Expected source " + source + " to be a TABLE but was " + type);
+    }
+
+    final KsqlTopic topic = dataSource.getKsqlTopic();
+    if (!topic.getKafkaTopicName().equals(statement.getProperties().getKafkaTopic())) {
+      throw new KsqlException("Expected source " + source + " to have kafka topic "
+          + topic.getKafkaTopicName() + " but was " + statement.getProperties().getKafkaTopic());
+    }
+
+    if (!topic.getValueFormat().getFormatInfo().equals(statement.getProperties().getFormatInfo())) {
+      throw new KsqlException("Expected source " + source + " to have value format of "
+          + topic.getValueFormat().getFormatInfo() + " but got "
+          + statement.getProperties().getFormatInfo()
+      );
+    }
   }
 
 }

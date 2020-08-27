@@ -8,6 +8,8 @@
 CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
 CREATE STREAM bar AS SELECT * FROM foo;
 
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');
+
 INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
 ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
 
@@ -16,6 +18,8 @@ ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
 ----------------------------------------------------------------------------------------------------
 CREATE TABLE foo (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
 CREATE TABLE bar AS SELECT * FROM foo;
+
+ASSERT TABLE bar (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');
 
 INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
 ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
@@ -115,3 +119,58 @@ ASSERT VALUES bar (rowtime, id, col1) VALUES (2, 2, 2);
 --@expected.message: Exception while preparing statement: FOO does not exist.
 ----------------------------------------------------------------------------------------------------
 CREATE STREAM bar AS SELECT * FROM foo;
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong schema should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected schema does not match actual.
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 VARCHAR) WITH (kafka_topic='BAR', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong schema (key) should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected schema does not match actual.
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT, col1 VARCHAR) WITH (kafka_topic='BAR', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong type should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected source `BAR` to be a TABLE but was KSTREAM
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT TABLE bar (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong topic should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected source `BAR` to have kafka topic BAR but was BAZ
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAZ', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong topic format should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected source `BAR` to have value format of FormatInfo{format=JSON, properties={}} but got FormatInfo{format=AVRO, properties={}}
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='AVRO');

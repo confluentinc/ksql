@@ -327,9 +327,9 @@ public class KsqlTesterTest {
     } else if (statement instanceof AssertTombstone) {
       AssertExecutor.assertTombstone(engine, config, (AssertTombstone) statement, driverPipeline);
     } else if (statement instanceof AssertStream) {
-      AssertExecutor.assertStream(((AssertStream) statement));
+      AssertExecutor.assertStream(engine, ((AssertStream) statement));
     } else if (statement instanceof AssertTable) {
-      AssertExecutor.assertTable(((AssertTable) statement));
+      AssertExecutor.assertTable(engine, ((AssertTable) statement));
     }
   }
 

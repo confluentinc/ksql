@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
@@ -51,12 +52,17 @@ import org.apache.kafka.streams.KeyValue;
  * Note: the value columns does not need to change.
  *
  * <p>When PARTITIONing BY any other type of expression no column can be removed from the logical
- * schema's value columns. The PARTITION BY expression is creating a <i>new</i> column. Hence, the
- * existing key column(s) are moved to the value schema and a <i>new</i> key column is added, e.g.
- * logically {@code A => B, C}, when {@code PARTITION BY exp}, becomes {@code KSQL_COL_0 => B, C, A}
- * However, processing schemas contain a copy of the key columns in the value, so actually {@code
- * A => B, C, A} becomes {@code KSQL_COL_0 => B, C, A, KSQL_COL_0}. Note: the value column only has
- * the new key column added.
+ * schema's value columns. The PARTITION BY expression is creating a <i>new</i> column (except in
+ * the case of PARTITION BY NULL -- see below). Hence, the existing key column(s) are moved to the
+ * value schema and a <i>new</i> key column is added, e.g. logically {@code A => B, C}, when
+ * {@code PARTITION BY exp}, becomes {@code KSQL_COL_0 => B, C, A}. However, processing schemas
+ * contain a copy of the key columns in the value, so actually {@code A => B, C, A} becomes
+ * {@code KSQL_COL_0 => B, C, A, KSQL_COL_0}. Note: the value column only has the new key column
+ * added.
+ *
+ * <p>When PARTITIONing BY NULL, the existing key column(ns) are moved into the value schema and
+ * the new key is null. Because processing schemas contain a copy of the key columns in the value,
+ * the value columns do not need to change. Instead, the key is just set to null.
  */
 public final class PartitionByParamsFactory {
 
@@ -72,19 +78,24 @@ public final class PartitionByParamsFactory {
   ) {
     final Optional<ColumnName> partitionByCol = getPartitionByColumnName(sourceSchema, partitionBy);
 
-    final Function<GenericRow, Object> evaluator = buildExpressionEvaluator(
-        sourceSchema,
-        partitionBy,
-        ksqlConfig,
-        functionRegistry,
-        logger
-    );
-
     final LogicalSchema resultSchema =
         buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCol);
 
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
-        buildMapper(resultSchema, partitionByCol, evaluator);
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper;
+    if (partitionBy instanceof NullLiteral) {
+      // In case of PARTITION BY NULL, it is sufficient to set the new key to null as the old key
+      // is already present in the current value
+      mapper = (k, v) -> new KeyValue<>(null, v);
+    } else {
+      final Function<GenericRow, Object> evaluator = buildExpressionEvaluator(
+          sourceSchema,
+          partitionBy,
+          ksqlConfig,
+          functionRegistry,
+          logger
+      );
+      mapper = buildMapper(resultSchema, partitionByCol, evaluator);
+    }
 
     return new PartitionByParams(resultSchema, mapper);
   }
@@ -115,11 +126,13 @@ public final class PartitionByParamsFactory {
     final ColumnName newKeyName = partitionByCol
         .orElseGet(() -> ColumnNames.uniqueAliasFor(partitionBy, sourceSchema));
 
-    final Builder builder = LogicalSchema.builder()
-        .keyColumn(newKeyName, keyType)
-        .valueColumns(sourceSchema.value());
+    final Builder builder = LogicalSchema.builder();
+    if (keyType != null) {
+      builder.keyColumn(newKeyName, keyType);
+    }
+    builder.valueColumns(sourceSchema.value());
 
-    if (!partitionByCol.isPresent()) {
+    if (keyType != null && !partitionByCol.isPresent()) {
       // New key column added, copy in to value schema:
       builder.valueColumn(newKeyName, keyType);
     }

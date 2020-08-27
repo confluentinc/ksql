@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -64,7 +65,8 @@ public class UserRepartitionNode extends RepartitionNode {
 
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
-    if (!projection.containsExpression(getPartitionBy())) {
+    final Expression partitionBy = getPartitionBy();
+    if (!(partitionBy instanceof NullLiteral) && !projection.containsExpression(partitionBy)) {
       final ImmutableList<Expression> keys = ImmutableList.of(originalPartitionBy);
       throwKeysNotIncludedError(sinkName, "partitioning expression", keys);
     }

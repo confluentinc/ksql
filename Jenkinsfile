@@ -1,7 +1,7 @@
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.12.0"  // next version to be released
+    ksql_db_version = "0.13.0"  // next version to be released
     cp_version = "6.1.0-beta200812051054"  // must be a beta version from the packaging build
     cp_version_docker = "6.1.0-beta200825192044"  // temporary hack for 0.12.0 release
     packaging_build_number = "1"

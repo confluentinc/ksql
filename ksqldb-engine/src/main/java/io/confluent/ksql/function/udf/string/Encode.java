@@ -226,6 +226,8 @@ public class Encode {
 
     if (hexString.matches("0x.*")) {
       //matches with things like "0x" and "0x...."
+
+      //add an extra "0" to the front if there are odd number of digits
       return hexLen % 2 != 0 ? "0" + hexString.substring(2) : hexString.substring(2);
     } else if (hexString.matches("(x|X)\'.*\'")) {
       //matches with things like "x''", "X''", "x'....'" and "X'....'"

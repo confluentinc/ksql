@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.function.KsqlFunctionException;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class EncodeTest {
@@ -50,6 +51,11 @@ public class EncodeTest {
 
     assertThat(udf.encode("X''", "hex", "ascii"), is(""));
     assertThat(udf.encode("x''", "hex", "ascii"), is(""));
+    assertThat(udf.encode("0x578616d706C6521", "hex", "ascii"), is("\u0005xample!"));
+    Assert.assertThrows(KsqlFunctionException.class, () -> udf.encode("578616d706C6521", "hex", "ascii"));
+    Assert.assertThrows(KsqlFunctionException.class, () -> udf.encode("X'578616d706C6521'", "hex", "ascii"));
+    Assert.assertThrows(KsqlFunctionException.class, () -> udf.encode("x'578616d706C6521'", "hex", "ascii"));
+
   }
 
   @Test

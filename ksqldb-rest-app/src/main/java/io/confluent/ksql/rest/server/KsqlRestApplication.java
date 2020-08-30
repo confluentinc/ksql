@@ -67,6 +67,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
@@ -140,7 +141,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
@@ -189,6 +189,7 @@ public final class KsqlRestApplication implements Executable {
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
   private final QueryMonitor queryMonitor;
   private final DenyListPropertyValidator denyListPropertyValidator;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -225,7 +226,8 @@ public final class KsqlRestApplication implements Executable {
       final Optional<LagReportingAgent> lagReportingAgent,
       final Vertx vertx,
       final QueryMonitor ksqlQueryMonitor,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -277,6 +279,7 @@ public final class KsqlRestApplication implements Executable {
         this.ksqlConfigNoPort);
     this.queryMonitor = requireNonNull(ksqlQueryMonitor, "ksqlQueryMonitor");
     MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
+    this.pullQueryMetrics = requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     log.debug("ksqlDB API server instance created");
   }
 
@@ -471,7 +474,7 @@ public final class KsqlRestApplication implements Executable {
   public void shutdown() {
     log.info("ksqlDB shutdown called");
     try {
-      pullQueryExecutor.closeMetrics();
+      pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
     } catch (final Exception e) {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
@@ -704,11 +707,18 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, routingFilterFactory, ksqlConfig, ksqlEngine.getServiceId(),
-        Time.SYSTEM);
+        ksqlEngine, routingFilterFactory, ksqlConfig, ksqlEngine.getServiceId());
 
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
+
+    final Optional<PullQueryExecutorMetrics> pullQueryMetrics = ksqlConfig.getBoolean(
+        KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED)
+        ? Optional.of(new PullQueryExecutorMetrics(
+        ksqlEngine.getServiceId(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
+        : Optional.empty();
+
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
@@ -720,7 +730,8 @@ public final class KsqlRestApplication implements Executable {
         authorizationValidator,
         errorHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        pullQueryMetrics
     );
 
     final List<String> managedTopics = new LinkedList<>();
@@ -795,7 +806,8 @@ public final class KsqlRestApplication implements Executable {
         lagReportingAgent,
         vertx,
         queryMonitor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        pullQueryMetrics
     );
   }
 

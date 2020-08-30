@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
@@ -57,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
@@ -81,6 +83,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private KsqlConfig ksqlConfig;
   private final PullQueryExecutor pullQueryExecutor;
   private final DenyListPropertyValidator denyListPropertyValidator;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
@@ -91,7 +94,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final PullQueryExecutor pullQueryExecutor,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     this(
         ksqlEngine,
@@ -103,7 +107,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         authorizationValidator,
         errorHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        pullQueryMetrics
     );
   }
 
@@ -120,7 +125,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final PullQueryExecutor pullQueryExecutor,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -136,6 +142,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
   }
 
   @Override
@@ -216,8 +223,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
               configProperties,
               request.getRequestProperties(),
               isInternalRequest,
-              startTimeNanos
+              pullQueryMetrics
           );
+          if (pullQueryMetrics.isPresent()) {
+            //Record latency at microsecond scale
+            final long nowNanos = Time.SYSTEM.nanoseconds();
+            final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
+            pullQueryMetrics.get().recordLatency(latency);
+          }
           return response;
         }
 
@@ -255,14 +268,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> configOverrides,
       final Map<String, Object> requestProperties,
       final Optional<Boolean> isInternalRequest,
-      final long startTimeNanos
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
 
     final PullQueryResult result = pullQueryExecutor
-        .execute(configured, requestProperties, serviceContext, isInternalRequest, startTimeNanos);
-
+        .execute(configured, serviceContext, isInternalRequest, pullQueryMetrics);
     final TableRows tableRows = result.getTableRows();
     final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
         .map(KsqlNode::location)

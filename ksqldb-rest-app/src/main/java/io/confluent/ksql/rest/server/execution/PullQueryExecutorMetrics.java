@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -33,7 +32,6 @@ import org.apache.kafka.common.metrics.stats.Percentiles;
 import org.apache.kafka.common.metrics.stats.Percentiles.BucketSizing;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
-import org.apache.kafka.common.utils.Time;
 
 public class PullQueryExecutorMetrics implements Closeable {
 
@@ -48,17 +46,14 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Sensor errorRateSensor;
   private final Metrics metrics;
   private final Map<String, String> customMetricsTags;
-  private final Time time;
   private final String ksqlServiceId;
 
   public PullQueryExecutorMetrics(
       final String ksqlServiceId,
-      final Map<String, String> customMetricsTags,
-      final Time time
+      final Map<String, String> customMetricsTags
   ) {
 
     this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
-    this.time = Objects.requireNonNull(time, "time");
     this.metrics = MetricCollectors.getMetrics();
     this.ksqlServiceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlServiceId;
@@ -83,11 +78,9 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.remoteRequestsSensor.record(value);
   }
 
-  public void recordLatency(final long startTimeNanos) {
+  public void recordLatency(final double value) {
     // Record latency at microsecond scale
-    final long nowNanos = time.nanoseconds();
-    final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
-    this.latencySensor.record(latency);
+    this.latencySensor.record(value);
     this.requestRateSensor.record(1);
   }
 

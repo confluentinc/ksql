@@ -77,7 +77,7 @@ The project build runs checkstyle and findbugs as part of the build.
 
 You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin, then:
 
-    IntelliJ->Preferences→Other Settings→CheckStyle
+    IntelliJ → Preferences → Tools → CheckStyle
 
     - Add a new configurations file using the '+' button:
        Description: Confluent Checks

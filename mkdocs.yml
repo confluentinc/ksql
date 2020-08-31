@@ -28,13 +28,12 @@ extra_javascript:
 nav:
   - Overview: index.md
   - Getting started: quickstart.md # links to Derek's quickstart at ksqldb.io
+  - Apache Kafka primer: overview/apache-kafka-primer.md
   - Concepts:
     - Concepts: concepts/index.md
     - Events: concepts/events.md
     - Collections:
       - Collections Overview: concepts/collections/index.md
-      - Streams: concepts/collections/streams.md
-      - Tables: concepts/collections/tables.md
       - Inserting events: concepts/collections/inserting-events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
@@ -77,6 +76,45 @@ nav:
       - Use connector management: how-to-guides/use-connector-management.md
       - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
       - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
+  - Reference2:
+    - Synopsis: reference2/index.md
+    - The SQL language:
+      - SQL syntax:
+        - Lexical structure: reference2/sql/sql-syntax/lexical-structure.md
+        - Value statements: reference2/sql/sql-syntax/value-statements.md
+      - Data definition: reference2/sql/data-definition.md
+      - Data manipulation: reference2/sql/data-manipulation.md
+      - Queries: reference2/sql/queries.md
+      - Data types:
+        - Synopsis: reference2/sql/data-types/index.md
+        - Numeric types: reference2/sql/data-types/numeric.md
+        - Character types: reference2/sql/data-types/character.md
+        - Boolean type: reference2/sql/data-types/boolean.md
+        - Compound types: reference2/sql/data-types/compound.md
+      - Functions and operators:
+        - Logical operators: xx.md
+        - Comparison operators: xx.md
+        - Mathematical operators and functions: xx.md
+        - String functions and operators: xx.md
+        - Network address functions and operators: xx.md
+        - Pattern matching: xx.md
+        - Data type formatting functions: xx.md
+        - Date/time functions and operators: xx.md
+        - Conditional expressions:
+          - CASE: xx.md
+          - COALESCE: xx.md
+          - IFNULL: xx.md
+        - Array functions and operators: xx.md
+        - Aggregation functions: xx.md
+        - Window functions: xx.md
+      - Type conversion: xx.md
+      - SQL commands: xx.md
+      - Appendix: reference2/sql/appendix.md
+    - Configuration: xx.md
+    - Metrics: xx.md
+    - Serialization: xx.md
+    - Clients: xx.md
+
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:
@@ -156,7 +194,7 @@ nav:
       - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
-  - Frequently Asked Questions: faq.md
+  - Frequently asked questions: faq.md
 
 markdown_extensions:
     - toc:
@@ -170,6 +208,7 @@ markdown_extensions:
     - mdx_gh_links:
         user: confluentinc
         repo: ksqldb
+    - mdx_truly_sane_lists
 
 plugins:
     - search
@@ -178,6 +217,8 @@ plugins:
     - redirects:
         redirect_maps:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
+            concepts/collections/streams.md: reference2/sql/sql-syntax/data-definition.md
+            concepts/collections/tables.md: reference2/sql/sql-syntax/data-definition.md
 
 extra:
     site:

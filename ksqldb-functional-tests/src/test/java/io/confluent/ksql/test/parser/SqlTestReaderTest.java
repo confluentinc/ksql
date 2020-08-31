@@ -25,9 +25,18 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.test.parser.TestDirective.Type;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class SqlTestReaderTest {
+
+  @Rule
+  public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   private static final NodeLocation LOC = new NodeLocation(1, 1);
 
@@ -171,5 +180,39 @@ public class SqlTestReaderTest {
 
     // Then:
     assertThat(parsingException.getMessage(), is("line 1:8: no viable alternative at input 'CREATE foo'"));
+  }
+
+  @Test
+  public void shouldReadRunScript() throws IOException {
+    final String fileContents =
+        "CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='json');\n"
+        + "CREATE STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='b', value_format='json');";
+    final Path runScript = Files.write(temporaryFolder.newFile().toPath(), fileContents.getBytes());
+    final String contents = ""
+        + "--@test: test1\n"
+        + "RUN SCRIPT '" + runScript.toString() + "';";
+
+    // When:
+    final SqlTestReader reader = SqlTestReader.of(contents);
+
+    // Then:
+    assertThat(reader.hasNext(), is(true));
+    assertThat(reader.next(), is(TestStatement.of(new TestDirective(Type.TEST, "test1", LOC))));
+
+    assertThat(reader.hasNext(), is(true));
+    reader.next().consume(
+        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM foo")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
+    assertThat(reader.hasNext(), is(true));
+    reader.next().consume(
+        s -> assertThat(s.getStatementText(), containsString("CREATE STREAM bar")),
+        s -> assertThat("unexpected statement " + s, false),
+        s -> assertThat("unexpected statement " + s, false)
+    );
+
+    assertThat(reader.hasNext(), is(false));
   }
 }

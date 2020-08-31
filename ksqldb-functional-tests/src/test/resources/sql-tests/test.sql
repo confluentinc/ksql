@@ -86,6 +86,19 @@ INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
 ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 2);
 
 ----------------------------------------------------------------------------------------------------
+--@test: basic test with run script
+----------------------------------------------------------------------------------------------------
+-- contents of script:
+-- CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+-- CREATE STREAM bar AS SELECT * FROM foo;
+RUN SCRIPT './src/test/resources/sql-tests/test-script.sql';
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');
+
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
+ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
+
+----------------------------------------------------------------------------------------------------
 --@test: bad assert statement should fail
 
 --@expected.error: io.confluent.ksql.util.KsqlException

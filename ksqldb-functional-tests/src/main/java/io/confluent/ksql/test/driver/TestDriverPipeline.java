@@ -221,7 +221,8 @@ public class TestDriverPipeline {
 
       @Override
       public TestRecord<Struct, GenericRow> next() {
-        final int idx = assertPositions.merge(topic, 0, (old, zero) -> old + 1);
+        final int idx = assertPositions.getOrDefault(topic, 0);
+        assertPositions.put(topic, idx + 1);
         return outputCache.get(topic).get(idx);
       }
     };

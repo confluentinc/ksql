@@ -2,8 +2,7 @@ def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
     ksql_db_version = "0.13.0"  // next version to be released
-    cp_version = "6.1.0-beta200812051054"  // must be a beta version from the packaging build
-    cp_version_docker = "6.1.0-beta200825192044"  // temporary hack for 0.12.0 release
+    cp_version = "6.1.0-beta200825192044"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master'
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
@@ -206,7 +205,7 @@ def job = {
                             '''
 
                             config.dockerPullDeps.each { dockerRepo ->
-                                sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version_docker}-latest"
+                                sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest"
                             }
 
                             // Set the project versions in the pom files
@@ -222,7 +221,7 @@ def job = {
                             cmd += "-Dcheckstyle.skip "
                             cmd += "-Ddocker.tag=${config.docker_tag} "
                             cmd += "-Ddocker.registry=${config.dockerRegistry} "
-                            cmd += "-Ddocker.upstream-tag=${config.cp_version_docker}-latest "
+                            cmd += "-Ddocker.upstream-tag=${config.cp_version}-latest "
                             cmd += "-Dskip.docker.build=false "
 
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
@@ -235,7 +234,7 @@ def job = {
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.ksql_db_artifact_version}-ksqldb"
                                 sh "git add ."
-                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config.cp_version}. Using ${config.cp_version_docker} for upstream docker tag.\""
+                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config.cp_version}.\""
                                 sh "git tag ${git_tag}"
                                 sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
                                     sh "git push origin ${git_tag}"

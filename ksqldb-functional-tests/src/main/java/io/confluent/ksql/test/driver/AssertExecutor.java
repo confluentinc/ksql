@@ -20,7 +20,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
@@ -30,20 +30,20 @@ import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateSource;
-import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TabularRow;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.test.TestRecord;
@@ -53,6 +53,42 @@ import org.apache.kafka.streams.test.TestRecord;
  * testing tool.
  */
 public final class AssertExecutor {
+
+
+  private static final List<SourceProperty> MUST_MATCH = ImmutableList.<SourceProperty>builder()
+      .add(new SourceProperty(
+          DataSource::getSchema,
+          cs -> cs.getElements().toLogicalSchema(),
+          "schema"
+      ))
+      .add(new SourceProperty(
+          DataSource::getDataSourceType,
+          cs -> cs instanceof CreateTable ? DataSourceType.KTABLE : DataSourceType.KSTREAM,
+          "type"
+      )).add(new SourceProperty(
+          DataSource::getKafkaTopicName,
+          cs -> cs.getProperties().getKafkaTopic(),
+          "kafka topic"
+      )).add(
+          new SourceProperty(
+              ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
+              cs -> cs.getProperties().getValueFormat().name(),
+              "value format"
+          )).add(new SourceProperty(
+          DataSource::getSerdeOptions,
+          cs -> cs.getProperties().getSerdeOptions(),
+          "serde options"
+      )).add(
+          new SourceProperty(
+              ds -> ds.getTimestampColumn().map(TimestampColumn::getColumn),
+              cs -> cs.getProperties().getTimestampColumnName(),
+              "timestamp column"
+          )).add(
+          new SourceProperty(
+              ds -> ds.getTimestampColumn().flatMap(TimestampColumn::getFormat),
+              cs -> cs.getProperties().getTimestampFormat(),
+              "timestamp format"
+          )).build();
 
   private AssertExecutor() {
   }
@@ -193,42 +229,46 @@ public final class AssertExecutor {
     assertSourceMatch(engine, assertStatement.getStatement());
   }
 
+
   private static void assertSourceMatch(
       final KsqlExecutionContext engine,
       final CreateSource statement
   ) {
     final SourceName source = statement.getName();
     final DataSource dataSource = engine.getMetaStore().getSource(source);
-    final LogicalSchema actual = dataSource.getSchema();
-    final LogicalSchema expected = statement.getElements().toLogicalSchema();
-    if (!actual.equals(expected)) {
-      throw new KsqlException(
-          String.format(
-              "Expected schema does not match actual.%n\tExpected: %s%n\tActual: %s",
-              expected,
-              actual
-          )
-      );
+
+    MUST_MATCH.forEach(prop -> prop.compare(dataSource, statement));
+  }
+
+  private static final class SourceProperty {
+    final Function<DataSource, Object> extractSource;
+    final Function<CreateSource, Object> extractStatement;
+    final String propertyName;
+
+    private SourceProperty(
+        final Function<DataSource, Object> extractSource,
+        final Function<CreateSource, Object> extractStatement,
+        final String propertyName
+    ) {
+      this.extractSource = extractSource;
+      this.extractStatement = extractStatement;
+      this.propertyName = propertyName;
     }
 
-    final DataSourceType type = dataSource.getDataSourceType();
-    if (statement instanceof CreateStream && type != DataSourceType.KSTREAM) {
-      throw new KsqlException("Expected source " + source + " to be a STREAM but was " + type);
-    } else if (statement instanceof CreateTable  && type != DataSourceType.KTABLE) {
-      throw new KsqlException("Expected source " + source + " to be a TABLE but was " + type);
-    }
-
-    final KsqlTopic topic = dataSource.getKsqlTopic();
-    if (!topic.getKafkaTopicName().equals(statement.getProperties().getKafkaTopic())) {
-      throw new KsqlException("Expected source " + source + " to have kafka topic "
-          + topic.getKafkaTopicName() + " but was " + statement.getProperties().getKafkaTopic());
-    }
-
-    if (!topic.getValueFormat().getFormatInfo().equals(statement.getProperties().getFormatInfo())) {
-      throw new KsqlException("Expected source " + source + " to have value format of "
-          + topic.getValueFormat().getFormatInfo() + " but got "
-          + statement.getProperties().getFormatInfo()
-      );
+    private void compare(final DataSource dataSource, final CreateSource statement) {
+      final Object expected = extractStatement.apply(statement);
+      final Object actual = extractSource.apply(dataSource);
+      if (!actual.equals(expected)) {
+        throw new KsqlException(
+            String.format(
+                "Expected %s does not match actual for source %s.%n\tExpected: %s%n\tActual: %s",
+                propertyName,
+                dataSource.getName().toString(FormatOptions.noEscape()),
+                expected,
+                actual
+            )
+        );
+      }
     }
   }
 

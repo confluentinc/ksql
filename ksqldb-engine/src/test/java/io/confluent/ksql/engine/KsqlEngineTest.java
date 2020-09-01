@@ -76,6 +76,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1269,28 +1270,21 @@ public class KsqlEngineTest {
   public void shouldThrowWhenExecutingDuplicateTable() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
-        "CREATE TABLE FOO AS SELECT * FROM TEST2; "
+        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2; "
             + "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
 
     givenStatementAlreadyExecuted(parsed.get(0));
 
-    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+    final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed.get(1));
 
     // When:
-    final KsqlStatementException e = assertThrows(
-        KsqlStatementException.class,
-        () -> ksqlEngine.execute(
-            serviceContext,
-            ConfiguredStatement
-                .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-        )
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext,
+        of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:
-    assertThat(e, rawMessage(is(
-        "Cannot add table 'FOO': A table with the same name already exists")));
-    assertThat(e, statementText(is(
-        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
+    assertThat(executeResult.getQuery(), is(not(Optional.empty())));
   }
 
   @Test
@@ -1325,10 +1319,10 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldThrowWhenExecutingDuplicateStream() {
+  public void shouldNotThrowWhenExecutingDuplicateStream() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
-        "CREATE STREAM FOO AS SELECT * FROM ORDERS; "
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
             + "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
 
     givenStatementAlreadyExecuted(parsed.get(0));
@@ -1336,22 +1330,13 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed.get(1));
 
     // When:
-    final KsqlStatementException e = assertThrows(
-        KsqlStatementException.class,
-        () -> ksqlEngine.execute(
-            serviceContext,
-            ConfiguredStatement
-                .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-        )
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext,
+        of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:
-    assertThat(e, rawMessage(
-        is(
-            "Cannot add stream 'FOO': A stream with the same name already exists")));
-    assertThat(e, statementText(
-        is(
-            "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
+    assertThat(executeResult.getQuery(), is(not(Optional.empty())));
   }
 
   @Test

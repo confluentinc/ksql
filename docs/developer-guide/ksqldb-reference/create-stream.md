@@ -22,8 +22,8 @@ Description
 
 Create a new stream with the specified columns and properties.
 
-If the IF NOT EXISTS clause is present, the statement doesn't fail if the
-stream doesn't exist.
+If the IF NOT EXISTS clause is present, the statement won't fail if a 
+stream with the same name already exists.
 
 
 A ksqlDB STREAM is a stream of _facts_. Each fact is immutable and unique.

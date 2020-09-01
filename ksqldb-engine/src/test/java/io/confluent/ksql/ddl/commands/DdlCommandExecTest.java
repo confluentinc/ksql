@@ -448,18 +448,19 @@ public class DdlCommandExecTest {
   }
 
   @Test
-  public void shouldFailAddDuplicateStreamWithoutReplace() {
+  public void shouldWarnAddDuplicateStreamWithoutReplace() {
     // Given:
     givenCreateStream();
     cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES);
 
     // When:
     givenCreateStream(SCHEMA2, false);
-    final KsqlException e = assertThrows(KsqlException.class,
-        () -> cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES));
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, createStream,
+        false, NO_QUERY_SOURCES);
 
     // Then:
-    assertThat(e.getMessage(), containsString("A stream with the same name already exists"));
+    assertThat("Expected successful execution", result.isSuccess());
+    assertThat(result.getMessage(), containsString("A stream with the same name already exists"));
   }
 
   private void givenDropSourceCommand(final SourceName name) {

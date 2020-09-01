@@ -81,6 +81,16 @@ public class DdlCommandExec {
 
     @Override
     public DdlCommandResult executeCreateStream(final CreateStreamCommand createStream) {
+      final SourceName sourceName = createStream.getSourceName();
+      final DataSource dataSource = metaStore.getSource(sourceName);
+
+      if (dataSource != null && !createStream.isOrReplace()) {
+        return new DdlCommandResult(true,
+            String.format("Cannot add stream %s: A stream with the same name "
+                    + "already exists.",
+                sourceName));
+      }
+
       final KsqlStream<?> ksqlStream = new KsqlStream<>(
           sql,
           createStream.getSourceName(),
@@ -89,6 +99,7 @@ public class DdlCommandExec {
           withQuery,
           getKsqlTopic(createStream)
       );
+
       metaStore.putSource(ksqlStream, createStream.isOrReplace());
       metaStore.addSourceReferences(ksqlStream.getName(), withQuerySources);
       return new DdlCommandResult(true, "Stream created");
@@ -96,6 +107,15 @@ public class DdlCommandExec {
 
     @Override
     public DdlCommandResult executeCreateTable(final CreateTableCommand createTable) {
+      final SourceName sourceName = createTable.getSourceName();
+      final DataSource dataSource = metaStore.getSource(sourceName);
+
+      if (dataSource != null && !createTable.isOrReplace()) {
+        return new DdlCommandResult(true,
+            String.format("Cannot add table %s: A table with the same name "
+                    + "already exists.",
+                sourceName));
+      }
       final KsqlTable<?> ksqlTable = new KsqlTable<>(
           sql,
           createTable.getSourceName(),

@@ -69,7 +69,7 @@ The primary key of the resulting table is determined by the following rules, in 
  
 The projection must include all columns required in the result, including any primary key columns.
 
-For supported [serialization formats](../serialization.md#serialization-formats),
+For supported [serialization formats](../../developer-guide/serialization.md),
 ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
 The schema is registered under the subject `<topic-name>-value`.

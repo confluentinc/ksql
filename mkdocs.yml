@@ -28,13 +28,12 @@ extra_javascript:
 nav:
   - Overview: index.md
   - Getting started: quickstart.md # links to Derek's quickstart at ksqldb.io
+  - Apache Kafka primer: overview/apache-kafka-primer.md
   - Concepts:
     - Concepts: concepts/index.md
     - Events: concepts/events.md
     - Collections:
       - Collections Overview: concepts/collections/index.md
-      - Streams: concepts/collections/streams.md
-      - Tables: concepts/collections/tables.md
       - Inserting events: concepts/collections/inserting-events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
@@ -79,6 +78,11 @@ nav:
       - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
+    - The SQL language:
+        - SQL syntax:
+          - Lexical structure: reference/sql/syntax/lexical-structure.md
+        - Data definition: reference/sql/data-definition.md
+        - Appendix: reference/sql/appendix.md
     - Statements:
       - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
@@ -156,7 +160,7 @@ nav:
       - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
-  - Frequently Asked Questions: faq.md
+  - Frequently asked questions: faq.md
 
 markdown_extensions:
     - toc:
@@ -170,6 +174,7 @@ markdown_extensions:
     - mdx_gh_links:
         user: confluentinc
         repo: ksqldb
+    - mdx_truly_sane_lists
 
 plugins:
     - search
@@ -178,6 +183,8 @@ plugins:
     - redirects:
         redirect_maps:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
+            concepts/collections/streams.md: reference/sql/data-definition.md
+            concepts/collections/tables.md: reference/sql/data-definition.md
 
 extra:
     site:

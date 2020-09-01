@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Charsets;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.tree.AssertValues;
@@ -187,7 +188,7 @@ public class SqlTestReaderTest {
     final String fileContents =
         "CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='json');\n"
         + "CREATE STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='b', value_format='json');";
-    final Path runScript = Files.write(temporaryFolder.newFile().toPath(), fileContents.getBytes());
+    final Path runScript = Files.write(temporaryFolder.newFile().toPath(), fileContents.getBytes(Charsets.UTF_8));
     final String contents = ""
         + "--@test: test1\n"
         + "RUN SCRIPT '" + runScript.toString() + "';";

@@ -51,14 +51,14 @@ Some tokens, such as `SELECT`, `INSERT`, and `CREATE`, are _keywords_.
 Keywords are reserved tokens that have a specific meaning in ksqlDB's syntax.
 They control their surrounding allowable tokens and execution semantics.
 Keywords are case insensitive, meaning `SELECT` and `select` are equivalent.
-You can't create an identifier that is already a keyword, unless you use
+You can't create an identifier that is already a reserved word, unless you use
 backticked identifiers.
 
 A complete list of keywords can be found in the [appendix](../appendix.md#keywords).
 
 ## Identifiers
 
-Identifiers are symbols that represent user-space entities, like streams,
+Identifiers are symbols that represent user-defined entities, like streams,
 tables, columns, and other objects. For example, if you have a stream named
 `s1`, `s1` is an _identifier_ for that stream. By default, identifiers are
 case-insensitive, meaning `s1` and `S1` refer to the same stream. Under the
@@ -157,7 +157,7 @@ purpose.
 - Parentheses (`()`) retain their usual meaning in programming languages for
   grouping expressions and controlling the order of evaluation.
 - Brackets (`[]`) are used to work with arrays, both in their construction and
-  subscript access.
+  subscript access. They also allow you to key into maps.
 - Commas (`,`) delineate a discrete list of entities.
 - The semi-colons (`;`) terminates a SQL command.
 - The asterisk (`*`), when used in particular syntax, is used as an "all"

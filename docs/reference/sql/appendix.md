@@ -22,7 +22,7 @@ The following table shows all keywords in the language.
 | `BY`           | specify expression                    | `GROUP BY regionid`, `ADVANCE BY 10 SECONDS`, `PARTITION BY userid`  |
 | `CASE`         | select a condition from expressions   | `SELECT CASE WHEN condition THEN result [ WHEN … THEN … ] … END`     |
 | `CAST`         | change expression type                | `SELECT id, CONCAT(CAST(COUNT(*) AS VARCHAR), '_HELLO') FROM views …`|
-| `CHANGES`      | specify push query                    | `SELECT * FROM users EMIT CHANGES;`                                  |
+| `CHANGES`      | specify incremental refinement type   | `SELECT * FROM users EMIT CHANGES;`                                  |
 | `CONNECTOR`    | manage a connector                    |  `CREATE SOURCE CONNECTOR 'jdbc-connector' WITH( …`                  |
 | `CONNECTORS`   | list all connectors                   |  `SHOW CONNECTORS;`                                                  |
 | `CREATE`       | create an object                      |  `CREATE STREAM rock_songs (artist VARCHAR, title VARCHAR) …`        |

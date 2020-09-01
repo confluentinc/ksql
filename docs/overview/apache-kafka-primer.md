@@ -65,7 +65,7 @@ matter of user convention and enforcement.
 ksqlDB provides higher-level abstractions over a topic through
 _[streams](../reference/sql/data-definition.md#streams)_ and
 _[tables](../reference/sql/data-definition.md#tables)_.
-A stream or table is a {{ site.ak }} topic with a registered schema.
+A stream or table associates a schema with a {{ site.ak }} topic.
 The schema controls the shape of records that are allowed to be stored in the
 topic. This kind of static typing makes it easier to understand what sort of
 rows are in your topic and generally helps you make fewer mistakes in your
@@ -74,7 +74,7 @@ programs that process them.
 ## Partitions
 
 When a record is placed into a topic, it is placed into a particular partition.
-A partition is a totally ordered sequence of records. Topics have multiple
+A partition is a totally ordered sequence of records by offset. Topics may have multiple
 partitions to make storage and processing more scalable. When you create a
 topic, you choose how many partitions it has.
 

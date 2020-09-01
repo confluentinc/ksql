@@ -35,8 +35,7 @@ defined schema. Only data that conforms to the schema can be added to the
 collection.
 
 ksqlDB supports two abstractions for representing collections:
-[streams](streams.md) and [tables](tables.md). Both operate under a simple
-key/value model.
+streams and tables. Both operate under a simple key/value model.
 
 Streams
 -------

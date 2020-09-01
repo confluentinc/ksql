@@ -56,39 +56,41 @@ public final class AssertExecutor {
 
 
   private static final List<SourceProperty> MUST_MATCH = ImmutableList.<SourceProperty>builder()
-      .add(new SourceProperty(
-          DataSource::getSchema,
-          cs -> cs.getElements().toLogicalSchema(),
-          "schema"
-      ))
-      .add(new SourceProperty(
-          DataSource::getDataSourceType,
-          cs -> cs instanceof CreateTable ? DataSourceType.KTABLE : DataSourceType.KSTREAM,
-          "type"
-      )).add(new SourceProperty(
-          DataSource::getKafkaTopicName,
-          cs -> cs.getProperties().getKafkaTopic(),
-          "kafka topic"
+      .add(
+          new SourceProperty(
+              DataSource::getSchema,
+              cs -> cs.getElements().toLogicalSchema(),
+              "schema"
+      )).add(
+          new SourceProperty(
+              DataSource::getDataSourceType,
+              cs -> cs instanceof CreateTable ? DataSourceType.KTABLE : DataSourceType.KSTREAM,
+              "type"
+      )).add(
+          new SourceProperty(
+              DataSource::getKafkaTopicName,
+              cs -> cs.getProperties().getKafkaTopic(),
+              "kafka topic"
       )).add(
           new SourceProperty(
               ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
               cs -> cs.getProperties().getValueFormat().name(),
               "value format"
           )).add(new SourceProperty(
-          DataSource::getSerdeOptions,
-          cs -> cs.getProperties().getSerdeOptions(),
-          "serde options"
+              DataSource::getSerdeOptions,
+              cs -> cs.getProperties().getSerdeOptions(),
+              "serde options"
       )).add(
           new SourceProperty(
               ds -> ds.getTimestampColumn().map(TimestampColumn::getColumn),
               cs -> cs.getProperties().getTimestampColumnName(),
               "timestamp column"
-          )).add(
+      )).add(
           new SourceProperty(
               ds -> ds.getTimestampColumn().flatMap(TimestampColumn::getFormat),
               cs -> cs.getProperties().getTimestampFormat(),
               "timestamp format"
-          )).build();
+      )).build();
 
   private AssertExecutor() {
   }

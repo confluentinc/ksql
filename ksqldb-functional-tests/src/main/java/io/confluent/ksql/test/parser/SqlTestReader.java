@@ -24,7 +24,7 @@ import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TestStatementContext;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.util.ParserUtil;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -173,12 +173,22 @@ public final class SqlTestReader implements Iterator<TestStatement> {
 
   private TestStatement handleRunScript() {
     final String script = ParserUtil.unquote(testStatement.runScript().STRING().getText(), "'");
+    final List<String> lines;
     try {
-      final List<String> lines = Files.readAllLines(
-          Paths.get(ParserUtil.getIdentifierText(script)));
-      cachedRunScript.addAll(new DefaultKsqlParser().parse(String.join("", lines)));
+      if (getClass().getResource(script) != null) {
+        lines = Files.readAllLines(Paths.get(getClass().getResource(script).getPath()));
+      } else {
+        lines = Files.readAllLines(Paths.get(script));
+      }
     } catch (IOException e) {
-      throw new KsqlException(e);
+      throw new IllegalArgumentException("Could not read " + script, e);
+    }
+
+    try {
+      cachedRunScript.addAll(new DefaultKsqlParser().parse(String.join("\n", lines)));
+    } catch (final ParseFailedException e) {
+      throw new ParseFailedException(
+          "Failed to parse contents of RUN SCRIPT", "RUN SCRIPT '" + script + "';", e);
     }
 
     if (cachedRunScript.isEmpty()) {

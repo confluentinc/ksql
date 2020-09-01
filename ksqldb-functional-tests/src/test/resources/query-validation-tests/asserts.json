@@ -9,6 +9,16 @@
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
         "message": "mismatched input 'ASSERT'"
       }
+    },
+    {
+      "name": "should not parse RUN SCRIPT",
+      "statements": [
+        "RUN SCRIPT 'foo';"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "mismatched input 'RUN'"
+      }
     }
   ]
 }

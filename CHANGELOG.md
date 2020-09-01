@@ -1,5 +1,53 @@
 # Change Log
 
+## [0.12.0](https://github.com/confluentinc/ksql/releases/tag/v0.12.0-ksqldb) (2020-09-01)
+
+### Features
+
+* add a serverStatus to ServerInfo and display the status in the CLI ([#6040](https://github.com/confluentinc/ksql/pull/6040)) ([1921d0e](https://github.com/confluentinc/ksql/commit/1921d0eaf7f9005014cb5c1158fa12e29f1c2fd2))
+* add config for suppress buffer ([#5969](https://github.com/confluentinc/ksql/pull/5969)) ([53b0d4d](https://github.com/confluentinc/ksql/commit/53b0d4d7e00fae6443cc4dc9039b9dee9ab805d2))
+* Add consumer offsets to DESCRIBE EXTENDED ([#5476](https://github.com/confluentinc/ksql/pull/5476)) ([9ce3c97](https://github.com/confluentinc/ksql/commit/9ce3c9746d21d544e6d39dde4c2b6932d738a5e0))
+* add Ksql warning to KsqlResource response when CommandRunner degraded ([#6039](https://github.com/confluentinc/ksql/pull/6039)) ([6d547da](https://github.com/confluentinc/ksql/commit/6d547da0be73df38ac64d351e68db858f4631f9b))
+* add serialization exceptions to processing logger ([#6084](https://github.com/confluentinc/ksql/pull/6084)) ([8ab98a5](https://github.com/confluentinc/ksql/commit/8ab98a5b5bee3335c2d791a7b9bcd5b2ccfd5736))
+* add service to restart failed persistent queries ([#5807](https://github.com/confluentinc/ksql/pull/5807)) ([0ffe3e2](https://github.com/confluentinc/ksql/commit/0ffe3e2872726d8e800e8d58696413746c4971b9))
+* add suppress functionality ([#5884](https://github.com/confluentinc/ksql/pull/5884)) ([2dbd9e8](https://github.com/confluentinc/ksql/commit/2dbd9e84dd23b4857c377e2b6de1c502deb33b63))
+* add suppress node ([#5779](https://github.com/confluentinc/ksql/pull/5779)) ([1ab37ba](https://github.com/confluentinc/ksql/commit/1ab37ba7c5d89cafa3ff46585af51ded3fb048bb))
+* Allow udfs to be provided via a new flag to KsqlTestingTool ([#5964](https://github.com/confluentinc/ksql/pull/5964)) ([a85ef14](https://github.com/confluentinc/ksql/commit/a85ef142bfd3202f9f4f0ddb09cb18e2fadee35a))
+* CommandRunner enters degraded states when it processes command with higher version than it supports ([#6032](https://github.com/confluentinc/ksql/pull/6032)) ([a841443](https://github.com/confluentinc/ksql/commit/a841443c75b83c8fbaffaf79266ae219f2729473))
+* DistributingExecutor fails DDL statement if CommandRunner DEGRADED ([#6031](https://github.com/confluentinc/ksql/pull/6031)) ([62b6d9a](https://github.com/confluentinc/ksql/commit/62b6d9ae4af4a0e239558cb3eb68ce92b1cebcc5))
+* Enable datagen to set the message timestamp  ([#5849](https://github.com/confluentinc/ksql/pull/5849)) ([3cba869](https://github.com/confluentinc/ksql/commit/3cba869362041e9e98ae8d14716c335aa7228909))
+* hard delete schemas for push queries ([#6061](https://github.com/confluentinc/ksql/pull/6061)) ([a036b8b](https://github.com/confluentinc/ksql/commit/a036b8babc9dbf36a7625dbb4ce267c2d68cde88))
+* introduce the sql-based testing tool (YATT) ([#6051](https://github.com/confluentinc/ksql/pull/6051)) ([33e71c3](https://github.com/confluentinc/ksql/commit/33e71c30a1eea305f2a98d855346275859fd0325))
+* move command topic deserialization to CommandRunner and introduce DEGRADED CommandRunnerStatus ([#6012](https://github.com/confluentinc/ksql/pull/6012)) ([ab8cec2](https://github.com/confluentinc/ksql/commit/ab8cec26d8f2f87ad782e96d49fc3c8762bbf26b))
+* New ksql.properties.overrides.denylist to deny clients configs overrides ([#5877](https://github.com/confluentinc/ksql/pull/5877)) ([7d1ad25](https://github.com/confluentinc/ksql/commit/7d1ad25f751dd670ef027a48529613424e3aed3e))
+* Support [IF EXISTS] on DROP TYPE command ([#5962](https://github.com/confluentinc/ksql/pull/5962)) ([431c2ff](https://github.com/confluentinc/ksql/commit/431c2ff651a455d1c327616fa7f8bd005ffe79f4))
+* Support IF EXISTS keyword on DROP CONNECTOR ([#6067](https://github.com/confluentinc/ksql/pull/6067)) ([2c99df9](https://github.com/confluentinc/ksql/commit/2c99df9104c562385fe93cef13340e5be716928a))
+* Support subscript and nested functions in grouping queries  ([#5998](https://github.com/confluentinc/ksql/pull/5998)) ([8d383db](https://github.com/confluentinc/ksql/commit/8d383db7d730bc3a63f462994913ead5146e7edd))
+* **client:** support describe source in Java client ([#5944](https://github.com/confluentinc/ksql/pull/5944)) ([a154373](https://github.com/confluentinc/ksql/commit/a154373f85373a11212e8d635418648550e94ce5))
+* support UDAFs with and without init Args with same param type ([#5982](https://github.com/confluentinc/ksql/pull/5982)) ([0bf3296](https://github.com/confluentinc/ksql/commit/0bf3296b51cd85bc8736c76be87f5e7a5d387492))
+
+### Bug Fixes
+
+* adds a handler to gracefully shutdown ([#5895](https://github.com/confluentinc/ksql/pull/5895)) ([5fbf171](https://github.com/confluentinc/ksql/commit/5fbf17188282684834ba45077b45ea65c028c9cb))
+* allow implicit cast of numbers literals to decimals on insert/select ([#6005](https://github.com/confluentinc/ksql/pull/6005)) ([2bc15dd](https://github.com/confluentinc/ksql/commit/2bc15ddeec9938e3613cce20d1dbbd7af120c899))
+* allow joins in windowed aggregations ([9452ab6](https://github.com/confluentinc/ksql/commit/9452ab6d072882264c60042b655af52c5dc07cbf)), closes [#5898](https://github.com/confluentinc/ksql/issues/5898) [#5931](https://github.com/confluentinc/ksql/issues/5931)
+* avoid losing cause of processing errors ([#5937](https://github.com/confluentinc/ksql/pull/5937)) ([014c049](https://github.com/confluentinc/ksql/commit/014c049cfd6b964ae63ac39185ac44b7370c5fbb))
+* change default grace period to zero ([#5874](https://github.com/confluentinc/ksql/pull/5874)) ([7e841ed](https://github.com/confluentinc/ksql/commit/7e841ed5112800ced86ee19ce5be66c1ac966ee4))
+* close query on invalid use of HTTP/2 with /query endpoint ([#5883](https://github.com/confluentinc/ksql/pull/5883)) ([bcab116](https://github.com/confluentinc/ksql/commit/bcab1166bd64818c701a956c0d34a00ec2d4e7dd))
+* create the metastore backups directory if it does not exist ([#5879](https://github.com/confluentinc/ksql/pull/5879)) ([d77d8b7](https://github.com/confluentinc/ksql/commit/d77d8b7cadc8bdbf412cd58b0db82ff89a1b5045))
+* dont cleanup external resources on CREATE OR REPLACE ([#6068](https://github.com/confluentinc/ksql/pull/6068)) ([6b15d7d](https://github.com/confluentinc/ksql/commit/6b15d7dc4d6ec23398d85586bbad18582e26463c))
+* improve join predictability by increasing max task idle ([#5594](https://github.com/confluentinc/ksql/pull/5594)) ([c643d8f](https://github.com/confluentinc/ksql/commit/c643d8f059dc9956b7789744b2ee297f72dad6b8)), closes [#5537](https://github.com/confluentinc/ksql/issues/5537)
+* NPE when udf metrics enabled ([#5960](https://github.com/confluentinc/ksql/pull/5960)) ([e32183f](https://github.com/confluentinc/ksql/commit/e32183fb4d77371ed3f4b610f5abf68d888c65f4))
+* properly handle restore on CREATE OR REPLACE ([#6085](https://github.com/confluentinc/ksql/pull/6085)) ([6ef7653](https://github.com/confluentinc/ksql/commit/6ef7653f6b832f84663f5cdc4d0d4ddd5e8db30f))
+* protobuf format does not support unwrapping ([#6033](https://github.com/confluentinc/ksql/pull/6033)) ([6c08e5d](https://github.com/confluentinc/ksql/commit/6c08e5dd0f374518db2d22a39f829961af339503))
+* remove schema compat check if schema exists ([#5871](https://github.com/confluentinc/ksql/pull/5871)) ([9bcb5b0](https://github.com/confluentinc/ksql/commit/9bcb5b05c892a1ae437ca25281afc08263cae70f))
+* remove unnecessary parser token ([#6048](https://github.com/confluentinc/ksql/pull/6048)) ([a6c3864](https://github.com/confluentinc/ksql/commit/a6c386423e0d069c1693de1bd5524de906cdc29e))
+* replace kafka-streams deprecated code ([#5979](https://github.com/confluentinc/ksql/pull/5979)) ([4f7e3f4](https://github.com/confluentinc/ksql/commit/4f7e3f4085b15777790fd8e77750805ae6180fa8))
+* SEC-1034: log4j migration to confluent repackaged version ([#5783](https://github.com/confluentinc/ksql/pull/5783)) ([#6034](https://github.com/confluentinc/ksql/issues/6034)) ([2fd1fcd](https://github.com/confluentinc/ksql/commit/2fd1fcdaf11f33fce66dcb1476ef966674796d4a))
+* set restarted query as healthy during a time threshold ([#6018](https://github.com/confluentinc/ksql/pull/6018)) ([ae5c215](https://github.com/confluentinc/ksql/commit/ae5c2153c73e3307528b1434e593dbd6d20826c7))
+* Use a SandboxedPersistentQueryMetadata to not interact with KafkStreams ([#6066](https://github.com/confluentinc/ksql/pull/6066)) ([e000b41](https://github.com/confluentinc/ksql/commit/e000b419ac84d7ee25f47aae62758dce01fbe3de))
+* Uses pull query metrics for all paths, not just /query ([#5983](https://github.com/confluentinc/ksql/pull/5983)) ([143849c](https://github.com/confluentinc/ksql/commit/143849c89aa2cd69f6aee813cca660540b4675d4))
+
 ## [0.11.0](https://github.com/confluentinc/ksql/releases/tag/v0.11.0-ksqldb) (2020-08-03)
 
 ### Features

@@ -8,6 +8,8 @@
 CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
 CREATE STREAM bar AS SELECT * FROM foo;
 
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');
+
 INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
 ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
 
@@ -16,6 +18,8 @@ ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
 ----------------------------------------------------------------------------------------------------
 CREATE TABLE foo (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
 CREATE TABLE bar AS SELECT * FROM foo;
+
+ASSERT TABLE bar (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');
 
 INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
 ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
@@ -99,7 +103,7 @@ ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
 ----------------------------------------------------------------------------------------------------
 --@test: bad assert statement should fail
 
---@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.error: java.lang.AssertionError
 --@expected.message: Expected record does not match actual
 ----------------------------------------------------------------------------------------------------
 CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
@@ -115,3 +119,91 @@ ASSERT VALUES bar (rowtime, id, col1) VALUES (2, 2, 2);
 --@expected.message: Exception while preparing statement: FOO does not exist.
 ----------------------------------------------------------------------------------------------------
 CREATE STREAM bar AS SELECT * FROM foo;
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong schema should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected schema does not match actual
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 VARCHAR) WITH (kafka_topic='BAR', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong schema (key) should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected schema does not match actual
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT, col1 VARCHAR) WITH (kafka_topic='BAR', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong type should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected type does not match actual for source BAR
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT TABLE bar (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong topic should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected kafka topic does not match actual for source BAR
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAZ', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong topic format should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected value format does not match actual for source BAR
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='AVRO');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong timestamp column
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected timestamp column does not match actual for source BAR.
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 BIGINT, col2 BIGINT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar WITH(timestamp='col1') AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 BIGINT, col2 BIGINT) WITH (kafka_topic='BAR', value_format='JSON', timestamp='col2');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong timestamp format
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected timestamp format does not match actual for source BAR.
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 VARCHAR) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar WITH(timestamp='col1', timestamp_format='yyyy') AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 VARCHAR) WITH (kafka_topic='BAR', value_format='JSON', timestamp='col1', timestamp_format='mm');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong topic should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected serde options does not match actual for source BAR
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON', wrap_single_value=false);

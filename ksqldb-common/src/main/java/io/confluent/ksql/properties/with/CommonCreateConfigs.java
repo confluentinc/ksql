@@ -42,7 +42,7 @@ public final class CommonCreateConfigs {
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
 
-  static void addToConfigDef(
+  public static void addToConfigDef(
       final ConfigDef configDef,
       final boolean topicNameRequired,
       final boolean valueFormatRequired

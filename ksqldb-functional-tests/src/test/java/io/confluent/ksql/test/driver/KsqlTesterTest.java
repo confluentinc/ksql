@@ -118,7 +118,7 @@ public class KsqlTesterTest {
   // populated during execution to handle the expected exception
   // scenario - don't use Matchers because they do not create very
   // user friendly error messages
-  private Class<? extends Exception> expectedException;
+  private Class<? extends Throwable> expectedException;
   private String expectedMessage;
 
   @Parameterized.Parameters(name = "{0}")
@@ -174,7 +174,7 @@ public class KsqlTesterTest {
     for (final TestStatement testStatement : statements) {
       try {
         testStatement.consume(this::execute, this::doAssert, this::directive);
-      } catch (final Exception e) {
+      } catch (final Throwable e) {
         handleExpectedException(testStatement, e);
         return;
       }
@@ -327,9 +327,9 @@ public class KsqlTesterTest {
     } else if (statement instanceof AssertTombstone) {
       AssertExecutor.assertTombstone(engine, config, (AssertTombstone) statement, driverPipeline);
     } else if (statement instanceof AssertStream) {
-      AssertExecutor.assertStream(((AssertStream) statement));
+      AssertExecutor.assertStream(engine, ((AssertStream) statement));
     } else if (statement instanceof AssertTable) {
-      AssertExecutor.assertTable(((AssertTable) statement));
+      AssertExecutor.assertTable(engine, ((AssertTable) statement));
     }
   }
 
@@ -377,7 +377,7 @@ public class KsqlTesterTest {
     }
   }
 
-  private void handleExpectedException(final TestStatement testStatement, final Exception e) {
+  private void handleExpectedException(final TestStatement testStatement, final Throwable e) {
     if (expectedException == null && expectedMessage == null) {
       throw new KsqlTestException(testStatement, file, e);
     }

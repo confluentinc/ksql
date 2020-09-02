@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.driver;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -32,6 +33,7 @@ import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -54,42 +56,47 @@ import org.apache.kafka.streams.test.TestRecord;
  */
 public final class AssertExecutor {
 
-
-  private static final List<SourceProperty> MUST_MATCH = ImmutableList.<SourceProperty>builder()
-      .add(
-          new SourceProperty(
-              DataSource::getSchema,
-              cs -> cs.getElements().toLogicalSchema(),
-              "schema"
-      )).add(
-          new SourceProperty(
-              DataSource::getDataSourceType,
-              cs -> cs instanceof CreateTable ? DataSourceType.KTABLE : DataSourceType.KSTREAM,
-              "type"
-      )).add(
-          new SourceProperty(
-              DataSource::getKafkaTopicName,
-              cs -> cs.getProperties().getKafkaTopic(),
-              "kafka topic"
-      )).add(
-          new SourceProperty(
-              ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
-              cs -> cs.getProperties().getValueFormat().name(),
-              "value format"
-          )).add(new SourceProperty(
-              DataSource::getSerdeOptions,
-              cs -> cs.getProperties().getSerdeOptions(),
-              "serde options"
-      )).add(
-          new SourceProperty(
-              ds -> ds.getTimestampColumn().map(TimestampColumn::getColumn),
-              cs -> cs.getProperties().getTimestampColumnName(),
-              "timestamp column"
-      )).add(
-          new SourceProperty(
-              ds -> ds.getTimestampColumn().flatMap(TimestampColumn::getFormat),
-              cs -> cs.getProperties().getTimestampFormat(),
-              "timestamp format"
+  @VisibleForTesting
+  static final List<SourceProperty> MUST_MATCH = ImmutableList.<SourceProperty>builder()
+      .add(new SourceProperty(
+          DataSource::getSchema,
+          cs -> cs.getElements().toLogicalSchema(),
+          "schema"
+      )).add(new SourceProperty(
+          DataSource::getDataSourceType,
+          cs -> cs instanceof CreateTable ? DataSourceType.KTABLE : DataSourceType.KSTREAM,
+          "type"
+      )).add(new SourceProperty(
+          DataSource::getKafkaTopicName,
+          cs -> cs.getProperties().getKafkaTopic(),
+          "kafka topic",
+          CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY
+      )).add(new SourceProperty(
+          ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
+          cs -> cs.getProperties().getValueFormat().name(),
+          "value format",
+          CommonCreateConfigs.VALUE_FORMAT_PROPERTY
+      )).add(new SourceProperty(
+          ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getProperties(),
+          cs -> cs.getProperties().getFormatInfo().getProperties(),
+          "delimiter",
+          CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME,
+          CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
+      )).add(new SourceProperty(
+          DataSource::getSerdeOptions,
+          cs -> cs.getProperties().getSerdeOptions(),
+          "serde options",
+          CommonCreateConfigs.WRAP_SINGLE_VALUE
+      )).add(new SourceProperty(
+          ds -> ds.getTimestampColumn().map(TimestampColumn::getColumn),
+          cs -> cs.getProperties().getTimestampColumnName(),
+          "timestamp column",
+          CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY
+      )).add(new SourceProperty(
+          ds -> ds.getTimestampColumn().flatMap(TimestampColumn::getFormat),
+          cs -> cs.getProperties().getTimestampFormat(),
+          "timestamp format",
+          CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY
       )).build();
 
   private AssertExecutor() {
@@ -139,7 +146,7 @@ public final class AssertExecutor {
 
     if (isTombstone) {
       if (expected.value.values().stream().anyMatch(Objects::nonNull)) {
-        throw new KsqlException("Unexpected value columns specified in ASSERT NULL VALUES.");
+        throw new AssertionError("Unexpected value columns specified in ASSERT NULL VALUES.");
       }
       expected = KsqlGenericRecord.of(expected.key, null, expected.ts);
     }
@@ -190,7 +197,7 @@ public final class AssertExecutor {
 
     final StringBuilder actualRows = new StringBuilder();
     actual.forEach(a -> actualRows.append(fromGenericRow(false, dataSource, a)).append('\n'));
-    throw new KsqlException(
+    throw new AssertionError(
         String.format(
             "%s%n%s%n%s%n%s",
             message,
@@ -242,19 +249,23 @@ public final class AssertExecutor {
     MUST_MATCH.forEach(prop -> prop.compare(dataSource, statement));
   }
 
-  private static final class SourceProperty {
+  @VisibleForTesting
+  static final class SourceProperty {
     final Function<DataSource, Object> extractSource;
     final Function<CreateSource, Object> extractStatement;
     final String propertyName;
+    final String[] withClauseName;
 
     private SourceProperty(
         final Function<DataSource, Object> extractSource,
         final Function<CreateSource, Object> extractStatement,
-        final String propertyName
+        final String propertyName,
+        final String... withClauseName
     ) {
       this.extractSource = extractSource;
       this.extractStatement = extractStatement;
       this.propertyName = propertyName;
+      this.withClauseName = withClauseName;
     }
 
     private void compare(final DataSource dataSource, final CreateSource statement) {

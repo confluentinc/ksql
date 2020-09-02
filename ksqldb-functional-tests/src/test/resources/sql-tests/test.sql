@@ -103,7 +103,7 @@ ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
 ----------------------------------------------------------------------------------------------------
 --@test: bad assert statement should fail
 
---@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.error: java.lang.AssertionError
 --@expected.message: Expected record does not match actual
 ----------------------------------------------------------------------------------------------------
 CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');

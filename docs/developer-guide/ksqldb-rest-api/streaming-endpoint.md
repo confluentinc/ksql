@@ -152,4 +152,15 @@ In case of error, an error response (see below) is sent. For an error response f
 
 !!!note
     
-    Please note that acks can be returned in a different sequence to which the inserts were submitted. 
+    Acks can be returned in a different sequence compared with the order in
+    which inserts were submitted. 
+
+## Example curl command
+
+```bash
+curl -X "POST" "http://<ksqldb-host-name>:8088/query-stream" \
+     -d $'{
+  "sql": "SELECT * FROM PAGEVIEWS EMIT CHANGES;",
+  "streamsProperties": {}
+}'
+```

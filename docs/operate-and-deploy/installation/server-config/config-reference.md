@@ -148,6 +148,23 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_OUTPUT_TOPIC_NAME_PREFIX`.
 
+### response.http.headers.config
+
+Use to select which HTTP headers are returned in the HTTP response for {{ site.cp }}
+components. Specify multiple values in a comma-separated string using the
+format ``[action][header name]:[header value]`` where ``[action]`` is one of
+the following: ``set``, ``add``, ``setDate``, or ``addDate``. You must use
+quotation marks around the header value when the header value contains commas,
+for example: 
+
+```properties
+response.http.headers.config="add Cache-Control: no-cache, no-store, must-revalidate", add X-XSS-Protection: 1; mode=block, add Strict-Transport-Security: max-age=31536000; includeSubDomains, add X-Content-Type-Options: nosniff  
+```
+
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
+is `KSQL_RESPONSE_HTTP_HEADERS_CONFIG`.
+
 ksqlDB Query Settings
 ---------------------
 

@@ -19,13 +19,21 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.CaseInsensitiveStream;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TestStatementContext;
+import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.util.ParserUtil;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Deque;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
@@ -63,6 +71,9 @@ public final class SqlTestReader implements Iterator<TestStatement> {
 
   private final SqlBaseParser parser;
   private final CommonTokenStream tks;
+
+  /* used to evaluate RunScript statements one at a time*/
+  private final Deque<ParsedStatement> cachedRunScript = new LinkedList<>();
 
   /* indicates the latest index in tks that has been scanned for directives */
   private int directiveIdx = 0;
@@ -104,6 +115,7 @@ public final class SqlTestReader implements Iterator<TestStatement> {
   @Override
   public boolean hasNext() {
     return cachedStatement
+        || !cachedRunScript.isEmpty()
         || !parser.isMatchedEOF()
         || hasMoreDirectives();
   }
@@ -119,6 +131,10 @@ public final class SqlTestReader implements Iterator<TestStatement> {
 
   @Override
   public TestStatement next() {
+    if (!cachedRunScript.isEmpty()) {
+      return TestStatement.of(cachedRunScript.removeFirst());
+    }
+
     // because the parser skips over non-default (SqlBaseLexer.DIRECTIVES) channels,
     // we need to first get the next test statement and then check if we "skipped"
     // over any comments that contain directives. if we find any directives, we
@@ -143,9 +159,9 @@ public final class SqlTestReader implements Iterator<TestStatement> {
       return TestStatement.of(
           DefaultKsqlParser.parsedStatement(testStatement.singleStatement())
       );
-    }
-
-    if (testStatement.assertStatement() != null) {
+    } else if (testStatement.runScript() != null) {
+      return handleRunScript();
+    } else if (testStatement.assertStatement() != null) {
       return TestStatement.of(
           new AstBuilder(TypeRegistry.EMPTY)
               .buildAssertStatement(testStatement.assertStatement())
@@ -153,6 +169,33 @@ public final class SqlTestReader implements Iterator<TestStatement> {
     }
 
     throw new IllegalStateException("Unexpected parse tree for statement " + testStatement);
+  }
+
+  private TestStatement handleRunScript() {
+    final String script = ParserUtil.unquote(testStatement.runScript().STRING().getText(), "'");
+    final List<String> lines;
+    try {
+      if (getClass().getResource(script) != null) {
+        lines = Files.readAllLines(Paths.get(getClass().getResource(script).getPath()));
+      } else {
+        lines = Files.readAllLines(Paths.get(script));
+      }
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Could not read " + script, e);
+    }
+
+    try {
+      cachedRunScript.addAll(new DefaultKsqlParser().parse(String.join("\n", lines)));
+    } catch (final ParseFailedException e) {
+      throw new ParseFailedException(
+          "Failed to parse contents of RUN SCRIPT", "RUN SCRIPT '" + script + "';", e);
+    }
+
+    if (cachedRunScript.isEmpty()) {
+      throw new IllegalArgumentException("Empty run script: " + script);
+    }
+
+    return TestStatement.of(cachedRunScript.removeFirst());
   }
 
 }

@@ -33,7 +33,7 @@ statements
     ;
 
 testStatement
-    : (singleStatement | assertStatement ';') EOF?
+    : (singleStatement | assertStatement ';' | runScript ';') EOF?
     ;
 
 singleStatement
@@ -88,6 +88,10 @@ assertStatement
     | ASSERT NULL VALUES sourceName (columns)? KEY values                   #assertTombstone
     | ASSERT STREAM sourceName (tableElements)? (WITH tableProperties)?     #assertStream
     | ASSERT TABLE sourceName (tableElements)? (WITH tableProperties)?      #assertTable
+    ;
+
+runScript
+    : RUN SCRIPT STRING
     ;
 
 query

@@ -29,6 +29,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClientOptions;
+import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -93,9 +94,13 @@ public class TlsTest extends BaseApiTest {
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
 
+    boolean failed = false;
+
+    waitForLastModifiedTick();
+
     try {
       // When: load expired key store
-      SERVER_KEY_STORE.loadExpiredServerKeyStore();
+      SERVER_KEY_STORE.writeExpiredServerKeyStore();
 
       assertThatEventually(
           "Should fail to execute query with expired key store",
@@ -117,27 +122,47 @@ public class TlsTest extends BaseApiTest {
           TimeUnit.SECONDS.toMillis(1),
           TimeUnit.SECONDS.toMillis(1)
       );
+    } catch (final Throwable e) {
+      failed = true;
+      throw e;
     } finally {
       // restore cert regardless of failure above so as to not affect other tests
       // When: load valid store
-      SERVER_KEY_STORE.loadValidServerKeyStore();
+      SERVER_KEY_STORE.writeValidServerKeyStore();
 
-      assertThatEventually(
-          "Should successfully execute query with valid key store",
-          () -> {
-            // re-create client since server port changes on restart
-            this.client = createClient();
+      if (!failed) {
+        assertThatEventually(
+            "Should successfully execute query with valid key store",
+            () -> {
+              // re-create client since server port changes on restart
+              this.client = createClient();
 
-            try {
-              return sendRequest("/query-stream", requestBody.toBuffer()).statusCode();
-            } catch (Exception e) {
-              return 0;
-            }
-          },
-          is(200),
-          TimeUnit.SECONDS.toMillis(1),
-          TimeUnit.SECONDS.toMillis(1)
-      );
+              try {
+                return sendRequest("/query-stream", requestBody.toBuffer()).statusCode();
+              } catch (Exception e) {
+                return 0;
+              }
+            },
+            is(200),
+            TimeUnit.SECONDS.toMillis(1),
+            TimeUnit.SECONDS.toMillis(1)
+        );
+      }
     }
+  }
+
+  /**
+   * Resolution of {@link FileTime} on some OS / JDKs can have only second resolution.
+   * This can mean the watcher 'misses' an update to a file that was <i>created</i> before
+   * the watcher was started and <i>updated</i> after, if the update results in the same
+   * last modified time.
+   *
+   * <p>To ensure we stable test we must therefore wait for a second to ensure a different last
+   * modified time.
+   *
+   * https://stackoverflow.com/questions/24804618/get-file-mtime-with-millisecond-resolution-from-java
+   */
+  private static void waitForLastModifiedTick() throws Exception {
+    Thread.sleep(TimeUnit.SECONDS.toMillis(1));
   }
 }

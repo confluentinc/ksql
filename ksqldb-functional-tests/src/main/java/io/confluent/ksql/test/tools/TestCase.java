@@ -22,6 +22,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -184,10 +185,22 @@ public class TestCase implements VersionedTest {
     return generatedSchemas;
   }
 
-  public Map<String, String> persistedProperties() {
-    return expectedTopology
+  public KsqlConfig applyPersistedProperties(final KsqlConfig systemConfig) {
+    final Map<String, String> persistedConfigs = expectedTopology
         .map(TopologyAndConfigs::getConfigs)
         .orElseGet(HashMap::new);
+
+    return persistedConfigs.isEmpty()
+        ? systemConfig
+        : systemConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+  }
+
+  private KsqlConfig applyPropertyOverrides(final KsqlConfig sourceConfig) {
+    return sourceConfig.cloneWithPropertyOverwrite(properties);
+  }
+
+  public KsqlConfig applyProperties(final KsqlConfig systemConfig) {
+    return applyPropertyOverrides(applyPersistedProperties(systemConfig));
   }
 
   public Map<String, Object> properties() {

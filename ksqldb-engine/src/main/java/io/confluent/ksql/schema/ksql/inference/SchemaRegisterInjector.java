@@ -27,6 +27,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -70,10 +72,21 @@ public class SchemaRegisterInjector implements Injector {
     // since this injector is chained after the TopicCreateInjector,
     // we can assume that the kafka topic is always present in the
     // statement properties
+
+    final LogicalSchema schema = cs.getStatement().getElements().toLogicalSchema();
+
+    final SerdeOptions serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
+        schema,
+        cs.getStatement().getProperties().getValueFormat(),
+        cs.getStatement().getProperties().getSerdeOptions(),
+        cs.getConfig()
+    );
+
     registerSchema(
-        cs.getStatement().getElements().toLogicalSchema(),
+        schema,
         cs.getStatement().getProperties().getKafkaTopic(),
         cs.getStatement().getProperties().getFormatInfo(),
+        serdeOptions,
         cs.getConfig(),
         cs.getStatementText(),
         false
@@ -98,6 +111,7 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getLogicalSchema(),
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
+        queryMetadata.getPhysicalSchema().serdeOptions(),
         cas.getConfig(),
         cas.getStatementText(),
         true
@@ -108,6 +122,7 @@ public class SchemaRegisterInjector implements Injector {
       final LogicalSchema schema,
       final String topic,
       final FormatInfo formatInfo,
+      final SerdeOptions serdeOptions,
       final KsqlConfig config,
       final String statementText,
       final boolean registerIfSchemaExists
@@ -117,26 +132,29 @@ public class SchemaRegisterInjector implements Injector {
       return;
     }
 
-    if (config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY) != null
-        && !config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).isEmpty()) {
-      try {
-        final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-        final String subject = topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-        final ParsedSchema parsedSchema =
-            format.toParsedSchema(schema.withoutPseudoAndKeyColsInValue().value(), formatInfo);
-
-        if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
-          srClient.register(subject, parsedSchema);
-        }
-      } catch (IOException | RestClientException e) {
-        throw new KsqlStatementException("Could not register schema for topic.", statementText, e);
-      }
-    } else {
+    if (config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).isEmpty()) {
       throw new KsqlSchemaRegistryNotConfiguredException(
           String.format(
               "Cannot create topic '%s' with format %s without configuring '%s'",
               topic, format.name(), KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
       );
+    }
+
+    try {
+      final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
+      final String subject = topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+      if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
+        final ParsedSchema parsedSchema = format.toParsedSchema(
+            schema.withoutPseudoAndKeyColsInValue().value(),
+            serdeOptions,
+            formatInfo
+        );
+
+        srClient.register(subject, parsedSchema);
+      }
+    } catch (IOException | RestClientException e) {
+      throw new KsqlStatementException("Could not register schema for topic.", statementText, e);
     }
   }
 }

@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -47,11 +46,13 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
@@ -101,8 +102,12 @@ public class SchemaRegisterInjectorTest {
   private KsqlExecutionContext executionSandbox;
   @Mock
   private PersistentQueryMetadata queryMetadata;
+  @Mock
+  private PhysicalSchema physicalSchema;
+  @Mock
+  private SerdeOptions serdeOptions;
 
-  private KsqlParser parser = new DefaultKsqlParser();
+  private final KsqlParser parser = new DefaultKsqlParser();
 
   private MutableMetaStore metaStore;
   private KsqlConfig config;
@@ -129,6 +134,9 @@ public class SchemaRegisterInjectorTest {
         KeyFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), Optional.empty()),
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
     ));
+    when(queryMetadata.getPhysicalSchema()).thenReturn(physicalSchema);
+
+    when(physicalSchema.serdeOptions()).thenReturn(serdeOptions);
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
@@ -174,7 +182,7 @@ public class SchemaRegisterInjectorTest {
 
   @Test
   public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateSourceIfSubjectDoesntExist()
-      throws IOException, RestClientException {
+      throws Exception {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
 
@@ -188,7 +196,7 @@ public class SchemaRegisterInjectorTest {
   @SuppressWarnings("deprecation") // make sure deprecated method is not called
   @Test
   public void shouldNotReplaceExistingSchemaForSchemaRegistryEnabledFormatCreateSource()
-      throws IOException, RestClientException {
+      throws Exception {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
@@ -215,8 +223,7 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateAsSelect()
-      throws IOException, RestClientException {
+  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateAsSelect() throws Exception {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
 
@@ -245,7 +252,7 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldPropagateErrorOnSRClientError() throws IOException, RestClientException {
+  public void shouldPropagateErrorOnSRClientError() throws Exception {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
     when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class)))
@@ -276,6 +283,42 @@ public class SchemaRegisterInjectorTest {
     verify(executionSandbox, Mockito.times(1)).execute(any(), any(ConfiguredStatement.class));
   }
 
+  @Test
+  public void shouldSupportPrimitiveValueSchemasInCreateStmts() throws Exception {
+    // Given:
+    givenStatement("CREATE STREAM source (f1 VARCHAR) "
+        + "WITH ("
+        + "  kafka_topic='expectedName', "
+        + "  value_format='AVRO', "
+        + "  partitions=1, "
+        + "  wrap_single_value='false'"
+        + ");");
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient)
+        .register("expectedName-value", new AvroSchema("{\"type\":\"string\"}"));
+  }
+
+  @Test
+  public void shouldSupportPrimitiveValueSchemasInCreateAsStmts() throws Exception {
+    // Given:
+    givenStatement("CREATE STREAM sink "
+        + "WITH(value_format='AVRO', wrap_single_value='false') AS "
+        + "SELECT * FROM SOURCE;");
+
+    when(serdeOptions.valueWrapping()).thenReturn(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient)
+        .register("SINK-value", new AvroSchema("{\"type\":\"string\"}"));
+  }
+
   private void givenStatement(final String sql) {
     final PreparedStatement<?> preparedStatement =
         parser.prepare(parser.parse(sql).get(0), metaStore);
@@ -286,5 +329,4 @@ public class SchemaRegisterInjectorTest {
     when(executionSandbox.execute(any(), eq(statement)))
         .thenReturn(ExecuteResult.of(queryMetadata));
   }
-
 }

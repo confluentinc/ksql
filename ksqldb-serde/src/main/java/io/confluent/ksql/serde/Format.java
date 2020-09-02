@@ -95,10 +95,14 @@ public interface Format {
    * {@link ParsedSchema} with which to populate the Schema Registry.
    *
    * @param columns the list of columns
+   * @param serdeOptions the serde options
    * @param formatInfo the format info potentially containing additional info required to convert
    * @return the {@code ParsedSchema} which will be added to the Schema Registry
    */
-  default ParsedSchema toParsedSchema(List<? extends SimpleColumn> columns, FormatInfo formatInfo) {
+  default ParsedSchema toParsedSchema(
+      List<? extends SimpleColumn> columns,
+      SerdeOptions serdeOptions,
+      FormatInfo formatInfo) {
     throw new KsqlException("Format does not implement Schema Registry support: " + name());
   }
 

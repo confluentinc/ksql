@@ -32,12 +32,14 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.topic.TopicFactory;
+import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -104,7 +106,8 @@ public final class TestCaseBuilderUtil {
       final Collection<Topic> topics,
       final Collection<Record> outputs,
       final Collection<Record> inputs,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final KsqlConfig ksqlConfig
   ) {
     final Map<String, Topic> allTopics = new HashMap<>();
 
@@ -114,7 +117,7 @@ public final class TestCaseBuilderUtil {
     // Infer topics if not added already:
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     for (String sql : statements) {
-      final Topic topicFromStatement = createTopicFromStatement(sql, metaStore);
+      final Topic topicFromStatement = createTopicFromStatement(sql, metaStore, ksqlConfig);
       if (topicFromStatement != null) {
         allTopics.putIfAbsent(topicFromStatement.getName(), topicFromStatement);
       }
@@ -130,7 +133,8 @@ public final class TestCaseBuilderUtil {
 
   private static Topic createTopicFromStatement(
       final String sql,
-      final MutableMetaStore metaStore
+      final MutableMetaStore metaStore,
+      final KsqlConfig ksqlConfig
   ) {
     final KsqlParser parser = new DefaultKsqlParser();
 
@@ -142,16 +146,28 @@ public final class TestCaseBuilderUtil {
       final ValueFormat valueFormat = ksqlTopic.getValueFormat();
       final Optional<ParsedSchema> valueSchema;
       if (valueFormat.getFormat().supportsSchemaInference()) {
-        final List<SimpleColumn> valueColumns = statement.getElements().stream()
-            .filter(e -> e.getNamespace() == Namespace.VALUE)
-            .map(e -> new TestColumn(e.getName(), e.getType().getSqlType()))
-            .collect(Collectors.toList());
+        final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
 
-        final FormatInfo formatInfo = valueFormat.getFormatInfo();
+        SerdeOptions serdeOptions;
+        try {
+          serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
+              logicalSchema,
+              statement.getProperties().getValueFormat(),
+              statement.getProperties().getSerdeOptions(),
+              ksqlConfig
+          );
+        } catch (final Exception e) {
+          // Catch block allows negative tests to fail in the correct place, later.
+          serdeOptions = SerdeOptions.of();
+        }
 
-        valueSchema = valueColumns.isEmpty()
+        valueSchema = logicalSchema.value().isEmpty()
             ? Optional.empty()
-            : Optional.of(valueFormat.getFormat().toParsedSchema(valueColumns, formatInfo));
+            : Optional.of(valueFormat.getFormat().toParsedSchema(
+                logicalSchema.value(),
+                serdeOptions,
+                valueFormat.getFormatInfo()
+            ));
       } else {
         valueSchema = Optional.empty();
       }

@@ -523,6 +523,7 @@ public class KsqlConfig extends AbstractConfig {
             SCHEMA_REGISTRY_URL_PROPERTY,
             ConfigDef.Type.STRING,
             "",
+            new ConfigDef.NonNullValidator(),
             ConfigDef.Importance.MEDIUM,
             "The URL for the schema registry"
         ).define(

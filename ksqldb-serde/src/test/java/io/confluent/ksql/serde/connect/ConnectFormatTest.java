@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,15 +27,19 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,11 +57,16 @@ public class ConnectFormatTest {
   private Schema connectSchema;
   @Mock
   private Schema transformedSchema;
+  @Mock
+  private FormatInfo formatInfo;
 
   private TestFormat format;
+  private Schema capturedConnectSchema;
 
   @Before
   public void setUp() {
+    capturedConnectSchema = null;
+
     format = new TestFormat();
 
     when(toKsqlTransformer.apply(any())).thenReturn(transformedSchema);
@@ -95,6 +105,26 @@ public class ConnectFormatTest {
     assertThat(result.get(1).type(), is(SqlTypes.BIGINT));
   }
 
+  @Test
+  public void shouldSupportPrimitiveSchemas() {
+    // When:
+    format.toParsedSchema(
+        ImmutableList.of(column("bob", SqlTypes.INTEGER)),
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+        formatInfo
+    );
+
+    // Then:
+    assertThat(capturedConnectSchema, is(SchemaBuilder.int32().optional().build()));
+  }
+
+  private static SimpleColumn column(final String name, final SqlType sqlType) {
+    final SimpleColumn column = mock(SimpleColumn.class);
+    when(column.name()).thenReturn(ColumnName.of(name));
+    when(column.type()).thenReturn(sqlType);
+    return column;
+  }
+
   private final class TestFormat extends ConnectFormat {
 
     TestFormat() {
@@ -108,6 +138,7 @@ public class ConnectFormatTest {
 
     @Override
     protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
+      capturedConnectSchema = schema;
       return parsedSchema;
     }
 

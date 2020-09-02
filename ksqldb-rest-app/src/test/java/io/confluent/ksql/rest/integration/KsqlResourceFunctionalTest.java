@@ -23,8 +23,9 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -38,8 +39,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.avro.AvroSchemas;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -161,14 +163,19 @@ public class KsqlResourceFunctionalTest {
         SerdeOptions.of()
     );
 
-    TEST_HARNESS.getSchemaRegistryClient()
-        .register(
-            "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-            new AvroSchema(AvroSchemas.getAvroSchema(
-                schema.valueSchema(),
-                "books_value"
-            ))
-        );
+    final ParsedSchema parsedSchema = new AvroFormat().toParsedSchema(
+        schema.logicalSchema().value(),
+        schema.serdeOptions(),
+        FormatInfo.of(
+            AvroFormat.NAME,
+            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value")
+        )
+    );
+
+    TEST_HARNESS.getSchemaRegistryClient().register(
+        "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+        parsedSchema
+    );
 
     // When:
     final List<KsqlEntity> results = makeKsqlRequest(""

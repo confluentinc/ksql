@@ -161,6 +161,10 @@ for example:
 response.http.headers.config="add Cache-Control: no-cache, no-store, must-revalidate", add X-XSS-Protection: 1; mode=block, add Strict-Transport-Security: max-age=31536000; includeSubDomains, add X-Content-Type-Options: nosniff  
 ```
 
+The corresponding environment variable in the
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
+is `KSQL_RESPONSE_HTTP_HEADERS_CONFIG`.
+
 ksqlDB Query Settings
 ---------------------
 

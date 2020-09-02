@@ -92,9 +92,7 @@ public final class TestExecutorUtil {
       final StubKafkaService stubKafkaService,
       final TestExecutionListener listener
   ) {
-    final Map<String, String> persistedConfigs = testCase.persistedProperties();
-    final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+    final KsqlConfig maybeUpdatedConfigs = testCase.applyPersistedProperties(ksqlConfig);
 
     final List<PersistentQueryAndSources> queryMetadataList = doBuildQueries(
         testCase,
@@ -148,7 +146,14 @@ public final class TestExecutorUtil {
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService
   ) {
-    initializeTopics(testCase, engine.getServiceContext(), stubKafkaService, engine.getMetaStore());
+    initializeTopics(
+        testCase,
+        engine.getServiceContext(),
+        stubKafkaService,
+        engine.getMetaStore(),
+        ksqlConfig
+    );
+
     if (testCase.getExpectedTopology().isPresent()
         && testCase.getExpectedTopology().get().getPlan().isPresent()) {
       return testCase.getExpectedTopology().get().getPlan().get()
@@ -224,7 +229,8 @@ public final class TestExecutorUtil {
       final TestCase testCase,
       final ServiceContext serviceContext,
       final StubKafkaService stubKafkaService,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final KsqlConfig ksqlConfig
   ) {
     final KafkaTopicClient topicClient = serviceContext.getTopicClient();
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
@@ -238,7 +244,8 @@ public final class TestExecutorUtil {
         testCase.getTopics(),
         testCase.getOutputRecords(),
         testCase.getInputRecords(),
-        functionRegistry
+        functionRegistry,
+        testCase.applyProperties(ksqlConfig)
     );
 
     for (final Topic topic : topics) {

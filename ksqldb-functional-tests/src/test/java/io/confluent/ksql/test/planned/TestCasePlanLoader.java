@@ -217,7 +217,7 @@ public final class TestCasePlanLoader {
   ) {
     final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase);
 
-    final List<TopicNode> allTopicNodes = getTopicsFromTestCase(testCase);
+    final List<TopicNode> allTopicNodes = getTopicsFromTestCase(testCase, configs);
 
     final TestCaseNode testCodeNode = new TestCaseNode(
         simpleTestName,
@@ -251,13 +251,17 @@ public final class TestCasePlanLoader {
     );
   }
 
-  private static List<TopicNode> getTopicsFromTestCase(final TestCase testCase) {
+  private static List<TopicNode> getTopicsFromTestCase(
+      final TestCase testCase,
+      final Map<?, ?> configs
+  ) {
     final Collection<Topic> allTopics = TestCaseBuilderUtil.getAllTopics(
         testCase.statements(),
         testCase.getTopics(),
         testCase.getOutputRecords(),
         testCase.getInputRecords(),
-        TestFunctionRegistry.INSTANCE.get()
+        TestFunctionRegistry.INSTANCE.get(),
+        new KsqlConfig(configs)
     );
 
     return allTopics.stream()

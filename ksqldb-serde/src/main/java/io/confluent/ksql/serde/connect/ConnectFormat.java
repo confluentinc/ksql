@@ -18,15 +18,21 @@ package io.confluent.ksql.serde.connect;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -68,6 +74,7 @@ public abstract class ConnectFormat implements Format {
 
   public ParsedSchema toParsedSchema(
       final List<? extends SimpleColumn> columns,
+      final SerdeOptions serdeOptions,
       final FormatInfo formatInfo
   ) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
@@ -76,12 +83,33 @@ public abstract class ConnectFormat implements Format {
         SchemaConverters.sqlToConnectConverter().toConnectSchema(col.type()))
     );
 
-    return fromConnectSchema(schemaBuilder.build(), formatInfo);
+    final PersistenceSchema persistenceSchema =
+        buildValuePhysical(schemaBuilder.build(), serdeOptions);
+
+    return fromConnectSchema(persistenceSchema.serializedSchema(), formatInfo);
   }
 
   protected abstract Schema toConnectSchema(ParsedSchema schema);
 
   protected abstract ParsedSchema fromConnectSchema(Schema schema, FormatInfo formatInfo);
+
+  private static PersistenceSchema buildValuePhysical(
+      final Schema valueConnectSchema,
+      final SerdeOptions serdeOptions
+  ) {
+    final boolean singleField = valueConnectSchema.fields().size() == 1;
+
+    final boolean unwrapSingle = serdeOptions.valueWrapping()
+        .map(option -> option == SerdeOption.UNWRAP_SINGLE_VALUES)
+        .orElse(false);
+
+    if (unwrapSingle && !singleField) {
+      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE + "' "
+          + "is only valid for single-field value schemas");
+    }
+
+    return PersistenceSchema.from((ConnectSchema) valueConnectSchema, unwrapSingle);
+  }
 
   private static SimpleColumn toColumn(final Field field) {
     final ColumnName name = ColumnName.of(field.name());

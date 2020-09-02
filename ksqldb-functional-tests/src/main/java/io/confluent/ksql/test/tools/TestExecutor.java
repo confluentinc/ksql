@@ -131,10 +131,7 @@ public class TestExecutor implements Closeable {
   ) {
     topicInfoCache.clear();
 
-    final KsqlConfig currentConfigs = new KsqlConfig(config);
-    final Map<String, String> persistedConfigs = testCase.persistedProperties();
-    final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
-        currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+    final KsqlConfig ksqlConfig = testCase.applyPersistedProperties(new KsqlConfig(config));
 
     try {
       final List<TopologyTestDriverContainer> topologyTestDrivers = topologyBuilder

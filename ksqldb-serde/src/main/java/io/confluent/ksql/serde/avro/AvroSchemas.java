@@ -19,27 +19,17 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.confluent.connect.avro.AvroData;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-public final class AvroSchemas {
+final class AvroSchemas {
+
   private AvroSchemas() {
   }
 
-  public static org.apache.avro.Schema getAvroSchema(
-      final PersistenceSchema schema,
-      final String name
-  ) {
-    return new AvroData(0).fromConnectSchema(
-        getAvroCompatibleConnectSchema(schema.serializedSchema(), name)
-    );
-  }
-
-  public static Schema getAvroCompatibleConnectSchema(
+  static Schema getAvroCompatibleConnectSchema(
       final Schema schema,
       final String schemaFullName
   ) {

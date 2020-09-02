@@ -21,8 +21,9 @@ import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -32,7 +33,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.avro.AvroSchemas;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -662,10 +663,16 @@ public final class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema) {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
-      final org.apache.avro.Schema avroSchema = AvroSchemas
-          .getAvroSchema(schema.valueSchema(), "test_" + topicName);
+      final ParsedSchema parsedSchema = new AvroFormat().toParsedSchema(
+          schema.logicalSchema().value(),
+          schema.serdeOptions(),
+          FormatInfo.of(
+              AvroFormat.NAME,
+              ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "test_" + topicName)
+          )
+      );
 
-      srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(avroSchema));
+      srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, parsedSchema);
     } catch (final Exception e) {
       throw new AssertionError(e);
     }

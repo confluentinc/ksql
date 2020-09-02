@@ -47,6 +47,7 @@ import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
@@ -165,7 +166,8 @@ public class RestTestExecutor implements Closeable {
         testCase.getTopics(),
         testCase.getOutputRecords(),
         testCase.getInputRecords(),
-        TestFunctionRegistry.INSTANCE.get()
+        TestFunctionRegistry.INSTANCE.get(),
+        new KsqlConfig(testCase.getProperties())
     );
 
     topics.forEach(topic -> {

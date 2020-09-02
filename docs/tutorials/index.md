@@ -37,7 +37,7 @@ source connectors, and Java client producers. For full code examples,
 
 |         Video             |   Description                             |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [Demo: The Event Streaming Database in Action](https://www.youtube.com/watch?v=D5QMqapzX8o) | Tim Berglund builds a movie rating system by moving movie records into a {{ site.ak }} topic. |
+| [Demo: The Event Streaming Database in Action](https://www.youtube.com/watch?v=D5QMqapzX8o) | Tim Berglund builds a movie rating system with ksqlDB to write movie records into a {{ site.ak }} topic. |
 | [Demo: Seamless Stream Processing with Kafka Connect & ksqlDB](https://www.youtube.com/watch?v=4odZGWl-yZo) | Set up and build ksqlDB applications using the AWS source, Azure sink, and MongoDB source connectors in {{ site.ccloud }}. |
 | [Introduction to ksqlDB and stream processing](https://www.youtube.com/watch?v=-kFU6mCnOFw) | Vish Srinivasan talks {{ site.ak }} stream processing fundamentals and discusses ksqlDB. |
 | [Ask Confluent #16: ksqlDB edition](https://www.youtube.com/watch?v=SHKjuN2iXyk) | Gwen Shapira hosts Vinoth Chandar in a wide-ranging talk on ksqlDB. | 

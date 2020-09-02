@@ -115,6 +115,7 @@ public class BaseApiTest {
     if (server != null) {
       try {
         server.stop();
+        server = null;
       } catch (Exception e) {
         log.error("Failed to shutdown server", e);
       }
@@ -125,6 +126,7 @@ public class BaseApiTest {
     if (client != null) {
       try {
         client.close();
+        client = null;
       } catch (Exception e) {
         log.error("Failed to close client", e);
       }
@@ -134,7 +136,13 @@ public class BaseApiTest {
   protected void createServer(KsqlRestConfig serverConfig) {
     server = new Server(vertx, serverConfig, testEndpoints,
         new KsqlDefaultSecurityExtension(), Optional.empty(), serverState);
-    server.start();
+
+    try {
+      server.start();
+    } catch (final Exception e) {
+      server = null;
+      throw e;
+    }
   }
 
   protected KsqlRestConfig createServerConfig() {

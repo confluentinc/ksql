@@ -22,7 +22,7 @@ When to use embedded Connect
 
 ksqlDB natively integrates with {{ site.kconnect }} by either communicating
 with an external {{ site.kconnect }} cluster or by running {{ site.kconnect }}
-embedded within the KSQL server process. Each of these modes is best suited
+embedded within the ksqlDB server process. Each of these modes is best suited
 for the following environments:
 
 * **Embedded** - Suitable for development, testing, and simpler production

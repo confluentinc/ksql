@@ -16,6 +16,8 @@
 package io.confluent.ksql.logging.processing;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -40,6 +42,8 @@ public class LoggingSerializerTest {
 
   private static final GenericRow SOME_ROW = genericRow("some", "fields");
   private static final byte[] SOME_BYTES = "some bytes".getBytes(StandardCharsets.UTF_8);
+  private static final Exception ERROR = new RuntimeException("outer",
+      new RuntimeException("inner", new RuntimeException("cause")));
 
   @Mock
   private Serializer<GenericRow> delegate;
@@ -92,23 +96,10 @@ public class LoggingSerializerTest {
     verify(delegate).serialize("some topic", SOME_ROW);
   }
 
-  @Test(expected = ArithmeticException.class)
+  @Test
   public void shouldThrowIfDelegateThrows() {
     // Given:
-    when(delegate.serialize(any(), any())).thenThrow(new ArithmeticException());
-
-    // When:
-    serializer.serialize("t", SOME_ROW);
-
-    // Then: throws
-  }
-
-  @Test
-  public void shouldLogOnException() {
-    // Given:
-    when(delegate.serialize(any(), any()))
-        .thenThrow(new RuntimeException("outer",
-            new RuntimeException("inner", new RuntimeException("cause"))));
+    when(delegate.serialize(any(), any())).thenThrow(ERROR);
 
     // When:
     final RuntimeException e = assertThrows(
@@ -117,7 +108,39 @@ public class LoggingSerializerTest {
     );
 
     // Then:
-    verify(processingLogger).error(new SerializationError<>(e, Optional.of(SOME_ROW), "t", false));
+    assertThat(e, is(ERROR));
+  }
+
+  @Test
+  public void shouldLogOnException() {
+    // Given:
+    when(delegate.serialize(any(), any())).thenThrow(ERROR);
+
+    // When:
+    assertThrows(
+        RuntimeException.class,
+        () -> serializer.serialize("t", SOME_ROW)
+    );
+
+    // Then:
+    verify(processingLogger).error(new SerializationError<>(ERROR, Optional.of(SOME_ROW), "t", false));
+  }
+
+  @Test
+  public void shouldLogExceptionForKey() {
+    // Given:
+    serializer.configure(Collections.emptyMap(), true);
+
+    when(delegate.serialize(any(), any())).thenThrow(ERROR);
+
+    // When:
+    assertThrows(
+        RuntimeException.class,
+        () -> serializer.serialize("t", SOME_ROW)
+    );
+
+    // Then:
+    verify(processingLogger).error(new SerializationError<>(ERROR, Optional.of(SOME_ROW), "t", true));
   }
 
 }

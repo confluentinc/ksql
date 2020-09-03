@@ -48,6 +48,8 @@ public class LoggingDeserializerTest {
 
   private static final GenericRow SOME_ROW = genericRow("some", "fields");
   private static final byte[] SOME_BYTES = "some bytes".getBytes(StandardCharsets.UTF_8);
+  private static final Exception ERROR = new RuntimeException("outer",
+      new RuntimeException("inner", new RuntimeException("cause")));
 
   @Mock
   private Deserializer<GenericRow> delegate;
@@ -116,23 +118,10 @@ public class LoggingDeserializerTest {
     assertThat(result.get(), is(SOME_ROW));
   }
 
-  @Test(expected = ArithmeticException.class)
+  @Test
   public void shouldThrowIfDelegateThrows() {
     // Given:
-    when(delegate.deserialize(any(), any())).thenThrow(new ArithmeticException());
-
-    // When:
-    deserializer.deserialize("t", SOME_BYTES);
-
-    // Then: throws
-  }
-
-  @Test
-  public void shouldLogOnException() {
-    // Given:
-    when(delegate.deserialize(any(), any()))
-        .thenThrow(new RuntimeException("outer",
-            new RuntimeException("inner", new RuntimeException("cause"))));
+    when(delegate.deserialize(any(), any())).thenThrow(ERROR);
 
     // When:
     final RuntimeException e = assertThrows(
@@ -141,15 +130,28 @@ public class LoggingDeserializerTest {
     );
 
     // Then:
-    verify(processingLogger).error(new DeserializationError(e, Optional.of(SOME_BYTES), "t", false));
+    assertThat(e, is(ERROR));
+  }
+
+  @Test
+  public void shouldLogOnException() {
+    // Given:
+    when(delegate.deserialize(any(), any())).thenThrow(ERROR);
+
+    // When:
+    assertThrows(
+        RuntimeException.class,
+        () -> deserializer.deserialize("t", SOME_BYTES)
+    );
+
+    // Then:
+    verify(processingLogger).error(new DeserializationError(ERROR, Optional.of(SOME_BYTES), "t", false));
   }
 
   @Test
   public void shouldDelayLogOnException() {
     // Given:
-    when(delegate.deserialize(any(), any()))
-        .thenThrow(new RuntimeException("outer",
-            new RuntimeException("inner", new RuntimeException("cause"))));
+    when(delegate.deserialize(any(), any())).thenThrow(ERROR);
 
     // When:
     final DelayedResult<GenericRow> result = deserializer.tryDeserialize("t", SOME_BYTES);
@@ -159,5 +161,22 @@ public class LoggingDeserializerTest {
     assertThrows(RuntimeException.class, result::get);
     verify(processingLogger)
         .error(new DeserializationError(result.getError(), Optional.of(SOME_BYTES), "t", false));
+  }
+
+  @Test
+  public void shouldLogExceptionForKey() {
+    // Given:
+    deserializer.configure(Collections.emptyMap(), true);
+
+    when(delegate.deserialize(any(), any())).thenThrow(ERROR);
+
+    // When:
+    assertThrows(
+        RuntimeException.class,
+        () -> deserializer.deserialize("t", SOME_BYTES)
+    );
+
+    // Then:
+    verify(processingLogger).error(new DeserializationError(ERROR, Optional.of(SOME_BYTES), "t", true));
   }
 }

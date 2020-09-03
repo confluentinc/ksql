@@ -67,7 +67,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
         () -> {
-          PullQueryResult result = pullQueryExecutor.execute(
+          final PullQueryResult result = pullQueryExecutor.execute(
               query, serviceContext, Optional.of(false), pullQueryMetrics);
           if (pullQueryMetrics.isPresent()) {
             //Record latency at microsecond scale

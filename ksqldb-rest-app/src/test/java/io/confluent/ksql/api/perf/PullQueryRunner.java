@@ -38,6 +38,7 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -145,9 +146,11 @@ public class PullQueryRunner extends BasePerfRunner {
     }
 
     @Override
-    public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+    public CompletableFuture<EndpointResponse> executeQueryRequest(
+        KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-        ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest) {
+        ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
+        RoutingContext routingContext) {
       return null;
     }
 

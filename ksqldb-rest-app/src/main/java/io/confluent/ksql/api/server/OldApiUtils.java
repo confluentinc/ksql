@@ -24,6 +24,7 @@ import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
@@ -49,9 +50,11 @@ public final class OldApiUtils {
   private static final String JSON_CONTENT_TYPE = "application/json";
   private static final String CHUNKED_ENCODING = "chunked";
 
-  static <T> void handleOldApiRequest(final Server server,
+  static <T> void handleOldApiRequest(
+      final Server server,
       final RoutingContext routingContext,
       final Class<T> requestClass,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
     final T requestObject;
     if (requestClass != null) {
@@ -68,18 +71,21 @@ public final class OldApiUtils {
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {
-      handleOldApiResponse(server, routingContext, endpointResponse);
+      handleOldApiResponse(server, routingContext, endpointResponse, pullQueryMetrics);
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
-      handleOldApiResponse(server, routingContext, mapException(t));
+      handleOldApiResponse(server, routingContext, mapException(t), pullQueryMetrics);
       return null;
     });
   }
 
-  static void handleOldApiResponse(final Server server, final RoutingContext routingContext,
-      final EndpointResponse endpointResponse) {
+  static void handleOldApiResponse(
+      final Server server, final RoutingContext routingContext,
+      final EndpointResponse endpointResponse,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+  ) {
     final HttpServerResponse response = routingContext.response();
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
@@ -112,6 +118,9 @@ public final class OldApiUtils {
         response.end(responseBody);
       }
     }
+    pullQueryMetrics
+        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordResponseSize(
+            routingContext.response().bytesWritten()));
   }
 
   private static void streamEndpointResponse(final Server server,

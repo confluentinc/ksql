@@ -28,6 +28,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
@@ -78,9 +79,10 @@ public interface Endpoints {
   CompletableFuture<EndpointResponse> executeTerminate(ClusterTerminateRequest request,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
-  CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
-      WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-      ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest);
+  CompletableFuture<EndpointResponse> executeQueryRequest(
+      KsqlRequest request, WorkerExecutor workerExecutor,
+      CompletableFuture<Void> connectionClosedFuture, ApiSecurityContext apiSecurityContext,
+      Optional<Boolean> isInternalRequest, RoutingContext routingContext);
 
   CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
 

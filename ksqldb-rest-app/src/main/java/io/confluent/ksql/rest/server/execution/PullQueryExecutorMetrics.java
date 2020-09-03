@@ -25,6 +25,7 @@ import java.util.Objects;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Min;
 import org.apache.kafka.common.metrics.stats.Percentile;
@@ -33,6 +34,7 @@ import org.apache.kafka.common.metrics.stats.Percentiles.BucketSizing;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class PullQueryExecutorMetrics implements Closeable {
 
   private static final String PULL_QUERY_METRIC_GROUP = "pull-query";
@@ -44,6 +46,8 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Sensor latencySensor;
   private final Sensor requestRateSensor;
   private final Sensor errorRateSensor;
+  private final Sensor requestSizeSensor;
+  private final Sensor responseSizeSensor;
   private final Metrics metrics;
   private final Map<String, String> customMetricsTags;
   private final String ksqlServiceId;
@@ -63,6 +67,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.latencySensor = configureRequestSensor();
     this.requestRateSensor = configureRateSensor();
     this.errorRateSensor = configureErrorRateSensor();
+    this.requestSizeSensor = configureRequestSizeSensor();
+    this.responseSizeSensor = configureResponseSizeSensor();
   }
 
   @Override
@@ -86,6 +92,14 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordErrorRate(final double value) {
     this.errorRateSensor.record(value);
+  }
+
+  public void recordRequestSize(final double value) {
+    this.requestSizeSensor.record(value);
+  }
+
+  public void recordResponseSize(final double value) {
+    this.responseSizeSensor.record(value);
   }
 
   List<Sensor> getSensors() {
@@ -257,6 +271,40 @@ public class PullQueryExecutorMetrics implements Closeable {
             customMetricsTags
         ), 99.0)
         ));
+
+    sensors.add(sensor);
+    return sensor;
+  }
+
+  private Sensor configureRequestSizeSensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-request-size");
+    sensor.add(
+        metrics.metricName(
+            PULL_REQUESTS + "-request-size",
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Size in bytes of pull query request",
+            customMetricsTags
+        ),
+        new CumulativeSum()
+    );
+
+    sensors.add(sensor);
+    return sensor;
+  }
+
+  private Sensor configureResponseSizeSensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-response-size");
+    sensor.add(
+        metrics.metricName(
+            PULL_REQUESTS + "-response-size",
+            ksqlServiceId + PULL_QUERY_METRIC_GROUP,
+            "Size in bytes of pull query response",
+            customMetricsTags
+        ),
+        new CumulativeSum()
+    );
 
     sensors.add(sensor);
     return sensor;

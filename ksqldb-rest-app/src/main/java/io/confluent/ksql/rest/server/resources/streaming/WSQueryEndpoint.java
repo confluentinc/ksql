@@ -52,6 +52,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
+import org.openjdk.jol.info.ClassLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,6 +194,10 @@ public class WSQueryEndpoint {
           ksqlSecurityContext);
 
       if (statement instanceof Query) {
+        if (((Query) statement).isPullQuery() && pullQueryMetrics.isPresent()) {
+          pullQueryMetrics.get().recordRequestSize(
+              ClassLayout.parseInstance(request).instanceSize());
+        }
         handleQuery(requestContext, (Query) statement, startTimeNanos);
       } else if (statement instanceof PrintTopic) {
         handlePrintTopic(requestContext, (PrintTopic) statement);
@@ -281,7 +286,8 @@ public class WSQueryEndpoint {
           configured,
           streamSubscriber,
           pullQueryExecutor,
-          pullQueryMetrics
+          pullQueryMetrics,
+          startTimeNanos
       );
     } else {
       pushQueryPublisher.start(
@@ -386,7 +392,8 @@ public class WSQueryEndpoint {
         ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber,
         PullQueryExecutor pullQueryExecutor,
-        Optional<PullQueryExecutorMetrics> pullQueryMetrics);
+        Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+        long startTimeNanos);
 
   }
 

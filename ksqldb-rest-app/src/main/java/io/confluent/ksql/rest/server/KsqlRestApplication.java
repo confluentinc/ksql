@@ -319,7 +319,8 @@ public final class KsqlRestApplication implements Executable {
         authorizationValidator,
         errorHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        pullQueryMetrics
     );
 
     startAsyncThreadRef.set(Thread.currentThread());
@@ -338,10 +339,11 @@ public final class KsqlRestApplication implements Executable {
           lagReportingResource,
           healthCheckResource,
           serverMetadataResource,
-          wsQueryEndpoint
+          wsQueryEndpoint,
+          pullQueryMetrics
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
-          authenticationPlugin, serverState);
+          authenticationPlugin, serverState, pullQueryMetrics);
       apiServer.start();
 
       final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();

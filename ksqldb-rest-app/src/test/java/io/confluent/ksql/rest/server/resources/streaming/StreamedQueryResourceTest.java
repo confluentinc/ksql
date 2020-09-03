@@ -192,7 +192,7 @@ public class StreamedQueryResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     pullQueryExecutor = new PullQueryExecutor(
-        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, SERVICE_ID, time);
+        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, SERVICE_ID);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,
@@ -203,7 +203,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
 
     testResource.configure(VALID_CONFIG);
@@ -231,7 +232,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
 
     // When:
@@ -241,7 +243,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            any()
         )
     );
 
@@ -263,7 +266,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            any()
         )
     );
 
@@ -280,7 +284,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        any()
     );
 
     // Then:
@@ -294,7 +299,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        any()
     );
 
     // Then:
@@ -315,7 +321,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            any()
         )
     );
 
@@ -338,7 +345,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        any()
     );
 
     // Then:
@@ -362,7 +370,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        any()
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -385,7 +394,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
@@ -411,7 +421,8 @@ public class StreamedQueryResourceTest {
             null
         ),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        any()
     );
 
     // Then:
@@ -486,7 +497,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            any()
         );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
@@ -628,7 +640,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        any()
     );
 
     // Then:
@@ -649,7 +662,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        any()
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -674,7 +688,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        any()
     );
 
     assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
@@ -704,7 +719,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            any()
         )
     );
 

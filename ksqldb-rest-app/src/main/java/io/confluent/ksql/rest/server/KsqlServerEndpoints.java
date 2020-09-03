@@ -52,7 +52,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -162,16 +161,15 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final CompletableFuture<Void> connectionClosedFuture,
       final ApiSecurityContext apiSecurityContext,
-      final Optional<Boolean> isInternalRequest,
-      final RoutingContext routingContext
+      final Optional<Boolean> isInternalRequest
   ) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
             ksqlSecurityContext,
             request,
             connectionClosedFuture,
-            isInternalRequest,
-            routingContext), workerExecutor);
+            isInternalRequest
+        ), workerExecutor);
   }
 
   @Override

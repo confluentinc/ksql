@@ -67,7 +67,9 @@ public final class OldApiUtils {
     } else {
       requestObject = null;
     }
-
+    pullQueryMetrics
+        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordRequestSize(
+            routingContext.request().bytesRead()));
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {

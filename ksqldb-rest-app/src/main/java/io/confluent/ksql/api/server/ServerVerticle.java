@@ -238,8 +238,7 @@ public class ServerVerticle extends AbstractVerticle {
                 .executeQueryRequest(
                     request, server.getWorkerExecutor(), connectionClosedFuture,
                     DefaultApiSecurityContext.create(routingContext),
-                    isInternalRequest(routingContext),
-                    routingContext)
+                    isInternalRequest(routingContext))
 
     );
   }

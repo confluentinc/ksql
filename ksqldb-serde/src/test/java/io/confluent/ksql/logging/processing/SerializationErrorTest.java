@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.GenericRow;
 import java.util.Collections;
 import java.util.List;
@@ -161,5 +162,32 @@ public class SerializationErrorTest {
         serializationError.get(SERIALIZATION_ERROR_FIELD_COMPONENT),
         equalTo("key")
     );
+  }
+
+  @Test
+  public void shouldImplementHashCodeAndEquals() {
+    final Exception error1 = new Exception("error");
+    final Exception error2 = new Exception("different error");
+    new EqualsTester()
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.of(genericRow("some", "fields")), "topic", false),
+            new SerializationError<>(error1, Optional.of(genericRow("some", "fields")), "topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error2, Optional.of(genericRow("some", "fields")), "topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.of(genericRow("other", "fields")), "topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.empty(), "topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.of(genericRow("some", "fields")), "other_topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.of(genericRow("some", "fields")), "topic", true)
+        )
+        .testEquals();
   }
 }

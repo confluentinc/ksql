@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import java.util.Base64;
 import java.util.Collections;
@@ -166,5 +167,34 @@ public class DeserializationErrorTest {
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_COMPONENT),
         equalTo("key")
     );
+  }
+
+  @Test
+  public void shouldImplementHashCodeAndEquals() {
+    final Exception error1 = new Exception("error");
+    final Exception error2 = new Exception("different error");
+    final byte[] record1 = new byte[256];
+    final byte[] record2 = new byte[512];
+    new EqualsTester()
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.of(record1), "topic", false),
+            new DeserializationError(error1, Optional.of(record1), "topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error2, Optional.of(record1), "topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.of(record2), "topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.empty(), "topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.of(record1), "other_topic", false)
+        )
+        .addEqualityGroup(
+            new DeserializationError(error1, Optional.of(record1), "topic", true)
+        )
+        .testEquals();
   }
 }

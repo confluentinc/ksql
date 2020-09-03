@@ -121,9 +121,9 @@ message.deserializationError (STRUCT)
 :   The contents of a message with type 0 (DESERIALIZATION_ERROR).
     Logged when a deserializer fails to deserialize an {{ site.ak }} record.
 
-message.deserializationError.component (STRING)
+message.deserializationError.target (STRING)
 
-:   Either "key" or "value" representing the component of the row that
+:   Either "key" or "value" representing the target component of the row that
     failed to deserialize.
 
 message.deserializationError.errorMessage (STRING)
@@ -180,9 +180,9 @@ message.serializationError (STRUCT)
 :   The contents of a message with type 3 (SERIALIZATION_ERROR).
     Logged when a serializer fails to serialize a ksqlDB row.
     
-message.serializationError.component (STRING)
+message.serializationError.target (STRING)
 
-:   Either "key" or "value" representing the component of the row that
+:   Either "key" or "value" representing the target component of the row that
     failed to serialize.
 
 message.serializationError.errorMessage (STRING)
@@ -275,7 +275,7 @@ Field   | Type
  LOGGER  | VARCHAR(STRING)
  LEVEL   | VARCHAR(STRING)
  TIME    | BIGINT
- MESSAGE | STRUCT<type INTEGER, deserializationError STRUCT<component VARCHAR(STRING), errorMessage VARCHAR(STRING), recordB64 VARCHAR(STRING), cause ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, ...> 
+ MESSAGE | STRUCT<type INTEGER, deserializationError STRUCT<target VARCHAR(STRING), errorMessage VARCHAR(STRING), recordB64 VARCHAR(STRING), cause ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, ...> 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```
 
@@ -291,7 +291,7 @@ ksql> CREATE STREAM PROCESSING_LOG_STREAM (
          MESSAGE STRUCT<
              `TYPE` INTEGER,
              deserializationError STRUCT<
-                 component STRING,
+                 target STRING,
                  errorMessage STRING,
                  recordB64 STRING,
                  cause ARRAY<STRING>,
@@ -303,7 +303,7 @@ ksql> CREATE STREAM PROCESSING_LOG_STREAM (
              productionError STRUCT<
                  errorMessage STRING>,
              serializationError STRUCT<
-                 component STRING,
+                 target STRING,
                  errorMessage STRING,
                  record STRING,
                  cause ARRAY<STRING>,

@@ -75,7 +75,7 @@ public class DeserializationError implements ProcessingLogger.ErrorMessage {
   private Struct deserializationError(final ProcessingLogConfig config) {
     final Struct deserializationError = new Struct(MessageType.DESERIALIZATION_ERROR.getSchema())
         .put(
-            ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_COMPONENT,
+            ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TARGET,
             LoggingSerdeUtil.getRecordComponent(isKey))
         .put(
             ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE,

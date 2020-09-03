@@ -19,7 +19,7 @@ import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_CAUSE;
-import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_COMPONENT;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_TARGET;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_MESSAGE;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_RECORD;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_TOPIC;
@@ -74,7 +74,7 @@ public class SerializationErrorTest {
         equalTo(ProcessingLogMessageSchema.MessageType.SERIALIZATION_ERROR.getTypeId()));
     final Struct serializationError = struct.getStruct(SERIALIZATION_ERROR);
     assertThat(
-        serializationError.get(SERIALIZATION_ERROR_FIELD_COMPONENT),
+        serializationError.get(SERIALIZATION_ERROR_FIELD_TARGET),
         equalTo("value")
     );
     assertThat(
@@ -159,7 +159,7 @@ public class SerializationErrorTest {
     final Struct struct = (Struct) msg.value();
     final Struct serializationError = struct.getStruct(SERIALIZATION_ERROR);
     assertThat(
-        serializationError.get(SERIALIZATION_ERROR_FIELD_COMPONENT),
+        serializationError.get(SERIALIZATION_ERROR_FIELD_TARGET),
         equalTo("key")
     );
   }

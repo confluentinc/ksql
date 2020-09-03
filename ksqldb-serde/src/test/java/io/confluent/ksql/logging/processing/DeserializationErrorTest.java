@@ -17,7 +17,7 @@ package io.confluent.ksql.logging.processing;
 
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE;
-import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_COMPONENT;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TARGET;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_TOPIC;
@@ -93,7 +93,7 @@ public class DeserializationErrorTest {
         equalTo(MessageType.DESERIALIZATION_ERROR.getTypeId()));
     final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
     assertThat(
-        deserializationError.get(DESERIALIZATION_ERROR_FIELD_COMPONENT),
+        deserializationError.get(DESERIALIZATION_ERROR_FIELD_TARGET),
         equalTo("value")
     );
     assertThat(
@@ -164,7 +164,7 @@ public class DeserializationErrorTest {
     final Struct struct = (Struct) msg.value();
     final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
     assertThat(
-        deserializationError.get(DESERIALIZATION_ERROR_FIELD_COMPONENT),
+        deserializationError.get(DESERIALIZATION_ERROR_FIELD_TARGET),
         equalTo("key")
     );
   }

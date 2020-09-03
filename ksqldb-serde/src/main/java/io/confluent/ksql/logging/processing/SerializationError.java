@@ -74,7 +74,7 @@ public class SerializationError<T> implements ProcessingLogger.ErrorMessage {
   private Struct serializationError(final ProcessingLogConfig config) {
     final Struct serializationError = new Struct(MessageType.SERIALIZATION_ERROR.getSchema())
         .put(
-            ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_COMPONENT,
+            ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_TARGET,
             LoggingSerdeUtil.getRecordComponent(isKey))
         .put(
             ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_MESSAGE,

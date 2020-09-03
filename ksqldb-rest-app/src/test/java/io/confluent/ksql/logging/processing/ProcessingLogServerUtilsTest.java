@@ -186,10 +186,10 @@ public class ProcessingLogServerUtilsTest {
             + "time BIGINT, "
             + "message STRUCT<"
             + "type INT, "
-            + "deserializationError STRUCT<component VARCHAR, errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>, "
+            + "deserializationError STRUCT<target VARCHAR, errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>, "
             + "recordProcessingError STRUCT<errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>>, "
             + "productionError STRUCT<errorMessage VARCHAR>, "
-            + "serializationError STRUCT<component VARCHAR, errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>"
+            + "serializationError STRUCT<target VARCHAR, errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>"
             + ">"
             + ") WITH(KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');"));
   }

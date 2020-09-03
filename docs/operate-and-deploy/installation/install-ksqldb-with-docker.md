@@ -409,10 +409,8 @@ Discover the default command that the container runs when it launches,
 which is either `Entrypoint` or `Cmd`:
 
 ```bash
-{% raw %}
-docker inspect --format='{{.Config.Entrypoint}}' confluentinc/ksqldb-server:0.12.0
-docker inspect --format='{{.Config.Cmd}}' confluentinc/ksqldb-server:0.12.0
-{% endraw %}
+docker inspect --format={% raw %}'{{.Config.Entrypoint}}'{% endraw %} confluentinc/ksqldb-server:{{ site.release }}
+docker inspect --format={% raw %}'{{.Config.Cmd}}'{% endraw %} confluentinc/ksqldb-server:{{ site.release }}
 ```
 
 Your output should resemble:

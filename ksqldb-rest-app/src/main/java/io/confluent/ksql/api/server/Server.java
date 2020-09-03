@@ -331,7 +331,7 @@ public class Server {
       } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
         options.setKeyStoreOptions(
             new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
-      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+      } else if (keyStoreType.equalsIgnoreCase(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
         options.setPfxKeyCertOptions(
             new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
       }

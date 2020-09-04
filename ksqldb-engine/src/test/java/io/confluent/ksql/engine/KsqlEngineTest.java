@@ -36,13 +36,13 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -63,6 +63,7 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -74,7 +75,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,6 +82,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
@@ -711,6 +712,7 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
+    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
   }
 
@@ -756,10 +758,63 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
+    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
     verify(schemaRegistryClient, times(2)).deleteSubject(any());
     verify(schemaRegistryClient).deleteSubject(internalTopic1, true);
     verify(schemaRegistryClient).deleteSubject(internalTopic2, true);
     verify(schemaRegistryClient, never()).deleteSubject("subject2");
+  }
+
+  @Test
+  public void shouldCleanUpConsumerGroupsOnClose() {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table bar as select * from test2;",
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
+
+    query.start();
+
+    // When:
+    query.close();
+
+    // Then:
+    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
+    final Set<String> deletedConsumerGroups = (
+        (FakeKafkaConsumerGroupClient) serviceContext.getConsumerGroupClient()
+    ).getDeletedConsumerGroups();
+
+    assertThat(
+        Iterables.getOnlyElement(deletedConsumerGroups),
+        containsString("_confluent-ksql-default_query_CTAS_BAR_0"));
+  }
+
+  @Test
+  public void shouldCleanUpTransientConsumerGroupsOnClose() {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        "select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    query.start();
+
+    // When:
+    query.close();
+
+    // Then:
+    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
+    final Set<String> deletedConsumerGroups = (
+        (FakeKafkaConsumerGroupClient) serviceContext.getConsumerGroupClient()
+    ).getDeletedConsumerGroups();
+
+    assertThat(
+        Iterables.getOnlyElement(deletedConsumerGroups),
+        containsString("_confluent-ksql-default_transient_"));
   }
 
   @Test
@@ -797,6 +852,7 @@ public class KsqlEngineTest {
     query.get(0).close();
 
     // Then (there are no transient queries, so no internal topics should be deleted):
+    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
     verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
 
@@ -823,6 +879,7 @@ public class KsqlEngineTest {
     query.get(0).close();
 
     // Then:
+    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
     verify(schemaRegistryClient, times(2)).deleteSubject(any());
     verify(schemaRegistryClient, never()).deleteSubject(internalTopic1, true);
     verify(schemaRegistryClient, never()).deleteSubject(internalTopic2, true);

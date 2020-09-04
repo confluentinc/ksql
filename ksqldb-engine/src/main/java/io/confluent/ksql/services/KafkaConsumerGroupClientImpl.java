@@ -19,10 +19,13 @@ import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KsqlGroupAuthorizationException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.Admin;
@@ -32,6 +35,8 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.GroupAuthorizationException;
+import org.apache.kafka.common.errors.GroupNotEmptyException;
+import org.apache.kafka.common.errors.RetriableException;
 
 public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
@@ -98,6 +103,25 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
       throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to list Kafka consumer groups offsets", e);
+    }
+  }
+
+  @Override
+  public void deleteConsumerGroups(final Set<String> groups) {
+    final AtomicInteger retryCount = new AtomicInteger(0);
+    try {
+      // it takes heartbeat.interval.ms after a consumer is closed for the broker
+      // to recognize that there are no more consumers in the consumer group - for
+      // that reason, we retry after 3 seconds (the default heartbeat.interval.ms)
+      // in the case that we get a GroupNotEmptyException
+      ExecutorUtil.executeWithRetries(
+          () -> adminClient.get().deleteConsumerGroups(groups).all().get(),
+          e -> (e instanceof RetriableException)
+              || (e instanceof GroupNotEmptyException && retryCount.getAndIncrement() < 5),
+          () -> Duration.of(3, ChronoUnit.SECONDS)
+      );
+    } catch (Exception e) {
+      throw new KafkaResponseGetFailedException("Failed to delete consumer groups: " + groups, e);
     }
   }
 }

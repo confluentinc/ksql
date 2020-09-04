@@ -33,6 +33,8 @@ public interface KafkaConsumerGroupClient {
 
   Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(String group);
 
+  void deleteConsumerGroups(Set<String> groups);
+
   /**
    * API POJOs
    */

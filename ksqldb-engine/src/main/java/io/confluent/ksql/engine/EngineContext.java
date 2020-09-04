@@ -35,7 +35,6 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
-import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -72,19 +71,22 @@ final class EngineContext {
   private final KsqlParser parser;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> allLiveQueries = ConcurrentHashMap.newKeySet();
+  private final QueryCleanupService cleanupService;
 
   static EngineContext create(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
-      final QueryIdGenerator queryIdGenerator
+      final QueryIdGenerator queryIdGenerator,
+      final QueryCleanupService cleanupService
   ) {
     return new EngineContext(
         serviceContext,
         processingLogContext,
         metaStore,
         queryIdGenerator,
-        new DefaultKsqlParser()
+        new DefaultKsqlParser(),
+        cleanupService
     );
   }
 
@@ -93,7 +95,8 @@ final class EngineContext {
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final KsqlParser parser
+      final KsqlParser parser,
+      final QueryCleanupService cleanupService
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.metaStore = requireNonNull(metaStore, "metaStore");
@@ -103,6 +106,7 @@ final class EngineContext {
     this.persistentQueries = new ConcurrentHashMap<>();
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.parser = requireNonNull(parser, "parser");
+    this.cleanupService = requireNonNull(cleanupService, "cleanupService");
   }
 
   EngineContext createSandbox(final ServiceContext serviceContext) {
@@ -110,7 +114,8 @@ final class EngineContext {
         SandboxedServiceContext.create(serviceContext),
         processingLogContext,
         metaStore.copy(),
-        queryIdGenerator.createSandbox()
+        queryIdGenerator.createSandbox(),
+        cleanupService
     );
 
     persistentQueries.forEach((queryId, query) ->
@@ -270,14 +275,19 @@ final class EngineContext {
   ) {
     final String applicationId = query.getQueryApplicationId();
     if (query.hasEverBeenStarted()) {
-      SchemaRegistryUtil.cleanupInternalTopicSchemas(
-          applicationId,
-          serviceContext.getSchemaRegistryClient(),
-          query instanceof TransientQueryMetadata);
-
-      serviceContext.getTopicClient().deleteInternalTopics(applicationId);
+      cleanupService.addCleanupTask(
+          new QueryCleanupService.QueryCleanupTask(
+              serviceContext,
+              applicationId,
+              query instanceof TransientQueryMetadata
+          ));
     }
 
     StreamsErrorCollector.notifyApplicationClose(applicationId);
+  }
+
+  public void close(final boolean closeQueries) {
+    getAllLiveQueries().forEach(closeQueries ? QueryMetadata::close : QueryMetadata::stop);
+
   }
 }

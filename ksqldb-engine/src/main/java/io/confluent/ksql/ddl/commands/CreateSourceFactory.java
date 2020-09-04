@@ -116,7 +116,7 @@ public final class CreateSourceFactory {
         buildTimestampColumn(ksqlConfig, props, schema);
     final DataSource dataSource = metaStore.getSource(sourceName);
 
-    if (dataSource != null) {
+    if (dataSource != null && !statement.isOrReplace()) {
       final String sourceType = dataSource.getDataSourceType().getKsqlType();
       if (!statement.isNotExists()) {
         throw new KsqlException(

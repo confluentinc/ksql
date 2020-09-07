@@ -24,4 +24,6 @@ public interface ErrorMessages {
   String schemaRegistryUnconfiguredErrorMessage(Exception e);
 
   String commandRunnerDegradedErrorMessage();
+
+  String metaStoreCorruptedErrorMessage();
 }

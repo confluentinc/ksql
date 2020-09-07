@@ -60,7 +60,7 @@ public class DistributingExecutor {
   private final CommandIdAssigner commandIdAssigner;
   private final ReservedInternalTopics internalTopics;
   private final Errors errorHandler;
-  private final Supplier<Boolean> commandRunnerDegraded;
+  private final Supplier<String> commandRunnerWarning;
 
   public DistributingExecutor(
       final KsqlConfig ksqlConfig,
@@ -70,7 +70,7 @@ public class DistributingExecutor {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final ValidatedCommandFactory validatedCommandFactory,
       final Errors errorHandler,
-      final Supplier<Boolean> commandRunnerDegraded
+      final Supplier<String> commandRunnerWarning
   ) {
     this.commandQueue = commandQueue;
     this.distributedCmdResponseTimeout =
@@ -86,8 +86,8 @@ public class DistributingExecutor {
     this.internalTopics =
         new ReservedInternalTopics(Objects.requireNonNull(ksqlConfig, "ksqlConfig"));
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
-    this.commandRunnerDegraded =
-        Objects.requireNonNull(commandRunnerDegraded, "commandRunnerDegraded");
+    this.commandRunnerWarning =
+        Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
 
   /**
@@ -105,10 +105,11 @@ public class DistributingExecutor {
       final KsqlExecutionContext executionContext,
       final KsqlSecurityContext securityContext
   ) {
-    if (commandRunnerDegraded.get()) {
+    final String commandRunnerWarningString = commandRunnerWarning.get();
+    if (!commandRunnerWarningString.equals("")) {
       throw new KsqlServerException("Failed to handle Ksql Statement."
           + System.lineSeparator()
-          + errorHandler.commandRunnerDegradedErrorMessage());
+          + commandRunnerWarningString);
     }
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, securityContext.getServiceContext())

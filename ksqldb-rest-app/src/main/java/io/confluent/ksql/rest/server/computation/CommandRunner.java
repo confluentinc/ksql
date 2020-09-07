@@ -82,7 +82,8 @@ public class CommandRunner implements Closeable {
   public enum CommandRunnerStatus {
     RUNNING,
     ERROR,
-    DEGRADED
+    DEGRADED,
+    CORRUPTED
   }
 
   public CommandRunner(
@@ -311,6 +312,10 @@ public class CommandRunner implements Closeable {
   }
 
   public CommandRunnerStatus checkCommandRunnerStatus() {
+    if (commandStore.isCorrupted()) {
+      return CommandRunnerStatus.CORRUPTED;
+    }
+
     if (incompatibleCommandDetected) {
       return CommandRunnerStatus.DEGRADED;
     }

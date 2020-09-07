@@ -188,6 +188,7 @@ public final class KsqlRestApplication implements Executable {
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
   private final QueryMonitor queryMonitor;
   private final DenyListPropertyValidator denyListPropertyValidator;
+  private final CommandTopicBackup commandTopicBackup;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -224,7 +225,8 @@ public final class KsqlRestApplication implements Executable {
       final Optional<LagReportingAgent> lagReportingAgent,
       final Vertx vertx,
       final QueryMonitor ksqlQueryMonitor,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final CommandTopicBackup commandTopicBackup
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -253,6 +255,8 @@ public final class KsqlRestApplication implements Executable {
     this.vertx = requireNonNull(vertx, "vertx");
     this.denyListPropertyValidator =
         requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.commandTopicBackup =
+        requireNonNull(commandTopicBackup, "commandTopicBackup");
 
     this.serverInfoResource =
         new ServerInfoResource(serviceContext, ksqlConfigNoPort, commandRunner);
@@ -656,6 +660,20 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
+    CommandTopicBackup commandTopicBackup = new CommandTopicBackupNoOp();
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ENABLE_METASTORE_BACKUP)) {
+      if (ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION).isEmpty()) {
+        throw new KsqlException(String.format("Metastore backups is enabled, but location "
+            + "is empty. Please specify the location with the property '%s'",
+            KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION));
+      }
+
+      commandTopicBackup = new CommandTopicBackupImpl(
+          ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION),
+          commandTopicName)
+      ;
+    }
+
     final CommandStore commandStore = CommandStore.Factory.create(
         ksqlConfig,
         commandTopicName,
@@ -663,7 +681,8 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
             restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandProducerProperties())
+            restConfig.getCommandProducerProperties()),
+        commandTopicBackup
     );
 
     final InteractiveStatementExecutor statementExecutor =
@@ -791,7 +810,8 @@ public final class KsqlRestApplication implements Executable {
         lagReportingAgent,
         vertx,
         queryMonitor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandTopicBackup
     );
   }
 

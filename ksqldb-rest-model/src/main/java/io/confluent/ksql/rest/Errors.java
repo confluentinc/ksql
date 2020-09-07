@@ -230,6 +230,10 @@ public final class Errors {
     return errorMessages.commandRunnerDegradedErrorMessage();
   }
 
+  public String commandRunnerCorruptedErrorMessage() {
+    return errorMessages.metaStoreCorruptedErrorMessage();
+  }
+
   public EndpointResponse generateResponse(
       final Exception e,
       final EndpointResponse defaultResponse

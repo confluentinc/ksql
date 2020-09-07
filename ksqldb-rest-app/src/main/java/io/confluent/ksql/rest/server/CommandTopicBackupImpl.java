@@ -59,6 +59,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   private BackupReplayFile replayFile;
   private List<Pair<CommandId, Command>> latestReplay;
   private int latestReplayIdx;
+  private boolean corruptionDetected;
 
   public CommandTopicBackupImpl(final String location, final String topicName) {
     this(location, topicName, CURRENT_MILLIS_TICKER);
@@ -92,6 +93,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     }
 
     latestReplayIdx = 0;
+    corruptionDetected = false;
     LOG.info("Command topic will be backup on file: {}", replayFile.getPath());
   }
 
@@ -147,16 +149,20 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   }
 
   void writeCommandToBackup(final ConsumerRecord<CommandId, Command> record) {
+//    if (corruptionDetected) {
+//      LOG.warn("Failure to write command topic data to backup. Corruption detected in command topic.");
+//    }
+
     if (isRestoring()) {
       if (isRecordInLatestReplay(record)) {
         // Ignore backup because record was already replayed
         return;
       } else {
-        LOG.info("Previous command topic backup does not match the new command topic data. "
-            + "A new backup file will be created.");
-        createNewBackupFile();
-        latestReplay.clear();
-        LOG.info("New backup file created: {}", replayFile.getPath());
+        LOG.info("Previous command topic backup does not match the new command topic data.");
+        corruptionDetected = true;
+//        createNewBackupFile();
+//        latestReplay.clear();
+//        LOG.info("New backup file created: {}", replayFile.getPath());
       }
     } else if (latestReplay.size() > 0) {
       // clear latest replay from memory
@@ -173,26 +179,14 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     }
   }
 
-  private void createNewBackupFile() {
-    try {
-      replayFile.close();
-    } catch (IOException e) {
-      LOG.warn("Couldn't close the current backup file {}. Error = {}",
-          replayFile.getPath(), e.getMessage());
-    }
+  @Override
+  public boolean commandTopicCorruption() {
+    return corruptionDetected;
+  }
 
-    replayFile = newReplayFile();
-
-    if (latestReplay.size() > 0 && latestReplayIdx > 0) {
-      try {
-        replayFile.write(latestReplay.subList(0, latestReplayIdx));
-      } catch (final IOException e) {
-        LOG.warn("Couldn't write the latest replayed commands to the new backup file {}. "
-                + "Make sure the file exists and has permissions to write. "
-                + "KSQL must be restarted afterwards to complete the backup process. Error = {}",
-            replayFile.getPath(), e.getMessage());
-      }
-    }
+  @Override
+  public boolean backupExists() {
+    return latestReplayFile().isPresent();
   }
 
   @VisibleForTesting

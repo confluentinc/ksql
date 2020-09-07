@@ -66,7 +66,7 @@ public class EarliestByOffsetUdafTest {
   @Test
   public void shouldThrowExceptionForInvalidN() {
     try {
-      final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset
+      EarliestByOffset
           // Given:
           .earliestN(STRUCT_LONG, -1);
 

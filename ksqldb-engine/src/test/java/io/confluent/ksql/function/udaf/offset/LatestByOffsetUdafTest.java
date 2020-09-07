@@ -66,7 +66,7 @@ public class LatestByOffsetUdafTest {
   @Test
   public void shouldThrowExceptionForInvalidN() {
     try {
-      final Udaf<Integer, List<Struct>, List<Integer>> udaf = LatestByOffset
+      LatestByOffset
           // Given:
           .latestN(STRUCT_LONG, -1);
 
@@ -260,7 +260,7 @@ public class LatestByOffsetUdafTest {
         .aggregate(543L, res);
     
     List<Struct> res3 = udaf
-        .aggregate(654L, res);
+        .aggregate(654L, res2);
     
     // Then:
     assertThat(res3.size(), is(3));

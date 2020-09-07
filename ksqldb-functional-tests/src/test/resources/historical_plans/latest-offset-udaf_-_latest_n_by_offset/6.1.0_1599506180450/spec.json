@@ -1,15 +1,27 @@
 {
   "version" : "6.1.0",
-  "timestamp" : 1597265576180,
-  "path" : "query-validation-tests/earliest-offset-udaf.json",
+  "timestamp" : 1599506180450,
+  "path" : "query-validation-tests/latest-offset-udaf.json",
   "schemas" : {
-    "CTAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.GroupBy" : "STRUCT<ID BIGINT, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR, KSQL_INTERNAL_COL_6 INT> NOT NULL",
-    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : "STRUCT<ID BIGINT, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 VARCHAR, KSQL_AGG_VARIABLE_0 ARRAY<STRUCT<SEQ BIGINT, VAL INT>>, KSQL_AGG_VARIABLE_1 ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>, KSQL_AGG_VARIABLE_2 ARRAY<STRUCT<SEQ BIGINT, VAL DOUBLE>>, KSQL_AGG_VARIABLE_3 ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>, KSQL_AGG_VARIABLE_4 ARRAY<STRUCT<SEQ BIGINT, VAL VARCHAR>>> NOT NULL",
-    "CTAS_OUTPUT_0.OUTPUT" : "STRUCT<L0 ARRAY<INT>, L1 ARRAY<BIGINT>, L2 ARRAY<DOUBLE>, L3 ARRAY<BOOLEAN>, L4 ARRAY<VARCHAR>> NOT NULL"
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING, `KSQL_INTERNAL_COL_6` INTEGER",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` INTEGER>>, `KSQL_AGG_VARIABLE_1` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` BIGINT>>, `KSQL_AGG_VARIABLE_2` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` DOUBLE>>, `KSQL_AGG_VARIABLE_3` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` BOOLEAN>>, `KSQL_AGG_VARIABLE_4` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` STRING>>",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>, `L1` ARRAY<BIGINT>, `L2` ARRAY<DOUBLE>, `L3` ARRAY<BOOLEAN>, `L4` ARRAY<STRING>",
+      "serdeOptions" : [ ]
+    }
   },
   "testCase" : {
-    "name" : "earliest n by offset",
+    "name" : "latest n by offset",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : 0,
@@ -49,16 +61,6 @@
         "F2" : 2.23,
         "F3" : false,
         "F4" : "bar"
-      }
-    }, {
-      "topic" : "test_topic",
-      "key" : 0,
-      "value" : {
-        "F0" : 31,
-        "F1" : 3000,
-        "F2" : 3.23,
-        "F3" : false,
-        "F4" : "baz"
       }
     } ],
     "outputs" : [ {
@@ -101,16 +103,6 @@
         "L3" : [ true, false ],
         "L4" : [ "foo", "bar" ]
       }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 0,
-      "value" : {
-        "L0" : [ 12, 21 ],
-        "L1" : [ 1000, 2000 ],
-        "L2" : [ 1.23, 2.23 ],
-        "L3" : [ true, false ],
-        "L4" : [ "foo", "bar" ]
-      }
     } ],
     "topics" : [ {
       "name" : "OUTPUT",
@@ -121,11 +113,28 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2) AS L0, EARLIEST_BY_OFFSET(F1, 2) AS L1, EARLIEST_BY_OFFSET(F2, 2) AS L2, EARLIEST_BY_OFFSET(F3, 2) AS L3, EARLIEST_BY_OFFSET(F4, 2) AS L4 FROM INPUT GROUP BY ID;" ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, LATEST_BY_OFFSET(F0, 2) AS L0, LATEST_BY_OFFSET(F1, 2) AS L1, LATEST_BY_OFFSET(F2, 2) AS L2, LATEST_BY_OFFSET(F3, 2) AS L3, LATEST_BY_OFFSET(F4, 2) AS L4 FROM INPUT GROUP BY ID;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>, `L1` ARRAY<BIGINT>, `L2` ARRAY<DOUBLE>, `L3` ARRAY<BOOLEAN>, `L4` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"
@@ -146,7 +155,7 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
             "formatInfo" : {
               "format" : "KAFKA"

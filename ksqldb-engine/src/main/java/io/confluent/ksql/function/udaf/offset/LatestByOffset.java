@@ -161,7 +161,7 @@ public final class LatestByOffset {
   static <T> Udaf<T, List<Struct>, List<T>> latestN(
       final Schema structSchema,
       final int latestN
-      ) {
+  ) {
     
     if (latestN <= 0) {
       throw new KsqlFunctionException("earliestN must be 1 or greater");
@@ -180,9 +180,10 @@ public final class LatestByOffset {
         }
 
         aggregate.add(createStruct(structSchema, current));
-        int currentSize = aggregate.size();
-        if(currentSize > latestN)
+        final int currentSize = aggregate.size();
+        if (currentSize > latestN) {
           return aggregate.subList(currentSize - latestN, currentSize);
+        }
         return aggregate;
       }
 
@@ -192,7 +193,7 @@ public final class LatestByOffset {
         merged.addAll(aggOne);
         merged.addAll(aggTwo);
         merged.sort(INTERMEDIATE_STRUCT_COMPARATOR);
-        int start = merged.size() > latestN ? (merged.size() - latestN) : 0;
+        final int start = merged.size() > latestN ? (merged.size() - latestN) : 0;
         return merged.subList(start, merged.size());
       }
 

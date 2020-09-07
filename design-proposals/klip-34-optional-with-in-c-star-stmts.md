@@ -73,7 +73,7 @@ and never worry about it again.  Alternatively, users could set the default in t
 * Addition of new server configuration to provide a default for value format.
 * Removal of requirement for `VALUE_FORMAT` property in the `WITH` clause of CT/CS statements, where
   the server configuration provides a default.
-* Removal of requirement for `KAFKA_FORMAT` property in the `WITH` clause of CT/CS statements.
+* Removal of requirement for `KAFKA_TOPIC` property in the `WITH` clause of CT/CS statements.
 
 ## What is not in scope
 

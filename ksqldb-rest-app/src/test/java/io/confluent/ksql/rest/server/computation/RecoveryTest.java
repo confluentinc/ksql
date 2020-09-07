@@ -176,6 +176,11 @@ public class RecoveryTest {
     }
 
     @Override
+    public boolean isCorrupted() {
+      return false;
+    }
+
+    @Override
     public void wakeup() {
     }
 

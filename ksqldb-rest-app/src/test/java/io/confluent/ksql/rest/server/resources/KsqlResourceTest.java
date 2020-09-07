@@ -181,6 +181,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -303,6 +304,8 @@ public class KsqlResourceTest {
   private Errors errorsHandler;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private Supplier<String> commandRunnerWarning;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -414,7 +417,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunnerWarning
     );
 
     // When:
@@ -445,7 +449,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunnerWarning
     );
 
     // When:
@@ -2225,7 +2230,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunnerWarning
     );
 
     ksqlResource.configure(ksqlConfig);
@@ -2269,7 +2275,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunnerWarning
     );
     final Map<String, Object> props = new HashMap<>(ksqlRestConfig.getKsqlConfigProperties());
     props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,

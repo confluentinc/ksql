@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
+import io.confluent.ksql.rest.server.CommandTopicBackup;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -90,6 +91,8 @@ public class CommandStoreTest {
   private Serializer<Command> commandSerializer;
   @Mock
   private Deserializer<CommandId> commandIdDeserializer;
+  @Mock
+  private CommandTopicBackup commandTopicBackup;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -150,7 +153,8 @@ public class CommandStoreTest {
         TIMEOUT,
         commandIdSerializer,
         commandSerializer,
-        commandIdDeserializer
+        commandIdDeserializer,
+        commandTopicBackup
     );
   }
 

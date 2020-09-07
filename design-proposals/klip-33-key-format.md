@@ -49,10 +49,11 @@ To open ksqlDB up to new problems spaces and to drive adoption, ksqlDB should su
     * `DELIMITED`: single key columns as a single string value.
     * `JSON` / `JSON_SR`: single key column as an anonymous value, i.e. not within a JSON object.
     * `AVRO`: single key column as an anonymous value, i.e. not within an Avro record.
-    * `NULL`: special format indicating no data, or ignored data, e.g. a key-less stream.
+    * `NONE`: special format indicating no data, or ignored data, e.g. a key-less stream.
   * Full support of these key formats for all supported SQL syntax.
   * Automatic repartitioning of streams and tables for joins where key formats do not match.
-  * Support for reading & writing key schemas to & from the schema registry. 
+  * Support for reading & writing key schemas to & from the schema registry.
+  * Enhancements to QTT and the ksqlDB testing tool to allow for keys with formats beyond KAFKA. 
 
 ## What is not in scope
 
@@ -132,7 +133,7 @@ CREATE STREAM BIDS (
   );
 
 -- Change the key format of a stream:
-CREATE STREAM AVRP_BIDS 
+CREATE STREAM AVRO_BIDS 
   WITH WITH (
     KEY_FORMAT='AVRO'
   ) AS
@@ -175,24 +176,35 @@ strategy has been used.
 The introduction of additional key formats means that while the deserialized key from both sides of 
 a join may match, the serialized binary data may differ if the key serialization format is different.
 To accommodate this, ksqlDB will automagically repartition one side of a join to match the key
-format of the other.  
+format of the other.
+
+Many joins require an implicit repartition of one or both sides to facilitate the join. In such 
+situations the change of key format can be performed in the same repartitioned step, avoiding any
+additional re-partitions. This means that joining sources with different key formats will only 
+require an implicit repartition to converge the key formats _if_ neither side is being repartitioned
+for any reason.
 
 Choosing which side to reparation can not be driven by the size of the data, as in a traditional 
-database system, as the size of the data is potentially infinite and the throughput of each side of
-a join, unknown.
+database system, as the size of the data is unknown, likely infinite. Ideally, for a streaming 
+system it is the rate of change of the data, i.e. the throughput, that would drive the choice. 
+Unfortunately, this too can not be known upfront.  For this reason, we propose repartitioning based
+on the order of sources within the query, with the source on the _right_ being repartitioned.
 
-Hence the optimiser will base which side to repartition using an algorithm to minimise the number
-of reparations.  For an N way join, the engine will determine which sources need to be repartitioned
-anyway, as they are joining on something other than the key, and which don't. Changing the key 
-format of a source that needs to be repartitioned anyway is 'free'. Changing the key format of a 
-source that doesn't already need a repartition will have a fixed cost.  The formats with the lowest
-repartitioning cost wins. 
+A benefit of making the choice order-based is that, once the rule is learned, users can predicate 
+and control which side is re-partitioned in some situations, i.e. stream-stream and table-table joins.
+
+Repartitioning the right side was chosen over the left, as it will mean stream-table joins will 
+repartition the table, which we propose will _generally_ see a lower throughput of updates to the 
+stream side. 
 
 Such repartitioning is possible and safe... ish, even for tables, because the logical key of the 
 data will not have changed, only the serialization format. This ensures the ordering of updates to 
-a specific key are maintained across the repartition. Of course, the repartitioning can, and 
-probably will, introduce out-of-order data, as the records are shuffled across partitions. This 
-phenomenon already exists for other implicit repartitions, and will be documented.
+a specific key are maintained across the repartition. Of course, the repartitioning would introduce 
+cross-key out-of-order data, as the records are shuffled across partitions. That is to say that 
+even if the source partitions where correctly ordered by time, the re-partitioned partitions would 
+see out-of-order records, though per-key ordering would be maintained. Thus time-tracking 
+("stream-time"), grace-period and retention-time might be affected. However, this  phenomenon 
+already exists, as is deemed acceptable, for other implicit re-partitions.
 
 #### Single key wrapping   
 
@@ -204,10 +216,67 @@ below for more info / background.
 
 #### Key-less streams
 
-A new `NULL` format will be introduced to allow users to provide a `KEY_FORMAT` that informs ksqlDB
-to ignore the key.  This format will be rejected as a `VALUE_FORMAT` for now, as ksqlDB does not yet
+A new `NONE` format will be introduced to allow users to provide a `KEY_FORMAT` that informs ksqlDB
+to ignore the key. This format will be rejected as a `VALUE_FORMAT` for now, as ksqlDB does not yet
 support value-less streams and tables. See [Schema Inference](#schema-inference) below for more 
 info / background.
+
+This format is predominately being added to allow users to declare key-less streams when the new 
+`ksql.persistence.default.format.key` system configuration is set to a format that supports schema
+inference, i.e. loading the schema from the schema registry. If a user were not to explicitly set
+the key format to `NONE` and attempt to create a stream, ksqlDB would attempt to read the key schema
+from the schema registry, and report an error if the schema did not exist. The `NONE` format will 
+allow users to override the default key format and explicitly inform ksqlDB to ignore the key:
+
+```sql
+SET 'ksql.persistence.default.format.key'='AVRO';
+
+-- Only the value columns of CLICKS will be loaded from the schema registry.
+CREATE STREAM CLICKS 
+ WITH (
+   key_format='NONE',  -- Informs kdqlDB to ignore the key
+   value_format='AVRO',
+   ...
+);
+```
+
+Declaring a table with key format `NONE` will result in an error.
+
+Defining key columns IN `CREATE TABLE` or `CREATE STREAM` statements where the key format is `NONE` 
+will result in an error:
+
+```sql
+CREATE TABLE USER (
+   ID INT PRIMARY KEY, 
+   NAME STRING
+ ) WITH (
+   key_format='NONE'  -- Error! Can't define key columns with this format
+   ...
+)  
+``` 
+
+`CREATE AS` statements that set the key, i.e. those containing `GROUP BY`, `PARTITION BY` and 
+`JOIN`, where the source has a `NONE` key format, and which do not explicitly define a key format, 
+will pick up their key format from the new `ksql.persistence.default.format.key` system 
+configuration. If this setting is not set, the statement will generate an error.
+
+```sql
+CREATE STREAM KEY_LESS (
+   NAME STRING
+ ) WITH (
+   key_format='NONE',
+   ...
+);
+
+-- Table T will get key format from the 'ksql.persistence.default.format.key' system config. 
+-- If the config is not set, an error will be generated. 
+CREATE TABLE T AS 
+  SELECT 
+    NAME, 
+    COUNT()
+  FROM KEY_LESS
+  GROUP BY NAME;
+```  
 
 ## Test plan
 
@@ -235,7 +304,8 @@ The KLIP will be broken down into the following deliverables:
         * `DECIMAL`
         * `BOOLEAN`
     * Full support of the key format for all supported SQL syntax.  
-1. **NULL format**: Supported on keys only. Needed to support key-less streams once we have SR integration.
+    * Enhancements to QTT and the ksqlDB testing tool
+1. **NONE format**: Supported on keys only. Needed to support key-less streams once we have SR integration.
 1. **Schema Registry support**: Adds support for reading and writing schemas to and from the schema
    registry.
 1. **JSON_SR support** Adds support for the `JSON_SR` key format, inc. schema registry integration.
@@ -362,7 +432,7 @@ If the key format also supports schema inference as well, then this would become
 --- table created with keys and values using schema inference.
 CREATE TABLE FOO WITH (
    KAFKA_TOPIC='foo',
-   KEY_FORMAT='KAFKA',
+   KEY_FORMAT='AVRO',
    VALUE_FORMAT='AVRO'
 );
 ```
@@ -389,7 +459,8 @@ But what happens once users can supply the key format? Key format currently defa
 it doesn't make sense to force users to set `KEY_FORMAT` to `KAFKA` if there is no key!
 
 ```sql
--- BAD!
+-- Bad UX: forcing users to set the key format to KAFKA if there are no key columns, or the key 
+-- data is in a format ksqlDB can't read.
 CREATE STREAM FOO WITH (
     KAFKA_TOPIC='foo',
     KEY_FORMAT='KAFKA',
@@ -402,35 +473,48 @@ system configuration, that supports schema inference. How then does a user decla
 stream as opposed to a stream where the key schema is loaded from the Schema Registry? 
 
 ```sql
-SET 'ksql.persistence.default.format.key''='AVRO';' 
+SET 'ksql.persistence.default.format.key'='AVRO'; 
 
--- Is this key-less or loading its key from SR?
+-- This would attempt to load the key schema from the Schema Registry: 
 CREATE STREAM FOO WITH (
     KAFKA_TOPIC='foo',
     VALUE_FORMAT='AVRO'
 );
 ```
 
-We propose adding a `NULL` key format to allow users to explicitly set the key format when they
+We propose adding a `NONE` key format to allow users to explicitly set the key format when they
 intend a stream to be key-less:
 
 ```sql
 -- explicitly key-less stream:
 CREATE STREAM FOO WITH (
     KAFKA_TOPIC='foo',
-    KEY_FORMAT='NULL',
+    KEY_FORMAT='NONE',
     VALUE_FORMAT='AVRO'
 );
 ```
 
-It will still be possible to define a key-less stream by not providing any key-column for key
-formats don't support schema inference:
+Declaring a stream with a key format that does not support schema inference, and with no key columns,
+will result in an error:
 
 ```sql
--- implicitly key-less stream:
 CREATE STREAM FOO WITH (
     KAFKA_TOPIC='foo',
-    KEY_FORMAT='KAFKA',
+    KEY_FORMAT='KAFKA', -- Error: no key column defined!
+    VALUE_FORMAT='AVRO'
+);
+```
+
+However, declaring a stream without any key columns and without an _explicit_ key format, where the 
+default key does not support schema inference, will _not_ result in an error. This is required to
+maintain backwards compatibility for current statements defining key-less streams. 
+ 
+```sql
+SET 'ksql.persistence.default.format.key'='KAFKA';
+
+-- Creates a key-less stream: 
+CREATE STREAM FOO WITH (
+    KAFKA_TOPIC='foo',
     VALUE_FORMAT='AVRO'
 );
 ```

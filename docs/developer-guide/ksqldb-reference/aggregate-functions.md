@@ -110,6 +110,19 @@ Stream
 Return the earliest value for a given column. Earliest here is defined as the value in the partition
 with the lowest offset. Rows that have `col1` set to null are ignored.
 
+
+Since: 0.13.0
+
+```sql
+EARLIEST_BY_OFFSET(col1,earliestN)
+```
+
+Stream
+
+Return the earliest N values for a given column. Earliest here is defined as the values in the partition
+with the lowest offsets. Rows that have `col1` set to null are ignored.
+
+
 ## `HISTOGRAM`
 
 Since: -
@@ -143,6 +156,17 @@ LATEST_BY_OFFSET(col1)
 Stream
 
 Return the latest value for a given column. Latest here is defined as the value in the partition
+with the greatest offset. Rows that have `col1` set to null are ignored.
+
+Since: 0.13.0
+
+```sql
+LATEST_BY_OFFSET(col1,latestN)
+```
+
+Stream
+
+Returns the latest N values for a given column as an array of values. Latest here is also defined
 with the greatest offset. Rows that have `col1` set to null are ignored.
 
 ## `MAX`

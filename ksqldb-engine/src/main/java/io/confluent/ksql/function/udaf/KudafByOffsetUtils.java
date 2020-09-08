@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf;
 
+import java.util.Comparator;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -47,8 +48,8 @@ public final class KudafByOffsetUtils {
       .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(VAL_FIELD, Schema.OPTIONAL_STRING_SCHEMA)
       .build();
-
-  public static int compareStructs(final Struct struct1, final Struct struct2) {
+  
+  public static final Comparator<Struct> INTERMEDIATE_STRUCT_COMPARATOR = (struct1, struct2) -> {
     // Deal with overflow - we assume if one is positive and the other negative then the sequence
     // has overflowed - in which case the latest is the one with the smallest sequence
     final long sequence1 = struct1.getInt64(SEQ_FIELD);
@@ -60,7 +61,7 @@ public final class KudafByOffsetUtils {
     } else {
       return Long.compare(sequence1, sequence2);
     }
-  }
+  };
 
   private KudafByOffsetUtils() {
 

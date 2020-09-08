@@ -25,6 +25,7 @@ public final class LoggingSerializer<T> implements Serializer<T> {
 
   private final Serializer<T> delegate;
   private final ProcessingLogger processingLogger;
+  private boolean isKey;
 
   public LoggingSerializer(
       final Serializer<T> delegate,
@@ -36,6 +37,7 @@ public final class LoggingSerializer<T> implements Serializer<T> {
 
   @Override
   public void configure(final Map<String, ?> configs, final boolean isKey) {
+    this.isKey = isKey;
     delegate.configure(configs, isKey);
   }
 
@@ -44,7 +46,7 @@ public final class LoggingSerializer<T> implements Serializer<T> {
     try {
       return delegate.serialize(topic, data);
     } catch (final RuntimeException e) {
-      processingLogger.error(new SerializationError<>(e, Optional.of(data), topic));
+      processingLogger.error(new SerializationError<>(e, Optional.of(data), topic, isKey));
       throw e;
     }
   }

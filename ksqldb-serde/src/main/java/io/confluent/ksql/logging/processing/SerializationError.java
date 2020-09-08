@@ -18,8 +18,6 @@ package io.confluent.ksql.logging.processing;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
-import io.confluent.ksql.util.ErrorMessageUtil;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -30,15 +28,18 @@ public class SerializationError<T> implements ProcessingLogger.ErrorMessage {
   private final Throwable exception;
   private final Optional<T> record;
   private final String topic;
+  private final boolean isKey;
 
   public SerializationError(
       final Throwable exception,
       final Optional<T> record,
-      final String topic
+      final String topic,
+      final boolean isKey
   ) {
     this.exception = requireNonNull(exception, "exception");
     this.record = requireNonNull(record, "record");
     this.topic = requireNonNull(topic, "topic");
+    this.isKey = isKey;
   }
 
   @Override
@@ -58,30 +59,32 @@ public class SerializationError<T> implements ProcessingLogger.ErrorMessage {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final SerializationError<?> that = (SerializationError) o;
+    final SerializationError<?> that = (SerializationError<?>) o;
     return Objects.equals(exception, that.exception)
         && Objects.equals(record, that.record)
-        && Objects.equals(topic, that.topic);
+        && Objects.equals(topic, that.topic)
+        && isKey == that.isKey;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(exception, record, topic);
+    return Objects.hash(exception, record, topic, isKey);
   }
 
   private Struct serializationError(final ProcessingLogConfig config) {
     final Struct serializationError = new Struct(MessageType.SERIALIZATION_ERROR.getSchema())
         .put(
+            ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_TARGET,
+            LoggingSerdeUtil.getRecordComponent(isKey))
+        .put(
             ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_MESSAGE,
             exception.getMessage())
         .put(
             ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_CAUSE,
-            getCause()
-        )
+            LoggingSerdeUtil.getCause(exception))
         .put(
             ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_TOPIC,
-            topic
-        );
+            topic);
 
     if (config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
       serializationError.put(
@@ -91,11 +94,5 @@ public class SerializationError<T> implements ProcessingLogger.ErrorMessage {
     }
 
     return serializationError;
-  }
-
-  private List<String> getCause() {
-    final List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
-    cause.remove(0);
-    return cause;
   }
 }

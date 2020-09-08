@@ -19,6 +19,7 @@ import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_CAUSE;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_TARGET;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_MESSAGE;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_RECORD;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.SERIALIZATION_ERROR_FIELD_TOPIC;
@@ -29,6 +30,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.GenericRow;
 import java.util.Collections;
 import java.util.List;
@@ -56,7 +58,8 @@ public class SerializationErrorTest {
     final SerializationError<GenericRow> serError = new SerializationError<>(
         ERROR,
         Optional.of(RECORD),
-        TOPIC
+        TOPIC,
+        false
     );
 
     // When:
@@ -70,6 +73,10 @@ public class SerializationErrorTest {
         struct.get(ProcessingLogMessageSchema.TYPE),
         equalTo(ProcessingLogMessageSchema.MessageType.SERIALIZATION_ERROR.getTypeId()));
     final Struct serializationError = struct.getStruct(SERIALIZATION_ERROR);
+    assertThat(
+        serializationError.get(SERIALIZATION_ERROR_FIELD_TARGET),
+        equalTo("value")
+    );
     assertThat(
         serializationError.get(SERIALIZATION_ERROR_FIELD_MESSAGE),
         equalTo(ERROR.getMessage())
@@ -99,7 +106,7 @@ public class SerializationErrorTest {
   public void shouldSetEmptyRecordToNull() {
     // Given:
     final SerializationError<GenericRow> serError =
-        new SerializationError<>(ERROR, Optional.empty(), TOPIC);
+        new SerializationError<>(ERROR, Optional.empty(), TOPIC, false);
 
     // When:
     final SchemaAndValue msg = serError.get(LOGGING_CONFIG);
@@ -123,7 +130,8 @@ public class SerializationErrorTest {
     final SerializationError<GenericRow> serError = new SerializationError<>(
         ERROR,
         Optional.of(RECORD),
-        TOPIC
+        TOPIC,
+        false
     );
 
     // When:
@@ -136,5 +144,50 @@ public class SerializationErrorTest {
         equalTo(ProcessingLogMessageSchema.MessageType.SERIALIZATION_ERROR.getTypeId()));
     final Struct serializationError = struct.getStruct(SERIALIZATION_ERROR);
     assertThat(serializationError.get(SERIALIZATION_ERROR_FIELD_RECORD), is(nullValue()));
+  }
+
+  @Test
+  public void shouldBuildErrorWithKeyComponent() {
+    // Given:
+    final SerializationError<GenericRow> serError =
+        new SerializationError<>(ERROR, Optional.of(RECORD), TOPIC, true);
+
+    // When:
+    final SchemaAndValue msg = serError.get(LOGGING_CONFIG);
+
+    // Then:
+    final Struct struct = (Struct) msg.value();
+    final Struct serializationError = struct.getStruct(SERIALIZATION_ERROR);
+    assertThat(
+        serializationError.get(SERIALIZATION_ERROR_FIELD_TARGET),
+        equalTo("key")
+    );
+  }
+
+  @Test
+  public void shouldImplementHashCodeAndEquals() {
+    final Exception error1 = new Exception("error");
+    final Exception error2 = new Exception("different error");
+    new EqualsTester()
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.of(genericRow("some", "fields")), "topic", false),
+            new SerializationError<>(error1, Optional.of(genericRow("some", "fields")), "topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error2, Optional.of(genericRow("some", "fields")), "topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.of(genericRow("other", "fields")), "topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.empty(), "topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.of(genericRow("some", "fields")), "other_topic", false)
+        )
+        .addEqualityGroup(
+            new SerializationError<>(error1, Optional.of(genericRow("some", "fields")), "topic", true)
+        )
+        .testEquals();
   }
 }

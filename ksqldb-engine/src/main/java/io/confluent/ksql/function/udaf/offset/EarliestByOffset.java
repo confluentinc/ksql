@@ -44,7 +44,7 @@ import org.apache.kafka.connect.data.Struct;
 public final class EarliestByOffset {
 
   static final String DESCRIPTION =
-      "This function returns the oldest N value for the column, computed by offset.";
+      "This function returns the oldest N values for the column, computed by offset.";
 
   private EarliestByOffset() {
   }
@@ -89,7 +89,7 @@ public final class EarliestByOffset {
 
   @UdafFactory(description = "return the earliest value of a boolean column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
-  public static Udaf<Boolean, Struct, Boolean> earliestBooleans() {
+  public static Udaf<Boolean, Struct, Boolean> earliestBoolean() {
     return earliest(STRUCT_BOOLEAN);
   }
   

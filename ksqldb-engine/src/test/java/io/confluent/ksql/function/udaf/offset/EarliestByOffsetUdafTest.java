@@ -296,7 +296,7 @@ public class EarliestByOffsetUdafTest {
   @Test
   public void shouldComputeEarliestBoolean() {
     // Given:
-    final Udaf<Boolean, Struct, Boolean> udaf = EarliestByOffset.earliestBooleans();
+    final Udaf<Boolean, Struct, Boolean> udaf = EarliestByOffset.earliestBoolean();
 
     // When:
     Struct res = udaf

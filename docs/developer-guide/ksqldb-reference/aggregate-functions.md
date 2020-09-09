@@ -125,7 +125,8 @@ EARLIEST_BY_OFFSET(col1, earliestN, [ignoreNulls])
 
 Stream
 
-Return the earliest N values for a given column as an `ARRAY`. 'Earliest' is defined as the values 
+Return the earliest _N_ values for the specified column as an `ARRAY`. The earliest values
+
 in the partition with the lowest offsets.
 
 Optional parameter `ignoreNulls` controls if nulls are ignored or not. Defaulting

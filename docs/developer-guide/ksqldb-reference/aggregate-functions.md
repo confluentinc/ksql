@@ -170,7 +170,8 @@ Stream
 
 Return the latest value for the specified column. The latest value in the partition
 
-with the greatest offset. 
+has the largest offset. 
+
 
 The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
 

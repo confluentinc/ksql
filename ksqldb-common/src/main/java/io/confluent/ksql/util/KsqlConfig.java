@@ -303,13 +303,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_METASTORE_BACKUP_LOCATION_DOC = "Specify the directory where "
       + "KSQL metastore backup files are located.";
 
-  public static final String KSQL_METASTORE_BACKUP_HARD_FAIL = "ksql.metastore.backup.hard.fail";
-  public static final Boolean KSQL_METASTORE_BACKUP_HARD_FAIL_DEFAULT = true;
-  public static final String KSQL_METASTORE_BACKUP_HARD_FAIL_DOC =
-      "Enable hard failing when the metastore backup and command topic are inconsistent. "
-          + "The server will enter a degraded state if the command topic isn't present but the metastore "
-          + "back up is present, or the command topic and the metastore have conflicting commands";
-
   public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
   public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =

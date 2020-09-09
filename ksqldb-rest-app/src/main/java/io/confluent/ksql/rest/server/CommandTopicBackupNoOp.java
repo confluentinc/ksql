@@ -37,9 +37,4 @@ public class CommandTopicBackupNoOp implements CommandTopicBackup {
   public boolean commandTopicCorruption() {
     return false;
   }
-
-  @Override
-  public boolean backupExists() {
-    return false;
-  }
 }

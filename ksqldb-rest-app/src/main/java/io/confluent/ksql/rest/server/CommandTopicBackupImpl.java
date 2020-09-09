@@ -61,7 +61,9 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   private int latestReplayIdx;
   private boolean corruptionDetected;
 
-  public CommandTopicBackupImpl(final String location, final String topicName) {
+  public CommandTopicBackupImpl(
+      final String location,
+      final String topicName) {
     this(location, topicName, CURRENT_MILLIS_TICKER);
   }
 
@@ -149,9 +151,11 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   }
 
   void writeCommandToBackup(final ConsumerRecord<CommandId, Command> record) {
-//    if (corruptionDetected) {
-//      LOG.warn("Failure to write command topic data to backup. Corruption detected in command topic.");
-//    }
+    if (corruptionDetected) {
+      LOG.warn("Failure to write command topic data to backup. "
+          + "Corruption detected in command topic.");
+      return;
+    }
 
     if (isRestoring()) {
       if (isRecordInLatestReplay(record)) {
@@ -160,9 +164,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       } else {
         LOG.info("Previous command topic backup does not match the new command topic data.");
         corruptionDetected = true;
-//        createNewBackupFile();
-//        latestReplay.clear();
-//        LOG.info("New backup file created: {}", replayFile.getPath());
+        return;
       }
     } else if (latestReplay.size() > 0) {
       // clear latest replay from memory
@@ -182,11 +184,6 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   @Override
   public boolean commandTopicCorruption() {
     return corruptionDetected;
-  }
-
-  @Override
-  public boolean backupExists() {
-    return latestReplayFile().isPresent();
   }
 
   @VisibleForTesting

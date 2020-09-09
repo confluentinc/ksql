@@ -188,7 +188,6 @@ public final class KsqlRestApplication implements Executable {
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
   private final QueryMonitor queryMonitor;
   private final DenyListPropertyValidator denyListPropertyValidator;
-  private final CommandTopicBackup commandTopicBackup;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -225,8 +224,7 @@ public final class KsqlRestApplication implements Executable {
       final Optional<LagReportingAgent> lagReportingAgent,
       final Vertx vertx,
       final QueryMonitor ksqlQueryMonitor,
-      final DenyListPropertyValidator denyListPropertyValidator,
-      final CommandTopicBackup commandTopicBackup
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -255,8 +253,6 @@ public final class KsqlRestApplication implements Executable {
     this.vertx = requireNonNull(vertx, "vertx");
     this.denyListPropertyValidator =
         requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
-    this.commandTopicBackup =
-        requireNonNull(commandTopicBackup, "commandTopicBackup");
 
     this.serverInfoResource =
         new ServerInfoResource(serviceContext, ksqlConfigNoPort, commandRunner);
@@ -670,9 +666,10 @@ public final class KsqlRestApplication implements Executable {
 
       commandTopicBackup = new CommandTopicBackupImpl(
           ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION),
-          commandTopicName)
-      ;
+          commandTopicName
+      );
     }
+    final CommandTopicBackup finalCommandTopicBackup = commandTopicBackup;
 
     final CommandStore commandStore = CommandStore.Factory.create(
         ksqlConfig,
@@ -682,7 +679,7 @@ public final class KsqlRestApplication implements Executable {
             restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
             restConfig.getCommandProducerProperties()),
-        commandTopicBackup
+        finalCommandTopicBackup
     );
 
     final InteractiveStatementExecutor statementExecutor =
@@ -757,7 +754,9 @@ public final class KsqlRestApplication implements Executable {
         Duration.ofMillis(restConfig.getLong(
             KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
         metricsPrefix,
-        InternalTopicSerdes.deserializer(Command.class)
+        InternalTopicSerdes.deserializer(Command.class),
+        finalCommandTopicBackup,
+        errorHandler
     );
   
     final KsqlResource ksqlResource = new KsqlResource(
@@ -810,8 +809,7 @@ public final class KsqlRestApplication implements Executable {
         lagReportingAgent,
         vertx,
         queryMonitor,
-        denyListPropertyValidator,
-        commandTopicBackup
+        denyListPropertyValidator
     );
   }
 

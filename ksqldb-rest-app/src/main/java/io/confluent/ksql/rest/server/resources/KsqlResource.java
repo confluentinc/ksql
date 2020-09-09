@@ -128,17 +128,7 @@ public class KsqlResource implements KsqlConfigurable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
-        () -> {
-          if (commandRunner.checkCommandRunnerStatus()
-              == CommandRunner.CommandRunnerStatus.DEGRADED) {
-            return errorHandler.commandRunnerDegradedErrorMessage();
-          }
-          if (commandRunner.checkCommandRunnerStatus()
-              == CommandRunner.CommandRunnerStatus.CORRUPTED) {
-            return errorHandler.commandRunnerCorruptedErrorMessage();
-          }
-          return "";
-        }
+        commandRunner::getCommandRunnerDegradedWarning
     );
   }
 
@@ -296,20 +286,23 @@ public class KsqlResource implements KsqlConfigurable {
       LOG.info("Processed successfully: " + request);
       addCommandRunnerWarning(
           entities,
-          errorHandler,
           commandRunnerWarning);
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
+      e.printStackTrace();
       throw e;
     } catch (final KsqlStatementException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
+      e.printStackTrace();
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
+      e.printStackTrace();
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
+      e.printStackTrace();
       return errorHandler.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }
@@ -340,10 +333,9 @@ public class KsqlResource implements KsqlConfigurable {
 
   private static void addCommandRunnerWarning(
       final KsqlEntityList entityList,
-      final Errors errorHandler,
-      final Supplier<String> commandRunnerIssue
+      final Supplier<String> commandRunnerWarning
   ) {
-    final String commandRunnerIssueString = commandRunnerIssue.get();
+    final String commandRunnerIssueString = commandRunnerWarning.get();
     if (!commandRunnerIssueString.equals("")) {
       for (final KsqlEntity entity: entityList) {
         entity.updateWarnings(Collections.singletonList(

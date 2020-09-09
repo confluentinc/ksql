@@ -24,7 +24,5 @@ public interface CommandTopicBackup {
 
   boolean commandTopicCorruption();
 
-  boolean backupExists();
-
   void close();
 }

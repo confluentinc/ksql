@@ -26,17 +26,18 @@ import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
 
 /**
- * Emits a JMX metric that indicates the health of the CommandRunner thread. 
+ * Emits JMX metrics that for the CommandRunner thread. 
  */
-public class CommandRunnerStatusMetric implements Closeable {
+public class CommandRunnerMetrics implements Closeable {
 
   private static final String DEFAULT_METRIC_GROUP_PREFIX = "ksql-rest-app";
   private static final String METRIC_GROUP_POST_FIX = "-command-runner";
   
   private final Metrics metrics;
-  private final MetricName metricName;
+  private final MetricName commandRunnerStatusMetricName;
+  private final MetricName commandRunnerDegradedReasonMetricName;
 
-  CommandRunnerStatusMetric(
+  CommandRunnerMetrics(
       final String ksqlServiceId,
       final CommandRunner commandRunner,
       final String metricGroupPrefix
@@ -50,7 +51,7 @@ public class CommandRunnerStatusMetric implements Closeable {
   }
 
   @VisibleForTesting
-  CommandRunnerStatusMetric(
+  CommandRunnerMetrics(
       final Metrics metrics,
       final CommandRunner commandRunner,
       final String ksqlServiceId,
@@ -58,15 +59,23 @@ public class CommandRunnerStatusMetric implements Closeable {
   ) {
     this.metrics =  Objects.requireNonNull(metrics, "metrics");
     final String metricGroupName = metricsGroupPrefix + METRIC_GROUP_POST_FIX;
-    this.metricName = metrics.metricName(
+    this.commandRunnerStatusMetricName = metrics.metricName(
         "status",
         ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,
        "The status of the commandRunner thread as it processes the command topic.",
         Collections.emptyMap()
     );
+    this.commandRunnerDegradedReasonMetricName = metrics.metricName(
+        "degraded-reason",
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,
+        "The reason for why the commandRunner thread is in a DEGRADED state.",
+        Collections.emptyMap()
+    );
 
-    this.metrics.addMetric(metricName, (Gauge<String>)
+    this.metrics.addMetric(commandRunnerStatusMetricName, (Gauge<String>)
         (config, now) -> commandRunner.checkCommandRunnerStatus().name());
+    this.metrics.addMetric(commandRunnerDegradedReasonMetricName, (Gauge<String>)
+        (config, now) -> commandRunner.getCommandRunnerDegradedReason().name());
   }
 
   /**
@@ -74,6 +83,7 @@ public class CommandRunnerStatusMetric implements Closeable {
    */
   @Override
   public void close() {
-    metrics.removeMetric(metricName);
+    metrics.removeMetric(commandRunnerStatusMetricName);
+    metrics.removeMetric(commandRunnerDegradedReasonMetricName);
   }
 }

@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,7 +37,9 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
@@ -43,7 +47,6 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,6 +68,8 @@ public class CommandTopicTest {
 
   @Mock
   private CommandTopicBackup commandTopicBackup;
+  @Mock
+  private TopicPartition topicPartition;
 
   private final byte[] commandId1 = "commandId1".getBytes(Charset.defaultCharset());
   private final byte[] command1 = "command1".getBytes(Charset.defaultCharset());
@@ -76,9 +81,7 @@ public class CommandTopicTest {
   private ConsumerRecord<byte[], byte[]> record1;
   private ConsumerRecord<byte[], byte[]> record2;
   private ConsumerRecord<byte[], byte[]> record3;
-  
 
-  @Mock
   private ConsumerRecords<byte[], byte[]> consumerRecords;
   @Captor
   private ArgumentCaptor<Collection<TopicPartition>> topicPartitionsCaptor;
@@ -91,7 +94,10 @@ public class CommandTopicTest {
     record1 = new ConsumerRecord<>("topic", 0, 0, commandId1, command1);
     record2 = new ConsumerRecord<>("topic", 0, 1, commandId2, command2);
     record3 = new ConsumerRecord<>("topic", 0, 2, commandId3, command3);
+    consumerRecords =
+        new ConsumerRecords<>(Collections.singletonMap(topicPartition, ImmutableList.of(record1, record2, record3)));
     commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, commandTopicBackup);
+    when(commandTopicBackup.commandTopicCorruption()).thenReturn(false);
   }
 
   @Test
@@ -105,16 +111,49 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldGetNewCommandsIteratorCorrectly() {
+  public void shouldGetCommandsThatDoNotCorruptBackup() {
     // Given:
     when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
+    when(commandTopicBackup.commandTopicCorruption())
+        .thenReturn(false)
+        .thenReturn(false)
+        .thenReturn(true);
 
     // When:
     final Iterable<ConsumerRecord<byte[], byte[]>> newCommands = commandTopic
         .getNewCommands(Duration.ofHours(1));
+    final List<ConsumerRecord<byte[], byte[]>> newCommandsList = ImmutableList.copyOf(newCommands);
 
     // Then:
-    assertThat(newCommands, sameInstance(consumerRecords));
+    assertThat(newCommandsList.size(), is(2));
+    assertThat(newCommandsList, equalTo(ImmutableList.of(record1, record2)));
+  }
+
+  @Test
+  public void shouldGetCommandsThatDoNotCorruptBackupInRestore() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords(
+            record1,
+            record2))
+        .thenReturn(someConsumerRecords(
+            record3))
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    when(commandTopicBackup.commandTopicCorruption())
+        .thenReturn(false)
+        .thenReturn(true)
+        .thenReturn(true);
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic
+        .getRestoreCommands(Duration.ofMillis(1));
+
+    // Then:
+    verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
+    assertThat(topicPartitionsCaptor.getValue(),
+        equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L))));
   }
 
   @Test

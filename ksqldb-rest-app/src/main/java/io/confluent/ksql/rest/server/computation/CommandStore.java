@@ -20,8 +20,6 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.CommandTopicBackup;
-import io.confluent.ksql.rest.server.CommandTopicBackupImpl;
-import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -76,7 +74,6 @@ public class CommandStore implements CommandQueue, Closeable {
   private final Serializer<CommandId> commandIdSerializer;
   private final Serializer<Command> commandSerializer;
   private final Deserializer<CommandId> commandIdDeserializer;
-  private final CommandTopicBackup commandTopicBackup;
   
 
   public static final class Factory {
@@ -122,8 +119,7 @@ public class CommandStore implements CommandQueue, Closeable {
           commandQueueCatchupTimeout,
           InternalTopicSerdes.serializer(),
           InternalTopicSerdes.serializer(),
-          InternalTopicSerdes.deserializer(CommandId.class),
-          commandTopicBackup
+          InternalTopicSerdes.deserializer(CommandId.class)
       );
     }
   }
@@ -137,8 +133,7 @@ public class CommandStore implements CommandQueue, Closeable {
       final Duration commandQueueCatchupTimeout,
       final Serializer<CommandId> commandIdSerializer,
       final Serializer<Command> commandSerializer,
-      final Deserializer<CommandId> commandIdDeserializer,
-      final CommandTopicBackup commandTopicBackup
+      final Deserializer<CommandId> commandIdDeserializer
   ) {
     this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandStatusMap = Maps.newConcurrentMap();
@@ -157,7 +152,6 @@ public class CommandStore implements CommandQueue, Closeable {
         Objects.requireNonNull(commandSerializer, "commandSerializer");
     this.commandIdDeserializer =
         Objects.requireNonNull(commandIdDeserializer, "commandIdDeserializer");
-    this.commandTopicBackup = Objects.requireNonNull(commandTopicBackup, "commandTopicBackup");
   }
 
   @Override
@@ -329,11 +323,6 @@ public class CommandStore implements CommandQueue, Closeable {
     }
   }
 
-  @Override
-  public boolean isCorrupted() {
-    return commandTopicBackup.commandTopicCorruption();
-  }
-  
   @Override
   public boolean isEmpty() {
     return commandTopic.getEndOffset() == 0;

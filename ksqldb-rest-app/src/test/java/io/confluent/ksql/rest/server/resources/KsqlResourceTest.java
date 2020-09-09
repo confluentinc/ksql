@@ -346,6 +346,7 @@ public class KsqlResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     when(commandRunner.getCommandQueue()).thenReturn(commandStore);
+    when(commandRunnerWarning.get()).thenReturn("");
     when(commandStore.createTransactionalProducer())
         .thenReturn(transactionalProducer);
 
@@ -591,18 +592,15 @@ public class KsqlResourceTest {
         schema);
 
     // When:
-    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.DEGRADED);
-    when(errorsHandler.commandRunnerDegradedErrorMessage()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE);
-
     final SourceDescriptionList descriptionList1 = makeSingleRequest(
         "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
-    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
+    when(commandRunnerWarning.get()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
     final SourceDescriptionList descriptionList2 = makeSingleRequest(
         "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
 
-    assertThat(descriptionList1.getWarnings().size(), is(1));
-    assertThat(descriptionList1.getWarnings().get(0).getMessage(), is(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE));
-    assertThat(descriptionList2.getWarnings().size(), is(0));
+    assertThat(descriptionList1.getWarnings().size(), is(0));
+    assertThat(descriptionList2.getWarnings().size(), is(1));
+    assertThat(descriptionList2.getWarnings().get(0).getMessage(), is(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
   }
 
   @Test

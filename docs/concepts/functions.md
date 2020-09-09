@@ -359,6 +359,8 @@ enables you to define UDAFs like `average`, as shown in the following example.
 When you create a UDAF, use the `map` method to provide the logic that
 transforms an intermediate aggregate value to the returned value.
 
+The `merge` method is only called when merging sessions when session windowing is used.
+
 ##### Example UDAF class
 
 The following class creates a UDAF named `my_average`. The name of the UDAF

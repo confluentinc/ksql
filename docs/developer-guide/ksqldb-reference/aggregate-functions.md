@@ -109,7 +109,8 @@ Stream
 
 Return the earliest value for the specified column. The earliest value in the partition
 
-with the lowest offset. 
+has the lowest offset. 
+
 
 The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
 

@@ -113,7 +113,8 @@ with the lowest offset.
 
 The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
 
-to ignoring null values.
+is to ignore null values.
+
 
 
 Since: 0.13.0

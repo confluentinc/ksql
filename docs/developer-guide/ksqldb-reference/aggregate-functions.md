@@ -111,7 +111,8 @@ Return the earliest value for the specified column. The earliest value in the pa
 
 with the lowest offset. 
 
-Optional parameter `ignoreNulls`, (since 0.13.0), controls if nulls are ignored or not. Defaulting
+The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
+
 to ignoring null values.
 
 

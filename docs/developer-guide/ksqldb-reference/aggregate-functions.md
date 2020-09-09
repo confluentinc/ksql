@@ -107,7 +107,8 @@ EARLIEST_BY_OFFSET(col1, [ignoreNulls])
 
 Stream
 
-Return the earliest value for a given column. 'Earliest' is defined as the value in the partition
+Return the earliest value for the specified column. The earliest value in the partition
+
 with the lowest offset. 
 
 Optional parameter `ignoreNulls`, (since 0.13.0), controls if nulls are ignored or not. Defaulting

@@ -127,7 +127,8 @@ Stream
 
 Return the earliest _N_ values for the specified column as an `ARRAY`. The earliest values
 
-in the partition with the lowest offsets.
+in the partition have the lowest offsets.
+
 
 Optional parameter `ignoreNulls` controls if nulls are ignored or not. Defaulting
 to ignoring null values.

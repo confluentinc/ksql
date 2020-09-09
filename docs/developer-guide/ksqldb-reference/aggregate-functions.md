@@ -186,7 +186,8 @@ Stream
 Returns the latest N values for a given column as an `ARRAY`. 'Latest' is defined
 with the greatest offset.
 
-Optional parameter `ignoreNulls` controls if nulls are ignored or not. Defaulting to ignoring 
+The optional `ignoreNulls` parameter controls whether nulls are ignored. The default is to ignore
+
 null values. 
 
 ## `MAX`

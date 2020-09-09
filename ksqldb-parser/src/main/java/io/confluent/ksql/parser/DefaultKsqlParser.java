@@ -53,6 +53,7 @@ public class DefaultKsqlParser implements KsqlParser {
         final String message,
         final RecognitionException e
     ) {
+      //checks if the error is a reserved keyword error
       if (isKeywordError(message, offendingSymbol)) {
         final String tokenName = ((CommonToken) offendingSymbol).getText();
         final String newMessage =
@@ -144,6 +145,7 @@ public class DefaultKsqlParser implements KsqlParser {
     ));
   }
 
+  //checks if the error is a reserved keyword error
   private static boolean isKeywordError(final String message, final Object offendingSymbol) {
     final String tokenName = ((CommonToken) offendingSymbol).getText().toLowerCase();
 

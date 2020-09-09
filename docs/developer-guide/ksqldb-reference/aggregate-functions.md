@@ -131,7 +131,8 @@ Return the earliest _N_ values for the specified column as an `ARRAY`. The earli
 in the partition have the lowest offsets.
 
 
-Optional parameter `ignoreNulls` controls if nulls are ignored or not. Defaulting
+The optional `ignoreNulls` parameter controls whether nulls are ignored. The default
+
 to ignoring null values.
 
 ## `HISTOGRAM`

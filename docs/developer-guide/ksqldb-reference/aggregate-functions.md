@@ -173,7 +173,8 @@ Return the latest value for the specified column. The latest value in the partit
 with the greatest offset. 
 
 Optional parameter `ignoreNulls`, (since 0.13.0), controls if nulls are ignored or not. Defaulting
-to ignoring null values.
+is to ignore null values.
+
 
 Since: 0.13.0
 

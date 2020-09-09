@@ -154,6 +154,7 @@ public class DefaultKsqlParser implements KsqlParser {
     return reservedKeywords.contains(tokenName) && m.find();
   }
 
+  //Set of keywords minus the non-reserved ones
   private static final HashSet<String> reservedKeywords = new HashSet<>(Arrays.asList("advance",
           "all",
           "and",

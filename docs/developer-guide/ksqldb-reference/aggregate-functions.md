@@ -183,7 +183,8 @@ LATEST_BY_OFFSET(col1, latestN, [ignoreNulls])
 
 Stream
 
-Returns the latest N values for a given column as an `ARRAY`. 'Latest' is defined
+Returns the latest _N_ values for the specified column as an `ARRAY`. The latest values have
+
 with the greatest offset.
 
 The optional `ignoreNulls` parameter controls whether nulls are ignored. The default is to ignore

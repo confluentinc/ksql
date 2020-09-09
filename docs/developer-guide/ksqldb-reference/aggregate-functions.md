@@ -102,26 +102,31 @@ to estimate cardinalities of 10^9 with a typical standard error of 2%.
 Since: 0.10.0
 
 ```sql
-EARLIEST_BY_OFFSET(col1)
+EARLIEST_BY_OFFSET(col1, [ignoreNulls])
 ```
 
 Stream
 
-Return the earliest value for a given column. Earliest here is defined as the value in the partition
-with the lowest offset. Rows that have `col1` set to null are ignored.
+Return the earliest value for a given column. 'Earliest' is defined as the value in the partition
+with the lowest offset. 
+
+Optional parameter `ignoreNulls`, (since 0.13.0), controls if nulls are ignored or not. Defaulting
+to ignoring null values.
 
 
 Since: 0.13.0
 
 ```sql
-EARLIEST_BY_OFFSET(col1,earliestN)
+EARLIEST_BY_OFFSET(col1, earliestN, [ignoreNulls])
 ```
 
 Stream
 
-Return the earliest N values for a given column. Earliest here is defined as the values in the partition
-with the lowest offsets. Rows that have `col1` set to null are ignored.
+Return the earliest N values for a given column as an `ARRAY`. 'Earliest' is defined as the values 
+in the partition with the lowest offsets.
 
+Optional parameter `ignoreNulls` controls if nulls are ignored or not. Defaulting
+to ignoring null values.
 
 ## `HISTOGRAM`
 
@@ -150,24 +155,30 @@ the order they were originally processed.
 Since: 0.8.0
 
 ```sql
-LATEST_BY_OFFSET(col1)
+LATEST_BY_OFFSET(col1, [ignoreNulls])
 ```
 
 Stream
 
-Return the latest value for a given column. Latest here is defined as the value in the partition
-with the greatest offset. Rows that have `col1` set to null are ignored.
+Return the latest value for a given column. 'Latest' is defined as the value in the partition
+with the greatest offset. 
+
+Optional parameter `ignoreNulls`, (since 0.13.0), controls if nulls are ignored or not. Defaulting
+to ignoring null values.
 
 Since: 0.13.0
 
 ```sql
-LATEST_BY_OFFSET(col1,latestN)
+LATEST_BY_OFFSET(col1, latestN, [ignoreNulls])
 ```
 
 Stream
 
-Returns the latest N values for a given column as an array of values. Latest here is also defined
-with the greatest offset. Rows that have `col1` set to null are ignored.
+Returns the latest N values for a given column as an `ARRAY`. 'Latest' is defined
+with the greatest offset.
+
+Optional parameter `ignoreNulls` controls if nulls are ignored or not. Defaulting to ignoring 
+null values. 
 
 ## `MAX`
 

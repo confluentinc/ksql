@@ -13,43 +13,44 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf;
+package io.confluent.ksql.function.udaf.offset;
 
 import java.util.Comparator;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
-public final class KudafByOffsetUtils {
-  public static final String SEQ_FIELD = "SEQ";
+final class KudafByOffsetUtils {
+
+  static final String SEQ_FIELD = "SEQ";
   public static final String VAL_FIELD = "VAL";
 
-  public static final Schema STRUCT_INTEGER = SchemaBuilder.struct().optional()
+  static final Schema STRUCT_INTEGER = SchemaBuilder.struct().optional()
       .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(VAL_FIELD, Schema.OPTIONAL_INT32_SCHEMA)
       .build();
 
-  public static final Schema STRUCT_LONG = SchemaBuilder.struct().optional()
+  static final Schema STRUCT_LONG = SchemaBuilder.struct().optional()
       .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(VAL_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .build();
 
-  public static final Schema STRUCT_DOUBLE = SchemaBuilder.struct().optional()
+  static final Schema STRUCT_DOUBLE = SchemaBuilder.struct().optional()
       .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(VAL_FIELD, Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
 
-  public static final Schema STRUCT_BOOLEAN = SchemaBuilder.struct().optional()
+  static final Schema STRUCT_BOOLEAN = SchemaBuilder.struct().optional()
       .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(VAL_FIELD, Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .build();
 
-  public static final Schema STRUCT_STRING = SchemaBuilder.struct().optional()
+  static final Schema STRUCT_STRING = SchemaBuilder.struct().optional()
       .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(VAL_FIELD, Schema.OPTIONAL_STRING_SCHEMA)
       .build();
   
-  public static final Comparator<Struct> INTERMEDIATE_STRUCT_COMPARATOR = (struct1, struct2) -> {
+  static final Comparator<Struct> INTERMEDIATE_STRUCT_COMPARATOR = (struct1, struct2) -> {
     // Deal with overflow - we assume if one is positive and the other negative then the sequence
     // has overflowed - in which case the latest is the one with the smallest sequence
     final long sequence1 = struct1.getInt64(SEQ_FIELD);
@@ -63,7 +64,13 @@ public final class KudafByOffsetUtils {
     }
   };
 
-  private KudafByOffsetUtils() {
+  static <T> Struct createStruct(final Schema schema, final long sequence, final T val) {
+    final Struct struct = new Struct(schema);
+    struct.put(SEQ_FIELD, sequence);
+    struct.put(VAL_FIELD, val);
+    return struct;
+  }
 
+  private KudafByOffsetUtils() {
   }
 }

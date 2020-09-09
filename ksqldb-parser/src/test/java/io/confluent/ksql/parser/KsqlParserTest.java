@@ -1129,6 +1129,38 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testReservedKeywordSyntaxError() {
+    // Given:
+    final String simpleQuery = "CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)\n" +
+            "  WITH (kafka_topic='ords', value_format='json');";
+
+    // When:
+    final Exception e = assertThrows(
+            ParseFailedException.class,
+            () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
+  }
+
+  @Test
+  public void testReservedKeywordSyntaxErrorCaseInsensitive() {
+    // Given:
+    final String simpleQuery = "CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)\n" +
+            "  WITH (kafka_topic='ords', value_format='json');";
+
+    // When:
+    final Exception e = assertThrows(
+            ParseFailedException.class,
+            () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("\"Load\" is a reserved keyword and it can't be used as an identifier"));
+  }
+
+  @Test
   public void testSelectWithMultipleFroms() {
     // Given:
     final String simpleQuery = "SELECT * FROM address, itemid;";

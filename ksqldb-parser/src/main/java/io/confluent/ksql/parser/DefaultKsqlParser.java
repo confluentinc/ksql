@@ -19,12 +19,18 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
+
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
@@ -47,7 +53,14 @@ public class DefaultKsqlParser implements KsqlParser {
         final String message,
         final RecognitionException e
     ) {
-      throw new ParsingException(message, e, line, charPositionInLine);
+      if (isKeywordError(message, offendingSymbol)) {
+        final String tokenName = ((CommonToken) offendingSymbol).getText();
+        final String newMessage =
+                "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier";
+        throw new ParsingException(newMessage, e, line, charPositionInLine);
+      } else {
+        throw new ParsingException(message, e, line, charPositionInLine);
+      }
     }
   };
 
@@ -130,4 +143,101 @@ public class DefaultKsqlParser implements KsqlParser {
         singleStatementContext.stop.getStopIndex()
     ));
   }
+
+  private static boolean isKeywordError(final String message, final Object offendingSymbol) {
+    final String tokenName = ((CommonToken) offendingSymbol).getText().toLowerCase();
+
+    final Pattern keywordPattern = Pattern.compile("extraneous input.*expecting.*");
+    final Matcher m = keywordPattern.matcher(message);
+    return reservedKeywords.contains(tokenName) && m.find();
+  }
+
+  private static final HashSet<String> reservedKeywords = new HashSet<>(Arrays.asList("advance",
+          "all",
+          "and",
+          "as",
+          "at",
+          "beginning",
+          "between",
+          "by",
+          "case",
+          "cast",
+          "catalog",
+          "connector",
+          "connectors",
+          "create",
+          "days",
+          "decimal",
+          "delete",
+          "describe",
+          "distinct",
+          "drop",
+          "else",
+          "end",
+          "exists",
+          "export",
+          "extended",
+          "false",
+          "from",
+          "full",
+          "grace",
+          "group",
+          "having",
+          "hopping",
+          "hours",
+          "in",
+          "inner",
+          "insert",
+          "into",
+          "is",
+          "join",
+          "left",
+          "like",
+          "limit",
+          "list",
+          "load",
+          "materialized",
+          "millisecond",
+          "milliseconds",
+          "minutes",
+          "months",
+          "namespace",
+          "not",
+          "null",
+          "on",
+          "or",
+          "outer",
+          "period",
+          "print",
+          "properties",
+          "queries",
+          "query",
+          "rename",
+          "retention",
+          "right",
+          "run",
+          "sample",
+          "script",
+          "seconds",
+          "select",
+          "size",
+          "stream",
+          "streams",
+          "table",
+          "terminate",
+          "then",
+          "to",
+          "topic",
+          "topics",
+          "true",
+          "tumbling",
+          "unset",
+          "values",
+          "view",
+          "when",
+          "where",
+          "window",
+          "with",
+          "within",
+          "years"));
 }

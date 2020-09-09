@@ -145,7 +145,7 @@ public class DefaultKsqlParser implements KsqlParser {
     ));
   }
 
-  //checks if the error is a reserved keyword error
+  //checks if the error is a reserved keyword error by checking the message and offendingSymbol
   private static boolean isKeywordError(final String message, final Object offendingSymbol) {
     final String tokenName = ((CommonToken) offendingSymbol).getText().toLowerCase();
 

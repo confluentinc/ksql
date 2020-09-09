@@ -53,7 +53,7 @@ public class DefaultKsqlParser implements KsqlParser {
         final String message,
         final RecognitionException e
     ) {
-      //checks if the error is a reserved keyword error
+      //Checks if the error is a reserved keyword error
       if (isKeywordError(message, offendingSymbol)) {
         final String tokenName = ((CommonToken) offendingSymbol).getText();
         final String newMessage =

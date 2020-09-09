@@ -133,7 +133,8 @@ in the partition have the lowest offsets.
 
 The optional `ignoreNulls` parameter controls whether nulls are ignored. The default
 
-to ignoring null values.
+is to ignore null values.
+
 
 ## `HISTOGRAM`
 

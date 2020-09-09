@@ -168,7 +168,8 @@ LATEST_BY_OFFSET(col1, [ignoreNulls])
 
 Stream
 
-Return the latest value for a given column. 'Latest' is defined as the value in the partition
+Return the latest value for the specified column. The latest value in the partition
+
 with the greatest offset. 
 
 Optional parameter `ignoreNulls`, (since 0.13.0), controls if nulls are ignored or not. Defaulting

@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.Test;
 
-public class TlsTest extends BaseApiTest {
+public class TlsTest extends ApiTest {
 
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
@@ -94,8 +94,6 @@ public class TlsTest extends BaseApiTest {
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
 
-    boolean failed = false;
-
     waitForLastModifiedTick();
 
     try {
@@ -122,32 +120,28 @@ public class TlsTest extends BaseApiTest {
           TimeUnit.SECONDS.toMillis(1),
           TimeUnit.SECONDS.toMillis(1)
       );
-    } catch (final Throwable e) {
-      failed = true;
-      throw e;
     } finally {
       // restore cert regardless of failure above so as to not affect other tests
       // When: load valid store
       SERVER_KEY_STORE.writeValidServerKeyStore();
 
-      if (!failed) {
-        assertThatEventually(
-            "Should successfully execute query with valid key store",
-            () -> {
-              // re-create client since server port changes on restart
-              this.client = createClient();
+      // Wait for server to pick up valid cert to ensure other tests are not affected:
+      assertThatEventually(
+          "Should successfully execute query with valid key store",
+          () -> {
+            // re-create client since server port changes on restart
+            this.client = createClient();
 
-              try {
-                return sendRequest("/query-stream", requestBody.toBuffer()).statusCode();
-              } catch (Exception e) {
-                return 0;
-              }
-            },
-            is(200),
-            TimeUnit.SECONDS.toMillis(1),
-            TimeUnit.SECONDS.toMillis(1)
-        );
-      }
+            try {
+              return sendRequest("/query-stream", requestBody.toBuffer()).statusCode();
+            } catch (Exception e) {
+              return 0;
+            }
+          },
+          is(200),
+          TimeUnit.SECONDS.toMillis(1),
+          TimeUnit.SECONDS.toMillis(1)
+      );
     }
   }
 

@@ -47,7 +47,7 @@ import java.util.Optional;
 public class FlatMapNode extends SingleSourcePlanNode {
 
   private final ImmutableList<FunctionCall> tableFunctions;
-  private final ImmutableMap<Integer, UnqualifiedColumnReferenceExp> columnMappings;
+  private final ImmutableMap<Integer, Expression> columnMappings;
   private final LogicalSchema schema;
 
   public FlatMapNode(
@@ -89,14 +89,14 @@ public class FlatMapNode extends SingleSourcePlanNode {
     );
   }
 
-  private static ImmutableMap<Integer, UnqualifiedColumnReferenceExp> buildColumnMappings(
+  private static ImmutableMap<Integer, Expression> buildColumnMappings(
       final FunctionRegistry functionRegistry,
       final ImmutableAnalysis analysis
   ) {
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
         new TableFunctionExpressionRewriter(functionRegistry);
 
-    final ImmutableMap.Builder<Integer, UnqualifiedColumnReferenceExp> builder = ImmutableMap
+    final ImmutableMap.Builder<Integer, Expression> builder = ImmutableMap
         .builder();
 
     for (int idx = 0; idx < analysis.getSelectItems().size(); idx++) {
@@ -110,7 +110,7 @@ public class FlatMapNode extends SingleSourcePlanNode {
           tableFunctionExpressionRewriter::process, singleColumn.getExpression());
 
       if (!rewritten.equals(singleColumn.getExpression())) {
-        builder.put(idx, (UnqualifiedColumnReferenceExp) rewritten);
+        builder.put(idx, rewritten);
       }
     }
 

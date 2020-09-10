@@ -37,125 +37,17 @@ A step toward improving UX when users observe unexpected behavior from running q
 
 ## Public APIs
 
-### REST API
+### System Table for Getting/Setting Log Levels
 
-### PUT /processing_logger/config
+The table will have the following schema:
 
-Sets the root processing log configuration (currently just supports setting the log level).  This will set the level for all loggers that do not already have a level set.
-
-Request Schema:
 ```
-{
-    “properties”: {
-        “level”: {“type”: “string”, “description”: “<OFF|FATAL|ERROR|WARN|INFO|DEBUG>”}
-    }
-}
-````
-
-Response Schema:
+LEVEL STRING (one of <OFF|FATAL|ERROR|WARN|INFO|DEBUG>)
 ```
-{
-    “properties”: {
-        “level”: {“type”: “string”, “description”: “The level from the request”}
-    }
-}
-```
-
-### GET /processing_logger/config
-
-Gets the current root processing log level.
-
-Response Schema:
-```
-{
-    “properties”: {
-        “level”: {“type”: “string”, “description”: “The level of the root logger”}
-    }
-}
-```
-
-### DELETE /processing_logger/config
-
-Deletes customized config for the root logger (reverts to default config as specified in the log4j config file).
-
-### PUT /processing_logger/[processing logger name]/config
-
-Sets the processing log configuration for the logger with the given processing logger name (currently just supports setting the log level). This will set the level for all child loggers (loggers that share a common name prefix) that do not already have a level set using a longer prefix.
-
-Request Fields:
-```
-{
-    “properties”: {
-        “level”: {“type”: “string”, “description”: “<OFF|FATAL|ERROR|WARN|INFO|DEBUG>”}
-    }
-}
-```
-
-Response Fields:
-```
-{
-    “properties”: {
-        “level”: {“type”: “string”, “description”: “The level from the request”}
-    }
-}
-```
-
-### GET /processing_logger/[processing logger name]/level
-
-Gets the processing log configuration for the logger with the given processing logger name.
-
-Response Fields:
-```
-{
-    “properties”: {
-        “level”: {“type”: “string”, “description”: “The level of the specified logger”}
-    }
-}
-```
-
-### DELETE /processing_logger/[processing logger name]/level
-
-Deletes customized config for the logger with the given processing logger name.
-
-### GET /processing_logger/[processing logger name?]
-
-Lists all processing loggers and configs under the logger name if specified. If not specified, lists all loggers and configs.
-
-Response Fields:
-```
-{
-    “properties”: {
-        “loggers”: {
-            “type”: “array”,
-            “items”: {
-                “type" : “object”,
-                "properties" : “{
-                     “context" : {“type”: “string”, “description”: “the context of this logger”}
-                     “config" : {
-                         “type" : “object”,
-                         "properties" : {
-                             “level”: {“type”: “string”, “description”: “The level of the logger”}
-                         }
-                     }
-                 }
-            }
-        }
-    }
-}
-```
-
-### ksqlDB Statements
-
-As a convenience, in addition to the API we’ll include ksqlDB statements for getting/setting the level. This makes it easy to get/set the level from ksqlDB user interfaces (such as the Confluent Cloud or C3 UI) while those products implement their own interface to the processing log (if they choose to do so).
-
-- `SET_PLL root <level>`: sets the processing log level for the root logger
-- `UNSET_PLL root`: unsets the processing log level for the root logger
-- `GET_PLL`: lists all processing log levels.
-- `SET_PLL <query context> <level>`: sets the processing log level for the given logger
-- `UNSET_PLL <query context> <level>`: unsets the processing log level for the given logger
-- `GET_PLL <query context>`: lists all processing log levels with the given logger prefix
 
 ## Design
+
+The system table's implementation will work as follows:
 
 ### Storing Log Levels
 
@@ -174,7 +66,7 @@ The name of the topic will be controlled by a configuration named “ksql.loggin
 
 ### Setting a Log Level
 
-To set the log level, the ksql node receiving the request to set the level will produce a record with the logger’s key and value containing the specified level to the PLCT. Each ksql node will run a thread that consumes the PLCT. For each message consumed, the thread will use the log4j API to set the log level. To set the root level, the thread will call:
+To set the log level, the ksql node receiving the INSERT request to set the level will produce a record with the logger’s key and value containing the specified level to the PLCT. Each ksql node will run a thread that consumes the PLCT. For each message consumed, the thread will use the log4j API to set the log level. To set the root level, the thread will call:
 
 ```
 LogManager.getRootLogger().setLevel(<level>);
@@ -190,21 +82,18 @@ Unsetting a Log Level
 
 To unset the log level, the thread consuming the PLCT will set the log level for the specified logger to `null`.
 
-### Getting/Listing Log Levels
+### Querying Log Levels
 
-To get/list log levels, the ksql node receiving the request will list the local loggers in log4j and use them to populate the response.
+To query log levels, the ksql node receiving the request will list the local loggers in log4j and use them to populate the response.
 
 ## Test Plan
 In  addition to the usual unit testing, we’ll include an  integration test to validate that the processing log is populated correctly when the level is set.
 
 ## LOEs
-- ksqlDB syntax: 3 days
-- API endpoints: 4 days
-- implementation of the backend: 5 days
+- System table implementation: 10 days
 - adding node-level debug logging of the data seen at each node: 1 day
 - docs updates: 2 days
 
 ## Docs Updates
 - The processing log documentation should be updated to include these features.
 - The syntax reference should be updated to include the statements to set/get the log level.
-- The API docs should be updated to include the new API endpoints.

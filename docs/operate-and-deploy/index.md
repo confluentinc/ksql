@@ -33,8 +33,6 @@ Health Checks
 - Check runtime stats for the ksqlDB server that you are connected to
   via `DESCRIBE EXTENDED <stream or table>` and
   `EXPLAIN <name of query>`.
-- Run `ksql-print-metrics` on a ksqlDB server. For example, see this
-  [blog post](https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/).
 
 For more information, see
 [Check the health of a ksqlDB Server](installation/check-ksqldb-server-health.md).

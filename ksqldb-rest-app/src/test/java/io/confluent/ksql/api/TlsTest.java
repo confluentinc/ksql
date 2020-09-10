@@ -29,6 +29,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClientOptions;
+import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -36,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.Test;
 
-public class TlsTest extends BaseApiTest {
+public class TlsTest extends ApiTest {
 
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
@@ -93,9 +94,11 @@ public class TlsTest extends BaseApiTest {
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
 
+    waitForLastModifiedTick();
+
     try {
       // When: load expired key store
-      SERVER_KEY_STORE.loadExpiredServerKeyStore();
+      SERVER_KEY_STORE.writeExpiredServerKeyStore();
 
       assertThatEventually(
           "Should fail to execute query with expired key store",
@@ -120,8 +123,9 @@ public class TlsTest extends BaseApiTest {
     } finally {
       // restore cert regardless of failure above so as to not affect other tests
       // When: load valid store
-      SERVER_KEY_STORE.loadValidServerKeyStore();
+      SERVER_KEY_STORE.writeValidServerKeyStore();
 
+      // Wait for server to pick up valid cert to ensure other tests are not affected:
       assertThatEventually(
           "Should successfully execute query with valid key store",
           () -> {
@@ -139,5 +143,20 @@ public class TlsTest extends BaseApiTest {
           TimeUnit.SECONDS.toMillis(1)
       );
     }
+  }
+
+  /**
+   * Resolution of {@link FileTime} on some OS / JDKs can have only second resolution.
+   * This can mean the watcher 'misses' an update to a file that was <i>created</i> before
+   * the watcher was started and <i>updated</i> after, if the update results in the same
+   * last modified time.
+   *
+   * <p>To ensure we stable test we must therefore wait for a second to ensure a different last
+   * modified time.
+   *
+   * https://stackoverflow.com/questions/24804618/get-file-mtime-with-millisecond-resolution-from-java
+   */
+  private static void waitForLastModifiedTick() throws Exception {
+    Thread.sleep(TimeUnit.SECONDS.toMillis(1));
   }
 }

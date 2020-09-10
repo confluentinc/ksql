@@ -41,18 +41,6 @@ jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/ja
 If the process status of the JVM isn't `Sl` or `Ssl`, the ksqlDB server
 may be down.
 
-### Inspect runtime stats
-
-You can check runtime stats for the ksqlDB server that you're connected to
-by using the `ksql-print-metrics` command-line utility.
-
-On a server host, run `ksql-print-metrics`. This tool connects to
-a ksqlDB Server that's running on `localhost` and collects JMX
-metrics from the server process. Metrics include the number of
-messages, the total throughput, the throughput distribution, and
-the error rate. For more information, see
-[JMX metrics](server-config/index.md#jmx-metrics)
-
 Check a ksqlDB Server by using the REST API
 -------------------------------------------
 

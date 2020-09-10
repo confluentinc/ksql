@@ -76,6 +76,7 @@ Next KLIP number: **39**
 | [KLIP-33: Key format](klip-33-key-format.md)                                                         | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6017) |
 | KLIP-34: Optional WITH for CREATE TABLE and CREATE STREAM                                            | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6065) |
 | KLIP-35: Dynamic Processing Log Levels                                                               | Proposal | | | |
+| [KLIP-36: GRACE period for stream-stream joins](klip-36-grace-stream-stream-joins.md)                | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6175)|
 | KLIP-36: GRACE period for stream-stream joins                                                        | Proposal | | | |
 | KLIP-37: System Tables                                                                               | Proposal | | | |
 | KLIP-38: Variable Substitution                                                                       | Proposal | | | |

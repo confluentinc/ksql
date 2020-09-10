@@ -1238,7 +1238,8 @@ public class AstBuilder {
       return new RegisterType(
           getLocation(context),
           ParserUtil.getIdentifierText(context.identifier()),
-          typeParser.getType(context.type())
+          typeParser.getType(context.type()),
+          context.EXISTS() != null
       );
     }
 

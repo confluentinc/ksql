@@ -110,11 +110,14 @@ public class DdlCommandExec {
     public DdlCommandResult executeRegisterType(final RegisterTypeCommand registerType) {
       final String name = registerType.getTypeName();
       final SqlType type = registerType.getType();
-      metaStore.registerType(name, type);
-      return new DdlCommandResult(
-          true,
-          "Registered custom type with name '" + name + "' and SQL type " + type
-      );
+      final boolean wasRegistered = metaStore.registerType(name, type);
+      return wasRegistered
+          ? new DdlCommandResult(
+              true,
+          "Registered custom type with name '" + name + "' and SQL type " + type)
+          : new DdlCommandResult(
+              true,
+              name + " is already registered with type " + metaStore.resolveType(name).get());
     }
 
     @Override

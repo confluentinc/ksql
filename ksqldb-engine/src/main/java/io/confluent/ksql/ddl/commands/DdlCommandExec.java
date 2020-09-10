@@ -114,7 +114,7 @@ public class DdlCommandExec {
       return wasRegistered
           ? new DdlCommandResult(
               true,
-          "Registered custom type with name '" + name + "' and SQL type " + type)
+              "Registered custom type with name '" + name + "' and SQL type " + type)
           : new DdlCommandResult(
               true,
               name + " is already registered with type " + metaStore.resolveType(name).get());

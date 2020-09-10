@@ -11,7 +11,7 @@
            
 ## Motivation and background
 
-Data stored in Kafka has a key and a value. These can be serialized using different formats, but are
+Data stored in Kafka has a key and a value. These can be serialized using different formats, but
 generally use a common format. ksqlDB supports multiple _value_ [data formats][1], but requires the 
 key data format to be the `KAFKA`.  
 
@@ -26,9 +26,9 @@ value, which generally seems to be the case, then the data is not accessible at 
 required, then the limitation precludes ksqlDB as a solution.
 
 As well as unsupported _input_ key formats, ksqlDB is equally precluded should a solution require the 
-_output_ to have a non-`KAFKA` key format. ksqlDB is already often used as the glue between 
-disparate systems, even though it is limited to changing the _values_ format and structure.
-Supporting other key formats opens this up to also transforming the key into a different format. 
+_output_ to have a non-`KAFKA` key format. ksqlDB is often used as the glue between disparate systems, 
+even though it is limited to changing the _values_ format and structure. Supporting other key formats 
+opens this up to also transforming the key into a different format. 
 
 In some cases users are able to work around this limitation. This may involve changing upstream code,
 or introducing pre-processing, or, in the case of Connect, using SMTs to convert the key format. All
@@ -50,6 +50,7 @@ To open ksqlDB up to new problems spaces and to drive adoption, ksqlDB should su
     * `JSON` / `JSON_SR`: single key column as an anonymous value, i.e. not within a JSON object.
     * `AVRO`: single key column as an anonymous value, i.e. not within an Avro record.
     * `NONE`: special format indicating no data, or ignored data, e.g. a key-less stream.
+  * Storing and retrieving key schemas from the Schema Registry for formats that support the integration.
   * Full support of these key formats for all supported SQL syntax.
   * Automatic repartitioning of streams and tables for joins where key formats do not match.
   * Support for reading & writing key schemas to & from the schema registry.
@@ -59,11 +60,12 @@ To open ksqlDB up to new problems spaces and to drive adoption, ksqlDB should su
 
  * Support for multiple key columns: this will come later.
  * Support for single key columns _wrapped_ in an envelope of some kind: this will come later.
- * Support for complex key column data types, i.e. array, struct and map 
+ * Support for complex key column data types, i.e. array, struct and map: this will come later. 
  * Support for `PROTOBUF` keys, as this requires support for wrapped keys: this will come later.
  * Enhancing DataGen to support non-KAFKA keys.
  * Key schema evolution. (See [key schema evolution](#key-schema-evolution)) in the compatibility 
    section.
+ * Support for right-outer joins. This may be covered in a future KLIP.
 
 ## Value/Return
 
@@ -71,9 +73,9 @@ We know from customers and community members that there are a lot of people that
 non-`KAFKA` formatted keys. This is the first step to unlocking that data and use-cases.
 
 With support for `AVRO` and `JSON` key formats there are a lot of existing use-cases that suddenly
-no longer require pre-processing, or tricky Connect SMTs configured and there are new use-cases,
-which ksqlDB was previously unsuitable for, as documented in the motivation section, which it can 
-now handle.
+no longer require pre-processing, or tricky Connect SMTs configured, and there are new use-cases,
+which ksqlDB was previously unsuitable for, as documented in the motivation section, which can 
+now be handled.
 
 ## Public APIS
 
@@ -150,10 +152,15 @@ For formats that support integration with the schema registry, the key schema wi
 registered with the Schema Registry as needed, following the same pattern as the value schema in 
 the current product. 
 
+In addition, where possible, key schemas will be marked as `READONLY` to avoid unintentional 
+changes to the key schema id, which would break compatibility. If the Schema Registry is not
+configured to allow schema mutability to be set, then the statement will still succeed, only 
+a warning will be logged, with link to Schema Registry config that needs changing.
+
 If a `CREATE TABLE` or `CREATE STREAM` statement does not include a `KEY_FORMAT` property, the 
 key format is picked up from the `ksql.persistence.default.format.key` system configuration. If this
 is not set, then an error is returned.  Note: The server config will have this set to `KAFKA` to 
-maintain backwards compatibility with current system by default.
+maintain backwards compatibility with current system by default. 
 
 ### Implementation
 
@@ -164,8 +171,8 @@ Validation will be added to ensure only supported key formats are set, and that 
 are supported by key formats.
 
 Most existing functionality should _just work_, as the key format only comes into play during 
-(de)serialization, (obviously). The only area where additional work is expected are joins, single
-key wrapping and key-less streams.
+(de)serialization, (obviously). The only area where additional work is expected are joins and key-less 
+streams.
 
 #### Joins
 
@@ -181,17 +188,22 @@ format of the other.
 Many joins require an implicit repartition of one or both sides to facilitate the join. In such 
 situations the change of key format can be performed in the same repartitioned step, avoiding any
 additional re-partitions. This means that joining sources with different key formats will only 
-require an implicit repartition to converge the key formats _if_ neither side is being repartitioned
-for any reason.
+require an implicit repartition to converge the key formats _if_ neither side is already being 
+repartitioned.
 
-Choosing which side to reparation can not be driven by the size of the data, as in a traditional 
-database system, as the size of the data is unknown, likely infinite. Ideally, for a streaming 
-system it is the rate of change of the data, i.e. the throughput, that would drive the choice. 
-Unfortunately, this too can not be known upfront.  For this reason, we propose repartitioning based
-on the order of sources within the query, with the source on the _right_ being repartitioned.
+Where one side must be repartitioned to correct the key format, choosing which side to reparation 
+can not be driven by the size of the data, as in a traditional database system, as the size of 
+the data is unknown, likely infinite. Ideally, for a streaming system it is the rate of change of 
+the data, i.e. the throughput, that would drive the choice. Unfortunately, this too can not be 
+known upfront.  For this reason, we propose repartitioning based on the order of sources within 
+the query, with the source on the _right_ being repartitioned.
 
 A benefit of making the choice order-based is that, once the rule is learned, users can predicate 
 and control which side is re-partitioned in some situations, i.e. stream-stream and table-table joins.
+
+Note: allowing users to freely switch left and right sources to control which side is repartitioned
+will work for all but left-outer joins. To support switching left-outer joins ksqlDB would need to
+support a right-outer join. The addition of this is deemed out of scope.
 
 Repartitioning the right side was chosen over the left, as it will mean stream-table joins will 
 repartition the table, which we propose will _generally_ see a lower throughput of updates to the 
@@ -204,7 +216,7 @@ cross-key out-of-order data, as the records are shuffled across partitions. That
 even if the source partitions where correctly ordered by time, the re-partitioned partitions would 
 see out-of-order records, though per-key ordering would be maintained. Thus time-tracking 
 ("stream-time"), grace-period and retention-time might be affected. However, this  phenomenon 
-already exists, as is deemed acceptable, for other implicit re-partitions.
+already exists, and is deemed acceptable, for other implicit re-partitions.
 
 #### Single key wrapping   
 
@@ -276,7 +288,10 @@ CREATE TABLE T AS
     COUNT()
   FROM KEY_LESS
   GROUP BY NAME;
-```  
+```
+
+`CREATE AS` statements that create key-less streams will now implicitly set the key format to 
+`NONE`.
 
 ## Test plan
 
@@ -289,9 +304,8 @@ include variants with different key formats.
 
 The KLIP will be broken down into the following deliverables:
 
-1. **Basic JSON support**: Support for the `JSON` key format, without:
+1. **Basic JSON support (5 weeks)**: Support for the `JSON` key format, without:
     * schema registry integration
-    * making KAFKA_TOPIC property optional
     * Automatic repartitioning of streams and tables for joins where key formats do not match: such
       joins will result in an error initially.
   
@@ -305,19 +319,18 @@ The KLIP will be broken down into the following deliverables:
         * `BOOLEAN`
     * Full support of the key format for all supported SQL syntax.  
     * Enhancements to QTT and the ksqlDB testing tool
-1. **NONE format**: Supported on keys only. Needed to support key-less streams once we have SR integration.
+    * Rest and HTTP2 server endpoints and Java client to work with new key format.
+1. **NONE format (1 week)**: Supported on keys only. Needed to support key-less streams once we have SR integration.
 1. **Schema Registry support**: Adds support for reading and writing schemas to and from the schema
    registry.
-1. **JSON_SR support** Adds support for the `JSON_SR` key format, inc. schema registry integration.
-1. **Avro support** Adds support for the `AVRO` key format, inc. schema registry integration.
-1. **Delimited support**: Adds support for the `DELIMITED` key format.
-1. **Auto-repartitioning on key format mismatch**. Adds support for automatic repartitioning of 
+1. **JSON_SR support (1 week)** Adds support for the `JSON_SR` key format, inc. schema registry integration.
+1. **Avro support (1 week)** Adds support for the `AVRO` key format, inc. schema registry integration.
+1. **Delimited support (1 week)**: Adds support for the `DELIMITED` key format.
+1. **Auto-repartitioning on key format mismatch (1.5 weeks)**. Adds support for automatic repartitioning of 
    streams and tables for joins where key formats do not match.
-1. **Blog post**: write a blog post about the new features. (Potentially more than once if 
-  work span multiple releases).
+1. **Blog post (1 week)**: write a blog post about the new features. Likely one post for everything _but_ 
+   auto-repartitioning, and a second to cover this.
    
-LOE TBD once scope and design confirmed.
-
 ## Documentation Updates
 
 New server config and new `CREATE` properties will be added to main docs site.
@@ -350,7 +363,8 @@ CREATE TABLE USERS (
 config shipped with ccloud and on-prem releases has `ksql.persistence.default.format.key` set to 
 `KAFKA`.
 
-Assuming the default key format is set, existing SQL will run unchanged.
+Assuming the default key format is set, existing SQL will run unchanged. The ksqlDB release will
+include this property set.
 
 ### Future multi-column key work
 
@@ -377,19 +391,21 @@ Where the user explicitly requests wrapping or unwrapping of single values, eith
 clause property or the system configuration, the query plan's `formats` has either the 
 `WRAP_SINGLE_VALUES` or `UNWRAP_SINGLE_VALUES` `SerdeOption` set on the source and/or sink topics.
 
-These options are used to ensure correct serialization and deserialization when the query is executed.
-If neither option is set, the formats default wrapping is used, e.g. `KAFKA` defaults to unwrapped, 
-where as `JSON` defaults to `wrapped`.
+These options are used to ensure correct serialization and deserialization when the query is executed,
+and control the shape of the schema registered with the Schema Registry. If neither option is set, 
+the format's default wrapping is used, e.g. `KAFKA` defaults to unwrapped, where as `JSON` defaults 
+to `wrapped`.
 
 This KLIP adds the ability to serialized a single key column as an anonymous value. Future work will
 extend this to support wrapped single columns and then multiple columns. This future work will need 
 to maintain backwards compatibility and allow users to choose how single key values should be 
-serialized. It will introduce a `WRAP_SINGLE_KEY` property and a `ksql.persistence.wrap.single.keys`
+serialized. Future work will introduce a `WRAP_SINGLE_KEY` property and a `ksql.persistence.wrap.single.keys`
 configuration.
 
 To ensure query plans written by this KLIP are forwards compatible with this planned work, all query
 plans will explicitly set the `UNWRAP_SINGLE_KEYS` `SerdeOption` on all source, internal and sink 
-topics, ensuring the correct (de)serialization options once ksqlDB supports these later features. 
+topics, ensuring the correct (de)serialization options are maintained once ksqlDB supports these 
+later features. 
 
 ### Internal topics
 
@@ -400,10 +416,10 @@ Internal topics have their key format serialized as part of the query plan, i.e.
 have `KAFKA` as the key format.  This means all existing plans are forward compatible with this
 KLIP.
 
-When generating query plans, internal topics inherit their key, (and value), format from their 
+When generating new query plans, internal topics inherit their key, (and value), format from their 
 leftmost parent. This KLIP does not propose to change this, except where an automatic repartition 
-is required to align key formats to enable a join, as already noted. New plans, generated after this
-KLIP, may have key formats other than `KAFKA` for source, sink and internal topics. 
+is required to align key formats to enable a join, as already noted. New plans generated after this
+KLIP may have key formats other than `KAFKA` for source, sink and internal topics. 
 
 No changes around internal topics are needed to maintain compatibility.  
 

@@ -50,6 +50,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.name.SourceName;
@@ -712,7 +713,7 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
-    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
+    awaitCleanupComplete();
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
   }
 
@@ -758,7 +759,7 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
-    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
+    awaitCleanupComplete();
     verify(schemaRegistryClient, times(2)).deleteSubject(any());
     verify(schemaRegistryClient).deleteSubject(internalTopic1, true);
     verify(schemaRegistryClient).deleteSubject(internalTopic2, true);
@@ -781,7 +782,7 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
-    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
+    awaitCleanupComplete();
     final Set<String> deletedConsumerGroups = (
         (FakeKafkaConsumerGroupClient) serviceContext.getConsumerGroupClient()
     ).getDeletedConsumerGroups();
@@ -807,7 +808,7 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
-    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
+    awaitCleanupComplete();
     final Set<String> deletedConsumerGroups = (
         (FakeKafkaConsumerGroupClient) serviceContext.getConsumerGroupClient()
     ).getDeletedConsumerGroups();
@@ -852,7 +853,7 @@ public class KsqlEngineTest {
     query.get(0).close();
 
     // Then (there are no transient queries, so no internal topics should be deleted):
-    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
+    awaitCleanupComplete();
     verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
 
@@ -879,7 +880,7 @@ public class KsqlEngineTest {
     query.get(0).close();
 
     // Then:
-    ksqlEngine.getCleanupService().awaitAllPreviousProcessed();
+    awaitCleanupComplete();
     verify(schemaRegistryClient, times(2)).deleteSubject(any());
     verify(schemaRegistryClient, never()).deleteSubject(internalTopic1, true);
     verify(schemaRegistryClient, never()).deleteSubject(internalTopic2, true);
@@ -1554,6 +1555,25 @@ public class KsqlEngineTest {
 
   private PreparedStatement<?> prepare(final ParsedStatement stmt) {
     return ksqlEngine.prepare(stmt);
+  }
+
+  private void awaitCleanupComplete() {
+    // add a task to the end of the queue to make sure that
+    // we've finished processing everything up until this point
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", false) {
+      @Override
+      public void run() {
+        // do nothing
+      }
+    });
+
+    // busy wait is fine here because this should only be
+    // used in tests - if we ever have the need to make this
+    // production ready, then we should properly implement this
+    // with a condition variable wait/notify pattern
+    while (!ksqlEngine.getCleanupService().isEmpty()) {
+      Thread.yield();
+    }
   }
 
   private void givenTopicWithSchema(final String topicName, final Schema schema) {

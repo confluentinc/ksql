@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.engine;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -77,23 +77,12 @@ class QueryCleanupService extends AbstractExecutionThreadService {
         .map(t -> t.appId).collect(ImmutableSet.toImmutableSet());
   }
 
-  public void addCleanupTask(final QueryCleanupTask task) {
-    cleanupTasks.add(task);
+  public boolean isEmpty() {
+    return cleanupTasks.isEmpty();
   }
 
-  @VisibleForTesting
-  void awaitAllPreviousProcessed() {
-    // add a task to the end of the queue to make sure that
-    // we've finished processing everything up until this point
-    cleanupTasks.add(() -> { });
-
-    // busy wait is fine here because this should only be
-    // used in tests - if we ever have the need to make this
-    // production ready, then we should properly implement this
-    // with a condition variable wait/notify pattern
-    while (!cleanupTasks.isEmpty()) {
-      Thread.yield();
-    }
+  public void addCleanupTask(final QueryCleanupTask task) {
+    cleanupTasks.add(task);
   }
 
   static class QueryCleanupTask implements Runnable {
@@ -106,9 +95,9 @@ class QueryCleanupService extends AbstractExecutionThreadService {
         final String appId,
         final boolean isTransient
     ) {
-      this.appId = appId;
+      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+      this.appId = Objects.requireNonNull(appId, "appId");
       this.isTransient = isTransient;
-      this.serviceContext = serviceContext;
     }
 
     @Override

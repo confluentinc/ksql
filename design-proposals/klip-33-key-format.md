@@ -109,7 +109,7 @@ supported. Namely:
  
 The key format will follow the same inheritance rules as the current value format. Namely: any 
 derived stream will inherit the format of its leftmost source, unless the format is explicitly set
-in the with clause.
+in the `WITH` clause.
 
 For example:
 

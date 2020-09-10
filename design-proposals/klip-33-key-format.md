@@ -198,7 +198,7 @@ the data, i.e. the throughput, that would drive the choice. Unfortunately, this 
 known upfront.  For this reason, we propose repartitioning based on the order of sources within 
 the query, with the source on the _right_ being repartitioned.
 
-A benefit of making the choice order-based is that, once the rule is learned, users can predicate 
+A benefit of making the choice order-based is that, once the rule is learned, users can predict 
 and control which side is re-partitioned in some situations, i.e. stream-stream and table-table joins.
 
 Note: allowing users to freely switch left and right sources to control which side is repartitioned

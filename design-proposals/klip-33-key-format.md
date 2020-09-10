@@ -101,7 +101,7 @@ within the application property file, or locally, via the `SET` command.
 
 ## Design
 
-The new `KEY_FORMAT` or `FORMAT` property will be supported where ever the current `VALUE_FORMAT` is
+The new `KEY_FORMAT` or `FORMAT` property will be supported wherever the current `VALUE_FORMAT` is
 supported. Namely:
 
  * In `CREATE STREAM` and `CREATE TABLE` statements.

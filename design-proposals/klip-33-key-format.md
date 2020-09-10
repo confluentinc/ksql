@@ -20,7 +20,7 @@ in Kafka that have non-`KAFKA` formatted keys. As the key of the Kafka record is
 of the table, it is essential that the key can be read if the changelog is to be materialised into a 
 table. When changelog topics have non-`KAFKA` key formats, the limitation precludes ksqlDB as a solution.
 
-The limitation is less damaging for streams. However, it is still the case that the user looses the
+The limitation is less damaging for streams. However, it is still the case that the user loses the
 ability to access the data in the Kafka record's key. If this data is not duplicated in the record's
 value, which generally seems to be the case, then the data is not accessible at all. If the data is
 required, then the limitation precludes ksqlDB as a solution.

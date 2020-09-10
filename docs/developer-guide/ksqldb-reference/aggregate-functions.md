@@ -107,11 +107,15 @@ EARLIEST_BY_OFFSET(col1, [ignoreNulls])
 
 Stream
 
-Return the earliest value for a given column. 'Earliest' is defined as the value in the partition
-with the lowest offset. 
+Return the earliest value for the specified column. The earliest value in the partition
 
-Optional parameter `ignoreNulls`, (since 0.13.0), controls if nulls are ignored or not. Defaulting
-to ignoring null values.
+has the lowest offset. 
+
+
+The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
+
+is to ignore null values.
+
 
 
 Since: 0.13.0
@@ -122,11 +126,15 @@ EARLIEST_BY_OFFSET(col1, earliestN, [ignoreNulls])
 
 Stream
 
-Return the earliest N values for a given column as an `ARRAY`. 'Earliest' is defined as the values 
-in the partition with the lowest offsets.
+Return the earliest _N_ values for the specified column as an `ARRAY`. The earliest values
 
-Optional parameter `ignoreNulls` controls if nulls are ignored or not. Defaulting
-to ignoring null values.
+in the partition have the lowest offsets.
+
+
+The optional `ignoreNulls` parameter controls whether nulls are ignored. The default
+
+is to ignore null values.
+
 
 ## `HISTOGRAM`
 
@@ -160,11 +168,15 @@ LATEST_BY_OFFSET(col1, [ignoreNulls])
 
 Stream
 
-Return the latest value for a given column. 'Latest' is defined as the value in the partition
-with the greatest offset. 
+Return the latest value for the specified column. The latest value in the partition
 
-Optional parameter `ignoreNulls`, (since 0.13.0), controls if nulls are ignored or not. Defaulting
-to ignoring null values.
+has the largest offset. 
+
+
+The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
+
+is to ignore null values.
+
 
 Since: 0.13.0
 
@@ -174,10 +186,13 @@ LATEST_BY_OFFSET(col1, latestN, [ignoreNulls])
 
 Stream
 
-Returns the latest N values for a given column as an `ARRAY`. 'Latest' is defined
-with the greatest offset.
+Returns the latest _N_ values for the specified column as an `ARRAY`. The latest values have
 
-Optional parameter `ignoreNulls` controls if nulls are ignored or not. Defaulting to ignoring 
+the largest offset.
+
+
+The optional `ignoreNulls` parameter controls whether nulls are ignored. The default is to ignore
+
 null values. 
 
 ## `MAX`

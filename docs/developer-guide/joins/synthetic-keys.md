@@ -100,3 +100,7 @@ No, as stated above, synthetic key columns will no longer be required once ksqlD
 [structured keys][1].
 
 [1]: https://github.com/confluentinc/ksql/projects/9
+
+## Suggested Reading
+
+- Blog post: [I’ve Got the Key, I’ve Got the Secret. Here’s How Keys Work in ksqlDB 0.10](https://www.confluent.io/blog/ksqldb-0-10-updates-key-columns/)

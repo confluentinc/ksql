@@ -117,20 +117,6 @@ public class FileWatcherTest {
     assertThatEventually(watcher::isAlive, is(false));
   }
 
-  @Test
-  public void willStopIfDirectoryRenamed() throws Exception {
-    // Given:
-    watcher = new FileWatcher(filePath, callback);
-    watcher.start();
-
-    // When:
-    Files.move(filePath.getParent(), filePath.getParent().getParent().resolve("new"));
-
-    // Then:
-    verify(callback, never()).run();
-    assertThatEventually(watcher::isAlive, is(false));
-  }
-
   /**
    * Resolution of {@link FileTime} on some OS / JDKs can have only second resolution. This can mean
    * the watcher 'misses' an update to a file that was <i>created</i> before the watcher was started

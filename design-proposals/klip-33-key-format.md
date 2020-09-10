@@ -104,7 +104,7 @@ within the application property file, or locally, via the `SET` command.
 The new `KEY_FORMAT` or `FORMAT` property will be supported where ever the current `VALUE_FORMAT` is
 supported. Namely:
 
- * In `CRREATE STREAM` and `CREATE TABLE` statements.
+ * In `CREATE STREAM` and `CREATE TABLE` statements.
  * In `CREATE STREAM AS SELECT` and `CREATE TABLE AS SELECT` statements.
  
 The key format will follow the same inheritance rules as the current value format. Namely: any 

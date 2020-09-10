@@ -90,7 +90,7 @@ public final class JsonSerdeUtils {
       @Override
       public Void visitMap(final Schema schema, final Void key, final Void value) {
         if (schema.keySchema().type() != Type.STRING) {
-          throw new IllegalArgumentException("Only MAPs with STRING keys are supported");
+          throw new KsqlException("JSON only supports MAP types with STRING keys");
         }
         return null;
       }

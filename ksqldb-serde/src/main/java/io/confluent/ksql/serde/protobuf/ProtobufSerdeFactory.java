@@ -36,6 +36,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 
 public class ProtobufSerdeFactory implements KsqlSerdeFactory {
 
@@ -122,6 +123,15 @@ public class ProtobufSerdeFactory implements KsqlSerdeFactory {
       if (DecimalUtil.isDecimal(schema)) {
         throw new KsqlException("The '" + ProtobufFormat.NAME + "' format does not support type "
             + "'DECIMAL'. See https://github.com/confluentinc/ksql/issues/5762.");
+      }
+      return null;
+    }
+
+    @Override
+    public Void visitMap(final Schema schema, final Void key, final Void value) {
+      if (schema.keySchema().type() != Type.STRING) {
+        throw new KsqlException("PROTOBUF format only supports MAP types with STRING keys. "
+            + "See https://github.com/confluentinc/ksql/issues/6177.");
       }
       return null;
     }

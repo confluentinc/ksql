@@ -97,13 +97,13 @@ public class UdtfLoaderTest {
 
     // Given:
     final List<SqlType> args = ImmutableList.of(
-        SqlTypes.map(SqlTypes.INTEGER),
-        SqlTypes.map(SqlTypes.BIGINT),
-        SqlTypes.map(SqlTypes.DOUBLE),
-        SqlTypes.map(SqlTypes.BOOLEAN),
-        SqlTypes.map(SqlTypes.STRING),
-        SqlTypes.map(DECIMAL_SCHEMA),
-        SqlTypes.map(STRUCT_SCHEMA)
+        SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BOOLEAN),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING),
+        SqlTypes.map(SqlTypes.STRING, DECIMAL_SCHEMA),
+        SqlTypes.map(SqlTypes.STRING, STRUCT_SCHEMA)
     );
 
     // When:

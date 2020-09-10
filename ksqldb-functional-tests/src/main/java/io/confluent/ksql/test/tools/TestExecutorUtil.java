@@ -308,15 +308,20 @@ public final class TestExecutorUtil {
       final KsqlExecutionContext executionContext,
       final ConfiguredKsqlPlan plan
   ) {
-    final ExecuteResult executeResult = executionContext.execute(
-        executionContext.getServiceContext(),
-        plan
-    );
+    try {
+      final ExecuteResult executeResult = executionContext.execute(
+          executionContext.getServiceContext(),
+          plan
+      );
 
-    final Optional<List<DataSource>> dataSources = plan.getPlan().getQueryPlan()
-        .map(queryPlan -> getSources(queryPlan.getSources(), executionContext.getMetaStore()));
+      final Optional<List<DataSource>> dataSources = plan.getPlan().getQueryPlan()
+          .map(queryPlan -> getSources(queryPlan.getSources(), executionContext.getMetaStore()));
 
-    return new ExecuteResultAndSources(executeResult, dataSources);
+      return new ExecuteResultAndSources(executeResult, dataSources);
+    } catch (final KsqlStatementException e) {
+      throw new KsqlStatementException(
+          e.getMessage(),plan.getPlan().getStatementText(), e.getCause());
+    }
   }
 
   private static List<DataSource> getSources(

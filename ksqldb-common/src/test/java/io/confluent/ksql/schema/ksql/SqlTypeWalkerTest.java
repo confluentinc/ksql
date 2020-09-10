@@ -155,7 +155,7 @@ public class SqlTypeWalkerTest {
   @Test
   public void shouldVisitMap() {
     // Given:
-    final SqlMap type = SqlTypes.map(SqlTypes.INTEGER);
+    final SqlMap type = SqlTypes.map(SqlTypes.STRING, SqlTypes.INTEGER);
 
     when(visitor.visitInt(any())).thenReturn("Expected-value");
     when(visitor.visitMap(any(), any())).thenReturn("Expected");
@@ -341,7 +341,7 @@ public class SqlTypeWalkerTest {
   private static Stream<SqlType> structuredTypes() {
     return Stream.of(
         SqlTypes.array(SqlTypes.BIGINT),
-        SqlTypes.map(SqlTypes.STRING),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING),
         SqlTypes
             .struct()
             .field("f0", SqlTypes.BIGINT)

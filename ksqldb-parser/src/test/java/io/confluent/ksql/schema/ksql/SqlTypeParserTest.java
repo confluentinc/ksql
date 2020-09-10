@@ -80,13 +80,13 @@ public class SqlTypeParserTest {
   @Test
   public void shouldGetTypeFromMap() {
     // Given:
-    final String schemaString = "MAP<VARCHAR, INT>";
+    final String schemaString = "MAP<BIGINT, INT>";
 
     // When:
     final Type type = parser.parse(schemaString);
 
     // Then:
-    assertThat(type, is(new Type(SqlTypes.map(SqlTypes.INTEGER))));
+    assertThat(type, is(new Type(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER))));
   }
 
   @Test

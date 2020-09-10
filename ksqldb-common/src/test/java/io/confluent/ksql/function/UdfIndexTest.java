@@ -42,12 +42,12 @@ public class UdfIndexTest {
   private static final ParamType DOUBLE = ParamTypes.DOUBLE;
   private static final ParamType STRUCT1 = StructType.builder().field("a", STRING).build();
   private static final ParamType STRUCT2 = StructType.builder().field("b", INT).build();
-  private static final ParamType MAP1 = MapType.of(STRING);
-  private static final ParamType MAP2 = MapType.of(INT);
+  private static final ParamType MAP1 = MapType.of(STRING, STRING);
+  private static final ParamType MAP2 = MapType.of(INT, INT);
 
   private static final ParamType GENERIC_LIST = ArrayType.of(GenericType.of("T"));
 
-  private static final SqlType MAP1_ARG = SqlTypes.map(SqlTypes.STRING);
+  private static final SqlType MAP1_ARG = SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING);
   private static final SqlType DECIMAL1_ARG = SqlTypes.decimal(4, 2);
 
   private static final SqlType STRUCT1_ARG = SqlTypes.struct().field("a", SqlTypes.STRING).build();

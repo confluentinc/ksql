@@ -286,7 +286,7 @@ public class LogicalSchemaTest {
             .field("a", BIGINT)
             .build())
         .valueColumn(ColumnName.of("f7"), SqlTypes.array(STRING))
-        .valueColumn(ColumnName.of("f8"), SqlTypes.map(STRING))
+        .valueColumn(ColumnName.of("f8"), SqlTypes.map(SqlTypes.STRING, STRING))
         .build();
 
     // When:

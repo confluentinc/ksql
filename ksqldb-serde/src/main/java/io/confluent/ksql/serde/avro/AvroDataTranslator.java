@@ -21,6 +21,7 @@ import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -135,7 +136,7 @@ public class AvroDataTranslator implements DataTranslator {
       @Override
       public Void visitMap(final Schema schema, final Void key, final Void value) {
         if (schema.keySchema().type() != Type.STRING) {
-          throw new IllegalArgumentException("Avro only supports MAPs with STRING keys");
+          throw new KsqlException("Avro only supports MAPs with STRING keys");
         }
         return null;
       }

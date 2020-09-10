@@ -38,6 +38,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -636,7 +637,7 @@ public class KsqlAvroSerializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
             .createSerde(
                 physicalSchema,
@@ -664,7 +665,7 @@ public class KsqlAvroSerializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
             .createSerde(
                 physicalSchema,

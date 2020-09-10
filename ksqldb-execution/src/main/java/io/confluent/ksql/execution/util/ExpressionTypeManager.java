@@ -401,12 +401,14 @@ public class ExpressionTypeManager {
           })
           .collect(Collectors.toList());
 
-      if (keyTypes.stream().anyMatch(type -> !SqlTypes.STRING.equals(type))) {
-        final String types = keyTypes.stream()
-            .map(type -> type == null ? "NULL" : type.toString())
-            .collect(Collectors.joining(", ", "[", "]"));
+      if (keyTypes.stream().anyMatch(type -> type == null)) {
+        throw new KsqlException("Map keys can not be NULL");
+      }
 
-        throw new KsqlException("Only STRING keys are supported in maps but got: " + types);
+      if (keyTypes.size() == 0) {
+        throw new KsqlException("Cannot construct a map with all NULL key "
+            + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
+            + "cast a NULL key to the desired type.");
       }
 
       final List<SqlType> valueTypes = exp.getMap()
@@ -434,7 +436,7 @@ public class ExpressionTypeManager {
                 exp));
       }
 
-      context.setSqlType(SqlMap.of(valueTypes.get(0)));
+      context.setSqlType(SqlMap.of(keyTypes.get(0), valueTypes.get(0)));
       return null;
     }
 

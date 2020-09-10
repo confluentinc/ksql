@@ -23,7 +23,6 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.ParserUtil;
 import io.vertx.core.json.JsonArray;
@@ -197,7 +196,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
 
     final HashMap<Object, Object> coerced = new HashMap<>();
     for (final Object key : map.keys()) {
-      final Result coercedKey = doCoerce(key, SqlTypes.STRING);
+      final Result coercedKey = doCoerce(key, targetType.getKeyType());
       final Result coercedValue = doCoerce(map.get(key), targetType.getValueType());
       if (coercedKey.failed() || coercedValue.failed()) {
         return Result.failure();

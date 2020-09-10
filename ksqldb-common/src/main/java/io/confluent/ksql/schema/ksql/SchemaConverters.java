@@ -233,10 +233,7 @@ public final class SchemaConverters {
     }
 
     private static SqlMap toSqlMap(final Schema schema) {
-      if (schema.keySchema().type() != Schema.Type.STRING) {
-        throw new KsqlException("Unsupported map key type: " + schema.keySchema());
-      }
-      return SqlMap.of(sqlType(schema.valueSchema()));
+      return SqlMap.of(sqlType(schema.keySchema()), sqlType(schema.valueSchema()));
     }
 
     private static SqlStruct toSqlStruct(final Schema schema) {
@@ -295,7 +292,10 @@ public final class SchemaConverters {
 
     private static SchemaBuilder fromSqlMap(final SqlMap sqlMap) {
       return SchemaBuilder
-          .map(Schema.OPTIONAL_STRING_SCHEMA, connectType(sqlMap.getValueType()).build())
+          .map(
+              connectType(sqlMap.getKeyType()).build(),
+              connectType(sqlMap.getValueType()).build()
+          )
           .optional();
     }
 
@@ -370,7 +370,10 @@ public final class SchemaConverters {
       }
 
       if (paramType instanceof MapType) {
-        return SqlTypes.map(toSqlType(((MapType) paramType).value()));
+        final MapType mapType = (MapType) paramType;
+        final SqlType keyType = toSqlType(mapType.key());
+        final SqlType valueType = toSqlType(mapType.value());
+        return SqlTypes.map(keyType, valueType);
       }
 
       if (paramType instanceof ArrayType) {
@@ -441,7 +444,11 @@ public final class SchemaConverters {
       }
 
       if (sqlType.baseType() == SqlBaseType.MAP) {
-        return MapType.of(toFunctionType(((SqlMap) sqlType).getValueType()));
+        final SqlMap sqlMap = (SqlMap) sqlType;
+        return MapType.of(
+            toFunctionType(sqlMap.getKeyType()),
+            toFunctionType(sqlMap.getValueType())
+        );
       }
 
       if (sqlType.baseType() == SqlBaseType.STRUCT) {

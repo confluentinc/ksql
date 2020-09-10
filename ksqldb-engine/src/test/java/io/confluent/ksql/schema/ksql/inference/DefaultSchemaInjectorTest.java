@@ -88,7 +88,7 @@ public class DefaultSchemaInjectorTest {
       .valueColumn(ColumnName.of("stringField"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("booleanField"), SqlTypes.BOOLEAN)
       .valueColumn(ColumnName.of("arrayField"), SqlTypes.array(SqlTypes.INTEGER))
-      .valueColumn(ColumnName.of("mapField"), SqlTypes.map(SqlTypes.BIGINT))
+      .valueColumn(ColumnName.of("mapField"), SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT))
       .valueColumn(ColumnName.of("structField"), SqlTypes.struct()
           .field("s0", SqlTypes.BIGINT).build())
       .valueColumn(ColumnName.of("decimalField"), SqlTypes.decimal(4, 2))
@@ -102,7 +102,9 @@ public class DefaultSchemaInjectorTest {
       new TableElement(Namespace.VALUE, ColumnName.of("stringField"), new Type(SqlTypes.STRING)),
       new TableElement(Namespace.VALUE, ColumnName.of("booleanField"), new Type(SqlTypes.BOOLEAN)),
       new TableElement(Namespace.VALUE, ColumnName.of("arrayField"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
-      new TableElement(Namespace.VALUE, ColumnName.of("mapField"), new Type(SqlTypes.map(SqlTypes.BIGINT))),
+      new TableElement(Namespace.VALUE, ColumnName.of("mapField"), new Type(SqlTypes.map(
+          SqlTypes.STRING, SqlTypes.BIGINT
+      ))),
       new TableElement(Namespace.VALUE, ColumnName.of("structField"), new Type(SqlStruct.builder()
           .field("s0", SqlTypes.BIGINT)
           .build())),

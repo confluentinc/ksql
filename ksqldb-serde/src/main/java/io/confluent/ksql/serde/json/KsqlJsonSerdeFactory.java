@@ -51,7 +51,7 @@ public class KsqlJsonSerdeFactory implements KsqlSerdeFactory {
 
   @Override
   public void validate(final PersistenceSchema schema) {
-    // Supports all types
+    JsonSerdeUtils.validateSchema(schema);
   }
 
   @Override

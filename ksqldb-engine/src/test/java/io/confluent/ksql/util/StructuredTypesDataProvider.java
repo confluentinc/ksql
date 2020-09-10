@@ -43,7 +43,7 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
       .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("DEC"), SqlTypes.decimal(4, 2))
       .valueColumn(ColumnName.of("ARRAY"), SqlTypes.array(SqlTypes.STRING))
-      .valueColumn(ColumnName.of("MAP"), SqlTypes.map(SqlTypes.STRING))
+      .valueColumn(ColumnName.of("MAP"), SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
       .valueColumn(ColumnName.of("STRUCT"), SqlTypes.struct().field("F1", SqlTypes.INTEGER).build())
       .valueColumn(ColumnName.of("COMPLEX"), SqlTypes.struct()
           .field("DECIMAL", SqlTypes.decimal(2, 1))
@@ -53,10 +53,14 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
               .build())
           .field("ARRAY_ARRAY", SqlTypes.array(SqlTypes.array(SqlTypes.STRING)))
           .field("ARRAY_STRUCT", SqlTypes.array(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
-          .field("ARRAY_MAP", SqlTypes.array(SqlTypes.map(SqlTypes.INTEGER)))
-          .field("MAP_ARRAY", SqlTypes.map(SqlTypes.array(SqlTypes.STRING)))
-          .field("MAP_MAP", SqlTypes.map(SqlTypes.map(SqlTypes.INTEGER)))
-          .field("MAP_STRUCT", SqlTypes.map(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
+          .field("ARRAY_MAP", SqlTypes.array(SqlTypes.map(SqlTypes.STRING, SqlTypes.INTEGER)))
+          .field("MAP_ARRAY", SqlTypes.map(SqlTypes.STRING, SqlTypes.array(SqlTypes.STRING)))
+          .field("MAP_MAP", SqlTypes.map(SqlTypes.STRING,
+              SqlTypes.map(SqlTypes.STRING, SqlTypes.INTEGER)
+          ))
+          .field("MAP_STRUCT", SqlTypes.map(SqlTypes.STRING,
+              SqlTypes.struct().field("F1", SqlTypes.STRING).build()
+          ))
           .build()
       )
       .build();

@@ -38,7 +38,7 @@ public class OrderDataProvider extends TestDataProvider<String> {
       .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("TIMESTAMP"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("KEYVALUEMAP"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("KEYVALUEMAP"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema

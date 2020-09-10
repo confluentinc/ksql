@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -212,7 +213,7 @@ public class JsonSerdeUtilsTest {
   public void shouldThrowOnMapWithNoneStringKeys() {
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> JsonSerdeUtils.validateSchema(persistenceSchema(
             SchemaBuilder
                 .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
@@ -222,14 +223,14 @@ public class JsonSerdeUtilsTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test
   public void shouldThrowOnNestedMapWithNoneStringKeys() {
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> JsonSerdeUtils.validateSchema(persistenceSchema(
             SchemaBuilder
                 .struct()
@@ -243,7 +244,7 @@ public class JsonSerdeUtilsTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test

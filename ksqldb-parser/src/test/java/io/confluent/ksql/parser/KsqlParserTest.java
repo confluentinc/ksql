@@ -139,7 +139,7 @@ public class KsqlParserTest {
       .valueColumn(ColumnName.of("ITEMINFO"), itemInfoSchema)
       .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
       .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
       .build();
 

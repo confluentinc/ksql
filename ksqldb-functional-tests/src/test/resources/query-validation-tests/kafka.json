@@ -65,6 +65,27 @@
       ],
       "input": [{"topic": "input", "key": 1.1, "value": 2.2}],
       "output": [{"topic": "OUTPUT", "key": 1.1, "value": 2.2}]
+    },
+    {
+      "name": "MAP - C*",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='KAFKA');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'KAFKA' format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "MAP - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (value_format='KAFKA') AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "The 'KAFKA' format does not support type 'MAP'"
+      }
     }
   ]
 }

@@ -94,7 +94,7 @@ public class AvroUtilTest {
   private static final LogicalSchema SCHEMA_WITH_MAPS = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("notmap"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("mapcol"), SqlTypes.map(SqlTypes.INTEGER))
+      .valueColumn(ColumnName.of("mapcol"), SqlTypes.map(SqlTypes.STRING, SqlTypes.INTEGER))
       .build();
 
   private static final String SCHEMA_NAME = "schema_name";

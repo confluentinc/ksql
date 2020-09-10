@@ -532,3 +532,7 @@ CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EM
 [0]: ../operate-and-deploy/installation/server-config/avro-schema.md
 [1]: ../concepts/schemas.md#schema-inference 
 [2]: #single-field-unwrapping
+
+## Suggested Reading
+
+- Blog post: [I’ve Got the Key, I’ve Got the Secret. Here’s How Keys Work in ksqlDB 0.10](https://www.confluent.io/blog/ksqldb-0-10-updates-key-columns/)

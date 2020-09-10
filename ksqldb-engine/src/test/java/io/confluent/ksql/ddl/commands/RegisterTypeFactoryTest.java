@@ -53,8 +53,8 @@ public class RegisterTypeFactoryTest {
     factory = new RegisterTypeFactory(metaStore);
   }
 
-    @Test
-  public void shouldCreateCommandForRegisterType() {
+  @Test
+  public void shouldCreateCommandForRegisterTypeWhenIfNotExitsSet() {
     // Given:
     final RegisterType ddlStatement = new RegisterType(
         Optional.empty(),
@@ -72,7 +72,25 @@ public class RegisterTypeFactoryTest {
   }
 
   @Test
-  public void shouldNotThrowError() {
+  public void shouldCreateCommandForRegisterTypeWhenIfNotExitsNotSet() {
+    // Given:
+    final RegisterType ddlStatement = new RegisterType(
+        Optional.empty(),
+        NOT_EXISTING_TYPE,
+        new Type(SqlStruct.builder().field("foo", SqlPrimitiveType.of(SqlBaseType.STRING)).build()),
+        false
+    );
+
+    // When:
+    final RegisterTypeCommand result = factory.create(ddlStatement);
+
+    // Then:
+    assertThat(result.getType(), equalTo(ddlStatement.getType().getSqlType()));
+    assertThat(result.getTypeName(), equalTo(NOT_EXISTING_TYPE));
+  }
+
+  @Test
+  public void shouldNotThrowOnRegisterExistingTypeWhenIfNotExistsSet() {
     // Given:
     final RegisterType ddlStatement = new RegisterType(
         Optional.empty(),
@@ -90,7 +108,7 @@ public class RegisterTypeFactoryTest {
   }
 
   @Test
-  public void shouldThrowError() {
+  public void shouldThrowOnRegisterExistingTypeWhenIfNotExistsNotSet() {
     // Given:
     final RegisterType ddlStatement = new RegisterType(
         Optional.empty(),

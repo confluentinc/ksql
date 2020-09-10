@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.RegisterType;
@@ -25,7 +27,7 @@ public final class RegisterTypeFactory {
   private final MetaStore metaStore;
 
   RegisterTypeFactory(final MetaStore metaStore) {
-    this.metaStore = metaStore;
+    this.metaStore = requireNonNull(metaStore, "metaStore");
   }
 
   public RegisterTypeCommand create(final RegisterType statement) {

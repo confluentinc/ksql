@@ -191,7 +191,7 @@ additional re-partitions. This means that joining sources with different key for
 require an implicit repartition to converge the key formats _if_ neither side is already being 
 repartitioned.
 
-Where one side must be repartitioned to correct the key format, choosing which side to reparation 
+Where one side must be repartitioned to correct the key format, choosing which side to repartition 
 can not be driven by the size of the data, as in a traditional database system, as the size of 
 the data is unknown, likely infinite. Ideally, for a streaming system it is the rate of change of 
 the data, i.e. the throughput, that would drive the choice. Unfortunately, this too can not be 

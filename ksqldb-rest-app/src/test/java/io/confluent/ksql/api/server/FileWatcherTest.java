@@ -30,6 +30,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -110,7 +111,12 @@ public class FileWatcherTest {
     watcher.start();
 
     // When:
-    Files.delete(filePath.getParent());
+    final Path parent = filePath.getParent();
+    if (parent != null) {
+      Files.delete(parent);
+    } else {
+      Assert.fail("Expected parent for " + filePath);
+    }
 
     // Then:
     verify(callback, never()).run();

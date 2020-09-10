@@ -246,7 +246,7 @@ SET 'ksql.persistence.default.format.key'='AVRO';
 -- Only the value columns of CLICKS will be loaded from the schema registry.
 CREATE STREAM CLICKS 
  WITH (
-   key_format='NONE',  -- Informs kdqlDB to ignore the key
+   key_format='NONE',  -- Informs ksqlDB to ignore the key
    value_format='AVRO',
    ...
 );

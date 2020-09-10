@@ -77,7 +77,7 @@ no longer require pre-processing, or tricky Connect SMTs configured, and there a
 which ksqlDB was previously unsuitable for, as documented in the motivation section, which can 
 now be handled.
 
-## Public APIS
+## Public APIs
 
 ### CREATE properties
 

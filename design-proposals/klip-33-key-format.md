@@ -213,7 +213,7 @@ Such repartitioning is possible and safe... ish, even for tables, because the lo
 data will not have changed, only the serialization format. This ensures the ordering of updates to 
 a specific key are maintained across the repartition. Of course, the repartitioning would introduce 
 cross-key out-of-order data, as the records are shuffled across partitions. That is to say that 
-even if the source partitions where correctly ordered by time, the re-partitioned partitions would 
+even if the source partitions were correctly ordered by time, the re-partitioned partitions would 
 see out-of-order records, though per-key ordering would be maintained. Thus time-tracking 
 ("stream-time"), grace-period and retention-time might be affected. However, this  phenomenon 
 already exists, and is deemed acceptable, for other implicit re-partitions.

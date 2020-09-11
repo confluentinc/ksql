@@ -85,10 +85,10 @@ final class KsLocator implements Locator {
     }
 
     LOG.debug("Handling pull query for key {} in partition {} of state store {}.",
-              key, metadata.partition(), stateStoreName);
+              key, metadata.getPartition(), stateStoreName);
     
-    final HostInfo activeHost = metadata.activeHost();
-    final Set<HostInfo> standByHosts = metadata.standbyHosts();
+    final HostInfo activeHost = metadata.getActiveHost();
+    final Set<HostInfo> standByHosts = metadata.getStandbyHosts();
 
     // If the lookup is for a forwarded request, only filter localhost
     List<KsqlHostInfo> allHosts = null;
@@ -102,7 +102,7 @@ final class KsLocator implements Locator {
           .collect(Collectors.toList());
     }
     final RoutingFilter routingFilter = routingFilterFactory.createRoutingFilter(routingOptions,
-        allHosts, activeHost, applicationId, stateStoreName, metadata.partition());
+        allHosts, activeHost, applicationId, stateStoreName, metadata.getPartition());
 
     // Filter out hosts based on active, liveness and max lag filters.
     // The list is ordered by routing preference: active node is first, then standby nodes.

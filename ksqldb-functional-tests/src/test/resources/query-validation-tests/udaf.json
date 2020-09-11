@@ -12,7 +12,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Function 'EARLIEST_BY_OFFSET' does not accept parameters (INTEGER, BOOLEAN, INTEGER).\nValid alternatives are:\nEARLIEST_BY_OFFSET(INT val, INT earliestN, BOOLEAN ignoreNulls)"
+        "message": "Function 'EARLIEST_BY_OFFSET' does not accept parameters (INTEGER, BOOLEAN, INTEGER).\nValid alternatives are:"
       }
     },
     {

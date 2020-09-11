@@ -231,7 +231,6 @@ public class ServerVerticle extends AbstractVerticle {
 
     final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
     routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
-    routingContext.request().bytesRead();
     handleOldApiRequest(server, routingContext, KsqlRequest.class, pullQueryMetrics,
         (request, apiSecurityContext) ->
             endpoints

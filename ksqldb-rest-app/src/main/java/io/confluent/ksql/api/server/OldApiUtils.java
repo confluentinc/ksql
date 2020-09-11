@@ -40,6 +40,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
+import org.apache.kafka.common.utils.Time;
 
 public final class OldApiUtils {
 
@@ -56,6 +57,7 @@ public final class OldApiUtils {
       final Class<T> requestClass,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
+    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     final T requestObject;
     if (requestClass != null) {
       final Optional<T> optRequestObject = ServerUtils
@@ -70,6 +72,9 @@ public final class OldApiUtils {
     pullQueryMetrics
         .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordRequestSize(
             routingContext.request().bytesRead()));
+    //Record latency at microsecond scale
+    pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
+        .recordLatency(startTimeNanos));
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {

@@ -35,9 +35,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.utils.Time;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
@@ -69,12 +67,9 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         () -> {
           final PullQueryResult result = pullQueryExecutor.execute(
               query, serviceContext, Optional.of(false), pullQueryMetrics);
-          if (pullQueryMetrics.isPresent()) {
-            //Record latency at microsecond scale
-            final long nowNanos = Time.SYSTEM.nanoseconds();
-            final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
-            pullQueryMetrics.get().recordLatency(latency);
-          }
+          //Record latency at microsecond scale
+          pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
+              .recordLatency(startTimeNanos));
           return result;
         }
     );

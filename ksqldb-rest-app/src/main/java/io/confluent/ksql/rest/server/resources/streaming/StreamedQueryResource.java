@@ -58,10 +58,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,7 +158,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest
   ) {
-    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     throwIfNotConfigured();
     activenessRegistrar.updateLastRequestTime();
 
@@ -170,7 +167,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest, startTimeNanos);
+        isInternalRequest);
   }
 
   private void throwIfNotConfigured() {
@@ -198,8 +195,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final KsqlRequest request,
       final PreparedStatement<?> statement,
       final CompletableFuture<Void> connectionClosedFuture,
-      final Optional<Boolean> isInternalRequest,
-      final long startTimeNanos
+      final Optional<Boolean> isInternalRequest
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -224,12 +220,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               isInternalRequest,
               pullQueryMetrics
           );
-          if (pullQueryMetrics.isPresent()) {
-            //Record latency at microsecond scale
-            final long nowNanos = Time.SYSTEM.nanoseconds();
-            final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
-            pullQueryMetrics.get().recordLatency(latency);
-          }
+
           return response;
         }
 

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -33,6 +34,7 @@ import org.apache.kafka.common.metrics.stats.Percentiles;
 import org.apache.kafka.common.metrics.stats.Percentiles.BucketSizing;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
+import org.apache.kafka.common.utils.Time;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class PullQueryExecutorMetrics implements Closeable {
@@ -51,6 +53,7 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Metrics metrics;
   private final Map<String, String> customMetricsTags;
   private final String ksqlServiceId;
+  private final Time time = Time.SYSTEM;
 
   public PullQueryExecutorMetrics(
       final String ksqlServiceId,
@@ -84,9 +87,13 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.remoteRequestsSensor.record(value);
   }
 
-  public void recordLatency(final double value) {
+  public void recordLatency(final long startTimeNanos) {
     // Record latency at microsecond scale
-    this.latencySensor.record(value);
+    //this.latencySensor.record(value);
+    //this.requestRateSensor.record(1);
+    final long nowNanos = time.nanoseconds();
+    final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
+    this.latencySensor.record(latency);
     this.requestRateSensor.record(1);
   }
 

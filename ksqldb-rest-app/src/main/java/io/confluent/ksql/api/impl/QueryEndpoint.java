@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.utils.Time;
 
 public class QueryEndpoint {
 
@@ -71,13 +72,15 @@ public class QueryEndpoint {
       final Context context,
       final WorkerExecutor workerExecutor,
       final ServiceContext serviceContext) {
+    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
     final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
 
     if (statement.getStatement().isPullQuery()) {
-      return createPullQueryPublisher(context, serviceContext, statement, pullQueryMetrics);
+      return createPullQueryPublisher(
+          context, serviceContext, statement, pullQueryMetrics, startTimeNanos);
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
@@ -102,10 +105,12 @@ public class QueryEndpoint {
       final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final long startTimeNanos
   ) {
     final PullQueryResult result = pullQueryExecutor.execute(
         statement, serviceContext, Optional.of(false), pullQueryMetrics);
+    pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
     final TableRows tableRows = result.getTableRows();
 
     return new PullQueryPublisher(

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlConfigTestUtil;
@@ -604,6 +605,15 @@ public final class IntegrationTestHarness extends ExternalResource {
         "subject still present after 30 seconds. subject: " + subjectName);
   }
 
+  public ParsedSchema getSchema(final String subjectName) {
+    try {
+      final SchemaMetadata md = getSchemaRegistryClient().getLatestSchemaMetadata(subjectName);
+      return getSchemaRegistryClient().getSchemaBySubjectAndId(subjectName, md.getId());
+    } catch (Exception e) {
+      throw new AssertionError("Failed to get schema: " + subjectName, e);
+    }
+  }
+
   protected void before() throws Exception {
     kafkaCluster.start();
   }
@@ -617,7 +627,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   @SuppressWarnings({"unchecked", "rawtypes"})
   private static <K> Serializer<K> getKeySerializer(final PhysicalSchema schema) {
     return (Serializer) KafkaSerdeFactory
-        .getPrimitiveSerde(schema.keySchema().ksqlSchema())
+        .getPrimitiveSerde(schema.keySchema().connectSchema())
         .serializer();
   }
 
@@ -640,7 +650,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return (Deserializer) KafkaSerdeFactory
-        .getPrimitiveSerde(schema.keySchema().ksqlSchema())
+        .getPrimitiveSerde(schema.keySchema().connectSchema())
         .deserializer();
   }
 
@@ -665,7 +675,7 @@ public final class IntegrationTestHarness extends ExternalResource {
     try {
       final ParsedSchema parsedSchema = new AvroFormat().toParsedSchema(
           schema.logicalSchema().value(),
-          schema.serdeOptions(),
+          schema.serdeOptions().valueFeatures(),
           FormatInfo.of(
               AvroFormat.NAME,
               ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "test_" + topicName)

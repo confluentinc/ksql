@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -72,7 +73,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA.serializedSchema()));
+    assertThat(struct.schema(), is(ORDER_SCHEMA.connectSchema()));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -89,7 +90,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA.serializedSchema()));
+    assertThat(struct.schema(), is(ORDER_SCHEMA.connectSchema()));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -125,27 +126,6 @@ public class KsqlDelimitedDeserializerTest {
 
     // Then:
     assertThat(e.getCause(), (hasMessage(is("Unexpected field count, csvFields:6 schemaFields:5"))));
-  }
-
-  @Test
-  public void shouldThrowIfTopLevelNotStruct() {
-    // Given:
-    final PersistenceSchema schema = PersistenceSchema.from(
-        (ConnectSchema) SchemaBuilder.struct()
-            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-            .build(),
-        true
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> new KsqlDelimitedDeserializer(schema, CSVFormat.DEFAULT.withDelimiter(','))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "DELIMITED expects all top level schemas to be STRUCTs"));
   }
 
   @Test
@@ -230,7 +210,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA.serializedSchema()));
+    assertThat(struct.schema(), is(ORDER_SCHEMA.connectSchema()));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -335,7 +315,7 @@ public class KsqlDelimitedDeserializerTest {
 
 
   private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
-    return PersistenceSchema.from((ConnectSchema) connectSchema, false);
+    return PersistenceSchema.from((ConnectSchema) connectSchema, EnabledSerdeFeatures.of());
   }
 
   private static KsqlDelimitedDeserializer createDeserializer(final PersistenceSchema schema) {

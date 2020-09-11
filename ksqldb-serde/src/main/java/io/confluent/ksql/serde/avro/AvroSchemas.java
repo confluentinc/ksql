@@ -86,7 +86,12 @@ final class AvroSchemas {
           return schema;
         }
 
-        schemaBuilder = new SchemaBuilder(schema.type());
+        schemaBuilder = new SchemaBuilder(schema.type())
+            .name(schema.name());
+
+        if (schema.parameters() != null) {
+          schemaBuilder.parameters(schema.parameters());
+        }
         break;
 
       case STRUCT:

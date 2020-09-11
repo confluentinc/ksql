@@ -45,7 +45,7 @@ public final class AvroUtil {
 
     final AvroSchema parsedSchema = (AvroSchema) new AvroFormat().toParsedSchema(
         ddl.getSchema().value(),
-        formats.getOptions(),
+        formats.getOptions().valueFeatures(),
         formats.getValueFormat()
     );
 

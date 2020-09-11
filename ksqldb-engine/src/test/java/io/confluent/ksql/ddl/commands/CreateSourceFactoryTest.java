@@ -65,6 +65,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -595,7 +596,7 @@ public class CreateSourceFactoryTest {
 
     when(keySerdeFactory.create(
         FormatInfo.of(KAFKA.name()),
-        PersistenceSchema.from(EXPECTED_SCHEMA.keyConnectSchema(), false),
+        PersistenceSchema.from(EXPECTED_SCHEMA.keyConnectSchema(), EnabledSerdeFeatures.of()),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
@@ -621,7 +622,7 @@ public class CreateSourceFactoryTest {
 
     when(valueSerdeFactory.create(
         FormatInfo.of(JSON.name()),
-        PersistenceSchema.from(EXPECTED_SCHEMA.valueConnectSchema(), false),
+        PersistenceSchema.from(EXPECTED_SCHEMA.valueConnectSchema(), EnabledSerdeFeatures.of()),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",

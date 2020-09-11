@@ -44,7 +44,6 @@ import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -334,17 +333,18 @@ public class KsqlTesterTest {
   }
 
   private Serde<Struct> keySerde(final DataSource sinkSource) {
+    final PersistenceSchema schema = PersistenceSchema.from(
+        sinkSource.getSchema().keyConnectSchema(),
+        sinkSource.getSerdeOptions().keyFeatures()
+    );
+
     return sinkSource.getKsqlTopic().getKeyFormat()
         .getFormat()
-        .getSerdeFactory(
-            sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo()
-        ).createSerde(
-            PersistenceSchema.from(
-                sinkSource.getSchema().keyConnectSchema(),
-                sinkSource.getSerdeOptions().all().contains(SerdeOption.UNWRAP_SINGLE_VALUES)),
+        .getSerde(
+            schema,
+            sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo().getProperties(),
             config,
-            serviceContext.getSchemaRegistryClientFactory(),
-            Struct.class
+            serviceContext.getSchemaRegistryClientFactory()
         );
   }
 
@@ -353,7 +353,7 @@ public class KsqlTesterTest {
         sinkSource.getKsqlTopic().getValueFormat().getFormatInfo(),
         PersistenceSchema.from(
             sinkSource.getSchema().valueConnectSchema(),
-            sinkSource.getSerdeOptions().all().contains(SerdeOption.UNWRAP_SINGLE_VALUES)),
+            sinkSource.getSerdeOptions().valueFeatures()),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",

@@ -165,7 +165,7 @@ public class KsqlResourceFunctionalTest {
 
     final ParsedSchema parsedSchema = new AvroFormat().toParsedSchema(
         schema.logicalSchema().value(),
-        schema.serdeOptions(),
+        schema.serdeOptions().valueFeatures(),
         FormatInfo.of(
             AvroFormat.NAME,
             ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value")

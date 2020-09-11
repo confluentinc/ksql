@@ -13,21 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.protobuf;
+package io.confluent.ksql.serde.json;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,46 +33,57 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ProtobufSerdeFactoryTest {
+public class KsqlJsonSerdeFactoryTest {
 
   @Mock
   private KsqlConfig config;
   @Mock
-  private Supplier<SchemaRegistryClient> srClientFactory;
+  private Supplier<SchemaRegistryClient> srFactory;
+  @Mock
+  private KsqlJsonSerdeFactory jsonFactory;
 
   @Before
-  public void setUp() throws Exception {
-    when(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)).thenReturn("http://localhost:8088");
+  public void setUp() {
+    jsonFactory = new KsqlJsonSerdeFactory(true);
   }
 
   @Test
-  public void shouldThrowOnDecimal() {
+  public void shouldThrowOnMapWithNoneStringKeys() {
     // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("f0", SchemaBuilder.array(DecimalUtil.builder(10, 2)))
+    final ConnectSchema schemaOfInvalidMap = (ConnectSchema) SchemaBuilder
+        .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
         .build();
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class)
+        () -> jsonFactory.createSerde(schemaOfInvalidMap, config, srFactory, String.class)
     );
 
     // Then:
-    assertThat(e.getMessage(), is("The 'PROTOBUF' format does not support type 'DECIMAL'. "
-        + "See https://github.com/confluentinc/ksql/issues/5762."));
+    assertThat(e.getMessage(), containsString(
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test
-  public void shouldNotThrowOnNonDecimal() {
-    // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("f0", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA))
+  public void shouldThrowOnNestedMapWithNoneStringKeys() {
+    // Given
+    final ConnectSchema schemaWithNestedInvalidMap = (ConnectSchema) SchemaBuilder
+        .struct()
+        .field("f0", SchemaBuilder
+            .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
+            .optional()
+            .build())
         .build();
 
     // When:
-    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> jsonFactory.createSerde(schemaWithNestedInvalidMap, config, srFactory, String.class)
+    );
 
-    // Then (did not throw)
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "JSON only supports MAP types with STRING keys"));
   }
 }

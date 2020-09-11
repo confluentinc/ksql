@@ -16,38 +16,61 @@
 package io.confluent.ksql.serde.connect;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.unwrapped.UnwrappedDeserializer;
+import io.confluent.ksql.serde.unwrapped.UnwrappedSerializer;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings({"unchecked", "rawtypes"})
 @RunWith(MockitoJUnitRunner.class)
 public class ConnectFormatTest {
+
+  private static final ConnectSchema SINGLE_FIELD_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
+      .field("bob", Schema.OPTIONAL_INT32_SCHEMA)
+      .build();
 
   @Mock
   private Function<Schema, Schema> toKsqlTransformer;
@@ -58,18 +81,38 @@ public class ConnectFormatTest {
   @Mock
   private Schema transformedSchema;
   @Mock
+  private PersistenceSchema persistenceSchema;
+  @Mock
   private FormatInfo formatInfo;
+  @Mock
+  private Serde serde;
+  @Mock
+  private Map<String, String> formatProps;
+  @Mock
+  private KsqlConfig config;
+  @Mock
+  private Supplier<SchemaRegistryClient> srFactory;
+  @Mock
+  private Serializer serializer;
+  @Mock
+  private Deserializer deserializer;
 
   private TestFormat format;
   private Schema capturedConnectSchema;
+  private Set<SerdeFeature> supportedFeatures;
 
   @Before
   public void setUp() {
     capturedConnectSchema = null;
+    supportedFeatures = EnumSet.allOf(SerdeFeature.class);
 
-    format = new TestFormat();
+    format = spy(new TestFormat());
 
     when(toKsqlTransformer.apply(any())).thenReturn(transformedSchema);
+    when(connectSchema.type()).thenReturn(Type.STRUCT);
+
+    when(serde.serializer()).thenReturn(serializer);
+    when(serde.deserializer()).thenReturn(deserializer);
   }
 
   @Test
@@ -106,11 +149,61 @@ public class ConnectFormatTest {
   }
 
   @Test
-  public void shouldSupportPrimitiveSchemas() {
+  public void shouldThrowOnUnwrappedSchemaIfNotSupportedWhenBuildingColumns() {
+    // Given:
+    supportedFeatures = ImmutableSet.of();
+
+    when(connectSchema.type()).thenReturn(Type.INT32);
+
+    // When:
+    final Exception e = assertThrows(KsqlException.class,
+        () -> format.toColumns(parsedSchema)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Schema returned from schema registry is anonymous type, "
+        + "but format TestFormat does not support anonymous types. "
+        + "schema: parsedSchema"));
+  }
+
+  @Test
+  public void shouldThrowOnUnsupportedFeatureWhenBuildingParsedSchema() {
+    // Given:
+    supportedFeatures = ImmutableSet.of();
+
+    // When:
+    final Exception e = assertThrows(IllegalArgumentException.class,
+        () -> format.toParsedSchema(
+            ImmutableList.of(createColumn("vic", SqlTypes.STRING)),
+            EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+            formatInfo
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported feature"));
+  }
+
+  @Test
+  public void shouldSupportBuildingColumnsFromPrimitiveSchema() {
+    // Given:
+    when(connectSchema.type()).thenReturn(Type.INT32);
+
+    // When:
+    format.toColumns(parsedSchema);
+
+    // Then:
+    verify(toKsqlTransformer).apply(SchemaBuilder.struct()
+        .field("ROWVAL", connectSchema)
+        .build());
+  }
+
+  @Test
+  public void shouldSupportBuildingPrimitiveSchemas() {
     // When:
     format.toParsedSchema(
-        ImmutableList.of(column("bob", SqlTypes.INTEGER)),
-        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+        ImmutableList.of(createColumn("bob", SqlTypes.INTEGER)),
+        EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         formatInfo
     );
 
@@ -118,7 +211,43 @@ public class ConnectFormatTest {
     assertThat(capturedConnectSchema, is(SchemaBuilder.int32().optional().build()));
   }
 
-  private static SimpleColumn column(final String name, final SqlType sqlType) {
+  @Test
+  public void shouldCallSubclassToCreateOuterWhenWrapped() {
+    // Given:
+    when(persistenceSchema.connectSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
+    when(persistenceSchema.features()).thenReturn(EnabledSerdeFeatures.of());
+
+    // When:
+    final Serde<Struct> result = format.getSerde(persistenceSchema, formatProps, config, srFactory);
+
+    // Then:
+    assertThat(result, is(serde));
+
+    verify(format)
+        .getConnectSerde(SINGLE_FIELD_SCHEMA, formatProps, config, srFactory, Struct.class);
+  }
+
+  @Test
+  public void shouldCallSubclassToCreateInnerWhenUnwrapped() {
+    // Given:
+    when(persistenceSchema.connectSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
+    when(persistenceSchema.features())
+        .thenReturn(EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+    final ConnectSchema fieldSchema = (ConnectSchema) SINGLE_FIELD_SCHEMA.fields().get(0).schema();
+
+    // When:
+    final Serde<Struct> result = format.getSerde(persistenceSchema, formatProps, config, srFactory);
+
+    // Then:
+    verify(format)
+        .getConnectSerde(fieldSchema, formatProps, config, srFactory, Integer.class);
+
+    assertThat(result.serializer(), instanceOf(UnwrappedSerializer.class));
+    assertThat(result.deserializer(), instanceOf(UnwrappedDeserializer.class));
+  }
+
+  private static SimpleColumn createColumn(final String name, final SqlType sqlType) {
     final SimpleColumn column = mock(SimpleColumn.class);
     when(column.name()).thenReturn(ColumnName.of(name));
     when(column.type()).thenReturn(sqlType);
@@ -137,24 +266,34 @@ public class ConnectFormatTest {
     }
 
     @Override
-    protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
+    protected ParsedSchema fromConnectSchema(
+        final Schema schema,
+        final FormatInfo formatInfo
+    ) {
       capturedConnectSchema = schema;
       return parsedSchema;
     }
 
     @Override
     public String name() {
-      return null;
+      return "TestFormat";
     }
 
     @Override
     public Set<SerdeFeature> supportedFeatures() {
-      return null;
+      return supportedFeatures;
     }
 
     @Override
-    public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-      return null;
+    protected <T> Serde<T> getConnectSerde(
+        final ConnectSchema connectSchema,
+        final Map<String, String> formatProps,
+        final KsqlConfig config,
+        final Supplier<SchemaRegistryClient> srFactory,
+        final Class<T> targetType
+    ) {
+      capturedConnectSchema = connectSchema;
+      return serde;
     }
   }
 }

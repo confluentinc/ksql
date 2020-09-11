@@ -210,7 +210,7 @@ public class ConnectSchemaTranslatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Schema for the message value does not include any columns with "
+        "Schema does not include any columns with "
             + "types that ksqlDB supports."
             + System.lineSeparator()
             + "schema: bytesField BYTES"));

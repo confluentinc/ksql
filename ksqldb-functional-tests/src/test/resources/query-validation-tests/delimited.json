@@ -237,7 +237,7 @@
         "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The 'DELIMITED' format does not support type 'MAP'"
       }
     }

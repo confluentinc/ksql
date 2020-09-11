@@ -2,7 +2,7 @@
 
 **Author**: @big-andy-coates | 
 **Release Target**: 0.13 | 
-**Status**: In Discussion | 
+**Status**: Approved | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/6017
 
 **tl;dr:** ksqlDB currently only supports keys compatible with the `KAFKA` format. This limits the

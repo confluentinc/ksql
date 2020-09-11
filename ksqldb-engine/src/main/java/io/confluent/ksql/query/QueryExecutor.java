@@ -18,6 +18,7 @@ package io.confluent.ksql.query;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
@@ -50,6 +51,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +65,10 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription.Node;
+import org.apache.kafka.streams.TopologyDescription.Sink;
+import org.apache.kafka.streams.TopologyDescription.Source;
+import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 
@@ -206,7 +212,10 @@ public final class QueryExecutor {
                 applicationId
             ));
 
-    final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(applicationId);
+    final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(
+        applicationId,
+        extractTopics(topology),
+        serviceContext.getTopicClient());
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(topicClassifier::and)
         .orElse(topicClassifier);
@@ -315,6 +324,20 @@ public final class QueryExecutor {
       combined = combined.and(classifier);
     }
     return Optional.ofNullable(combined);
+  }
+
+  private static Set<String> extractTopics(final Topology topology) {
+    final Set<String> usedTopics = new HashSet<>();
+    for (final Subtopology subtopology : topology.describe().subtopologies()) {
+      for (final Node node : subtopology.nodes()) {
+        if (node instanceof Source) {
+          usedTopics.addAll(((Source) node).topicSet());
+        } else if (node instanceof Sink) {
+          usedTopics.add(((Sink) node).topic());
+        }
+      }
+    }
+    return ImmutableSet.copyOf(usedTopics);
   }
 
   private static void updateListProperty(

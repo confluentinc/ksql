@@ -16,8 +16,9 @@
 package io.confluent.ksql.query;
 
 import io.confluent.ksql.query.QueryError.Type;
+import io.confluent.ksql.services.KafkaTopicClient;
 import java.util.Objects;
-import org.apache.kafka.streams.errors.MissingSourceTopicException;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,24 +31,37 @@ public class MissingTopicClassifier implements QueryErrorClassifier {
 
   private static final Logger LOG = LoggerFactory.getLogger(MissingTopicClassifier.class);
 
+  private final Set<String> requiredTopics;
+  private final KafkaTopicClient topicClient;
   private final String queryId;
 
-  public MissingTopicClassifier(final String queryId) {
+  public MissingTopicClassifier(
+      final String queryId,
+      final Set<String> requiredTopics,
+      final KafkaTopicClient topicClient
+  ) {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
+    this.requiredTopics = Objects.requireNonNull(requiredTopics, "requiredTopics");
+    this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
+    LOG.info("Query {} requires topics {}", queryId, requiredTopics);
   }
 
   @Override
   public Type classify(final Throwable e) {
-    final Type type = e instanceof MissingSourceTopicException ? Type.USER : Type.UNKNOWN;
+    LOG.info(
+        "Attempting to classify missing topic error. Query ID: {} Required topics: {}",
+        queryId,
+        requiredTopics
+    );
 
-    if (type == Type.USER) {
-      LOG.info(
-          "Classified error as USER error based on missing topic. Query ID: {} Exception: {}",
-          queryId,
-          e);
+    for (String requiredTopic : requiredTopics) {
+      if (!topicClient.isTopicExists(requiredTopic)) {
+        LOG.warn("Query {} requires topic {} which cannot be found.", queryId, requiredTopic);
+        return Type.USER;
+      }
     }
 
-    return type;
+    return Type.UNKNOWN;
   }
 
 }

@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -696,13 +697,13 @@ public class KsqlJsonDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> new KsqlJsonDeserializer(physicalSchema, false)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test
@@ -724,13 +725,13 @@ public class KsqlJsonDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> new KsqlJsonDeserializer(physicalSchema, false)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test

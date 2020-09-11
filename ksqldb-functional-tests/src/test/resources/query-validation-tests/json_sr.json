@@ -296,6 +296,27 @@
         {"topic": "OUTPUT", "value": {"FOO": null}},
         {"topic": "OUTPUT", "value": null}
       ]
+    },
+    {
+      "name": "map with non-string keys fails",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON_SR');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "JSON only supports MAP types with STRING keys"
+      }
+    },
+    {
+      "name": "map with non-string keys - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "JSON only supports MAP types with STRING keys"
+      }
     }
   ]
 }

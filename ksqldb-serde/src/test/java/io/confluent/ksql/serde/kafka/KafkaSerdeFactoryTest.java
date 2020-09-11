@@ -123,7 +123,8 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfMap() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.map(SqlTypes.STRING));
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING
+    ));
 
     // When:
     final Exception e = assertThrows(

@@ -15,12 +15,8 @@
 
 package io.confluent.ksql.serde.avro;
 
-import com.google.common.base.Preconditions;
-import io.confluent.ksql.schema.connect.SchemaWalker;
-import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
-import io.confluent.ksql.util.DecimalUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,7 +25,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 
 /**
@@ -51,7 +46,8 @@ public class AvroDataTranslator implements DataTranslator {
       final Schema schema,
       final String schemaFullName
   ) {
-    this.ksqlSchema = throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
+    this.ksqlSchema = AvroUtil
+        .throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
 
     this.avroCompatibleSchema = AvroSchemas.getAvroCompatibleConnectSchema(
         schema, schemaFullName
@@ -125,36 +121,5 @@ public class AvroDataTranslator implements DataTranslator {
       default:
         return object;
     }
-  }
-
-
-  private static Schema throwOnInvalidSchema(final Schema schema) {
-
-    class SchemaValidator implements Visitor<Void, Void> {
-
-      @Override
-      public Void visitMap(final Schema schema, final Void key, final Void value) {
-        if (schema.keySchema().type() != Type.STRING) {
-          throw new IllegalArgumentException("Avro only supports MAPs with STRING keys");
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitBytes(final Schema schema) {
-        Preconditions.checkArgument(
-            DecimalUtil.isDecimal(schema),
-            "Avro only supports DECIMAL for BYTES type.");
-        return null;
-      }
-
-      @Override
-      public Void visitSchema(final Schema schema) {
-        return null;
-      }
-    }
-
-    SchemaWalker.visit(schema, new SchemaValidator());
-    return schema;
   }
 }

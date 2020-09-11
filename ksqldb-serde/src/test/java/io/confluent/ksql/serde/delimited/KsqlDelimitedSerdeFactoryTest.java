@@ -28,6 +28,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.util.KsqlException;
@@ -62,7 +63,7 @@ public class KsqlDelimitedSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfMap() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(map(STRING));
+    final PersistenceSchema schema = schemaWithFieldOfType(map(SqlTypes.STRING, STRING));
 
     // When:
     final Exception e = assertThrows(

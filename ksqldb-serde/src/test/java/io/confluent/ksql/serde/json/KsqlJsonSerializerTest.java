@@ -34,6 +34,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -128,12 +129,15 @@ public class KsqlJsonSerializerTest {
       .field("address", ADDRESS_SCHEMA)
       .build();
 
-  @Parameters
+  @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{{false}, {true}});
+    return Arrays.asList(new Object[][]{{"Plain JSON", false}, {"Magic byte prefixed", true}});
   }
 
   @Parameter
+  public String suiteName;
+
+  @Parameter(1)
   public boolean useSchemas;
 
   private KsqlConfig config;
@@ -532,13 +536,13 @@ public class KsqlJsonSerializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> new KsqlJsonSerdeFactory(false).createSerde(physicalSchema, config, () -> null)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test
@@ -560,13 +564,13 @@ public class KsqlJsonSerializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> new KsqlJsonSerdeFactory(false).createSerde(physicalSchema, config, () -> null)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
+        "JSON only supports MAP types with STRING keys"));
   }
 
   @Test

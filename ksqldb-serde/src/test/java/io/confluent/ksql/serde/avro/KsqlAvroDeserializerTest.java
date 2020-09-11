@@ -38,6 +38,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -1003,7 +1004,7 @@ public class KsqlAvroDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> givenDeserializerForSchema(schema)
     );
 
@@ -1024,7 +1025,7 @@ public class KsqlAvroDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        IllegalArgumentException.class,
+        KsqlException.class,
         () -> givenDeserializerForSchema(schema)
     );
 

@@ -49,7 +49,7 @@ public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
 
   @Override
   public void validate(final PersistenceSchema schema) {
-    // Supports all types
+    AvroUtil.throwOnInvalidSchema(schema.serializedSchema());
   }
 
   @Override

@@ -78,13 +78,15 @@ public final class ProcessingLogServerUtils {
   ) {
     return processingLogStreamCreateStatement(
         config.getString(ProcessingLogConfig.STREAM_NAME),
-        getTopicName(config, ksqlConfig)
+        getTopicName(config, ksqlConfig),
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)
     );
   }
 
   private static String processingLogStreamCreateStatement(
       final String name,
-      final String topicName
+      final String topicName,
+      final boolean withKeyFormat
   ) {
     final Schema schema = getMessageSchema();
 
@@ -92,6 +94,8 @@ public final class ProcessingLogServerUtils {
 
     return "CREATE STREAM " + name
         + " (" + elements + ")"
-        + " WITH(KAFKA_TOPIC='" + topicName + "', VALUE_FORMAT='JSON');";
+        + " WITH(KAFKA_TOPIC='" + topicName + "', VALUE_FORMAT='JSON'"
+        + (withKeyFormat ? ", KEY_FORMAT='KAFKA'" : "")
+        + ");";
   }
 }

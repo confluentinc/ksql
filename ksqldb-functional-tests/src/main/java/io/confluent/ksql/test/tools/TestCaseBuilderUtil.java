@@ -20,6 +20,7 @@ import static com.google.common.io.Files.getNameWithoutExtension;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -38,11 +39,13 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -138,7 +141,7 @@ public final class TestCaseBuilderUtil {
   ) {
     final KsqlParser parser = new DefaultKsqlParser();
 
-    final Function<PreparedStatement<?>, Topic> extractTopic = (PreparedStatement<?> stmt) -> {
+    final Function<ConfiguredStatement<?>, Topic> extractTopic = (ConfiguredStatement<?> stmt) -> {
       final CreateSource statement = (CreateSource) stmt.getStatement();
 
       final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
@@ -197,7 +200,11 @@ public final class TestCaseBuilderUtil {
 
         if (isCsOrCT(stmt)) {
           final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
-          topics.add(extractTopic.apply(prepare));
+          final ConfiguredStatement<?> configured =
+              ConfiguredStatement.of(prepare, Collections.emptyMap(), ksqlConfig);
+          // TODO: cleaner way to handle this?
+          final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
+          topics.add(extractTopic.apply(withFormats));
         }
       }
 

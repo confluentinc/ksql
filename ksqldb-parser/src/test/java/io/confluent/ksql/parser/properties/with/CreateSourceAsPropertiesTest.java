@@ -56,7 +56,8 @@ public class CreateSourceAsPropertiesTest {
     assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
-    assertThat(properties.getFormatInfo(), is(Optional.empty()));
+    assertThat(properties.getKeyFormatInfo(), is(Optional.empty()));
+    assertThat(properties.getValueFormatInfo(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getSerdeOptions(), is(SerdeOptions.of()));
@@ -106,7 +107,7 @@ public class CreateSourceAsPropertiesTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Invalid datatime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
+    assertThat(e.getMessage(), containsString("Invalid datetime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
   }
 
   @Test
@@ -116,7 +117,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
 
     // Then:
-    assertThat(properties.getFormatProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormatProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test

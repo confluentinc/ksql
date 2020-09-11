@@ -43,4 +43,9 @@ public class KafkaFormat implements Format {
   public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
     return new KafkaSerdeFactory();
   }
+
+  @Override
+  public boolean isSupportedKeyFormat() {
+    return true;
+  }
 }

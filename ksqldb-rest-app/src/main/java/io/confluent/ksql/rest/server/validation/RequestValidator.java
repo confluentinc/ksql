@@ -23,15 +23,18 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -142,6 +145,7 @@ public class RequestValidator {
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())
         || configured.getStatement() instanceof TerminateQuery) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);
+      validateSupportedKeyFormat(statementInjected);
       distributedStatementValidator.create(statementInjected, serviceContext, executionContext);
     } else {
       throw new KsqlStatementException(
@@ -153,4 +157,31 @@ public class RequestValidator {
     return (statement instanceof CreateAsSelect || statement instanceof InsertInto) ? 1 : 0;
   }
 
+  private static void validateSupportedKeyFormat(final ConfiguredStatement<?> statement) {
+    try {
+      if (statement.getStatement() instanceof CreateSource) {
+        final CreateSource createSource = (CreateSource) statement.getStatement();
+        validateSupportedKeyFormat(createSource.getProperties().getKeyFormat());
+      }
+
+      if (statement.getStatement() instanceof CreateAsSelect) {
+        final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
+        createAsSelect.getProperties().getKeyFormat()
+            .ifPresent(RequestValidator::validateSupportedKeyFormat);
+      }
+    } catch (KsqlStatementException e) {
+      throw e;
+    } catch (KsqlException e) {
+      throw new KsqlStatementException(
+          ErrorMessageUtil.buildErrorMessage(e),
+          statement.getStatementText(),
+          e.getCause());
+    }
+  }
+
+  private static void validateSupportedKeyFormat(final Format format) {
+    if (!format.isSupportedKeyFormat()) {
+      throw new KsqlException("The key format '" + format.name() + "' is not currently supported.");
+    }
+  }
 }

@@ -31,7 +31,7 @@ public class AssertExecutorMetaTest {
   public void shouldCoverAllWithClauses() {
     // Given:
     final ConfigDef def = new ConfigDef();
-    CommonCreateConfigs.addToConfigDef(def, true, true);
+    CommonCreateConfigs.addToConfigDef(def, true);
     final Set<String> allValidProps = def.names();
 
     // When:

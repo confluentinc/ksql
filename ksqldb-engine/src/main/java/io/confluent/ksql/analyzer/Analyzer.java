@@ -176,7 +176,7 @@ class Analyzer {
 
       // overwrite any inheritable properties if they were explicitly
       // specified in the statement
-      sourceProperties.putAll(sink.getProperties().getFormatProperties());
+      sourceProperties.putAll(sink.getProperties().getValueFormatProperties());
 
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
           format.name(),

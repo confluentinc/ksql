@@ -35,6 +35,7 @@ import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -438,10 +439,13 @@ public final class TestExecutorUtil {
         return Optional.empty();
       }
 
+      // TODO: cleaner way to handle this?
+      final ConfiguredStatement<?> withFormats =
+          new DefaultFormatInjector().inject(configured);
       final ConfiguredStatement<?> withSchema =
           schemaInjector
-              .map(injector -> injector.inject(configured))
-              .orElse((ConfiguredStatement) configured);
+              .map(injector -> injector.inject(withFormats))
+              .orElse((ConfiguredStatement) withFormats);
       final ConfiguredStatement<?> reformatted =
           new SqlFormatInjector(executionContext).inject(withSchema);
 

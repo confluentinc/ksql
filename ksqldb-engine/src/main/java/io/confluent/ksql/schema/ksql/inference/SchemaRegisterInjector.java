@@ -85,7 +85,7 @@ public class SchemaRegisterInjector implements Injector {
     registerSchema(
         schema,
         cs.getStatement().getProperties().getKafkaTopic(),
-        cs.getStatement().getProperties().getFormatInfo(),
+        cs.getStatement().getProperties().getValueFormatInfo(),
         serdeOptions,
         cs.getConfig(),
         cs.getStatementText(),

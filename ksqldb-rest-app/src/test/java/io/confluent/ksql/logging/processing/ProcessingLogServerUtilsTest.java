@@ -195,6 +195,36 @@ public class ProcessingLogServerUtilsTest {
   }
 
   @Test
+  public void shouldBuildCorrectStreamCreateDDLWithKeyFormat() {
+    // Given:
+    serviceContext.getTopicClient().createTopic(TOPIC, 1, (short) 1);
+
+    // When:
+    final String statement =
+        ProcessingLogServerUtils.processingLogStreamCreateStatement(
+            config,
+            ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
+                KsqlConfig.KSQL_KEY_FORMAT_ENABLED,
+                true
+            )));
+
+    // Then:
+    assertThat(statement, equalTo(
+        "CREATE STREAM PROCESSING_LOG_STREAM ("
+            + "logger VARCHAR, "
+            + "level VARCHAR, "
+            + "time BIGINT, "
+            + "message STRUCT<"
+            + "type INT, "
+            + "deserializationError STRUCT<target VARCHAR, errorMessage VARCHAR, recordB64 VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>, "
+            + "recordProcessingError STRUCT<errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>>, "
+            + "productionError STRUCT<errorMessage VARCHAR>, "
+            + "serializationError STRUCT<target VARCHAR, errorMessage VARCHAR, record VARCHAR, cause ARRAY<VARCHAR>, `topic` VARCHAR>"
+            + ">"
+            + ") WITH(KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');"));
+  }
+
+  @Test
   public void shouldBuildCorrectStreamCreateDDLWithDefaultTopicName() {
     // Given:
     serviceContext.getTopicClient().createTopic(DEFAULT_TOPIC, 1, (short) 1);

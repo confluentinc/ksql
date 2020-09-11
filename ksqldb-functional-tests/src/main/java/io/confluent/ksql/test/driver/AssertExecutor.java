@@ -45,6 +45,7 @@ import io.confluent.ksql.util.TabularRow;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
@@ -60,41 +61,50 @@ public final class AssertExecutor {
   static final List<SourceProperty> MUST_MATCH = ImmutableList.<SourceProperty>builder()
       .add(new SourceProperty(
           DataSource::getSchema,
-          cs -> cs.getElements().toLogicalSchema(),
+          (cs, cfg) -> cs.getElements().toLogicalSchema(),
           "schema"
       )).add(new SourceProperty(
           DataSource::getDataSourceType,
-          cs -> cs instanceof CreateTable ? DataSourceType.KTABLE : DataSourceType.KSTREAM,
+          (cs, cfg) -> cs instanceof CreateTable ? DataSourceType.KTABLE : DataSourceType.KSTREAM,
           "type"
       )).add(new SourceProperty(
           DataSource::getKafkaTopicName,
-          cs -> cs.getProperties().getKafkaTopic(),
+          (cs, cfg) -> cs.getProperties().getKafkaTopic(),
           "kafka topic",
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY
       )).add(new SourceProperty(
+          ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
+          (cs, cfg) -> cs.getProperties().getKeyFormatName()
+              .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
+          "key format",
+          CommonCreateConfigs.KEY_FORMAT_PROPERTY,
+          CommonCreateConfigs.FORMAT_PROPERTY
+      )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
-          cs -> cs.getProperties().getValueFormat().name(),
+          (cs, cfg) -> cs.getProperties().getValueFormatName()
+              .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG)),
           "value format",
-          CommonCreateConfigs.VALUE_FORMAT_PROPERTY
+          CommonCreateConfigs.VALUE_FORMAT_PROPERTY,
+          CommonCreateConfigs.FORMAT_PROPERTY
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getProperties(),
-          cs -> cs.getProperties().getFormatInfo().getProperties(),
+          (cs, cfg) -> cs.getProperties().getValueFormatProperties(),
           "delimiter",
           CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME,
           CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
       )).add(new SourceProperty(
           DataSource::getSerdeOptions,
-          cs -> cs.getProperties().getSerdeOptions(),
+          (cs, cfg) -> cs.getProperties().getSerdeOptions(),
           "serde options",
           CommonCreateConfigs.WRAP_SINGLE_VALUE
       )).add(new SourceProperty(
           ds -> ds.getTimestampColumn().map(TimestampColumn::getColumn),
-          cs -> cs.getProperties().getTimestampColumnName(),
+          (cs, cfg) -> cs.getProperties().getTimestampColumnName(),
           "timestamp column",
           CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY
       )).add(new SourceProperty(
           ds -> ds.getTimestampColumn().flatMap(TimestampColumn::getFormat),
-          cs -> cs.getProperties().getTimestampFormat(),
+          (cs, cfg) -> cs.getProperties().getTimestampFormat(),
           "timestamp format",
           CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY
       )).build();
@@ -226,39 +236,42 @@ public final class AssertExecutor {
 
   public static void assertStream(
       final KsqlExecutionContext engine,
+      final KsqlConfig config,
       final AssertStream assertStatement
   ) {
-    assertSourceMatch(engine, assertStatement.getStatement());
+    assertSourceMatch(engine, config, assertStatement.getStatement());
   }
 
   public static void assertTable(
       final KsqlExecutionContext engine,
+      final KsqlConfig config,
       final AssertTable assertStatement
   ) {
-    assertSourceMatch(engine, assertStatement.getStatement());
+    assertSourceMatch(engine, config, assertStatement.getStatement());
   }
 
 
   private static void assertSourceMatch(
       final KsqlExecutionContext engine,
+      final KsqlConfig config,
       final CreateSource statement
   ) {
     final SourceName source = statement.getName();
     final DataSource dataSource = engine.getMetaStore().getSource(source);
 
-    MUST_MATCH.forEach(prop -> prop.compare(dataSource, statement));
+    MUST_MATCH.forEach(prop -> prop.compare(dataSource, statement, config));
   }
 
   @VisibleForTesting
   static final class SourceProperty {
     final Function<DataSource, Object> extractSource;
-    final Function<CreateSource, Object> extractStatement;
+    final BiFunction<CreateSource, KsqlConfig, Object> extractStatement;
     final String propertyName;
     final String[] withClauseName;
 
     private SourceProperty(
         final Function<DataSource, Object> extractSource,
-        final Function<CreateSource, Object> extractStatement,
+        final BiFunction<CreateSource, KsqlConfig, Object> extractStatement,
         final String propertyName,
         final String... withClauseName
     ) {
@@ -268,8 +281,12 @@ public final class AssertExecutor {
       this.withClauseName = withClauseName;
     }
 
-    private void compare(final DataSource dataSource, final CreateSource statement) {
-      final Object expected = extractStatement.apply(statement);
+    private void compare(
+        final DataSource dataSource,
+        final CreateSource statement,
+        final KsqlConfig config
+    ) {
+      final Object expected = extractStatement.apply(statement, config);
       final Object actual = extractSource.apply(dataSource);
       if (!actual.equals(expected)) {
         throw new KsqlException(

@@ -69,8 +69,12 @@ public final class CreateSourceAsProperties {
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
   }
 
+  public Optional<Format> getKeyFormat() {
+    return getKeyFormatInfo().map(FormatFactory::of);
+  }
+
   public Optional<Format> getValueFormat() {
-    return getFormatInfo().map(FormatFactory::of);
+    return getValueFormatInfo().map(FormatFactory::of);
   }
 
   public Optional<String> getKafkaTopic() {
@@ -105,12 +109,17 @@ public final class CreateSourceAsProperties {
     return SerdeOptions.of(builder.build());
   }
 
-  public Optional<FormatInfo> getFormatInfo() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
-        .map(format -> FormatInfo.of(format, getFormatProperties()));
+  public Optional<FormatInfo> getKeyFormatInfo() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY))
+        .map(format -> FormatInfo.of(format, ImmutableMap.of()));
   }
 
-  public Map<String, String> getFormatProperties() {
+  public Optional<FormatInfo> getValueFormatInfo() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
+        .map(format -> FormatInfo.of(format, getValueFormatProperties()));
+  }
+
+  public Map<String, String> getValueFormatProperties() {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
     final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);

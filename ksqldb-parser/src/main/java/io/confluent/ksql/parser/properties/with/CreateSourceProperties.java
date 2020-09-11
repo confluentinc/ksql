@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
@@ -74,12 +75,29 @@ public final class CreateSourceProperties {
     this.props = new PropertiesConfig(CreateConfigs.CONFIG_METADATA, originals);
     this.durationParser = Objects.requireNonNull(durationParser, "durationParser");
 
+    props.validateKeyValueFormats(
+        CommonCreateConfigs.KEY_FORMAT_PROPERTY,
+        CommonCreateConfigs.VALUE_FORMAT_PROPERTY,
+        CommonCreateConfigs.FORMAT_PROPERTY
+    );
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
     validateWindowInfo();
   }
 
+  /**
+   * This method should only be called after the DefaultFormatInjector has run, in order to
+   * guarantee a key format is present.
+   */
+  public Format getKeyFormat() {
+    return FormatFactory.of(getKeyFormatInfo());
+  }
+
+  /**
+   * This method should only be called after the DefaultFormatInjector has run, in order to
+   * guarantee a value format is present.
+   */
   public Format getValueFormat() {
-    return FormatFactory.of(getFormatInfo());
+    return FormatFactory.of(getValueFormatInfo());
   }
 
   public String getKafkaTopic() {
@@ -131,13 +149,51 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getInt(CreateConfigs.SCHEMA_ID));
   }
 
-  public FormatInfo getFormatInfo() {
-    return FormatInfo.of(
-        props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY),
-        getFormatProperties());
+  /**
+   * This method should only be called after the DefaultFormatInjector has run, in order to
+   * guarantee a key format is present.
+   */
+  public FormatInfo getKeyFormatInfo() {
+    final String keyFormat = getKeyFormatName().orElseThrow(
+        () -> new IllegalStateException("Key format not present")
+    );
+    return FormatInfo.of(keyFormat, ImmutableMap.of());
   }
 
-  private Map<String, String> getFormatProperties() {
+  /**
+   * This method should only be called after the DefaultFormatInjector has run, in order to
+   * guarantee a value format is present.
+   */
+  public FormatInfo getValueFormatInfo() {
+    final String valueFormat = getValueFormatName().orElseThrow(
+        () -> new IllegalStateException("Value format not present")
+    );
+    return FormatInfo.of(valueFormat, getValueFormatProperties());
+  }
+
+  /**
+   * This method may be called before the DefaultFormatInjector has run, in which case a
+   * key format may not be present.
+   */
+  public Optional<String> getKeyFormatName() {
+    final String keyFormat = props.getString(CommonCreateConfigs.FORMAT_PROPERTY) != null
+        ? props.getString(CommonCreateConfigs.FORMAT_PROPERTY)
+        : props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY);
+    return Optional.ofNullable(keyFormat);
+  }
+
+  /**
+   * This method may be called before the DefaultFormatInjector has run, in which case a
+   * value format may not be present.
+   */
+  public Optional<String> getValueFormatName() {
+    final String valueFormat = props.getString(CommonCreateConfigs.FORMAT_PROPERTY) != null
+        ? props.getString(CommonCreateConfigs.FORMAT_PROPERTY)
+        : props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY);
+    return Optional.ofNullable(valueFormat);
+  }
+
+  public Map<String, String> getValueFormatProperties() {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
     final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
@@ -178,6 +234,14 @@ public final class CreateSourceProperties {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
+
+    return new CreateSourceProperties(originals, durationParser);
+  }
+
+  public CreateSourceProperties withFormats(final String keyFormat, final String valueFormat) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    originals.put(CommonCreateConfigs.KEY_FORMAT_PROPERTY, new StringLiteral(keyFormat));
+    originals.put(CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral(valueFormat));
 
     return new CreateSourceProperties(originals, durationParser);
   }

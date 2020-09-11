@@ -69,7 +69,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestValidatorTest {
 
-  private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
+  private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (key_format='kafka', value_format='json', kafka_topic='x');";
 
   @Mock
   private SandboxEngine ksqlEngine;
@@ -142,7 +142,7 @@ public class RequestValidatorTest {
   public void shouldExecuteOnDistributedStatementValidatorIfNoCustomExecutor() {
     // Given:
     final List<ParsedStatement> statements =
-        givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json');");
+        givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json', key_format='kafka');");
 
     // When:
     validator.validate(serviceContext, statements, sessionProperties, "sql");
@@ -230,7 +230,7 @@ public class RequestValidatorTest {
 
     final List<ParsedStatement> statements =
         givenParsed(
-            "CREATE STREAM a WITH (kafka_topic='a', value_format='json');"
+            "CREATE STREAM a WITH (kafka_topic='a', key_format='kafka', value_format='json');"
                 + "EXPLAIN x;"
         );
 
@@ -289,6 +289,23 @@ public class RequestValidatorTest {
         same(otherServiceContext),
         any()
     );
+  }
+
+  @Test
+  public void shouldThrowOnUnsupportedKeyFormat() {
+    // Given:
+    final List<ParsedStatement> statements =
+        givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json', key_format='avro');");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> validator.validate(serviceContext, statements, sessionProperties, "sql")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "The key format 'AVRO' is not currently supported."));
   }
 
   private List<ParsedStatement> givenParsed(final String sql) {

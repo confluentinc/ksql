@@ -24,6 +24,7 @@ import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -210,9 +211,11 @@ public class KsqlTesterTest {
       return;
     }
 
+    // TODO: what's a cleaner way around this failure?
+    final ConfiguredStatement<?> injected = new DefaultFormatInjector().inject(configured);
     final ExecuteResult result = engine.execute(
         serviceContext,
-        configured);
+        injected);
 
     // is DDL statement
     if (!result.getQuery().isPresent()) {
@@ -327,9 +330,9 @@ public class KsqlTesterTest {
     } else if (statement instanceof AssertTombstone) {
       AssertExecutor.assertTombstone(engine, config, (AssertTombstone) statement, driverPipeline);
     } else if (statement instanceof AssertStream) {
-      AssertExecutor.assertStream(engine, ((AssertStream) statement));
+      AssertExecutor.assertStream(engine, config, ((AssertStream) statement));
     } else if (statement instanceof AssertTable) {
-      AssertExecutor.assertTable(engine, ((AssertTable) statement));
+      AssertExecutor.assertTable(engine, config, ((AssertTable) statement));
     }
   }
 

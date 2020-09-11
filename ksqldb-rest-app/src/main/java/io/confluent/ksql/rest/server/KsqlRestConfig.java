@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 public class KsqlRestConfig extends AbstractConfig {
 
-<<<<<<< HEAD
   private static final Logger log = LoggerFactory.getLogger(KsqlRestConfig.class);
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KsqlRestConfig.class);
@@ -190,155 +189,12 @@ public class KsqlRestConfig extends AbstractConfig {
       KSQL_CONFIG_PREFIX + "server.command.response.timeout.ms";
 
   private static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC =
-=======
-    private static final Logger log = LoggerFactory.getLogger(KsqlRestConfig.class);
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(KsqlRestConfig.class);
-
-    public static final String LISTENERS_CONFIG = "listeners";
-    protected static final String LISTENERS_DOC =
-            "List of listeners. http and https are supported. Each listener must include the protocol, "
-                    + "hostname, and port. For example: http://myhost:8080, https://0.0.0.0:8081";
-    protected static final String LISTENERS_DEFAULT = "http://0.0.0.0:8088";
-
-    public static final String AUTHENTICATION_SKIP_PATHS_CONFIG = "authentication.skip.paths";
-    public static final String AUTHENTICATION_SKIP_PATHS_DOC = "Comma separated list of paths that "
-            + "can be "
-            + "accessed without authentication";
-    public static final String AUTHENTICATION_SKIP_PATHS_DEFAULT = "";
-
-    public static final String ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG = "access.control.allow.origin";
-    protected static final String ACCESS_CONTROL_ALLOW_ORIGIN_DOC = "Set value for "
-            + "Access-Control-Allow-Origin header";
-    protected static final String ACCESS_CONTROL_ALLOW_ORIGIN_DEFAULT = "";
-
-    public static final String ACCESS_CONTROL_ALLOW_METHODS = "access.control.allow.methods";
-    protected static final String ACCESS_CONTROL_ALLOW_METHODS_DOC = "Set value to "
-            + "Access-Control-Allow-Origin header for specified methods";
-    protected static final List<String> ACCESS_CONTROL_ALLOW_METHODS_DEFAULT = Collections
-            .emptyList();
-
-    public static final String ACCESS_CONTROL_ALLOW_HEADERS = "access.control.allow.headers";
-    protected static final String ACCESS_CONTROL_ALLOW_HEADERS_DOC = "Set value to "
-            + "Access-Control-Allow-Origin header for specified headers. Leave blank to use "
-            + "default.";
-    protected static final List<String> ACCESS_CONTROL_ALLOW_HEADERS_DEFAULT = Collections
-            .emptyList();
-
-    public static final String AUTHENTICATION_METHOD_CONFIG = "authentication.method";
-    public static final String AUTHENTICATION_METHOD_NONE = "NONE";
-    public static final String AUTHENTICATION_METHOD_BASIC = "BASIC";
-    public static final String AUTHENTICATION_METHOD_DOC = "Method of authentication. Must be BASIC "
-            + "to enable authentication. For BASIC, you must supply a valid JAAS config file "
-            + "for the 'java.security.auth.login.config' system property for the appropriate "
-            + "authentication provider";
-    public static final ValidString AUTHENTICATION_METHOD_VALIDATOR =
-            ValidString.in(AUTHENTICATION_METHOD_NONE, AUTHENTICATION_METHOD_BASIC);
-
-    public static final String AUTHENTICATION_REALM_CONFIG = "authentication.realm";
-    public static final String AUTHENTICATION_REALM_DOC =
-            "Security realm to be used in authentication.";
-
-    public static final String AUTHENTICATION_ROLES_CONFIG = "authentication.roles";
-    public static final String AUTHENTICATION_ROLES_DOC = "Valid roles to authenticate against.";
-    public static final List<String> AUTHENTICATION_ROLES_DEFAULT = Collections.singletonList("*");
-
-    protected static final String SSL_KEYSTORE_LOCATION_DEFAULT = "";
-    protected static final String SSL_KEYSTORE_PASSWORD_DEFAULT = "";
-
-    public static final String SSL_KEYSTORE_TYPE_CONFIG = "ssl.keystore.type";
-    protected static final String SSL_KEYSTORE_TYPE_DOC =
-            "The type of keystore file. Must be either 'JKS' or 'PKCS12'.";
-
-    protected static final String SSL_TRUSTSTORE_LOCATION_DEFAULT = "";
-    protected static final String SSL_TRUSTSTORE_PASSWORD_DEFAULT = "";
-
-    public static final String SSL_TRUSTSTORE_TYPE_CONFIG = "ssl.truststore.type";
-    protected static final String SSL_TRUSTSTORE_TYPE_DOC =
-            "The type of trust store file. Must be either 'JKS' or 'PKCS12'.";
-
-    public static final String SSL_STORE_TYPE_JKS = "JKS";
-    public static final String SSL_STORE_TYPE_PKCS12 = "PKCS12";
-    public static final ConfigDef.CaseInsensitiveValidString SSL_STORE_TYPE_VALIDATOR =
-            ConfigDef.CaseInsensitiveValidString.in(
-                    SSL_STORE_TYPE_JKS,
-                    SSL_STORE_TYPE_PKCS12
-            );
-
-    public static final String SSL_CLIENT_AUTH_CONFIG = "ssl.client.auth";
-    public static final String SSL_CLIENT_AUTHENTICATION_CONFIG = "ssl.client.authentication";
-    public static final String SSL_CLIENT_AUTHENTICATION_NONE = "NONE";
-    public static final String SSL_CLIENT_AUTHENTICATION_REQUESTED = "REQUESTED";
-    public static final String SSL_CLIENT_AUTHENTICATION_REQUIRED = "REQUIRED";
-    protected static final String SSL_CLIENT_AUTHENTICATION_DOC =
-            "SSL mutual auth. Set to NONE to disable SSL client authentication, set to REQUESTED to "
-                    + "request but not require SSL client authentication, and set to REQUIRED to require SSL "
-                    + "client authentication.";
-    public static final ConfigDef.ValidString SSL_CLIENT_AUTHENTICATION_VALIDATOR =
-            ConfigDef.ValidString.in(
-                    SSL_CLIENT_AUTHENTICATION_NONE,
-                    SSL_CLIENT_AUTHENTICATION_REQUESTED,
-                    SSL_CLIENT_AUTHENTICATION_REQUIRED
-            );
-
-    public static final String SSL_KEYSTORE_RELOAD_CONFIG = "ssl.keystore.reload";
-    protected static final String SSL_KEYSTORE_RELOAD_DOC =
-            "Enable auto reload of ssl keystore.";
-    protected static final boolean SSL_KEYSTORE_RELOAD_DEFAULT = false;
-
-    public static final String SSL_KEYSTORE_WATCH_LOCATION_CONFIG = "ssl.keystore.watch.location";
-    protected static final String SSL_KEYSTORE_WATCH_LOCATION_DOC =
-            "Location to watch for keystore file changes, if different from keystore location.";
-    protected static final String SSL_KEYSTORE_WATCH_LOCATION_DEFAULT = "";
-
-    private static final String KSQL_CONFIG_PREFIX = "ksql.";
-
-    private static final String COMMAND_CONSUMER_PREFIX =
-            KSQL_CONFIG_PREFIX + "server.command.consumer.";
-    private static final String COMMAND_PRODUCER_PREFIX =
-            KSQL_CONFIG_PREFIX + "server.command.producer.";
-
-    public static final String ADVERTISED_LISTENER_CONFIG =
-            KSQL_CONFIG_PREFIX + "advertised.listener";
-    public static final String INTERNAL_LISTENER_CONFIG =
-            KSQL_CONFIG_PREFIX + "internal.listener";
-    private static final String ADVERTISED_LISTENER_DOC =
-            "The listener this node will share with other ksqlDB nodes in the cluster for internal "
-                    + "communication. In IaaS environments, this may need to be different from the interface "
-                    + "to which the server binds. "
-                    + "If this is not set, the advertised listener will either default to "
-                    + INTERNAL_LISTENER_CONFIG + ", if set, or else the first value from "
-                    + LISTENERS_CONFIG + " will be used. "
-                    + "It is not valid to use the 0.0.0.0 (IPv4) or [::] (IPv6) wildcard addresses.";
-
-    private static final String INTERNAL_LISTENER_DOC =
-            "The listener used for inter-node communication, if different to the '"
-                    + LISTENERS_CONFIG + "' config. "
-                    + "The " + ADVERTISED_LISTENER_CONFIG + " config can be set to provide an "
-                    + "externally routable name for this listener, if required. "
-                    + "This listener can be used to bind a separate port or network interface for the "
-                    + "internal endpoints, separate from the external client endpoints, and provide a "
-                    + "layer of security at the network level.";
-
-    static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
-            "query.stream.disconnect.check";
-
-    private static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_DOC =
-            "How often to send an empty line as part of the response while streaming queries as "
-                    + "JSON; this helps proactively determine if the connection has been terminated in "
-                    + "order to avoid keeping the created streams job alive longer than necessary";
-
-    static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG =
-            KSQL_CONFIG_PREFIX + "server.command.response.timeout.ms";
-
-    private static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC =
->>>>>>> 841646d466876314a899f1bb666f553463ecf84e
             "How long to wait for a distributed command to be executed by the local node before "
-                    + "returning a response";
+              + "returning a response";
 
-    public static final String INSTALL_DIR_CONFIG = KSQL_CONFIG_PREFIX + "server.install.dir";
-    private static final String INSTALL_DIR_DOC
-            = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
+  public static final String INSTALL_DIR_CONFIG = KSQL_CONFIG_PREFIX + "server.install.dir";
+  private static final String INSTALL_DIR_DOC
+      = "The directory that ksql is installed in. This is set in the ksql-server-start script.";
 
     static final String KSQL_WEBSOCKETS_NUM_THREADS =
             KSQL_CONFIG_PREFIX + "server.websockets.num.threads";

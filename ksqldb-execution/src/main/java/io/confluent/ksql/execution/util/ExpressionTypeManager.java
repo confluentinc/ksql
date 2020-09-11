@@ -401,14 +401,8 @@ public class ExpressionTypeManager {
           })
           .collect(Collectors.toList());
 
-      if (keyTypes.stream().anyMatch(type -> type == null)) {
+      if (keyTypes.stream().anyMatch(Objects::isNull)) {
         throw new KsqlException("Map keys can not be NULL");
-      }
-
-      if (keyTypes.size() == 0) {
-        throw new KsqlException("Cannot construct a map with all NULL key "
-            + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
-            + "cast a NULL key to the desired type.");
       }
 
       final List<SqlType> valueTypes = exp.getMap()

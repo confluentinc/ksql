@@ -1164,7 +1164,7 @@ public class KsqlParserTest {
   public void testNonReservedKeywordShouldNotThrowException() {
     //'sink' is a keyword but is non-reserved. should not throw an exception
     final CreateStream result = (CreateStream) KsqlParserTestUtil.buildSingleAst("CREATE STREAM ORDERS" +
-            " (place VARCHAR, sink INTEGER)\n" +
+            " (place VARCHAR, Sink INTEGER)\n" +
             " WITH (kafka_topic='orders_topic', value_format='json');", metaStore).getStatement();
 
     // Then:

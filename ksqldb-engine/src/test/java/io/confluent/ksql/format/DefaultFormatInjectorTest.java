@@ -17,6 +17,7 @@ package io.confluent.ksql.format;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -36,7 +37,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,10 +66,12 @@ public class DefaultFormatInjectorTest {
   @Test
   public void shouldInjectMissingKeyFormat() {
     // Given
-    givenConfigAndSourceProps(
-        ImmutableMap.of(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "KAFKA"),
-        ImmutableMap.of("VALUE_FORMAT", new StringLiteral("JSON"))
-    );
+    givenConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "KAFKA"
+    ));
+    givenSourceProps(ImmutableMap.of(
+        "VALUE_FORMAT", new StringLiteral("JSON")
+    ));
 
     // When
     final ConfiguredStatement<?> result = injector.inject(csStatement);
@@ -81,10 +83,12 @@ public class DefaultFormatInjectorTest {
   @Test
   public void shouldInjectMissingValueFormat() {
     // Given
-    givenConfigAndSourceProps(
-        ImmutableMap.of(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON"),
-        ImmutableMap.of("KEY_FORMAT", new StringLiteral("KAFKA"))
-    );
+    givenConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON"
+    ));
+    givenSourceProps(ImmutableMap.of(
+        "KEY_FORMAT", new StringLiteral("KAFKA")
+    ));
 
     // When
     final ConfiguredStatement<?> result = injector.inject(csStatement);
@@ -96,13 +100,11 @@ public class DefaultFormatInjectorTest {
   @Test
   public void shouldInjectMissingKeyAndValueFormat() {
     // Given
-    givenConfigAndSourceProps(
-        ImmutableMap.of(
-            KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "KAFKA",
-            KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON"
-        ),
-        ImmutableMap.of()
-    );
+    givenConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "KAFKA",
+        KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON"
+    ));
+    givenSourceProps(ImmutableMap.of());
 
     // When
     final ConfiguredStatement<?> result = injector.inject(csStatement);
@@ -115,29 +117,41 @@ public class DefaultFormatInjectorTest {
   @Test
   public void shouldHandleExplicitKeyAndValueFormat() {
     // Given
-    givenConfigAndSourceProps(
-        ImmutableMap.of(),
-        ImmutableMap.of(
-            "KEY_FORMAT", new StringLiteral("KAFKA"),
-            "VALUE_FORMAT", new StringLiteral("JSON")
-        )
-    );
+    givenConfig(ImmutableMap.of());
+    givenSourceProps(ImmutableMap.of(
+        "KEY_FORMAT", new StringLiteral("KAFKA"),
+        "VALUE_FORMAT", new StringLiteral("JSON")
+    ));
 
     // When
     final ConfiguredStatement<?> result = injector.inject(csStatement);
 
     // Then
-    assertThat(result.getStatementText(), containsString("KEY_FORMAT='KAFKA'"));
-    assertThat(result.getStatementText(), containsString("VALUE_FORMAT='JSON'"));
+    assertThat(result, sameInstance(csStatement));
+  }
+
+  @Test
+  public void shouldHandleExplicitFormat() {
+    // Given
+    givenConfig(ImmutableMap.of());
+    givenSourceProps(ImmutableMap.of(
+        "FORMAT", new StringLiteral("KAFKA")
+    ));
+
+    // When
+    final ConfiguredStatement<?> result = injector.inject(csStatement);
+
+    // Then
+    assertThat(result, sameInstance(csStatement));
   }
 
   @Test
   public void shouldDefaultToKafkaIfNoExplicitDefaultKeyFormat() {
     // Given
-    givenConfigAndSourceProps(
-        ImmutableMap.of(),
-        ImmutableMap.of("VALUE_FORMAT", new StringLiteral("JSON"))
-    );
+    givenConfig(ImmutableMap.of());
+    givenSourceProps(ImmutableMap.of(
+        "VALUE_FORMAT", new StringLiteral("JSON")
+    ));
 
     // When
     final ConfiguredStatement<?> result = injector.inject(csStatement);
@@ -149,10 +163,10 @@ public class DefaultFormatInjectorTest {
   @Test
   public void shouldThrowIfMissingDefaultValueFormatConfig() {
     // Given
-    givenConfigAndSourceProps(
-        ImmutableMap.of(),
-        ImmutableMap.of("KEY_FORMAT", new StringLiteral("KAFKA"))
-    );
+    givenConfig(ImmutableMap.of());
+    givenSourceProps(ImmutableMap.of(
+        "KEY_FORMAT", new StringLiteral("KAFKA")
+    ));
 
     // Expect / When
     final Exception e = assertThrows(
@@ -170,11 +184,13 @@ public class DefaultFormatInjectorTest {
   @Test
   public void shouldInjectUsingConfigOverrides() {
     // Given
-    givenConfigAndSourceProps(
+    givenConfig(
         ImmutableMap.of(),
-        ImmutableMap.of(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON"),
-        ImmutableMap.of("KEY_FORMAT", new StringLiteral("KAFKA"))
+        ImmutableMap.of(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON")
     );
+    givenSourceProps(ImmutableMap.of(
+        "KEY_FORMAT", new StringLiteral("KAFKA")
+    ));
 
     // When
     final ConfiguredStatement<?> result = injector.inject(csStatement);
@@ -183,47 +199,32 @@ public class DefaultFormatInjectorTest {
     assertThat(result.getStatementText(), containsString("VALUE_FORMAT='JSON'"));
   }
 
-  private void givenConfigAndSourceProps(
-      final Map<String, Object> additionalConfigProps,
-      final Map<String, Literal> additionalSourceProps
-  ) {
-    givenConfigAndSourceProps(additionalConfigProps, ImmutableMap.of(), additionalSourceProps);
+  private void givenConfig(final Map<String, Object> additionalConfigProps) {
+    givenConfig(additionalConfigProps, ImmutableMap.of());
   }
 
-  private void givenConfigAndSourceProps(
-      final Map<String, Object> additionalConfigProps,
-      final Map<String, ?> configOverrides,
-      final Map<String, Literal> additionalSourceProps
-  ) {
-    final Map<String, Literal> sourceProps = getSourceProps(additionalSourceProps);
-    when(createSource.getProperties()).thenReturn(CreateSourceProperties.from(sourceProps));
-
-    final String sql = "some sql WITH (" // TODO: is this assumption valid? needed for shouldHandleExplicitKeyAndValueFormat() since it's a pass-through
-        + sourceProps.entrySet().stream()
-        .map(e -> e.getKey() + "=" + e.getValue().toString())
-        .collect(Collectors.joining(", "))
-        + ");";
-
-    csStatement = ConfiguredStatement.of(
-        PreparedStatement.of(sql, createSource),
-        configOverrides,
-        getConfig(additionalConfigProps));
-  }
-
-  private Map<String, Literal> getSourceProps(final Map<String, Literal> additionalProps) {
-    final HashMap<String, Literal> props = new HashMap<>();
-    props.put("KAFKA_TOPIC", new StringLiteral("some_topic"));
-    props.putAll(additionalProps);
-    return props;
-  }
-
-  private KsqlConfig getConfig(
-      final Map<String, Object> additionalProps
+  private void givenConfig(
+      final Map<String, Object> additionalProps,
+      final Map<String, ?> configOverrides
   ) {
     final HashMap<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true);
     props.putAll(additionalProps);
-    return new KsqlConfig(props);
+
+    csStatement = ConfiguredStatement.of(
+        PreparedStatement.of("some sql", createSource),
+        configOverrides,
+        new KsqlConfig(props));
+  }
+
+  private void givenSourceProps(
+      final Map<String, Literal> additionalProps
+  ) {
+    final HashMap<String, Literal> props = new HashMap<>();
+    props.put("KAFKA_TOPIC", new StringLiteral("some_topic"));
+    props.putAll(additionalProps);
+
+    when(createSource.getProperties()).thenReturn(CreateSourceProperties.from(props));
   }
 
   private static Object setupCopy(

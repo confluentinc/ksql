@@ -17,19 +17,20 @@ package io.confluent.ksql.serde.delimited;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SqlTypeWalker;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.testing.EffectivelyImmutable;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.function.Supplier;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 
@@ -57,27 +58,28 @@ class KsqlDelimitedSerdeFactory {
   }
 
   private static void validate(final PersistenceSchema schema) {
-    schema.connectSchema().fields()
-        .forEach(f -> SchemaWalker.visit(f.schema(), new SchemaValidator()));
+    schema.columns()
+        .forEach(c -> SqlTypeWalker.visit(c.type(), new SchemaValidator()));
   }
 
-  private static class SchemaValidator implements SchemaWalker.Visitor<Void, Void> {
+  private static class SchemaValidator implements SqlTypeWalker.Visitor<Void, Void> {
 
-    public Void visitPrimitive(final Schema schema) {
+    @Override
+    public Void visitPrimitive(final SqlPrimitiveType type) {
       // Primitive types are allowed.
       return null;
     }
 
-    public Void visitBytes(final Schema schema) {
-      if (!DecimalUtil.isDecimal(schema)) {
-        visitSchema(schema);
-      }
+    @Override
+    public Void visitDecimal(final SqlDecimal type) {
+      // Decimal types are allowed.
       return null;
     }
 
-    public Void visitSchema(final Schema schema) {
+    @Override
+    public Void visitType(final SqlType schema) {
       throw new KsqlException("The '" + FormatFactory.DELIMITED.name()
-          + "' format does not support type '" + schema.type().toString() + "'");
+          + "' format does not support type '" + schema.baseType() + "'");
     }
   }
 }

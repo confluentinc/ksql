@@ -281,7 +281,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<K BOOLEAN> NOT NULL, features=[]}\nreason: The 'KAFKA' format does not support type 'BOOLEAN'"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`K` BOOLEAN KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'BOOLEAN'"
       }
     },
     {
@@ -291,7 +291,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<K DECIMAL(21, 19)> NOT NULL, features=[]}\nreason: The 'KAFKA' format does not support type 'DECIMAL'"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`K` DECIMAL(21, 19) KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'DECIMAL'"
       }
     },
     {
@@ -302,7 +302,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ID ARRAY<INT>> NOT NULL, features=[]}\nreason: The 'KAFKA' format does not support type 'ARRAY'"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`ID` ARRAY<INTEGER> KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'ARRAY'"
       }
     },
     {
@@ -313,7 +313,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{schema=STRUCT<ID MAP<VARCHAR, INT>> NOT NULL, features=[]}\nreason: The 'KAFKA' format does not support type 'MAP'"
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`ID` MAP<STRING, INTEGER> KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'MAP'"
       }
     },
     {

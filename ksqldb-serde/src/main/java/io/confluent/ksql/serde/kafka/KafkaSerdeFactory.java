@@ -17,12 +17,13 @@ package io.confluent.ksql.serde.kafka;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.serde.voids.KsqlVoidSerde;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -34,33 +35,34 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 
 public final class KafkaSerdeFactory {
 
   // Note: If supporting new types here, add new type of PRINT TOPIC support too
-  private static final ImmutableMap<Type, Serde<?>> SERDE = ImmutableMap.of(
-      Type.INT32, Serdes.Integer(),
-      Type.INT64, Serdes.Long(),
-      Type.FLOAT64, Serdes.Double(),
-      Type.STRING, Serdes.String()
+  private static final ImmutableMap<SqlType, Serde<?>> SERDE = ImmutableMap.of(
+      SqlTypes.INTEGER, Serdes.Integer(),
+      SqlTypes.BIGINT, Serdes.Long(),
+      SqlTypes.DOUBLE, Serdes.Double(),
+      SqlTypes.STRING, Serdes.String()
   );
 
   private KafkaSerdeFactory() {
   }
 
   static Serde<Struct> createSerde(final PersistenceSchema schema) {
-    final Serde<Object> primitiveSerde = getPrimitiveSerde(schema.connectSchema());
+    final Serde<Object> primitiveSerde = getPrimitiveSerde(schema);
+
+    final ConnectSchema connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
 
     final Serializer<Struct> serializer = new RowSerializer(
         primitiveSerde.serializer(),
-        schema.connectSchema()
+        connectSchema
     );
 
     final Deserializer<Struct> deserializer = new RowDeserializer(
         primitiveSerde.deserializer(),
-        schema.connectSchema()
+        connectSchema
     );
 
     return Serdes.serdeFrom(serializer, deserializer);
@@ -68,29 +70,24 @@ public final class KafkaSerdeFactory {
 
   @VisibleForTesting
   @SuppressWarnings({"unchecked", "rawtypes"})
-  public static Serde<Object> getPrimitiveSerde(final ConnectSchema schema) {
+  public static Serde<Object> getPrimitiveSerde(final PersistenceSchema schema) {
 
-    final List<Field> fields = schema.fields();
-    if (fields.isEmpty()) {
+    final List<SimpleColumn> columns = schema.columns();
+    if (columns.isEmpty()) {
       // No columns:
       return (Serde) new KsqlVoidSerde();
     }
 
-    if (fields.size() != 1) {
-      final String got = new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST).format(schema);
+    if (columns.size() != 1) {
       throw new KsqlException("The '" + FormatFactory.KAFKA.name()
-          + "' format only supports a single field. Got: " + got);
+          + "' format only supports a single field. Got: " + schema.columns());
     }
 
-    final Type type = fields.get(0).schema().type();
+    final SqlType type = columns.get(0).type();
     final Serde<?> serde = SERDE.get(type);
     if (serde == null) {
-      final String typeString = DecimalUtil.isDecimal(fields.get(0).schema())
-          ? "DECIMAL"
-          : type.toString();
-
       throw new KsqlException("The '" + FormatFactory.KAFKA.name()
-          + "' format does not support type '" + typeString + "'");
+          + "' format does not support type '" + type.baseType() + "'");
     }
 
     return (Serde) serde;

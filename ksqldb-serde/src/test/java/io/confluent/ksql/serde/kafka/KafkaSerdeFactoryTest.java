@@ -30,6 +30,7 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.function.Supplier;
@@ -65,7 +66,7 @@ public class KafkaSerdeFactoryTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "The 'KAFKA' format only supports a single field. Got: f0 INT, f1 BIGINT"));
+        "The 'KAFKA' format only supports a single field. Got: [`f0` INTEGER, `f1` BIGINT]"));
   }
 
   @Test
@@ -186,7 +187,7 @@ public class KafkaSerdeFactoryTest {
 
     final Serde<Struct> serde = KafkaSerdeFactory.createSerde(schema);
 
-    // Given:
+    // When:
     final byte[] bytes = serde.serializer().serialize("topic", null);
     final Object result = serde.deserializer().deserialize("topic", null);
 
@@ -206,8 +207,10 @@ public class KafkaSerdeFactoryTest {
 
     final Serde<Struct> serde = KafkaSerdeFactory.createSerde(schema);
 
-    // Given:
-    final byte[] bytes = serde.serializer().serialize("topic", new Struct(logical.keyConnectSchema()));
+    final Struct struct = new Struct(ConnectSchemas.columnsToConnectSchema(logical.key()));
+
+    // When:
+    final byte[] bytes = serde.serializer().serialize("topic", struct);
     final Object result = serde.deserializer().deserialize("topic", null);
 
     // Then:
@@ -242,13 +245,13 @@ public class KafkaSerdeFactoryTest {
     shouldHandle(SqlTypes.STRING, "Yo!");
   }
 
-  private void shouldHandle(final SqlType fieldSchema, final Object value) {
+  private static void shouldHandle(final SqlType fieldSchema, final Object value) {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(fieldSchema);
 
     final Serde<Struct> serde = KafkaSerdeFactory.createSerde(schema);
 
-    final Struct struct = new Struct(schema.connectSchema());
+    final Struct struct = new Struct(ConnectSchemas.columnsToConnectSchema(schema.columns()));
     struct.put("f0", value);
 
     // When:

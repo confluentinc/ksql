@@ -21,6 +21,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -44,8 +45,10 @@ public final class AvroUtil {
     }
 
     final AvroSchema parsedSchema = (AvroSchema) new AvroFormat().toParsedSchema(
-        ddl.getSchema().value(),
-        formats.getOptions().valueFeatures(),
+        PersistenceSchema.from(
+            ddl.getSchema().value(),
+            formats.getOptions().valueFeatures()
+        ),
         formats.getValueFormat()
     );
 

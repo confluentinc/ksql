@@ -76,10 +76,8 @@ public final class PhysicalSchema {
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
     this.serdeOptions = requireNonNull(serdeOptions, "serdeOptions");
-    this.keySchema = PersistenceSchema
-        .from(logicalSchema.keyConnectSchema(), serdeOptions.keyFeatures());
-    this.valueSchema = PersistenceSchema
-        .from(logicalSchema.valueConnectSchema(), serdeOptions.valueFeatures());
+    this.keySchema = PersistenceSchema.from(logicalSchema.key(), serdeOptions.keyFeatures());
+    this.valueSchema = PersistenceSchema.from(logicalSchema.value(), serdeOptions.valueFeatures());
   }
 
   @Override

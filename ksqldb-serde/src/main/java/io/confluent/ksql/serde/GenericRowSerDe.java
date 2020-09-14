@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
@@ -116,11 +117,13 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       final Serde<Struct> innerSerde,
       final PersistenceSchema schema
   ) {
+    final ConnectSchema connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+
     final Serializer<GenericRow> serializer =
-        new GenericRowSerializer(innerSerde.serializer(), schema.connectSchema());
+        new GenericRowSerializer(innerSerde.serializer(), connectSchema);
 
     final Deserializer<GenericRow> deserializer =
-        new GenericRowDeserializer(innerSerde.deserializer(), schema.connectSchema());
+        new GenericRowDeserializer(innerSerde.deserializer(), connectSchema);
 
     return Serdes.serdeFrom(serializer, deserializer);
   }
@@ -168,7 +171,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       inner.close();
     }
 
-    private void putField(final Struct struct, final Field field, final Object value) {
+    private static void putField(final Struct struct, final Field field, final Object value) {
       try {
         struct.put(field, value);
       } catch (DataException e) {

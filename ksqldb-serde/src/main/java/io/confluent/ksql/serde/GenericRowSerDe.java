@@ -192,7 +192,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
         new GenericRowSerializer(structSerde.serializer(), schema);
 
     final Deserializer<GenericRow> deserializer =
-        new GenericRowDeserializer(structSerde.deserializer());
+        new GenericRowDeserializer(structSerde.deserializer(), schema);
 
     return Serdes.serdeFrom(serializer, deserializer);
   }
@@ -315,9 +315,11 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   private static class GenericRowDeserializer implements Deserializer<GenericRow> {
 
     private final Deserializer<Struct> inner;
+    private final ConnectSchema schema;
 
-    GenericRowDeserializer(final Deserializer<Struct> inner) {
+    GenericRowDeserializer(final Deserializer<Struct> inner, final PersistenceSchema schema) {
       this.inner = requireNonNull(inner, "inner");
+      this.schema = schema.ksqlSchema();
     }
 
     @Override
@@ -329,7 +331,11 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     public GenericRow deserialize(final String topic, final byte[] data) {
       final Struct struct = inner.deserialize(topic, data);
       if (struct == null) {
-        return null;
+        if (schema != null) {
+          return createNullRow(schema.fields().size());
+        } else {
+          return null;
+        }
       }
 
       final List<Field> fields = struct.schema().fields();
@@ -339,6 +345,16 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       for (final Field field : fields) {
         final Object columnVal = struct.get(field);
         row.append(columnVal);
+      }
+
+      return row;
+    }
+
+    private GenericRow createNullRow(final int size) {
+      final GenericRow row = new GenericRow(size + ADDITIONAL_CAPACITY);
+
+      for (int i = 0; i < size; i++) {
+        row.append(null);
       }
 
       return row;

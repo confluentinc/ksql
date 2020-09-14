@@ -368,11 +368,12 @@ public class ExpressionFormatterTest {
     final SqlStruct struct = SqlStruct.builder()
         .field("field1", SqlTypes.INTEGER)
         .field("field2", SqlTypes.STRING)
+        .field("caseSensitiveField", SqlTypes.STRING)
         .build();
 
     assertThat(
         ExpressionFormatter.formatExpression(new Type(struct)),
-        equalTo("STRUCT<field1 INTEGER, field2 STRING>"));
+        equalTo("STRUCT<`field1` INTEGER, `field2` STRING, `caseSensitiveField` STRING>"));
   }
 
   @Test

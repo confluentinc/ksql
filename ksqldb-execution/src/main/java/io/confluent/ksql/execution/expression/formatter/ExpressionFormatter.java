@@ -90,7 +90,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitType(final Type node, final Context context) {
-      return node.getSqlType().toString(context.formatOptions);
+      return node.getSqlType().toString();
     }
 
     @Override

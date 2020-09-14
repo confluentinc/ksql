@@ -125,10 +125,10 @@ public final class SchemaConverters {
 
   public interface ConnectToJavaTypeConverter {
     /**
-     * Convert the supplied Connect {@code schema} to its corresponding SQL type.
+     * Convert the supplied Connect {@code schema} to its corresponding Java type.
      *
      * @param schema the Connect schema.
-     * @return the sql type.
+     * @return the java type.
      */
     Class<?> toJavaType(Schema schema);
   }

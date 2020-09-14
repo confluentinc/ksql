@@ -50,7 +50,7 @@ public class QueryIdUtilTest {
   @Mock
   private QueryIdGenerator idGenerator;
   @Mock
-  private MetaStore metaStore;
+  private EngineContext engineContext;
 
   @Test
   public void shouldGenerateUniqueRandomIdsForTransientQueries() {
@@ -59,7 +59,7 @@ public class QueryIdUtilTest {
 
     // When:
     long numUniqueIds = IntStream.range(0, 100)
-        .mapToObj(i -> QueryIdUtil.buildId(metaStore, idGenerator, transientPlan, false))
+        .mapToObj(i -> QueryIdUtil.buildId(engineContext, idGenerator, transientPlan, false))
         .distinct()
         .count();
 
@@ -74,7 +74,7 @@ public class QueryIdUtilTest {
     when(idGenerator.getNext()).thenReturn("1");
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan, false);
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
 
     // Then:
     assertThat(queryId, is(new QueryId("INSERTQUERY_1")));
@@ -88,10 +88,10 @@ public class QueryIdUtilTest {
     when(plan.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(plan.createInto()).thenReturn(true);
     when(idGenerator.getNext()).thenReturn("1");
-    when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
+    when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan, false);
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
 
     // Then:
     assertThat(queryId, is(new QueryId("CSAS_FOO_1")));
@@ -105,10 +105,10 @@ public class QueryIdUtilTest {
     when(plan.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
     when(plan.createInto()).thenReturn(true);
     when(idGenerator.getNext()).thenReturn("1");
-    when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
+    when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan, false);
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_1")));
@@ -119,10 +119,10 @@ public class QueryIdUtilTest {
     // Given:
     when(plan.getSinkName()).thenReturn(Optional.of(SINK));
     when(plan.createInto()).thenReturn(true);
-    when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
+    when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(metaStore, idGenerator, plan, true);
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, true);
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_10")));
@@ -134,10 +134,10 @@ public class QueryIdUtilTest {
     when(plan.getSinkName()).thenReturn(Optional.of(SINK));
     when(plan.createInto()).thenReturn(true);
     when(plan.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
+    when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
 
     // When:
-    QueryIdUtil.buildId(metaStore, idGenerator, plan, false);
+    QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
   }
 
   @Test
@@ -145,10 +145,10 @@ public class QueryIdUtilTest {
     // Given:
     when(plan.getSinkName()).thenReturn(Optional.of(SINK));
     when(plan.createInto()).thenReturn(true);
-    when(metaStore.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_1", "INSERTQUERY_1"));
+    when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_1", "INSERTQUERY_1"));
 
     // When:
-    final KsqlException e = assertThrows(KsqlException.class, () -> QueryIdUtil.buildId(metaStore, idGenerator, plan, false));
+    final KsqlException e = assertThrows(KsqlException.class, () -> QueryIdUtil.buildId(engineContext, idGenerator, plan, false));
 
     // Then:
     assertThat(e.getMessage(), containsString("there are multiple queries writing"));

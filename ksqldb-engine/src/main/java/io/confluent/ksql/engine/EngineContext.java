@@ -136,6 +136,10 @@ final class EngineContext {
     return Collections.unmodifiableMap(persistentQueries);
   }
 
+  Set<String> getQueriesWithSink(final SourceName sourceName) {
+    return metaStore.getQueriesWithSink(sourceName);
+  }
+
   MutableMetaStore getMetaStore() {
     return metaStore;
   }

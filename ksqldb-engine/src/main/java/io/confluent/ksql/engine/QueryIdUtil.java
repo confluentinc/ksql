@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -39,14 +38,14 @@ final class QueryIdUtil {
   /**
    * Builds a {@link QueryId} for a physical plan specification.
    *
-   * @param metaStore   the meta store representing the current state of the engine
+   * @param engineContext  the context representing the current state of the engine
    * @param idGenerator generates query ids
    * @param outputNode  the logical plan
    * @param createOrReplaceEnabled whether or not the queryID can replace an existing one
    * @return the {@link QueryId} to be used
    */
   static QueryId buildId(
-      final MetaStore metaStore,
+      final EngineContext engineContext,
       final QueryIdGenerator idGenerator,
       final OutputNode outputNode,
       final boolean createOrReplaceEnabled) {
@@ -60,7 +59,7 @@ final class QueryIdUtil {
     }
 
     final SourceName sink = outputNode.getSinkName().get();
-    final Set<String> queriesForSink = metaStore.getQueriesWithSink(sink);
+    final Set<String> queriesForSink = engineContext.getQueriesWithSink(sink);
     if (queriesForSink.size() > 1) {
       throw new KsqlException("REPLACE for sink " + sink + " is not supported because there are "
           + "multiple queries writing into it: " + queriesForSink);

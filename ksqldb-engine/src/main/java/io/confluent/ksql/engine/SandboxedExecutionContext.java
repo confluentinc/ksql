@@ -20,6 +20,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -34,6 +35,7 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * An execution context that can execute statements without changing the core engine's state
@@ -79,6 +81,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
     return ImmutableList.copyOf(engineContext.getPersistentQueries().values());
+  }
+
+  @Override
+  public Set<String> getQueriesWithSink(final SourceName sourceName) {
+    return engineContext.getQueriesWithSink(sourceName);
   }
 
   @Override

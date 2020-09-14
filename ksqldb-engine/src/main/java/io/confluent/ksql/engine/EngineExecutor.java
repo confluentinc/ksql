@@ -214,7 +214,7 @@ final class EngineExecutor {
         Optional.of(outputNode)
     );
     final QueryId queryId = QueryIdUtil.buildId(
-        engineContext.getMetaStore(),
+        engineContext,
         engineContext.idGenerator(),
         outputNode,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED)

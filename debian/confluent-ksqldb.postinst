@@ -11,35 +11,35 @@ case "$1" in
         adduser --system --disabled-password --disabled-login --home /var/empty \
                 --no-create-home --quiet --force-badname --ingroup $_group $_user
                 
-  # Set explicit kafka-streams directory if not set
-  ksqldb_config=/etc/ksqldb/ksql-server.properties
-  if [ -f $ksqldb_config ]; then
-    if ! grep '^state.dir=' $ksqldb_config >/dev/null 2>&1; then
-      echo "state.dir=/var/lib/kafka-streams" >> $ksqldb_config
-    fi
-  fi                
+	# Set explicit kafka-streams directory if not set
+	ksqldb_config=/etc/ksqldb/ksql-server.properties
+	if [ -f $ksqldb_config ]; then
+		if ! grep '^state.dir=' $ksqldb_config >/dev/null 2>&1; then
+			echo "state.dir=/var/lib/kafka-streams" >> $ksqldb_config
+		fi
+	fi
 
 	_permwarn=
 	for dir in /var/log/confluent /var/lib/kafka-streams ; do
 		# Confluent log and kafka-streams directories should be writable by group
 		_perm="chown ${_user}:${_group} $dir && chmod u+wx,g+wx,o= $dir"
 
-    if [ ! -d $dir ]; then
-      echo "Creating directory $dir with owner $_user:$_group"
-      mkdir -p $dir
-      eval $_perm
-    else
-      echo "Notice: Not creating existing directory $dir, ensure proper permissions for user $_user group $_group"
-      _permwarn="${_permwarn}${_perm}\n"
-    fi
+		if [ ! -d $dir ]; then
+			echo "Creating directory $dir with owner $_user:$_group"
+			mkdir -p $dir
+			eval $_perm
+		else
+			echo "Notice: Not creating existing directory $dir, ensure proper permissions for user $_user group $_group"
+			_permwarn="${_permwarn}${_perm}\n"
+		fi
 	done
 
 	if [ -n "$_permwarn" ]; then
-	    echo "Notice: If you are planning to use the provided systemd service units for"
-	    echo "Notice: confluent-ksql, make sure that read-write permissions"
-	    echo "Notice: for user $_user and group $_group are set up according to the"
-	    echo "Notice: following commands:"
-	    /bin/echo -e "$_permwarn"
+		echo "Notice: If you are planning to use the provided systemd service units for"
+		echo "Notice: confluent-ksql, make sure that read-write permissions"
+		echo "Notice: for user $_user and group $_group are set up according to the"
+		echo "Notice: following commands:"
+		/bin/echo -e "$_permwarn"
 	fi
         ;;
 esac

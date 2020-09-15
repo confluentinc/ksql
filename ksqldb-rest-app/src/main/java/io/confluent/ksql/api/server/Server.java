@@ -328,10 +328,10 @@ public class Server {
             Optional.ofNullable(Strings.emptyToNull(keyStorePassword.value())),
             keyStoreAlias))
             .setPassword(keyStorePassword.value()));
-      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+      } else if (keyStoreType.equalsIgnoreCase(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
         options.setKeyStoreOptions(
             new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
-      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+      } else if (keyStoreType.equalsIgnoreCase(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
         options.setPfxKeyCertOptions(
             new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
       }

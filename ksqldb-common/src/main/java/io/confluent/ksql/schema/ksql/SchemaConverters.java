@@ -123,6 +123,16 @@ public final class SchemaConverters {
     Schema toConnectSchema(SqlType sqlType, String name, String doc);
   }
 
+  public interface ConnectToJavaTypeConverter {
+    /**
+     * Convert the supplied Connect {@code schema} to its corresponding Java type.
+     *
+     * @param schema the Connect schema.
+     * @return the java type.
+     */
+    Class<?> toJavaType(Schema schema);
+  }
+
   public interface JavaToSqlTypeConverter {
 
     /**
@@ -172,6 +182,12 @@ public final class SchemaConverters {
 
   public static SqlToConnectTypeConverter sqlToConnectConverter() {
     return SQL_TO_CONNECT_CONVERTER;
+  }
+
+  public static ConnectToJavaTypeConverter connectToJavaTypeConverter() {
+    return schema -> SchemaConverters.sqlToJavaConverter().toJavaType(
+        SchemaConverters.connectToSqlConverter().toSqlType(schema)
+    );
   }
 
   public static JavaToSqlTypeConverter javaToSqlConverter() {

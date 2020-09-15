@@ -16,42 +16,27 @@
 package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.SchemaNotSupportedException;
-import io.confluent.ksql.logging.processing.LoggingDeserializer;
-import io.confluent.ksql.logging.processing.LoggingSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
-import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
+import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,266 +46,123 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class GenericKeySerDeTest {
 
-  private static final FormatInfo FORMAT = FormatInfo.of(FormatFactory.JSON.name());
-  private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
-  private static final String LOGGER_NAME_PREFIX = "bob";
-
-  private static final PersistenceSchema WRAPPED_SCHEMA = PersistenceSchema.from(
-      (ConnectSchema) SchemaBuilder
-          .struct()
-          .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-          .build(),
-      false
-  );
-
-  private static final PersistenceSchema UNWRAPPED_SCHEMA = PersistenceSchema.from(
-      (ConnectSchema) SchemaBuilder
-          .struct()
-          .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-          .build(),
-      true
-  );
+  private static final String LOGGER_PREFIX = "bob";
+  private static final WindowInfo TIMED_WND = WindowInfo
+      .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)));
+  private static final WindowInfo SESSION_WND = WindowInfo
+      .of(WindowType.SESSION, Optional.empty());
 
   @Mock
-  private SerdeFactories serdeFactories;
+  private GenericSerdeFactory innerFactory;
+  @Mock
+  private FormatInfo format;
+  @Mock
+  private PersistenceSchema schema;
+  @Mock
+  private KsqlConfig config;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
   @Mock
   private ProcessingLogContext processingLogCxt;
   @Mock
-  private ProcessingLoggerFactory loggerFactory;
+  private Serde<Struct> innerSerde;
   @Mock
-  private ProcessingLogger logger;
-  @Mock
-  private Serde<Object> innerSerde;
-  @Mock
-  private Serializer<Object> innerSerializer;
-  @Mock
-  private Deserializer<Object> innerDeserializer;
+  private Serde<Object> loggingSerde;
+
   private GenericKeySerDe factory;
 
   @Before
   public void setUp() {
-    factory = new GenericKeySerDe(serdeFactories);
+    factory = new GenericKeySerDe(innerFactory);
 
-    when(processingLogCxt.getLoggerFactory()).thenReturn(loggerFactory);
-    when(loggerFactory.getLogger(any())).thenReturn(logger);
-
-    when(serdeFactories.create(any(), any(), any(), any(), any())).thenReturn(innerSerde);
-
-    when(innerSerde.serializer()).thenReturn(innerSerializer);
-    when(innerSerde.deserializer()).thenReturn(innerDeserializer);
+    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
   }
 
   @Test
-  public void shouldValidateFormatCanHandleSchema() {
-    // Given:
-    doThrow(new RuntimeException("Boom!"))
-        .when(serdeFactories).validate(FORMAT, WRAPPED_SCHEMA);
-
+  public void shouldCreateInnerSerdeNonWindowed() {
     // When:
-    final Exception e = assertThrows(
-        SchemaNotSupportedException.class,
-        () -> factory.create(
-            FORMAT,
-            WRAPPED_SCHEMA,
-            CONFIG,
-            srClientFactory,
-            LOGGER_NAME_PREFIX,
-            processingLogCxt
-        )
-    );
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    assertThat(e.getMessage(), containsString("Key format does not support key schema."
-        + System.lineSeparator()
-        + "format: JSON"
-        + System.lineSeparator()
-        + "schema: Persistence{schema=STRUCT<f0 VARCHAR> NOT NULL, unwrapped=false}"
-        + System.lineSeparator()
-        + "reason: Boom!"));
+    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory);
   }
 
   @Test
-  public void shouldCreateCorrectInnerSerdeForWrapped() {
+  public void shouldCreateInnerSerdeWindowed() {
     // When:
-    factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+    factory
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    verify(serdeFactories).create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        Struct.class
-    );
+    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory);
   }
 
   @Test
-  public void shouldCreateCorrectInnerSerdeForUnwrapped() {
+  public void shouldWrapInLoggingSerdeNonWindowed() {
     // When:
-    factory.create(
-        FORMAT,
-        UNWRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    verify(serdeFactories).create(
-        FORMAT,
-        UNWRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        Long.class
-    );
+    verify(innerFactory).wrapInLoggingSerde(innerSerde, LOGGER_PREFIX, processingLogCxt);
   }
 
   @Test
-  public void shouldCreateProcessLoggerWithCorrectName() {
+  public void shouldWrapInLoggingSerdeWindowed() {
     // When:
-    factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+    factory
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    verify(loggerFactory).getLogger("bob.deserializer");
+    verify(innerFactory).wrapInLoggingSerde(innerSerde, LOGGER_PREFIX, processingLogCxt);
   }
 
   @Test
-  public void shouldUseLoggingSerializer() {
+  public void shouldConfigureLoggingSerdeNonWindowed() {
     // When:
-    final Serde<Struct> result = factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    assertThat(result.serializer(), is(instanceOf(LoggingSerializer.class)));
+    verify(loggingSerde).configure(ImmutableMap.of(), true);
   }
 
   @Test
-  public void shouldUseLoggingDeserializer() {
+  public void shouldConfigureLoggingSerdeWindowed() {
     // When:
-    final Serde<Struct> result = factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+    factory
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    assertThat(result.deserializer(), is(instanceOf(LoggingDeserializer.class)));
+    verify(loggingSerde).configure(ImmutableMap.of(), true);
   }
 
   @Test
-  public void shouldUseSessionWindowedSerde() {
+  public void shouldReturnLoggingSerdeNonWindowed() {
     // When:
-    final Serde<Windowed<Struct>> result = factory.create(
-        FORMAT,
-        WindowInfo.of(WindowType.SESSION, Optional.empty()),
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+    final Serde<Struct> result = factory
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    assertThat(result.serializer(), is(instanceOf(SessionWindowedSerializer.class)));
-    assertThat(result.deserializer(), is(instanceOf(SessionWindowedDeserializer.class)));
+    assertThat(result, is(sameInstance(loggingSerde)));
   }
 
   @Test
-  public void shouldUseTimeWindowedSerdeForHopping() {
+  public void shouldReturnedTimeWindowedSerdeForNonSessionWindowed() {
     // When:
-    final Serde<Windowed<Struct>> result = factory.create(
-        FORMAT,
-        WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10))),
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+    final Serde<Windowed<Struct>> result = factory
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    assertThat(result.serializer(), is(instanceOf(TimeWindowedSerializer.class)));
-    assertThat(result.deserializer(), is(instanceOf(TimeWindowedDeserializer.class)));
+    assertThat(result, is(instanceOf(TimeWindowedSerde.class)));
   }
 
   @Test
-  public void shouldUseTimeWindowedSerdeForTumbling() {
+  public void shouldReturnedSessionWindowedSerdeForSessionWindowed() {
     // When:
-    final Serde<Windowed<Struct>> result = factory.create(
-        FORMAT,
-        WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMinutes(10))),
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
+    final Serde<Windowed<Struct>> result = factory
+        .create(format, SESSION_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    assertThat(result.serializer(), is(instanceOf(TimeWindowedSerializer.class)));
-    assertThat(result.deserializer(), is(instanceOf(TimeWindowedDeserializer.class)));
-  }
-
-  @Test
-  public void shouldConfigureInnerSerde() {
-    // When:
-    factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    verify(innerSerializer).configure(Collections.emptyMap(), true);
-    verify(innerDeserializer).configure(Collections.emptyMap(), true);
-  }
-
-  @Test
-  public void shouldCloseInnerSerde() {
-    // Given:
-    final Serde<Struct> keySerde = factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // When:
-    keySerde.close();
-
-    // Then:
-    verify(innerSerializer).close();
-    verify(innerDeserializer).close();
+    assertThat(result, is(instanceOf(SessionWindowedSerde.class)));
   }
 }

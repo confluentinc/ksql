@@ -18,12 +18,8 @@ package io.confluent.ksql.schema.ksql;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
-import org.apache.kafka.connect.data.ConnectSchema;
 
 /**
  * Physical KSQL schema.
@@ -80,8 +76,10 @@ public final class PhysicalSchema {
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
     this.serdeOptions = requireNonNull(serdeOptions, "serdeOptions");
-    this.keySchema = buildKeyPhysical(logicalSchema.keyConnectSchema());
-    this.valueSchema = buildValuePhysical(logicalSchema.valueConnectSchema(), serdeOptions);
+    this.keySchema = PersistenceSchema
+        .from(logicalSchema.keyConnectSchema(), serdeOptions.keyFeatures());
+    this.valueSchema = PersistenceSchema
+        .from(logicalSchema.valueConnectSchema(), serdeOptions.valueFeatures());
   }
 
   @Override
@@ -109,29 +107,5 @@ public final class PhysicalSchema {
         + "logicalSchema=" + logicalSchema
         + ", serdeOptions=" + serdeOptions
         + '}';
-  }
-
-  private static PersistenceSchema buildKeyPhysical(
-      final ConnectSchema keyConnectSchema
-  ) {
-    return PersistenceSchema.from(keyConnectSchema, false);
-  }
-
-  private static PersistenceSchema buildValuePhysical(
-      final ConnectSchema valueConnectSchema,
-      final SerdeOptions serdeOptions
-  ) {
-    final boolean singleField = valueConnectSchema.fields().size() == 1;
-
-    final boolean unwrapSingle = serdeOptions.valueWrapping()
-        .map(option -> option == SerdeOption.UNWRAP_SINGLE_VALUES)
-        .orElse(false);
-
-    if (unwrapSingle && !singleField) {
-      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE + "' "
-          + "is only valid for single-field value schemas");
-    }
-
-    return PersistenceSchema.from(valueConnectSchema, unwrapSingle);
   }
 }

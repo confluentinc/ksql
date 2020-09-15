@@ -76,6 +76,7 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
@@ -253,7 +254,7 @@ public class SchemaKTableTest {
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final ConnectSchema schema) {
     return GenericRowSerDe.from(
         topic.getValueFormat().getFormatInfo(),
-        PersistenceSchema.from(schema, false),
+        PersistenceSchema.from(schema, EnabledSerdeFeatures.of()),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "test",

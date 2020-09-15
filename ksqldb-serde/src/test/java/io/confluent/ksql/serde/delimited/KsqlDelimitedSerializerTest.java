@@ -50,18 +50,6 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
-  public void shouldThrowIfNotStruct() {
-    // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> serializer.serialize("t1", "not a struct")
-    );
-
-    // Then:
-    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support anonymous fields"))));
-  }
-
-  @Test
   public void shouldSerializeRowCorrectly() {
     // Given:
     final Struct data = new Struct(SCHEMA)

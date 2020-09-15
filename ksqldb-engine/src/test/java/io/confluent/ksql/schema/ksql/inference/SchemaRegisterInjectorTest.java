@@ -49,10 +49,11 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
@@ -137,6 +138,9 @@ public class SchemaRegisterInjectorTest {
     when(queryMetadata.getPhysicalSchema()).thenReturn(physicalSchema);
 
     when(physicalSchema.serdeOptions()).thenReturn(serdeOptions);
+
+    when(serdeOptions.valueFeatures())
+        .thenReturn(EnabledSerdeFeatures.of());
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
@@ -309,7 +313,8 @@ public class SchemaRegisterInjectorTest {
         + "WITH(value_format='AVRO', wrap_single_value='false') AS "
         + "SELECT * FROM SOURCE;");
 
-    when(serdeOptions.valueWrapping()).thenReturn(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+    when(serdeOptions.valueFeatures())
+        .thenReturn(EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // When:
     injector.inject(statement);

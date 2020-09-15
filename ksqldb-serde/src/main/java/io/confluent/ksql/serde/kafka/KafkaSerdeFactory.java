@@ -17,21 +17,16 @@ package io.confluent.ksql.serde.kafka;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.google.errorprone.annotations.Immutable;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.voids.KsqlVoidSerde;
 import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -42,8 +37,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 
-@Immutable
-public class KafkaSerdeFactory implements KsqlSerdeFactory {
+public final class KafkaSerdeFactory {
 
   // Note: If supporting new types here, add new type of PRINT TOPIC support too
   private static final ImmutableMap<Type, Serde<?>> SERDE = ImmutableMap.of(
@@ -53,27 +47,20 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
       Type.STRING, Serdes.String()
   );
 
-  @Override
-  public void validate(final PersistenceSchema schema) {
-    getPrimitiveSerde(schema.serializedSchema());
+  private KafkaSerdeFactory() {
   }
 
-  @Override
-  public Serde<Object> createSerde(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    final Serde<Object> primitiveSerde = getPrimitiveSerde(schema.serializedSchema());
+  static Serde<Struct> createSerde(final PersistenceSchema schema) {
+    final Serde<Object> primitiveSerde = getPrimitiveSerde(schema.connectSchema());
 
-    final Serializer<Object> serializer = new RowSerializer(
+    final Serializer<Struct> serializer = new RowSerializer(
         primitiveSerde.serializer(),
-        schema.serializedSchema()
+        schema.connectSchema()
     );
 
-    final Deserializer<Object> deserializer = new RowDeserializer(
+    final Deserializer<Struct> deserializer = new RowDeserializer(
         primitiveSerde.deserializer(),
-        schema.serializedSchema()
+        schema.connectSchema()
     );
 
     return Serdes.serdeFrom(serializer, deserializer);
@@ -82,9 +69,6 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
   @VisibleForTesting
   @SuppressWarnings({"unchecked", "rawtypes"})
   public static Serde<Object> getPrimitiveSerde(final ConnectSchema schema) {
-    if (schema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("KAFKA format does not support unwrapping");
-    }
 
     final List<Field> fields = schema.fields();
     if (fields.isEmpty()) {
@@ -112,7 +96,7 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     return (Serde) serde;
   }
 
-  private static final class RowSerializer implements Serializer<Object> {
+  private static final class RowSerializer implements Serializer<Struct> {
 
     private final Serializer<Object> delegate;
     private final Optional<Field> field;
@@ -125,16 +109,16 @@ public class KafkaSerdeFactory implements KsqlSerdeFactory {
     }
 
     @Override
-    public byte[] serialize(final String topic, final Object struct) {
+    public byte[] serialize(final String topic, final Struct struct) {
       final Object value = struct == null || !field.isPresent()
           ? null
-          : ((Struct) struct).get(field.get());
+          : struct.get(field.get());
 
       return delegate.serialize(topic, value);
     }
   }
 
-  private static final class RowDeserializer implements Deserializer<Object> {
+  private static final class RowDeserializer implements Deserializer<Struct> {
 
     private final Deserializer<Object> delegate;
     private final ConnectSchema schema;

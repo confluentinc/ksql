@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
@@ -187,7 +188,7 @@ public class SerdeBenchmark {
     ) {
       return GenericRowSerDe.from(
           format,
-          PersistenceSchema.from((ConnectSchema) schema, false),
+          PersistenceSchema.from((ConnectSchema) schema, EnabledSerdeFeatures.of()),
           new KsqlConfig(Collections.emptyMap()),
           schemaRegistryClientFactory,
           "benchmark",

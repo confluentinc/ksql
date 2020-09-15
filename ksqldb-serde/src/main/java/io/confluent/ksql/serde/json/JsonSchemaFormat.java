@@ -18,17 +18,22 @@ package io.confluent.ksql.serde.json;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.json.JsonSchemaData;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 
 public class JsonSchemaFormat extends ConnectFormat {
 
-  private static final Set<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+  private static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
       SerdeFeature.WRAP_SINGLES,
       SerdeFeature.UNWRAP_SINGLES
   );
@@ -52,8 +57,15 @@ public class JsonSchemaFormat extends ConnectFormat {
   }
 
   @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new KsqlJsonSerdeFactory(true);
+  protected <T> Serde<T> getConnectSerde(
+      final ConnectSchema connectSchema,
+      final Map<String, String> formatProps,
+      final KsqlConfig config,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
+  ) {
+    return new KsqlJsonSerdeFactory(true)
+        .createSerde(connectSchema, config, srFactory, targetType);
   }
 
   @Override
@@ -62,7 +74,8 @@ public class JsonSchemaFormat extends ConnectFormat {
   }
 
   @Override
-  protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
+  protected ParsedSchema fromConnectSchema(final Schema schema,
+      final FormatInfo formatInfo) {
     return jsonData.fromConnectSchema(schema);
   }
 }

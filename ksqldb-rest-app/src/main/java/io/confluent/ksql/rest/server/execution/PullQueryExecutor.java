@@ -1049,9 +1049,9 @@ public final class PullQueryExecutor {
 
   private static Struct asKeyStruct(final Object keyValue, final PhysicalSchema physicalSchema) {
     final Field keyField = Iterables
-        .getOnlyElement(physicalSchema.keySchema().ksqlSchema().fields());
+        .getOnlyElement(physicalSchema.keySchema().connectSchema().fields());
 
-    final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
+    final Struct key = new Struct(physicalSchema.keySchema().connectSchema());
     key.put(keyField, keyValue);
     return key;
   }

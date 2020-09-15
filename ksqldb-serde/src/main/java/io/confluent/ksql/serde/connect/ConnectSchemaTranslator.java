@@ -61,7 +61,7 @@ public class ConnectSchemaTranslator {
       }
 
       if (rowSchema.fields().isEmpty()) {
-        throw new KsqlException("Schema for the message value does not include any columns with "
+        throw new KsqlException("Schema does not include any columns with "
             + "types that ksqlDB supports."
             + System.lineSeparator()
             + "schema: " + FORMATTER.format(schema));

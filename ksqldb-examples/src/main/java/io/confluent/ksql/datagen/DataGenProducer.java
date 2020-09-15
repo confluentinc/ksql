@@ -21,11 +21,13 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.util.Pair;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
@@ -160,18 +162,16 @@ public class DataGenProducer {
   private Serializer<Struct> getKeySerializer(
       final ConnectSchema keySchema
   ) {
-    final PersistenceSchema schema = PersistenceSchema.from(
-        keySchema,
-        keySerializerFactory.format().supportedFeatures().contains(SerdeFeature.UNWRAP_SINGLES)
-    );
-
+    final Set<SerdeFeature> supported = keySerializerFactory.format().supportedFeatures();
+    final EnabledSerdeFeatures features = supported.contains(SerdeFeature.UNWRAP_SINGLES)
+        ? EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+        : EnabledSerdeFeatures.of();
+    final PersistenceSchema schema = PersistenceSchema.from(keySchema, features);
     return keySerializerFactory.create(schema);
   }
 
   private Serializer<GenericRow> getValueSerializer(final ConnectSchema valueSchema) {
-    final PersistenceSchema schema = PersistenceSchema
-        .from(valueSchema, false);
-
+    final PersistenceSchema schema = PersistenceSchema.from(valueSchema, EnabledSerdeFeatures.of());
     return valueSerializerFactory.create(schema);
   }
 

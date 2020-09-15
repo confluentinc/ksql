@@ -27,16 +27,19 @@ _group=confluent
 getent group $_group 2>&1 >/dev/null || groupadd -r $_group
 getent passwd $_user 2>&1 >/dev/null || \
     useradd -r -g $_group --home-dir /tmp --no-create-home -s /sbin/nologin -c "Confluent KSQL" $_user
+    
+# Set explicit kafka-streams directory if not set
+ksqldb_config=/etc/ksqldb/ksql-server.properties
+if [ -f $ksqldb_config ]; then
+  if ! grep '^state.dir=' $ksqldb_config >/dev/null 2>&1; then
+    echo "state.dir=/var/lib/kafka-streams" >> $ksqldb_config
+  fi
+fi    
 
 _permwarn=
-for dir in /var/log/confluent ; do
-    if [ $dir = /var/log/confluent ]; then
-        # Confluent log directory should be writable by group
-        _perm="chown ${_user}:${_group} $dir && chmod u+wx,g+wx,o= $dir"
-    else
-        # Other dirs are only readable by group
-        _perm="chown ${_user}:${_group} $dir && chmod u+wx,g+r,o= $dir"
-    fi
+for dir in /var/log/confluent /var/lib/kafka-streams ; do
+    # Confluent log and kafka-streams directories should be writable by group
+    _perm="chown ${_user}:${_group} $dir && chmod u+wx,g+wx,o= $dir"
 
     if [ ! -d $dir ]; then
         echo "Creating directory $dir with owner $_user:$_group"
@@ -79,6 +82,7 @@ fi
 %{__rm} %{buildroot}/confluent-ksqldb.spec
 
 %{__mkdir_p} %{buildroot}/var/log/confluent
+%{__mkdir_p} %{buildroot}/var/lib/kafka-streams
 
 
 %files

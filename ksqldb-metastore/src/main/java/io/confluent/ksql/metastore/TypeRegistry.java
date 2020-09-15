@@ -33,7 +33,7 @@ public interface TypeRegistry {
    * @param name   the name, must be unique
    * @param type   the schema to associate it with
    */
-  void registerType(String name, SqlType type);
+  boolean registerType(String name, SqlType type);
 
   /**
    * @param name the previously registered name
@@ -78,7 +78,9 @@ public interface TypeRegistry {
    */
   TypeRegistry EMPTY = new TypeRegistry() {
     @Override
-    public void registerType(final String name, final SqlType type) { }
+    public boolean registerType(final String name, final SqlType type) {
+      return false;
+    }
 
     @Override
     public boolean deleteType(final String name) {

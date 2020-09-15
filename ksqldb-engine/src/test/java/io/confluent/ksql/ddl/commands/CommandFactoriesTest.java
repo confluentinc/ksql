@@ -251,7 +251,8 @@ public class CommandFactoriesTest {
     final RegisterType ddlStatement = new RegisterType(
         Optional.empty(),
         "alias",
-        new Type(SqlStruct.builder().field("foo", SqlPrimitiveType.of(SqlBaseType.STRING)).build())
+        new Type(SqlStruct.builder().field("foo", SqlPrimitiveType.of(SqlBaseType.STRING)).build()),
+        true
     );
 
     // When:

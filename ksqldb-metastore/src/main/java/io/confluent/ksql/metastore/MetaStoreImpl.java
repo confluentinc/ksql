@@ -273,8 +273,8 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void registerType(final String name, final SqlType type) {
-    typeRegistry.registerType(name, type);
+  public boolean registerType(final String name, final SqlType type) {
+    return typeRegistry.registerType(name, type);
   }
 
   @Override

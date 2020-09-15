@@ -448,6 +448,9 @@ public final class SqlFormatter {
     @Override
     public Void visitRegisterType(final RegisterType node, final Integer context) {
       builder.append("CREATE TYPE ");
+      if (node.getIfNotExists()) {
+        builder.append("IF NOT EXISTS ");
+      }
       builder.append(FORMAT_OPTIONS.escape(node.getName()));
       builder.append(" AS ");
       builder.append(formatExpression(node.getType()));

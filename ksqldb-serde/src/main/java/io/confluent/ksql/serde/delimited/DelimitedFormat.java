@@ -16,18 +16,26 @@
 package io.confluent.ksql.serde.delimited;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFeature;
-import java.util.Optional;
+import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Struct;
 
 public final class DelimitedFormat implements Format {
 
-  private static final Set<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+  private static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.UNWRAP_SINGLES
   );
+
+  private static final String DEFAULT_DELIMITER = ",";
 
   public static final String DELIMITER = "delimiter";
   public static final String NAME = "DELIMITED";
@@ -48,11 +56,21 @@ public final class DelimitedFormat implements Format {
   }
 
   @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new KsqlDelimitedSerdeFactory(
-        Optional
-            .ofNullable(info.getProperties().get(DELIMITER))
-            .map(Delimiter::parse)
-    );
+  public Serde<Struct> getSerde(
+      final PersistenceSchema schema,
+      final Map<String, String> formatProperties,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> srClientFactory
+  ) {
+    SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
+
+    final Delimiter delimiter = getDelimiter(formatProperties);
+
+    return new KsqlDelimitedSerdeFactory(delimiter)
+        .createSerde(schema, ksqlConfig, srClientFactory);
+  }
+
+  private static Delimiter getDelimiter(final Map<String, String> formatProperties) {
+    return Delimiter.parse(formatProperties.getOrDefault(DELIMITER, DEFAULT_DELIMITER));
   }
 }

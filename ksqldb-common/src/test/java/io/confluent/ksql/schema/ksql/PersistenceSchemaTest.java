@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeature;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -27,7 +29,7 @@ import org.junit.Test;
 
 public class PersistenceSchemaTest {
 
-  private static final ConnectSchema WRAPPED_SCHEMA = (ConnectSchema) SchemaBuilder
+  private static final ConnectSchema SINGLE_FIELD_SCHEMA = (ConnectSchema) SchemaBuilder
       .struct()
       .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
@@ -38,79 +40,67 @@ public class PersistenceSchemaTest {
       .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
       .build();
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldNPE() {
     new NullPointerTester()
-        .setDefault(ConnectSchema.class, WRAPPED_SCHEMA)
+        .setDefault(EnabledSerdeFeatures.class, EnabledSerdeFeatures.of())
+        .setDefault(ConnectSchema.class, SINGLE_FIELD_SCHEMA)
         .testAllPublicStaticMethods(PersistenceSchema.class);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            PersistenceSchema.from(WRAPPED_SCHEMA, true),
-            PersistenceSchema.from(WRAPPED_SCHEMA, true)
+            PersistenceSchema.from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of()),
+            PersistenceSchema.from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of())
         )
         .addEqualityGroup(
-            PersistenceSchema.from(WRAPPED_SCHEMA, false)
+            PersistenceSchema
+                .from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES))
         )
         .addEqualityGroup(
-            PersistenceSchema.from(MULTI_FIELD_SCHEMA, false)
+            PersistenceSchema.from(MULTI_FIELD_SCHEMA, EnabledSerdeFeatures.of())
         )
         .testEquals();
   }
 
   @Test
-  public void shouldReturnWrappedSchemaUnchanged() {
+  public void shouldReturnSchema() {
     // Given:
     final PersistenceSchema schema = PersistenceSchema
-        .from(WRAPPED_SCHEMA, false);
+        .from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of());
 
     // Then:
-    assertThat(schema.serializedSchema(), is(WRAPPED_SCHEMA));
-  }
-
-  @Test
-  public void shouldReturnUnwrappedSchema() {
-    // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .from(WRAPPED_SCHEMA, true);
-
-    // Then:
-    assertThat(schema.serializedSchema(), is(WRAPPED_SCHEMA.fields().get(0).schema()));
+    assertThat(schema.connectSchema(), is(SINGLE_FIELD_SCHEMA));
   }
 
   @Test
   public void shouldHaveSensibleToString() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema.from(WRAPPED_SCHEMA, true);
+    final PersistenceSchema schema = PersistenceSchema
+        .from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
 
     // Then:
-    assertThat(schema.toString(), is("Persistence{schema=VARCHAR, unwrapped=true}"));
-  }
-
-  @Test
-  public void shouldIncludeNotNullInToString() {
-    // Given:
-    final ConnectSchema connectSchema = (ConnectSchema) SchemaBuilder
-        .struct()
-        .field("f0", Schema.FLOAT64_SCHEMA)
-        .build();
-
-    final PersistenceSchema schema = PersistenceSchema.from(connectSchema, true);
-
-    // Then:
-    assertThat(schema.toString(), is("Persistence{schema=DOUBLE NOT NULL, unwrapped=true}"));
+    assertThat(schema.toString(),
+        is("Persistence{schema=STRUCT<f0 VARCHAR> NOT NULL, features=[WRAP_SINGLES]}"));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnNoneStructSchema() {
-    PersistenceSchema.from((ConnectSchema) Schema.FLOAT64_SCHEMA, false);
+    PersistenceSchema.from((ConnectSchema) Schema.FLOAT64_SCHEMA, EnabledSerdeFeatures.of());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnWrapIfMultipleFields() {
+    PersistenceSchema.from(MULTI_FIELD_SCHEMA, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnUnwrapIfMultipleFields() {
-    PersistenceSchema.from(MULTI_FIELD_SCHEMA, true);
+    PersistenceSchema
+        .from(MULTI_FIELD_SCHEMA, EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
   }
 }

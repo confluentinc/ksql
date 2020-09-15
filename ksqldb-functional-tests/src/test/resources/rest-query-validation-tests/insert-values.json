@@ -368,6 +368,21 @@
         "message": "Failed to prepare statement: 'FOO' is not a valid stream/table name or alias.",
         "status": 400
       }
+    },
+    {
+      "name": "should insert unwrapped value with SR integration",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='Avro', wrap_single_value=false);",
+        "INSERT INTO TEST (ROWTIME, K, ID) VALUES (1234, 'key', 10);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": 10}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
+      ]
     }
   ]
 }

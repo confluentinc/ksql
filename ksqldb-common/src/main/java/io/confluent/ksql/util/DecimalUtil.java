@@ -31,7 +31,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class DecimalUtil {
 
-  private static final String PRECISION_FIELD = "connect.decimal.precision";
+  public static final String PRECISION_FIELD = "connect.decimal.precision";
 
   private DecimalUtil() {
   }

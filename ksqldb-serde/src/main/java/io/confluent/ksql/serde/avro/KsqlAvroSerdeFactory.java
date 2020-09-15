@@ -20,8 +20,6 @@ import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
@@ -34,40 +32,42 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
 
 @Immutable
-public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
+class KsqlAvroSerdeFactory {
 
   private final String fullSchemaName;
 
-  public KsqlAvroSerdeFactory(final String fullSchemaName) {
+  KsqlAvroSerdeFactory(final String fullSchemaName) {
     this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
   }
 
-  @Override
-  public void validate(final PersistenceSchema schema) {
-    AvroUtil.throwOnInvalidSchema(schema.serializedSchema());
-  }
-
-  @Override
-  public Serde<Object> createSerde(
-      final PersistenceSchema schema,
+  <T> Serde<T> createSerde(
+      final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
   ) {
-    final Supplier<Serializer<Object>> serializerSupplier = () -> createConnectSerializer(
+    AvroUtil.throwOnInvalidSchema(schema);
+
+    final Supplier<Serializer<T>> serializerSupplier = createConnectSerializer(
         schema,
         ksqlConfig,
-        schemaRegistryClientFactory
+        srFactory,
+        targetType
     );
 
-    final Supplier<Deserializer<Object>> deserializerSupplier = () -> createConnectDeserializer(
+    final Supplier<Deserializer<T>> deserializerSupplier = createConnectDeserializer(
         schema,
         ksqlConfig,
-        schemaRegistryClientFactory);
+        srFactory,
+        targetType
+    );
 
     // Sanity check:
     serializerSupplier.get();
@@ -79,55 +79,45 @@ public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
     );
   }
 
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final KsqlAvroSerdeFactory that = (KsqlAvroSerdeFactory) o;
-    return Objects.equals(fullSchemaName, that.fullSchemaName);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(fullSchemaName);
-  }
-
-  private KsqlConnectSerializer createConnectSerializer(
-      final PersistenceSchema schema,
+  private <T> Supplier<Serializer<T>> createConnectSerializer(
+      final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
   ) {
-    final AvroDataTranslator translator = createAvroTranslator(schema);
+    return () -> {
+      final AvroDataTranslator translator = createAvroTranslator(schema);
 
-    final AvroConverter avroConverter =
-        getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
+      final AvroConverter avroConverter =
+          getAvroConverter(srFactory.get(), ksqlConfig);
 
-    return new KsqlConnectSerializer(
-        translator.getAvroCompatibleSchema(),
-        translator,
-        avroConverter
-    );
+      return new KsqlConnectSerializer<>(
+          translator.getAvroCompatibleSchema(),
+          translator,
+          avroConverter,
+          targetType
+      );
+    };
   }
 
-  private KsqlConnectDeserializer createConnectDeserializer(
-      final PersistenceSchema schema,
+  private <T> Supplier<Deserializer<T>> createConnectDeserializer(
+      final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
   ) {
-    final AvroDataTranslator translator = createAvroTranslator(schema);
+    return () -> {
+      final AvroDataTranslator translator = createAvroTranslator(schema);
 
-    final AvroConverter avroConverter =
-        getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig);
+      final AvroConverter avroConverter =
+          getAvroConverter(srFactory.get(), ksqlConfig);
 
-    return new KsqlConnectDeserializer(avroConverter, translator);
+      return new KsqlConnectDeserializer<>(avroConverter, translator, targetType);
+    };
   }
 
-  private AvroDataTranslator createAvroTranslator(final PersistenceSchema schema) {
-    return new AvroDataTranslator(schema.serializedSchema(), fullSchemaName);
+  private AvroDataTranslator createAvroTranslator(final Schema schema) {
+    return new AvroDataTranslator(schema, fullSchemaName);
   }
 
   private static AvroConverter getAvroConverter(

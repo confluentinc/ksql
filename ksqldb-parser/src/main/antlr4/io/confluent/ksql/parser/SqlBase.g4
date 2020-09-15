@@ -80,7 +80,7 @@ statement
     | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
     | DROP CONNECTOR (IF EXISTS)? identifier                                #dropConnector
     | EXPLAIN  (statement | identifier)                                     #explain
-    | CREATE TYPE identifier AS type                                        #registerType
+    | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
     ;
 

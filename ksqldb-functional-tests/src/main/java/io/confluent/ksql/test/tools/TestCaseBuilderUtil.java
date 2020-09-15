@@ -168,7 +168,7 @@ public final class TestCaseBuilderUtil {
             ? Optional.empty()
             : Optional.of(valueFormat.getFormat().toParsedSchema(
                 logicalSchema.value(),
-                serdeOptions,
+                serdeOptions.valueFeatures(),
                 valueFormat.getFormatInfo()
             ));
       } else {

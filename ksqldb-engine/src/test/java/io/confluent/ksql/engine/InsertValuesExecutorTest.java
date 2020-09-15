@@ -60,6 +60,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -848,7 +849,7 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerdeFactory).create(
         FormatInfo.of(FormatFactory.KAFKA.name()),
-        PersistenceSchema.from(SCHEMA.keyConnectSchema(), false),
+        PersistenceSchema.from(SCHEMA.keyConnectSchema(), EnabledSerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -857,7 +858,7 @@ public class InsertValuesExecutorTest {
 
     verify(valueSerdeFactory).create(
         FormatInfo.of(FormatFactory.JSON.name()),
-        PersistenceSchema.from(SCHEMA.valueConnectSchema(), false),
+        PersistenceSchema.from(SCHEMA.valueConnectSchema(), EnabledSerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",

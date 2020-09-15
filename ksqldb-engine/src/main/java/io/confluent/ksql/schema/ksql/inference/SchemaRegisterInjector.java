@@ -147,7 +147,7 @@ public class SchemaRegisterInjector implements Injector {
       if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
         final ParsedSchema parsedSchema = format.toParsedSchema(
             schema.withoutPseudoAndKeyColsInValue().value(),
-            serdeOptions,
+            serdeOptions.valueFeatures(),
             formatInfo
         );
 

@@ -477,7 +477,8 @@ public final class StatementRewriter<C> {
       return new RegisterType(
           node.getLocation(),
           node.getName(),
-          (Type) processExpression(node.getType(), context)
+          (Type) processExpression(node.getType(), context),
+          node.getIfNotExists()
       );
     }
   }

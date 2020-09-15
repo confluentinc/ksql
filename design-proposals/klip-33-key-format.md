@@ -321,7 +321,7 @@ The KLIP will be broken down into the following deliverables:
     * Enhancements to QTT and the ksqlDB testing tool
     * Rest and HTTP2 server endpoints and Java client to work with new key format.
 1. **NONE format (1 week)**: Supported on keys only. Needed to support key-less streams once we have SR integration.
-1. **Schema Registry support**: Adds support for reading and writing schemas to and from the schema
+1. **Schema Registry support (1 week)**: Adds support for reading and writing schemas to and from the schema
    registry.
 1. **JSON_SR support (1 week)** Adds support for the `JSON_SR` key format, inc. schema registry integration.
 1. **Avro support (1 week)** Adds support for the `AVRO` key format, inc. schema registry integration.

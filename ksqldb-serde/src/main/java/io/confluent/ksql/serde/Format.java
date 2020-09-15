@@ -19,12 +19,18 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import javax.annotation.concurrent.ThreadSafe;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Struct;
 
 /**
  * A {@code Format} is a serialization specification of a Kafka topic
@@ -95,25 +101,25 @@ public interface Format {
    * {@link ParsedSchema} with which to populate the Schema Registry.
    *
    * @param columns the list of columns
-   * @param serdeOptions the serde options
+   * @param serdeFeatures the serde options
    * @param formatInfo the format info potentially containing additional info required to convert
    * @return the {@code ParsedSchema} which will be added to the Schema Registry
    */
   default ParsedSchema toParsedSchema(
       List<? extends SimpleColumn> columns,
-      SerdeOptions serdeOptions,
+      EnabledSerdeFeatures serdeFeatures,
       FormatInfo formatInfo) {
     throw new KsqlException("Format does not implement Schema Registry support: " + name());
   }
 
   /**
-   * If the format accepts custom properties in the WITH clause of the statement,
-   * then this will take the properties and validate the key-value pairs.
+   * If the format accepts custom properties in the WITH clause of the statement, then this will
+   * take the properties and validate the key-value pairs.
    *
    * @param properties the properties to validate
    * @throws KsqlException if the properties are invalid for the given format
    */
-  default void validateProperties(Map<String, String> properties) {
+  default void validateProperties(final Map<String, String> properties) {
     // by default, this method ensures that there are no property names
     // (case-insensitive) that are not in the getSupportedProperties()
     // and that none of the values are empty
@@ -161,10 +167,20 @@ public interface Format {
   }
 
   /**
-   * @param info the info containing information required for generating the factory
-   * @return a {@code KsqlSerdeFactory} that generates serdes for the given format
+   * Get the serde for the supplied {@code schema}.
+   *
+   * @param schema the schema of the data
+   * @param formatProperties any format specific properties
+   * @param ksqlConfig the session config
+   * @param srClientFactory supplier of the SR client
+   * @return a serde pair capable of (de)serializing the data in this format.
    */
-  KsqlSerdeFactory getSerdeFactory(FormatInfo info);
+  Serde<Struct> getSerde(
+      PersistenceSchema schema,
+      Map<String, String> formatProperties,
+      KsqlConfig ksqlConfig,
+      Supplier<SchemaRegistryClient> srClientFactory
+  );
 
   /**
    * All formats are supported as value formats. Until the primitive key work is complete,
@@ -175,4 +191,5 @@ public interface Format {
   default boolean isSupportedKeyFormat() {
     return false;
   }
+
 }

@@ -15,19 +15,13 @@
 
 package io.confluent.ksql.serde;
 
-import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.SchemaNotSupportedException;
-import io.confluent.ksql.logging.processing.LoggingDeserializer;
-import io.confluent.ksql.logging.processing.LoggingSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -67,35 +61,15 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
    */
   private static final int ADDITIONAL_CAPACITY = 4;
 
-  private final SerdeFactories serdeFactories;
+  private final GenericSerdeFactory innerFactory;
 
   public GenericRowSerDe() {
-    this(new KsqlSerdeFactories());
+    this(new GenericSerdeFactory());
   }
 
   @VisibleForTesting
-  GenericRowSerDe(final SerdeFactories serdeFactories) {
-    this.serdeFactories = Objects.requireNonNull(serdeFactories, "serdeFactories");
-  }
-
-  @Override
-  public Serde<GenericRow> create(
-      final FormatInfo format,
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
-  ) {
-    return from(
-        format,
-        schema,
-        ksqlConfig,
-        schemaRegistryClientFactory,
-        loggerNamePrefix,
-        processingLogContext,
-        getTargetType(schema)
-    );
+  GenericRowSerDe(final GenericSerdeFactory innerFactory) {
+    this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
   }
 
   public static Serde<GenericRow> from(
@@ -116,151 +90,50 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     );
   }
 
-  private <T> Serde<GenericRow> from(
+  @Override
+  public Serde<GenericRow> create(
       final FormatInfo format,
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final Supplier<SchemaRegistryClient> srClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext,
-      final Class<T> targetType
+      final ProcessingLogContext processingLogContext
   ) {
-    try {
-      serdeFactories.validate(format, schema);
-    } catch (final Exception e) {
-      throw new SchemaNotSupportedException("Value format does not support value schema."
-          + System.lineSeparator()
-          + "format: " + format.getFormat()
-          + System.lineSeparator()
-          + "schema: " + schema
-          + System.lineSeparator()
-          + "reason: " + e.getMessage(),
-          e
-      );
-    }
+    final Serde<Struct> formatSerde =
+        innerFactory.createFormatSerde("Value", format, schema, ksqlConfig, srClientFactory);
 
-    final Serde<T> serde = serdeFactories
-        .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
+    final Serde<GenericRow> genericRowSerde = toGenericRowSerde(formatSerde, schema);
 
-    final ProcessingLogger serializerProcessingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, GenericKeySerDe.SERIALIZER_LOGGER_NAME));
-    final ProcessingLogger deserializerProcessingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, GenericKeySerDe.DESERIALIZER_LOGGER_NAME));
+    final Serde<GenericRow> loggingSerde = innerFactory
+        .wrapInLoggingSerde(genericRowSerde, loggerNamePrefix, processingLogContext);
 
-    final Serde<GenericRow> genericRowSerde = schema.isUnwrapped()
-          ? unwrapped(serde)
-          : wrapped(serde, schema, targetType);
+    loggingSerde.configure(Collections.emptyMap(), false);
 
-    final Serde<GenericRow> result = Serdes.serdeFrom(
-        new LoggingSerializer<>(genericRowSerde.serializer(), serializerProcessingLogger),
-        new LoggingDeserializer<>(genericRowSerde.deserializer(), deserializerProcessingLogger)
-    );
-
-    result.configure(Collections.emptyMap(), false);
-
-    return result;
+    return loggingSerde;
   }
 
-  private static Class<?> getTargetType(final PersistenceSchema schema) {
-    return SchemaConverters.sqlToJavaConverter().toJavaType(
-        SchemaConverters.connectToSqlConverter().toSqlType(schema.serializedSchema())
-    );
-  }
-
-  private static <K> Serde<GenericRow> unwrapped(final Serde<K> innerSerde) {
+  private static Serde<GenericRow> toGenericRowSerde(
+      final Serde<Struct> innerSerde,
+      final PersistenceSchema schema
+  ) {
     final Serializer<GenericRow> serializer =
-        new UnwrappedGenericRowSerializer<>(innerSerde.serializer());
+        new GenericRowSerializer(innerSerde.serializer(), schema.connectSchema());
 
     final Deserializer<GenericRow> deserializer =
-        new UnwrappedGenericRowDeserializer<>(innerSerde.deserializer());
+        new GenericRowDeserializer(innerSerde.deserializer(), schema.connectSchema());
 
     return Serdes.serdeFrom(serializer, deserializer);
   }
 
-  private static <T> Serde<GenericRow> wrapped(
-      final Serde<T> innerSerde,
-      final PersistenceSchema schema,
-      final Class<T> type
-  ) {
-    if (type != Struct.class) {
-      throw new IllegalArgumentException("Unwrapped must be of type Struct");
-    }
-
-    @SuppressWarnings("unchecked") final Serde<Struct> structSerde = (Serde<Struct>) innerSerde;
-
-    final Serializer<GenericRow> serializer =
-        new GenericRowSerializer(structSerde.serializer(), schema);
-
-    final Deserializer<GenericRow> deserializer =
-        new GenericRowDeserializer(structSerde.deserializer());
-
-    return Serdes.serdeFrom(serializer, deserializer);
-  }
-
-  private static class UnwrappedGenericRowSerializer<K> implements Serializer<GenericRow> {
-
-    private final Serializer<K> inner;
-
-    UnwrappedGenericRowSerializer(final Serializer<K> inner) {
-      this.inner = requireNonNull(inner, "inner");
-    }
-
-    @Override
-    public void configure(final Map<String, ?> configs, final boolean isKey) {
-      inner.configure(configs, isKey);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public byte[] serialize(final String topic, final GenericRow data) {
-      if (data == null) {
-        return inner.serialize(topic, null);
-      }
-
-      if (data.size() != 1) {
-        throw new SerializationException("Expected single-field value. "
-            + "got: " + data.size());
-      }
-
-      final Object singleField = data.get(0);
-      return inner.serialize(topic, (K) singleField);
-    }
-  }
-
-  private static class UnwrappedGenericRowDeserializer<K> implements Deserializer<GenericRow> {
-
-    private final Deserializer<K> inner;
-
-    UnwrappedGenericRowDeserializer(final Deserializer<K> inner) {
-      this.inner = requireNonNull(inner, "inner");
-    }
-
-    @Override
-    public void configure(final Map<String, ?> configs, final boolean isKey) {
-      inner.configure(configs, isKey);
-    }
-
-    @Override
-    public GenericRow deserialize(final String topic, final byte[] data) {
-      final K value = inner.deserialize(topic, data);
-      if (value == null) {
-        return null;
-      }
-
-      final GenericRow row = new GenericRow(1 + ADDITIONAL_CAPACITY);
-      row.append(value);
-      return row;
-    }
-  }
-
-  private static class GenericRowSerializer implements Serializer<GenericRow> {
+  @VisibleForTesting
+  static class GenericRowSerializer implements Serializer<GenericRow> {
 
     private final Serializer<Struct> inner;
     private final ConnectSchema schema;
 
-    GenericRowSerializer(final Serializer<Struct> inner, final PersistenceSchema schema) {
+    GenericRowSerializer(final Serializer<Struct> inner, final ConnectSchema schema) {
       this.inner = requireNonNull(inner, "inner");
-      this.schema = requireNonNull(schema, "schema").ksqlSchema();
+      this.schema = requireNonNull(schema, "schema");
     }
 
     @Override
@@ -275,7 +148,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       }
 
       if (data.size() != schema.fields().size()) {
-        throw new SerializationException("Field count mismatch."
+        throw new SerializationException("Field count mismatch on serialization."
             + " topic: " + topic
             + ", expected: " + schema.fields().size()
             + ", got: " + data.size()
@@ -288,6 +161,11 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       }
 
       return inner.serialize(topic, struct);
+    }
+
+    @Override
+    public void close() {
+      inner.close();
     }
 
     private void putField(final Struct struct, final Field field, final Object value) {
@@ -312,17 +190,28 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     }
   }
 
-  private static class GenericRowDeserializer implements Deserializer<GenericRow> {
+  @VisibleForTesting
+  static class GenericRowDeserializer implements Deserializer<GenericRow> {
 
     private final Deserializer<Struct> inner;
+    private final int numColumns;
 
-    GenericRowDeserializer(final Deserializer<Struct> inner) {
+    GenericRowDeserializer(
+        final Deserializer<Struct> inner,
+        final ConnectSchema schema
+    ) {
       this.inner = requireNonNull(inner, "inner");
+      this.numColumns = schema.fields().size();
     }
 
     @Override
     public void configure(final Map<String, ?> configs, final boolean isKey) {
       inner.configure(configs, isKey);
+    }
+
+    @Override
+    public void close() {
+      inner.close();
     }
 
     @Override
@@ -333,6 +222,14 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       }
 
       final List<Field> fields = struct.schema().fields();
+
+      if (fields.size() != numColumns) {
+        throw new SerializationException("Field count mismatch on deserialization."
+            + " topic: " + topic
+            + ", expected: " + numColumns
+            + ", got: " + fields.size()
+        );
+      }
 
       final GenericRow row = new GenericRow(fields.size() + ADDITIONAL_CAPACITY);
 

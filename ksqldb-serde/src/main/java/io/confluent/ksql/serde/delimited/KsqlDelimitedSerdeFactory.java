@@ -21,46 +21,29 @@ import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.Struct;
 
 
 @Immutable
-public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
-
-  private static final Delimiter DEFAULT_DELIMITER = Delimiter.of(',');
+class KsqlDelimitedSerdeFactory {
 
   @EffectivelyImmutable
   private final CSVFormat csvFormat;
 
-  public KsqlDelimitedSerdeFactory(final Optional<Delimiter> delimiter) {
-    this.csvFormat =
-        CSVFormat.DEFAULT.withDelimiter(delimiter.orElse(DEFAULT_DELIMITER).getDelimiter());
+  KsqlDelimitedSerdeFactory(final Delimiter delimiter) {
+    this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.getDelimiter());
   }
 
-  @Override
-  public void validate(final PersistenceSchema schema) {
-    final ConnectSchema connectSchema = schema.serializedSchema();
-    if (connectSchema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("DELIMITED format does not support unwrapping");
-    }
-
-    connectSchema.fields().forEach(f -> SchemaWalker.visit(f.schema(), new SchemaValidator()));
-  }
-
-  @Override
-  public Serde<Object> createSerde(
+  public Serde<Struct> createSerde(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
@@ -71,6 +54,11 @@ public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
         new KsqlDelimitedSerializer(csvFormat),
         new KsqlDelimitedDeserializer(schema, csvFormat)
     );
+  }
+
+  private static void validate(final PersistenceSchema schema) {
+    schema.connectSchema().fields()
+        .forEach(f -> SchemaWalker.visit(f.schema(), new SchemaValidator()));
   }
 
   private static class SchemaValidator implements SchemaWalker.Visitor<Void, Void> {

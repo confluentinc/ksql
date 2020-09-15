@@ -15,9 +15,14 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
+import static io.confluent.ksql.serde.SerdeFeature.WRAP_SINGLES;
+import static java.util.Objects.requireNonNull;
+
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Objects;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -41,59 +46,47 @@ public final class PersistenceSchema {
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
 
-  private final boolean unwrapped;
-  private final ConnectSchema ksqlSchema;
-  private final ConnectSchema serializedSchema;
+  private final ConnectSchema schema;
+  private final EnabledSerdeFeatures features;
 
   /**
    * Build a persistence schema from the logical key or value schema.
    *
-   * @param ksqlSchema the schema ksql uses internally, i.e. STRUCT schema.
-   * @param unwrapSingle flag indicating if the serialized form is unwrapped.
+   * @param schema the schema ksql uses internally, i.e. STRUCT schema.
+   * @param features the serder features used for persistence.
    * @return the persistence schema.
    */
-  public static PersistenceSchema from(final ConnectSchema ksqlSchema, final boolean unwrapSingle) {
-    return new PersistenceSchema(ksqlSchema, unwrapSingle);
+  public static PersistenceSchema from(
+      final ConnectSchema schema,
+      final EnabledSerdeFeatures features
+  ) {
+    return new PersistenceSchema(schema, features);
   }
 
-  private PersistenceSchema(final ConnectSchema ksqlSchema, final boolean unwrapSingle) {
-    this.unwrapped = unwrapSingle;
-    this.ksqlSchema = Objects.requireNonNull(ksqlSchema, "ksqlSchema");
+  private PersistenceSchema(
+      final ConnectSchema ksqlSchema,
+      final EnabledSerdeFeatures features
+  ) {
+    this.features = requireNonNull(features, "features");
+    this.schema = requireNonNull(ksqlSchema, "ksqlSchema");
 
     if (ksqlSchema.type() != Type.STRUCT) {
       throw new IllegalArgumentException("Expected STRUCT schema type");
     }
 
-    final boolean singleField = ksqlSchema.fields().size() == 1;
-    if (unwrapSingle && !singleField) {
-      throw new IllegalArgumentException("Unwrapping only valid for single field");
+    if (features.enabled(WRAP_SINGLES) || features.enabled(UNWRAP_SINGLES)) {
+      if (ksqlSchema.fields().size() != 1) {
+        throw new IllegalArgumentException("Unwrapping only valid for single field");
+      }
     }
-
-    this.serializedSchema = unwrapSingle
-        ? (ConnectSchema) ksqlSchema.fields().get(0).schema()
-        : ksqlSchema;
   }
 
-  public boolean isUnwrapped() {
-    return unwrapped;
+  public EnabledSerdeFeatures features() {
+    return features;
   }
 
-  /**
-   * The schema used internally by KSQL.
-   *
-   * <p>This schema will _always_ be a struct.
-   *
-   * @return logical schema.
-   */
-  public ConnectSchema ksqlSchema() {
-    return ksqlSchema;
-  }
-
-  /**
-   * @return schema of serialized form
-   */
-  public ConnectSchema serializedSchema() {
-    return serializedSchema;
+  public ConnectSchema connectSchema() {
+    return schema;
   }
 
   @Override
@@ -105,20 +98,20 @@ public final class PersistenceSchema {
       return false;
     }
     final PersistenceSchema that = (PersistenceSchema) o;
-    return unwrapped == that.unwrapped
-        && Objects.equals(serializedSchema, that.serializedSchema);
+    return Objects.equals(features, that.features)
+        && Objects.equals(schema, that.schema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(unwrapped, serializedSchema);
+    return Objects.hash(features, schema);
   }
 
   @Override
   public String toString() {
     return "Persistence{"
-        + "schema=" + FORMATTER.format(serializedSchema)
-        + ", unwrapped=" + unwrapped
+        + "schema=" + FORMATTER.format(schema)
+        + ", features=" + features
         + '}';
   }
 }

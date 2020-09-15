@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.serde.protobuf;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.connect.protobuf.ProtobufConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SchemaWalker;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -35,31 +35,38 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
-public class ProtobufSerdeFactory implements KsqlSerdeFactory {
+final class ProtobufSerdeFactory {
 
-  @Override
-  public void validate(final PersistenceSchema schema) {
-    SchemaWalker.visit(schema.serializedSchema(), new SchemaValidator());
+  private ProtobufSerdeFactory() {
   }
 
-  @Override
-  public Serde<Object> createSerde(
-      final PersistenceSchema schema,
+  static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.WRAP_SINGLES
+  );
+
+  static <T> Serde<T> createSerde(
+      final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
   ) {
-    final Supplier<Serializer<Object>> serializer = () -> createSerializer(
+    validate(schema);
+
+    final Supplier<Serializer<T>> serializer = () -> createSerializer(
         schema,
         ksqlConfig,
-        schemaRegistryClientFactory
+        srFactory,
+        targetType
     );
-    final Supplier<Deserializer<Object>> deserializer = () -> createDeserializer(
+    final Supplier<Deserializer<T>> deserializer = () -> createDeserializer(
         schema,
         ksqlConfig,
-        schemaRegistryClientFactory
+        srFactory,
+        targetType
     );
 
     // Sanity check:
@@ -72,30 +79,38 @@ public class ProtobufSerdeFactory implements KsqlSerdeFactory {
     );
   }
 
-  private static KsqlConnectSerializer createSerializer(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    final ProtobufConverter converter = getConverter(schemaRegistryClientFactory.get(), ksqlConfig);
+  private static void validate(final Schema schema) {
+    SchemaWalker.visit(schema, new SchemaValidator());
+  }
 
-    return new KsqlConnectSerializer(
-        schema.serializedSchema(),
-        new ConnectDataTranslator(schema.serializedSchema()),
-        converter
+  private static <T> KsqlConnectSerializer<T> createSerializer(
+      final ConnectSchema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
+  ) {
+    final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig);
+
+    return new KsqlConnectSerializer<>(
+        schema,
+        new ConnectDataTranslator(schema),
+        converter,
+        targetType
     );
   }
 
-  private static KsqlConnectDeserializer createDeserializer(
-      final PersistenceSchema schema,
+  private static <T> KsqlConnectDeserializer<T> createDeserializer(
+      final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
   ) {
-    final ProtobufConverter converter = getConverter(schemaRegistryClientFactory.get(), ksqlConfig);
+    final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig);
 
-    return new KsqlConnectDeserializer(
+    return new KsqlConnectDeserializer<>(
         converter,
-        new ConnectDataTranslator(schema.serializedSchema())
+        new ConnectDataTranslator(schema),
+        targetType
     );
   }
 

@@ -715,7 +715,7 @@ public class KsMaterializationFunctionalTest {
   }
 
   private static Struct asKeyStruct(final String keyValue, final PhysicalSchema physicalSchema) {
-    final ConnectSchema keySchema = physicalSchema.keySchema().ksqlSchema();
+    final ConnectSchema keySchema = physicalSchema.keySchema().connectSchema();
     final String keyName = Iterables.getOnlyElement(keySchema.fields()).name();
     final Struct key = new Struct(keySchema);
     key.put(keyName, keyValue);

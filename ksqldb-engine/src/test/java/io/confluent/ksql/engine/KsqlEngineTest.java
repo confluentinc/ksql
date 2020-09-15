@@ -464,7 +464,7 @@ public class KsqlEngineTest {
     // Given:
     final ParsedStatement stmt = parse(
         "CREATE STREAM S1_NOTEXIST (COL1 BIGINT, COL2 VARCHAR) "
-            + "WITH  (KAFKA_TOPIC = 'S1_NOTEXIST', VALUE_FORMAT = 'JSON');").get(0);
+            + "WITH  (KAFKA_TOPIC = 'S1_NOTEXIST', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0);
 
     final PreparedStatement<?> prepared = prepare(stmt);
 
@@ -511,11 +511,11 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotEnforceTopicExistenceWhileParsing() {
     final String runScriptContent = "CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
-        + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
+        + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');\n"
         + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
         + "S1 GROUP BY COL1;\n"
         + "CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
-        + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
+        + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');\n";
 
     final List<?> parsedStatements = ksqlEngine.parse(runScriptContent);
 
@@ -527,7 +527,7 @@ public class KsqlEngineTest {
     // Given:
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE STREAM S1 (COL1 BIGINT) "
-            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');").get(0));
+            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0));
 
     // When:
     final KsqlStatementException e = assertThrows(
@@ -543,7 +543,7 @@ public class KsqlEngineTest {
         "Kafka topic does not exist: i_do_not_exist")));
     assertThat(e, statementText(is(
         "CREATE STREAM S1 (COL1 BIGINT)"
-            + " WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');")));
+            + " WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');")));
   }
 
   @Test
@@ -551,7 +551,7 @@ public class KsqlEngineTest {
     // Given:
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE STREAM S1 (COL1 BIGINT) "
-            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');").get(0));
+            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0));
 
     // When:
     final KsqlStatementException e = assertThrows(
@@ -571,7 +571,7 @@ public class KsqlEngineTest {
     final String runScriptContent = "CREATE STREAM S1 \n"
         + "(COL1 BIGINT, COL2 VARCHAR)\n"
         + " WITH \n"
-        + "(KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n";
+        + "(KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');\n";
 
     final List<?> parsedStatements = ksqlEngine.parse(runScriptContent);
 
@@ -589,7 +589,7 @@ public class KsqlEngineTest {
         () -> execute(
             serviceContext,
             ksqlEngine,
-            "create stream bar with (value_format='avro', kafka_topic='bar');",
+            "create stream bar with (key_format='kafka', value_format='avro', kafka_topic='bar');",
             KSQL_CONFIG,
             emptyMap()
         )
@@ -601,7 +601,7 @@ public class KsqlEngineTest {
             "The statement does not define any columns.")));
     assertThat(e, statementText(
         is(
-            "create stream bar with (value_format='avro', kafka_topic='bar');")));
+            "create stream bar with (key_format='kafka', value_format='avro', kafka_topic='bar');")));
   }
 
   @Test
@@ -976,10 +976,10 @@ public class KsqlEngineTest {
         + "   Multi-line comment\n"
         + "*/\n"
         + "CREATE STREAM S0 (a INT, b VARCHAR) "
-        + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED');\n"
+        + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED', key_format='KAFKA');\n"
         + "\n"
         + "CREATE TABLE T1 (f0 BIGINT PRIMARY KEY, f1 DOUBLE) "
-        + "     WITH (kafka_topic='t1_topic', value_format='JSON');\n"
+        + "     WITH (kafka_topic='t1_topic', value_format='JSON', key_format='KAFKA');\n"
         + "\n"
         + "CREATE STREAM S1 AS SELECT * FROM S0;\n"
         + "\n"
@@ -1213,10 +1213,10 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowIfStatementMissingTopicConfig() {
     final List<ParsedStatement> parsed = parse(
-        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO');"
-            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO');"
-            + "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');"
-            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');"
+        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO', KEY_FORMAT='KAFKA');"
+            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO', KEY_FORMAT='KAFKA');"
+            + "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');"
+            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');"
     );
 
     for (final ParsedStatement statement : parsed) {
@@ -1232,28 +1232,41 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldThrowIfStatementMissingValueFormatConfig() {
+  public void shouldThrowOnUnsupportedKeyFormatForCreateSource() {
     // Given:
     givenTopicsExist("foo");
+    final PreparedStatement<?> prepared =
+        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='avro');").get(0));
 
-    final List<ParsedStatement> parsed = parse(
-        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (KAFKA_TOPIC='foo');"
-            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (KAFKA_TOPIC='foo');"
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> sandbox.execute(
+            sandboxServiceContext,
+            ConfiguredStatement.of(prepared, Collections.emptyMap(), KSQL_CONFIG)
+        )
     );
 
-    for (final ParsedStatement statement : parsed) {
+    // Then:
+    assertThat(e.getMessage(), containsString("The key format 'AVRO' is not currently supported."));
+  }
 
-      try {
-        // When:
-        ksqlEngine.prepare(statement);
+  @Test
+  public void shouldThrowOnUnsupportedKeyFormatForCSAS() {
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "CREATE STREAM FOO WITH (KEY_FORMAT='AVRO') AS SELECT * FROM ORDERS;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
 
-        // Then:
-        Assert.fail();
-      } catch (final KsqlStatementException e) {
-        assertThat(e.getMessage(), containsString(
-            "Missing required property \"VALUE_FORMAT\" which has no default value."));
-      }
-    }
+    // Then:
+    assertThat(e, rawMessage(containsString("The key format 'AVRO' is not currently supported.")));
   }
 
   @Test
@@ -1282,7 +1295,7 @@ public class KsqlEngineTest {
     final int numPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
+        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON', KEY_FORMAT='KAFKA');"
             + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
             + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
             + "DROP TABLE TEST3;");
@@ -1310,7 +1323,7 @@ public class KsqlEngineTest {
     topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, Collections.emptyMap());
 
     final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
+        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');"
             + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
             + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
             + "DROP TABLE TEST3;");
@@ -1458,7 +1471,7 @@ public class KsqlEngineTest {
     // Given:
     givenTopicsExist("foo");
     final PreparedStatement<?> statement =
-        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json');").get(0));
+        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='kafka');").get(0));
 
     // When:
     final ExecuteResult result = sandbox.execute(

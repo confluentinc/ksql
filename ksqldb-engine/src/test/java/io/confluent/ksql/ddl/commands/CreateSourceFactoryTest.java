@@ -125,6 +125,7 @@ public class CreateSourceFactoryTest {
   private static final String TOPIC_NAME = "some topic";
 
   private static final Map<String, Literal> MINIMUM_PROPS = ImmutableMap.of(
+      CommonCreateConfigs.KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"),
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );

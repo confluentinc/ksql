@@ -134,7 +134,7 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> statement
   ) {
     final Format valueFormat = FormatFactory.of(
-        statement.getStatement().getProperties().getValueFormatInfo());
+        statement.getStatement().getProperties().getValueFormat());
     return valueFormat.supportsSchemaInference();
   }
 

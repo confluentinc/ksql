@@ -459,7 +459,7 @@ public class CreateSourceFactoryTest {
     // Then:
     verify(serdeOptionsSupplier).build(
         schema,
-        FormatFactory.of(statement.getProperties().getValueFormatInfo()),
+        FormatFactory.of(statement.getProperties().getValueFormat()),
         statement.getProperties().getSerdeOptions(),
         ksqlConfig
     );

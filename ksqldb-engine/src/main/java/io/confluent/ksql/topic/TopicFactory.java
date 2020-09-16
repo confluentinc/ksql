@@ -37,11 +37,11 @@ public final class TopicFactory {
 
     final KeyFormat keyFormat = windowType
         .map(type -> KeyFormat
-            .windowed(properties.getKeyFormatInfo(), WindowInfo.of(type, windowSize)))
+            .windowed(properties.getKeyFormat(), WindowInfo.of(type, windowSize)))
         .orElseGet(() -> KeyFormat
-            .nonWindowed(properties.getKeyFormatInfo()));
+            .nonWindowed(properties.getKeyFormat()));
 
-    final ValueFormat valueFormat = ValueFormat.of(properties.getValueFormatInfo());
+    final ValueFormat valueFormat = ValueFormat.of(properties.getValueFormat());
 
     return new KsqlTopic(
         kafkaTopicName,

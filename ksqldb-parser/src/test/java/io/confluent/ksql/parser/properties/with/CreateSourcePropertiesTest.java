@@ -294,7 +294,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getValueFormatInfo().getProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormat().getProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test

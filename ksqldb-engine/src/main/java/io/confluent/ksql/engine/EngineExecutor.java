@@ -352,12 +352,12 @@ final class EngineExecutor {
     try {
       if (statement.getStatement() instanceof CreateSource) {
         final CreateSource createSource = (CreateSource) statement.getStatement();
-        throwOnUnsupportedKeyFormat(createSource.getProperties().getKeyFormatInfo());
+        throwOnUnsupportedKeyFormat(createSource.getProperties().getKeyFormat());
       }
 
       if (statement.getStatement() instanceof CreateAsSelect) {
         final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
-        createAsSelect.getProperties().getKeyFormatInfo()
+        createAsSelect.getProperties().getKeyFormat()
             .ifPresent(EngineExecutor::throwOnUnsupportedKeyFormat);
       }
     } catch (KsqlStatementException e) {

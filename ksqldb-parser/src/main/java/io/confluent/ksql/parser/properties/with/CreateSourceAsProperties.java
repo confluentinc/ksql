@@ -69,7 +69,7 @@ public final class CreateSourceAsProperties {
     CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
   }
-  
+
   public Optional<String> getKafkaTopic() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY));
   }
@@ -102,12 +102,12 @@ public final class CreateSourceAsProperties {
     return SerdeOptions.of(builder.build());
   }
 
-  public Optional<FormatInfo> getKeyFormatInfo() {
+  public Optional<FormatInfo> getKeyFormat() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY))
         .map(format -> FormatInfo.of(format, ImmutableMap.of()));
   }
 
-  public Optional<FormatInfo> getValueFormatInfo() {
+  public Optional<FormatInfo> getValueFormat() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
         .map(format -> FormatInfo.of(format, getValueFormatProperties()));
   }

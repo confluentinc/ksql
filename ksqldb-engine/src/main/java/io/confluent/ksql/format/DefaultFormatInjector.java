@@ -158,7 +158,7 @@ public class DefaultFormatInjector implements Injector {
     if (statement.getStatement() instanceof CreateAsSelect) {
       final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
 
-      if (createAsSelect.getProperties().getKeyFormatInfo().isPresent()) {
+      if (createAsSelect.getProperties().getKeyFormat().isPresent()) {
         throwKeyFormatDisabled(statement.getStatementText());
       }
     }

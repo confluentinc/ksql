@@ -133,7 +133,7 @@ public final class CreateSourceProperties {
    * This method should only be called after the DefaultFormatInjector has run, in order to
    * guarantee a key format is present.
    */
-  public FormatInfo getKeyFormatInfo() {
+  public FormatInfo getKeyFormat() {
     final String keyFormat = getKeyFormatName().orElseThrow(
         () -> new IllegalStateException("Key format not present")
     );
@@ -144,7 +144,7 @@ public final class CreateSourceProperties {
    * This method should only be called after the DefaultFormatInjector has run, in order to
    * guarantee a value format is present.
    */
-  public FormatInfo getValueFormatInfo() {
+  public FormatInfo getValueFormat() {
     final String valueFormat = getValueFormatName().orElseThrow(
         () -> new IllegalStateException("Value format not present")
     );

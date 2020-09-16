@@ -58,8 +58,8 @@ public class CreateSourceAsPropertiesTest {
     assertThat(properties.getKafkaTopic(), is(Optional.empty()));
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
-    assertThat(properties.getKeyFormatInfo(), is(Optional.empty()));
-    assertThat(properties.getValueFormatInfo(), is(Optional.empty()));
+    assertThat(properties.getKeyFormat(), is(Optional.empty()));
+    assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getSerdeOptions(), is(SerdeOptions.of()));

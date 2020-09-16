@@ -877,7 +877,7 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
-    super(configDef(generation), addNonKsqlDefaults(props));
+    super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
@@ -904,12 +904,6 @@ public class KsqlConfig extends AbstractConfig {
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
-  }
-
-  private static Map<?, ?> addNonKsqlDefaults(final Map<?, ?> props) {
-    final Map<Object, Object> withDefaults = new HashMap<>(props);
-    NON_KSQL_DEFAULTS.forEach(withDefaults::putIfAbsent);
-    return withDefaults;
   }
 
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {

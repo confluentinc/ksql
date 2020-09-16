@@ -59,10 +59,11 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.serde.RefinementInfo;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.BiFunction;
+
+import io.confluent.ksql.serde.RefinementInfo;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

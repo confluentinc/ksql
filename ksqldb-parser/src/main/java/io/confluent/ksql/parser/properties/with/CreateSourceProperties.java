@@ -75,11 +75,7 @@ public final class CreateSourceProperties {
     this.props = new PropertiesConfig(CreateConfigs.CONFIG_METADATA, originals);
     this.durationParser = Objects.requireNonNull(durationParser, "durationParser");
 
-    props.validateKeyValueFormats(
-        CommonCreateConfigs.KEY_FORMAT_PROPERTY,
-        CommonCreateConfigs.VALUE_FORMAT_PROPERTY,
-        CommonCreateConfigs.FORMAT_PROPERTY
-    );
+    CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
     validateWindowInfo();
   }
@@ -172,24 +168,19 @@ public final class CreateSourceProperties {
   }
 
   /**
-   * This method may be called before the DefaultFormatInjector has run, in which case a
-   * key format may not be present.
+   * The key format name, if supplied explicitly.
    */
   public Optional<String> getKeyFormatName() {
-    final String keyFormat = props.getString(CommonCreateConfigs.FORMAT_PROPERTY) != null
-        ? props.getString(CommonCreateConfigs.FORMAT_PROPERTY)
-        : props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY);
+    final String keyFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
     return Optional.ofNullable(keyFormat);
   }
-
   /**
-   * This method may be called before the DefaultFormatInjector has run, in which case a
-   * value format may not be present.
+   * The value format name, if supplied explicitly.
    */
   public Optional<String> getValueFormatName() {
-    final String valueFormat = props.getString(CommonCreateConfigs.FORMAT_PROPERTY) != null
-        ? props.getString(CommonCreateConfigs.FORMAT_PROPERTY)
-        : props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY);
+    final String valueFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY));
     return Optional.ofNullable(valueFormat);
   }
 
@@ -289,4 +280,9 @@ public final class CreateSourceProperties {
           + "should not be set for SESSION windows.");
     }
   }
+
+  private Optional<String> getFormatName() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.FORMAT_PROPERTY));
+  }
+
 }

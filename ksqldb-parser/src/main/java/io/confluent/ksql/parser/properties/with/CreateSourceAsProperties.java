@@ -66,6 +66,7 @@ public final class CreateSourceAsProperties {
   private CreateSourceAsProperties(final Map<String, Literal> originals) {
     this.props = new PropertiesConfig(CreateAsConfigs.CONFIG_METADATA, originals);
 
+    CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
   }
 

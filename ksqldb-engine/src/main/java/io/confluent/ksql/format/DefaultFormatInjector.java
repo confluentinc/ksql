@@ -56,32 +56,34 @@ public class DefaultFormatInjector implements Injector {
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement
   ) {
-    if (!getConfig(statement).getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)) {
+    if (featureFlagNotEnabled(statement)) {
       validateLegacyFormatProperties(statement);
 
       return statement;
     }
 
-    if (statement.getStatement() instanceof CreateSource) {
-      final ConfiguredStatement<CreateSource> createStatement =
-          (ConfiguredStatement<CreateSource>) statement;
-
-      try {
-        return (ConfiguredStatement<T>) forCreateStatement(createStatement).orElse(createStatement);
-      } catch (final KsqlStatementException e) {
-        throw e;
-      } catch (final KsqlException e) {
-        throw new KsqlStatementException(
-            ErrorMessageUtil.buildErrorMessage(e),
-            statement.getStatementText(),
-            e.getCause());
-      }
+    if (!(statement.getStatement() instanceof CreateSource)) {
+      return statement;
     }
 
-    return statement;
+    final ConfiguredStatement<CreateSource> createStatement =
+        (ConfiguredStatement<CreateSource>) statement;
+
+    try {
+      return (ConfiguredStatement<T>)
+          injectForCreateStatement(createStatement).orElse(createStatement);
+    } catch (final KsqlStatementException e) {
+      throw e;
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(
+          ErrorMessageUtil.buildErrorMessage(e),
+          statement.getStatementText(),
+          e.getCause());
+    }
+
   }
 
-  private Optional<ConfiguredStatement<CreateSource>> forCreateStatement(
+  private Optional<ConfiguredStatement<CreateSource>> injectForCreateStatement(
       final ConfiguredStatement<CreateSource> original
   ) {
 
@@ -120,14 +122,14 @@ public class DefaultFormatInjector implements Injector {
       final Optional<String> valueFormat
   ) {
     if (!keyFormat.isPresent()
-        && (config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG) == null)) {
+        && config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG) == null) {
       throw new KsqlException("Statement is missing the '"
           + CommonCreateConfigs.KEY_FORMAT_PROPERTY + "' property from the WITH clause. "
           + "Either provide one or set a default via the '"
           + KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG + "' config.");
     }
     if (!valueFormat.isPresent()
-        && (config.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG) == null)) {
+        && config.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG) == null) {
       throw new KsqlException("Statement is missing the '"
           + CommonCreateConfigs.VALUE_FORMAT_PROPERTY + "' property from the WITH clause. "
           + "Either provide one or set a default via the '"
@@ -160,6 +162,10 @@ public class DefaultFormatInjector implements Injector {
         throwKeyFormatDisabled(statement.getStatementText());
       }
     }
+  }
+
+  private static boolean featureFlagNotEnabled(final ConfiguredStatement<?> statement) {
+    return !getConfig(statement).getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED);
   }
 
   private static void throwKeyFormatDisabled(final String statementText) {

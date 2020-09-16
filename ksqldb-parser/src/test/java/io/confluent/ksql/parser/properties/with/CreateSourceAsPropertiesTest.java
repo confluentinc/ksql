@@ -17,7 +17,10 @@ package io.confluent.ksql.parser.properties.with;
 
 import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -237,5 +240,39 @@ public class CreateSourceAsPropertiesTest {
 
     // Then:
     assertThat(sql, containsString("WRAP_SINGLE_VALUE=true"));
+  }
+
+  @Test
+  public void shouldThrowIfKeyFormatAndFormatProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceAsProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .put(KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"))
+                .put(FORMAT_PROPERTY, new StringLiteral("JSON"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot supply both 'KEY_FORMAT' and 'FORMAT' properties."));
+    assertThat(e.getMessage(), containsString("Did you mean to use 'VALUE_FORMAT' instead of 'FORMAT'?"));
+  }
+
+  @Test
+  public void shouldThrowIfValueFormatAndFormatProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceAsProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .put(VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"))
+                .put(FORMAT_PROPERTY, new StringLiteral("KAFKA"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties."));
+    assertThat(e.getMessage(), containsString("Did you mean to use 'KEY_FORMAT' instead of 'FORMAT'?"));
   }
 }

@@ -17,6 +17,8 @@ package io.confluent.ksql.properties.with;
 
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.serde.Delimiter;
+import io.confluent.ksql.util.KsqlException;
+import java.util.Map;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.NonEmptyString;
@@ -38,9 +40,9 @@ public final class CommonCreateConfigs {
   // Persistence Props:
   public static final String VALUE_AVRO_SCHEMA_FULL_NAME = "VALUE_AVRO_SCHEMA_FULL_NAME";
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
-  public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
   public static final String KEY_FORMAT_PROPERTY = "KEY_FORMAT";
   public static final String FORMAT_PROPERTY = "FORMAT";
+  public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
 
@@ -144,6 +146,24 @@ public final class CommonCreateConfigs {
             null,
             Importance.HIGH,
             "The format of the serialized key and value");
+  }
+
+  public static void validateKeyValueFormats(final Map<String, Object> configs) {
+    final Object value = configs.get(FORMAT_PROPERTY);
+    if (value == null) {
+      return;
+    }
+
+    if (configs.get(KEY_FORMAT_PROPERTY) != null) {
+      throw new KsqlException("Cannot supply both '" + KEY_FORMAT_PROPERTY + "' and '"
+          + FORMAT_PROPERTY + "' properties. Did you mean to use '" + VALUE_FORMAT_PROPERTY
+          + "' instead of '" + FORMAT_PROPERTY + "'?");
+    }
+    if (configs.get(VALUE_FORMAT_PROPERTY) != null) {
+      throw new KsqlException("Cannot supply both '" + VALUE_FORMAT_PROPERTY + "' and '"
+          + FORMAT_PROPERTY + "' properties. Did you mean to use '" + KEY_FORMAT_PROPERTY
+          + "' instead of '" + FORMAT_PROPERTY + "'?");
+    }
   }
 
   private CommonCreateConfigs() {

@@ -69,28 +69,6 @@ final class PropertiesConfig extends AbstractConfig {
     return new HashMap<>(originalLiterals);
   }
 
-  void validateKeyValueFormats(
-      final String keyFormatConfig,
-      final String valueFormatConfig,
-      final String formatConfig
-  ) {
-    final Object value = originals().get(formatConfig);
-    if (value == null) {
-      return;
-    }
-
-    if (originals().get(keyFormatConfig) != null) {
-      throw new KsqlException("Cannot supply both '" + keyFormatConfig + "' and '"
-          + formatConfig + "' properties. Did you mean to use '" + valueFormatConfig
-          + "' instead of '" + formatConfig + "'?");
-    }
-    if (originals().get(valueFormatConfig) != null) {
-      throw new KsqlException("Cannot supply both '" + valueFormatConfig + "' and '"
-          + formatConfig + "' properties. Did you mean to use '" + keyFormatConfig
-          + "' instead of '" + formatConfig + "'?");
-    }
-  }
-
   void validateDateTimeFormat(final String configName) {
     final Object value = originals().get(configName);
     if (value == null) {

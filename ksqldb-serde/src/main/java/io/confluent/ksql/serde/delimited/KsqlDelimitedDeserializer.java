@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.delimited;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -54,8 +55,9 @@ public class KsqlDelimitedDeserializer implements Deserializer<Struct> {
       final PersistenceSchema schema,
       final CSVFormat csvFormat
   ) {
-    this.schema = Objects.requireNonNull(schema, "schema").connectSchema();
-    throwOnUnsupported(schema.connectSchema());
+    this.schema = ConnectSchemas
+        .columnsToConnectSchema(Objects.requireNonNull(schema, "schema").columns());
+    throwOnUnsupported(this.schema);
     this.csvFormat = Objects.requireNonNull(csvFormat, "csvFormat");
   }
 

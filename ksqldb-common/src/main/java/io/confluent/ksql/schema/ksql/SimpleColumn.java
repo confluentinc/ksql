@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 
+@Immutable
 public interface SimpleColumn {
 
   /**

@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
@@ -42,9 +43,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -83,7 +81,7 @@ public class SerdeBenchmark {
 
   @State(Scope.Thread)
   public static class SchemaAndGenericRowState {
-    org.apache.kafka.connect.data.Schema schema;
+    LogicalSchema schema;
     GenericRow row;
 
     @Param({"impressions", "metrics"})
@@ -100,7 +98,7 @@ public class SerdeBenchmark {
 
       final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
       row = genericRowPair.getRight();
-      schema = rowGenerator.valueSchema();
+      schema = rowGenerator.schema();
     }
 
     private InputStream getSchemaStream() {
@@ -139,27 +137,13 @@ public class SerdeBenchmark {
       bytes = serializer.serialize(TOPIC_NAME, row);
     }
 
-    private static Serde<GenericRow> getJsonSerde(
-        final org.apache.kafka.connect.data.Schema schema) {
+    private static Serde<GenericRow> getJsonSerde(final LogicalSchema schema) {
       final Serializer<GenericRow> serializer = getJsonSerdeHelper(schema).serializer();
-      // KsqlJsonDeserializer requires schema field names to be uppercase
-      final Deserializer<GenericRow> deserializer =
-          getJsonSerdeHelper(convertFieldNamesToUppercase(schema)).deserializer();
+      final Deserializer<GenericRow> deserializer = getJsonSerdeHelper(schema).deserializer();
       return Serdes.serdeFrom(serializer, deserializer);
     }
 
-    private static org.apache.kafka.connect.data.Schema convertFieldNamesToUppercase(
-        final org.apache.kafka.connect.data.Schema schema) {
-      SchemaBuilder builder = SchemaBuilder.struct();
-      for (final Field field : schema.fields()) {
-        builder = builder.field(field.name().toUpperCase(), field.schema());
-      }
-      return builder.build();
-    }
-
-    private static Serde<GenericRow> getJsonSerdeHelper(
-        final org.apache.kafka.connect.data.Schema schema
-    ) {
+    private static Serde<GenericRow> getJsonSerdeHelper(final LogicalSchema schema) {
       return getGenericRowSerde(
           FormatInfo.of(FormatFactory.JSON.name()),
           schema,
@@ -167,9 +151,7 @@ public class SerdeBenchmark {
       );
     }
 
-    private static Serde<GenericRow> getAvroSerde(
-        final org.apache.kafka.connect.data.Schema schema
-    ) {
+    private static Serde<GenericRow> getAvroSerde(final LogicalSchema schema) {
       final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
       return getGenericRowSerde(
@@ -183,12 +165,12 @@ public class SerdeBenchmark {
 
     private static Serde<GenericRow> getGenericRowSerde(
         final FormatInfo format,
-        final org.apache.kafka.connect.data.Schema schema,
+        final LogicalSchema schema,
         final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
     ) {
       return GenericRowSerDe.from(
           format,
-          PersistenceSchema.from((ConnectSchema) schema, EnabledSerdeFeatures.of()),
+          PersistenceSchema.from(schema.value(), EnabledSerdeFeatures.of()),
           new KsqlConfig(Collections.emptyMap()),
           schemaRegistryClientFactory,
           "benchmark",

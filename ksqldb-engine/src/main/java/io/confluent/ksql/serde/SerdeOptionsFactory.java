@@ -47,7 +47,7 @@ public final class SerdeOptionsFactory {
       final SerdeOptions explicitOptions,
       final KsqlConfig ksqlConfig
   ) {
-    final boolean singleColumn = schema.valueConnectSchema().fields().size() == 1;
+    final boolean singleColumn = schema.value().size() == 1;
     return build(singleColumn, valueFormat, explicitOptions, ksqlConfig);
   }
 

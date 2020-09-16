@@ -16,8 +16,6 @@
 package io.confluent.ksql.serde.delimited;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA;
-import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -25,18 +23,23 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.EnabledSerdeFeatures;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
@@ -48,14 +51,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlDelimitedDeserializerTest {
 
   private static final PersistenceSchema ORDER_SCHEMA = persistenceSchema(
-      SchemaBuilder.struct()
-          .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-          .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-          .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-          .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .field("COST", DecimalUtil.builder(4, 2).build())
-          .build()
+      column("ORDERTIME", SqlTypes.BIGINT),
+      column("ORDERID", SqlTypes.BIGINT),
+      column("ITEMID", SqlTypes.STRING),
+      column("ORDERUNITS", SqlTypes.DOUBLE),
+      column("COST", SqlTypes.decimal(4, 2))
   );
+
+  private static final ConnectSchema ORDER_CONNECT_SCHEMA = ConnectSchemas
+      .columnsToConnectSchema(ORDER_SCHEMA.columns());
 
   private KsqlDelimitedDeserializer deserializer;
 
@@ -73,7 +77,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA.connectSchema()));
+    assertThat(struct.schema(), is(ORDER_CONNECT_SCHEMA));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -90,7 +94,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA.connectSchema()));
+    assertThat(struct.schema(), is(ORDER_CONNECT_SCHEMA));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -132,9 +136,7 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldDeserializedTopLevelPrimitiveTypeIfSchemaHasOnlySingleField() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-            .field("id", Schema.OPTIONAL_INT32_SCHEMA)
-            .build()
+        column("id", SqlTypes.INTEGER)
     );
 
     final KsqlDelimitedDeserializer deserializer =
@@ -153,10 +155,9 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldDeserializeDecimal() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-            .field("cost", DecimalUtil.builder(4, 2))
-            .build()
+        column("cost", SqlTypes.decimal(4, 2))
     );
+
     final KsqlDelimitedDeserializer deserializer =
         createDeserializer(schema);
 
@@ -173,10 +174,9 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldDeserializeDecimalWithoutLeadingZeros() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-            .field("cost", DecimalUtil.builder(4, 2))
-            .build()
+        column("cost", SqlTypes.decimal(4, 2))
     );
+
     final KsqlDelimitedDeserializer deserializer =
         createDeserializer(schema);
 
@@ -191,17 +191,9 @@ public class KsqlDelimitedDeserializerTest {
 
   @Test
   public void shouldDeserializeDelimitedCorrectlyWithTabDelimiter() {
-    shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter('\t');
-  }
-
-  @Test
-  public void shouldDeserializeDelimitedCorrectlyWithBarDelimiter() {
-    shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter('|');
-  }
-
-  private void shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter(final char delimiter) {
     // Given:
-    final byte[] bytes = "1511897796092\t1\titem_1\t10.0\t10.10\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092\t1\titem_1\t10.0\t10.10\r\n"
+        .getBytes(StandardCharsets.UTF_8);
 
     final KsqlDelimitedDeserializer deserializer =
         new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT.withDelimiter('\t'));
@@ -210,7 +202,27 @@ public class KsqlDelimitedDeserializerTest {
     final Struct struct = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_SCHEMA.connectSchema()));
+    assertThat(struct.schema(), is(ORDER_CONNECT_SCHEMA));
+    assertThat(struct.get("ORDERTIME"), is(1511897796092L));
+    assertThat(struct.get("ORDERID"), is(1L));
+    assertThat(struct.get("ITEMID"), is("item_1"));
+    assertThat(struct.get("ORDERUNITS"), is(10.0));
+    assertThat(struct.get("COST"), is(new BigDecimal("10.10")));
+  }
+
+  @Test
+  public void shouldDeserializeDelimitedCorrectlyWithBarDelimiter() {
+    // Given:
+    final byte[] bytes = "1511897796092|1|item_1|10.0|10.10\r\n".getBytes(StandardCharsets.UTF_8);
+
+    final KsqlDelimitedDeserializer deserializer =
+        new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT.withDelimiter('|'));
+
+    // When:
+    final Struct struct = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(struct.schema(), is(ORDER_CONNECT_SCHEMA));
     assertThat(struct.get("ORDERTIME"), is(1511897796092L));
     assertThat(struct.get("ORDERID"), is(1L));
     assertThat(struct.get("ITEMID"), is("item_1"));
@@ -222,10 +234,8 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldThrowOnDeserializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        struct()
-            .field("id", OPTIONAL_INT32_SCHEMA)
-            .field("id2", OPTIONAL_INT32_SCHEMA)
-            .build()
+        column("id", SqlTypes.INTEGER),
+        column("id2", SqlTypes.INTEGER)
     );
 
     final KsqlDelimitedDeserializer deserializer =
@@ -250,12 +260,7 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldThrowOnArrayTypes() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-            .field("ids", SchemaBuilder
-                .array(Schema.OPTIONAL_INT32_SCHEMA)
-                .optional()
-                .build())
-            .build()
+        column("ids", SqlTypes.array(SqlTypes.INTEGER))
     );
 
     // When:
@@ -272,12 +277,7 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldThrowOnMapTypes() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-            .field("ids", SchemaBuilder
-                .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-                .optional()
-                .build())
-            .build()
+        column("ids", SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT))
     );
 
     // When:
@@ -294,13 +294,12 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldThrowOnStructTypes() {
     // Given:
     final PersistenceSchema schema = persistenceSchema(
-        SchemaBuilder.struct()
-            .field("ids", SchemaBuilder
-                .struct()
-                .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
-                .optional()
-                .build())
-            .build()
+        column(
+            "ids",
+            SqlTypes.struct()
+                .field("f0", SqlTypes.INTEGER)
+                .build()
+        )
     );
 
     // When:
@@ -310,17 +309,22 @@ public class KsqlDelimitedDeserializerTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("DELIMITED does not support type: STRUCT, field: ids"));
+    assertThat(e.getMessage(),
+        containsString("DELIMITED does not support type: STRUCT, field: ids"));
   }
 
+  private static SimpleColumn column(final String name, final SqlType type) {
+    final SimpleColumn column = mock(SimpleColumn.class);
+    when(column.name()).thenReturn(ColumnName.of(name));
+    when(column.type()).thenReturn(type);
+    return column;
+  }
 
-  private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
-    return PersistenceSchema.from((ConnectSchema) connectSchema, EnabledSerdeFeatures.of());
+  private static PersistenceSchema persistenceSchema(final SimpleColumn... columns) {
+    return PersistenceSchema.from(Arrays.asList(columns), EnabledSerdeFeatures.of());
   }
 
   private static KsqlDelimitedDeserializer createDeserializer(final PersistenceSchema schema) {
     return new KsqlDelimitedDeserializer(schema, CSVFormat.DEFAULT.withDelimiter(','));
   }
-
-
 }

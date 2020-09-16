@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeature;
@@ -36,7 +37,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Struct;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -93,10 +93,10 @@ public class DataGenProducer {
     final RowGenerator rowGenerator = new RowGenerator(generator, key, timestampColumnName);
 
     final Serializer<Struct> keySerializer =
-        getKeySerializer(rowGenerator.keySchema());
+        getKeySerializer(rowGenerator.schema());
 
     final Serializer<GenericRow> valueSerializer =
-        getValueSerializer(rowGenerator.valueSchema());
+        getValueSerializer(rowGenerator.schema());
 
     final KafkaProducer<Struct, GenericRow> producer = new KafkaProducer<>(
         props,
@@ -146,7 +146,7 @@ public class DataGenProducer {
 
     final ProducerRecord<Struct, GenericRow> producerRecord = new ProducerRecord<>(
         kafkaTopicName,
-        (Integer) null,
+        null,
         timestamp,
         genericRowPair.getLeft(),
         genericRowPair.getRight()
@@ -159,20 +159,20 @@ public class DataGenProducer {
             printRows));
   }
 
-  private Serializer<Struct> getKeySerializer(
-      final ConnectSchema keySchema
-  ) {
+  private Serializer<Struct> getKeySerializer(final LogicalSchema schema) {
     final Set<SerdeFeature> supported = keySerializerFactory.format().supportedFeatures();
     final EnabledSerdeFeatures features = supported.contains(SerdeFeature.UNWRAP_SINGLES)
         ? EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
         : EnabledSerdeFeatures.of();
-    final PersistenceSchema schema = PersistenceSchema.from(keySchema, features);
-    return keySerializerFactory.create(schema);
+
+    final PersistenceSchema persistenceSchema = PersistenceSchema.from(schema.key(), features);
+    return keySerializerFactory.create(persistenceSchema);
   }
 
-  private Serializer<GenericRow> getValueSerializer(final ConnectSchema valueSchema) {
-    final PersistenceSchema schema = PersistenceSchema.from(valueSchema, EnabledSerdeFeatures.of());
-    return valueSerializerFactory.create(schema);
+  private Serializer<GenericRow> getValueSerializer(final LogicalSchema schema) {
+    final PersistenceSchema persistenceSchema = PersistenceSchema
+        .from(schema.value(), EnabledSerdeFeatures.of());
+    return valueSerializerFactory.create(persistenceSchema);
   }
 
   private static class LoggingCallback implements Callback {

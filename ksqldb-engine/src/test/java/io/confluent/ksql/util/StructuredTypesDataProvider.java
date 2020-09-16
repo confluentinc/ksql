@@ -26,12 +26,14 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -68,8 +70,9 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(LOGICAL_SCHEMA, SerdeOptions.of());
 
-  private static final Schema STRUCT_FIELD_SCHEMA = LOGICAL_SCHEMA.valueConnectSchema().field("STRUCT").schema();
-  private static final Schema COMPLEX_FIELD_SCHEMA = LOGICAL_SCHEMA.valueConnectSchema().field("COMPLEX").schema();
+  private static final ConnectSchema VALUE_CONNECT_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.value());
+  private static final Schema STRUCT_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("STRUCT").schema();
+  private static final Schema COMPLEX_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("COMPLEX").schema();
 
   private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
       .<String, GenericRow>builder()

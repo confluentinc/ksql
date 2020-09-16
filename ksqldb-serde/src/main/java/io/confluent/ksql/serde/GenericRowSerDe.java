@@ -23,23 +23,16 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.DataException;
 
 public final class GenericRowSerDe implements ValueSerdeFactory {
 
@@ -100,7 +93,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
-    final Serde<Struct> formatSerde =
+    final Serde<List<?>> formatSerde =
         innerFactory.createFormatSerde("Value", format, schema, ksqlConfig, srClientFactory);
 
     final Serde<GenericRow> genericRowSerde = toGenericRowSerde(formatSerde, schema);
@@ -114,16 +107,14 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   }
 
   private static Serde<GenericRow> toGenericRowSerde(
-      final Serde<Struct> innerSerde,
+      final Serde<List<?>> innerSerde,
       final PersistenceSchema schema
   ) {
-    final ConnectSchema connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
-
     final Serializer<GenericRow> serializer =
-        new GenericRowSerializer(innerSerde.serializer(), connectSchema);
+        new GenericRowSerializer(innerSerde.serializer(), schema.columns().size());
 
     final Deserializer<GenericRow> deserializer =
-        new GenericRowDeserializer(innerSerde.deserializer(), connectSchema);
+        new GenericRowDeserializer(innerSerde.deserializer(), schema.columns().size());
 
     return Serdes.serdeFrom(serializer, deserializer);
   }
@@ -131,12 +122,12 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   @VisibleForTesting
   static class GenericRowSerializer implements Serializer<GenericRow> {
 
-    private final Serializer<Struct> inner;
-    private final ConnectSchema schema;
+    private final Serializer<List<?>> inner;
+    private final int numColumns;
 
-    GenericRowSerializer(final Serializer<Struct> inner, final ConnectSchema schema) {
+    GenericRowSerializer(final Serializer<List<?>> inner, final int numColumns) {
       this.inner = requireNonNull(inner, "inner");
-      this.schema = requireNonNull(schema, "schema");
+      this.numColumns = numColumns;
     }
 
     @Override
@@ -150,61 +141,26 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
         return inner.serialize(topic, null);
       }
 
-      if (data.size() != schema.fields().size()) {
-        throw new SerializationException("Field count mismatch on serialization."
-            + " topic: " + topic
-            + ", expected: " + schema.fields().size()
-            + ", got: " + data.size()
-        );
-      }
+      SerdeUtils.throwOnColumnCountMismatch(numColumns, data.size(), true, topic);
 
-      final Struct struct = new Struct(schema);
-      for (int i = 0; i < data.size(); i++) {
-        putField(struct, schema.fields().get(i), data.get(i));
-      }
-
-      return inner.serialize(topic, struct);
+      return inner.serialize(topic, data.values());
     }
 
     @Override
     public void close() {
       inner.close();
     }
-
-    private static void putField(final Struct struct, final Field field, final Object value) {
-      try {
-        struct.put(field, value);
-      } catch (DataException e) {
-        // Add more info to error message in case of Struct to call out struct schemas
-        // with non-optional fields from incorrectly-written UDFs as a potential cause:
-        // https://github.com/confluentinc/ksql/issues/5364
-        if (!(value instanceof Struct)) {
-          throw e;
-        } else {
-          throw new KsqlException(
-              "Failed to prepare Struct value field '" + field.name() + "' for serialization. "
-                  + "This could happen if the value was produced by a user-defined function "
-                  + "where the schema has non-optional return types. ksqlDB requires all "
-                  + "schemas to be optional at all levels of the Struct: the Struct itself, "
-                  + "schemas for all fields within the Struct, and so on.",
-              e);
-        }
-      }
-    }
   }
 
   @VisibleForTesting
   static class GenericRowDeserializer implements Deserializer<GenericRow> {
 
-    private final Deserializer<Struct> inner;
+    private final Deserializer<List<?>> inner;
     private final int numColumns;
 
-    GenericRowDeserializer(
-        final Deserializer<Struct> inner,
-        final ConnectSchema schema
-    ) {
+    GenericRowDeserializer(final Deserializer<List<?>> inner, final int numColumns) {
       this.inner = requireNonNull(inner, "inner");
-      this.numColumns = schema.fields().size();
+      this.numColumns = numColumns;
     }
 
     @Override
@@ -219,28 +175,15 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
 
     @Override
     public GenericRow deserialize(final String topic, final byte[] data) {
-      final Struct struct = inner.deserialize(topic, data);
-      if (struct == null) {
+      final List<?> values = inner.deserialize(topic, data);
+      if (values == null) {
         return null;
       }
 
-      final List<Field> fields = struct.schema().fields();
+      SerdeUtils.throwOnColumnCountMismatch(numColumns, values.size(), false, topic);
 
-      if (fields.size() != numColumns) {
-        throw new SerializationException("Field count mismatch on deserialization."
-            + " topic: " + topic
-            + ", expected: " + numColumns
-            + ", got: " + fields.size()
-        );
-      }
-
-      final GenericRow row = new GenericRow(fields.size() + ADDITIONAL_CAPACITY);
-
-      for (final Field field : fields) {
-        final Object columnVal = struct.get(field);
-        row.append(columnVal);
-      }
-
+      final GenericRow row = new GenericRow(values.size() + ADDITIONAL_CAPACITY);
+      row.appendAll(values);
       return row;
     }
   }

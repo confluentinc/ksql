@@ -481,10 +481,10 @@ public class SqlToJavaVisitor {
     private String visitArrayComparisonExpression(final ComparisonExpression.Type type) {
       switch (type) {
         case EQUAL:
-          return "java.util.Arrays.deepEquals(%1$s.toArray(), %2$s.toArray())";
+          return "(%1$s.equals(%2$s))";
         case NOT_EQUAL:
         case IS_DISTINCT_FROM:
-          return "!java.util.Arrays.deepEquals(%1$s.toArray(), %2$s.toArray())";
+          return "(!%1$s.equals(%2$s))";
         default:
           throw new KsqlException("Unexpected array comparison: " + type.getValue());
       }

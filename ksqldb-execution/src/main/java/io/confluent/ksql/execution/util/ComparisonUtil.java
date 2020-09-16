@@ -79,24 +79,32 @@ final class ComparisonUtil {
     return right.baseType() == SqlBaseType.STRING;
   }
 
+  @SuppressWarnings({"checkstyle:BooleanExpressionComplexity", "checkstyle:LineLength"})
   private static boolean handleBoolean(final Type operator, final SqlType right) {
     return right.baseType() == SqlBaseType.BOOLEAN
-        && (operator == Type.EQUAL || operator == Type.NOT_EQUAL);
+        && (operator == Type.EQUAL || operator == Type.NOT_EQUAL
+            || operator == Type.IS_DISTINCT_FROM || operator == Type.IS_NOT_DISTINCT_FROM);
   }
 
+  @SuppressWarnings({"checkstyle:BooleanExpressionComplexity", "checkstyle:LineLength"})
   private static boolean handleArray(final Type operator, final SqlType right) {
     return right.baseType() == SqlBaseType.ARRAY
-        && (operator == Type.EQUAL || operator == Type.NOT_EQUAL);
+        && (operator == Type.EQUAL || operator == Type.NOT_EQUAL
+            || operator == Type.IS_DISTINCT_FROM || operator == Type.IS_NOT_DISTINCT_FROM);
   }
 
+  @SuppressWarnings({"checkstyle:BooleanExpressionComplexity", "checkstyle:LineLength"})
   private static boolean handleMap(final Type operator, final SqlType right) {
     return right.baseType() == SqlBaseType.MAP
-        && (operator == Type.EQUAL || operator == Type.NOT_EQUAL);
+            && (operator == Type.EQUAL || operator == Type.NOT_EQUAL
+            || operator == Type.IS_DISTINCT_FROM || operator == Type.IS_NOT_DISTINCT_FROM);
   }
 
+  @SuppressWarnings({"checkstyle:BooleanExpressionComplexity", "checkstyle:LineLength"})
   private static boolean handleStruct(final Type operator, final SqlType right) {
     return right.baseType() == SqlBaseType.STRUCT
-        && (operator == Type.EQUAL || operator == Type.NOT_EQUAL);
+            && (operator == Type.EQUAL || operator == Type.NOT_EQUAL
+            || operator == Type.IS_DISTINCT_FROM || operator == Type.IS_NOT_DISTINCT_FROM);
   }
 
   private static Handler handler(

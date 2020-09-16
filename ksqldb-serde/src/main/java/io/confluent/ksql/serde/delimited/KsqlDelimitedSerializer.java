@@ -95,7 +95,8 @@ public class KsqlDelimitedSerializer implements Serializer<Struct> {
       final int precision = DecimalUtil.precision(field.schema());
       final int scale = DecimalUtil.scale(field.schema());
 
-      return DecimalUtil.format(precision, scale, value);
+      return value.toString();
+//      return DecimalUtil.format(precision, scale, value);
     }
 
     private static void throwOnUnsupportedType(final Schema schema) {

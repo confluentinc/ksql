@@ -45,9 +45,6 @@ import java.util.Optional;
  * where the KEY_FORMAT property is replaced with the VALUE_FORMAT property accordingly.
  *
  * <p>If any of the above are not true then the {@code statement} is returned unchanged.
- *
- * <p>This injector also validates that the KEY_FORMAT property is only supplied if the
- * relevant feature flag is enabled.
  */
 public class DefaultFormatInjector implements Injector {
 
@@ -59,13 +56,15 @@ public class DefaultFormatInjector implements Injector {
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement
   ) {
+    if (!getConfig(statement).getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)) {
+      validateLegacyFormatProperties(statement);
+
+      return statement;
+    }
+
     if (statement.getStatement() instanceof CreateSource) {
       final ConfiguredStatement<CreateSource> createStatement =
           (ConfiguredStatement<CreateSource>) statement;
-
-      if (createStatement.getStatement().getProperties().getKeyFormatName().isPresent()) {
-        throwIfKeyFormatDisabled(createStatement);
-      }
 
       try {
         return (ConfiguredStatement<T>) forCreateStatement(createStatement).orElse(createStatement);
@@ -76,15 +75,6 @@ public class DefaultFormatInjector implements Injector {
             ErrorMessageUtil.buildErrorMessage(e),
             statement.getStatementText(),
             e.getCause());
-      }
-    }
-
-    if (statement.getStatement() instanceof CreateAsSelect) {
-      final ConfiguredStatement<CreateAsSelect> createAsSelect =
-          (ConfiguredStatement<CreateAsSelect>) statement;
-
-      if (createAsSelect.getStatement().getProperties().getKeyFormatInfo().isPresent()) {
-        throwIfKeyFormatDisabled(createAsSelect);
       }
     }
 
@@ -101,17 +91,11 @@ public class DefaultFormatInjector implements Injector {
     final Optional<String> keyFormat = properties.getKeyFormatName();
     final Optional<String> valueFormat = properties.getValueFormatName();
 
-    final KsqlConfig config = getConfig(original);
-    if (!config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)
-        && !valueFormat.isPresent()) {
-      throw new ParseFailedException("Failed to prepare statement: Missing required property "
-          + "\"VALUE_FORMAT\" which has no default value.");
-    }
-
     if (keyFormat.isPresent() && valueFormat.isPresent()) {
       return Optional.empty();
     }
 
+    final KsqlConfig config = getConfig(original);
     validateConfig(config, keyFormat, valueFormat);
 
     final CreateSourceProperties injectedProps = properties.withFormats(
@@ -151,23 +135,40 @@ public class DefaultFormatInjector implements Injector {
     }
   }
 
-  private static <T extends Statement> KsqlConfig getConfig(
-      final ConfiguredStatement<T> statement
-  ) {
+  private static KsqlConfig getConfig(final ConfiguredStatement<?> statement) {
     return statement.getConfig().cloneWithPropertyOverwrite(statement.getConfigOverrides());
   }
 
-  private static <T extends Statement> void throwIfKeyFormatDisabled(
-      final ConfiguredStatement<T> statement
-  ) {
-    if (!getConfig(statement).getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)) {
-      throw new KsqlStatementException(
-          "The use of '" + CommonCreateConfigs.KEY_FORMAT_PROPERTY + "' and '"
-              + CommonCreateConfigs.FORMAT_PROPERTY + "' is disabled, as this feature is "
-              + "under development. Set '" + KsqlConfig.KSQL_KEY_FORMAT_ENABLED + "' to enable.",
-          statement.getStatementText()
-      );
+  private static void validateLegacyFormatProperties(final ConfiguredStatement<?> statement) {
+    if (statement.getStatement() instanceof CreateSource) {
+      final CreateSource createStatement = (CreateSource) statement.getStatement();
+
+      if (createStatement.getProperties().getKeyFormatName().isPresent()) {
+        throwKeyFormatDisabled(statement.getStatementText());
+      }
+
+      if (!createStatement.getProperties().getValueFormatName().isPresent()) {
+        throw new ParseFailedException("Failed to prepare statement: Missing required property "
+            + "\"VALUE_FORMAT\" which has no default value.");
+      }
     }
+
+    if (statement.getStatement() instanceof CreateAsSelect) {
+      final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
+
+      if (createAsSelect.getProperties().getKeyFormatInfo().isPresent()) {
+        throwKeyFormatDisabled(statement.getStatementText());
+      }
+    }
+  }
+
+  private static void throwKeyFormatDisabled(final String statementText) {
+    throw new KsqlStatementException(
+        "The use of '" + CommonCreateConfigs.KEY_FORMAT_PROPERTY + "' and '"
+            + CommonCreateConfigs.FORMAT_PROPERTY + "' is disabled, as this feature is "
+            + "under development. Set '" + KsqlConfig.KSQL_KEY_FORMAT_ENABLED + "' to enable.",
+        statementText
+    );
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

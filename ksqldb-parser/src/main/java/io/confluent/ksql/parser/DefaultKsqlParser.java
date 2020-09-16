@@ -24,7 +24,15 @@ import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import io.confluent.ksql.util.ParserUtil;
-import org.antlr.v4.runtime.*;
+
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -32,6 +40,7 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class DefaultKsqlParser implements KsqlParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
   private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
     public void syntaxError(

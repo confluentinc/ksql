@@ -24,9 +24,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.ParsingException;
-import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.*;
 import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
@@ -37,7 +35,10 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -52,6 +53,8 @@ public final class ParserUtil {
    * @see org.apache.kafka.streams.state.StoreBuilder#name
    */
   private static final Pattern VALID_SOURCE_NAMES = Pattern.compile("[a-zA-Z0-9_-]*");
+  public static final Pattern EXTRANEOUS_INPUT_PATTERN = Pattern.compile(
+          "extraneous input.*expecting.*");
 
   private ParserUtil() {
   }
@@ -211,5 +214,32 @@ public final class ParserUtil {
       convertedMap.put(key, entry.getValue());
     }
     return new JsonObject(convertedMap);
+  }
+
+  /**
+   * Checks if the token is a reserved keyword or not
+   * @param token the String that caused the parsing error
+   * @return true if the token is a reserved keyword according to SqlBase.g4
+   *         false otherwise
+   */
+  public static boolean isReserved(final String token) {
+
+    final SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(
+            new CaseInsensitiveStream(CharStreams.fromString(token)));
+    final CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
+    final SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
+
+    sqlBaseParser.removeErrorListeners();
+
+    final SqlBaseParser.NonReservedContext nonReservedContext = sqlBaseParser.nonReserved();
+    if (nonReservedContext.exception == null) {
+      // if the token does not match "nonReserved", then we expect the above
+      // method call to "throw" an exception
+      return false;
+    }
+
+    final Set<String> allVocab = ParserKeywordValidatorUtil.getKsqlReservedWords();
+
+    return allVocab.contains(token.toLowerCase());
   }
 }

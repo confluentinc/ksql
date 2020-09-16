@@ -19,28 +19,19 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.ParserUtil;
 
 import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonToken;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
+
+import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class DefaultKsqlParser implements KsqlParser {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-
   private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
     public void syntaxError(
@@ -51,9 +42,10 @@ public class DefaultKsqlParser implements KsqlParser {
         final String message,
         final RecognitionException e
     ) {
-      //Checks if the error is a reserved keyword error
-      if (isKeywordError(message, offendingSymbol)) {
-        final String tokenName = ((CommonToken) offendingSymbol).getText();
+      if (offendingSymbol instanceof Token && isKeywordError(
+              message, ((Token) offendingSymbol).getText())) {
+        //Checks if the error is a reserved keyword error
+        final String tokenName = ((Token) offendingSymbol).getText();
         final String newMessage =
                 "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier";
         throw new ParsingException(newMessage, e, line, charPositionInLine);
@@ -143,13 +135,15 @@ public class DefaultKsqlParser implements KsqlParser {
     ));
   }
 
-  //checks if the error is a reserved keyword error by checking the message and offendingSymbol
-  private static boolean isKeywordError(final String message, final Object offendingSymbol) {
-    final String tokenName = ((CommonToken) offendingSymbol).getText().toLowerCase();
+  /**
+   * checks if the error is a reserved keyword error by checking the message and offendingSymbol
+   * @param message the error message
+   * @param offendingSymbol the symbol that caused the error
+   * @return
+   */
+  private static boolean isKeywordError(final String message, final String offendingSymbol) {
+    final Matcher m = ParserUtil.EXTRANEOUS_INPUT_PATTERN.matcher(message);
 
-    final Pattern keywordPattern = Pattern.compile("extraneous input.*expecting.*");
-    final Matcher m = keywordPattern.matcher(message);
-    return KsqlParserUtil.isReserved(tokenName) && m.find();
+    return  m.find() && ParserUtil.isReserved(offendingSymbol);
   }
-
 }

@@ -1,12 +1,11 @@
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.parser.KsqlParserUtil;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-public class KsqlParserUtilTest {
+public class ParserUtilTest {
 
     @Test
     public void shouldBeReserved() {
@@ -20,7 +19,7 @@ public class KsqlParserUtilTest {
 
         // Then:
         for (final String keyword : keywords) {
-            assertEquals(true, KsqlParserUtil.isReserved(keyword));
+            assertEquals(true, ParserUtil.isReserved(keyword));
         }
     }
 
@@ -39,7 +38,7 @@ public class KsqlParserUtilTest {
 
         // Then:
         for (final String keyword : keywords) {
-            assertEquals(false, KsqlParserUtil.isReserved(keyword));
+            assertEquals(false, ParserUtil.isReserved(keyword));
         }
     }
 }

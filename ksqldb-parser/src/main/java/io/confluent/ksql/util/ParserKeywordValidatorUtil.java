@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function;
+package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -26,9 +26,10 @@ import org.antlr.v4.runtime.Vocabulary;
 /**
  * Check that a function name is valid. It is valid if it is not a Java reserved word
  * and not a ksql reserved word and is a valid java identifier.
+ * Also, provides utils for checking if keywords are reserved or not as defined in SqlBase.g4
  */
 @ThreadSafe
-class FunctionNameValidator implements Predicate<String> {
+public class ParserKeywordValidatorUtil implements Predicate<String> {
   private static final Set<String> JAVA_RESERVED_WORDS
       = ImmutableSet.<String>builder()
       .add("abstract").add("assert").add("boolean").add("break").add("byte").add("case")
@@ -44,16 +45,16 @@ class FunctionNameValidator implements Predicate<String> {
 
   // These are in the reserved words set, but we already use them for function names
   private static final Set<String> ALLOWED_KSQL_WORDS
-      = ImmutableSet.copyOf(Arrays.asList("concat", "substring", "replace"));
+          = ImmutableSet.copyOf(Arrays.asList("concat", "substring", "replace"));
 
   private static final Set<String> KSQL_RESERVED_WORDS = createFromVocabulary();
 
   @Override
   public boolean test(final String functionName) {
     if (functionName == null
-        || functionName.trim().isEmpty()
-        || JAVA_RESERVED_WORDS.contains(functionName.toLowerCase())
-        || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
+          || functionName.trim().isEmpty()
+          || JAVA_RESERVED_WORDS.contains(functionName.toLowerCase())
+          || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
       return false;
     }
     return isValidJavaIdentifier(functionName);
@@ -89,5 +90,9 @@ class FunctionNameValidator implements Predicate<String> {
       }
     }
     return builder.build();
+  }
+
+  public static Set<String> getKsqlReservedWords() {
+    return KSQL_RESERVED_WORDS;
   }
 }

@@ -95,6 +95,10 @@ public class CommandStore implements CommandQueue, Closeable {
           ConsumerConfig.ISOLATION_LEVEL_CONFIG,
           IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT)
       );
+      kafkaConsumerProperties.put(
+          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+          "none"
+      );
       kafkaProducerProperties.put(
           ProducerConfig.TRANSACTIONAL_ID_CONFIG,
           ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)

@@ -55,6 +55,7 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -459,7 +460,7 @@ public class CreateSourceFactoryTest {
     // Then:
     verify(serdeOptionsSupplier).build(
         schema,
-        FormatFactory.of(statement.getProperties().getValueFormat()),
+        FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties())),
         statement.getProperties().getSerdeOptions(),
         ksqlConfig
     );

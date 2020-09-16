@@ -129,26 +129,12 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getInt(CreateConfigs.SCHEMA_ID));
   }
 
-  /**
-   * This method should only be called after the DefaultFormatInjector has run, in order to
-   * guarantee a key format is present.
-   */
-  public FormatInfo getKeyFormat() {
-    final String keyFormat = getKeyFormatName().orElseThrow(
-        () -> new IllegalStateException("Key format not present")
-    );
-    return FormatInfo.of(keyFormat, ImmutableMap.of());
+  public Optional<FormatInfo> getKeyFormat() {
+    return getKeyFormatName().map(format -> FormatInfo.of(format, ImmutableMap.of()));
   }
 
-  /**
-   * This method should only be called after the DefaultFormatInjector has run, in order to
-   * guarantee a value format is present.
-   */
-  public FormatInfo getValueFormat() {
-    final String valueFormat = getValueFormatName().orElseThrow(
-        () -> new IllegalStateException("Value format not present")
-    );
-    return FormatInfo.of(valueFormat, getValueFormatProperties());
+  public Optional<FormatInfo> getValueFormat() {
+    return getValueFormatName().map(format -> FormatInfo.of(format, getValueFormatProperties()));
   }
 
   /**
@@ -159,6 +145,7 @@ public final class CreateSourceProperties {
         .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
     return Optional.ofNullable(keyFormat);
   }
+
   /**
    * The value format name, if supplied explicitly.
    */

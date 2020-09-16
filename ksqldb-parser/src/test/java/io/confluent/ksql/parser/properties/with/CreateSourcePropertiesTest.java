@@ -41,6 +41,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -294,7 +295,10 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getValueFormat().getProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormat()
+        .map(FormatInfo::getProperties)
+        .map(props -> props.get(AvroFormat.FULL_SCHEMA_NAME)),
+        is(Optional.of("schema")));
   }
 
   @Test

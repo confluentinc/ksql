@@ -20,6 +20,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
@@ -75,9 +76,11 @@ public class SchemaRegisterInjector implements Injector {
 
     final LogicalSchema schema = cs.getStatement().getElements().toLogicalSchema();
 
+    final FormatInfo valueFormat =
+        SourcePropertiesUtil.getValueFormat(cs.getStatement().getProperties());
     final SerdeOptions serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
         schema,
-        FormatFactory.of(cs.getStatement().getProperties().getValueFormat()),
+        FormatFactory.of(valueFormat),
         cs.getStatement().getProperties().getSerdeOptions(),
         cs.getConfig()
     );
@@ -85,7 +88,7 @@ public class SchemaRegisterInjector implements Injector {
     registerSchema(
         schema,
         cs.getStatement().getProperties().getKafkaTopic(),
-        cs.getStatement().getProperties().getValueFormat(),
+        valueFormat,
         serdeOptions,
         cs.getConfig(),
         cs.getStatementText(),

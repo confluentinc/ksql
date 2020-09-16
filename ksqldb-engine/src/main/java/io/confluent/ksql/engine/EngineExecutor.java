@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -352,7 +353,8 @@ final class EngineExecutor {
     try {
       if (statement.getStatement() instanceof CreateSource) {
         final CreateSource createSource = (CreateSource) statement.getStatement();
-        throwOnUnsupportedKeyFormat(createSource.getProperties().getKeyFormat());
+        throwOnUnsupportedKeyFormat(
+            SourcePropertiesUtil.getKeyFormat(createSource.getProperties()));
       }
 
       if (statement.getStatement() instanceof CreateAsSelect) {

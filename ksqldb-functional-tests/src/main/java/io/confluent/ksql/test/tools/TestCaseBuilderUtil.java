@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -156,7 +157,7 @@ public final class TestCaseBuilderUtil {
         try {
           serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
               logicalSchema,
-              FormatFactory.of(statement.getProperties().getValueFormat()),
+              FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties())),
               statement.getProperties().getSerdeOptions(),
               ksqlConfig
           );

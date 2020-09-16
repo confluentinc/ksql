@@ -85,8 +85,8 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getSchemaId(), is(Optional.empty()));
-    assertThat(properties.getKeyFormatName(), is(Optional.empty()));
-    assertThat(properties.getValueFormatName(), is(Optional.empty()));
+    assertThat(properties.getKeyFormat(), is(Optional.empty()));
+    assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getSerdeOptions(), is(SerdeOptions.of()));

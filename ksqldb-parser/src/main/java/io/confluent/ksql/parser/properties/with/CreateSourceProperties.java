@@ -28,8 +28,6 @@ import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
@@ -130,29 +128,16 @@ public final class CreateSourceProperties {
   }
 
   public Optional<FormatInfo> getKeyFormat() {
-    return getKeyFormatName().map(format -> FormatInfo.of(format, ImmutableMap.of()));
+    final String keyFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
+    return Optional.ofNullable(keyFormat).map(format -> FormatInfo.of(format, ImmutableMap.of()));
   }
 
   public Optional<FormatInfo> getValueFormat() {
-    return getValueFormatName().map(format -> FormatInfo.of(format, getValueFormatProperties()));
-  }
-
-  /**
-   * The key format name, if supplied explicitly.
-   */
-  public Optional<String> getKeyFormatName() {
-    final String keyFormat = getFormatName()
-        .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
-    return Optional.ofNullable(keyFormat);
-  }
-
-  /**
-   * The value format name, if supplied explicitly.
-   */
-  public Optional<String> getValueFormatName() {
     final String valueFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY));
-    return Optional.ofNullable(valueFormat);
+    return Optional.ofNullable(valueFormat)
+        .map(format -> FormatInfo.of(format, getValueFormatProperties()));
   }
 
   public Map<String, String> getValueFormatProperties() {

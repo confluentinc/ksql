@@ -39,6 +39,7 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TabularRow;
@@ -74,14 +75,14 @@ public final class AssertExecutor {
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
-          (cs, cfg) -> cs.getProperties().getKeyFormatName()
+          (cs, cfg) -> cs.getProperties().getKeyFormat().map(FormatInfo::getFormat)
               .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
           "key format",
           CommonCreateConfigs.KEY_FORMAT_PROPERTY,
           CommonCreateConfigs.FORMAT_PROPERTY
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
-          (cs, cfg) -> cs.getProperties().getValueFormatName()
+          (cs, cfg) -> cs.getProperties().getValueFormat().map(FormatInfo::getFormat)
               .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG)),
           "value format",
           CommonCreateConfigs.VALUE_FORMAT_PROPERTY,

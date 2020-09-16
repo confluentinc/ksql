@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -90,8 +91,8 @@ public class DefaultFormatInjector implements Injector {
     final CreateSource statement = original.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
 
-    final Optional<String> keyFormat = properties.getKeyFormatName();
-    final Optional<String> valueFormat = properties.getValueFormatName();
+    final Optional<FormatInfo> keyFormat = properties.getKeyFormat();
+    final Optional<FormatInfo> valueFormat = properties.getValueFormat();
 
     if (keyFormat.isPresent() && valueFormat.isPresent()) {
       return Optional.empty();
@@ -101,8 +102,10 @@ public class DefaultFormatInjector implements Injector {
     validateConfig(config, keyFormat, valueFormat);
 
     final CreateSourceProperties injectedProps = properties.withFormats(
-        keyFormat.orElse(config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
-        valueFormat.orElse(config.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG))
+        keyFormat.map(FormatInfo::getFormat)
+            .orElse(config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
+        valueFormat.map(FormatInfo::getFormat)
+            .orElse(config.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG))
     );
     final CreateSource withFormats = statement.copyWith(
         original.getStatement().getElements(),
@@ -118,8 +121,8 @@ public class DefaultFormatInjector implements Injector {
 
   private static void validateConfig(
       final KsqlConfig config,
-      final Optional<String> keyFormat,
-      final Optional<String> valueFormat
+      final Optional<FormatInfo> keyFormat,
+      final Optional<FormatInfo> valueFormat
   ) {
     if (!keyFormat.isPresent()
         && config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG) == null) {
@@ -145,11 +148,11 @@ public class DefaultFormatInjector implements Injector {
     if (statement.getStatement() instanceof CreateSource) {
       final CreateSource createStatement = (CreateSource) statement.getStatement();
 
-      if (createStatement.getProperties().getKeyFormatName().isPresent()) {
+      if (createStatement.getProperties().getKeyFormat().isPresent()) {
         throwKeyFormatDisabled(statement.getStatementText());
       }
 
-      if (!createStatement.getProperties().getValueFormatName().isPresent()) {
+      if (!createStatement.getProperties().getValueFormat().isPresent()) {
         throw new ParseFailedException("Failed to prepare statement: Missing required property "
             + "\"VALUE_FORMAT\" which has no default value.");
       }

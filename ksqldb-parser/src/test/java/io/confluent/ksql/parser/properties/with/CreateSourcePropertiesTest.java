@@ -490,8 +490,9 @@ public class CreateSourcePropertiesTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Cannot supply both 'KEY_FORMAT' and 'FORMAT' properties."));
-    assertThat(e.getMessage(), containsString("Did you mean to use 'VALUE_FORMAT' instead of 'FORMAT'?"));
+    assertThat(e.getMessage(), containsString("Cannot supply both 'KEY_FORMAT' and 'FORMAT' properties, "
+        + "as 'FORMAT' sets both key and value formats."));
+    assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
   }
 
   @Test
@@ -508,7 +509,8 @@ public class CreateSourcePropertiesTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties."));
-    assertThat(e.getMessage(), containsString("Did you mean to use 'KEY_FORMAT' instead of 'FORMAT'?"));
+    assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties, "
+        + "as 'FORMAT' sets both key and value formats."));
+    assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
   }
 }

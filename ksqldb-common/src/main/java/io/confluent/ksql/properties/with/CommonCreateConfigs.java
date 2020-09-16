@@ -156,13 +156,15 @@ public final class CommonCreateConfigs {
 
     if (configs.get(KEY_FORMAT_PROPERTY) != null) {
       throw new KsqlException("Cannot supply both '" + KEY_FORMAT_PROPERTY + "' and '"
-          + FORMAT_PROPERTY + "' properties. Did you mean to use '" + VALUE_FORMAT_PROPERTY
-          + "' instead of '" + FORMAT_PROPERTY + "'?");
+          + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY + "' sets both key and value "
+          + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
+          + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
     }
     if (configs.get(VALUE_FORMAT_PROPERTY) != null) {
       throw new KsqlException("Cannot supply both '" + VALUE_FORMAT_PROPERTY + "' and '"
-          + FORMAT_PROPERTY + "' properties. Did you mean to use '" + KEY_FORMAT_PROPERTY
-          + "' instead of '" + FORMAT_PROPERTY + "'?");
+          + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY + "' sets both key and value "
+          + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
+          + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
     }
   }
 

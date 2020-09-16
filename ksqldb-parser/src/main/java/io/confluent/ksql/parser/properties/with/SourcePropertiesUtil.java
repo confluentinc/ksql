@@ -28,7 +28,7 @@ public final class SourcePropertiesUtil {
   }
 
   public static FormatInfo getValueFormat(final CreateSourceProperties properties) {
-    return properties.getKeyFormat()
+    return properties.getValueFormat()
         .orElseThrow(() -> new IllegalStateException("Value format not present"));
   }
 

@@ -59,8 +59,6 @@ public class DefaultFormatInjector implements Injector {
   ) {
     if (featureFlagNotEnabled(statement)) {
       validateLegacyFormatProperties(statement);
-
-      return statement;
     }
 
     if (!(statement.getStatement() instanceof CreateSource)) {

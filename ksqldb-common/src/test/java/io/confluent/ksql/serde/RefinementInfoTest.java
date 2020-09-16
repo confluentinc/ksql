@@ -18,9 +18,12 @@ package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
+import java.util.Optional;
+
 import io.confluent.ksql.parser.OutputRefinement;
 import org.junit.Test;
 

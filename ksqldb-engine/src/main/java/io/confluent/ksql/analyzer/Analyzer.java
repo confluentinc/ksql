@@ -211,8 +211,8 @@ class Analyzer {
     }
 
     private Format getValueFormat(final Sink sink) {
-      return sink.getProperties().getValueFormat()
-          .orElseGet(() -> FormatFactory.of(getSourceInfo()));
+      return FormatFactory.of(
+          sink.getProperties().getValueFormatInfo().orElseGet(this::getSourceInfo));
     }
 
     private FormatInfo getSourceInfo() {

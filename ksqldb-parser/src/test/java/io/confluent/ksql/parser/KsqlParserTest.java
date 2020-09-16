@@ -547,7 +547,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("ORDERTIME")));
     assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(FormatFactory.AVRO));
+    assertThat(result.getProperties().getValueFormatInfo().getFormat(), equalTo("AVRO"));
   }
 
   @Test
@@ -562,7 +562,7 @@ public class KsqlParserTest {
     assertThat(Iterables.size(result.getElements()), equalTo(4));
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(FormatFactory.JSON));
+    assertThat(result.getProperties().getValueFormatInfo().getFormat(), equalTo("JSON"));
   }
 
   @Test

@@ -36,6 +36,7 @@ import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.serde.ValueFormat;
@@ -155,7 +156,7 @@ public final class TestCaseBuilderUtil {
         try {
           serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
               logicalSchema,
-              statement.getProperties().getValueFormat(),
+              FormatFactory.of(statement.getProperties().getValueFormatInfo()),
               statement.getProperties().getSerdeOptions(),
               ksqlConfig
           );

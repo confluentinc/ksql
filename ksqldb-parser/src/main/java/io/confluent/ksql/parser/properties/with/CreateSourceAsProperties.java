@@ -69,15 +69,7 @@ public final class CreateSourceAsProperties {
     CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
   }
-
-  public Optional<Format> getKeyFormat() {
-    return getKeyFormatInfo().map(FormatFactory::of);
-  }
-
-  public Optional<Format> getValueFormat() {
-    return getValueFormatInfo().map(FormatFactory::of);
-  }
-
+  
   public Optional<String> getKafkaTopic() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY));
   }

@@ -80,22 +80,6 @@ public final class CreateSourceProperties {
     validateWindowInfo();
   }
 
-  /**
-   * This method should only be called after the DefaultFormatInjector has run, in order to
-   * guarantee a key format is present.
-   */
-  public Format getKeyFormat() {
-    return FormatFactory.of(getKeyFormatInfo());
-  }
-
-  /**
-   * This method should only be called after the DefaultFormatInjector has run, in order to
-   * guarantee a value format is present.
-   */
-  public Format getValueFormat() {
-    return FormatFactory.of(getValueFormatInfo());
-  }
-
   public String getKafkaTopic() {
     return props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY);
   }

@@ -24,8 +24,10 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.CaseInsensitiveStream;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
+import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
@@ -45,6 +47,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public final class ParserUtil {
 
   /**

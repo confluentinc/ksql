@@ -19,19 +19,19 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.ParserUtil;
-
 import java.util.List;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+import io.confluent.ksql.util.ParserUtil;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class DefaultKsqlParser implements KsqlParser {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
     @Override
     public void syntaxError(

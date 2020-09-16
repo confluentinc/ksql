@@ -25,7 +25,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

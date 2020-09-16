@@ -22,9 +22,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
-
 import io.confluent.ksql.util.ParserUtil;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;

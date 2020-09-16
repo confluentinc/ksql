@@ -45,16 +45,16 @@ public class ParserKeywordValidatorUtil implements Predicate<String> {
 
   // These are in the reserved words set, but we already use them for function names
   private static final Set<String> ALLOWED_KSQL_WORDS
-          = ImmutableSet.copyOf(Arrays.asList("concat", "substring", "replace"));
+      = ImmutableSet.copyOf(Arrays.asList("concat", "substring", "replace"));
 
   private static final Set<String> KSQL_RESERVED_WORDS = createFromVocabulary();
 
   @Override
   public boolean test(final String functionName) {
     if (functionName == null
-          || functionName.trim().isEmpty()
-          || JAVA_RESERVED_WORDS.contains(functionName.toLowerCase())
-          || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
+        || functionName.trim().isEmpty()
+        || JAVA_RESERVED_WORDS.contains(functionName.toLowerCase())
+        || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
       return false;
     }
     return isValidJavaIdentifier(functionName);

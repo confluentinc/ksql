@@ -25,8 +25,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;

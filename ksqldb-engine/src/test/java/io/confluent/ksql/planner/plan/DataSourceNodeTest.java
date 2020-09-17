@@ -421,7 +421,7 @@ public class DataSourceNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `datasource` "
-        + "must include the key column k0 in its projection."));
+        + "must include the key column `k0` in its projection."));
   }
 
   private void givenNodeWithMockSource() {

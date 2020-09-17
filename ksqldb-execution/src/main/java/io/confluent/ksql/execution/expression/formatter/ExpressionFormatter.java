@@ -68,7 +68,7 @@ public final class ExpressionFormatter {
   }
 
   public static String formatExpression(final Expression expression) {
-    return formatExpression(expression, FormatOptions.of(s -> false));
+    return formatExpression(expression, FormatOptions.none());
   }
 
   public static String formatExpression(
@@ -90,7 +90,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitType(final Type node, final Context context) {
-      return node.getSqlType().toString();
+      return node.getSqlType().toString(context.formatOptions);
     }
 
     @Override

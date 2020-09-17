@@ -128,7 +128,7 @@ public class LogicalPlannerTest {
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
     final FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);
-    assertThat(filterNode.getPredicate().toString(), equalTo("((T1_COL3 > 10.8) AND (T2_COL2 = 'foo'))"));
+    assertThat(filterNode.getPredicate().toString(), equalTo("((`T1_COL3` > 10.8) AND (`T2_COL2` = 'foo'))"));
 
     assertThat(filterNode.getSources().get(0), instanceOf(JoinNode.class));
     final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);

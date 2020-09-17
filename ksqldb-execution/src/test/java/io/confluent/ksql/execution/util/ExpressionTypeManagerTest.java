@@ -181,7 +181,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot compare COL0 (BIGINT) to COL1 (STRING) with GREATER_THAN"
+        "Cannot compare `COL0` (BIGINT) to `COL1` (STRING) with GREATER_THAN"
     ));
   }
 
@@ -220,7 +220,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
+        "Cannot compare `COL5` (MAP<STRING, DOUBLE>) to `COL6` (STRUCT<`NUMBER` BIGINT, "
             + "`STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>) "
             + "with GREATER_THAN"
     ));
@@ -239,7 +239,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 "
+        "Cannot compare `COL5` (MAP<STRING, DOUBLE>) to `COL6` "
             + "(STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, "
             + "`ZIPCODE` BIGINT>) with EQUAL"
     ));
@@ -359,7 +359,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Could not find field 'ZIP' in 'COL6'."));
+        "Could not find field 'ZIP' in `COL6`."));
   }
 
   @Test
@@ -671,7 +671,7 @@ public class ExpressionTypeManagerTest {
     assertThat(e.getMessage(), containsString(
         "WHEN operand type should be boolean."
             + System.lineSeparator()
-            + "Type for '(COL0 + 10)' is BIGINT"
+            + "Type for '(`COL0` + 10)' is BIGINT"
     ));
   }
 
@@ -702,7 +702,7 @@ public class ExpressionTypeManagerTest {
     assertThat(e.getMessage(), containsString(
         "Invalid Case expression. Type for all 'THEN' clauses should be the same."
             + System.lineSeparator()
-            + "THEN expression 'WHEN (COL0 = 10) THEN 10' has type: INTEGER."
+            + "THEN expression 'WHEN (`COL0` = 10) THEN 10' has type: INTEGER."
             + System.lineSeparator()
             + "Previous THEN expression(s) type: STRING."
     ));

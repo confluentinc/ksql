@@ -180,7 +180,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     if (!unknown.isEmpty()) {
       final String errors = unknown.stream()
           .map(columnRef -> NodeLocation.asPrefix(columnRef.getLocation())
-              + "Column '" + columnRef + "' cannot be resolved."
+              + "Column " + columnRef + " cannot be resolved."
           ).collect(Collectors.joining(System.lineSeparator()));
 
       throw new KsqlException(errors);

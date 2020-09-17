@@ -150,7 +150,7 @@ public class FinalProjectNodeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Column 'ROWKEY' cannot be resolved."));
+    assertThat(e.getMessage(), containsString("Column `ROWKEY` cannot be resolved."));
   }
 
   @Test

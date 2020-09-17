@@ -43,6 +43,6 @@ public class InvalidColumnException extends KsqlException {
     return NodeLocation.asPrefix(column.getLocation())
         + prefix
         + (prefix.isEmpty() ? "C" : " c")
-        + "olumn '" + column + "' " + message;
+        + "olumn " + column + " " + message;
   }
 }

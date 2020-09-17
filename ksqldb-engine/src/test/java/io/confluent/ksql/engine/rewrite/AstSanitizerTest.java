@@ -210,7 +210,7 @@ public class AstSanitizerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Column 'COL0' is ambiguous. Could be TEST1.COL0 or TEST2.COL0."));
+        "Column `COL0` is ambiguous. Could be `TEST1`.`COL0` or `TEST2`.`COL0`."));
   }
 
   @Test

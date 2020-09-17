@@ -100,7 +100,7 @@ public class ExpressionFormatterTest {
             new StringLiteral("foo"),
             new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnName.of("abc")), new IntegerLiteral(1)))
         )),
-        equalTo("ARRAY['foo', abc[1]]")
+        equalTo("ARRAY['foo', `abc`[1]]")
     );
   }
 
@@ -112,7 +112,7 @@ public class ExpressionFormatterTest {
             .put(new StringLiteral("bar"), new StringLiteral("val"))
             .build()
         )),
-        equalTo("MAP('foo':=abc[1], 'bar':='val')")
+        equalTo("MAP('foo':=`abc`[1], 'bar':='val')")
     );
   }
 
@@ -122,8 +122,8 @@ public class ExpressionFormatterTest {
         ImmutableList.of(
             new Field("foo", new StringLiteral("abc")),
             new Field("bar", new SubscriptExpression(new UnqualifiedColumnReferenceExp(ColumnName.of("abc")), new IntegerLiteral(1))))
-        ), FormatOptions.of(exp -> exp.equals("foo"))),
-        equalTo("STRUCT(`foo`:='abc', bar:=abc[1])"));
+        ), FormatOptions.of(exp -> true)),
+        equalTo("STRUCT(`foo`:='abc', `bar`:=`abc`[1])"));
   }
 
   @Test
@@ -180,7 +180,7 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatColumnReference() {
     assertThat(ExpressionFormatter.formatExpression(new UnqualifiedColumnReferenceExp(
-        ColumnName.of("name"))), equalTo("name"));
+        ColumnName.of("name"))), equalTo("`name`"));
   }
 
   @Test
@@ -196,7 +196,7 @@ public class ExpressionFormatterTest {
     final String text = ExpressionFormatter.formatExpression(expression);
 
     // Then:
-    assertThat(text, equalTo("'foo'->name"));
+    assertThat(text, equalTo("'foo'->`name`"));
   }
 
   @Test
@@ -204,13 +204,13 @@ public class ExpressionFormatterTest {
     final FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"),
         Collections.singletonList(new StringLiteral("name")));
 
-    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT('name')"));
+    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("`COUNT`('name')"));
   }
 
   @Test
   public void shouldFormatFunctionCountStar() {
     final FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"), Collections.emptyList());
-    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT(*)"));
+    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("`COUNT`(*)"));
   }
 
   @Test
@@ -218,7 +218,7 @@ public class ExpressionFormatterTest {
     final FunctionCall functionCall = new FunctionCall(
         FunctionName.of("COUNT"),
         Collections.singletonList(new StringLiteral("name")));
-    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT('name')"));
+    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("`COUNT`('name')"));
   }
 
   @Test
@@ -405,6 +405,6 @@ public class ExpressionFormatterTest {
         SourceName.of("foo"),
         ColumnName.of("bar")
     );
-    assertThat(ExpressionFormatter.formatExpression(ref), equalTo("foo.bar"));
+    assertThat(ExpressionFormatter.formatExpression(ref), equalTo("`foo`.`bar`"));
   }
 }

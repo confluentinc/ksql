@@ -214,7 +214,7 @@ public class ExpressionTypeManager {
       final Field structField = structType
           .field(fieldName)
           .orElseThrow(() -> new KsqlException(
-              "Could not find field '" + fieldName + "' in '" + node.getBase() + "'.")
+              "Could not find field '" + fieldName + "' in " + node.getBase() + ".")
           );
 
       expressionTypeContext.setSqlType(structField.type());

@@ -101,9 +101,9 @@ public class SelectValueMapperTest {
         .collect(Collectors.toList());
 
     assertThat(errorMsgs, contains(
-        "Error computing expression a for column apple with index 0",
-        "Error computing expression c for column cherry with index 1",
-        "Error computing expression b for column banana with index 2"
+        "Error computing expression `a` for column apple with index 0",
+        "Error computing expression `c` for column cherry with index 1",
+        "Error computing expression `b` for column banana with index 2"
     ));
   }
 

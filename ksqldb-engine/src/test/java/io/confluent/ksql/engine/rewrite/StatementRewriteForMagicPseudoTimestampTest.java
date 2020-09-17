@@ -96,7 +96,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     final Expression rewritten = rewritter.rewrite(predicate);
 
     // Then:
-    assertThat(rewritten.toString(), is(String.format("(ORDERS.ROWTIME > %d)", A_TIMESTAMP)));
+    assertThat(rewritten.toString(), is(String.format("(`ORDERS`.`ROWTIME` > %d)", A_TIMESTAMP)));
   }
 
   @Test
@@ -109,7 +109,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     final Expression rewritten = rewritter.rewrite(predicate);
 
     // Then:
-    assertThat(rewritten.toString(), is(String.format("(WINDOWSTART > %d)", A_TIMESTAMP)));
+    assertThat(rewritten.toString(), is(String.format("(`WINDOWSTART` > %d)", A_TIMESTAMP)));
   }
 
   @Test
@@ -122,7 +122,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     final Expression rewritten = rewritter.rewrite(predicate);
 
     // Then:
-    assertThat(rewritten.toString(), is(String.format("(WINDOWEND > %d)", A_TIMESTAMP)));
+    assertThat(rewritten.toString(), is(String.format("(`WINDOWEND` > %d)", A_TIMESTAMP)));
   }
 
   @Test
@@ -135,7 +135,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     final Expression rewritten = rewritter.rewrite(predicate);
 
     // Then:
-    assertThat(rewritten.toString(), is(String.format("(%d < ORDERS.ROWTIME)", A_TIMESTAMP)));
+    assertThat(rewritten.toString(), is(String.format("(%d < `ORDERS`.`ROWTIME`)", A_TIMESTAMP)));
   }
 
   @Test
@@ -150,7 +150,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     // Then:
     assertThat(
         rewritten.toString(),
-        is(String.format("(ORDERS.ROWTIME BETWEEN %d AND %d)", A_TIMESTAMP, ANOTHER_TIMESTAMP))
+        is(String.format("(`ORDERS`.`ROWTIME` BETWEEN %d AND %d)", A_TIMESTAMP, ANOTHER_TIMESTAMP))
     );
   }
 
@@ -166,7 +166,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     // Then:
     assertThat(
         rewritten.toString(),
-        is(String.format("(WINDOWSTART BETWEEN %d AND %d)", A_TIMESTAMP, ANOTHER_TIMESTAMP))
+        is(String.format("(`WINDOWSTART` BETWEEN %d AND %d)", A_TIMESTAMP, ANOTHER_TIMESTAMP))
     );
   }
 
@@ -182,7 +182,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     // Then:
     assertThat(
         rewritten.toString(),
-        is(String.format("(WINDOWEND BETWEEN %d AND %d)", A_TIMESTAMP, ANOTHER_TIMESTAMP))
+        is(String.format("(`WINDOWEND` BETWEEN %d AND %d)", A_TIMESTAMP, ANOTHER_TIMESTAMP))
     );
   }
 
@@ -198,7 +198,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     // Then:
     assertThat(
         rewritten.toString(),
-        is(String.format("(WINDOWSTART BETWEEN %d AND 1236987)", A_TIMESTAMP))
+        is(String.format("(`WINDOWSTART` BETWEEN %d AND 1236987)", A_TIMESTAMP))
     );
   }
 
@@ -214,7 +214,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     // Then:
     assertThat(
         rewritten.toString(),
-        is(String.format("(WINDOWEND BETWEEN 1236987 AND %d)", A_TIMESTAMP))
+        is(String.format("(`WINDOWEND` BETWEEN 1236987 AND %d)", A_TIMESTAMP))
     );
   }
 
@@ -241,7 +241,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     final Expression rewritten = rewritter.rewrite(predicate);
 
     // Then:
-    assertThat(rewritten.toString(), is(String.format("(ORDERS.ROWTIME > %d)", A_TIMESTAMP)));
+    assertThat(rewritten.toString(), is(String.format("(`ORDERS`.`ROWTIME` > %d)", A_TIMESTAMP)));
   }
 
   @Test
@@ -255,7 +255,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
 
     // Then:
     verify(parser, never()).parse(any());
-    assertThat(rewritten.toString(), is("(ORDERS.ROWTIME = FOO('2017-01-01'))"));
+    assertThat(rewritten.toString(), is("(`ORDERS`.`ROWTIME` = `FOO`('2017-01-01'))"));
   }
 
   @Test
@@ -269,7 +269,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
 
     // Then:
     assertThat(rewritten.toString(),
-        is(String.format("((ORDERS.ROWTIME > %d) AND (ORDERS.ORDERTIME = '2017-01-01'))",
+        is(String.format("((`ORDERS`.`ROWTIME` > %d) AND (`ORDERS`.`ORDERTIME` = '2017-01-01'))",
             A_TIMESTAMP)));
   }
 
@@ -284,7 +284,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
 
     // Then:
     verify(parser, never()).parse(any());
-    assertThat(rewritten.toString(), containsString("(FOO(ORDERS.ROWTIME) = '2017-01-01')"));
+    assertThat(rewritten.toString(), containsString("(`FOO`(`ORDERS`.`ROWTIME`) = '2017-01-01')"));
   }
 
   @Test
@@ -298,7 +298,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
 
     // Then:
     verify(parser, never()).parse(any());
-    assertThat(rewritten.toString(), containsString("(('2017-01-01' + 10000) > ORDERS.ROWTIME)"));
+    assertThat(rewritten.toString(), containsString("(('2017-01-01' + 10000) > `ORDERS`.`ROWTIME`)"));
   }
 
   @Test

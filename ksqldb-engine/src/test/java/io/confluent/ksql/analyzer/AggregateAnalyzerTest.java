@@ -116,7 +116,7 @@ public class AggregateAnalyzerTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: COL2, COL3"));
+        containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: `COL2`, `COL3`"));
   }
 
   @Test
@@ -132,7 +132,7 @@ public class AggregateAnalyzerTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: UCASE(COL2)"));
+        containsString("Non-aggregate SELECT expression(s) not part of GROUP BY: `UCASE`(`COL2`)"));
   }
 
   @Test

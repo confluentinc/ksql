@@ -119,7 +119,7 @@ public class ColumnReferenceValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        CLAUSE_TYPE + " column 'just-name' cannot be resolved."));
+        CLAUSE_TYPE + " column `just-name` cannot be resolved."));
   }
 
   @Test
@@ -168,7 +168,7 @@ public class ColumnReferenceValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "SELECT column 'ROWKEY' cannot be resolved."));
+        "SELECT column `ROWKEY` cannot be resolved."));
   }
 
   @Test
@@ -184,7 +184,7 @@ public class ColumnReferenceValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "SELECT column 'ROWKEY' cannot be resolved."));
+        "SELECT column `ROWKEY` cannot be resolved."));
   }
 
   @Test
@@ -204,7 +204,7 @@ public class ColumnReferenceValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "SELECT column 'Bob.ROWKEY' cannot be resolved."));
+        "SELECT column `Bob`.`ROWKEY` cannot be resolved."));
   }
 
   @Test
@@ -220,7 +220,7 @@ public class ColumnReferenceValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "NOT SELECT column 'ROWKEY' cannot be resolved."));
+        "NOT SELECT column `ROWKEY` cannot be resolved."));
   }
 
   @Test
@@ -240,7 +240,7 @@ public class ColumnReferenceValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "SELECT column 'NOT_ROWKEY' cannot be resolved."));
+        "SELECT column `NOT_ROWKEY` cannot be resolved."));
   }
 
   private static Set<SourceName> sourceNames(final String... names) {

@@ -306,7 +306,7 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Invalid comparison expression ''foo'' in join "
-            + "'(T1.COL0 = 'foo')'. Each side of the join comparision must contain references "
+            + "'(`T1`.`COL0` = 'foo')'. Each side of the join comparision must contain references "
             + "from exactly one source."));
   }
 
@@ -330,8 +330,8 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Invalid comparison expression '(T1.COL0 + T2.COL0)' in "
-            + "join '((T1.COL0 + T2.COL0) = T1.COL0)'. Each side of the join comparision must "
+        "Invalid comparison expression '(`T1`.`COL0` + `T2`.`COL0`)' in "
+            + "join '((`T1`.`COL0` + `T2`.`COL0`) = `T1`.`COL0`)'. Each side of the join comparision must "
             + "contain references from exactly one source."));
   }
 

@@ -103,7 +103,7 @@ public class SerdeBenchmark {
       final String[] parts = text.split(SEPARATOR);
       if (parts.length != 2) {
         throw new IllegalArgumentException("Param should be in form "
-            + "'<format-name>|<schema-name>', got: " + text);
+            + "'<format-name>" + SEPARATOR + "<schema-name>', got: " + text);
       }
 
       return new Params(parts[0], parts[1]);

@@ -77,6 +77,7 @@ public class SchemaRegisterInjector implements Injector {
 
     final SerdeOptions serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
         schema,
+        FormatFactory.KAFKA,
         cs.getStatement().getProperties().getValueFormat(),
         cs.getStatement().getProperties().getSerdeOptions(),
         cs.getConfig()

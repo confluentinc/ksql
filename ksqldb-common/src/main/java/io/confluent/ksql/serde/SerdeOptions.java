@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Immutable;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -31,7 +32,11 @@ import java.util.Set;
 @Immutable
 public final class SerdeOptions {
 
-  private static final ImmutableSet<SerdeOption> WRAPPING_OPTIONS = ImmutableSet.of(
+  private static final ImmutableSet<SerdeOption> KEY_WRAPPING_OPTIONS = ImmutableSet.of(
+      SerdeOption.UNWRAP_SINGLE_KEYS
+  );
+
+  private static final ImmutableSet<SerdeOption> VALUE_WRAPPING_OPTIONS = ImmutableSet.of(
       SerdeOption.WRAP_SINGLE_VALUES, SerdeOption.UNWRAP_SINGLE_VALUES
   );
 
@@ -45,17 +50,28 @@ public final class SerdeOptions {
     return new SerdeOptions(ImmutableSet.copyOf(options));
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   private SerdeOptions(final ImmutableSet<SerdeOption> options) {
-    this.options = validate(Objects.requireNonNull(options, "options"));
+    this.options = Objects.requireNonNull(options, "options");
+    validate(this.options);
   }
 
   public Set<SerdeOption> all() {
     return options;
   }
 
+  public Optional<SerdeOption> keyWrapping() {
+    return Optional.ofNullable(
+        Iterables.getFirst(Sets.intersection(options, KEY_WRAPPING_OPTIONS), null)
+    );
+  }
+
   public Optional<SerdeOption> valueWrapping() {
     return Optional.ofNullable(
-        Iterables.getFirst(Sets.intersection(options, WRAPPING_OPTIONS), null)
+        Iterables.getFirst(Sets.intersection(options, VALUE_WRAPPING_OPTIONS), null)
     );
   }
 
@@ -81,12 +97,31 @@ public final class SerdeOptions {
     return "SerdeOptions" + options;
   }
 
-  private static ImmutableSet<SerdeOption> validate(final ImmutableSet<SerdeOption> options) {
-    final Set<SerdeOption> wrappingOptions = Sets.intersection(options, WRAPPING_OPTIONS);
+  private static void validate(final Set<SerdeOption> options) {
+    final Set<SerdeOption> wrappingOptions = Sets.intersection(options, VALUE_WRAPPING_OPTIONS);
     if (wrappingOptions.size() > 1) {
       throw new IllegalArgumentException("Conflicting wrapping settings: " + options);
     }
+  }
 
-    return options;
+  public static final class Builder {
+
+    private final Set<SerdeOption> options = EnumSet.noneOf(SerdeOption.class);
+
+    public Builder add(final SerdeOption option) {
+      if (options.add(option)) {
+        try {
+          validate(options);
+        } catch (final Exception e) {
+          options.remove(option);
+          throw e;
+        }
+      }
+      return this;
+    }
+
+    public SerdeOptions build() {
+      return SerdeOptions.of(options);
+    }
   }
 }

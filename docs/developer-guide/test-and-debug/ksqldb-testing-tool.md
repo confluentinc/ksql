@@ -156,6 +156,18 @@ the cause. Here is an example of the output for a failing test:
   >>>>> Test failed: Topic 'S1', message 4: Expected <101, {"ORDERUNITS":18.0,"CASE_RESULT":"small"}> with timestamp=0 but was <101, {ORDERUNITS=1.0, CASE_RESULT=small}> with timestamp=0
 ```
 
+### Generating input/output files automagically from existing topic data
+
+You can use [`kafkacat`](https://github.com/edenhill/kafkacat) and [`jq`](https://stedolan.github.io/jq/) in combination to create an input file based on data already in a Kafka topic: 
+
+```bash
+kafkacat -b broker:29092 -t my_topic -C -e -J | \
+  jq --slurp '{inputs:[.[]|{topic:.topic,timestamp: .ts, key: .key, value: .payload|fromjson}]}' \
+  > input.json
+```
+
+Replace `broker:29092` with your broker host and port, and `my_topic` with the name of your topic. You can limit how many messages are written to the file by adding a `-c` flag to the `kafkacat` statement—for example, `-c42` would write the first 42 messages from the topic. 
+
 Query Execution in the ksqlDB Testing Tool
 ----------------------------------------
 

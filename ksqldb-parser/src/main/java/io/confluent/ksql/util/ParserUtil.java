@@ -238,8 +238,9 @@ public final class ParserUtil {
 
     final SqlBaseParser.NonReservedContext nonReservedContext = sqlBaseParser.nonReserved();
     if (nonReservedContext.exception == null) {
-      // if the token does not match "nonReserved", then we expect the above
-      // method call to "throw" an exception
+      // If we call nonReservedWord, and if it successfully parses,
+      // then we just parsed through a nonReserved word as defined in SqlBase.g4
+      // and we return false
       return false;
     }
 

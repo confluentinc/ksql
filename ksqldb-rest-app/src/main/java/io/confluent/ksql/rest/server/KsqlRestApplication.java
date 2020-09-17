@@ -881,11 +881,7 @@ public final class KsqlRestApplication implements Executable {
 
     final String createCmd = "CREATE STREAM " + COMMANDS_STREAM_NAME
         + " (STATEMENT STRING)"
-        + " WITH("
-        + (ksqlConfigNoPort.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)
-            ? "KEY_FORMAT='KAFKA' "
-            : "")
-        + "VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
+        + " WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
 
     final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);

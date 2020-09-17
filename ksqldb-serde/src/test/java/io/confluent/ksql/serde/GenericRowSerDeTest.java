@@ -16,24 +16,24 @@
 package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.GenericRowSerDe.GenericRowDeserializer;
+import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
@@ -44,12 +44,16 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.DataException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -57,551 +61,274 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
-
-  private static final FormatInfo FORMAT =
-      FormatInfo.of(FormatFactory.JSON.name());
-
-  private static final PersistenceSchema MUTLI_FIELD_SCHEMA =
-      PersistenceSchema.from(
-          (ConnectSchema) SchemaBuilder.struct()
-              .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-              .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
-              .build(),
-          false);
-
-  private static final PersistenceSchema WRAPPED_SINGLE_FIELD_SCHEMA =
-      PersistenceSchema.from(
-          (ConnectSchema) SchemaBuilder.struct()
-              .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-              .build(),
-          false);
-
-  private static final PersistenceSchema UNWRAPPED_SINGLE_FIELD_SCHEMA =
-      PersistenceSchema.from(
-          (ConnectSchema) SchemaBuilder.struct()
-              .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-              .build(),
-          true);
-
-  private static final PersistenceSchema STRUCT_FIELD_SCHEMA =
-      PersistenceSchema.from(
-          (ConnectSchema) SchemaBuilder.struct()
-              .field("f0", SchemaBuilder.struct().optional()
-                  .field("g0", Schema.OPTIONAL_STRING_SCHEMA)
-                  .build())
-              .build(),
-          false);
-
-  private static final String SOME_TOPIC = "fred";
-  private static final byte[] SOME_BYTES = "Vic".getBytes(StandardCharsets.UTF_8);
   private static final Map<String, ?> SOME_CONFIG = ImmutableMap.of("some", "thing");
+  private static final byte[] SERIALIZED = "serialized".getBytes(StandardCharsets.UTF_8);
+
+  private static final ConnectSchema CONNECT_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
+      .field("vic", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("bob", Schema.OPTIONAL_INT32_SCHEMA)
+      .build();
 
   @Mock
-  private KsqlConfig ksqlConfig;
+  private GenericSerdeFactory innerFactory;
+  @Mock
+  private FormatInfo format;
+  @Mock
+  private PersistenceSchema schema;
+  @Mock
+  private KsqlConfig config;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
   @Mock
-  private ProcessingLogContext processingContext;
+  private ProcessingLogContext processingLogCxt;
   @Mock
-  private ProcessingLoggerFactory loggerFactory;
+  private Serde<Struct> innerSerde;
   @Mock
-  private Serde<Object> delegateSerde;
+  private Serializer<Struct> innerSerializer;
   @Mock
-  private Serializer<Object> delegateSerializer;
+  private Deserializer<Struct> innerDeserializer;
   @Mock
-  private Deserializer<Object> delegateDeserializer;
+  private Struct deserialized;
   @Mock
-  private SerdeFactories serdesFactories;
+  private Schema deserializedSchema;
+  @Mock
+  private Serde<Object> loggingSerde;
+  @Captor
+  private ArgumentCaptor<Serde<GenericRow>> rowSerdeCaptor;
 
-  private ValueSerdeFactory valueSerde;
+  private ValueSerdeFactory factory;
+  private GenericRowSerializer serializer;
+  private GenericRowDeserializer deserializer;
+  private final Struct struct = new Struct(CONNECT_SCHEMA);
 
   @Before
   public void setUp() {
-    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(delegateSerde);
-    when(delegateSerde.serializer()).thenReturn(delegateSerializer);
-    when(delegateSerde.deserializer()).thenReturn(delegateDeserializer);
+    factory = new GenericRowSerDe(innerFactory);
 
-    when(delegateSerializer.serialize(any(), any())).thenReturn(SOME_BYTES);
+    serializer = new GenericRowSerializer(innerSerializer, CONNECT_SCHEMA);
+    deserializer = new GenericRowDeserializer(innerDeserializer, CONNECT_SCHEMA);
 
-    final ProcessingLogger logger = mock(ProcessingLogger.class);
-    when(loggerFactory.getLogger(any())).thenReturn(logger);
-    when(processingContext.getLoggerFactory()).thenReturn(loggerFactory);
-
-    valueSerde = new GenericRowSerDe(serdesFactories);
+    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerSerde.serializer()).thenReturn(innerSerializer);
+    when(innerSerde.deserializer()).thenReturn(innerDeserializer);
+    when(innerSerializer.serialize(any(), any())).thenReturn(SERIALIZED);
+    when(innerDeserializer.deserialize(any(), any())).thenReturn(deserialized);
+    when(deserialized.schema()).thenReturn(deserializedSchema);
   }
 
   @Test
-  public void shouldValidateFormatCanHandleSchema() {
-    // Given:
-    doThrow(new RuntimeException("Boom!"))
-        .when(serdesFactories).validate(FORMAT, MUTLI_FIELD_SCHEMA);
-
+  public void shouldCreateInnerSerde() {
     // When:
-    final Exception e = assertThrows(
-        SchemaNotSupportedException.class,
-        () -> valueSerde.create(
-            FORMAT,
-            MUTLI_FIELD_SCHEMA,
-            ksqlConfig,
-            srClientFactory,
-            LOGGER_PREFIX,
-            processingContext
-        )
-    );
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    assertThat(e.getMessage(), containsString("Value format does not support value schema."
-        + System.lineSeparator()
-        + "format: JSON"
-        + System.lineSeparator()
-        + "schema: Persistence{schema=STRUCT<f0 VARCHAR, f1 INT> NOT NULL, unwrapped=false}"
-        + System.lineSeparator()
-        + "reason: Boom!"));
+    verify(innerFactory).createFormatSerde("Value", format, schema, config, srClientFactory);
   }
 
   @Test
-  public void shouldGetStructSerdeOnConstruction() {
+  public void shouldWrapInLoggingSerde() {
     // When:
-    valueSerde.create(
-        FORMAT,
-        MUTLI_FIELD_SCHEMA,
-        ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
-    );
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    verify(serdesFactories).create(
-        FORMAT,
-        MUTLI_FIELD_SCHEMA,
-        ksqlConfig,
-        srClientFactory,
-        Struct.class
-    );
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
   }
 
   @Test
-  public void shouldGetStringSerdeOnConstruction() {
+  public void shouldConfigureLoggingSerde() {
     // When:
-    valueSerde.create(
-        FORMAT,
-        UNWRAPPED_SINGLE_FIELD_SCHEMA,
-        ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
-    );
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    verify(serdesFactories).create(
-        FORMAT,
-        UNWRAPPED_SINGLE_FIELD_SCHEMA,
-        ksqlConfig,
-        srClientFactory,
-        String.class
-    );
-  }
-
-  @Test(expected = NullPointerException.class)
-  public void shouldThrowOnNullStructSerde() {
-    // Given:
-    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(null);
-
-    // When:
-    valueSerde.create(
-        FORMAT,
-        MUTLI_FIELD_SCHEMA,
-        ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
-    );
-  }
-
-  @Test(expected = NullPointerException.class)
-  public void shouldThrowOnNullSchema() {
-    // When:
-    GenericRowSerDe.from(
-        FORMAT,
-        null,
-        ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
-    );
+    verify(loggingSerde).configure(ImmutableMap.of(), false);
   }
 
   @Test
-  public void shouldCreateProcessingLoggerWithCorrectName() {
+  public void shouldWrapInGenericSerde() {
     // When:
-    GenericRowSerDe.from(
-        FORMAT,
-        MUTLI_FIELD_SCHEMA,
-        ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
-    );
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    verify(loggerFactory).getLogger("bob.deserializer");
+    verify(innerFactory).wrapInLoggingSerde(rowSerdeCaptor.capture(), any(), any());
+
+    assertThat(rowSerdeCaptor.getValue().serializer(), is(instanceOf(GenericRowSerializer.class)));
+    assertThat(rowSerdeCaptor.getValue().deserializer(),
+        is(instanceOf(GenericRowDeserializer.class)));
   }
 
   @Test
-  public void shouldConfigureInnerSerializerForWrapped() {
-    // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
-        .serializer();
+  public void shouldReturnLoggingSerde() {
+    // When:
+    final Serde<GenericRow> result = factory
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
+    // Then:
+    assertThat(result, is(sameInstance(loggingSerde)));
+  }
+
+  @Test
+  public void shouldConfigureInnerSerializerOnConfigure() {
     // When:
     serializer.configure(SOME_CONFIG, true);
 
     // Then:
-    verify(delegateSerializer).configure(SOME_CONFIG, true);
+    verify(innerSerializer).configure(SOME_CONFIG, true);
   }
 
   @Test
-  public void shouldConfigureInnerSerializerForUnwrapped() {
-    // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
-        .serializer();
-
-    // When:
-    serializer.configure(SOME_CONFIG, true);
-
-    // Then:
-    verify(delegateSerializer).configure(SOME_CONFIG, true);
-  }
-
-  @Test
-  public void shouldConfigureInnerDeserializerForWrapped() {
-    // Given:
-    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
-        .deserializer();
-
+  public void shouldConfigureInnerDeserializerOnConfigure() {
     // When:
     deserializer.configure(SOME_CONFIG, true);
 
     // Then:
-    verify(delegateDeserializer).configure(SOME_CONFIG, true);
+    verify(innerDeserializer).configure(SOME_CONFIG, true);
   }
 
   @Test
-  public void shouldConfigureInnerDeserializerForUnwrapped() {
-    // Given:
-    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
-        .deserializer();
-
+  public void shouldCloseInnerSerializerOnClose() {
     // When:
-    deserializer.configure(SOME_CONFIG, true);
+    serializer.close();
 
     // Then:
-    verify(delegateDeserializer).configure(SOME_CONFIG, true);
+    verify(innerSerializer).close();
   }
 
   @Test
-  public void shouldSerializeMultiFieldGenericRow() {
-    // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
-        .serializer();
-
-    final GenericRow row = GenericRow.genericRow("str", 10);
-
+  public void shouldCloseInnerDeserializerOnClose() {
     // When:
-    final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
+    deserializer.close();
 
     // Then:
-    verify(delegateSerializer).serialize(
-        SOME_TOPIC,
-        new Struct(MUTLI_FIELD_SCHEMA.ksqlSchema())
-            .put("f0", "str")
-            .put("f1", 10)
-    );
-
-    assertThat(bytes, is(SOME_BYTES));
+    verify(innerDeserializer).close();
   }
 
   @Test
-  public void shouldSerializeNullMultiFieldGenericRow() {
-    // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
-        .serializer();
-
-    when(delegateSerializer.serialize(any(), any())).thenReturn(null);
-
+  public void shouldSerializeNulls() {
     // When:
-    final byte[] bytes = serializer.serialize(SOME_TOPIC, null);
+    final byte[] result = serializer.serialize("topic", null);
 
     // Then:
-    verify(delegateSerializer).serialize(SOME_TOPIC, null);
-
-    assertThat(bytes, is(nullValue()));
+    verify(innerSerializer).serialize("topic", null);
+    assertThat(result, is(SERIALIZED));
   }
 
   @Test
-  public void shouldThrowOnSerializationOnTooFewFields() {
+  public void shouldDeserializeNulls() {
     // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
-        .serializer();
+    when(innerDeserializer.deserialize(any(), any())).thenReturn(null);
 
-    final GenericRow tooFew = GenericRow.genericRow("str");
+    // When:
+    final GenericRow result = deserializer.deserialize("topic", SERIALIZED);
+
+    // Then:
+    verify(innerDeserializer).deserialize("topic", SERIALIZED);
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldThrowOnSerializeOnColumnCountMismatch() {
+    // Given:
+    final GenericRow row = GenericRow.genericRow("too", "many", "columns");
 
     // When:
     final Exception e = assertThrows(
         SerializationException.class,
-        () -> serializer.serialize(SOME_TOPIC, tooFew)
+        () -> serializer.serialize("topicName", row)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Field count mismatch. topic: fred, expected: 2, got: 1"));
+    assertThat(e.getMessage(), is("Field count mismatch on serialization."
+        + " topic: topicName"
+        + ", expected: 2"
+        + ", got: 3"
+    ));
   }
 
   @Test
-  public void shouldThrowOnSerializationOnTooManyFields() {
+  public void shouldThrowOnDeserializeOnColumnCountMismatch() {
     // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
-        .serializer();
-
-    final GenericRow tooFew = GenericRow.genericRow("str", 10, "extra");
+    when(deserializedSchema.fields()).thenReturn(ImmutableList.of(
+        new Field("too", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("many", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("columns", 0, Schema.OPTIONAL_INT64_SCHEMA)
+    ));
 
     // When:
     final Exception e = assertThrows(
         SerializationException.class,
-        () -> serializer.serialize(SOME_TOPIC, tooFew)
+        () -> deserializer.deserialize("topicName", SERIALIZED)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Field count mismatch. topic: fred, expected: 2, got: 3"));
+    assertThat(e.getMessage(), is("Field count mismatch on deserialization."
+        + " topic: topicName"
+        + ", expected: 2"
+        + ", got: 3"
+    ));
   }
 
   @Test
-  public void shouldSerializeWrappedSingleFieldGenericRow() {
+  public void shouldConvertRowToStructWhenSerializing() {
     // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(WRAPPED_SINGLE_FIELD_SCHEMA)
-        .serializer();
-
-    final GenericRow row = GenericRow.genericRow("str");
+    final GenericRow row = GenericRow.genericRow("hello", 10);
 
     // When:
-    final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
+    serializer.serialize("topicName", row);
 
     // Then:
-    verify(delegateSerializer).serialize(
-        SOME_TOPIC,
-        new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.ksqlSchema())
-            .put("f0", "str")
+    verify(innerSerializer).serialize("topicName", struct
+        .put("vic", "hello")
+        .put("bob", 10)
     );
-
-    assertThat(bytes, is(SOME_BYTES));
   }
 
   @Test
-  public void shouldSerializeUnwrappedSingleFieldGenericRow() {
+  public void shouldConvertStructToRowWhenDeserializing() {
     // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
-        .serializer();
+    struct
+        .put("vic", "world")
+        .put("bob", -10);
 
-    final GenericRow row = GenericRow.genericRow("str");
+    when(innerDeserializer.deserialize(any(), any())).thenReturn(struct);
 
     // When:
-    final byte[] bytes = serializer.serialize(SOME_TOPIC, row);
+    final GenericRow row = deserializer.deserialize("topicName", SERIALIZED);
 
     // Then:
-    verify(delegateSerializer).serialize(SOME_TOPIC, "str");
-
-    assertThat(bytes, is(SOME_BYTES));
+    assertThat(row, is(GenericRow.genericRow("world", -10)));
   }
 
   @Test
-  public void shouldSerializeNullUnwrappedSingleFieldGenericRow() {
+  public void shouldThrowOnSerializationIfColumnValueDoesNotMatchSchema() {
     // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
-        .serializer();
-
-    when(delegateSerializer.serialize(any(), any())).thenReturn(null);
+    final GenericRow row = GenericRow.genericRow("hello", "Not a number");
 
     // When:
-    final byte[] bytes = serializer.serialize(SOME_TOPIC, null);
-
-    // Then:
-    verify(delegateSerializer).serialize(SOME_TOPIC, null);
-
-    assertThat(bytes, is(nullValue()));
-  }
-
-  @Test
-  public void shouldThrowOnMultiFieldRowIfUsingUnwrappedSerializer() {
-    // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
-        .serializer();
-
-    final GenericRow row = GenericRow.genericRow("str", "too many fields");
-
-    // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> serializer.serialize(SOME_TOPIC, row)
+    assertThrows(
+        DataException.class,
+        () -> serializer.serialize("topicName", row)
     );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Expected single-field value. got: 2"));
   }
 
   @Test
-  public void shouldThrowInformativeErrorOnNonOptionalStruct() {
+  public void shouldThrowOnSerializationIfStructColumnValueDoesNotMatchSchema() {
     // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(STRUCT_FIELD_SCHEMA)
-        .serializer();
-
-    final Schema nonOptionalSchema = SchemaBuilder.struct()
-        .field("g0", Schema.OPTIONAL_STRING_SCHEMA)
-        .build();
-    final GenericRow row = GenericRow.genericRow(
-        new Struct(nonOptionalSchema).put("g0", "foo"));
+    final GenericRow row = GenericRow.genericRow(struct, 10);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> serializer.serialize(SOME_TOPIC, row)
+        () -> serializer.serialize("topicName", row)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Failed to prepare Struct value field 'f0' for serialization."));
-    assertThat(e.getMessage(), containsString(
-        "This could happen if the value was produced by a user-defined function "
-        + "where the schema has non-optional return types. ksqlDB requires all "
-        + "schemas to be optional at all levels of the Struct: the Struct itself, "
-        + "schemas for all fields within the Struct, and so on."));
-  }
-
-  @Test
-  public void shouldThrowInformativeErrorOnStructWithNonOptionalField() {
-    // Given:
-    final Serializer<GenericRow> serializer = givenSerdeForSchema(STRUCT_FIELD_SCHEMA)
-        .serializer();
-
-    final Schema schemaWithNonOptionalField = SchemaBuilder.struct().optional()
-        .field("g0", Schema.STRING_SCHEMA)
-        .build();
-    final GenericRow row = GenericRow.genericRow(
-        new Struct(schemaWithNonOptionalField).put("g0", "foo"));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> serializer.serialize(SOME_TOPIC, row)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Failed to prepare Struct value field 'f0' for serialization."));
-    assertThat(e.getMessage(), containsString(
-        "This could happen if the value was produced by a user-defined function "
+    assertThat(e.getMessage(), is(
+        "Failed to prepare Struct value field 'vic' for serialization. "
+            + "This could happen if the value was produced by a user-defined function "
             + "where the schema has non-optional return types. ksqlDB requires all "
             + "schemas to be optional at all levels of the Struct: the Struct itself, "
-            + "schemas for all fields within the Struct, and so on."));
-  }
-
-  @Test
-  public void shouldDeserializeMultiFieldGenericRow() {
-    // Given:
-    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
-        .deserializer();
-
-    when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(MUTLI_FIELD_SCHEMA.ksqlSchema())
-            .put("f0", "str")
-            .put("f1", 10));
-
-    // When:
-    final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
-
-    // Then:
-    verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
-
-    assertThat(row, is(GenericRow.genericRow("str", 10)));
-  }
-
-  @Test
-  public void shouldDeserializeNullMultiFieldGenericRow() {
-    // Given:
-    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
-        .deserializer();
-
-    when(delegateDeserializer.deserialize(any(), any())).thenReturn(null);
-
-    // When:
-    final GenericRow row = deserializer.deserialize(SOME_TOPIC, null);
-
-    // Then:
-    verify(delegateDeserializer).deserialize(SOME_TOPIC, null);
-
-    assertThat(row, is(nullValue()));
-  }
-
-  @Test
-  public void shouldDeserializeWrappedSingleFieldGenericRow() {
-    // Given:
-    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(WRAPPED_SINGLE_FIELD_SCHEMA)
-        .deserializer();
-
-    when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.ksqlSchema())
-            .put("f0", "str"));
-
-    // When:
-    final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
-
-    // Then:
-    verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
-
-    assertThat(row, is(GenericRow.genericRow("str")));
-  }
-
-  @Test
-  public void shouldDeserializeUnwrappedSingleFieldGenericRow() {
-    // Given:
-    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
-        .deserializer();
-
-    when(delegateDeserializer.deserialize(any(), any())).thenReturn("str");
-
-    // When:
-    final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
-
-    // Then:
-    verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
-
-    assertThat(row, is(GenericRow.genericRow("str")));
-  }
-
-  @Test
-  public void shouldDeserializeNullUnwrappedSingleFieldGenericRow() {
-    // Given:
-    final Deserializer<GenericRow> deserializer = givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA)
-        .deserializer();
-
-    when(delegateDeserializer.deserialize(any(), any())).thenReturn(null);
-
-    // When:
-    final GenericRow row = deserializer.deserialize(SOME_TOPIC, SOME_BYTES);
-
-    // Then:
-    verify(delegateDeserializer).deserialize(SOME_TOPIC, SOME_BYTES);
-
-    assertThat(row, is(nullValue()));
-  }
-
-  private Serde<GenericRow> givenSerdeForSchema(final PersistenceSchema schema) {
-    return valueSerde.create(
-        FORMAT,
-        schema,
-        ksqlConfig,
-        srClientFactory,
-        LOGGER_PREFIX,
-        processingContext
-    );
+            + "schemas for all fields within the Struct, and so on."
+    ));
   }
 }

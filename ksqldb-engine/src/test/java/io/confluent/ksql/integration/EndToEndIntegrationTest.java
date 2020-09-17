@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -229,6 +230,48 @@ public class EndToEndIntegrationTest {
     executeStatement("DROP STREAM avro_stream DELETE TOPIC;");
 
     TEST_HARNESS.waitForSubjectToBeAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+  }
+
+  @Test
+  public void shouldRegisterCorrectPrimitiveSchemaForCreateStatements() throws Exception {
+    // Given:
+    final String topicName = "create_stream_topic";
+    final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    // When:
+    executeStatement("create stream s ("
+        + "  VAL INT"
+        + ") with ("
+        + "  kafka_topic = '" + topicName + "',"
+        + "  partitions = 1,"
+        + "  value_format = 'avro',"
+        + "  wrap_single_value = false);"
+    );
+
+    // Then:
+    TEST_HARNESS.waitForSubjectToBePresent(subject);
+
+    assertThat(TEST_HARNESS.getSchema(subject), is(new AvroSchema("{\"type\":\"int\"}")));
+  }
+
+  @Test
+  public void shouldRegisterCorrectPrimitiveSchemaForCreateAsStatements() throws Exception {
+    // Given:
+    final String topicName = "create_as_stream_topic";
+    final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    executeStatement("create stream s with ("
+        + "  kafka_topic = '" + topicName + "',"
+        + "  value_format = 'avro',"
+        + "  wrap_single_value = false"
+        + ") as "
+        + "select pageid, viewtime from " + PAGE_VIEW_STREAM + ";"
+    );
+
+    // Then:
+    TEST_HARNESS.waitForSubjectToBePresent(subject);
+
+    assertThat(TEST_HARNESS.getSchema(subject), is(new AvroSchema("{\"type\":\"long\"}")));
   }
 
   @Test

@@ -14,12 +14,11 @@
     {
       "name": "Unwrapped single values",
       "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input', value_format='KAFKA');"
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Format 'KAFKA' does not support 'WRAP_SINGLE_VALUE' set to 'false'."
-      }
+      "input": [{"topic": "input", "key": "foo", "value": 1}],
+      "output": [{"topic": "OUTPUT", "key": "foo", "value": 1}]
     },
     {
       "name": "Default single value wrapping",

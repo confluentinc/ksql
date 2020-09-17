@@ -84,6 +84,7 @@ public class RestQueryTranslationTest {
           StreamsConfig.EXACTLY_ONCE // To stabilize tests
       )
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 

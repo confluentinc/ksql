@@ -16,23 +16,23 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 
 public class ProtobufFormat extends ConnectFormat {
-
-  private static final Set<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
-      SerdeFeature.WRAP_SINGLES
-  );
 
   public static final String NAME = ProtobufSchema.TYPE;
 
@@ -46,12 +46,18 @@ public class ProtobufFormat extends ConnectFormat {
 
   @Override
   public Set<SerdeFeature> supportedFeatures() {
-    return SUPPORTED_FEATURES;
+    return ProtobufSerdeFactory.SUPPORTED_FEATURES;
   }
 
   @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new ProtobufSerdeFactory();
+  protected <T> Serde<T> getConnectSerde(
+      final ConnectSchema connectSchema,
+      final Map<String, String> formatProps,
+      final KsqlConfig config,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
+  ) {
+    return ProtobufSerdeFactory.createSerde(connectSchema, config, srFactory, targetType);
   }
 
   @Override
@@ -60,7 +66,8 @@ public class ProtobufFormat extends ConnectFormat {
   }
 
   @Override
-  protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
+  protected ParsedSchema fromConnectSchema(final Schema schema,
+      final FormatInfo formatInfo) {
     // Bug in ProtobufData means `fromConnectSchema` throws on the second invocation if using
     // default naming.
     return new ProtobufData().fromConnectSchema(schema);

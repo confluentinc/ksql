@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Struct;
 
 /**
@@ -164,8 +166,8 @@ public class GenericRecordFactory {
       final LogicalSchema schema,
       final Map<ColumnName, Object> values
   ) {
-
-    final Struct key = new Struct(schema.keyConnectSchema());
+    final ConnectSchema keySchema = ConnectSchemas.columnsToConnectSchema(schema.key());
+    final Struct key = new Struct(keySchema);
 
     for (final org.apache.kafka.connect.data.Field field : key.schema().fields()) {
       final Object value = values.get(ColumnName.of(field.name()));

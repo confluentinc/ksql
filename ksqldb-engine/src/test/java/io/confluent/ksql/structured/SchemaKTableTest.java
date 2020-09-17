@@ -76,6 +76,7 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
@@ -91,7 +92,6 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -163,7 +163,7 @@ public class SchemaKTableTest {
         ksqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueConnectSchema())
+            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema())
         ));
 
     secondKsqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST3"));
@@ -171,7 +171,7 @@ public class SchemaKTableTest {
         secondKsqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema().valueConnectSchema())
+            getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema())
         ));
 
     mockKTable = EasyMock.niceMock(KTable.class);
@@ -250,10 +250,10 @@ public class SchemaKTableTest {
     );
   }
 
-  private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final ConnectSchema schema) {
+  private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final LogicalSchema schema) {
     return GenericRowSerDe.from(
         topic.getValueFormat().getFormatInfo(),
-        PersistenceSchema.from(schema, false),
+        PersistenceSchema.from(schema.value(), EnabledSerdeFeatures.of()),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "test",
@@ -485,7 +485,7 @@ public class SchemaKTableTest {
   public void shouldUseOpNameForGrouped() {
     // Given:
     final Serde<GenericRow> valSerde =
-        getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueConnectSchema());
+        getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema());
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
     expect(
         groupedFactory.create(

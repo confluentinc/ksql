@@ -16,26 +16,34 @@
 package io.confluent.ksql.serde.connect;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.Struct;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Base class for formats that internally leverage Connect's data model, i.e. it's {@link Schema}
@@ -65,51 +73,94 @@ public abstract class ConnectFormat implements Format {
 
   @Override
   public List<SimpleColumn> toColumns(final ParsedSchema schema) {
-    final Schema connectSchema = toKsqlTransformer.apply(toConnectSchema(schema));
+    Schema connectSchema = toConnectSchema(schema);
 
-    return connectSchema.fields().stream()
+    if (connectSchema.type() != Type.STRUCT) {
+      if (!supportsFeature(SerdeFeature.UNWRAP_SINGLES)) {
+        throw new KsqlException("Schema returned from schema registry is anonymous type, "
+            + "but format " + name() + " does not support anonymous types. "
+            + "schema: " + schema);
+      }
+
+      connectSchema = SerdeUtils.wrapSingle(connectSchema);
+    }
+
+    final Schema rowSchema = toKsqlTransformer.apply(connectSchema);
+
+    return rowSchema.fields().stream()
         .map(ConnectFormat::toColumn)
         .collect(Collectors.toList());
   }
 
   public ParsedSchema toParsedSchema(
-      final List<? extends SimpleColumn> columns,
-      final SerdeOptions serdeOptions,
+      final PersistenceSchema schema,
       final FormatInfo formatInfo
   ) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    columns.forEach(col -> schemaBuilder.field(
-        col.name().text(),
-        SchemaConverters.sqlToConnectConverter().toConnectSchema(col.type()))
-    );
+    SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
 
-    final PersistenceSchema persistenceSchema =
-        buildValuePhysical(schemaBuilder.build(), serdeOptions);
+    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+    final ConnectSchema innerSchema = SerdeUtils
+        .applySinglesUnwrapping(outerSchema, schema.features());
 
-    return fromConnectSchema(persistenceSchema.serializedSchema(), formatInfo);
+    return fromConnectSchema(innerSchema, formatInfo);
   }
+
+  @Override
+  public Serde<Struct> getSerde(
+      final PersistenceSchema schema,
+      final Map<String, String> formatProps,
+      final KsqlConfig config,
+      final Supplier<SchemaRegistryClient> srFactory
+  ) {
+    SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
+
+    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+    final ConnectSchema innerSchema = SerdeUtils
+        .applySinglesUnwrapping(outerSchema, schema.features());
+
+    final Class<?> targetType = SchemaConverters.connectToJavaTypeConverter()
+        .toJavaType(innerSchema);
+
+    if (schema.features().enabled(SerdeFeature.UNWRAP_SINGLES)) {
+      return handleUnwrapping(innerSchema, outerSchema, formatProps, config, srFactory, targetType);
+    }
+
+    if (!targetType.equals(Struct.class)) {
+      throw new IllegalArgumentException("Expected STRUCT, got " + targetType);
+    }
+
+    return getConnectSerde(innerSchema, formatProps, config, srFactory, Struct.class);
+  }
+
+  @NotNull
+  private <T> Serde<Struct> handleUnwrapping(
+      final ConnectSchema innerSchema,
+      final ConnectSchema outerSchema,
+      final Map<String, String> formatProps,
+      final KsqlConfig config,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType
+  ) {
+    final Serde<T> innerSerde =
+        getConnectSerde(innerSchema, formatProps, config, srFactory, targetType);
+
+    return Serdes.serdeFrom(
+        SerdeUtils.unwrappedSerializer(outerSchema, innerSerde.serializer(), targetType),
+        SerdeUtils.unwrappedDeserializer(outerSchema, innerSerde.deserializer(), targetType)
+    );
+  }
+
+  protected abstract <T> Serde<T> getConnectSerde(
+      ConnectSchema connectSchema,
+      Map<String, String> formatProps,
+      KsqlConfig config,
+      Supplier<SchemaRegistryClient> srFactory,
+      Class<T> targetType
+  );
 
   protected abstract Schema toConnectSchema(ParsedSchema schema);
 
   protected abstract ParsedSchema fromConnectSchema(Schema schema, FormatInfo formatInfo);
-
-  private static PersistenceSchema buildValuePhysical(
-      final Schema valueConnectSchema,
-      final SerdeOptions serdeOptions
-  ) {
-    final boolean singleField = valueConnectSchema.fields().size() == 1;
-
-    final boolean unwrapSingle = serdeOptions.valueWrapping()
-        .map(option -> option == SerdeOption.UNWRAP_SINGLE_VALUES)
-        .orElse(false);
-
-    if (unwrapSingle && !singleField) {
-      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE + "' "
-          + "is only valid for single-field value schemas");
-    }
-
-    return PersistenceSchema.from((ConnectSchema) valueConnectSchema, unwrapSingle);
-  }
 
   private static SimpleColumn toColumn(final Field field) {
     final ColumnName name = ColumnName.of(field.name());
@@ -117,6 +168,7 @@ public abstract class ConnectFormat implements Format {
     return new ConnectColumn(name, type);
   }
 
+  @Immutable
   private static final class ConnectColumn implements SimpleColumn {
 
     private final ColumnName name;

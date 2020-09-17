@@ -1494,6 +1494,25 @@
           {"row":{"columns":["10",11000,12000,1]}}
         ]}
       ]
+    },
+    {
+      "name": "unwrapped value",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE WITH (wrap_single_value=false) AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10",1]}}
+        ]}
+      ]
     }
   ]
 }

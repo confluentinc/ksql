@@ -32,7 +32,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 
-public class KsqlDelimitedSerializer implements Serializer<Object> {
+public class KsqlDelimitedSerializer implements Serializer<Struct> {
 
   private final CSVFormat csvFormat;
 
@@ -45,19 +45,15 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
   }
 
   @Override
-  public byte[] serialize(final String topic, final Object data) {
+  public byte[] serialize(final String topic, final Struct data) {
     if (data == null) {
       return null;
     }
 
     try {
-      if (!(data instanceof Struct)) {
-        throw new SerializationException("DELIMITED does not support anonymous fields");
-      }
-
       final StringWriter stringWriter = new StringWriter();
       final CSVPrinter csvPrinter = new CSVPrinter(stringWriter, csvFormat);
-      csvPrinter.printRecord(() -> new FieldIterator((Struct)data));
+      csvPrinter.printRecord(() -> new FieldIterator(data));
       final String result = stringWriter.toString();
       return result.substring(0, result.length() - 2).getBytes(StandardCharsets.UTF_8);
     } catch (final Exception e) {

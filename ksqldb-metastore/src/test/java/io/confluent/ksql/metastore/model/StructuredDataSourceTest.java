@@ -169,7 +169,7 @@ public class StructuredDataSourceTest {
 
     // Then:
     assertThat(err.isPresent(), is(true));
-    assertThat(err.get(), containsString("has serdeOptions = SerdeOptions[] which is not upgradeable to SerdeOptions[UNWRAP_SINGLE_VALUES]"));
+    assertThat(err.get(), containsString("has serdeOptions = [] which is not upgradeable to [UNWRAP_SINGLE_VALUES]"));
   }
 
   @Test

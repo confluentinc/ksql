@@ -36,6 +36,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
@@ -324,8 +325,10 @@ public class AvroUtilTest {
 
   private static AvroSchema avroSchema(final PhysicalSchema schema) {
     return (AvroSchema) new AvroFormat().toParsedSchema(
-        schema.logicalSchema().value(),
-        schema.serdeOptions(),
+        PersistenceSchema.from(
+            schema.logicalSchema().value(),
+            schema.serdeOptions().valueFeatures()
+        ),
         FormatInfo.of(
             AvroFormat.NAME,
             ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME)

@@ -17,50 +17,34 @@ package io.confluent.ksql.serde.delimited;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SqlTypeWalker;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.testing.EffectivelyImmutable;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.Struct;
 
 
 @Immutable
-public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
-
-  private static final Delimiter DEFAULT_DELIMITER = Delimiter.of(',');
+class KsqlDelimitedSerdeFactory {
 
   @EffectivelyImmutable
   private final CSVFormat csvFormat;
 
-  public KsqlDelimitedSerdeFactory(final Optional<Delimiter> delimiter) {
-    this.csvFormat =
-        CSVFormat.DEFAULT.withDelimiter(delimiter.orElse(DEFAULT_DELIMITER).getDelimiter());
+  KsqlDelimitedSerdeFactory(final Delimiter delimiter) {
+    this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.getDelimiter());
   }
 
-  @Override
-  public void validate(final PersistenceSchema schema) {
-    final ConnectSchema connectSchema = schema.serializedSchema();
-    if (connectSchema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("DELIMITED format does not support unwrapping");
-    }
-
-    connectSchema.fields().forEach(f -> SchemaWalker.visit(f.schema(), new SchemaValidator()));
-  }
-
-  @Override
-  public Serde<Object> createSerde(
+  public Serde<Struct> createSerde(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
@@ -73,23 +57,29 @@ public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
     );
   }
 
-  private static class SchemaValidator implements SchemaWalker.Visitor<Void, Void> {
+  private static void validate(final PersistenceSchema schema) {
+    schema.columns()
+        .forEach(c -> SqlTypeWalker.visit(c.type(), new SchemaValidator()));
+  }
 
-    public Void visitPrimitive(final Schema schema) {
+  private static class SchemaValidator implements SqlTypeWalker.Visitor<Void, Void> {
+
+    @Override
+    public Void visitPrimitive(final SqlPrimitiveType type) {
       // Primitive types are allowed.
       return null;
     }
 
-    public Void visitBytes(final Schema schema) {
-      if (!DecimalUtil.isDecimal(schema)) {
-        visitSchema(schema);
-      }
+    @Override
+    public Void visitDecimal(final SqlDecimal type) {
+      // Decimal types are allowed.
       return null;
     }
 
-    public Void visitSchema(final Schema schema) {
+    @Override
+    public Void visitType(final SqlType schema) {
       throw new KsqlException("The '" + FormatFactory.DELIMITED.name()
-          + "' format does not support type '" + schema.type().toString() + "'");
+          + "' format does not support type '" + schema.baseType() + "'");
     }
   }
 }

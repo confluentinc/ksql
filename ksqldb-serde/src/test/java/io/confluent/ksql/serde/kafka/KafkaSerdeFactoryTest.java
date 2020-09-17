@@ -30,12 +30,12 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -48,15 +48,9 @@ public class KafkaSerdeFactoryTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
-  private KafkaSerdeFactory factory;
-
-  @Before
-  public void setUp() {
-    factory = new KafkaSerdeFactory();
-  }
 
   @Test
-  public void shouldThrowOnValidateIfMultipleFields() {
+  public void shouldThroIfMultipleFields() {
     // Given:
     final PersistenceSchema schema = getPersistenceSchema(LogicalSchema.builder()
         .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -67,23 +61,23 @@ public class KafkaSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> KafkaSerdeFactory.createSerde(schema)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "The 'KAFKA' format only supports a single field. Got: f0 INT, f1 BIGINT"));
+        "The 'KAFKA' format only supports a single field. Got: [`f0` INTEGER, `f1` BIGINT]"));
   }
 
   @Test
-  public void shouldThrowOnValidateIfBoolean() {
+  public void shouldThroIfBoolean() {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.BOOLEAN);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> KafkaSerdeFactory.createSerde(schema)
     );
 
     // Then:
@@ -91,14 +85,14 @@ public class KafkaSerdeFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnValidateIfDecimal() {
+  public void shouldThroIfDecimal() {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.decimal(1, 1));
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> KafkaSerdeFactory.createSerde(schema)
     );
 
     // Then:
@@ -106,14 +100,14 @@ public class KafkaSerdeFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnValidateIfArray() {
+  public void shouldThroIfArray() {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.array(SqlTypes.STRING));
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> KafkaSerdeFactory.createSerde(schema)
     );
 
     // Then:
@@ -121,7 +115,7 @@ public class KafkaSerdeFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnValidateIfMap() {
+  public void shouldThroIfMap() {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING
     ));
@@ -129,7 +123,7 @@ public class KafkaSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> KafkaSerdeFactory.createSerde(schema)
     );
 
     // Then:
@@ -137,7 +131,7 @@ public class KafkaSerdeFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnValidateIfStruct() {
+  public void shouldThroIfStruct() {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.struct()
         .field("f0", SqlTypes.STRING)
@@ -146,7 +140,7 @@ public class KafkaSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> KafkaSerdeFactory.createSerde(schema)
     );
 
     // Then:
@@ -158,7 +152,7 @@ public class KafkaSerdeFactoryTest {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.INTEGER);
 
-    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+    final Serde<Struct> serde = KafkaSerdeFactory.createSerde(schema);
 
     // When:
     final byte[] result = serde.serializer().serialize("topic", null);
@@ -172,7 +166,7 @@ public class KafkaSerdeFactoryTest {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.INTEGER);
 
-    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+    final Serde<Struct> serde = KafkaSerdeFactory.createSerde(schema);
 
     // When:
     final Object result = serde.deserializer().deserialize("topic", null);
@@ -191,9 +185,9 @@ public class KafkaSerdeFactoryTest {
 
     final PersistenceSchema schema = PhysicalSchema.from(logical, SerdeOptions.of()).keySchema();
 
-    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+    final Serde<Struct> serde = KafkaSerdeFactory.createSerde(schema);
 
-    // Given:
+    // When:
     final byte[] bytes = serde.serializer().serialize("topic", null);
     final Object result = serde.deserializer().deserialize("topic", null);
 
@@ -211,10 +205,12 @@ public class KafkaSerdeFactoryTest {
 
     final PersistenceSchema schema = PhysicalSchema.from(logical, SerdeOptions.of()).keySchema();
 
-    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+    final Serde<Struct> serde = KafkaSerdeFactory.createSerde(schema);
 
-    // Given:
-    final byte[] bytes = serde.serializer().serialize("topic", new Struct(logical.keyConnectSchema()));
+    final Struct struct = new Struct(ConnectSchemas.columnsToConnectSchema(logical.key()));
+
+    // When:
+    final byte[] bytes = serde.serializer().serialize("topic", struct);
     final Object result = serde.deserializer().deserialize("topic", null);
 
     // Then:
@@ -249,14 +245,13 @@ public class KafkaSerdeFactoryTest {
     shouldHandle(SqlTypes.STRING, "Yo!");
   }
 
-  private void shouldHandle(final SqlType fieldSchema, final Object value) {
+  private static void shouldHandle(final SqlType fieldSchema, final Object value) {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(fieldSchema);
 
-    factory.validate(schema);
-    final Serde<Object> serde = factory.createSerde(schema, ksqlConfig, srClientFactory);
+    final Serde<Struct> serde = KafkaSerdeFactory.createSerde(schema);
 
-    final Struct struct = new Struct(schema.serializedSchema());
+    final Struct struct = new Struct(ConnectSchemas.columnsToConnectSchema(schema.columns()));
     struct.put("f0", value);
 
     // When:

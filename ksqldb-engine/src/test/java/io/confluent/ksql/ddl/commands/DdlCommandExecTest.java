@@ -13,6 +13,7 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -22,6 +23,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -65,6 +67,7 @@ public class DdlCommandExecTest {
   private CreateTableCommand createTable;
   private DropSourceCommand dropSource;
   private DropTypeCommand dropType;
+  private RegisterTypeCommand registerType;
 
   private final MutableMetaStore metaStore
       = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -75,6 +78,8 @@ public class DdlCommandExecTest {
   private KsqlStream source;
   @Mock
   private WindowInfo windowInfo;
+  @Mock
+  private SqlType type;
 
   private DdlCommandExec cmdExec;
 
@@ -89,6 +94,7 @@ public class DdlCommandExecTest {
 
     cmdExec = new DdlCommandExec(metaStore);
     dropType = new DropTypeCommand("type");
+    registerType = new RegisterTypeCommand(type,"type");
   }
 
   @Test
@@ -241,6 +247,29 @@ public class DdlCommandExecTest {
         result.getMessage(),
         equalTo(String.format("Source %s (topic: %s) was dropped.", STREAM_NAME, TOPIC_NAME))
     );
+  }
+
+  @Test
+  public void shouldRegisterType() {
+    // When:
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, registerType, false);
+
+    // Then:
+    assertThat("Expected successful resolution", result.isSuccess());
+    assertThat(result.getMessage(), is("Registered custom type with name 'type' and SQL type " + type));
+  }
+
+  @Test
+  public void shouldNotRegisterExistingType() {
+    // Given:
+    metaStore.registerType("type", SqlTypes.STRING);
+
+    // When:
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, registerType, false);
+
+    // Then:
+    assertThat("Expected successful resolution", result.isSuccess());
+    assertThat(result.getMessage(), is("type is already registered with type STRING"));
   }
 
   @Test

@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.serde.SerdeOptions.Builder;
 import java.util.Optional;
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 public class SerdeOptionsTest {
@@ -82,5 +83,12 @@ public class SerdeOptionsTest {
         is(Optional.of(WRAP_SINGLE_VALUES)));
     assertThat(SerdeOptions.of(UNWRAP_SINGLE_VALUES).valueWrapping(),
         is(Optional.of(UNWRAP_SINGLE_VALUES)));
+  }
+
+  @Test
+  public void shouldImplmentToString() {
+    MatcherAssert.assertThat(
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES).toString(),
+        is("[UNWRAP_SINGLE_VALUES]"));
   }
 }

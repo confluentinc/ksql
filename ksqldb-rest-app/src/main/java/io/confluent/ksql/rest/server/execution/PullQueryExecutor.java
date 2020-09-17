@@ -89,6 +89,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.GrammaticalJoiner;
@@ -110,6 +111,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
@@ -1048,10 +1050,12 @@ public final class PullQueryExecutor {
   }
 
   private static Struct asKeyStruct(final Object keyValue, final PhysicalSchema physicalSchema) {
-    final Field keyField = Iterables
-        .getOnlyElement(physicalSchema.keySchema().ksqlSchema().fields());
+    final ConnectSchema keySchema = ConnectSchemas
+        .columnsToConnectSchema(physicalSchema.keySchema().columns());
 
-    final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
+    final Field keyField = Iterables.getOnlyElement(keySchema.fields());
+
+    final Struct key = new Struct(keySchema);
     key.put(keyField, keyValue);
     return key;
   }

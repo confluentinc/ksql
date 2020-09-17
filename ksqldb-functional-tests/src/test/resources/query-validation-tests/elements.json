@@ -40,6 +40,19 @@
       "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
     },
     {
+      "name": "validate unwrapped value without elements OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "topics": [
+        {"name": "input", "format": "AVRO", "schema": "int"},
+        {"name": "OUTPUT", "format": "AVRO", "schema": {"name": "blah", "type": "record", "fields": [{"name": "ROWVAL", "type": "int"}]}}
+      ],
+      "inputs": [{"topic": "input", "value": 4}],
+      "outputs": [{"topic": "OUTPUT", "value": {"ROWVAL": 4}}]
+    },
+    {
       "name": "validate without elements OK - PROTOBUF",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
@@ -243,7 +256,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The 'KAFKA' format only supports a single field. Got: V0 INT, V1 VARCHAR"
+        "message": "The 'KAFKA' format only supports a single field. Got: [`V0` INTEGER, `V1` STRING]"
       }
     },
     {
@@ -254,7 +267,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The 'KAFKA' format only supports a single field. Got: V0 INT, V1 VARCHAR"
+        "message": "The 'KAFKA' format only supports a single field. Got: [`V0` INTEGER, `V1` STRING]"
       }
     },
     {

@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.delimited;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -37,7 +38,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 
-public class KsqlDelimitedDeserializer implements Deserializer<Object> {
+public class KsqlDelimitedDeserializer implements Deserializer<Struct> {
 
   private static final Map<Type, Function<String, Object>> PARSERS = ImmutableMap.of(
       Type.BOOLEAN, Boolean::parseBoolean,
@@ -50,11 +51,12 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
   private final ConnectSchema schema;
   private final CSVFormat csvFormat;
 
-  public KsqlDelimitedDeserializer(
+  KsqlDelimitedDeserializer(
       final PersistenceSchema schema,
       final CSVFormat csvFormat
   ) {
-    this.schema = Objects.requireNonNull(schema, "schema").serializedSchema();
+    this.schema = ConnectSchemas
+        .columnsToConnectSchema(Objects.requireNonNull(schema, "schema").columns());
     throwOnUnsupported(this.schema);
     this.csvFormat = Objects.requireNonNull(csvFormat, "csvFormat");
   }
@@ -144,7 +146,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
 
     schema.fields().forEach(field -> {
       final Type type = field.schema().type();
-      if (!PARSERS.keySet().contains(type) && !DecimalUtil.isDecimal(field.schema())) {
+      if (!PARSERS.containsKey(type) && !DecimalUtil.isDecimal(field.schema())) {
         throw new UnsupportedOperationException(
             "DELIMITED does not support type: " + type + ", field: " + field.name());
       }

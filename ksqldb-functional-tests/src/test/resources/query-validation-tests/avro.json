@@ -664,7 +664,7 @@
     {
       "name": "should return error on field names incompatible with avro - C*",
       "statements": [
-        "CREATE STREAM INPUT (1AvroDoesNotLikeFieldsThatStartWithNumbers DOUBLE) WITH (kafka_topic='input_topic', value_format='AVRO');"
+        "CREATE STREAM INPUT (`1AvroDoesNotLikeFieldsThatStartWithNumbers` DOUBLE) WITH (kafka_topic='input_topic', value_format='AVRO');"
       ],
       "topics": [
         {
@@ -674,18 +674,18 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Schema is not compatible with Avro: Illegal initial character: 1AVRODOESNOTLIKEFIELDSTHATSTARTWITHNUMBERS"
+        "message": "Schema is not compatible with Avro: Illegal initial character: 1AvroDoesNotLikeFieldsThatStartWithNumbers"
       }
     },
     {
       "name": "should return error on field names incompatible with avro - C*AS",
       "statements": [
         "CREATE STREAM INPUT (v DOUBLE) WITH (kafka_topic='input_topic', value_format='AVRO');",
-        "CREATE STREAM OUTPUT AS SELECT v AS 1AvroDoesNotLikeFieldsThatStartWithNumbers FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT v AS `1AvroDoesNotLikeFieldsThatStartWithNumbers` FROM INPUT;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Schema is not compatible with Avro: Illegal initial character: 1AVRODOESNOTLIKEFIELDSTHATSTARTWITHNUMBERS"
+        "message": "Schema is not compatible with Avro: Illegal initial character: 1AvroDoesNotLikeFieldsThatStartWithNumbers"
       }
     }
   ]

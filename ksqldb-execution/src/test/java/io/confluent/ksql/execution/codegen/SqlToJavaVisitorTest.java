@@ -77,11 +77,12 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.confluent.ksql.util.KsqlConfig;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

@@ -61,7 +61,7 @@ public class EntityUtilTest {
   public void shouldBuildCorrectMapField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(ColumnName.of("field"), SqlTypes.map(SqlTypes.INTEGER))
+        .valueColumn(ColumnName.of("field"), SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER))
         .build();
 
     // When:

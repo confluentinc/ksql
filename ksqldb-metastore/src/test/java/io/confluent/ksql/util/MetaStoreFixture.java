@@ -56,7 +56,7 @@ public final class MetaStoreFixture {
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
         .valueColumn(ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
-        .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
         .build();
 
     final KsqlTopic ksqlTopic0 = new KsqlTopic(
@@ -146,7 +146,7 @@ public final class MetaStoreFixture {
         .valueColumn(ColumnName.of("ITEMINFO"), itemInfoSchema)
         .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
-        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
         .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
         .build();
 
@@ -200,14 +200,14 @@ public final class MetaStoreFixture {
         .field("ITEMINFO", itemInfoSchema)
         .field("ORDERUNITS", SqlTypes.INTEGER)
         .field("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
-        .field("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+        .field("MAPCOL", SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
         .field("ADDRESS", addressSchema)
         .build();
 
     final LogicalSchema nestedArrayStructMapSchema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(itemInfoSchema))
-        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(itemInfoSchema))
+        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, itemInfoSchema))
         .valueColumn(ColumnName.of("NESTED_ORDER_COL"), nestedOrdersSchema)
         .valueColumn(ColumnName.of("ITEM"), itemInfoSchema)
         .build();

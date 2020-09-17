@@ -639,6 +639,27 @@
           {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"}
         ]
       }
+    },
+    {
+      "name": "map with non-string keys fails - C*",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='AVRO');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Avro only supports MAPs with STRING keys"
+      }
+    },
+    {
+      "name": "map with non-string keys fails - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Avro only supports MAPs with STRING keys"
+      }
     }
   ]
 }

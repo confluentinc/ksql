@@ -21,15 +21,11 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.common.config.SslConfigs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Helper for creating a client key store to enable SSL in tests.
  */
 public final class ServerKeyStore {
-
-  private static final Logger log = LoggerFactory.getLogger(ServerKeyStore.class);
 
   private static final String BASE64_ENCODED_STORE =
       "/u3+7QAAAAIAAAACAAAAAgAGY2Fyb290AAABYgp9KI4ABVguNTA5AAADLDCCAygwggIQAgkAvZW/3jNCgKgwDQYJKoZI"
@@ -139,7 +135,7 @@ public final class ServerKeyStore {
   /**
    * @return props brokers will need to connect to support SSL connections.
    *         The store at this path may be replaced with an expired store via the method
-   *         {@link #loadExpiredServerKeyStore}.
+   *         {@link #writeExpiredServerKeyStore}.
    */
   public Map<String, String> keyStoreProps() {
     return ImmutableMap.of(
@@ -154,7 +150,7 @@ public final class ServerKeyStore {
   /**
    * @return props clients may use to connect to support SSL connections.
    *         In contrast to {@link #keyStoreProps}, the store at this path will not replaced
-   *         with an expired store when the method {@link #loadExpiredServerKeyStore} is called.
+   *         with an expired store when the method {@link #writeExpiredServerKeyStore} is called.
    */
   public Map<String, String> clientKeyStoreProps() {
     return ImmutableMap.of(
@@ -166,14 +162,20 @@ public final class ServerKeyStore {
     );
   }
 
-  public void loadExpiredServerKeyStore() {
-    KeyStoreUtil.putStore(Paths.get(keyStorePath()), EXPIRED_BASE64_ENCODED_STORE);
-    log.info("Loaded expired store");
+  public void writeExpiredServerKeyStore() {
+    KeyStoreUtil.putStore(
+        "expired-server-key-store",
+        Paths.get(keyStorePath()),
+        EXPIRED_BASE64_ENCODED_STORE
+    );
   }
 
-  public void loadValidServerKeyStore() {
-    KeyStoreUtil.putStore(Paths.get(keyStorePath()), BASE64_ENCODED_STORE);
-    log.info("Loaded valid store");
+  public void writeValidServerKeyStore() {
+    KeyStoreUtil.putStore(
+        "valid-server-key-store",
+        Paths.get(keyStorePath()),
+        BASE64_ENCODED_STORE
+    );
   }
 
   private String keyStorePath() {

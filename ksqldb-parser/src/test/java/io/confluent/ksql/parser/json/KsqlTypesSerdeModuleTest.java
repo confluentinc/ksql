@@ -20,12 +20,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.List;
 import org.junit.Test;
 
 public class KsqlTypesSerdeModuleTest {
@@ -75,19 +78,22 @@ public class KsqlTypesSerdeModuleTest {
   @Test
   public void shouldSerDeSqlMapTypes() throws JsonProcessingException {
     // Given:
-    final SqlType[] types = new SqlType[]{
+    final List<SqlType> types = ImmutableList.of(
         SqlTypes.INTEGER,
         SqlTypes.BIGINT,
         SqlTypes.DOUBLE,
         SqlTypes.STRING
-    };
+    );
 
-    for (final SqlType type : types) {
-      // When:
-      final SqlType out = MAPPER.readValue(MAPPER.writeValueAsString(SqlMap.of(type)), SqlType.class);
+    for (final SqlType keyType : types) {
+      for (final SqlType valueType : Lists.reverse(types)) {
+        // When:
+        final String serialized = MAPPER.writeValueAsString(SqlMap.of(keyType, valueType));
+        final SqlType out = MAPPER.readValue(serialized, SqlType.class);
 
-      // Then
-      assertThat(out, is(SqlMap.of(type)));
+        // Then
+        assertThat(out, is(SqlMap.of(keyType, valueType)));
+      }
     }
   }
 

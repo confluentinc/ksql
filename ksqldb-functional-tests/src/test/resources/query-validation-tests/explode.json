@@ -45,7 +45,7 @@
     {
       "name": "explode shouldn't accept map",
       "statements": [
-        "CREATE STREAM TEST (ID STRING KEY, MY_MAP MAP<INT, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (ID STRING KEY, MY_MAP MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_MAP) FROM TEST;"
       ],
       "expectedException": {
@@ -56,7 +56,7 @@
     {
       "name": "shouldn't be able to have table functions with aggregation",
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, VAL INT, MY_MAP MAP<INT, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, VAL INT, MY_MAP MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT K, VAL, EXPLODE(MY_MAP), COUNT(*) FROM TEST GROUP BY VAL;"
       ],
       "expectedException": {

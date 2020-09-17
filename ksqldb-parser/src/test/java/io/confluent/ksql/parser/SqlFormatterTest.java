@@ -125,7 +125,7 @@ public class SqlFormatterTest {
       .valueColumn(ColumnName.of("ITEMINFO"), ITEM_INFO_STRUCT)
       .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
       .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
       .valueColumn(ColumnName.of("SIZE"), SqlTypes.INTEGER) // Reserved word
       .build();

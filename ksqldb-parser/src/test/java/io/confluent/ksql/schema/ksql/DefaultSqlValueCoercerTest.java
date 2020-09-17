@@ -23,11 +23,8 @@ import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer.Result;
-import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.vertx.core.json.JsonArray;
@@ -38,7 +35,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -51,12 +47,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DefaultSqlValueCoercerTest {
 
-  private static final Set<SqlBaseType> UNSUPPORTED = ImmutableSet.of(
-      SqlBaseType.ARRAY,
-      SqlBaseType.MAP,
-      SqlBaseType.STRUCT
-  );
-
   private static final Map<SqlBaseType, SqlType> TYPES = ImmutableMap
       .<SqlBaseType, SqlType>builder()
       .put(SqlBaseType.BOOLEAN, SqlTypes.BOOLEAN)
@@ -65,8 +55,13 @@ public class DefaultSqlValueCoercerTest {
       .put(SqlBaseType.DECIMAL, SqlTypes.decimal(2, 1))
       .put(SqlBaseType.DOUBLE, SqlTypes.DOUBLE)
       .put(SqlBaseType.STRING, SqlTypes.STRING)
-      .put(SqlBaseType.ARRAY, SqlArray.of(SqlTypes.BIGINT))
-      .put(SqlBaseType.MAP, SqlMap.of(SqlTypes.BIGINT))
+      .put(SqlBaseType.ARRAY, SqlTypes.array(SqlTypes.BIGINT))
+      .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.INTEGER, SqlTypes.BIGINT))
+      .put(SqlBaseType.STRUCT, SqlTypes.struct().field("fred", SqlTypes.INTEGER).build())
+      .build();
+
+  private static final Schema STRUCT_SCHEMA = SchemaBuilder.struct()
+      .field("fred", Schema.OPTIONAL_INT32_SCHEMA)
       .build();
 
   private static final Map<SqlBaseType, Object> INSTANCES = ImmutableMap
@@ -78,10 +73,11 @@ public class DefaultSqlValueCoercerTest {
       .put(SqlBaseType.DOUBLE, 3.0D)
       .put(SqlBaseType.STRING, "4.1")
       .put(SqlBaseType.ARRAY, ImmutableList.of(1L, 2L))
-      .put(SqlBaseType.MAP, ImmutableMap.of("foo", 1L))
+      .put(SqlBaseType.MAP, ImmutableMap.of(10, 1L))
+      .put(SqlBaseType.STRUCT, new Struct(STRUCT_SCHEMA).put("fred", 11))
       .build();
 
-  private DefaultSqlValueCoercer coercer;
+  private final DefaultSqlValueCoercer coercer;
 
   @Parameters(name = "{0}")
   public static Iterable<Object[]> data() {
@@ -208,7 +204,7 @@ public class DefaultSqlValueCoercerTest {
 
   @Test
   public void shouldCoerceToMap() {
-    final SqlType mapType = SqlTypes.map(SqlTypes.DOUBLE);
+    final SqlType mapType = SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE);
     assertThat(coercer.coerce(ImmutableMap.of("foo", 1), mapType), is(Result.of(ImmutableMap.of("foo", 1d))));
     assertThat(coercer.coerce(ImmutableMap.of("foo", 1L), mapType), is(Result.of(ImmutableMap.of("foo", 1d))));
     assertThat(coercer.coerce(ImmutableMap.of("foo", 1.1), mapType),
@@ -224,7 +220,7 @@ public class DefaultSqlValueCoercerTest {
 
   @Test
   public void shouldNotCoerceToMap() {
-    final SqlType mapType = SqlTypes.map(SqlTypes.DOUBLE);
+    final SqlType mapType = SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE);
     assertThat(coercer.coerce(true, mapType), is(Result.failure()));
     assertThat(coercer.coerce(1L, mapType), is(Result.failure()));
     assertThat(coercer.coerce("foo", mapType), is(Result.failure()));
@@ -384,7 +380,7 @@ public class DefaultSqlValueCoercerTest {
             .field("NULL", SqlTypes.BIGINT)
             .build())
         .field("F2", SqlTypes.array(SqlTypes.STRING))
-        .field("F3", SqlTypes.map(SqlTypes.STRING))
+        .field("F3", SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
         .build();
     final JsonObject obj = new JsonObject()
         .put("F1", new JsonObject().put("G1", 12))
@@ -413,7 +409,7 @@ public class DefaultSqlValueCoercerTest {
   @Test
   public void shouldCoerceJsonObjectToNestedMap() {
     // Given:
-    final SqlType mapType = SqlTypes.map(SqlTypes.struct()
+    final SqlType mapType = SqlTypes.map(SqlTypes.STRING, SqlTypes.struct()
         .field("F1", SqlTypes.BIGINT)
         .field("F2", SqlTypes.STRING)
         .build());
@@ -555,7 +551,7 @@ public class DefaultSqlValueCoercerTest {
   public void shouldCoerceNestedJsonMapWithCaseSensitiveKeys() {
     // Given:
     final SqlType structType = SqlTypes.struct()
-        .field("F1", SqlTypes.map(SqlTypes.BIGINT))
+        .field("F1", SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT))
         .build();
     final JsonObject obj = new JsonObject().put("F1", new JsonObject().put("foo", 12));
 
@@ -578,9 +574,7 @@ public class DefaultSqlValueCoercerTest {
   }
 
   private static List<SqlBaseType> supportedTypes() {
-    return Arrays.stream(SqlBaseType.values())
-        .filter(baseType -> !UNSUPPORTED.contains(baseType))
-        .collect(Collectors.toList());
+    return ImmutableList.copyOf(SqlBaseType.values());
   }
 
   private static Object getInstance(final SqlBaseType baseType) {

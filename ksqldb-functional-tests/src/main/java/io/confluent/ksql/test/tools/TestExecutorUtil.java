@@ -282,26 +282,39 @@ public final class TestExecutorUtil {
   ) {
     final Map<QueryId, PersistentQueryAndSources> queries = new LinkedHashMap<>();
 
-    for (final ConfiguredKsqlPlan plan
-        : planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService)) {
+    int idx = 0;
+    final Iterator<ConfiguredKsqlPlan> plans =
+        planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService).iterator();
 
-      listener.acceptPlan(plan);
+    try {
+      while (plans.hasNext()) {
+        ++idx;
+        final ConfiguredKsqlPlan plan = plans.next();
 
-      final ExecuteResultAndSources result = executePlan(engine, plan);
-      if (!result.getSources().isPresent()) {
-        continue;
+        listener.acceptPlan(plan);
+
+        final ExecuteResultAndSources result = executePlan(engine, plan);
+        if (!result.getSources().isPresent()) {
+          continue;
+        }
+
+        final PersistentQueryMetadata query = (PersistentQueryMetadata) result
+            .getExecuteResult().getQuery().get();
+
+        listener.acceptQuery(query);
+
+        queries.put(
+            query.getQueryId(),
+            new PersistentQueryAndSources(query, result.getSources().get()));
       }
-
-      final PersistentQueryMetadata query = (PersistentQueryMetadata) result
-          .getExecuteResult().getQuery().get();
-
-      listener.acceptQuery(query);
-
-      queries.put(
-          query.getQueryId(),
-          new PersistentQueryAndSources(query, result.getSources().get()));
+      return ImmutableList.copyOf(queries.values());
+    } catch (final KsqlStatementException e) {
+      if (plans.hasNext()) {
+        throw new AssertionError("Only the last statement in a negative test should fail. "
+            + "Yet in this case statement " + idx + " failed.");
+      }
+      throw e;
     }
-    return ImmutableList.copyOf(queries.values());
   }
 
   private static ExecuteResultAndSources executePlan(
@@ -432,20 +445,15 @@ public final class TestExecutorUtil {
       final ConfiguredStatement<?> reformatted =
           new SqlFormatInjector(executionContext).inject(withSchema);
 
-      try {
-        final KsqlPlan plan = executionContext
-            .plan(executionContext.getServiceContext(), reformatted);
-        return Optional.of(
-            ConfiguredKsqlPlan.of(
-                rewritePlan(plan),
-                reformatted.getConfigOverrides(),
-                reformatted.getConfig()
-            )
-        );
-      } catch (final KsqlStatementException e) {
-        throw new KsqlStatementException(
-            e.getMessage(), withSchema.getStatementText(), e.getCause());
-      }
+      final KsqlPlan plan = executionContext
+          .plan(executionContext.getServiceContext(), reformatted);
+      return Optional.of(
+          ConfiguredKsqlPlan.of(
+              rewritePlan(plan),
+              reformatted.getConfigOverrides(),
+              reformatted.getConfig()
+          )
+      );
     }
 
     private static KsqlPlan rewritePlan(final KsqlPlan plan) {

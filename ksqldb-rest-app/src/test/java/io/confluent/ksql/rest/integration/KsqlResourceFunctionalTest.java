@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
@@ -164,8 +165,10 @@ public class KsqlResourceFunctionalTest {
     );
 
     final ParsedSchema parsedSchema = new AvroFormat().toParsedSchema(
-        schema.logicalSchema().value(),
-        schema.serdeOptions(),
+        PersistenceSchema.from(
+            schema.logicalSchema().value(),
+            schema.serdeOptions().valueFeatures()
+        ),
         FormatInfo.of(
             AvroFormat.NAME,
             ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value")

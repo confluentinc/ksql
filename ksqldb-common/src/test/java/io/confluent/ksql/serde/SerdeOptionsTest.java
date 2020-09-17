@@ -1,7 +1,10 @@
 package io.confluent.ksql.serde;
 
+import static org.hamcrest.Matchers.is;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 public class SerdeOptionsTest {
@@ -26,5 +29,12 @@ public class SerdeOptionsTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnClashingSingleValueWrappingOptions() {
     SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES, SerdeOption.WRAP_SINGLE_VALUES);
+  }
+
+  @Test
+  public void shouldImplmentToString() {
+    MatcherAssert.assertThat(
+        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES).toString(),
+        is("[UNWRAP_SINGLE_VALUES]"));
   }
 }

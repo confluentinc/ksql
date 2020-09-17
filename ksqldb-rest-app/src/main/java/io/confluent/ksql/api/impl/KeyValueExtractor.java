@@ -23,10 +23,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.ParserUtil;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
@@ -35,9 +37,13 @@ public final class KeyValueExtractor {
   private KeyValueExtractor() {
   }
 
-  public static Struct extractKey(final JsonObject values, final LogicalSchema logicalSchema,
-      final SqlValueCoercer sqlValueCoercer) {
-    final Struct key = new Struct(logicalSchema.keyConnectSchema());
+  public static Struct extractKey(
+      final JsonObject values,
+      final LogicalSchema logicalSchema,
+      final SqlValueCoercer sqlValueCoercer
+  ) {
+    final ConnectSchema keySchema = ConnectSchemas.columnsToConnectSchema(logicalSchema.key());
+    final Struct key = new Struct(keySchema);
     for (final Field field : key.schema().fields()) {
       final Object value = values.getValue(field.name());
       if (value == null) {
@@ -52,8 +58,11 @@ public final class KeyValueExtractor {
     return key;
   }
 
-  public static GenericRow extractValues(final JsonObject values, final LogicalSchema logicalSchema,
-      final SqlValueCoercer sqlValueCoercer) {
+  public static GenericRow extractValues(
+      final JsonObject values,
+      final LogicalSchema logicalSchema,
+      final SqlValueCoercer sqlValueCoercer
+  ) {
     final List<Column> valColumns = logicalSchema.value();
     final List<Object> vals = new ArrayList<>(valColumns.size());
     for (Column column : valColumns) {

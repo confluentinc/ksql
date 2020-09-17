@@ -34,30 +34,39 @@ public class CreateConnector extends Statement {
   private final String name;
   private final ImmutableMap<String, Literal> config;
   private final Type type;
+  private final boolean notExists;
 
   public CreateConnector(
       final Optional<NodeLocation> location,
       final String name,
       final Map<String, Literal> config,
-      final Type type
+      final Type type,
+      final boolean notExists
   ) {
     super(location);
     this.name = Objects.requireNonNull(name, "name");
     this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
     this.type = Objects.requireNonNull(type, "type");
+    this.notExists = notExists;
+
   }
 
   public CreateConnector(
       final String name,
       final Map<String, Literal> config,
-      final Type type
+      final Type type,
+      final boolean notExisits
   ) {
-    this(Optional.empty(), name, config, type);
+    this(Optional.empty(), name, config, type, notExisits);
   }
 
 
   public String getName() {
     return name;
+  }
+
+  public boolean ifNotExists() {
+    return notExists;
   }
 
   public Map<String, Literal> getConfig() {
@@ -81,12 +90,13 @@ public class CreateConnector extends Statement {
     final CreateConnector that = (CreateConnector) o;
     return Objects.equals(name, that.name)
         && Objects.equals(config, that.config)
+        && Objects.equals(notExists, that.notExists)
         && Objects.equals(type, that.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, config, type);
+    return Objects.hash(name, config, type, notExists);
   }
 
   @Override
@@ -95,6 +105,7 @@ public class CreateConnector extends Statement {
         + "name='" + name + '\''
         + ", config=" + config
         + ", type=" + type
+        + ", notExists" + notExists
         + '}';
   }
 }

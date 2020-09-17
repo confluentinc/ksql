@@ -23,36 +23,48 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlDelimitedSerdeFactoryTest {
+
+  @Mock
+  private KsqlConfig config;
+  @Mock
+  private Supplier<SchemaRegistryClient> srClientFactory;
 
   private KsqlDelimitedSerdeFactory factory;
 
   @Before
   public void setUp() {
-    factory = new KsqlDelimitedSerdeFactory(Optional.of(Delimiter.of(',')));
+    factory = new KsqlDelimitedSerdeFactory(Delimiter.of(','));
   }
 
   @Test
-  public void shouldThrowOnValidateIfArray() {
+  public void shouldThrowIfArray() {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(array(STRING));
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> factory.createSerde(schema, config, srClientFactory)
     );
 
     // Then:
@@ -60,14 +72,14 @@ public class KsqlDelimitedSerdeFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnValidateIfMap() {
+  public void shouldThrowIfMap() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(map(STRING));
+    final PersistenceSchema schema = schemaWithFieldOfType(map(SqlTypes.STRING, STRING));
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> factory.createSerde(schema, config, srClientFactory)
     );
 
     // Then:
@@ -75,7 +87,7 @@ public class KsqlDelimitedSerdeFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnValidateIfStruct() {
+  public void shouldThrowIfStruct() {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(struct()
         .field("f0", STRING)
@@ -85,7 +97,7 @@ public class KsqlDelimitedSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> factory.createSerde(schema, config, srClientFactory)
     );
 
     // Then:

@@ -86,7 +86,8 @@ final class AvroSchemas {
           return schema;
         }
 
-        schemaBuilder = new SchemaBuilder(schema.type());
+        schemaBuilder = new SchemaBuilder(schema.type())
+            .name(schema.name());
         break;
 
       case STRUCT:
@@ -100,6 +101,10 @@ final class AvroSchemas {
       case MAP:
         schemaBuilder = buildAvroCompatibleMap(schema, context);
         break;
+    }
+
+    if (schema.parameters() != null) {
+      schemaBuilder.parameters(schema.parameters());
     }
 
     if (schema.isOptional() && notRoot) {

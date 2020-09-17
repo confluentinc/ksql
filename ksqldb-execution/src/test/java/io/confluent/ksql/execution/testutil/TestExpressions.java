@@ -29,7 +29,7 @@ public final class TestExpressions {
       .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE))
       .valueColumn(ColumnName.of("COL6"), ADDRESS_SCHEMA)
       .valueColumn(ColumnName.of("COL7"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("COL8"), SqlTypes.decimal(2, 1))

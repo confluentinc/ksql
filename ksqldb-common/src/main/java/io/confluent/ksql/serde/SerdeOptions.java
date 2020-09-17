@@ -22,6 +22,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Validated set of {@link SerdeOption}s.
@@ -47,6 +48,19 @@ public final class SerdeOptions {
 
   private SerdeOptions(final ImmutableSet<SerdeOption> options) {
     this.options = validate(Objects.requireNonNull(options, "options"));
+  }
+
+  @SuppressWarnings("MethodMayBeStatic")
+  public EnabledSerdeFeatures keyFeatures() {
+    // Currently there are no key features:
+    return EnabledSerdeFeatures.of();
+  }
+
+  public EnabledSerdeFeatures valueFeatures() {
+    // Currently there are no key features, so all are value features:
+    return EnabledSerdeFeatures.from(options.stream()
+        .map(SerdeOption::requiredFeature)
+        .collect(Collectors.toSet()));
   }
 
   public Set<SerdeOption> all() {
@@ -78,7 +92,7 @@ public final class SerdeOptions {
 
   @Override
   public String toString() {
-    return "SerdeOptions" + options;
+    return options.toString();
   }
 
   private static ImmutableSet<SerdeOption> validate(final ImmutableSet<SerdeOption> options) {

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
@@ -47,6 +48,7 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +61,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final ScheduledExecutorService aggregateMetricsCollector;
   private final String serviceId;
   private final EngineContext primaryContext;
+  private final QueryCleanupService cleanupService;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -89,11 +92,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
       final QueryIdGenerator queryIdGenerator
   ) {
+    this.cleanupService = new QueryCleanupService();
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
         metaStore,
-        queryIdGenerator
+        queryIdGenerator,
+        cleanupService
     );
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
@@ -110,6 +115,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
+
+    cleanupService.startAsync();
   }
 
   public int numberOfLiveQueries() {
@@ -154,6 +161,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return serviceId;
   }
 
+  @VisibleForTesting
+  QueryCleanupService getCleanupService() {
+    return cleanupService;
+  }
+
   @Override
   public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
     return new SandboxedExecutionContext(primaryContext, serviceContext);
@@ -182,11 +194,22 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan) {
-    final ExecuteResult result = EngineExecutor
-        .create(primaryContext, serviceContext, plan.getConfig(), plan.getOverrides())
-        .execute(plan.getPlan());
-    result.getQuery().ifPresent(this::registerQuery);
-    return result;
+    try {
+      final ExecuteResult result = EngineExecutor
+          .create(primaryContext, serviceContext, plan.getConfig(), plan.getOverrides())
+          .execute(plan.getPlan());
+      result.getQuery().ifPresent(this::registerQuery);
+      return result;
+    } catch (final KsqlStatementException e) {
+      throw e;
+    } catch (final KsqlException e) {
+      // add the statement text to the KsqlException
+      throw new KsqlStatementException(
+          e.getMessage(),
+          plan.getPlan().getStatementText(),
+          e.getCause()
+      );
+    }
   }
 
   @Override
@@ -234,6 +257,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   public void close(final boolean closeQueries) {
     primaryContext.getAllLiveQueries()
       .forEach(closeQueries ? QueryMetadata::close : QueryMetadata::stop);
+
+    try {
+      cleanupService.stopAsync().awaitTerminated(30, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      log.warn("Timed out while closing cleanup service. "
+              + "External resources for the following applications may be orphaned: {}",
+          cleanupService.pendingApplicationIds()
+      );
+    }
 
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();

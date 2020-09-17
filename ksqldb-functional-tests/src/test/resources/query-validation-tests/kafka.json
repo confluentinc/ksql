@@ -14,12 +14,11 @@
     {
       "name": "Unwrapped single values",
       "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input', value_format='KAFKA');"
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Format 'KAFKA' does not support 'WRAP_SINGLE_VALUE' set to 'false'."
-      }
+      "input": [{"topic": "input", "key": "foo", "value": 1}],
+      "output": [{"topic": "OUTPUT", "key": "foo", "value": 1}]
     },
     {
       "name": "Default single value wrapping",
@@ -65,6 +64,27 @@
       ],
       "input": [{"topic": "input", "key": 1.1, "value": 2.2}],
       "output": [{"topic": "OUTPUT", "key": 1.1, "value": 2.2}]
+    },
+    {
+      "name": "MAP - C*",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='KAFKA');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'KAFKA' format does not support type 'MAP'"
+      }
+    },
+    {
+      "name": "MAP - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (value_format='KAFKA') AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'KAFKA' format does not support type 'MAP'"
+      }
     }
   ]
 }

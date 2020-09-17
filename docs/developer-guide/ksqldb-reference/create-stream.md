@@ -25,7 +25,7 @@ Create a new stream with the specified columns and properties.
 A ksqlDB STREAM is a stream of _facts_. Each fact is immutable and unique.
 A stream can store its data in either `KEY` or `VALUE` columns.
 Both `KEY` and `VALUE` columns can be NULL. No special processing is done if two rows have the same
-key. This situation is handled differently by [ksqlDB TABLE](./create-table), as shown in the following table.
+key. This situation is handled differently by [ksqlDB TABLEs](./create-table), as shown in the following table.
 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
@@ -64,7 +64,9 @@ The WITH clause supports the following properties:
 |        Property         |                                            Description                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic exists with different partition/replica counts. |
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). |
+| KEY_FORMAT              | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.key](../../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaulformatkey), is used. |
+| VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.value](../../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatvalue), is used. |
+| FORMAT                  | Specifies the serialization format of the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). |
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a STREAM without an existing topic (the command will fail if the topic does not exist). |
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is set, then the default Kafka cluster configuration for replicas will be used for creating a new topic. |
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |

@@ -24,9 +24,11 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.antlr.v4.runtime.Vocabulary;
 
 /**
- * Check that a function name is valid. It is valid if it is not a Java reserved word
- * and not a ksql reserved word and is a valid java identifier.
- * Also, provides utils for checking if keywords are reserved or not as defined in SqlBase.g4
+ * This Class provides methods for checking whether a function name is valid.
+ * It is valid if it is not a Java reserved word and not a ksql reserved word
+ * and is a valid java identifier.
+ * It also provides utils for checking if keywords are reserved or not as
+ * defined in SqlBase.g4
  */
 @ThreadSafe
 public class ParserKeywordValidatorUtil implements Predicate<String> {

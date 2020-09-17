@@ -52,7 +52,7 @@ public class DefaultFormatInjector implements Injector {
   public DefaultFormatInjector() {
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("unchecked") // TODO: ?
   @Override
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement
@@ -61,16 +61,21 @@ public class DefaultFormatInjector implements Injector {
       validateLegacyFormatProperties(statement);
     }
 
-    if (!(statement.getStatement() instanceof CreateSource)) {
-      return statement;
+    if (statement.getStatement() instanceof CreateSource) {
+      return handleCreateSource((ConfiguredStatement<CreateSource>) statement);
     }
 
-    final ConfiguredStatement<CreateSource> createStatement =
-        (ConfiguredStatement<CreateSource>) statement;
+    return statement;
+  }
 
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> ConfiguredStatement<T> handleCreateSource(
+      final ConfiguredStatement<CreateSource> statement
+  ) {
     try {
+      // Safe to cast as we know `T` is `CreateSource`
       return (ConfiguredStatement<T>)
-          injectForCreateStatement(createStatement).orElse(createStatement);
+          injectForCreateStatement(statement).orElse(statement);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final KsqlException e) {
@@ -79,7 +84,6 @@ public class DefaultFormatInjector implements Injector {
           statement.getStatementText(),
           e.getCause());
     }
-
   }
 
   private Optional<ConfiguredStatement<CreateSource>> injectForCreateStatement(

@@ -204,7 +204,6 @@ public final class TestCaseBuilderUtil {
           final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
           final ConfiguredStatement<?> configured =
               ConfiguredStatement.of(prepare, Collections.emptyMap(), ksqlConfig);
-          // TODO: cleaner way to handle this?
           final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
           topics.add(extractTopic.apply(withFormats));
         }

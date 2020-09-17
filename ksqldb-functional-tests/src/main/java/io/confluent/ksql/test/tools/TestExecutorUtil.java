@@ -439,7 +439,6 @@ public final class TestExecutorUtil {
         return Optional.empty();
       }
 
-      // TODO: cleaner way to handle this?
       final ConfiguredStatement<?> withFormats =
           new DefaultFormatInjector().inject(configured);
       final ConfiguredStatement<?> withSchema =

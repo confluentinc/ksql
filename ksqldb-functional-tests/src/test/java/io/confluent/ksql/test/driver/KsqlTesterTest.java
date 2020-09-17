@@ -49,6 +49,7 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.test.KsqlTestException;
 import io.confluent.ksql.test.driver.TestDriverPipeline.TopicInfo;
 import io.confluent.ksql.test.parser.SqlTestLoader;
@@ -109,6 +110,7 @@ public class KsqlTesterTest {
   private ServiceContext serviceContext;
   private KsqlEngine engine;
   private KsqlConfig config;
+  private Injector statementInjector;
   private TestDriverPipeline driverPipeline;
   private FakeKafkaTopicClient topicClient;
 
@@ -146,6 +148,7 @@ public class KsqlTesterTest {
     this.topicClient = new FakeKafkaTopicClient();
     this.serviceContext = TestServiceContext.create(topicClient, () -> srClient);
     this.config = new KsqlConfig(BASE_CONFIG);
+    this.statementInjector = new DefaultFormatInjector();
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
     this.engine = new KsqlEngine(
@@ -210,8 +213,7 @@ public class KsqlTesterTest {
       return;
     }
 
-    // TODO: what's a cleaner way around this failure?
-    final ConfiguredStatement<?> injected = new DefaultFormatInjector().inject(configured);
+    final ConfiguredStatement<?> injected = statementInjector.inject(configured);
     final ExecuteResult result = engine.execute(
         serviceContext,
         injected);

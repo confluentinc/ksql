@@ -52,7 +52,7 @@ public class DefaultFormatInjector implements Injector {
   public DefaultFormatInjector() {
   }
 
-  @SuppressWarnings("unchecked") // TODO: ?
+  @SuppressWarnings("unchecked")
   @Override
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement

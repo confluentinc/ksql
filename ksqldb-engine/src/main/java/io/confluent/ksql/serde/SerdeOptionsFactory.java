@@ -113,7 +113,9 @@ public final class SerdeOptionsFactory {
       final SerdeOptions explicitOptions,
       final KsqlConfig ksqlConfig
   ) {
-    final Optional<SerdeOption> valueWrapping = explicitOptions.valueWrapping();
+    final Optional<SerdeOption> valueWrapping = explicitOptions
+        .findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS);
+
     if (valueWrapping.isPresent()) {
       validateExplicitValueWrapping(singleColumn, valueFormat, valueWrapping.get());
       return valueWrapping;

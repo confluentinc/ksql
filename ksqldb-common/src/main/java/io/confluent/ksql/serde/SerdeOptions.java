@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Immutable;
 import java.util.EnumSet;
@@ -33,11 +32,11 @@ import java.util.stream.Collectors;
 @Immutable
 public final class SerdeOptions {
 
-  private static final ImmutableSet<SerdeOption> KEY_WRAPPING_OPTIONS = ImmutableSet.of(
+  public static final ImmutableSet<SerdeOption> KEY_WRAPPING_OPTIONS = ImmutableSet.of(
       SerdeOption.UNWRAP_SINGLE_KEYS
   );
 
-  private static final ImmutableSet<SerdeOption> VALUE_WRAPPING_OPTIONS = ImmutableSet.of(
+  public static final ImmutableSet<SerdeOption> VALUE_WRAPPING_OPTIONS = ImmutableSet.of(
       SerdeOption.WRAP_SINGLE_VALUES, SerdeOption.UNWRAP_SINGLE_VALUES
   );
 
@@ -60,33 +59,22 @@ public final class SerdeOptions {
     validate(this.options);
   }
 
-  @SuppressWarnings("MethodMayBeStatic")
   public EnabledSerdeFeatures keyFeatures() {
-    // Currently there are no key features:
-    return EnabledSerdeFeatures.of();
+    return features(true);
   }
 
   public EnabledSerdeFeatures valueFeatures() {
-    // Currently there are no key features, so all are value features:
-    return EnabledSerdeFeatures.from(options.stream()
-        .map(SerdeOption::requiredFeature)
-        .collect(Collectors.toSet()));
+    return features(false);
   }
 
   public Set<SerdeOption> all() {
     return options;
   }
 
-  public Optional<SerdeOption> keyWrapping() {
-    return Optional.ofNullable(
-        Iterables.getFirst(Sets.intersection(options, KEY_WRAPPING_OPTIONS), null)
-    );
-  }
-
-  public Optional<SerdeOption> valueWrapping() {
-    return Optional.ofNullable(
-        Iterables.getFirst(Sets.intersection(options, VALUE_WRAPPING_OPTIONS), null)
-    );
+  public Optional<SerdeOption> findAny(final Set<SerdeOption> anyOf) {
+    return anyOf.stream()
+        .filter(options::contains)
+        .findAny();
   }
 
   @Override
@@ -109,6 +97,13 @@ public final class SerdeOptions {
   @Override
   public String toString() {
     return options.toString();
+  }
+
+  private EnabledSerdeFeatures features(final boolean key) {
+    return EnabledSerdeFeatures.from(options.stream()
+        .filter(option -> option.isKeyOption() == key)
+        .map(SerdeOption::requiredFeature)
+        .collect(Collectors.toSet()));
   }
 
   private static void validate(final Set<SerdeOption> options) {

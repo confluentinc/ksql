@@ -71,9 +71,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> into(
       final String kafkaTopicName,
+      final KeyFormat keyFormat,
       final ValueFormat valueFormat,
       final SerdeOptions options,
-      final QueryContext.Stacker contextStacker,
+      final Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
     final TableSink<K> step = ExecutionStepFactory.tableSink(

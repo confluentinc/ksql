@@ -33,7 +33,6 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.serde.ValueFormat;
@@ -139,7 +138,7 @@ public final class TestCaseBuilderUtil {
     final Function<PreparedStatement<?>, Topic> extractTopic = (PreparedStatement<?> stmt) -> {
       final CreateSource statement = (CreateSource) stmt.getStatement();
 
-      final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
+      final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties(), ksqlConfig);
 
       final ValueFormat valueFormat = ksqlTopic.getValueFormat();
       final Optional<ParsedSchema> valueSchema;
@@ -150,8 +149,8 @@ public final class TestCaseBuilderUtil {
         try {
           serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
               logicalSchema,
-              FormatFactory.KAFKA,
-              statement.getProperties().getValueFormat(),
+              ksqlTopic.getKeyFormat().getFormat(),
+              ksqlTopic.getValueFormat().getFormat(),
               statement.getProperties().getSerdeOptions(),
               ksqlConfig
           );

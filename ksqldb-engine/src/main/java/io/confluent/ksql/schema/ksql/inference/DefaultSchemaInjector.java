@@ -27,6 +27,8 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -87,8 +89,7 @@ public class DefaultSchemaInjector implements Injector {
   private Optional<ConfiguredStatement<CreateSource>> forCreateStatement(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    if (hasValueElements(statement)
-        || !statement.getStatement().getProperties().getValueFormat().supportsSchemaInference()) {
+    if (hasValueElements(statement) || valueFormatDoesNotSupportSchemaInference(statement)) {
       return Optional.empty();
     }
 
@@ -119,6 +120,15 @@ public class DefaultSchemaInjector implements Injector {
     }
 
     return result.schemaAndId.get();
+  }
+
+  private static boolean valueFormatDoesNotSupportSchemaInference(
+      final ConfiguredStatement<CreateSource> statement
+  ) {
+    final Format valueFormat = FormatFactory
+        .of(statement.getStatement().getProperties().getFormatInfo());
+
+    return !valueFormat.supportsSchemaInference();
   }
 
   private static boolean hasValueElements(

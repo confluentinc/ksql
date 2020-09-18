@@ -17,6 +17,44 @@
       },
       "inputs": [],
       "outputs": []
+    },
+    {
+      "name": "explicit key format - C*",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, VAL STRING) WITH (kafka_topic='input', key_format='JSON', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "1", "value": {"VAL": "v"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": "v"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, VAL STRING", "keyFormat": {"format": "JSON"}},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, VAL STRING", "keyFormat": {"format": "JSON"}}
+        ]
+      }
+    },
+    {
+      "name": "explicit key format - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, VAL STRING) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (key_format='JSON', value_format='AVRO') AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "1", "value": {"VAL": "v"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": "v"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, VAL STRING", "keyFormat": {"format": "KAFKA"}},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, VAL STRING", "keyFormat": {"format": "JSON"}}
+        ]
+      }
     }
   ]
 }

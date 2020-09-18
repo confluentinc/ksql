@@ -82,7 +82,7 @@ public final class CreateSourceFactory {
       final KsqlConfig ksqlConfig
   ) {
     final SourceName sourceName = statement.getName();
-    final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
+    final KsqlTopic topic = buildTopic(statement.getProperties(), ksqlConfig, serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
         ksqlConfig,
@@ -116,7 +116,7 @@ public final class CreateSourceFactory {
       final KsqlConfig ksqlConfig
   ) {
     final SourceName sourceName = statement.getName();
-    final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
+    final KsqlTopic topic = buildTopic(statement.getProperties(), ksqlConfig, serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
     if (schema.key().isEmpty()) {
       final boolean usingSchemaInference = statement.getProperties().getSchemaId().isPresent();
@@ -177,6 +177,7 @@ public final class CreateSourceFactory {
 
   private static KsqlTopic buildTopic(
       final CreateSourceProperties properties,
+      final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext
   ) {
     final String kafkaTopicName = properties.getKafkaTopic();
@@ -184,7 +185,7 @@ public final class CreateSourceFactory {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
 
-    return TopicFactory.create(properties);
+    return TopicFactory.create(properties, ksqlConfig);
   }
 
   private static Optional<TimestampColumn> buildTimestampColumn(

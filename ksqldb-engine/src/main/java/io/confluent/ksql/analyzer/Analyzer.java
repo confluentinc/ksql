@@ -162,7 +162,7 @@ class Analyzer {
       final String topicName = sink.getProperties().getKafkaTopic()
           .orElseGet(() -> topicPrefix + sink.getName().text());
 
-      final KeyFormat keyFormat = buildKeyFormat();
+      final KeyFormat keyFormat = buildKeyFormat(sink);
       final Format format = getValueFormat(sink);
 
       final Map<String, String> sourceProperties = new HashMap<>();
@@ -196,22 +196,30 @@ class Analyzer {
       ));
     }
 
-    private KeyFormat buildKeyFormat() {
+    private KeyFormat buildKeyFormat(final Sink sink) {
       final Optional<KsqlWindowExpression> ksqlWindow = analysis.getWindowExpression()
           .map(WindowExpression::getKsqlWindowExpression);
 
+      final FormatInfo sourceKeyFormat = analysis
+          .getFrom()
+          .getDataSource()
+          .getKsqlTopic()
+          .getKeyFormat()
+          .getFormatInfo();
+
+      final FormatInfo keyFormat = sink.getProperties().getKeyFormatInfo()
+          .orElse(sourceKeyFormat);
+
+      // Todo: need to handle inheritable vs non-inheritable key properties
+
       return ksqlWindow
-          .map(w -> KeyFormat.windowed(
-              FormatInfo.of(FormatFactory.KAFKA.name()), w.getWindowInfo()))
-          .orElseGet(() -> analysis
-              .getFrom()
-              .getDataSource()
-              .getKsqlTopic()
-              .getKeyFormat());
+          .map(w -> KeyFormat.windowed(keyFormat, w.getWindowInfo()))
+          .orElseGet(() -> KeyFormat.nonWindowed(keyFormat));
     }
 
     private Format getValueFormat(final Sink sink) {
-      return sink.getProperties().getValueFormat()
+      return sink.getProperties().getFormatInfo()
+          .map(FormatFactory::of)
           .orElseGet(() -> FormatFactory.of(getSourceInfo()));
     }
 
@@ -223,7 +231,6 @@ class Analyzer {
           .getValueFormat()
           .getFormatInfo();
     }
-
 
     @Override
     protected AstNode visitQuery(

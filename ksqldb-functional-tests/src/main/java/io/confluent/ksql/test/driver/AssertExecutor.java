@@ -73,7 +73,7 @@ public final class AssertExecutor {
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
-          cs -> cs.getProperties().getValueFormat().name(),
+          cs -> cs.getProperties().getFormatInfo().getFormat(),
           "value format",
           CommonCreateConfigs.VALUE_FORMAT_PROPERTY
       )).add(new SourceProperty(

@@ -66,6 +66,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -460,7 +461,7 @@ public class CreateSourceFactoryTest {
     verify(serdeOptionsSupplier).build(
         schema,
         KAFKA,
-        statement.getProperties().getValueFormat(),
+        FormatFactory.of(statement.getProperties().getFormatInfo()),
         statement.getProperties().getSerdeOptions(),
         ksqlConfig
     );

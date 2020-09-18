@@ -73,7 +73,7 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getKafkaTopic(), is("foo"));
-    assertThat(properties.getValueFormat(), is(FormatFactory.AVRO));
+    assertThat(properties.getFormatInfo().getFormat(), is(FormatFactory.AVRO.name()));
   }
 
   @Test

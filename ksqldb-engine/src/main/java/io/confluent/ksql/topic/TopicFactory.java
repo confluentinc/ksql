@@ -18,11 +18,12 @@ package io.confluent.ksql.topic;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -31,17 +32,21 @@ public final class TopicFactory {
   private TopicFactory() {
   }
 
-  public static KsqlTopic create(final CreateSourceProperties properties) {
+  public static KsqlTopic create(
+      final CreateSourceProperties properties,
+      final KsqlConfig config
+  ) {
     final String kafkaTopicName = properties.getKafkaTopic();
 
     final Optional<WindowType> windowType = properties.getWindowType();
     final Optional<Duration> windowSize = properties.getWindowSize();
 
+    final FormatInfo keyFormatInfo = properties.getKeyFormatInfo()
+        .orElseGet(() -> getDefaultKeyFormat(config));
+
     final KeyFormat keyFormat = windowType
-        .map(type -> KeyFormat
-            .windowed(FormatInfo.of(FormatFactory.KAFKA.name()), WindowInfo.of(type, windowSize)))
-        .orElseGet(() -> KeyFormat
-            .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+        .map(type -> KeyFormat.windowed(keyFormatInfo, WindowInfo.of(type, windowSize)))
+        .orElseGet(() -> KeyFormat.nonWindowed(keyFormatInfo));
 
     final ValueFormat valueFormat = ValueFormat.of(properties.getFormatInfo());
 
@@ -50,5 +55,15 @@ public final class TopicFactory {
         keyFormat,
         valueFormat
     );
+  }
+
+  private static FormatInfo getDefaultKeyFormat(final KsqlConfig config) {
+    final String defaultKeyFormat = config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG);
+    if (defaultKeyFormat == null) {
+      throw new KsqlException("Blah blha");
+    }
+
+    // Would need to wire in key properties obvs
+    return FormatInfo.of(defaultKeyFormat);
   }
 }

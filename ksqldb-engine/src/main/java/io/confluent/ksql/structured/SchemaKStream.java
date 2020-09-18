@@ -86,9 +86,10 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> into(
       final String kafkaTopicName,
+      final KeyFormat keyFormat,
       final ValueFormat valueFormat,
       final SerdeOptions options,
-      final QueryContext.Stacker contextStacker,
+      final Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
     final StreamSink<K> step = ExecutionStepFactory.streamSink(

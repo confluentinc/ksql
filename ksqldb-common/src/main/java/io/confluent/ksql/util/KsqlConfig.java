@@ -135,6 +135,12 @@ public class KsqlConfig extends AbstractConfig {
       + "in interactive mode. Once this limit is reached, any further persistent queries will not "
       + "be accepted.";
 
+  public static final String KSQL_DEFAULT_KEY_FORMAT_CONFIG = "ksql.persistence.default.format.key";
+  private static final String KSQL_DEFAULT_KEY_FORMAT_DEFAULT = "KAFKA";
+  private static final String KSQL_DEFAULT_KEY_FORMAT_DOC =
+      "Key format that will be used by default if none is specified in the WITH properties of "
+          + "CREATE STREAM/TABLE statements.";
+
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
 
@@ -624,6 +630,12 @@ public class KsqlConfig extends AbstractConfig {
             null,
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_EXTENSION_DOC
+        ).define(
+            KSQL_DEFAULT_KEY_FORMAT_CONFIG,
+            Type.STRING,
+            KSQL_DEFAULT_KEY_FORMAT_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_DEFAULT_KEY_FORMAT_DOC
         ).define(
             KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR,
             Type.STRING,

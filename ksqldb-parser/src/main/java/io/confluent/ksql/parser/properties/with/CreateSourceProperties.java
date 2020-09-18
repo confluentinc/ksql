@@ -27,8 +27,6 @@ import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
@@ -78,10 +76,6 @@ public final class CreateSourceProperties {
     validateWindowInfo();
   }
 
-  public Format getValueFormat() {
-    return FormatFactory.of(getFormatInfo());
-  }
-
   public String getKafkaTopic() {
     return props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY);
   }
@@ -129,6 +123,11 @@ public final class CreateSourceProperties {
 
   public Optional<Integer> getSchemaId() {
     return Optional.ofNullable(props.getInt(CreateConfigs.SCHEMA_ID));
+  }
+
+  public Optional<FormatInfo> getKeyFormatInfo() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY))
+        .map(format -> FormatInfo.of(format, ImmutableMap.of()));
   }
 
   public FormatInfo getFormatInfo() {

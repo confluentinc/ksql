@@ -60,17 +60,12 @@ public final class SerdeOptions {
     validate(this.options);
   }
 
-  @SuppressWarnings("MethodMayBeStatic")
   public EnabledSerdeFeatures keyFeatures() {
-    // Currently there are no key features:
-    return EnabledSerdeFeatures.of();
+    return features(true);
   }
 
   public EnabledSerdeFeatures valueFeatures() {
-    // Currently there are no key features, so all are value features:
-    return EnabledSerdeFeatures.from(options.stream()
-        .map(SerdeOption::requiredFeature)
-        .collect(Collectors.toSet()));
+    return features(false);
   }
 
   public Set<SerdeOption> all() {
@@ -109,6 +104,13 @@ public final class SerdeOptions {
   @Override
   public String toString() {
     return options.toString();
+  }
+
+  private EnabledSerdeFeatures features(final boolean key) {
+    return EnabledSerdeFeatures.from(options.stream()
+        .filter(option -> option.isKeyOption() == key)
+        .map(SerdeOption::requiredFeature)
+        .collect(Collectors.toSet()));
   }
 
   private static void validate(final Set<SerdeOption> options) {

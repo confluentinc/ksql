@@ -39,6 +39,11 @@ ksqlDB supports these serialization formats:
     serializers. See [KAFKA](#kafka) below.
 -   `PROTOBUF` supports Protocol Buffers. See [Protobuf](#protobuf) below.
 
+All formats are supported as value formats. Only the following are currently supported as key formats:
+
+-    `DELIMITED`
+-    `JSON` 
+
 ### DELIMITED
 
 | Feature                      | Supported |

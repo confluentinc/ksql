@@ -117,6 +117,7 @@ CREATE STREAM pageviews_withkey (
     pageid VARCHAR
   ) WITH (
     KAFKA_TOPIC='pageviews',
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='DELIMITED'
   );
 ```

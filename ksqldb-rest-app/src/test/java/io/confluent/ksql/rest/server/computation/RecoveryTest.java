@@ -43,8 +43,6 @@ import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.entity.CommandId.Action;
-import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -688,62 +686,11 @@ public class RecoveryTest {
   }
 
   @Test
-  public void shouldNotDeleteTopicsOnRecoveryEvenIfLegacyDropCommandAlreadyInCommandQueue() {
-    topicClient.preconditionTopicExists("B");
-
-    shouldRecover(ImmutableList.of(
-        new QueuedCommand(
-            new CommandId(Type.STREAM, "B", Action.CREATE),
-            new Command(
-                "CREATE STREAM B (COLUMN STRING) "
-                    + "WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
-                Collections.emptyMap(),
-                Collections.emptyMap(),
-                Optional.empty()
-            ),
-            Optional.empty(),
-            2L
-        ),
-        new QueuedCommand(
-            new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of(), Optional.empty()),
-            Optional.empty(),
-            0L
-        )
-    ));
-
-    assertThat(topicClient.listTopicNames(), hasItem("B"));
-  }
-
-  @Test
   public void shouldRecoverQueryIDs() {
-    commands.addAll(
-        ImmutableList.of(
-            new QueuedCommand(
-                new CommandId(Type.STREAM, "A", Action.CREATE),
-                new Command(
-                    "CREATE STREAM A (COLUMN STRING) "
-                        + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-                    Collections.emptyMap(),
-                    Collections.emptyMap(),
-                    Optional.empty()
-                ),
-                Optional.empty(),
-                2L
-            ),
-            new QueuedCommand(
-                new CommandId(Type.STREAM, "A", Action.CREATE),
-                new Command(
-                    "CREATE STREAM C AS SELECT * FROM A;",
-                    Collections.emptyMap(),
-                    Collections.emptyMap(),
-                    Optional.empty()
-                ),
-                Optional.empty(),
-                7L
-            )
-        )
-    );
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM C AS SELECT * FROM A;");
+
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())

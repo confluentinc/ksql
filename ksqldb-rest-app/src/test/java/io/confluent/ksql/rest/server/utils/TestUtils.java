@@ -15,51 +15,14 @@
 
 package io.confluent.ksql.rest.server.utils;
 
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class TestUtils {
   private static int MIN_EPHEMERAL_PORT = 1024;
   private static int MAX_EPHEMERAL_PORT = 65535;
   private static int MAX_PORT_TRIES = 10;
-
-  public static List<Pair<CommandId, Command>> getAllPriorCommandRecords() {
-    final List<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
-
-    final Command csCommand = new Command("CREATE STREAM pageview "
-                                    + "(viewtime bigint, pageid varchar, userid varchar) "
-        + "WITH (kafka_topic='pageview_topic_json', value_format='json');",
-        Collections.emptyMap(), Collections.emptyMap(), Optional.empty());
-    final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASStreamGen", CommandId.Action.CREATE);
-    priorCommands.add(new Pair<>(csCommandId, csCommand));
-
-    final Command csasCommand = new Command("CREATE STREAM user1pv "
-        + " AS select * from pageview WHERE userid = 'user1';",
-        Collections.emptyMap(), Collections.emptyMap(), Optional.empty());
-
-    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
-    priorCommands.add(new Pair<>(csasCommandId, csasCommand));
-
-
-    final Command ctasCommand = new Command("CREATE TABLE user1pvtb "
-                                      + " AS select * from pageview window tumbling(size 5 "
-                                      + "second) WHERE userid = "
-        + "'user1' group by pageid;",
-        Collections.emptyMap(), Collections.emptyMap(), Optional.empty());
-
-    final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
-    priorCommands.add(new Pair<>(ctasCommandId, ctasCommand));
-
-    return priorCommands;
-  }
 
   /**
    * Find a free port.

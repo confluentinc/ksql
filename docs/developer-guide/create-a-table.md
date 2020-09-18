@@ -53,7 +53,8 @@ CREATE TABLE users (
     gender VARCHAR,
     regionid VARCHAR
   ) WITH (
-    KAFKA_TOPIC = 'users',
+    KAFKA_TOPIC='users',
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='JSON'
 );
 ```
@@ -141,7 +142,8 @@ value column definitions from {{ site.sr }}.
 CREATE TABLE users (
     userid VARCHAR PRIMARY KEY
   ) WITH (
-    KAFKA_TOPIC = 'users',
+    KAFKA_TOPIC='users',
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='AVRO'
 );
 ```
@@ -166,7 +168,8 @@ CREATE TABLE users (
     gender VARCHAR,
     regionid VARCHAR
   ) WITH (
-    KAFKA_TOPIC = 'users',
+    KAFKA_TOPIC='users',
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='JSON',
     PARTITIONS=4,
     REPLICAS=3

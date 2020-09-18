@@ -19,63 +19,51 @@ import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
 import static io.confluent.ksql.serde.SerdeFeature.WRAP_SINGLES;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.serde.EnabledSerdeFeatures;
-import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 /**
  * Type-safe schema used purely for persistence.
  *
- * <p>There are a lot of different schema types in KSQL. This is a wrapper around the connect
- * schema type used to indicate the schema is for use only for persistence, i.e. it is a
- * schema that represents how parts of a row should be serialized, or are serialized, e.g. the
- * Kafka message's value or key.
- *
- * <p>Having a specific type allows code to be more type-safe when it comes to dealing with
- * different schema types.
+ * <p>There are a lot of different schema types in KSQL. A {@code PersistenceSchema} is a
+ * combination of a list of columns representing either the columns in either the key or value of a
+ * {@link LogicalSchema}, and a set of enabled {@link io.confluent.ksql.serde.SerdeFeature
+ * SerdeFeatures} that control how the columns should be serialized, i.e. it is a schema that
+ * represents how parts of a row should be serialized, or are serialized, e.g. the Kafka message's
+ * value or key.
  */
 @Immutable
 public final class PersistenceSchema {
 
-  @EffectivelyImmutable
-  private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
-
-  private final ConnectSchema schema;
+  private final ImmutableList<SimpleColumn> columns;
   private final EnabledSerdeFeatures features;
 
   /**
    * Build a persistence schema from the logical key or value schema.
    *
-   * @param schema the schema ksql uses internally, i.e. STRUCT schema.
+   * @param columns the list of columns to be serialized.
    * @param features the serder features used for persistence.
    * @return the persistence schema.
    */
   public static PersistenceSchema from(
-      final ConnectSchema schema,
+      final List<? extends SimpleColumn> columns,
       final EnabledSerdeFeatures features
   ) {
-    return new PersistenceSchema(schema, features);
+    return new PersistenceSchema(columns, features);
   }
 
   private PersistenceSchema(
-      final ConnectSchema ksqlSchema,
+      final List<? extends SimpleColumn> columns,
       final EnabledSerdeFeatures features
   ) {
     this.features = requireNonNull(features, "features");
-    this.schema = requireNonNull(ksqlSchema, "ksqlSchema");
-
-    if (ksqlSchema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("Expected STRUCT schema type");
-    }
+    this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns"));
 
     if (features.enabled(WRAP_SINGLES) || features.enabled(UNWRAP_SINGLES)) {
-      if (ksqlSchema.fields().size() != 1) {
+      if (columns.size() != 1) {
         throw new IllegalArgumentException("Unwrapping only valid for single field");
       }
     }
@@ -85,8 +73,8 @@ public final class PersistenceSchema {
     return features;
   }
 
-  public ConnectSchema connectSchema() {
-    return schema;
+  public List<SimpleColumn> columns() {
+    return columns;
   }
 
   @Override
@@ -99,19 +87,21 @@ public final class PersistenceSchema {
     }
     final PersistenceSchema that = (PersistenceSchema) o;
     return Objects.equals(features, that.features)
-        && Objects.equals(schema, that.schema);
+        && Objects.equals(columns, that.columns);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(features, schema);
+    return Objects.hash(features, columns);
   }
 
   @Override
   public String toString() {
     return "Persistence{"
-        + "schema=" + FORMATTER.format(schema)
+        + "columns=" + columns
         + ", features=" + features
         + '}';
   }
+
+
 }

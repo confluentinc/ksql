@@ -45,6 +45,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -111,7 +112,7 @@ public class PartitionByParamsFactoryTest {
   @Mock
   private UdfFactory constantUdfFactory;
 
-  private final Struct key = new Struct(SCHEMA.keyConnectSchema());
+  private final Struct key = new Struct(ConnectSchemas.columnsToConnectSchema(SCHEMA.key()));
   private final GenericRow value = new GenericRow();
 
   @Before

@@ -48,6 +48,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -715,7 +716,9 @@ public class KsMaterializationFunctionalTest {
   }
 
   private static Struct asKeyStruct(final String keyValue, final PhysicalSchema physicalSchema) {
-    final ConnectSchema keySchema = physicalSchema.keySchema().connectSchema();
+    final ConnectSchema keySchema = ConnectSchemas
+        .columnsToConnectSchema(physicalSchema.keySchema().columns());
+
     final String keyName = Iterables.getOnlyElement(keySchema.fields()).name();
     final Struct key = new Struct(keySchema);
     key.put(keyName, keyValue);

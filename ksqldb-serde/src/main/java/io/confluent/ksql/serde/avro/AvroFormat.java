@@ -27,9 +27,11 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.apache.avro.SchemaParseException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
@@ -74,6 +76,9 @@ public final class AvroFormat extends ConnectFormat {
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType
   ) {
+    // Ensure schema is compatible by converting to Avro schema:
+    fromConnectSchema(connectSchema, FormatInfo.of(AvroFormat.NAME, formatProps));
+
     final String schemaFullName = getSchemaName(formatProps);
 
     return new KsqlAvroSerdeFactory(schemaFullName)
@@ -95,7 +100,11 @@ public final class AvroFormat extends ConnectFormat {
     final Schema avroCompatibleSchema = AvroSchemas
         .getAvroCompatibleConnectSchema(schema, schemaFullName);
 
-    return new AvroSchema(avroData.fromConnectSchema(avroCompatibleSchema));
+    try {
+      return new AvroSchema(avroData.fromConnectSchema(avroCompatibleSchema));
+    } catch (final SchemaParseException e) {
+      throw new KsqlException("Schema is not compatible with Avro: " + e.getMessage(), e);
+    }
   }
 
   private static String getSchemaName(final Map<String, String> properties) {

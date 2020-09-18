@@ -599,7 +599,7 @@ public class CreateSourceFactoryTest {
 
     when(keySerdeFactory.create(
         FormatInfo.of(KAFKA.name()),
-        PersistenceSchema.from(EXPECTED_SCHEMA.keyConnectSchema(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(EXPECTED_SCHEMA.key(), EnabledSerdeFeatures.of()),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
@@ -625,7 +625,7 @@ public class CreateSourceFactoryTest {
 
     when(valueSerdeFactory.create(
         FormatInfo.of(JSON.name()),
-        PersistenceSchema.from(EXPECTED_SCHEMA.valueConnectSchema(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(EXPECTED_SCHEMA.value(), EnabledSerdeFeatures.of()),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",

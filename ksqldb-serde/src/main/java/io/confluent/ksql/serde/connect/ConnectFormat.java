@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.connect;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
@@ -23,7 +24,6 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
@@ -42,7 +42,6 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.jetbrains.annotations.NotNull;
 
@@ -94,21 +93,16 @@ public abstract class ConnectFormat implements Format {
   }
 
   public ParsedSchema toParsedSchema(
-      final List<? extends SimpleColumn> columns,
-      final EnabledSerdeFeatures serdeFeatures,
+      final PersistenceSchema schema,
       final FormatInfo formatInfo
   ) {
-    SerdeUtils.throwOnUnsupportedFeatures(serdeFeatures, supportedFeatures());
+    SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
 
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    columns.forEach(col -> schemaBuilder.field(
-        col.name().text(),
-        SchemaConverters.sqlToConnectConverter().toConnectSchema(col.type()))
-    );
+    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+    final ConnectSchema innerSchema = SerdeUtils
+        .applySinglesUnwrapping(outerSchema, schema.features());
 
-    final Schema schema = SerdeUtils.applySinglesUnwrapping(schemaBuilder.build(), serdeFeatures);
-
-    return fromConnectSchema(schema, formatInfo);
+    return fromConnectSchema(innerSchema, formatInfo);
   }
 
   @Override
@@ -120,7 +114,7 @@ public abstract class ConnectFormat implements Format {
   ) {
     SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
 
-    final ConnectSchema outerSchema = schema.connectSchema();
+    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
     final ConnectSchema innerSchema = SerdeUtils
         .applySinglesUnwrapping(outerSchema, schema.features());
 
@@ -174,6 +168,7 @@ public abstract class ConnectFormat implements Format {
     return new ConnectColumn(name, type);
   }
 
+  @Immutable
   private static final class ConnectColumn implements SimpleColumn {
 
     private final ColumnName name;

@@ -256,7 +256,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The 'KAFKA' format only supports a single field. Got: V0 INT, V1 VARCHAR"
+        "message": "The 'KAFKA' format only supports a single field. Got: [`V0` INTEGER, `V1` STRING]"
       }
     },
     {
@@ -267,7 +267,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The 'KAFKA' format only supports a single field. Got: V0 INT, V1 VARCHAR"
+        "message": "The 'KAFKA' format only supports a single field. Got: [`V0` INTEGER, `V1` STRING]"
       }
     },
     {

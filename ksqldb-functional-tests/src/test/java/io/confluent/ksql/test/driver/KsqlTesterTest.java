@@ -339,7 +339,7 @@ public class KsqlTesterTest {
 
   private Serde<Struct> keySerde(final DataSource sinkSource) {
     final PersistenceSchema schema = PersistenceSchema.from(
-        sinkSource.getSchema().keyConnectSchema(),
+        sinkSource.getSchema().key(),
         sinkSource.getSerdeOptions().keyFeatures()
     );
 
@@ -357,7 +357,7 @@ public class KsqlTesterTest {
     return GenericRowSerDe.from(
         sinkSource.getKsqlTopic().getValueFormat().getFormatInfo(),
         PersistenceSchema.from(
-            sinkSource.getSchema().valueConnectSchema(),
+            sinkSource.getSchema().value(),
             sinkSource.getSerdeOptions().valueFeatures()),
         config,
         serviceContext.getSchemaRegistryClientFactory(),

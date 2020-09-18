@@ -18,10 +18,15 @@ package io.confluent.ksql.schema.ksql;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeature;
+import java.util.List;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -34,11 +39,20 @@ public class PersistenceSchemaTest {
       .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
+  private static final List<? extends Column> SINGLE_COLUMN = ImmutableList.of(
+      Column.of(ColumnName.of("Bob"), SqlTypes.INTEGER, Namespace.VALUE, 0)
+  );
+
   private static final ConnectSchema MULTI_FIELD_SCHEMA = (ConnectSchema) SchemaBuilder
       .struct()
       .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
       .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
       .build();
+
+  private static final List<? extends Column> MULTI_COLUMN = ImmutableList.of(
+      Column.of(ColumnName.of("f0"), SqlTypes.BIGINT, Namespace.VALUE, 0),
+      Column.of(ColumnName.of("f1"), SqlTypes.BIGINT, Namespace.VALUE, 1)
+  );
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -54,53 +68,48 @@ public class PersistenceSchemaTest {
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            PersistenceSchema.from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of()),
-            PersistenceSchema.from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of())
+            PersistenceSchema.from(SINGLE_COLUMN, EnabledSerdeFeatures.of()),
+            PersistenceSchema.from(SINGLE_COLUMN, EnabledSerdeFeatures.of())
+        )
+        .addEqualityGroup(
+            PersistenceSchema.from(MULTI_COLUMN, EnabledSerdeFeatures.of())
         )
         .addEqualityGroup(
             PersistenceSchema
-                .from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES))
-        )
-        .addEqualityGroup(
-            PersistenceSchema.from(MULTI_FIELD_SCHEMA, EnabledSerdeFeatures.of())
+                .from(SINGLE_COLUMN, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES))
         )
         .testEquals();
   }
 
   @Test
-  public void shouldReturnSchema() {
+  public void shouldReturnColumns() {
     // Given:
     final PersistenceSchema schema = PersistenceSchema
-        .from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of());
+        .from(SINGLE_COLUMN, EnabledSerdeFeatures.of());
 
     // Then:
-    assertThat(schema.connectSchema(), is(SINGLE_FIELD_SCHEMA));
+    assertThat(schema.columns(), is(SINGLE_COLUMN));
   }
 
   @Test
   public void shouldHaveSensibleToString() {
     // Given:
     final PersistenceSchema schema = PersistenceSchema
-        .from(SINGLE_FIELD_SCHEMA, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+        .from(SINGLE_COLUMN, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
 
     // Then:
     assertThat(schema.toString(),
-        is("Persistence{schema=STRUCT<f0 VARCHAR> NOT NULL, features=[WRAP_SINGLES]}"));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnNoneStructSchema() {
-    PersistenceSchema.from((ConnectSchema) Schema.FLOAT64_SCHEMA, EnabledSerdeFeatures.of());
+        is("Persistence{columns=[`Bob` INTEGER], features=[WRAP_SINGLES]}"));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnWrapIfMultipleFields() {
-    PersistenceSchema.from(MULTI_FIELD_SCHEMA, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+    PersistenceSchema.from(MULTI_COLUMN, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnUnwrapIfMultipleFields() {
     PersistenceSchema
-        .from(MULTI_FIELD_SCHEMA, EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+        .from(MULTI_COLUMN, EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
   }
 }

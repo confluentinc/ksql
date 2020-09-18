@@ -43,6 +43,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Arrays;
@@ -436,11 +437,11 @@ public final class SourceBuilder {
       return Optional.empty();
     }
 
-    if (schema.keyConnectSchema().fields().size() != 1) {
+    if (schema.key().size() != 1) {
       throw new IllegalStateException("Only single key fields are currently supported");
     }
 
-    return Optional.of(schema.keyConnectSchema().fields().get(0));
+    return Optional.of(ConnectSchemas.columnsToConnectSchema(schema.key()).fields().get(0));
   }
 
   private static String tableChangeLogOpName(final ExecutionStepPropertiesV1 props) {

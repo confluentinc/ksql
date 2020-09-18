@@ -69,6 +69,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -88,6 +89,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
@@ -849,7 +851,7 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerdeFactory).create(
         FormatInfo.of(FormatFactory.KAFKA.name()),
-        PersistenceSchema.from(SCHEMA.keyConnectSchema(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(SCHEMA.key(), EnabledSerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -858,7 +860,7 @@ public class InsertValuesExecutorTest {
 
     verify(valueSerdeFactory).create(
         FormatInfo.of(FormatFactory.JSON.name()),
-        PersistenceSchema.from(SCHEMA.valueConnectSchema(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(SCHEMA.value(), EnabledSerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -934,7 +936,8 @@ public class InsertValuesExecutorTest {
   }
 
   private static Struct keyStruct(final String rowKey) {
-    final Struct key = new Struct(SCHEMA.keyConnectSchema());
+    final ConnectSchema keySchema = ConnectSchemas.columnsToConnectSchema(SCHEMA.key());
+    final Struct key = new Struct(keySchema);
     key.put(Iterables.getOnlyElement(SCHEMA.key()).name().text(), rowKey);
     return key;
   }

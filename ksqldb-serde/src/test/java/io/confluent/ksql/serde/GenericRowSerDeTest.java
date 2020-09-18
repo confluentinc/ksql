@@ -115,8 +115,6 @@ public class GenericRowSerDeTest {
     when(innerSerializer.serialize(any(), any())).thenReturn(SERIALIZED);
     when(innerDeserializer.deserialize(any(), any())).thenReturn(deserialized);
     when(deserialized.schema()).thenReturn(deserializedSchema);
-
-    when(schema.connectSchema()).thenReturn(CONNECT_SCHEMA);
   }
 
   @Test

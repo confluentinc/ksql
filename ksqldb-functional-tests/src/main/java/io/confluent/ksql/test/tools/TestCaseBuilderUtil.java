@@ -25,7 +25,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -35,8 +34,7 @@ import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
-import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
@@ -51,7 +49,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -169,8 +166,10 @@ public final class TestCaseBuilderUtil {
         valueSchema = logicalSchema.value().isEmpty()
             ? Optional.empty()
             : Optional.of(valueFormat.getFormat().toParsedSchema(
-                logicalSchema.value(),
-                serdeOptions.valueFeatures(),
+                PersistenceSchema.from(
+                    logicalSchema.value(),
+                    serdeOptions.valueFeatures()
+                ),
                 valueFormat.getFormatInfo()
             ));
       } else {
@@ -232,26 +231,5 @@ public final class TestCaseBuilderUtil {
 
   private static String filePrefix(final String testPath) {
     return getNameWithoutExtension(testPath) + " - ";
-  }
-
-  private static class TestColumn implements SimpleColumn {
-
-    private final ColumnName name;
-    private final SqlType type;
-
-    TestColumn(final ColumnName name, final SqlType type) {
-      this.name = Objects.requireNonNull(name, "name");
-      this.type = Objects.requireNonNull(type, "type");
-    }
-
-    @Override
-    public ColumnName name() {
-      return name;
-    }
-
-    @Override
-    public SqlType type() {
-      return type;
-    }
   }
 }

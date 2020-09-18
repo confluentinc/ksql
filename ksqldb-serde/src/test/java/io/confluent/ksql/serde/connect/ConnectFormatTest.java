@@ -174,8 +174,10 @@ public class ConnectFormatTest {
     // When:
     final Exception e = assertThrows(IllegalArgumentException.class,
         () -> format.toParsedSchema(
-            ImmutableList.of(createColumn("vic", SqlTypes.STRING)),
-            EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+            PersistenceSchema.from(
+                ImmutableList.of(createColumn("vic", SqlTypes.STRING)),
+                EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+            ),
             formatInfo
         )
     );
@@ -202,8 +204,10 @@ public class ConnectFormatTest {
   public void shouldSupportBuildingPrimitiveSchemas() {
     // When:
     format.toParsedSchema(
-        ImmutableList.of(createColumn("bob", SqlTypes.INTEGER)),
-        EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+        PersistenceSchema.from(
+            ImmutableList.of(createColumn("bob", SqlTypes.INTEGER)),
+            EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+        ),
         formatInfo
     );
 
@@ -214,7 +218,8 @@ public class ConnectFormatTest {
   @Test
   public void shouldCallSubclassToCreateOuterWhenWrapped() {
     // Given:
-    when(persistenceSchema.connectSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
+    final SimpleColumn singleColumn = createColumn("bob", SqlTypes.INTEGER);
+    when(persistenceSchema.columns()).thenReturn(ImmutableList.of(singleColumn));
     when(persistenceSchema.features()).thenReturn(EnabledSerdeFeatures.of());
 
     // When:
@@ -230,7 +235,8 @@ public class ConnectFormatTest {
   @Test
   public void shouldCallSubclassToCreateInnerWhenUnwrapped() {
     // Given:
-    when(persistenceSchema.connectSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
+    final SimpleColumn singleColumn = createColumn("bob", SqlTypes.INTEGER);
+    when(persistenceSchema.columns()).thenReturn(ImmutableList.of(singleColumn));
     when(persistenceSchema.features())
         .thenReturn(EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 

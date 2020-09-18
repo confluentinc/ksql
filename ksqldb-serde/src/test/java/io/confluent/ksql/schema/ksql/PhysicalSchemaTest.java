@@ -77,7 +77,7 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.keySchema(), is(PersistenceSchema.from(
-        SCHEMA.keyConnectSchema(),
+        SCHEMA.key(),
         EnabledSerdeFeatures.of()
     )));
   }
@@ -90,7 +90,7 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.valueSchema(), is(PersistenceSchema.from(
-        SCHEMA.valueConnectSchema(),
+        SCHEMA.value(),
         EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES)
     )));
   }

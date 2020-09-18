@@ -231,7 +231,9 @@ public final class QueryExecutor {
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         classifier,
         physicalPlan,
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+        (ProcessingLogger) streamsProperties.get(
+            ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER)
     );
   }
 

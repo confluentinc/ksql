@@ -76,11 +76,23 @@ public final class ProcessingLogMessageSchema {
       .optional()
       .build();
 
+  public static final String KAFKA_STREAMS_THREAD_ERROR_FIELD_MESSAGE = "errorMessage";
+  public static final String KAFKA_STREAMS_THREAD_ERROR_FIELD_NAME = "name";
+  public static final String KAFKA_STREAMS_THREAD_ERROR_FIELD_CAUSE = "cause";
+
+  private static final Schema KAFKA_STREAMS_THREAD_ERROR_SCHEMA = SchemaBuilder.struct()
+      .name(NAMESPACE + "KafkaStreamsThreadError")
+      .field(KAFKA_STREAMS_THREAD_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
+      .field(KAFKA_STREAMS_THREAD_ERROR_FIELD_NAME, Schema.OPTIONAL_STRING_SCHEMA)
+      .field(KAFKA_STREAMS_THREAD_ERROR_FIELD_CAUSE, CAUSE_SCHEMA)
+      .build();
+
   public enum MessageType {
     DESERIALIZATION_ERROR(0, DESERIALIZATION_ERROR_SCHEMA),
     RECORD_PROCESSING_ERROR(1, RECORD_PROCESSING_ERROR_SCHEMA),
     PRODUCTION_ERROR(2, PRODUCTION_ERROR_SCHEMA),
-    SERIALIZATION_ERROR(3, SERIALIZATION_ERROR_SCHEMA);
+    SERIALIZATION_ERROR(3, SERIALIZATION_ERROR_SCHEMA),
+    KAFKA_STREAMS_THREAD_ERROR(4, KAFKA_STREAMS_THREAD_ERROR_SCHEMA);
 
     private final int typeId;
     private final Schema schema;
@@ -104,6 +116,7 @@ public final class ProcessingLogMessageSchema {
   public static final String RECORD_PROCESSING_ERROR = "recordProcessingError";
   public static final String PRODUCTION_ERROR = "productionError";
   public static final String SERIALIZATION_ERROR = "serializationError";
+  public static final String KAFKA_STREAMS_THREAD_ERROR = "kafkaStreamsThreadError";
 
   public static final Schema PROCESSING_LOG_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "ProcessingLogRecord")
@@ -112,6 +125,7 @@ public final class ProcessingLogMessageSchema {
       .field(RECORD_PROCESSING_ERROR, RECORD_PROCESSING_ERROR_SCHEMA)
       .field(PRODUCTION_ERROR, PRODUCTION_ERROR_SCHEMA)
       .field(SERIALIZATION_ERROR, SERIALIZATION_ERROR_SCHEMA)
+      .field(KAFKA_STREAMS_THREAD_ERROR, KAFKA_STREAMS_THREAD_ERROR_SCHEMA)
       .optional()
       .build();
 

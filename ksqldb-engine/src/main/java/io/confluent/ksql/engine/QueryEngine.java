@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -30,7 +31,6 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -71,8 +71,7 @@ class QueryEngine {
 
   PhysicalPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
+      final SessionConfig config,
       final MutableMetaStore metaStore,
       final QueryId queryId
   ) {
@@ -82,7 +81,7 @@ class QueryEngine {
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
         builder,
-        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
+        config.getConfig(true),
         serviceContext,
         processingLogContext,
         metaStore

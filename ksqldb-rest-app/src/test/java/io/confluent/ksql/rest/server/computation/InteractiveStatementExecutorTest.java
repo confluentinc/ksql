@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -269,7 +270,8 @@ public class InteractiveStatementExecutorTest {
     final StatementParser realParser = new StatementParser(ksqlEngine);
     final PreparedStatement<?> ddlStatement = realParser.parseSingleStatement(ddlText);
     final ConfiguredStatement<?> configuredStatement =
-        ConfiguredStatement.of(ddlStatement, emptyMap(), originalConfig);
+        ConfiguredStatement
+            .of(ddlStatement, SessionConfig.of(originalConfig, emptyMap()));
     ksqlEngine.execute(serviceContext, configuredStatement);
 
     final PreparedStatement<Statement> csasStatement =
@@ -291,8 +293,8 @@ public class InteractiveStatementExecutorTest {
         "_CSASGen",
         CommandId.Action.CREATE);
 
-    final ConfiguredStatement<?> configuredCsas = ConfiguredStatement.of(
-        csasStatement, emptyMap(), expectedConfig);
+    final ConfiguredStatement<?> configuredCsas = ConfiguredStatement
+        .of(csasStatement, SessionConfig.of(expectedConfig, emptyMap()));
 
     when(mockParser.parseSingleStatement(statementText)).thenReturn(csasStatement);
     final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
@@ -344,7 +346,10 @@ public class InteractiveStatementExecutorTest {
     // Then:
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
         plannedCommand.getOriginalProperties());
-    verify(mockEngine).execute(serviceContext, ConfiguredKsqlPlan.of(plan, emptyMap(), expectedConfig));
+    verify(mockEngine).execute(
+        serviceContext,
+        ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap()))
+    );
   }
 
   @Test
@@ -437,7 +442,10 @@ public class InteractiveStatementExecutorTest {
 
     // Then:
     verify(mockConfig).overrideBreakingConfigsWithOriginalValues(savedConfigs);
-    verify(mockEngine).execute(any(), eq(ConfiguredKsqlPlan.of(plan, emptyMap(), mergedConfig)));
+    verify(mockEngine).execute(
+        any(),
+        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig, emptyMap())))
+    );
   }
 
   @Test
@@ -648,7 +656,7 @@ public class InteractiveStatementExecutorTest {
     private final ConfiguredKsqlPlan plan;
 
     ConfiguredKsqlPlanMatcher(final KsqlPlan ksqlPlan) {
-      plan = ConfiguredKsqlPlan.of(ksqlPlan, Collections.emptyMap(), ksqlConfig);
+      plan = ConfiguredKsqlPlan.of(ksqlPlan, SessionConfig.of(ksqlConfig, emptyMap()));
     }
 
     @Override
@@ -662,7 +670,8 @@ public class InteractiveStatementExecutorTest {
     private final ConfiguredStatement<?> statement;
 
     ConfiguredStatementMatcher(final PreparedStatement<?> preparedStatement) {
-      statement = ConfiguredStatement.of(preparedStatement, Collections.<String, Object>emptyMap(), ksqlConfig);
+      statement = ConfiguredStatement.of(preparedStatement,
+          SessionConfig.of(ksqlConfig, emptyMap()));
     }
 
     @Override

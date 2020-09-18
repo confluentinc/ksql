@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.api.impl;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -98,7 +100,7 @@ public class QueryEndpoint {
       final long startTimeNanos
   ) {
     final PullQueryResult result = pullQueryExecutor.execute(
-        statement, serviceContext, Optional.of(false), startTimeNanos);
+        statement, ImmutableMap.of(), serviceContext, Optional.of(false), startTimeNanos);
     final TableRows tableRows = result.getTableRows();
 
     return new PullQueryPublisher(
@@ -125,7 +127,7 @@ public class QueryEndpoint {
     }
     @SuppressWarnings("unchecked") final PreparedStatement<Query> psq =
         (PreparedStatement<Query>) ps;
-    return ConfiguredStatement.of(psq, properties, ksqlConfig);
+    return ConfiguredStatement.of(psq, SessionConfig.of(ksqlConfig, properties));
   }
 
   private static List<String> colTypesFromSchema(final List<Column> columns) {

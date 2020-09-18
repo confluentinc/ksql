@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -243,13 +244,10 @@ public class ListSourceExecutorTest {
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
         CustomExecutors.SHOW_COLUMNS.execute(
-            ConfiguredStatement.of(
-                PreparedStatement.of(
-                    "DESCRIBE SINK;",
-                    new ShowColumns(SourceName.of("SINK"), false)),
-                ImmutableMap.of(),
-                engine.getKsqlConfig()
-            ),
+            ConfiguredStatement.of(PreparedStatement.of(
+                "DESCRIBE SINK;",
+                new ShowColumns(SourceName.of("SINK"), false)),
+                SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()

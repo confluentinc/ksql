@@ -96,7 +96,7 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSource withSchema = addSchemaFields(statement, valueSchema);
     final PreparedStatement<CreateSource> prepared = buildPreparedStatement(withSchema);
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement
-        .of(prepared, statement.getConfigOverrides(), statement.getConfig());
+        .of(prepared, statement.getSessionConfig());
 
     return Optional.of(configured);
   }

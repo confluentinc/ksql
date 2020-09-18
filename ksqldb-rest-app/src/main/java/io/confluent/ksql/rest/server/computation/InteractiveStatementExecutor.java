@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
@@ -44,7 +45,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -236,8 +236,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
         plan,
-        command.getOverwriteProperties(),
-        mergedConfig
+        SessionConfig.of(mergedConfig, command.getOverwriteProperties())
     );
     putStatus(
         commandId,
@@ -308,14 +307,18 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
 
   private String executeDdlStatement(final PreparedStatement<?> statement, final Command command) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
-    final ConfiguredStatement<?> configured =
-        ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
+    final ConfiguredStatement<?> configured = ConfiguredStatement
+        .of(statement, SessionConfig.of(mergedConfig, command.getOverwriteProperties()));
 
     final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
     return ksqlEngine
         .execute(
             serviceContext,
-            ConfiguredKsqlPlan.of(plan, command.getOverwriteProperties(), mergedConfig))
+            ConfiguredKsqlPlan.of(
+                plan,
+                SessionConfig.of(mergedConfig, command.getOverwriteProperties())
+            )
+        )
         .getCommandResult()
         .get();
   }
@@ -328,15 +331,19 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
 
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        statement, command.getOverwriteProperties(), mergedConfig);
+    final ConfiguredStatement<?> configured = ConfiguredStatement
+        .of(statement, SessionConfig.of(mergedConfig, command.getOverwriteProperties()));
 
     final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
     final QueryMetadata queryMetadata =
         ksqlEngine
             .execute(
                 serviceContext,
-                ConfiguredKsqlPlan.of(plan, command.getOverwriteProperties(), mergedConfig))
+                ConfiguredKsqlPlan.of(
+                    plan,
+                    SessionConfig.of(mergedConfig, command.getOverwriteProperties())
+                )
+            )
             .getQuery()
             .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
 

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -69,11 +70,9 @@ public class PullQueryExecutorTest {
       // Given:
       final Query theQuery = mock(Query.class);
       when(theQuery.isPullQuery()).thenReturn(true);
-      final ConfiguredStatement<Query> query = ConfiguredStatement.of(
-          PreparedStatement.of("SELECT * FROM test_table;", theQuery),
-          ImmutableMap.of(),
-          engine.getKsqlConfig()
-      );
+      final ConfiguredStatement<Query> query = ConfiguredStatement
+          .of(PreparedStatement.of("SELECT * FROM test_table;", theQuery),
+              SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of()));
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
           engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(),
           engine.getEngine().getServiceId(), time);
@@ -81,7 +80,7 @@ public class PullQueryExecutorTest {
       // When:
       final Exception e = assertThrows(
           KsqlStatementException.class,
-          () -> pullQueryExecutor.execute(query, engine.getServiceContext(), Optional.empty(), 0L)
+          () -> pullQueryExecutor.execute(query, ImmutableMap.of(), engine.getServiceContext(), Optional.empty(), 0L)
       );
 
       // Then:
@@ -99,11 +98,9 @@ public class PullQueryExecutorTest {
     @Test
     public void shouldRedirectQueriesToQueryEndPoint() {
       // Given:
-      final ConfiguredStatement<Query> query = ConfiguredStatement.of(
-          PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
-          ImmutableMap.of(),
-          engine.getKsqlConfig()
-      );
+      final ConfiguredStatement<Query> query = ConfiguredStatement
+          .of(PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+              SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of()));
 
       // When:
       final KsqlRestException e = assertThrows(

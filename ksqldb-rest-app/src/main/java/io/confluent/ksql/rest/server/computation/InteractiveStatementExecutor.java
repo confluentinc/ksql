@@ -20,6 +20,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -310,8 +311,9 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredStatement<?> configured =
         ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
+    final ConfiguredStatement<?> injected = new DefaultFormatInjector().inject(configured);
 
-    final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
+    final KsqlPlan plan = ksqlEngine.plan(serviceContext, injected);
     return ksqlEngine
         .execute(
             serviceContext,

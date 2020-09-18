@@ -55,6 +55,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.Before;
@@ -72,6 +74,7 @@ public class CommandRunnerTest {
   private static final long COMMAND_RUNNER_HEALTH_TIMEOUT = 1000;
   private static final String BACKUP_CORRUPTED_ERROR_MESSAGE = "corrupted";
   private static final String INCOMPATIBLE_COMMANDS_ERROR_MESSAGE = "incompatible";
+  private static final String MISSING_COMMAND_TOPIC_ERROR_MESSAGE = "command topic missing";
 
   @Mock
   private InteractiveStatementExecutor statementExecutor;
@@ -106,6 +109,8 @@ public class CommandRunnerTest {
   @Mock
   private Supplier<Boolean> backupCorrupted;
   @Mock
+  private Supplier<Boolean> commandTopicExists;
+  @Mock
   private Errors errorHandler;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
@@ -128,9 +133,11 @@ public class CommandRunnerTest {
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);
 
     when(backupCorrupted.get()).thenReturn(false);
+    when(commandTopicExists.get()).thenReturn(true);
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
     when(errorHandler.commandRunnerDegradedIncompatibleCommandsErrorMessage()).thenReturn(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
     when(errorHandler.commandRunnerDegradedBackupCorruptedErrorMessage()).thenReturn(BACKUP_CORRUPTED_ERROR_MESSAGE);
+    when(errorHandler.commandRunnerDegradedCommandTopicDeletedErrorMessage()).thenReturn(MISSING_COMMAND_TOPIC_ERROR_MESSAGE);
 
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
@@ -149,7 +156,8 @@ public class CommandRunnerTest {
         incompatibleCommandChecker,
         commandDeserializer,
         backupCorrupted,
-        errorHandler
+        errorHandler,
+        commandTopicExists
     );
   }
 
@@ -303,6 +311,20 @@ public class CommandRunnerTest {
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
     verify(statementExecutor, never()).handleRestore(queuedCommand3);
+  }
+
+  @Test
+  public void shouldEnterDegradedStateIfCommandTopicMissing() {
+    // Given:
+    givenQueuedCommands();
+    when(commandTopicExists.get()).thenReturn(false);
+
+    // When:
+    commandRunner.fetchAndRunCommands();
+
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(MISSING_COMMAND_TOPIC_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED));
   }
 
   @Test
@@ -504,6 +526,25 @@ public class CommandRunnerTest {
         .thenReturn(Collections.singletonList(queuedCommand2));
     doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
     
+    // When:
+    commandRunner.start();
+    verify(commandStore, never()).close();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+
+    // Then:
+    final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(commandStore).close();
+  }
+
+  public void shouldCloseEarlyWhenOffsetOutOfRangeException() throws Exception {
+    // Given:
+    when(commandStore.getNewCommands(any()))
+        .thenReturn(Collections.singletonList(queuedCommand1))
+        .thenThrow(new OffsetOutOfRangeException(Collections.singletonMap(new TopicPartition("command_topic", 0), 0L)));
+
     // When:
     commandRunner.start();
     verify(commandStore, never()).close();

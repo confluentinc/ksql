@@ -46,7 +46,6 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.CommandTopicBackup;
-import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -68,6 +67,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.StreamsConfig;
@@ -231,7 +231,9 @@ public class RecoveryTest {
           "",
           InternalTopicSerdes.deserializer(Command.class),
           commandTopicBackup,
-          errorHandler
+          errorHandler,
+          topicClient,
+          "command_topic"
       );
 
       this.ksqlResource = new KsqlResource(
@@ -567,6 +569,7 @@ public class RecoveryTest {
   @Before
   public void setUp() {
     topicClient.preconditionTopicExists("A");
+    topicClient.preconditionTopicExists("command_topic");
   }
 
   @Test

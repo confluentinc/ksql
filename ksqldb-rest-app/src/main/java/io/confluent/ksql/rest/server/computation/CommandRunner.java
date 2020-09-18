@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionExc
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
@@ -43,6 +44,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -81,9 +83,11 @@ public class CommandRunner implements Closeable {
 
   private final Deserializer<Command> commandDeserializer;
   private final Consumer<QueuedCommand> incompatibleCommandChecker;
-  private final Supplier<Boolean> backupCorrupted;
   private final Errors errorHandler;
   private boolean incompatibleCommandDetected;
+  private final Supplier<Boolean> backupCorrupted;
+  private final Supplier<Boolean> commandTopicExists;
+  private boolean commandTopicDeleted;
 
   public enum CommandRunnerStatus {
     RUNNING,
@@ -94,7 +98,8 @@ public class CommandRunner implements Closeable {
   public enum CommandRunnerDegradedReason {
     NONE,
     INCOMPATIBLE_COMMAND,
-    CORRUPTED
+    CORRUPTED,
+    COMMAND_TOPIC_DELETED
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -109,7 +114,9 @@ public class CommandRunner implements Closeable {
       final String metricsGroupPrefix,
       final Deserializer<Command> commandDeserializer,
       final CommandTopicBackup commandTopicBackup,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final KafkaTopicClient kafkaTopicClient,
+      final String commandTopicName
   ) {
     this(
         statementExecutor,
@@ -129,7 +136,8 @@ public class CommandRunner implements Closeable {
         },
         commandDeserializer,
         commandTopicBackup::commandTopicCorruption,
-        errorHandler
+        errorHandler,
+        () -> kafkaTopicClient.isTopicExists(commandTopicName)
     );
   }
 
@@ -150,7 +158,8 @@ public class CommandRunner implements Closeable {
       final Consumer<QueuedCommand> incompatibleCommandChecker,
       final Deserializer<Command> commandDeserializer,
       final Supplier<Boolean> backupCorrupted,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final Supplier<Boolean> commandTopicExists
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
@@ -175,7 +184,10 @@ public class CommandRunner implements Closeable {
         Objects.requireNonNull(backupCorrupted, "backupCorrupted");
     this.errorHandler =
         Objects.requireNonNull(errorHandler, "errorHandler");
+    this.commandTopicExists =
+        Objects.requireNonNull(commandTopicExists, "commandTopicExists");
     this.incompatibleCommandDetected = false;
+    this.commandTopicDeleted = false;
   }
 
   /**
@@ -265,6 +277,9 @@ public class CommandRunner implements Closeable {
     lastPollTime.set(clock.instant());
     final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
     if (commands.isEmpty()) {
+      if (!commandTopicExists.get()) {
+        commandTopicDeleted = true;
+      }
       return;
     }
 
@@ -334,7 +349,7 @@ public class CommandRunner implements Closeable {
   }
 
   public CommandRunnerStatus checkCommandRunnerStatus() {
-    if (incompatibleCommandDetected || backupCorrupted.get()) {
+    if (incompatibleCommandDetected || backupCorrupted.get() || commandTopicDeleted) {
       return CommandRunnerStatus.DEGRADED;
     }
 
@@ -360,6 +375,10 @@ public class CommandRunner implements Closeable {
       return CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND;
     }
 
+    if (commandTopicDeleted) {
+      return CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED;
+    }
+
     return CommandRunnerDegradedReason.NONE;
   }
 
@@ -370,6 +389,10 @@ public class CommandRunner implements Closeable {
 
     if (incompatibleCommandDetected) {
       return errorHandler.commandRunnerDegradedIncompatibleCommandsErrorMessage();
+    }
+
+    if (commandTopicDeleted) {
+      return errorHandler.commandRunnerDegradedCommandTopicDeletedErrorMessage();
     }
 
     return "";
@@ -399,7 +422,7 @@ public class CommandRunner implements Closeable {
     public void run() {
       try {
         while (!closed) {
-          if (incompatibleCommandDetected || backupCorrupted.get()) {
+          if (incompatibleCommandDetected || backupCorrupted.get() || commandTopicDeleted) {
             LOG.warn("CommandRunner entering degraded state due to: {}",
                 getCommandRunnerDegradedReason());
             closeEarly();
@@ -412,6 +435,10 @@ public class CommandRunner implements Closeable {
         if (!closed) {
           throw wue;
         }
+      } catch (final OffsetOutOfRangeException e) {
+        LOG.warn("The command topic offset was reset. CommandRunner thread exiting.");
+        commandTopicDeleted = true;
+        closeEarly();
       } finally {
         commandStore.close();
       }

@@ -756,7 +756,9 @@ public final class KsqlRestApplication implements Executable {
         metricsPrefix,
         InternalTopicSerdes.deserializer(Command.class),
         finalCommandTopicBackup,
-        errorHandler
+        errorHandler,
+        serviceContext.getTopicClient(),
+        commandTopicName
     );
   
     final KsqlResource ksqlResource = new KsqlResource(

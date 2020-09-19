@@ -45,7 +45,8 @@ ksqlDB supports these serialization formats:
 |------------------------------|-----------|
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
-| [Single field unwrapping][2] | No: single field is always unwrapped | 
+| [Single field wrapping][2]   | No        |
+| [Single field unwrapping][2] | Yes       | 
 
 The `DELIMITED` format supports comma-separated values. You can use other
 delimiter characters by specifying the VALUE_DELIMITER when you use
@@ -75,13 +76,15 @@ This data format supports all SQL
 | Feature                      | Supported |
 |------------------------------|-----------|
 | [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
-| [Schema inference][1]        | Yes. `JSON` supports _reading_ schemas. `JSON_SR` supports both _reading_ and _writing_ scheams.  |
+| [Schema inference][1]        | `JSON`: No, `JSON_SR`: Yes |
+| [Single field wrapping][2]   | Yes       |
 | [Single field unwrapping][2] | Yes       |
 
 There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and
-deserializing JSON data. Both support reading the schema of a source from
-{{ site.sr }}. The difference between the two formats is that only the `JSON_SR`
-format registers the schema of a new source with {{ site.sr }}. 
+deserializing JSON data. The latter offers integration with the {{ site.sr }},
+registering and retrieving JSON schemas. The former does not. Though the `JSON`
+does support reading data written by the `JSON_SR` format, (which prefixes the
+JSON data with a magic byte and schema id).
 
 The JSON formats supports all SQL [data types](syntax-reference.md#data-types).
 By itself, JSON doesn't support a map type, so ksqlDB serializes `MAP` types as
@@ -182,6 +185,7 @@ used.
 |------------------------------|-----------|
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
+| [Single field wrapping][2]   | Yes       |
 | [Single field unwrapping][2] | Yes       |
 
 The `AVRO` format supports Avro binary serialization of all SQL
@@ -273,7 +277,8 @@ Avro record's field name. The first case-insensitive match is used.
 |------------------------------|-----------|
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
-| [Single field unwrapping][2] | No: single field is always unwrapped |
+| [Single field wrapping][2]   | No        |
+| [Single field unwrapping][2] | Yes       |
 
 The `KAFKA` format supports `INT`, `BIGINT`, `DOUBLE` and `STRING`
 primitives that have been serialized using Kafka's standard set of
@@ -330,6 +335,7 @@ format.
 |------------------------------|-----------|
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
+| [Single field wrapping][2]   | Yes       |
 | [Single field unwrapping][2] | No        |
 
 Protobuf handles `null` values differently than AVRO and JSON. Protobuf doesn't
@@ -348,12 +354,14 @@ have the concept of a `null` value, so the conversion between PROTOBUF and Java
 Single field (un)wrapping
 -------------------------
 
-!!! note
-      The `DELIMITED` and `KAFKA` formats don't support single-field
-      unwrapping.
+### (de)serialization of single keys
 
+At this time, ksqlDB supports only a single key column and that key columns
+must be unwrapped, i.e. not contained within a outer record or object. See
+the next two sections on single values for more information about wrapped
+and unwrapped data.
 
-### Controlling deserializing of single fields
+### Controlling deserializing of single values
 
 When ksqlDB deserializes a Kafka message into a row, the key is
 deserialized into the key field, and the message's value is
@@ -410,7 +418,7 @@ CREATE TABLE TRADES (
 
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
 system default, which is defined by `ksql.persistence.wrap.single.values`.
-You can change the system default. For more information, see
+You can change the system default, if the format supports it. For more information, see
 [ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
 
 !!! important
@@ -431,7 +439,7 @@ tombstone, and a `null` key is ignored when the table is part of a join.
 When you have an unwrapped single-field schema, ensure that any `null`
 key or value has the desired result.
 
-### Controlling serialization of single fields
+### Controlling serialization of single values
 
 When ksqlDB serializes a row into a Kafka message, the key field is
 serialized into the message's key, and any value fields are serialized
@@ -477,8 +485,8 @@ CREATE STREAM y WITH(WRAP_SINGLE_VALUE=false) AS SELECT f0 FROM x EMIT CHANGES;
 ```
 
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
-system default, defined by `ksql.persistence.wrap.single.values`. You
-can change the system default. For more information, see
+system default, defined by `ksql.persistence.wrap.single.values`, if the format supports it. 
+You can change the system default. For more information, see
 [ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
 
 !!! important

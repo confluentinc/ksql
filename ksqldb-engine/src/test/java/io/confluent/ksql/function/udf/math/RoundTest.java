@@ -152,67 +152,66 @@ public class RoundTest {
   @Test
   public void shouldRoundBigDecimalWithDecimalPlacesPositive() {
     assertThat(udf.round(new BigDecimal("0"), 0), is(new BigDecimal("0")));
-    assertThat(udf.round(new BigDecimal("1.0"), 0), is(new BigDecimal("1")));
-    assertThat(udf.round(new BigDecimal("1.1"), 0), is(new BigDecimal("1")));
-    assertThat(udf.round(new BigDecimal("1.5"), 0), is(new BigDecimal("2")));
-    assertThat(udf.round(new BigDecimal("1.75"), 0), is(new BigDecimal("2")));
-    assertThat(udf.round(new BigDecimal("100.1"), 0),is(new BigDecimal("100")));
-    assertThat(udf.round(new BigDecimal("100.5"), 0), is(new BigDecimal("101")));
-    assertThat(udf.round(new BigDecimal("100.75"), 0), is(new BigDecimal("101")));
-    assertThat(udf.round(new BigDecimal("100.10"), 1), is(new BigDecimal("100.1")));
-    assertThat(udf.round(new BigDecimal("100.11"), 1), is(new BigDecimal("100.1")));
-    assertThat(udf.round(new BigDecimal("100.15"), 1), is(new BigDecimal("100.2")));
-    assertThat(udf.round(new BigDecimal("100.17"), 1), is(new BigDecimal("100.2")));
-    assertThat(udf.round(new BigDecimal("100.110"), 2), is(new BigDecimal("100.11")));
-    assertThat(udf.round(new BigDecimal("100.111"), 2), is(new BigDecimal("100.11")));
-    assertThat(udf.round(new BigDecimal("100.115"), 2), is(new BigDecimal("100.12")));
-    assertThat(udf.round(new BigDecimal("100.117"), 2), is(new BigDecimal("100.12")));
-    assertThat(udf.round(new BigDecimal("100.1110"), 3), is(new BigDecimal("100.111")));
-    assertThat(udf.round(new BigDecimal("100.1111"), 3), is(new BigDecimal("100.111")));
-    assertThat(udf.round(new BigDecimal("100.1115"), 3), is(new BigDecimal("100.112")));
-    assertThat(udf.round(new BigDecimal("100.1117"), 3), is(new BigDecimal("100.112")));
-    assertThat(udf.round(new BigDecimal("12345.67"), -1), is(new BigDecimal("1.235E4")));
-    assertThat(udf.round(new BigDecimal("12345.67"), -2), is(new BigDecimal("1.23E4")));
-    assertThat(udf.round(new BigDecimal("12345.67"), -3), is(new BigDecimal("1.2E4")));
-    assertThat(udf.round(new BigDecimal("12345.67"), -4), is(new BigDecimal("1E4")));
-    assertThat(udf.round(new BigDecimal("12345.67"), -5), is(new BigDecimal("0E5")));
+    assertThat(udf.round(new BigDecimal("1.0"), 0), is(new BigDecimal("1.0")));
+    assertThat(udf.round(new BigDecimal("1.1"), 0), is(new BigDecimal("1.0")));
+    assertThat(udf.round(new BigDecimal("1.5"), 0), is(new BigDecimal("2.0")));
+    assertThat(udf.round(new BigDecimal("1.75"), 0), is(new BigDecimal("2.00")));
+    assertThat(udf.round(new BigDecimal("100.1"), 0),is(new BigDecimal("100.0")));
+    assertThat(udf.round(new BigDecimal("100.5"), 0), is(new BigDecimal("101.0")));
+    assertThat(udf.round(new BigDecimal("100.75"), 0), is(new BigDecimal("101.00")));
+    assertThat(udf.round(new BigDecimal("100.10"), 1), is(new BigDecimal("100.10")));
+    assertThat(udf.round(new BigDecimal("100.11"), 1), is(new BigDecimal("100.10")));
+    assertThat(udf.round(new BigDecimal("100.15"), 1), is(new BigDecimal("100.20")));
+    assertThat(udf.round(new BigDecimal("100.17"), 1), is(new BigDecimal("100.20")));
+    assertThat(udf.round(new BigDecimal("100.110"), 2), is(new BigDecimal("100.110")));
+    assertThat(udf.round(new BigDecimal("100.111"), 2), is(new BigDecimal("100.110")));
+    assertThat(udf.round(new BigDecimal("100.115"), 2), is(new BigDecimal("100.120")));
+    assertThat(udf.round(new BigDecimal("100.117"), 2), is(new BigDecimal("100.120")));
+    assertThat(udf.round(new BigDecimal("100.1110"), 3), is(new BigDecimal("100.1110")));
+    assertThat(udf.round(new BigDecimal("100.1111"), 3), is(new BigDecimal("100.1110")));
+    assertThat(udf.round(new BigDecimal("100.1115"), 3), is(new BigDecimal("100.1120")));
+    assertThat(udf.round(new BigDecimal("100.1117"), 3), is(new BigDecimal("100.1120")));
+    assertThat(udf.round(new BigDecimal("12345.67"), -1), is(new BigDecimal("12350.00")));
+    assertThat(udf.round(new BigDecimal("12345.67"), -2), is(new BigDecimal("12300.00")));
+    assertThat(udf.round(new BigDecimal("12345.67"), -3), is(new BigDecimal("12000.00")));
+    assertThat(udf.round(new BigDecimal("12345.67"), -4), is(new BigDecimal("10000.00")));
+    assertThat(udf.round(new BigDecimal("12345.67"), -5), is(new BigDecimal("0.00")));
   }
 
   @Test
   public void shouldRoundBigDecimalWithDecimalPlacesNegative() {
-    assertThat(udf.round(new BigDecimal("-1.0"), 0), is(new BigDecimal("-1")));
-    assertThat(udf.round(new BigDecimal("-1.1"), 0), is(new BigDecimal("-1")));
-    assertThat(udf.round(new BigDecimal("-1.5"), 0), is(new BigDecimal("-1")));
-    assertThat(udf.round(new BigDecimal("-1.75"), 0), is(new BigDecimal("-2")));
-    assertThat(udf.round(new BigDecimal("-100.1"), 0), is(new BigDecimal("-100")));
-    assertThat(udf.round(new BigDecimal("-100.5"), 0), is(new BigDecimal("-100")));
-    assertThat(udf.round(new BigDecimal("-100.75"), 0), is(new BigDecimal("-101")));
-    assertThat(udf.round(new BigDecimal("-100.10"), 1), is(new BigDecimal("-100.1")));
-    assertThat(udf.round(new BigDecimal("-100.11"), 1), is(new BigDecimal("-100.1")));
-    assertThat(udf.round(new BigDecimal("-100.15"), 1), is(new BigDecimal("-100.1")));
-    assertThat(udf.round(new BigDecimal("-100.17"), 1), is(new BigDecimal("-100.2")));
-    assertThat(udf.round(new BigDecimal("-100.110"), 2), is(new BigDecimal("-100.11")));
-    assertThat(udf.round(new BigDecimal("-100.111"), 2), is(new BigDecimal("-100.11")));
-    assertThat(udf.round(new BigDecimal("-100.115"), 2), is(new BigDecimal("-100.11")));
-    assertThat(udf.round(new BigDecimal("-100.117"), 2), is(new BigDecimal("-100.12")));
-    assertThat(udf.round(new BigDecimal("-100.1110"), 3), is(new BigDecimal("-100.111")));
-    assertThat(udf.round(new BigDecimal("-100.1111"), 3), is(new BigDecimal("-100.111")));
-    assertThat(udf.round(new BigDecimal("-100.1115"), 3), is(new BigDecimal("-100.111")));
-    assertThat(udf.round(new BigDecimal("-100.1117"), 3), is(new BigDecimal("-100.112")));
-    assertThat(udf.round(new BigDecimal("-12345.67"), -1), is(new BigDecimal("-1.235E4")));
-    assertThat(udf.round(new BigDecimal("-12345.67"), -2), is(new BigDecimal("-1.23E4")));
-    assertThat(udf.round(new BigDecimal("-12345.67"), -3), is(new BigDecimal("-1.2E4")));
-    assertThat(udf.round(new BigDecimal("-12345.67"), -4), is(new BigDecimal("-1E4")));
-    assertThat(udf.round(new BigDecimal("-12345.67"), -5), is(new BigDecimal("-0E5")));
+    assertThat(udf.round(new BigDecimal("-1.0"), 0), is(new BigDecimal("-1.0")));
+    assertThat(udf.round(new BigDecimal("-1.1"), 0), is(new BigDecimal("-1.0")));
+    assertThat(udf.round(new BigDecimal("-1.5"), 0), is(new BigDecimal("-1.0")));
+    assertThat(udf.round(new BigDecimal("-1.75"), 0), is(new BigDecimal("-2.00")));
+    assertThat(udf.round(new BigDecimal("-100.1"), 0), is(new BigDecimal("-100.0")));
+    assertThat(udf.round(new BigDecimal("-100.5"), 0), is(new BigDecimal("-100.0")));
+    assertThat(udf.round(new BigDecimal("-100.75"), 0), is(new BigDecimal("-101.00")));
+    assertThat(udf.round(new BigDecimal("-100.10"), 1), is(new BigDecimal("-100.10")));
+    assertThat(udf.round(new BigDecimal("-100.11"), 1), is(new BigDecimal("-100.10")));
+    assertThat(udf.round(new BigDecimal("-100.15"), 1), is(new BigDecimal("-100.10")));
+    assertThat(udf.round(new BigDecimal("-100.17"), 1), is(new BigDecimal("-100.20")));
+    assertThat(udf.round(new BigDecimal("-100.110"), 2), is(new BigDecimal("-100.110")));
+    assertThat(udf.round(new BigDecimal("-100.111"), 2), is(new BigDecimal("-100.110")));
+    assertThat(udf.round(new BigDecimal("-100.115"), 2), is(new BigDecimal("-100.110")));
+    assertThat(udf.round(new BigDecimal("-100.117"), 2), is(new BigDecimal("-100.120")));
+    assertThat(udf.round(new BigDecimal("-100.1110"), 3), is(new BigDecimal("-100.1110")));
+    assertThat(udf.round(new BigDecimal("-100.1111"), 3), is(new BigDecimal("-100.1110")));
+    assertThat(udf.round(new BigDecimal("-100.1115"), 3), is(new BigDecimal("-100.1110")));
+    assertThat(udf.round(new BigDecimal("-100.1117"), 3), is(new BigDecimal("-100.1120")));
+    assertThat(udf.round(new BigDecimal("-12345.67"), -2), is(new BigDecimal("-12300.00")));
+    assertThat(udf.round(new BigDecimal("-12345.67"), -3), is(new BigDecimal("-12000.00")));
+    assertThat(udf.round(new BigDecimal("-12345.67"), -4), is(new BigDecimal("-10000.00")));
+    assertThat(udf.round(new BigDecimal("-12345.67"), -5), is(new BigDecimal("0.00")));
   }
 
   @Test
-  public void shouldHandleDoubleLiteralsEndingWith5ThatCannotBeRepresentedExactylyAsDoubles() {
-    assertThat(udf.round(new BigDecimal("265.335"), 2), is(new BigDecimal("265.34")));
-    assertThat(udf.round(new BigDecimal("-265.335"), 2), is(new BigDecimal("-265.33")));
+  public void shouldHandleDoubleLiteralsEndingWith5ThatCannotBeRepresentedExactlyAsDoubles() {
+    assertThat(udf.round(new BigDecimal("265.335"), 2), is(new BigDecimal("265.340")));
+    assertThat(udf.round(new BigDecimal("-265.335"), 2), is(new BigDecimal("-265.330")));
 
-    assertThat(udf.round(new BigDecimal("265.365"), 2), is(new BigDecimal("265.37")));
-    assertThat(udf.round(new BigDecimal("-265.365"), 2), is(new BigDecimal("-265.36")));
+    assertThat(udf.round(new BigDecimal("265.365"), 2), is(new BigDecimal("265.370")));
+    assertThat(udf.round(new BigDecimal("-265.365"), 2), is(new BigDecimal("-265.360")));
   }
 
   @Test

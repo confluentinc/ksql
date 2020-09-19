@@ -272,13 +272,7 @@ public class InteractiveStatementExecutorTest {
         ConfiguredStatement.of(ddlStatement, emptyMap(), originalConfig);
     ksqlEngine.execute(serviceContext, configuredStatement);
 
-    final PreparedStatement<Statement> csasStatement =
-        statementParser.parseSingleStatement(statementText);
-
     when(mockQueryMetadata.getQueryId()).thenReturn(mock(QueryId.class));
-
-    final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
-        originalConfig.getAllConfigPropsWithSecretsObfuscated());
 
     final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
     final Command csasCommand = new Command(
@@ -990,10 +984,6 @@ public class InteractiveStatementExecutorTest {
     when(mockQueryMetadata.getQueryId()).thenReturn(QUERY_ID);
     when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class)))
         .thenReturn(ExecuteResult.of(mockQueryMetadata));
-  }
-
-  private Command commandWithPlan(final String sql) {
-    return commandWithPlan(sql, Collections.emptyMap());
   }
 
   private Command commandWithPlan(final String sql, final Map<String, String> originalProperties) {

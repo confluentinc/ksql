@@ -44,8 +44,8 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.Statement;
@@ -59,16 +59,17 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +104,7 @@ public class InteractiveStatementExecutorTest {
   private static final QueryId QUERY_ID = new QueryId("qid");
 
   private KsqlEngine ksqlEngine;
+  private StatementParser statementParser;
   private InteractiveStatementExecutor statementExecutor;
   private KsqlConfig ksqlConfig;
   private ServiceContext serviceContext;
@@ -147,8 +149,7 @@ public class InteractiveStatementExecutorTest {
         hybridQueryIdGenerator
     );
 
-    final StatementParser statementParser = new StatementParser(ksqlEngine);
-
+    statementParser = new StatementParser(ksqlEngine);
     statementExecutor = new InteractiveStatementExecutor(
         serviceContext,
         ksqlEngine,
@@ -266,37 +267,25 @@ public class InteractiveStatementExecutorTest {
         "WITH (kafka_topic='pageview_topic', VALUE_FORMAT='json');";
     final String statementText
         = "CREATE STREAM user1pv AS select * from pageviews WHERE userid = 'user1';";
-    final StatementParser realParser = new StatementParser(ksqlEngine);
-    final PreparedStatement<?> ddlStatement = realParser.parseSingleStatement(ddlText);
+    final PreparedStatement<?> ddlStatement = statementParser.parseSingleStatement(ddlText);
     final ConfiguredStatement<?> configuredStatement =
         ConfiguredStatement.of(ddlStatement, emptyMap(), originalConfig);
     ksqlEngine.execute(serviceContext, configuredStatement);
 
-    final PreparedStatement<Statement> csasStatement =
-        realParser.parseSingleStatement(statementText);
-
     when(mockQueryMetadata.getQueryId()).thenReturn(mock(QueryId.class));
 
-    final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
-        originalConfig.getAllConfigPropsWithSecretsObfuscated());
-
+    final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
     final Command csasCommand = new Command(
         statementText,
         emptyMap(),
         originalConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        Optional.of(plan)
     );
     final CommandId csasCommandId = new CommandId(
         CommandId.Type.STREAM,
         "_CSASGen",
         CommandId.Action.CREATE);
 
-    final ConfiguredStatement<?> configuredCsas = ConfiguredStatement.of(
-        csasStatement, emptyMap(), expectedConfig);
-
-    when(mockParser.parseSingleStatement(statementText)).thenReturn(csasStatement);
-    final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
-    when(mockEngine.plan(eq(serviceContext), eq(configuredCsas))).thenReturn(plan);
     when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
         .thenReturn(ExecuteResult.of(mockQueryMetadata));
 
@@ -310,11 +299,9 @@ public class InteractiveStatementExecutorTest {
   @Test
   public void shouldCompleteFutureOnSuccess() {
     // Given:
-    final Command command = new Command(
+    final Command command = commandWithPlan(
         CREATE_STREAM_FOO_STATEMENT,
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
 
     // When:
@@ -324,12 +311,11 @@ public class InteractiveStatementExecutorTest {
     final InOrder inOrder = Mockito.inOrder(status);
     final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
     final ArgumentCaptor<CommandStatus> argFinalCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
-    inOrder.verify(status, times(2)).setStatus(argCommandStatus.capture());
+    inOrder.verify(status, times(1)).setStatus(argCommandStatus.capture());
     inOrder.verify(status, times(1)).setFinalStatus(argFinalCommandStatus.capture());
 
     final List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
-    assertEquals(CommandStatus.Status.PARSING, commandStatusList.get(0).getStatus());
-    assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(1).getStatus());
+    assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(0).getStatus());
     assertEquals(CommandStatus.Status.SUCCESS, argFinalCommandStatus.getValue().getStatus());
   }
 
@@ -445,11 +431,9 @@ public class InteractiveStatementExecutorTest {
     // Given:
     shouldCompleteFutureOnSuccess();
 
-    final Command command = new Command(
+    final Command command = commandWithPlan(
         CREATE_STREAM_FOO_STATEMENT,
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
     final CommandStatusFuture status = mock(CommandStatusFuture.class);
 
@@ -464,75 +448,116 @@ public class InteractiveStatementExecutorTest {
     }
     final InOrder inOrder = Mockito.inOrder(status);
     final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
-    inOrder.verify(status, times(3)).setStatus(argCommandStatus.capture());
+    inOrder.verify(status, times(2)).setStatus(argCommandStatus.capture());
 
     final List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
-    assertEquals(CommandStatus.Status.PARSING, commandStatusList.get(0).getStatus());
-    assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(1).getStatus());
-    assertEquals(CommandStatus.Status.ERROR, commandStatusList.get(2).getStatus());
+    assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(0).getStatus());
+    assertEquals(CommandStatus.Status.ERROR, commandStatusList.get(1).getStatus());
+  }
+
+  @Test
+  public void shouldThrowOnCreateSourceWithoutPlan() {
+    // Given:
+    when(mockParser.parseSingleStatement("CREATE STREAM"))
+        .thenReturn(PreparedStatement.of("CREATE STREAM", mock(CreateStream.class)));
+
+    final Command command = new Command(
+        "CREATE STREAM",
+        emptyMap(),
+        emptyMap(),
+        Optional.empty());
+
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> handleStatement(statementExecutorWithMocks, command, COMMAND_ID, Optional.empty(), 0L)
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "This version of ksqlDB does not support executing statements submitted prior to ksqlDB "
+            + "0.8.0 or Confluent Platform ksqlDB 5.0. Please see the upgrading guide to upgrade."));
+  }
+
+  @Test
+  public void shouldThrowOnCreateAsSelectWithoutPlan() {
+    // Given:
+    when(mockParser.parseSingleStatement("CSAS"))
+        .thenReturn(PreparedStatement.of("CSAS", mock(CreateStreamAsSelect.class)));
+
+    final Command command = new Command(
+        "CSAS",
+        emptyMap(),
+        emptyMap(),
+        Optional.empty());
+
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> handleStatement(statementExecutorWithMocks, command, COMMAND_ID, Optional.empty(), 0L)
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "This version of ksqlDB does not support executing statements submitted prior to ksqlDB "
+            + "0.8.0 or Confluent Platform ksqlDB 5.0. Please see the upgrading guide to upgrade."));
+  }
+
+  @Test
+  public void shouldThrowOnDropSourceWithoutPlan() {
+    // Given:
+    when(mockParser.parseSingleStatement("DROP STREAM"))
+        .thenReturn(PreparedStatement.of("DROP STREAM", mock(DropStream.class)));
+
+    final Command command = new Command(
+        "DROP STREAM",
+        emptyMap(),
+        emptyMap(),
+        Optional.empty());
+
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> handleStatement(statementExecutorWithMocks, command, COMMAND_ID, Optional.empty(), 0L)
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "This version of ksqlDB does not support executing statements submitted prior to ksqlDB "
+            + "0.8.0 or Confluent Platform ksqlDB 5.0. Please see the upgrading guide to upgrade."));
   }
 
   @Test
   public void shouldHandlePriorStatements() {
     // Given:
-    final List<Pair<CommandId, Command>> priorCommands = TestUtils.getAllPriorCommandRecords();
-    final CommandId csCommandId = new CommandId(CommandId.Type.STREAM,
-        "_CSASStreamGen",
-        CommandId.Action.CREATE);
-    final CommandId csasCommandId = new CommandId(CommandId.Type.STREAM,
-        "_CSASGen",
-        CommandId.Action.CREATE);
-    final CommandId ctasCommandId = new CommandId(CommandId.Type.TABLE,
-        "_CTASGen",
-        CommandId.Action.CREATE);
+    final List<Pair<CommandId, Command>> priorCommands = createStreamsAndStartTwoPersistentQueries();
+
+    // Reset state from collecting commands above
+    tearDown();
+    setUp();
 
     // When:
-    assertThrows(
-        KsqlStatementException.class,
-        () -> {
-          for (int i = 0; i < priorCommands.size(); i++) {
-            final Pair<CommandId, Command> pair = priorCommands.get(i);
-            statementExecutor.handleRestore(
-                new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
-            );
-          }
-        }
-    );
+    for (int i = 0; i < priorCommands.size(); i++) {
+      final Pair<CommandId, Command> pair = priorCommands.get(i);
+      statementExecutor.handleRestore(
+          new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
+      );
+    }
 
     // Then:
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
     Assert.assertEquals(3, statusStore.size());
-    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
-    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
-    Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
-  }
-
-  private CreateStreamAsSelect mockCSAS(final String name) {
-    final CreateStreamAsSelect mockStatement = mock(CreateStreamAsSelect.class);
-    when(mockStatement.getName()).thenReturn(SourceName.of(name));
-    return mockStatement;
-  }
-
-  private DropStream mockDropStream(final String name) {
-    final DropStream mockDropStream = mock(DropStream.class);
-    when(mockParser.parseSingleStatement("DROP"))
-        .thenReturn(PreparedStatement.of("DROP", mockDropStream));
-    return mockDropStream;
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(priorCommands.get(0).left).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(priorCommands.get(1).left).getStatus());
+    Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(priorCommands.get(2).left).getStatus());
   }
 
   private PersistentQueryMetadata mockReplayCSAS(
       final QueryId queryId
   ) {
-    final CreateStreamAsSelect mockCSAS = mockCSAS("foo");
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
     when(mockQuery.getQueryId()).thenReturn(queryId);
-    final PreparedStatement<Statement> csas = PreparedStatement.of("CSAS", mockCSAS);
-    when(mockParser.parseSingleStatement("CSAS"))
-        .thenReturn(csas);
-    final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
-    when(mockEngine.plan(eq(serviceContext), eqConfiguredStatement(csas)))
-        .thenReturn(plan);
     when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
         .thenReturn(ExecuteResult.of(mockQuery));
     return mockQuery;
@@ -552,11 +577,9 @@ public class InteractiveStatementExecutorTest {
     terminateQueries();
 
     // Now drop should be successful
-    final Command dropTableCommand2 = new Command(
+    final Command dropTableCommand2 = commandWithPlan(
         "drop table table1;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
     final CommandId dropTableCommandId2 =
         new CommandId(CommandId.Type.TABLE, "_TABLE1", CommandId.Action.DROP);
@@ -571,11 +594,9 @@ public class InteractiveStatementExecutorTest {
     assertThat(dropTableCommandStatus2.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
 
     // DROP should succeed since no query is using the stream.
-    final Command dropStreamCommand3 = new Command(
+    final Command dropStreamCommand3 = commandWithPlan(
         "drop stream pageview;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
     final CommandId dropStreamCommandId3 =
         new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
@@ -593,7 +614,7 @@ public class InteractiveStatementExecutorTest {
     // Given:
     mockReplayCSAS(new QueryId("csas-query-id"));
 
-    final Command command = new Command("CSAS", emptyMap(), emptyMap(), Optional.empty());
+    final Command command = new Command("CSAS", emptyMap(), emptyMap(), Optional.of(plan));
     when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
 
     // When:
@@ -616,7 +637,7 @@ public class InteractiveStatementExecutorTest {
     final QueryId queryId = new QueryId("csas-query-id");
     final String name = "foo";
     final PersistentQueryMetadata mockQuery = mockReplayCSAS(queryId);
-    final Command command = new Command("CSAS", emptyMap(), emptyMap(), Optional.empty());
+    final Command command = new Command("CSAS", emptyMap(), emptyMap(), Optional.of(plan));
     when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
 
     // When:
@@ -670,32 +691,6 @@ public class InteractiveStatementExecutorTest {
       return statement.getStatementText().equals(matchStatement.getStatementText()) &&
           statement.getStatement().equals(matchStatement.getStatement());
     }
-  }
-
-  @Test
-  public void shouldNotCascadeDropStreamCommand() {
-    // Given:
-    final String drop = "DROP";
-    final DropStream mockDropStream = mockDropStream("foo");
-    final PreparedStatement<DropStream> statement = PreparedStatement.of(drop, mockDropStream);
-
-    final KsqlPlan plan = Mockito.mock(KsqlPlan.class);
-    when(mockEngine.plan(eq(serviceContext), argThat(new ConfiguredStatementMatcher<>(statement)))).thenReturn(plan);
-    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
-        .thenReturn(ExecuteResult.of("SUCCESS"));
-
-    final Command command = new Command(drop, emptyMap(), emptyMap(), Optional.empty());
-    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
-
-    // When:
-    statementExecutorWithMocks.handleRestore(
-        new QueuedCommand(
-            new CommandId(Type.STREAM, "foo", Action.DROP),
-            command,
-            Optional.empty(),
-            0L
-        )
-    );
   }
 
   @Test
@@ -766,64 +761,61 @@ public class InteractiveStatementExecutorTest {
     // Then should not throw
   }
 
-  private void createStreamsAndStartTwoPersistentQueries() {
-    final Command csCommand = new Command(
+  private List<Pair<CommandId, Command>> createStreamsAndStartTwoPersistentQueries() {
+    final List<Pair<CommandId, Command>> commands = new ArrayList<>();
+
+    final Command csCommand = commandWithPlan(
         "CREATE STREAM pageview ("
             + "viewtime bigint,"
             + " pageid varchar, "
             + "userid varchar) "
             + "WITH (kafka_topic = 'pageview_topic_json', "
             + "value_format = 'json');",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",
         CommandId.Action.CREATE);
     handleStatement(csCommand, csCommandId, Optional.empty(), 0);
+    commands.add(new Pair<>(csCommandId, csCommand));
 
-    final Command csasCommand = new Command(
+    final Command csasCommand = commandWithPlan(
         "CREATE STREAM user1pv AS "
             + "select * from pageview"
             + " WHERE userid = 'user1';",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
-
     final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASGen",
         CommandId.Action.CREATE);
     handleStatement(csasCommand, csasCommandId, Optional.empty(), 1);
+    commands.add(new Pair<>(csasCommandId, csasCommand));
 
-    final Command ctasCommand = new Command(
+    final Command ctasCommand = commandWithPlan(
         "CREATE TABLE table1  AS "
             + "SELECT pageid, count(pageid) "
             + "FROM pageview "
             + "WINDOW TUMBLING ( SIZE 10 SECONDS) "
             + "GROUP BY pageid;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
-
     final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
         "_CTASGen",
         CommandId.Action.CREATE);
     handleStatement(ctasCommand, ctasCommandId, Optional.empty(), 2);
+    commands.add(new Pair<>(ctasCommandId, ctasCommand));
 
     assertThat(getCommandStatus(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(getCommandStatus(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(getCommandStatus(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+
+    return commands;
   }
 
   private void tryDropThatViolatesReferentialIntegrity() {
-    final Command dropStreamCommand1 = new Command(
+    final Command dropStreamCommand1 = commandWithPlan(
         "drop stream pageview;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
     final CommandId dropStreamCommandId1 =  new CommandId(CommandId.Type.STREAM,
         "_PAGEVIEW",
@@ -860,11 +852,9 @@ public class InteractiveStatementExecutorTest {
         containsString("You need to terminate them before dropping PAGEVIEW."));
 
 
-    final Command dropStreamCommand2 = new Command(
+    final Command dropStreamCommand2 = commandWithPlan(
         "drop stream user1pv;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
     final CommandId dropStreamCommandId2 =
         new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
@@ -897,11 +887,9 @@ public class InteractiveStatementExecutorTest {
             .getMessage(),
         containsString("You need to terminate them before dropping USER1PV."));
 
-    final Command dropTableCommand1 = new Command(
+    final Command dropTableCommand1 = commandWithPlan(
         "drop table table1;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
     final CommandId dropTableCommandId1 =
         new CommandId(CommandId.Type.TABLE, "_TABLE1", CommandId.Action.DROP);
@@ -996,5 +984,12 @@ public class InteractiveStatementExecutorTest {
     when(mockQueryMetadata.getQueryId()).thenReturn(QUERY_ID);
     when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class)))
         .thenReturn(ExecuteResult.of(mockQueryMetadata));
+  }
+
+  private Command commandWithPlan(final String sql, final Map<String, String> originalProperties) {
+    final PreparedStatement<?> prepared = statementParser.parseSingleStatement(sql);
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared, Collections.emptyMap(), ksqlConfig);
+    final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
+    return new Command(sql, Collections.emptyMap(), originalProperties, Optional.of(plan));
   }
 }

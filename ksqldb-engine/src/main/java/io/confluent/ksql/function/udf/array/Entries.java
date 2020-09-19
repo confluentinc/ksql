@@ -22,7 +22,6 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -54,6 +53,9 @@ public class Entries {
       Schema.OPTIONAL_BOOLEAN_SCHEMA);
   private static final Schema STRING_STRUCT_SCHEMA = buildStructSchema(
       Schema.OPTIONAL_STRING_SCHEMA);
+  private static final Schema STRUCT_STRUCT_SCHEMA = buildStructSchema(
+      new SchemaBuilder(org.apache.kafka.connect.data.Schema.Type.STRUCT).optional());
+
   private static final String KEY_FIELD_NAME = "K";
   private static final String VALUE_FIELD_NAME = "V";
 
@@ -107,6 +109,15 @@ public class Entries {
     return entries(map, STRING_STRUCT_SCHEMA, sorted);
   }
 
+  @Udf(schema = "ARRAY<STRUCT<K STRING, V STRUCT>>")
+  public List<Struct> entriesStruct(
+      @UdfParameter(description = "The map to create entries from") final Map<String, Struct> map,
+      @UdfParameter(description = "If true then the resulting entries are sorted by key")
+      final boolean sorted
+  ) {
+    return entries(map, STRUCT_STRUCT_SCHEMA, sorted);
+  }
+
   private <T> List<Struct> entries(
       final Map<String, T> map, final Schema structSchema, final boolean sorted
   ) {
@@ -117,7 +128,7 @@ public class Entries {
     Collection<Entry<String, T>> entries = map.entrySet();
     if (sorted) {
       final List<Entry<String, T>> list = new ArrayList<>(entries);
-      list.sort(Comparator.comparing(Entry::getKey));
+      list.sort(Entry.comparingByKey());
       entries = list;
     }
     for (final Map.Entry<String, T> entry : entries) {

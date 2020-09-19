@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,23 +122,25 @@ public class EntriesTest {
     assertNull(entriesUdf.entriesString(null, false));
   }
 
-  private <T> void shouldComputeEntries(
-      final Map<String, T> map, final Supplier<List<Struct>> supplier
-  ) {
+  @Test
+  public void shouldReturnNullListForNullMapStruct() {
+    assertNull(entriesUdf.entriesStruct(null, false));
+  }
+
+  private <T> void shouldComputeEntries(final Map<String, T> map, final Supplier<List<Struct>> supplier) {
     final List<Struct> out = supplier.get();
     assertThat(out, hasSize(map.size()));
-    for (int i = 0; i < out.size(); i++) {
-      final Struct struct = out.get(i);
-      final T val = map.get(struct.getString("K"));
-      assertThat(val == null, is(false));
-      assertThat(val, is(struct.get("V")));
-    }
+      for (final Struct struct : out) {
+          final T val = map.get(struct.getString("K"));
+          assertThat(val == null, is(false));
+          assertThat(val, is(struct.get("V")));
+      }
   }
 
   private <T> void shouldComputeEntriesSorted(final Map<String, T> map, final Supplier<List<Struct>> supplier) {
     final List<Struct> out = supplier.get();
     final List<Map.Entry<String, T>> entries = new ArrayList<>(map.entrySet());
-    entries.sort(Comparator.comparing(Entry::getKey));
+    entries.sort(Entry.comparingByKey());
     assertThat(out.size(), is(entries.size()));
     for (int i = 0; i < entries.size(); i++) {
       final Struct struct = out.get(i);

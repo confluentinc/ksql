@@ -20,10 +20,8 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.TerminateQuery;
@@ -35,7 +33,6 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -212,8 +209,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
           commandStatusFuture,
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
-      executeStatement(
-          statement, command, commandId, commandStatusFuture, mode, offset);
+      executeStatement(statement, commandId, commandStatusFuture);
     } catch (final KsqlException exception) {
       log.error("Failed to handle: " + command, exception);
       
@@ -263,100 +259,35 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     if (result.getCommandResult().isPresent()) {
       return result.getCommandResult().get();
     }
-    return "Created query with ID "
-        + ((PersistentQueryMetadata) result.getQuery().get()).getQueryId();
+    return "Created query with ID " + (result.getQuery().get()).getQueryId();
   }
 
   @SuppressWarnings("unchecked")
   private void executeStatement(
       final PreparedStatement<?> statement,
-      final Command command,
       final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatusFuture,
-      final Mode mode,
-      final long offset
+      final Optional<CommandStatusFuture> commandStatusFuture
   ) {
-    String successMessage = "";
-    Optional<QueryId> queryId = Optional.empty();
-    if (statement.getStatement() instanceof ExecutableDdlStatement) {
-      successMessage = executeDdlStatement(statement, command);
-    } else if (statement.getStatement() instanceof CreateAsSelect) {
-      final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
-      final String name = ((CreateAsSelect)statement.getStatement()).getName().text();
-      successMessage = statement.getStatement() instanceof CreateTableAsSelect
-          ? "Table " + name + " created and running" : "Stream " + name + " created and running";
-      successMessage += ". Created by query with query ID: " + query.getQueryId();
-      queryId = Optional.of(query.getQueryId());
-    } else if (statement.getStatement() instanceof InsertInto) {
-      final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
-      successMessage = "Insert Into query is running with query ID: " + query.getQueryId();
-      queryId = Optional.of(query.getQueryId());
-    } else if (statement.getStatement() instanceof TerminateQuery) {
+    if (statement.getStatement() instanceof TerminateQuery) {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
-      successMessage = "Query terminated.";
+
+      final String successMessage = "Query terminated.";
+      final CommandStatus successStatus =
+          new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, Optional.empty());
+
+      putFinalStatus(commandId, commandStatusFuture, successStatus);
+    } else if (statement.getStatement() instanceof ExecutableDdlStatement) {
+      throwUnsupportedStatementError();
+    } else if (statement.getStatement() instanceof CreateAsSelect) {
+      throwUnsupportedStatementError();
+    } else if (statement.getStatement() instanceof InsertInto) {
+      throwUnsupportedStatementError();
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",
           statement.getClass().getName()
       ));
     }
-
-    final CommandStatus successStatus =
-        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, queryId);
-
-    putFinalStatus(commandId, commandStatusFuture, successStatus);
-  }
-
-  private String executeDdlStatement(final PreparedStatement<?> statement, final Command command) {
-    final KsqlConfig mergedConfig = buildMergedConfig(command);
-    final ConfiguredStatement<?> configured =
-        ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
-    final ConfiguredStatement<?> injected = new DefaultFormatInjector().inject(configured);
-
-    final KsqlPlan plan = ksqlEngine.plan(serviceContext, injected);
-    return ksqlEngine
-        .execute(
-            serviceContext,
-            ConfiguredKsqlPlan.of(plan, command.getOverwriteProperties(), mergedConfig))
-        .getCommandResult()
-        .get();
-  }
-
-  private PersistentQueryMetadata startQuery(
-      final PreparedStatement<?> statement,
-      final Command command,
-      final Mode mode,
-      final long offset
-  ) {
-    final KsqlConfig mergedConfig = buildMergedConfig(command);
-
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        statement, command.getOverwriteProperties(), mergedConfig);
-
-    final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
-    final QueryMetadata queryMetadata =
-        ksqlEngine
-            .execute(
-                serviceContext,
-                ConfiguredKsqlPlan.of(plan, command.getOverwriteProperties(), mergedConfig))
-            .getQuery()
-            .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
-
-    queryIdGenerator.setNextId(offset + 1);
-
-    if (!(queryMetadata instanceof PersistentQueryMetadata)) {
-      throw new KsqlException(String.format(
-          "Unexpected query metadata type: %s; was expecting %s",
-          queryMetadata.getClass().getCanonicalName(),
-          PersistentQueryMetadata.class.getCanonicalName()
-      ));
-    }
-
-    final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-    if (mode == Mode.EXECUTE) {
-      persistentQueryMd.start();
-    }
-    return persistentQueryMd;
   }
 
   private KsqlConfig buildMergedConfig(final Command command) {
@@ -373,6 +304,12 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
 
     final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
     query.ifPresent(PersistentQueryMetadata::close);
+  }
+
+  private static void throwUnsupportedStatementError() {
+    throw new KsqlException("This version of ksqlDB does not support executing "
+        + "statements submitted prior to ksqlDB 0.8.0 or Confluent Platform ksqlDB 5.0. "
+        + "Please see the upgrading guide to upgrade.");
   }
 
 }

@@ -198,12 +198,17 @@ public class LogicalPlanner {
         .map(Column::name)
         .collect(Collectors.toList());
 
+    final Format keyFormat = intoDataSource.getKsqlTopic()
+        .getKeyFormat()
+        .getFormat();
+
     final Format valueFormat = intoDataSource.getKsqlTopic()
         .getValueFormat()
         .getFormat();
 
     return SerdeOptionsFactory.buildForCreateAsStatement(
         columnNames,
+        keyFormat,
         valueFormat,
         analysis.getProperties().getSerdeOptions(),
         ksqlConfig

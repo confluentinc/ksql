@@ -154,6 +154,7 @@ public final class TestCaseBuilderUtil {
         try {
           serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
               logicalSchema,
+              FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties())),
               FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties())),
               statement.getProperties().getSerdeOptions(),
               ksqlConfig

@@ -83,7 +83,9 @@ public class PhysicalPlanBuilderTest {
       + " WITH (KAFKA_TOPIC = 'test5', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
 
   private static final String simpleSelectFilter = "SELECT rowkey, col0, col2 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
-  private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create("what-eva");
+  private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create(
+      "what-eva",
+      ImmutableMap.of(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true));
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
 

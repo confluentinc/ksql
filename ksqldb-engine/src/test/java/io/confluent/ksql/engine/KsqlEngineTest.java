@@ -42,6 +42,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -103,7 +104,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
 
-  private static final KsqlConfig KSQL_CONFIG = KsqlConfigTestUtil.create("what-eva");
+  private static final KsqlConfig KSQL_CONFIG = KsqlConfigTestUtil.create(
+      "what-eva",
+      ImmutableMap.of(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true));
 
   private MutableMetaStore metaStore;
   @Spy

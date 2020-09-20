@@ -222,14 +222,14 @@
     {
       "name": "unsupported format",
       "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', format='JSON');"
+        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');"
       ],
       "properties": {
         "ksql.key.format.enabled": true
       },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'JSON' is not currently supported."
+        "message": "The key format 'DELIMITED' is not currently supported."
       }
     },
     {

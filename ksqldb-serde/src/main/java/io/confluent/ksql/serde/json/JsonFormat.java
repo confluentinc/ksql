@@ -79,4 +79,9 @@ public class JsonFormat extends ConnectFormat {
       final FormatInfo formatInfo) {
     return jsonData.fromConnectSchema(schema);
   }
+
+  @Override
+  public boolean isSupportedKeyFormat() {
+    return true;
+  }
 }

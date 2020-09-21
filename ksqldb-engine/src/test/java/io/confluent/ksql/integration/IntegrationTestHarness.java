@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.toUniqueRecords;
 import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -556,7 +558,8 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param topicNames the names of the topics to await existence for.
    */
   public void waitForTopicsToBePresent(final String... topicNames) throws Exception {
-    TestUtils.waitForCondition(
+    assertThatEventually(
+        "topics not all present after 30 seconds. topics: " + Arrays.toString(topicNames),
         () -> {
           try {
             final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
@@ -566,8 +569,9 @@ public final class IntegrationTestHarness extends ExternalResource {
             throw new RuntimeException("could not get subjects");
           }
         },
-        30_000,
-        "topics not all present after 30 seconds. topics: " + Arrays.toString(topicNames));
+        is(true),
+        30, TimeUnit.SECONDS
+    );
   }
 
   /**
@@ -576,7 +580,8 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param subjectName the name of the subject to await existence for.
    */
   public void waitForSubjectToBePresent(final String subjectName) throws Exception {
-    TestUtils.waitForCondition(
+    assertThatEventually(
+        "subject not present after 30 seconds. subject: " + subjectName,
         () -> {
           try {
             return getSchemaRegistryClient().getAllSubjects().contains(subjectName);
@@ -584,8 +589,10 @@ public final class IntegrationTestHarness extends ExternalResource {
             throw new RuntimeException("could not get subjects");
           }
         },
-        30_000,
-        "subject not present after 30 seconds. subject: " + subjectName);
+        is(true),
+        30,
+        TimeUnit.SECONDS
+    );
   }
 
   /**
@@ -594,7 +601,8 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param subjectName the name of the subject to await absence for.
    */
   public void waitForSubjectToBeAbsent(final String subjectName) throws Exception {
-    TestUtils.waitForCondition(
+    assertThatEventually(
+        "subject still present after 30 seconds. subject: " + subjectName,
         () -> {
           try {
             return !getSchemaRegistryClient().getAllSubjects().contains(subjectName);
@@ -602,8 +610,10 @@ public final class IntegrationTestHarness extends ExternalResource {
             throw new RuntimeException("could not get subjects");
           }
         },
-        30_000,
-        "subject still present after 30 seconds. subject: " + subjectName);
+        is(true),
+        30,
+        TimeUnit.SECONDS
+    );
   }
 
   public ParsedSchema getSchema(final String subjectName) {

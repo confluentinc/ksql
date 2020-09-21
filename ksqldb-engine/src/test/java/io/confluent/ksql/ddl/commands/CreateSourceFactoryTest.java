@@ -158,7 +158,8 @@ public class CreateSourceFactoryTest {
     when(topicClient.isTopicExists(any())).thenReturn(true);
     when(keySerdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(keySerde);
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(valueSerde);
-    when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SerdeOptions.of());
+    when(serdeOptionsSupplier.build(any(), any(), any(), any(), any()))
+        .thenReturn(SerdeOptions.of());
 
     givenCommandFactories();
   }
@@ -446,7 +447,8 @@ public class CreateSourceFactoryTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
-    when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
+    when(serdeOptionsSupplier.build(any(), any(), any(), any(), any()))
+        .thenReturn(SOME_SERDE_OPTIONS);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -457,6 +459,7 @@ public class CreateSourceFactoryTest {
     // Then:
     verify(serdeOptionsSupplier).build(
         schema,
+        KAFKA,
         statement.getProperties().getValueFormat(),
         statement.getProperties().getSerdeOptions(),
         ksqlConfig

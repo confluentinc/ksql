@@ -38,7 +38,12 @@ public enum SerdeOption {
    *
    * @see SerdeOption#WRAP_SINGLE_VALUES
    */
-  UNWRAP_SINGLE_VALUES(SerdeFeature.UNWRAP_SINGLES);
+  UNWRAP_SINGLE_VALUES(SerdeFeature.UNWRAP_SINGLES),
+
+  /**
+   * Key version of {@link #UNWRAP_SINGLE_VALUES}.
+   */
+  UNWRAP_SINGLE_KEYS(SerdeFeature.UNWRAP_SINGLES);
 
   private final SerdeFeature requiredFeature;
 

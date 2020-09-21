@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.version.metrics;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static org.hamcrest.Matchers.is;
 import static org.mockserver.model.HttpRequest.request;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.test.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,7 +62,7 @@ public class VersionCheckerIntegrationTest {
     );
     versionCheckerAgent.start(KsqlModuleType.SERVER, versionCheckProps);
 
-    TestUtils.waitForCondition(() -> {
+    assertThatEventually("Version not submitted", () -> {
           try {
             clientAndProxy.verify(request().withPath("/ksql/anon").withMethod("POST"));
             return true;
@@ -69,7 +70,9 @@ public class VersionCheckerIntegrationTest {
             return false;
           }
         },
-        30000, "Version not submitted"
+        is(true),
+        30000,
+        TimeUnit.MILLISECONDS
     );
   }
 }

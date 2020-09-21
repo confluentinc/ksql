@@ -248,10 +248,18 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INTERMEDIATE;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": "12345678987654321.2345678987654321"}
+        {"topic": "test_topic", "value": "12345678987654321.2345678987654321"},
+        {"topic": "test_topic", "value": ".12"},
+        {"topic": "test_topic", "value": "-12345.12"},
+        {"topic": "test_topic", "value": "\"-12345.12\""},
+        {"topic": "test_topic", "value": "0"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": "12345678987654321.2345678987654321"}
+        {"topic": "OUTPUT", "value": "12345678987654321.2345678987654321"},
+        {"topic": "OUTPUT", "value": "0.1200000000000000"},
+        {"topic": "OUTPUT", "value": "\"-12345.1200000000000000\""},
+        {"topic": "OUTPUT", "value": "\"-12345.1200000000000000\""},
+        {"topic": "OUTPUT", "value": "0.0000000000000000"}
       ]
     }
   ]

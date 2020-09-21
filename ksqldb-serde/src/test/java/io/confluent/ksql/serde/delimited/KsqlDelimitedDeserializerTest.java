@@ -167,7 +167,7 @@ public class KsqlDelimitedDeserializerTest {
     final Struct result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result.get("cost"), is(new BigDecimal("01.12")));
+    assertThat(result.get("cost"), is(new BigDecimal("1.12")));
   }
 
   @Test
@@ -186,7 +186,64 @@ public class KsqlDelimitedDeserializerTest {
     final Struct result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result.get("cost"), is(new BigDecimal("01.12")));
+    assertThat(result.get("cost"), is(new BigDecimal("1.12")));
+  }
+
+  @Test
+  public void shouldDeserializeDecimalWithTooSmallScale() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "2".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("cost"), is(new BigDecimal("2.00")));
+  }
+
+  @Test
+  public void shouldDeserializeNegativeDecimalSerializedAsNumber() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "-1.12".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("cost"), is(new BigDecimal("-1.12")));
+  }
+
+  @Test
+  public void shouldDeserializeNegativeDecimalSerializedAsString() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "\"-01.12\"".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Struct result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result.get("cost"), is(new BigDecimal("-1.12")));
   }
 
   @Test

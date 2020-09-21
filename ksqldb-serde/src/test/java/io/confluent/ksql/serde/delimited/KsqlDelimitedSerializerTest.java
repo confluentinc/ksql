@@ -23,6 +23,7 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.errors.SerializationException;
@@ -40,6 +41,10 @@ public class KsqlDelimitedSerializerTest {
       .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
       .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .optional()
+      .build();
+
+  private  static final Schema STRUCT_WITH_DECIMAL = SchemaBuilder.struct()
+      .field("id", DecimalUtil.builder(4, 2).build())
       .build();
 
   private KsqlDelimitedSerializer serializer;
@@ -120,11 +125,7 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeDecimalWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
-
-    final Struct value = new Struct(schema)
+    final Struct value = new Struct(STRUCT_WITH_DECIMAL)
         .put("id", new BigDecimal("1.12"));
 
     // When:
@@ -137,12 +138,8 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeZeroDecimalWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("id", BigDecimal.ZERO);
+    final Struct value = new Struct(STRUCT_WITH_DECIMAL)
+        .put("id", BigDecimal.ZERO.setScale(2, RoundingMode.UNNECESSARY));
 
     // When:
     final byte[] bytes = serializer.serialize("", value);
@@ -154,12 +151,8 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeOneHalfDecimalWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("id", new BigDecimal(0.5));
+    final Struct value = new Struct(STRUCT_WITH_DECIMAL)
+        .put("id", new BigDecimal("0.50"));
 
     // When:
     final byte[] bytes = serializer.serialize("", value);
@@ -171,12 +164,8 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeNegativeOneHalfDecimalWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("id", new BigDecimal(-0.5));
+    final Struct value = new Struct(STRUCT_WITH_DECIMAL)
+        .put("id", new BigDecimal("-0.50"));
 
     // When:
     final byte[] bytes = serializer.serialize("", value);
@@ -186,13 +175,9 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
-  public void shouldSerializeNegativeDecimalWithPaddedZeros() {
+  public void shouldSerializeNegativeDecimalWithAsStringWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
-
-    final Struct value = new Struct(schema)
+    final Struct value = new Struct(STRUCT_WITH_DECIMAL)
         .put("id", new BigDecimal("-1.12"));
 
     // When:
@@ -200,6 +185,36 @@ public class KsqlDelimitedSerializerTest {
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-1.12\""));
+  }
+
+  @Test
+  public void shouldSerializeLargeDecimalWithoutThousandSeparator() {
+    // Given:
+    final Struct value = new Struct(STRUCT_WITH_DECIMAL)
+        .put("id", new BigDecimal("1234567890.00"));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1234567890.00"));
+  }
+
+  @Test
+  public void shouldSerializeReallyLargeDecimalWithoutScientificNotation() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .field("id", DecimalUtil.builder(10, 3).build())
+        .build();
+
+    final Struct value = new Struct(schema)
+        .put("id", new BigDecimal("10000000000.000"));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", value);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("10000000000.000"));
   }
 
   @Test
@@ -212,7 +227,7 @@ public class KsqlDelimitedSerializerTest {
     shouldSerializeRowCorrectlyWithNonDefaultDelimiter('|');
   }
 
-  private void shouldSerializeRowCorrectlyWithNonDefaultDelimiter(final char delimiter) {
+  private static void shouldSerializeRowCorrectlyWithNonDefaultDelimiter(final char delimiter) {
     // Given:
     final Struct data = new Struct(SCHEMA)
         .put("ORDERTIME", 1511897796092L)

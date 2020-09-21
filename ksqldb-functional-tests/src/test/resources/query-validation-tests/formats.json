@@ -123,7 +123,6 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "properties": {
-        "ksql.key.format.enabled": true,
         "ksql.persistence.default.format.value": "AVRO"
       },
       "inputs": [
@@ -193,11 +192,28 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "properties": {
-        "ksql.key.format.enabled": true,
         "ksql.persistence.default.format.value": "JSON"
       },
       "input": [{"topic": "input", "key": "foo", "value": "bar"}],
-      "output": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}]
+      "output": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name" : "input",
+              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "valueFormat" : {"format" : "KAFKA"},
+              "partitions": 4
+            },
+            {
+              "name" : "OUTPUT",
+              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "valueFormat" : {"format" : "KAFKA"},
+              "partitions": 4
+            }
+          ]
+        }
+      }
     },
     {
       "name": "unsupported format - create source",

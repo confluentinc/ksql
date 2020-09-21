@@ -55,6 +55,7 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -66,6 +67,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
@@ -125,6 +127,7 @@ public class CreateSourceFactoryTest {
   private static final String TOPIC_NAME = "some topic";
 
   private static final Map<String, Literal> MINIMUM_PROPS = ImmutableMap.of(
+      CommonCreateConfigs.KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"),
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
@@ -459,8 +462,8 @@ public class CreateSourceFactoryTest {
     // Then:
     verify(serdeOptionsSupplier).build(
         schema,
-        KAFKA,
-        statement.getProperties().getValueFormat(),
+        FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties())),
+        FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties())),
         statement.getProperties().getSerdeOptions(),
         ksqlConfig
     );

@@ -100,6 +100,7 @@ public class InteractiveStatementExecutorTest {
       + "biz bigint,"
       + " baz varchar) "
       + "WITH (kafka_topic = 'foo', "
+      + "key_format = 'kafka', "
       + "value_format = 'json');";
   private static final CommandId COMMAND_ID = new CommandId(Type.STREAM, "foo", Action.CREATE);
   private static final QueryId QUERY_ID = new QueryId("qid");
@@ -265,7 +266,7 @@ public class InteractiveStatementExecutorTest {
     // get a statement instance
     final String ddlText
         = "CREATE STREAM pageviews (viewtime bigint, pageid varchar) " +
-        "WITH (kafka_topic='pageview_topic', VALUE_FORMAT='json');";
+        "WITH (kafka_topic='pageview_topic', KEY_FORMAT='kafka', VALUE_FORMAT='json');";
     final String statementText
         = "CREATE STREAM user1pv AS select * from pageviews WHERE userid = 'user1';";
     final PreparedStatement<?> ddlStatement = statementParser.parseSingleStatement(ddlText);
@@ -450,9 +451,8 @@ public class InteractiveStatementExecutorTest {
       handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
     } catch (final KsqlStatementException e) {
       // Then:
-      assertEquals("Cannot add stream 'FOO': A stream with the same name already exists\n" +
-              "Statement: " + CREATE_STREAM_FOO_STATEMENT,
-          e.getMessage());
+      assertThat(e.getMessage(),
+          containsString("Cannot add stream 'FOO': A stream with the same name already exists"));
     }
     final InOrder inOrder = Mockito.inOrder(status);
     final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
@@ -779,6 +779,7 @@ public class InteractiveStatementExecutorTest {
             + " pageid varchar, "
             + "userid varchar) "
             + "WITH (kafka_topic = 'pageview_topic_json', "
+            + "key_format = 'kafka', "
             + "value_format = 'json');",
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );

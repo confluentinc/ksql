@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -144,10 +145,11 @@ public final class KsqlEngineTestUtil {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
         prepared, SessionConfig.of(ksqlConfig, overriddenProperties));
+    final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
     final ConfiguredStatement<?> withSchema =
         schemaInjector
-            .map(injector -> injector.inject(configured))
-            .orElse((ConfiguredStatement) configured);
+            .map(injector -> injector.inject(withFormats))
+            .orElse((ConfiguredStatement) withFormats);
     final ConfiguredStatement<?> reformatted =
         new SqlFormatInjector(executionContext).inject(withSchema);
     try {

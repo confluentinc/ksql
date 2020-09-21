@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -27,6 +28,8 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -88,7 +91,7 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> statement
   ) {
     if (hasValueElements(statement)
-        || !statement.getStatement().getProperties().getValueFormat().supportsSchemaInference()) {
+        || !supportsSchemaInference(statement)) {
       return Optional.empty();
     }
 
@@ -126,6 +129,14 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     return statement.getStatement().getElements().stream()
         .anyMatch(e -> e.getNamespace().equals(Namespace.VALUE));
+  }
+
+  private static boolean supportsSchemaInference(
+      final ConfiguredStatement<CreateSource> statement
+  ) {
+    final FormatInfo valueFormat =
+        SourcePropertiesUtil.getValueFormat(statement.getStatement().getProperties());
+    return FormatFactory.of(valueFormat).supportsSchemaInference();
   }
 
   private static CreateSource addSchemaFields(

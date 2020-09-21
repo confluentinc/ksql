@@ -163,7 +163,7 @@ public class SchemaRegisterInjectorTest {
   public void shouldNotRegisterSchemaIfSchemaRegistryIsDisabled() {
     // Given:
     config = new KsqlConfig(ImmutableMap.of());
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', key_format='KAFKA', value_format='AVRO', partitions=1);");
 
     // When:
     final KsqlSchemaRegistryNotConfiguredException e = assertThrows(KsqlSchemaRegistryNotConfiguredException.class, () -> injector.inject(statement));
@@ -175,7 +175,7 @@ public class SchemaRegisterInjectorTest {
   @Test
   public void shouldNotRegisterSchemaForSchemaRegistryDisabledFormatCreateSource() {
     // Given:
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', value_format='DELIMITED', partitions=1);");
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', key_format='KAFKA', value_format='DELIMITED', partitions=1);");
 
     // When:
     injector.inject(statement);
@@ -188,7 +188,7 @@ public class SchemaRegisterInjectorTest {
   public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateSourceIfSubjectDoesntExist()
       throws Exception {
     // Given:
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', key_format='KAFKA', value_format='AVRO', partitions=1);");
 
     // When:
     injector.inject(statement);
@@ -202,7 +202,7 @@ public class SchemaRegisterInjectorTest {
   public void shouldNotReplaceExistingSchemaForSchemaRegistryEnabledFormatCreateSource()
       throws Exception {
     // Given:
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', key_format='KAFKA', value_format='AVRO', partitions=1);");
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
 
     // When:
@@ -293,6 +293,7 @@ public class SchemaRegisterInjectorTest {
     givenStatement("CREATE STREAM source (f1 VARCHAR) "
         + "WITH ("
         + "  kafka_topic='expectedName', "
+        + "  key_format='KAFKA', "
         + "  value_format='AVRO', "
         + "  partitions=1, "
         + "  wrap_single_value='false'"

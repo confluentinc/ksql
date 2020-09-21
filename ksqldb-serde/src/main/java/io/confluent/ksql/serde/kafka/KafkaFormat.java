@@ -57,4 +57,5 @@ public class KafkaFormat implements Format {
 
     return KafkaSerdeFactory.createSerde(schema);
   }
+
 }

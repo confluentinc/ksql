@@ -79,4 +79,5 @@ public class JsonFormat extends ConnectFormat {
       final FormatInfo formatInfo) {
     return jsonData.fromConnectSchema(schema);
   }
+
 }

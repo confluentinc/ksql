@@ -83,7 +83,8 @@ public class CommandFactoriesTest {
       ELEMENT1
   );
   private static final String TOPIC_NAME = "some topic";
-  private static final Map<String, Literal> MINIMIM_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> MINIMUM_PROPS = ImmutableMap.of(
+      CommonCreateConfigs.KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"),
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
@@ -120,7 +121,7 @@ public class CommandFactoriesTest {
   private CommandFactories commandFactories;
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private final CreateSourceProperties withProperties =
-      CreateSourceProperties.from(MINIMIM_PROPS);
+      CreateSourceProperties.from(MINIMUM_PROPS);
 
   @Before
   public void before() {

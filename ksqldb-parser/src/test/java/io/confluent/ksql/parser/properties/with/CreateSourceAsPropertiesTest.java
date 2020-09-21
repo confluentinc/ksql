@@ -17,7 +17,10 @@ package io.confluent.ksql.parser.properties.with;
 
 import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -53,10 +56,10 @@ public class CreateSourceAsPropertiesTest {
 
     // Then:
     assertThat(properties.getKafkaTopic(), is(Optional.empty()));
-    assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
-    assertThat(properties.getFormatInfo(), is(Optional.empty()));
+    assertThat(properties.getKeyFormat(), is(Optional.empty()));
+    assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getSerdeOptions(), is(SerdeOptions.of()));
@@ -106,7 +109,7 @@ public class CreateSourceAsPropertiesTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Invalid datatime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
+    assertThat(e.getMessage(), containsString("Invalid datetime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
   }
 
   @Test
@@ -116,7 +119,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
 
     // Then:
-    assertThat(properties.getFormatProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormatProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test
@@ -236,5 +239,54 @@ public class CreateSourceAsPropertiesTest {
 
     // Then:
     assertThat(sql, containsString("WRAP_SINGLE_VALUE=true"));
+  }
+
+  @Test
+  public void shouldGetKeyAndValueFormatFromFormat() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(
+            KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"),
+            VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO")));
+
+    // When / Then:
+    assertThat(props.getKeyFormat().get().getFormat(), is("KAFKA"));
+    assertThat(props.getValueFormat().get().getFormat(), is("AVRO"));
+  }
+
+  @Test
+  public void shouldThrowIfKeyFormatAndFormatProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceAsProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .put(KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"))
+                .put(FORMAT_PROPERTY, new StringLiteral("JSON"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot supply both 'KEY_FORMAT' and 'FORMAT' properties, "
+        + "as 'FORMAT' sets both key and value formats."));
+    assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
+  }
+
+  @Test
+  public void shouldThrowIfValueFormatAndFormatProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceAsProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .put(VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"))
+                .put(FORMAT_PROPERTY, new StringLiteral("KAFKA"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties, "
+        + "as 'FORMAT' sets both key and value formats."));
+    assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
   }
 }

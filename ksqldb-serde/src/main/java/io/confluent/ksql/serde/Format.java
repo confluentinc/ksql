@@ -179,4 +179,5 @@ public interface Format {
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> srClientFactory
   );
+
 }

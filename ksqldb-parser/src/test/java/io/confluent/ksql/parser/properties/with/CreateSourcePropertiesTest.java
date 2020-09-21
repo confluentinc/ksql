@@ -477,6 +477,21 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
+  public void shouldGetKeyAndValueFormatFromFormat() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"))
+            .put(VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat().get().getFormat(), is("KAFKA"));
+    assertThat(props.getValueFormat().get().getFormat(), is("AVRO"));
+  }
+
+  @Test
   public void shouldThrowIfKeyFormatAndFormatProvided() {
     // When:
     final Exception e = assertThrows(

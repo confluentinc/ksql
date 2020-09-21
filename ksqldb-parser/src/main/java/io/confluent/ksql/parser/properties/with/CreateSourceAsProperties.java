@@ -101,12 +101,15 @@ public final class CreateSourceAsProperties {
   }
 
   public Optional<FormatInfo> getKeyFormat() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY))
-        .map(format -> FormatInfo.of(format, ImmutableMap.of()));
+    final String keyFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
+    return Optional.ofNullable(keyFormat).map(format -> FormatInfo.of(format, ImmutableMap.of()));
   }
 
   public Optional<FormatInfo> getValueFormat() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
+    final String valueFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY));
+    return Optional.ofNullable(valueFormat)
         .map(format -> FormatInfo.of(format, getValueFormatProperties()));
   }
 
@@ -159,5 +162,9 @@ public final class CreateSourceAsProperties {
   @Override
   public int hashCode() {
     return Objects.hash(props);
+  }
+
+  private Optional<String> getFormatName() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.FORMAT_PROPERTY));
   }
 }

@@ -1,4 +1,4 @@
-# KLIP 34 - Variable Substitution
+# KLIP 38 - Variable Substitution
 
 **Author**: Sergio Peña (@spena) |
 **Release Target**: 0.14 |
@@ -30,10 +30,27 @@ Issue: https://github.com/confluentinc/ksql/issues/6199
 
 ## What is not in scope
 
-* Provide support to prompt users to type a variable value if it wasn't defined (Other DBs support this)
-* Support variable substitution of environment and other non-user variables
-* Provide a set of pre-defined variables to use in the current session
-* Support variable substitution in the REST API (cannot store variables after consecutive requests)
+* `Prompt users to type values`
+
+  Oracle SQL*Plus prompts users to type the variable if not defined. Useful, but not necessary, and it will be a limited
+  support only (i.e. CLI and UI, but not Java API or other clients).
+
+* `Provide list of pre-defined variables`
+
+   Some DBs provide a list of pre-defined variables users can use out-of-box. We don't have any variables we'd like to add at this time.
+
+* `Support variable substitution in the REST API`
+
+  More complex to do to achieve the same functionality. We want variable substitution in clients only.
+
+* `Support UDF when defining variables`
+
+  It would be nice to use functions, like `set var = now();`, `set var = uppercase('a');`, etc. But this requires clients (CLI, UI, Java API, ...) to have
+  better parsing mechanism to detect UDF, make a request to the server, then assign the value to the variable. Also, there
+  are functions that might be executed in the CLI context, such as NOW() which should return the current time of the CLI.
+
+  We could define a set of functions that can be used instead, and just execute them in the local context; but this will require
+  every client supports that, which will make things more complicated (i.e. the ksqlDB UI).
 
 ## Value/Return
 
@@ -95,7 +112,7 @@ Also, the use of single-quotes in `SET` server settings is tedious to type. So a
 This looks confusing too. So we have to decide for a new syntax for substitution variables.
 
 Other DBs use different syntax to create user variables (DECLARE, DEFINE, \set, SET). For ksqlDB, I'll choose to use `DEFINE` and `UNDEFINE` which
-is what Oracle SQL*plus uses. Any user coming from this DB will immediately understand the command.  
+is what [Oracle SQL*plus uses](https://blogs.oracle.com/opal/sqlplus-101-substitution-variables). Any user coming from this DB will immediately understand the command.  
 This is opened to discussion, but will continue with this for now.
 
 #### Creating and printing substitution variables
@@ -264,7 +281,7 @@ Error: Fail because ${topic_${env}} topic name is invalid.
 The error message is just an example of what ksqlDB will display.
 
 When using SQL scripts in headless mode, we need to provide a server setting to enable/disable variable substitution. The setting will be
-`ksql.enable.headless.variable.substitution` as Boolean (default = true). The reason is that `SET CLI` is a CLI-specific command not available
+`ksql.headless.variable.substitution.enable` as Boolean (default = true). The reason is that `SET CLI` is a CLI-specific command not available
 in headless execution. Also, CLI should not request the Server is variable substitution is enabled as that should be a user decision to substitute or not.
 
 ### 6. Implementation

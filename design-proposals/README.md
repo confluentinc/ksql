@@ -80,4 +80,4 @@ Next KLIP number: **40**
 | KLIP-36: GRACE period for stream-stream joins                                                        | Proposal | | | |
 | KLIP-37: System Tables                                                                               | Proposal | | | |
 | KLIP-38: Variable Substitution                                                                       | Proposal | | | |
-| KLIP-39: Prepared Statements for Java Client                                                         | Proposal | | | |
+| KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |

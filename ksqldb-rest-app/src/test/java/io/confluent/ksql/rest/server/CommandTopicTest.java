@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -116,7 +117,6 @@ public class CommandTopicTest {
     when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
     when(commandTopicBackup.commandTopicCorruption())
         .thenReturn(false)
-        .thenReturn(false)
         .thenReturn(true);
 
     // When:
@@ -125,8 +125,9 @@ public class CommandTopicTest {
     final List<ConsumerRecord<byte[], byte[]>> newCommandsList = ImmutableList.copyOf(newCommands);
 
     // Then:
-    assertThat(newCommandsList.size(), is(2));
-    assertThat(newCommandsList, equalTo(ImmutableList.of(record1, record2)));
+    assertThat(newCommandsList.size(), is(1));
+    assertThat(newCommandsList, equalTo(ImmutableList.of(record1)));
+    verify(commandTopicBackup, never()).writeRecord(record3);
   }
 
   @Test
@@ -141,7 +142,6 @@ public class CommandTopicTest {
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
     when(commandTopicBackup.commandTopicCorruption())
         .thenReturn(false)
-        .thenReturn(true)
         .thenReturn(true);
 
     // When:
@@ -150,6 +150,7 @@ public class CommandTopicTest {
 
     // Then:
     verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
+    verify(commandConsumer, times(1)).poll(any());
     assertThat(topicPartitionsCaptor.getValue(),
         equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
     assertThat(queuedCommandList, equalTo(ImmutableList.of(

@@ -74,6 +74,7 @@ public class CommandStore implements CommandQueue, Closeable {
   private final Serializer<CommandId> commandIdSerializer;
   private final Serializer<Command> commandSerializer;
   private final Deserializer<CommandId> commandIdDeserializer;
+  private final CommandTopicBackup commandTopicBackup;
   
 
   public static final class Factory {
@@ -119,7 +120,8 @@ public class CommandStore implements CommandQueue, Closeable {
           commandQueueCatchupTimeout,
           InternalTopicSerdes.serializer(),
           InternalTopicSerdes.serializer(),
-          InternalTopicSerdes.deserializer(CommandId.class)
+          InternalTopicSerdes.deserializer(CommandId.class),
+          commandTopicBackup
       );
     }
   }
@@ -133,7 +135,8 @@ public class CommandStore implements CommandQueue, Closeable {
       final Duration commandQueueCatchupTimeout,
       final Serializer<CommandId> commandIdSerializer,
       final Serializer<Command> commandSerializer,
-      final Deserializer<CommandId> commandIdDeserializer
+      final Deserializer<CommandId> commandIdDeserializer,
+      final CommandTopicBackup commandTopicBackup
   ) {
     this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandStatusMap = Maps.newConcurrentMap();
@@ -152,6 +155,8 @@ public class CommandStore implements CommandQueue, Closeable {
         Objects.requireNonNull(commandSerializer, "commandSerializer");
     this.commandIdDeserializer =
         Objects.requireNonNull(commandIdDeserializer, "commandIdDeserializer");
+    this.commandTopicBackup =
+        Objects.requireNonNull(commandTopicBackup, "commandTopicBackup");
   }
 
   @Override
@@ -321,6 +326,11 @@ public class CommandStore implements CommandQueue, Closeable {
       return commandConsumer.endOffsets(Collections.singletonList(commandTopicPartition))
           .get(commandTopicPartition);
     }
+  }
+
+  @Override
+  public boolean corruptionDetected() {
+    return commandTopicBackup.commandTopicCorruption();
   }
 
   @Override

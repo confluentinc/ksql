@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import com.google.common.base.Suppliers;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -27,23 +26,26 @@ import java.util.function.Supplier;
 
 public class ServerInfoResource {
 
-  private final Supplier<ServerInfo> serverInfo;
+  private final String appVersion;
+  private final String kafkaClusterId;
+  private final String ksqlServiceId;
+  private final Supplier<CommandRunner.CommandRunnerStatus> serverStatus;
 
   public ServerInfoResource(
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final CommandRunner commandRunner) {
-    this.serverInfo = Suppliers.memoize(
-        () -> new ServerInfo(
-            AppInfo.getVersion(),
-            KafkaClusterUtil.getKafkaClusterId(serviceContext),
-            ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-            commandRunner.checkCommandRunnerStatus().toString()
-        )
-    )::get;
+    appVersion = AppInfo.getVersion();
+    kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(serviceContext);
+    ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    serverStatus = commandRunner::checkCommandRunnerStatus;
   }
 
   public EndpointResponse get() {
-    return EndpointResponse.ok(serverInfo.get());
+    return EndpointResponse.ok(new ServerInfo(
+        appVersion,
+        kafkaClusterId,
+        ksqlServiceId,
+        serverStatus.get().toString()));
   }
 }

@@ -83,12 +83,13 @@ public class CommandTopic {
     final List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
 
     if (iterable != null) {
-      iterable.forEach(record -> {
+      for (ConsumerRecord<byte[], byte[]> record : iterable) {
         backupRecord(record);
-        if (!commandTopicBackup.commandTopicCorruption()) {
-          records.add(record);
+        if (commandTopicBackup.commandTopicCorruption()) {
+          return records;
         }
-      });
+        records.add(record);
+      }
     }
 
     return records;
@@ -109,7 +110,7 @@ public class CommandTopic {
         backupRecord(record);
         
         if (commandTopicBackup.commandTopicCorruption()) {
-          continue;
+          return restoreCommands;
         }
 
         if (record.value() == null) {

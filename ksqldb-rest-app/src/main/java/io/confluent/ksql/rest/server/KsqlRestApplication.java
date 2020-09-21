@@ -658,13 +658,7 @@ public final class KsqlRestApplication implements Executable {
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
     CommandTopicBackup commandTopicBackup = new CommandTopicBackupNoOp();
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ENABLE_METASTORE_BACKUP)) {
-      if (ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION).isEmpty()) {
-        throw new KsqlException(String.format("Metastore backups is enabled, but location "
-            + "is empty. Please specify the location with the property '%s'",
-            KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION));
-      }
-
+    if (!ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION).isEmpty()) {
       commandTopicBackup = new CommandTopicBackupImpl(
           ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION),
           commandTopicName
@@ -756,7 +750,6 @@ public final class KsqlRestApplication implements Executable {
             KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
         metricsPrefix,
         InternalTopicSerdes.deserializer(Command.class),
-        finalCommandTopicBackup,
         errorHandler
     );
   

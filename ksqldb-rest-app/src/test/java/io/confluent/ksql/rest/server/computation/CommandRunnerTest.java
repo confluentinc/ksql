@@ -232,6 +232,9 @@ public class CommandRunnerTest {
 
     // When:
     commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
@@ -251,7 +254,9 @@ public class CommandRunnerTest {
     doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
 
     // When:
-    commandRunner.fetchAndRunCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     verify(statementExecutor).handleStatement(eq(queuedCommand1));
@@ -270,6 +275,9 @@ public class CommandRunnerTest {
 
     // When:
     commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
@@ -289,7 +297,9 @@ public class CommandRunnerTest {
     doThrow(new IncomaptibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
-    commandRunner.fetchAndRunCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);

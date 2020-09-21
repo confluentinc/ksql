@@ -81,6 +81,7 @@ public class CommandRunner implements Closeable {
   private final Consumer<QueuedCommand> incompatibleCommandChecker;
   private final Errors errorHandler;
   private boolean incompatibleCommandDetected;
+  private Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
 
   public enum CommandRunnerStatus {
     RUNNING,
@@ -89,9 +90,40 @@ public class CommandRunner implements Closeable {
   }
 
   public enum CommandRunnerDegradedReason {
-    NONE,
-    INCOMPATIBLE_COMMAND,
-    CORRUPTED
+    NONE(errors -> ""),
+    CORRUPTED(Errors:: commandRunnerDegradedBackupCorruptedErrorMessage),
+    INCOMPATIBLE_COMMAND(Errors:: commandRunnerDegradedIncompatibleCommandsErrorMessage);
+
+    private final Function<Errors, String> msgFactory;
+
+    public String getMsg(final Errors errors) {
+      return msgFactory.apply(errors);
+    }
+
+    CommandRunnerDegradedReason(final Function<Errors, String> msgFactory) {
+      this.msgFactory = msgFactory;
+    }
+  }
+
+  public static class Status {
+    private final CommandRunnerStatus status;
+    private final CommandRunnerDegradedReason degradedReason;
+
+    public Status(
+            final CommandRunnerStatus status,
+            final CommandRunnerDegradedReason degradedReason
+    ) {
+      this.status = status;
+      this.degradedReason = degradedReason;
+    }
+
+    public CommandRunnerStatus getStatus() {
+      return status;
+    }
+
+    public CommandRunnerDegradedReason getDegradedReason() {
+      return degradedReason;
+    }
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -325,48 +357,6 @@ public class CommandRunner implements Closeable {
     LOG.info("The KSQL server was terminated.");
   }
 
-  public CommandRunnerStatus checkCommandRunnerStatus() {
-    if (incompatibleCommandDetected || commandStore.corruptionDetected()) {
-      return CommandRunnerStatus.DEGRADED;
-    }
-
-    final Pair<QueuedCommand, Instant> currentCommand = currentCommandRef.get();
-    if (currentCommand == null) {
-      return lastPollTime.get() == null
-          || Duration.between(lastPollTime.get(), clock.instant()).toMillis()
-              < NEW_CMDS_TIMEOUT.toMillis() * 3
-              ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
-    }
-    
-    return Duration.between(currentCommand.right, clock.instant()).toMillis()
-        < commandRunnerHealthTimeout.toMillis()
-        ? CommandRunnerStatus.RUNNING : CommandRunnerStatus.ERROR;
-  }
-
-  public CommandRunnerDegradedReason getCommandRunnerDegradedReason() {
-    if (commandStore.corruptionDetected()) {
-      return CommandRunnerDegradedReason.CORRUPTED;
-    }
-
-    if (incompatibleCommandDetected) {
-      return CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND;
-    }
-
-    return CommandRunnerDegradedReason.NONE;
-  }
-
-  public String getCommandRunnerDegradedWarning() {
-    if (commandStore.corruptionDetected()) {
-      return errorHandler.commandRunnerDegradedBackupCorruptedErrorMessage();
-    }
-
-    if (incompatibleCommandDetected) {
-      return errorHandler.commandRunnerDegradedIncompatibleCommandsErrorMessage();
-    }
-
-    return "";
-  }
-
   private List<QueuedCommand> checkForIncompatibleCommands(final List<QueuedCommand> commands) {
     final List<QueuedCommand> compatibleCommands = new ArrayList<>();
     try {
@@ -385,15 +375,58 @@ public class CommandRunner implements Closeable {
     return commandStore;
   }
 
+  public CommandRunnerStatus checkCommandRunnerStatus() {
+    if (state.getStatus() == CommandRunnerStatus.DEGRADED) {
+      return CommandRunnerStatus.DEGRADED;
+    }
+
+    final Pair<QueuedCommand, Instant> currentCommand = currentCommandRef.get();
+    if (currentCommand == null) {
+      state = lastPollTime.get() == null
+          || Duration.between(lastPollTime.get(), clock.instant()).toMillis()
+              < NEW_CMDS_TIMEOUT.toMillis() * 3
+              ? new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE)
+                  : new Status(CommandRunnerStatus.ERROR, CommandRunnerDegradedReason.NONE);
+      
+    } else {
+      state = Duration.between(currentCommand.right, clock.instant()).toMillis()
+        < commandRunnerHealthTimeout.toMillis()
+        ? new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE)
+              : new Status(CommandRunnerStatus.ERROR, CommandRunnerDegradedReason.NONE);
+    }
+
+    return state.getStatus();
+  }
+
+  public CommandRunnerDegradedReason getCommandRunnerDegradedReason() {
+    return state.getDegradedReason();
+  }
+
+  public String getCommandRunnerDegradedWarning() {
+    return getCommandRunnerDegradedReason().getMsg(errorHandler);
+  }
+
   private class Runner implements Runnable {
 
     @Override
     public void run() {
       try {
         while (!closed) {
-          if (incompatibleCommandDetected || commandStore.corruptionDetected()) {
-            LOG.warn("CommandRunner entering degraded state due to: {}",
-                getCommandRunnerDegradedReason());
+          if (incompatibleCommandDetected) {
+            LOG.warn("CommandRunner entering degraded state due to "
+                + "encountering an incompatible command");
+            state = new Status(
+                CommandRunnerStatus.DEGRADED,
+                CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND
+            );
+            closeEarly();
+          } else if (commandStore.corruptionDetected()) {
+            LOG.warn("CommandRunner entering degraded state due to encountering corruption "
+                + "between topic and backup");
+            state = new Status(
+                CommandRunnerStatus.DEGRADED,
+                CommandRunnerDegradedReason.CORRUPTED
+            );
             closeEarly();
           } else {
             LOG.trace("Polling for new writes to command topic");

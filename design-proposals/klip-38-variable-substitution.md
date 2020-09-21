@@ -150,10 +150,17 @@ UNDEFINE name;
 
 ### 2. Scope
 
-All variables will live during the session of a ksqlDB connection, then destroyed when the connection is closed. Only the user
+This variable has a session scope.
+
+Variables will live during the session of a ksqlDB connection, then destroyed when the connection is closed. Only the user
 in that session can interact with the defined substitution variables. No other users can interact with other users' variables.
 
 In CLI, the session is opened when starting the CLI with the `ksql` command, and destroyed when typing `exit`.
+
+In Java API client, the session is opened when `Client.create()` is called, and closed when `Client.close()` is called. Variables
+may be defined using a client method instead of a new syntax. This is to ensure users know the scope starts after the `create()` call.
+
+TBD: Define a Java API method for variable substitution.
 
 In headless, the session is opened when starting the ksqlDB server with a SQL script. The variables stay alive until the server is
 killed.
@@ -183,39 +190,46 @@ executed, thus to avoid limiting users from using DDL/DML commands while definin
 
 ### 3. Referencing substitution variables
 
-Variables will be referenced by wrapping the variable between `{}` characters (i.e. `{replicas}`). These characters are also used by
-QTT (or ksqlDB functional tests) to replace variables. It's better to keep the same format between testing and production to avoid
-confusion.
+Variables will be referenced by wrapping the variable between `${}` characters (i.e. `${replicas}`).
+
+Noe: We need to make changes in QTT tests to use `${}` references instead of `{}` for consistency.
 
 Example:
 ```
 ksql> DEFINE format = 'AVRO';
 ksql> DEFINE replicas = '3';
-ksql> CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1', value_format='{format}', replicas={replicas});
+ksql> CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1', value_format='${format}', replicas=${replicas});
 ```
 
 Substitution will not attempt to add single-quotes to the values. Users will need to know the data type to use when using a variable. The ksqlDB
 server will be in charge of parsing and failing if the type is not allowed.
 
-Note: Variables are not case sensitive. A reference to `{replicas}` is the same as `{REPLICAS}`.
+Note: Variables are case-insensitive. A reference to `${replicas}` is the same as `${REPLICAS}`.
 
 ### 4. Context for substitution variables
 
-Variable substitution will be allowed only in specific SQL statements, and only in places where literals or hard-coded values can be used.
-Variables cannot be used as column-names, reserved keywords, etc.
+Variable substitution will be allowed in specific SQL statements. They can be used to replace text and non-text literals, and identifiers such as
+column names and stream/table names. Variables cannot be used as reserved keywords.
 
-For instance (`{VAR}` is used a reference where variables are permitted):
+For instance:
+
+Note: `{VAR}` is used a reference where variables are permitted.
 ```
-ksql> CREATE STREAM <name> (col1 INT, col2 STRING) WITH (kafka_topic='{VAR}', format='{VAR}', replicas={VAR}, ...);
-ksql> INSERT INTO <stream> (col1, col2) VALUES ({VAR}, '{VAR}');
-ksql> SELECT * FROM <stream> WHERE col1 == {VAR} and col2 == '{VAR}' EMIT CHANGES; 
+ksql> CREATE STREAM ${streamName} (${colName1} INT, ${colName2} STRING) \
+      WITH (kafka_topic='${topicName}', format='${format}', replicas=${replicas}, ...);
+      
+ksql> INSERT INTO ${streamName} (${colName1}, ${colName2}) \
+      VALUES (${val1}, '${val2}');
+
+ksql> SELECT * FROM ${streamName} \
+      WHERE ${colName1} == ${val1} and ${colName2} == '${val2}' EMIT CHANGES; 
 ```
 Any attempt of using variables on non-permitted places will fail with the current SQL parsing error found when parsing the variable string.
 
 Variables can also be assigned to other variables:
 ```
 ksql> DEFINE var1 = 'topic';
-ksql> DEFINE var2 = 'other_{var1}';
+ksql> DEFINE var2 = 'other_${var1}';
 ksql> DEFINE var2;
 DEFINE var2    = 'other_topic'
 ```
@@ -223,20 +237,20 @@ DEFINE var2    = 'other_topic'
 Variables can also be assigned to set server or CLI settings:
 ```
 ksql> DEFINE offset = 'earliest'
-ksql> SET 'auto.offset.reset' = '{offset}';
+ksql> SET 'auto.offset.reset' = '${offset}';
 
 ksql> DEFINE wrap_toggle = 'ON'
-ksql> SET CLI WRAP {WRAP_TOGGLE}
+ksql> SET CLI WRAP ${WRAP_TOGGLE}
 ```
 
 Variables can also be used as nested variables:
 ```
 ksql> DEFINE env = 'prod';
 
-ksql> DEFINE topic_prod = 'topic_prod';
-ksql> DEFINE topic_qa = 'topic_qa';
+ksql> DEFINE topic_prod = 'my_prod_topic';
+ksql> DEFINE topic_qa = 'my_qa_topic';
 
-ksql> CREATE STREAM ... WITH (kafka_topic='{topic_{env}}'); 
+ksql> CREATE STREAM ... WITH (kafka_topic='${topic_${env}}'); 
 ```
 
 ### 5. Enable/disable substitution variables
@@ -244,8 +258,8 @@ ksql> CREATE STREAM ... WITH (kafka_topic='{topic_{env}}');
 When using CLI, we'll use the `SET CLI VARIABLE-SUBSTITUTION (ON|OFF)` command to enable/disable subsitution. Default will be `ON`.
 ```
 ksql> SET CLI VARIABLE-SUBSTITUTION OFF;
-ksql> CREATE STREAM ... WITH (kafka_topic='{topic_{env}}');
-Error: Fail because {topic_{env}} topic name is invalid. 
+ksql> CREATE STREAM ... WITH (kafka_topic='${topic_${env}}');
+Error: Fail because ${topic_${env}} topic name is invalid. 
 ```
 The error message is just an example of what ksqlDB will display.
 

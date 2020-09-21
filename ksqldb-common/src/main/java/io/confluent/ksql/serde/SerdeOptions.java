@@ -16,9 +16,9 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Immutable;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -32,7 +32,11 @@ import java.util.stream.Collectors;
 @Immutable
 public final class SerdeOptions {
 
-  private static final ImmutableSet<SerdeOption> WRAPPING_OPTIONS = ImmutableSet.of(
+  public static final ImmutableSet<SerdeOption> KEY_WRAPPING_OPTIONS = ImmutableSet.of(
+      SerdeOption.UNWRAP_SINGLE_KEYS
+  );
+
+  public static final ImmutableSet<SerdeOption> VALUE_WRAPPING_OPTIONS = ImmutableSet.of(
       SerdeOption.WRAP_SINGLE_VALUES, SerdeOption.UNWRAP_SINGLE_VALUES
   );
 
@@ -46,31 +50,31 @@ public final class SerdeOptions {
     return new SerdeOptions(ImmutableSet.copyOf(options));
   }
 
-  private SerdeOptions(final ImmutableSet<SerdeOption> options) {
-    this.options = validate(Objects.requireNonNull(options, "options"));
+  public static Builder builder() {
+    return new Builder();
   }
 
-  @SuppressWarnings("MethodMayBeStatic")
+  private SerdeOptions(final ImmutableSet<SerdeOption> options) {
+    this.options = Objects.requireNonNull(options, "options");
+    validate(this.options);
+  }
+
   public EnabledSerdeFeatures keyFeatures() {
-    // Currently there are no key features:
-    return EnabledSerdeFeatures.of();
+    return features(true);
   }
 
   public EnabledSerdeFeatures valueFeatures() {
-    // Currently there are no key features, so all are value features:
-    return EnabledSerdeFeatures.from(options.stream()
-        .map(SerdeOption::requiredFeature)
-        .collect(Collectors.toSet()));
+    return features(false);
   }
 
   public Set<SerdeOption> all() {
     return options;
   }
 
-  public Optional<SerdeOption> valueWrapping() {
-    return Optional.ofNullable(
-        Iterables.getFirst(Sets.intersection(options, WRAPPING_OPTIONS), null)
-    );
+  public Optional<SerdeOption> findAny(final Set<SerdeOption> anyOf) {
+    return anyOf.stream()
+        .filter(options::contains)
+        .findAny();
   }
 
   @Override
@@ -95,12 +99,38 @@ public final class SerdeOptions {
     return options.toString();
   }
 
-  private static ImmutableSet<SerdeOption> validate(final ImmutableSet<SerdeOption> options) {
-    final Set<SerdeOption> wrappingOptions = Sets.intersection(options, WRAPPING_OPTIONS);
+  private EnabledSerdeFeatures features(final boolean key) {
+    return EnabledSerdeFeatures.from(options.stream()
+        .filter(option -> option.isKeyOption() == key)
+        .map(SerdeOption::requiredFeature)
+        .collect(Collectors.toSet()));
+  }
+
+  private static void validate(final Set<SerdeOption> options) {
+    final Set<SerdeOption> wrappingOptions = Sets.intersection(options, VALUE_WRAPPING_OPTIONS);
     if (wrappingOptions.size() > 1) {
       throw new IllegalArgumentException("Conflicting wrapping settings: " + options);
     }
+  }
 
-    return options;
+  public static final class Builder {
+
+    private final Set<SerdeOption> options = EnumSet.noneOf(SerdeOption.class);
+
+    public Builder add(final SerdeOption option) {
+      if (options.add(option)) {
+        try {
+          validate(options);
+        } catch (final Exception e) {
+          options.remove(option);
+          throw e;
+        }
+      }
+      return this;
+    }
+
+    public SerdeOptions build() {
+      return SerdeOptions.of(options);
+    }
   }
 }

@@ -28,7 +28,7 @@ public enum SerdeOption {
    *
    * @see SerdeOption#UNWRAP_SINGLE_VALUES
    */
-  WRAP_SINGLE_VALUES(SerdeFeature.WRAP_SINGLES),
+  WRAP_SINGLE_VALUES(SerdeFeature.WRAP_SINGLES, false),
 
   /**
    * If the value schema contains only a single field, persist it as an anonymous value.
@@ -38,12 +38,23 @@ public enum SerdeOption {
    *
    * @see SerdeOption#WRAP_SINGLE_VALUES
    */
-  UNWRAP_SINGLE_VALUES(SerdeFeature.UNWRAP_SINGLES);
+  UNWRAP_SINGLE_VALUES(SerdeFeature.UNWRAP_SINGLES, false),
 
+  /**
+   * Key version of {@link #UNWRAP_SINGLE_VALUES}.
+   */
+  UNWRAP_SINGLE_KEYS(SerdeFeature.UNWRAP_SINGLES, true);
+
+  private final boolean isKey;
   private final SerdeFeature requiredFeature;
 
-  SerdeOption(final SerdeFeature requiredFeature) {
+  SerdeOption(final SerdeFeature requiredFeature, final boolean isKey) {
+    this.isKey = isKey;
     this.requiredFeature = Objects.requireNonNull(requiredFeature, "requiredFeature");
+  }
+
+  public boolean isKeyOption() {
+    return isKey;
   }
 
   public SerdeFeature requiredFeature() {

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.toUniqueRecords;
 import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
@@ -22,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -32,6 +34,8 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
@@ -54,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -61,9 +66,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
 
@@ -556,7 +561,8 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param topicNames the names of the topics to await existence for.
    */
   public void waitForTopicsToBePresent(final String... topicNames) throws Exception {
-    TestUtils.waitForCondition(
+    assertThatEventually(
+        "topics not all present after 30 seconds. topics: " + Arrays.toString(topicNames),
         () -> {
           try {
             final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
@@ -566,8 +572,9 @@ public final class IntegrationTestHarness extends ExternalResource {
             throw new RuntimeException("could not get subjects");
           }
         },
-        30_000,
-        "topics not all present after 30 seconds. topics: " + Arrays.toString(topicNames));
+        is(true),
+        30, TimeUnit.SECONDS
+    );
   }
 
   /**
@@ -576,7 +583,8 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param subjectName the name of the subject to await existence for.
    */
   public void waitForSubjectToBePresent(final String subjectName) throws Exception {
-    TestUtils.waitForCondition(
+    assertThatEventually(
+        "subject not present after 30 seconds. subject: " + subjectName,
         () -> {
           try {
             return getSchemaRegistryClient().getAllSubjects().contains(subjectName);
@@ -584,8 +592,10 @@ public final class IntegrationTestHarness extends ExternalResource {
             throw new RuntimeException("could not get subjects");
           }
         },
-        30_000,
-        "subject not present after 30 seconds. subject: " + subjectName);
+        is(true),
+        30,
+        TimeUnit.SECONDS
+    );
   }
 
   /**
@@ -594,7 +604,8 @@ public final class IntegrationTestHarness extends ExternalResource {
    * @param subjectName the name of the subject to await absence for.
    */
   public void waitForSubjectToBeAbsent(final String subjectName) throws Exception {
-    TestUtils.waitForCondition(
+    assertThatEventually(
+        "subject still present after 30 seconds. subject: " + subjectName,
         () -> {
           try {
             return !getSchemaRegistryClient().getAllSubjects().contains(subjectName);
@@ -602,8 +613,10 @@ public final class IntegrationTestHarness extends ExternalResource {
             throw new RuntimeException("could not get subjects");
           }
         },
-        30_000,
-        "subject still present after 30 seconds. subject: " + subjectName);
+        is(true),
+        30,
+        TimeUnit.SECONDS
+    );
   }
 
   public ParsedSchema getSchema(final String subjectName) {
@@ -626,47 +639,53 @@ public final class IntegrationTestHarness extends ExternalResource {
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
+  private static <K> Serde<K> getKeySerde(final PhysicalSchema schema) {
+    final PersistenceSchema keySchema = schema.keySchema();
+
+    final SimpleColumn onlyColumn = Iterables.getOnlyElement(keySchema.columns());
+
+    final Class<?> javaType = SchemaConverters.sqlToJavaConverter()
+        .toJavaType(onlyColumn.type());
+
+    return (Serde) KafkaSerdeFactory
+        .getPrimitiveSerde(onlyColumn.type().baseType(), javaType);
+  }
+
   private static <K> Serializer<K> getKeySerializer(final PhysicalSchema schema) {
-    return (Serializer) KafkaSerdeFactory
-        .getPrimitiveSerde(schema.keySchema())
-        .serializer();
+    return IntegrationTestHarness.<K>getKeySerde(schema).serializer();
+  }
+
+  private static <K> Deserializer<K> getKeyDeserializer(final PhysicalSchema schema) {
+    return IntegrationTestHarness.<K>getKeySerde(schema).deserializer();
+  }
+
+  private Serde<GenericRow> getValueSerde(
+      final Format format,
+      final PhysicalSchema schema,
+      final String loggerNamePrefix
+  ) {
+    return GenericRowSerDe.from(
+        FormatInfo.of(format.name()),
+        schema.valueSchema(),
+        new KsqlConfig(Collections.emptyMap()),
+        serviceContext.get().getSchemaRegistryClientFactory(),
+        loggerNamePrefix,
+        ProcessingLogContext.create()
+    );
   }
 
   private Serializer<GenericRow> getValueSerializer(
       final Format format,
       final PhysicalSchema schema
   ) {
-    return GenericRowSerDe.from(
-        FormatInfo.of(format.name()),
-        schema.valueSchema(),
-        new KsqlConfig(Collections.emptyMap()),
-        serviceContext.get().getSchemaRegistryClientFactory(),
-        "producer",
-        ProcessingLogContext.create()
-    ).serializer();
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private static <K> Deserializer<K> getKeyDeserializer(
-      final PhysicalSchema schema
-  ) {
-    return (Deserializer) KafkaSerdeFactory
-        .getPrimitiveSerde(schema.keySchema())
-        .deserializer();
+    return getValueSerde(format, schema, "producer").serializer();
   }
 
   private Deserializer<GenericRow> getValueDeserializer(
       final Format format,
       final PhysicalSchema schema
   ) {
-    return GenericRowSerDe.from(
-        FormatInfo.of(format.name()),
-        schema.valueSchema(),
-        new KsqlConfig(Collections.emptyMap()),
-        serviceContext.get().getSchemaRegistryClientFactory(),
-        "consumer",
-        ProcessingLogContext.create()
-    ).deserializer();
+    return getValueSerde(format, schema, "consumer").deserializer();
   }
 
   public void ensureSchema(

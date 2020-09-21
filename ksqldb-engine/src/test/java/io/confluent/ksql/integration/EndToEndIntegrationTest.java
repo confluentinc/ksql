@@ -15,6 +15,7 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,7 +60,6 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
-import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -326,10 +326,13 @@ public class EndToEndIntegrationTest {
   ) throws Exception {
     final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
-    TestUtils.waitForCondition(
+    assertThatEventually(
+        expectedRows + " rows were not available after 30 seconds",
         () -> rowQueue.size() >= expectedRows,
-        30_000,
-        expectedRows + " rows were not available after 30 seconds");
+        is(true),
+        30,
+        TimeUnit.SECONDS
+    );
 
     final List<GenericRow> rows = new ArrayList<>();
     rowQueue.drainTo(rows);

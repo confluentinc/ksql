@@ -73,12 +73,12 @@ public class PhysicalSchemaTest {
   public void shouldReturnKeySchema() {
     // When:
     final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA, SerdeOptions.of());
+        .from(SCHEMA, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_KEYS));
 
     // Then:
     assertThat(result.keySchema(), is(PersistenceSchema.from(
         SCHEMA.key(),
-        EnabledSerdeFeatures.of()
+        EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
     )));
   }
 

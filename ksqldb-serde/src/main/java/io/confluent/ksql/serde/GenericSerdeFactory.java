@@ -26,12 +26,12 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Struct;
 
 final class GenericSerdeFactory {
 
@@ -49,7 +49,7 @@ final class GenericSerdeFactory {
     this.formatFactory = Objects.requireNonNull(formatFactory, "formatFactory");
   }
 
-  Serde<Struct> createFormatSerde(
+  Serde<List<?>> createFormatSerde(
       final String target,
       final FormatInfo formatInfo,
       final PersistenceSchema schema,

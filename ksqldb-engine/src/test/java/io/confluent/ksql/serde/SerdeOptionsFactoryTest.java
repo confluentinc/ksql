@@ -17,6 +17,7 @@ package io.confluent.ksql.serde;
 
 import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.serde.FormatFactory.PROTOBUF;
 import static io.confluent.ksql.serde.SerdeOptionsFactory.buildForCreateAsStatement;
 import static io.confluent.ksql.serde.SerdeOptionsFactory.buildForCreateStatement;
@@ -34,6 +35,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,13 +75,15 @@ public class SerdeOptionsFactoryTest {
     // When:
     final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
+        KAFKA,
         FormatFactory.JSON,
         SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -92,13 +96,15 @@ public class SerdeOptionsFactoryTest {
     // When:
     final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
+        KAFKA,
         FormatFactory.JSON,
         SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -106,13 +112,14 @@ public class SerdeOptionsFactoryTest {
     // When:
     final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
+        KAFKA,
         FormatFactory.JSON,
         SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(SerdeOptions.of()));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -125,13 +132,14 @@ public class SerdeOptionsFactoryTest {
     // When:
     final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         SINGLE_FIELD_SCHEMA,
-        FormatFactory.KAFKA,
+        KAFKA,
+        KAFKA,
         SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(SerdeOptions.of()));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -144,13 +152,14 @@ public class SerdeOptionsFactoryTest {
     // When:
     final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
         MULTI_FIELD_SCHEMA,
+        FormatFactory.AVRO,
         FormatFactory.JSON,
         SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(SerdeOptions.of()));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -160,6 +169,7 @@ public class SerdeOptionsFactoryTest {
         KsqlException.class,
         () -> buildForCreateStatement(
             MULTI_FIELD_SCHEMA,
+            KAFKA,
             JSON,
             SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
             ksqlConfig
@@ -178,6 +188,7 @@ public class SerdeOptionsFactoryTest {
         KsqlException.class,
         () -> buildForCreateStatement(
             SINGLE_FIELD_SCHEMA,
+            KAFKA,
             PROTOBUF,
             SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
             ksqlConfig
@@ -198,13 +209,15 @@ public class SerdeOptionsFactoryTest {
     // When:
     final SerdeOptions result = buildForCreateAsStatement(
         SINGLE_COLUMN_NAME,
+        KAFKA,
         FormatFactory.AVRO,
         SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -217,13 +230,15 @@ public class SerdeOptionsFactoryTest {
     // When:
     final SerdeOptions result = buildForCreateAsStatement(
         SINGLE_COLUMN_NAME,
+        FormatFactory.AVRO,
         FormatFactory.JSON,
         SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -236,13 +251,14 @@ public class SerdeOptionsFactoryTest {
     // When:
     final SerdeOptions result = buildForCreateAsStatement(
         MULTI_FIELD_NAMES,
+        KAFKA,
         FormatFactory.AVRO,
         SerdeOptions.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result, is(SerdeOptions.of()));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -252,6 +268,7 @@ public class SerdeOptionsFactoryTest {
         KsqlException.class,
         () -> buildForCreateAsStatement(
             MULTI_FIELD_NAMES,
+            KAFKA,
             JSON,
             SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
             ksqlConfig
@@ -269,6 +286,7 @@ public class SerdeOptionsFactoryTest {
         KsqlException.class,
         () -> buildForCreateAsStatement(
             SINGLE_COLUMN_NAME,
+            KAFKA,
             DELIMITED,
             SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
             ksqlConfig
@@ -276,6 +294,53 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Format 'DELIMITED' does not support 'WRAP_SINGLE_VALUE' set to 'true'."));
+    assertThat(e.getMessage(),
+        containsString("Format 'DELIMITED' does not support 'WRAP_SINGLE_VALUE' set to 'true'."));
+  }
+
+  @Test
+  public void shouldSetUnwrappedKeysIfKeyFormatSupportsBothWrappingAndUnwrapping() {
+    // When:
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
+        SINGLE_FIELD_SCHEMA,
+        JSON,
+        PROTOBUF,
+        SerdeOptions.of(),
+        ksqlConfig
+    );
+
+    // Then:
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_KEYS)));
+  }
+
+  @Test
+  public void shouldNotSetUnwrappedKeysIfKeyFormatsSupportsOnlyWrapping() {
+    // When:
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
+        SINGLE_FIELD_SCHEMA,
+        PROTOBUF,
+        PROTOBUF,
+        SerdeOptions.of(),
+        ksqlConfig
+    );
+
+    // Then:
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldNotSetUnwrappedKeysIfKeyFormatsSupportsOnlyUnwrapping() {
+    // When:
+    final SerdeOptions result = SerdeOptionsFactory.buildForCreateStatement(
+        SINGLE_FIELD_SCHEMA,
+        KAFKA,
+        PROTOBUF,
+        SerdeOptions.of(),
+        ksqlConfig
+    );
+
+    // Then:
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 }

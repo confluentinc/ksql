@@ -21,6 +21,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
@@ -43,6 +44,7 @@ import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -193,8 +195,8 @@ public class KsqlTesterTest {
   @SuppressWarnings("unchecked")
   private void execute(final ParsedStatement parsedStatement) {
     final PreparedStatement<?> engineStatement = engine.prepare(parsedStatement);
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        engineStatement, overrides, config);
+    final ConfiguredStatement<?> configured = ConfiguredStatement
+        .of(engineStatement, SessionConfig.of(config, overrides));
 
     createTopics(engineStatement);
 
@@ -338,14 +340,14 @@ public class KsqlTesterTest {
         sinkSource.getSerdeOptions().keyFeatures()
     );
 
-    return sinkSource.getKsqlTopic().getKeyFormat()
-        .getFormat()
-        .getSerde(
-            schema,
-            sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo().getProperties(),
-            config,
-            serviceContext.getSchemaRegistryClientFactory()
-        );
+    return new GenericKeySerDe().create(
+        sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+        schema,
+        config,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    );
   }
 
   private Serde<GenericRow> valueSerde(final DataSource sinkSource) {

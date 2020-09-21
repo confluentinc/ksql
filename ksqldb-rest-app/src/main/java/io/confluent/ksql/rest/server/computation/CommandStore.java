@@ -37,7 +37,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -94,6 +93,10 @@ public class CommandStore implements CommandQueue, Closeable {
       kafkaConsumerProperties.put(
           ConsumerConfig.ISOLATION_LEVEL_CONFIG,
           IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT)
+      );
+      kafkaConsumerProperties.put(
+          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+          "none"
       );
       kafkaProducerProperties.put(
           ProducerConfig.TRANSACTIONAL_ID_CONFIG,

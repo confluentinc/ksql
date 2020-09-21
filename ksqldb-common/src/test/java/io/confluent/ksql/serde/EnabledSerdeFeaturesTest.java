@@ -33,7 +33,7 @@ public class EnabledSerdeFeaturesTest {
   @Test
   public void shouldHaveSensibleToString() {
     // Given:
-    final EnabledSerdeFeatures features = EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES);
+    final EnabledSerdeFeatures features = EnabledSerdeFeatures.of(WRAP_SINGLES);
 
     // Then:
     assertThat(features.toString(), is("[WRAP_SINGLES]"));

@@ -85,7 +85,7 @@ public final class ListSourceExecutor {
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
             s -> describeSource(
-                statement.getConfig(),
+                statement.getSessionConfig().getConfig(false),
                 executionContext,
                 serviceContext,
                 s.getName(),
@@ -161,7 +161,7 @@ public final class ListSourceExecutor {
   ) {
     final ShowColumns showColumns = statement.getStatement();
     final SourceDescriptionWithWarnings descriptionWithWarnings = describeSource(
-        statement.getConfig(),
+        statement.getSessionConfig().getConfig(false),
         executionContext,
         serviceContext,
         showColumns.getTable(),

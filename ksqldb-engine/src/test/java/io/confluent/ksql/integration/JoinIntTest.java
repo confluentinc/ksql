@@ -18,6 +18,7 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -38,7 +39,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -125,7 +125,7 @@ public class JoinIntTest {
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
-    TestUtils.waitForCondition(() -> {
+    assertThatEventually("failed to complete join correctly", () -> {
           results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
               testStreamName,
               1,
@@ -145,8 +145,7 @@ public class JoinIntTest {
         }
       }
       return success;
-        }, MAX_WAIT_MS,
-        "failed to complete join correctly");
+        }, is(true), MAX_WAIT_MS, TimeUnit.MILLISECONDS);
   }
 
   @Test
@@ -185,7 +184,7 @@ public class JoinIntTest {
     );
 
     final Map<String, GenericRow> results = new HashMap<>();
-    TestUtils.waitForCondition(() -> {
+    assertThatEventually("failed to complete join correctly", () -> {
       results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
           testStreamName,
           1,
@@ -204,7 +203,7 @@ public class JoinIntTest {
         }
       }
       return success;
-    }, MAX_WAIT_MS, "failed to complete join correctly");
+    }, is(true), MAX_WAIT_MS, TimeUnit.MILLISECONDS);
   }
 
   @Test
@@ -259,7 +258,7 @@ public class JoinIntTest {
 
     final AtomicInteger attempts = new AtomicInteger();
     final Map<String, GenericRow> results = new HashMap<>();
-    TestUtils.waitForCondition(() -> {
+    assertThatEventually("failed to complete join correctly", () -> {
       results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
           outputStream,
           1,
@@ -282,7 +281,7 @@ public class JoinIntTest {
         }
       }
       return success;
-    }, 120000, "failed to complete join correctly");
+    }, is(true), 120000, TimeUnit.MILLISECONDS);
 
     assertThat(results, is(expectedResults));
   }

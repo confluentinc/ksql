@@ -78,9 +78,10 @@ public class SchemaRegisterInjector implements Injector {
 
     final SerdeOptions serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
         schema,
+        FormatFactory.KAFKA,
         cs.getStatement().getProperties().getValueFormat(),
         cs.getStatement().getProperties().getSerdeOptions(),
-        cs.getConfig()
+        cs.getSessionConfig().getConfig(false)
     );
 
     registerSchema(
@@ -88,7 +89,7 @@ public class SchemaRegisterInjector implements Injector {
         cs.getStatement().getProperties().getKafkaTopic(),
         cs.getStatement().getProperties().getFormatInfo(),
         serdeOptions,
-        cs.getConfig(),
+        cs.getSessionConfig().getConfig(false),
         cs.getStatementText(),
         false
     );
@@ -113,7 +114,7 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
         queryMetadata.getPhysicalSchema().serdeOptions(),
-        cas.getConfig(),
+        cas.getSessionConfig().getConfig(false),
         cas.getStatementText(),
         true
     );

@@ -26,6 +26,7 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -514,8 +515,9 @@ public class DefaultSchemaInjectorFunctionalTest {
         .buildSingleAst(stmtNoSchema, metaStore);
 
     // When:
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     final ConfiguredStatement<?> inferred = schemaInjector.inject(
-        ConfiguredStatement.of(prepared, ImmutableMap.of(), new KsqlConfig(ImmutableMap.of())));
+        ConfiguredStatement.of(prepared, SessionConfig.of(ksqlConfig, ImmutableMap.of())));
 
     // Then:
     final Statement withSchema = KsqlParserTestUtil

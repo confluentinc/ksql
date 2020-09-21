@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
@@ -139,8 +140,10 @@ public class DefaultSchemaInjectorTest {
     when(ct.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, ct, mock(CreateTable.class)));
 
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of());
-    csStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, cs), ImmutableMap.of(), config);
-    ctStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ct), ImmutableMap.of(), config);
+    csStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, cs),
+        SessionConfig.of(config, ImmutableMap.of()));
+    ctStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ct),
+        SessionConfig.of(config, ImmutableMap.of()));
 
     when(schemaSupplier.getValueSchema(eq(KAFKA_TOPIC), any()))
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
@@ -154,10 +157,10 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldReturnStatementUnchangedIfNotCreateStatement() {
     // Given:
-    final ConfiguredStatement<?> prepared = ConfiguredStatement.of(
-        PreparedStatement.of("sql", statement),
-        ImmutableMap.of(),
-        new KsqlConfig(ImmutableMap.of()));
+    final ConfiguredStatement<?> prepared = ConfiguredStatement
+        .of(PreparedStatement.of("sql", statement),
+            SessionConfig.of(new KsqlConfig(ImmutableMap.of()), ImmutableMap.of())
+        );
 
     // When:
     final ConfiguredStatement<?> result = injector.inject(prepared);

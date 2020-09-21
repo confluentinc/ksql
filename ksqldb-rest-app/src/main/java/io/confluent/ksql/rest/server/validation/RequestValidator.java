@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.SandboxUtil.requireSandbox;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -104,8 +105,9 @@ public class RequestValidator {
     int numPersistentQueries = 0;
     for (final ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ctx.prepare(parsed);
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
+          SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
+      );
 
       numPersistentQueries +=
           validate(serviceContext, configured, sessionProperties, ctx, injector);

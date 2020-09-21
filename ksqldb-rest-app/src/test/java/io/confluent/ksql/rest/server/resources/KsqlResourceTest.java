@@ -74,6 +74,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -237,8 +238,7 @@ public class KsqlResourceTest {
           ))));
   private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
       STMT_0_WITH_SCHEMA,
-      ImmutableMap.of(),
-      new KsqlConfig(getDefaultKsqlConfig())
+      SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
   );
 
   private static final PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement.of(
@@ -252,11 +252,10 @@ public class KsqlResourceTest {
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "VALUE_FORMAT", new StringLiteral("avro")
           ))));
-  private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement.of(
-      STMT_1_WITH_SCHEMA,
-      ImmutableMap.of(),
-      new KsqlConfig(getDefaultKsqlConfig())
-  );
+  private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement
+      .of(STMT_1_WITH_SCHEMA,
+          SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
+      );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -933,7 +932,8 @@ public class KsqlResourceTest {
     final PreparedStatement<?> statementWithTopic =
         ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
     final ConfiguredStatement<?> configuredStatement =
-        ConfiguredStatement.of(statementWithTopic, ImmutableMap.of(), ksqlConfig);
+        ConfiguredStatement.of(statementWithTopic, SessionConfig.of(ksqlConfig, ImmutableMap.of())
+        );
 
     when(sandboxTopicInjector.inject(argThat(is(configured(preparedStatementText(sql))))))
         .thenReturn((ConfiguredStatement<Statement>) configuredStatement);
@@ -962,7 +962,8 @@ public class KsqlResourceTest {
     final PreparedStatement<?> statementWithTopic =
         ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
     final ConfiguredStatement<?> configured =
-        ConfiguredStatement.of(statementWithTopic, ImmutableMap.of(), ksqlConfig);
+        ConfiguredStatement.of(statementWithTopic, SessionConfig.of(ksqlConfig, ImmutableMap.of())
+        );
 
     when(topicInjector.inject(argThat(is(configured(preparedStatementText(sql))))))
         .thenReturn((ConfiguredStatement<Statement>) configured);

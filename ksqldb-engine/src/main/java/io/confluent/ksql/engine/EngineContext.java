@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.engine.rewrite.AstSanitizer;
@@ -37,7 +38,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -181,12 +181,11 @@ final class EngineContext {
   }
 
   QueryExecutor createQueryExecutor(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final ServiceContext serviceContext) {
+      final SessionConfig config,
+      final ServiceContext serviceContext
+  ) {
     return new QueryExecutor(
-        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
-        overriddenProperties,
+        config,
         processingLogContext,
         serviceContext,
         metaStore,
@@ -197,14 +196,12 @@ final class EngineContext {
   DdlCommand createDdlCommand(
       final String sqlExpression,
       final ExecutableDdlStatement statement,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties
+      final SessionConfig config
   ) {
     return ddlCommandFactory.create(
         sqlExpression,
         statement,
-        ksqlConfig,
-        overriddenProperties
+        config
     );
   }
 

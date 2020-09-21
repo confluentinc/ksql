@@ -35,6 +35,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -65,7 +66,6 @@ import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.junit.Before;
@@ -329,8 +329,8 @@ public class SchemaRegisterInjectorTest {
         parser.prepare(parser.parse(sql).get(0), metaStore);
     statement = ConfiguredStatement.of(
         preparedStatement,
-        new HashMap<>(),
-        config);
+        SessionConfig.of(config, ImmutableMap.of())
+    );
     when(executionSandbox.execute(any(), eq(statement)))
         .thenReturn(ExecuteResult.of(queryMetadata));
   }

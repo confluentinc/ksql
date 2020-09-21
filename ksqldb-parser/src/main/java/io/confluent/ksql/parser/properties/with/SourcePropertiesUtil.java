@@ -22,11 +22,21 @@ public final class SourcePropertiesUtil {
   private SourcePropertiesUtil() {
   }
 
+  /**
+   * The {@code DefaultFormatInjector} ensures that CREATE STREAM and CREATE TABLE statements
+   * always contain key and format values by the time they reach the engine for processing.
+   * As a result, downstream code can assume these formats are present.
+   */
   public static FormatInfo getKeyFormat(final CreateSourceProperties properties) {
     return properties.getKeyFormat()
         .orElseThrow(() -> new IllegalStateException("Key format not present"));
   }
 
+  /**
+   * The {@code DefaultFormatInjector} ensures that CREATE STREAM and CREATE TABLE statements
+   * always contain key and format values by the time they reach the engine for processing.
+   * As a result, downstream code can assume these formats are present.
+   */
   public static FormatInfo getValueFormat(final CreateSourceProperties properties) {
     return properties.getValueFormat()
         .orElseThrow(() -> new IllegalStateException("Value format not present"));

@@ -93,4 +93,13 @@ public class FormatFactoryTest {
 
   }
 
+  @Test
+  public void shouldCreateFromNameWithCaseInsensitivity() {
+    // When:
+    final Format format = FormatFactory.fromName("aVrO");
+
+    // Then:
+    assertThat(format, is(FormatFactory.AVRO));
+  }
+
 }

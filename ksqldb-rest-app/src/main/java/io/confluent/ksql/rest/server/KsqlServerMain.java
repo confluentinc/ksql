@@ -133,7 +133,7 @@ public class KsqlServerMain {
 
     final Format format;
     try {
-      format = FormatFactory.fromName(formatName.toUpperCase());
+      format = FormatFactory.fromName(formatName);
     } catch (KsqlException e) {
       throw new KsqlException("Invalid value for config '" + configName + "': " + formatName, e);
     }

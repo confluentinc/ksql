@@ -110,7 +110,7 @@ public class KsqlTesterTest {
   private ServiceContext serviceContext;
   private KsqlEngine engine;
   private KsqlConfig config;
-  private Injector statementInjector;
+  private Injector formatInjector;
   private TestDriverPipeline driverPipeline;
   private FakeKafkaTopicClient topicClient;
 
@@ -148,7 +148,7 @@ public class KsqlTesterTest {
     this.topicClient = new FakeKafkaTopicClient();
     this.serviceContext = TestServiceContext.create(topicClient, () -> srClient);
     this.config = new KsqlConfig(BASE_CONFIG);
-    this.statementInjector = new DefaultFormatInjector();
+    this.formatInjector = new DefaultFormatInjector();
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
     this.engine = new KsqlEngine(
@@ -213,7 +213,7 @@ public class KsqlTesterTest {
       return;
     }
 
-    final ConfiguredStatement<?> injected = statementInjector.inject(configured);
+    final ConfiguredStatement<?> injected = formatInjector.inject(configured);
     final ExecuteResult result = engine.execute(
         serviceContext,
         injected);

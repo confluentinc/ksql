@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
@@ -36,14 +37,12 @@ public final class TopicFactory {
     final Optional<WindowType> windowType = properties.getWindowType();
     final Optional<Duration> windowSize = properties.getWindowSize();
 
-
+    final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(properties);
     final KeyFormat keyFormat = windowType
         .map(type -> KeyFormat
-            .windowed(
-                SourcePropertiesUtil.getKeyFormat(properties),
-                WindowInfo.of(type, windowSize)))
+            .windowed(keyFormatInfo, WindowInfo.of(type, windowSize)))
         .orElseGet(() -> KeyFormat
-            .nonWindowed(SourcePropertiesUtil.getKeyFormat(properties)));
+            .nonWindowed(keyFormatInfo));
 
     final ValueFormat valueFormat = ValueFormat.of(SourcePropertiesUtil.getValueFormat(properties));
 

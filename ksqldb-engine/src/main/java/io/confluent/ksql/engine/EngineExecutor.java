@@ -53,7 +53,6 @@ import io.confluent.ksql.serde.KeyFormatUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AvroUtil;
-import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -324,25 +323,16 @@ final class EngineExecutor {
   }
 
   private void throwOnUnsupportedKeyFormat(final ConfiguredStatement<?> statement) {
-    try {
-      if (statement.getStatement() instanceof CreateSource) {
-        final CreateSource createSource = (CreateSource) statement.getStatement();
-        throwOnUnsupportedKeyFormat(
-            SourcePropertiesUtil.getKeyFormat(createSource.getProperties()));
-      }
+    if (statement.getStatement() instanceof CreateSource) {
+      final CreateSource createSource = (CreateSource) statement.getStatement();
+      throwOnUnsupportedKeyFormat(
+          SourcePropertiesUtil.getKeyFormat(createSource.getProperties()));
+    }
 
-      if (statement.getStatement() instanceof CreateAsSelect) {
-        final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
-        createAsSelect.getProperties().getKeyFormat()
-            .ifPresent(this::throwOnUnsupportedKeyFormat);
-      }
-    } catch (KsqlStatementException e) {
-      throw e;
-    } catch (KsqlException e) {
-      throw new KsqlStatementException(
-          ErrorMessageUtil.buildErrorMessage(e),
-          statement.getStatementText(),
-          e.getCause());
+    if (statement.getStatement() instanceof CreateAsSelect) {
+      final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
+      createAsSelect.getProperties().getKeyFormat()
+          .ifPresent(this::throwOnUnsupportedKeyFormat);
     }
   }
 

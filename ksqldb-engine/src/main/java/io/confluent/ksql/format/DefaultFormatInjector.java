@@ -26,7 +26,6 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
-import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -80,7 +79,7 @@ public class DefaultFormatInjector implements Injector {
       throw e;
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
-          ErrorMessageUtil.buildErrorMessage(e),
+          e.getMessage(),
           statement.getStatementText(),
           e.getCause());
     }
@@ -101,13 +100,12 @@ public class DefaultFormatInjector implements Injector {
     }
 
     final KsqlConfig config = getConfig(original);
-    validateConfig(config, keyFormat, valueFormat);
 
     final CreateSourceProperties injectedProps = properties.withFormats(
         keyFormat.map(FormatInfo::getFormat)
-            .orElse(config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
+            .orElseGet(() -> getDefaultKeyFormat(config)),
         valueFormat.map(FormatInfo::getFormat)
-            .orElse(config.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG))
+            .orElseGet(() -> getDefaultValueFormat(config))
     );
     final CreateSource withFormats = statement.copyWith(
         original.getStatement().getElements(),
@@ -121,29 +119,32 @@ public class DefaultFormatInjector implements Injector {
     return Optional.of(configured);
   }
 
-  private static void validateConfig(
-      final KsqlConfig config,
-      final Optional<FormatInfo> keyFormat,
-      final Optional<FormatInfo> valueFormat
-  ) {
-    if (!keyFormat.isPresent()
-        && config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG) == null) {
+  private static KsqlConfig getConfig(final ConfiguredStatement<?> statement) {
+    return statement.getConfig().cloneWithPropertyOverwrite(statement.getConfigOverrides());
+  }
+
+  private static String getDefaultKeyFormat(final KsqlConfig config) {
+    final String format = config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG);
+    if (format == null) {
       throw new KsqlException("Statement is missing the '"
           + CommonCreateConfigs.KEY_FORMAT_PROPERTY + "' property from the WITH clause. "
           + "Either provide one or set a default via the '"
           + KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG + "' config.");
     }
-    if (!valueFormat.isPresent()
-        && config.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG) == null) {
+
+    return format;
+  }
+
+  private static String getDefaultValueFormat(final KsqlConfig config) {
+    final String format = config.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
+    if (format == null) {
       throw new KsqlException("Statement is missing the '"
           + CommonCreateConfigs.VALUE_FORMAT_PROPERTY + "' property from the WITH clause. "
           + "Either provide one or set a default via the '"
           + KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG + "' config.");
     }
-  }
 
-  private static KsqlConfig getConfig(final ConfiguredStatement<?> statement) {
-    return statement.getConfig().cloneWithPropertyOverwrite(statement.getConfigOverrides());
+    return format;
   }
 
   private static void validateLegacyFormatProperties(final ConfiguredStatement<?> statement) {
@@ -151,7 +152,7 @@ public class DefaultFormatInjector implements Injector {
       final CreateSource createStatement = (CreateSource) statement.getStatement();
 
       if (createStatement.getProperties().getKeyFormat().isPresent()) {
-        throwKeyFormatDisabled(statement.getStatementText());
+        throw keyFormatDisabledException(statement.getStatementText());
       }
 
       if (!createStatement.getProperties().getValueFormat().isPresent()) {
@@ -164,7 +165,7 @@ public class DefaultFormatInjector implements Injector {
       final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
 
       if (createAsSelect.getProperties().getKeyFormat().isPresent()) {
-        throwKeyFormatDisabled(statement.getStatementText());
+        throw keyFormatDisabledException(statement.getStatementText());
       }
     }
   }
@@ -173,8 +174,8 @@ public class DefaultFormatInjector implements Injector {
     return !getConfig(statement).getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED);
   }
 
-  private static void throwKeyFormatDisabled(final String statementText) {
-    throw new KsqlStatementException(
+  private static KsqlStatementException keyFormatDisabledException(final String statementText) {
+    return new KsqlStatementException(
         "The use of '" + CommonCreateConfigs.KEY_FORMAT_PROPERTY + "' and '"
             + CommonCreateConfigs.FORMAT_PROPERTY + "' is disabled, as this feature is "
             + "under development. Set '" + KsqlConfig.KSQL_KEY_FORMAT_ENABLED + "' to enable.",

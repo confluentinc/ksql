@@ -19,7 +19,6 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -151,36 +150,15 @@ public class DefaultFormatInjector implements Injector {
     if (statement.getStatement() instanceof CreateSource) {
       final CreateSource createStatement = (CreateSource) statement.getStatement();
 
-      if (createStatement.getProperties().getKeyFormat().isPresent()) {
-        throw keyFormatDisabledException(statement.getStatementText());
-      }
-
       if (!createStatement.getProperties().getValueFormat().isPresent()) {
         throw new ParseFailedException("Failed to prepare statement: Missing required property "
             + "\"VALUE_FORMAT\" which has no default value.");
-      }
-    }
-
-    if (statement.getStatement() instanceof CreateAsSelect) {
-      final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
-
-      if (createAsSelect.getProperties().getKeyFormat().isPresent()) {
-        throw keyFormatDisabledException(statement.getStatementText());
       }
     }
   }
 
   private static boolean featureFlagNotEnabled(final ConfiguredStatement<?> statement) {
     return !getConfig(statement).getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED);
-  }
-
-  private static KsqlStatementException keyFormatDisabledException(final String statementText) {
-    return new KsqlStatementException(
-        "The use of '" + CommonCreateConfigs.KEY_FORMAT_PROPERTY + "' and '"
-            + CommonCreateConfigs.FORMAT_PROPERTY + "' is disabled, as this feature is "
-            + "under development. Set '" + KsqlConfig.KSQL_KEY_FORMAT_ENABLED + "' to enable.",
-        statementText
-    );
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

@@ -21,26 +21,6 @@
       }
     },
     {
-      "name": "key format without feature flag",
-      "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='KAFKA');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The use of 'KEY_FORMAT' and 'FORMAT' is disabled, as this feature is under development."
-      }
-    },
-    {
-      "name": "format without feature flag",
-      "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', format='KAFKA');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The use of 'KEY_FORMAT' and 'FORMAT' is disabled, as this feature is under development."
-      }
-    },
-    {
       "name": "explicit key and optional value format",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA');",

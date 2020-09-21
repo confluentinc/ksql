@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.computation;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
-import io.confluent.ksql.rest.server.CommandTopicBackup;
 import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -41,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
@@ -81,7 +79,6 @@ public class CommandRunner implements Closeable {
 
   private final Deserializer<Command> commandDeserializer;
   private final Consumer<QueuedCommand> incompatibleCommandChecker;
-  private final Supplier<Boolean> backupCorrupted;
   private final Errors errorHandler;
   private boolean incompatibleCommandDetected;
 
@@ -108,7 +105,6 @@ public class CommandRunner implements Closeable {
       final Duration commandRunnerHealthTimeout,
       final String metricsGroupPrefix,
       final Deserializer<Command> commandDeserializer,
-      final CommandTopicBackup commandTopicBackup,
       final Errors errorHandler
   ) {
     this(
@@ -128,7 +124,6 @@ public class CommandRunner implements Closeable {
           queuedCommand.getAndDeserializeCommand(commandDeserializer);
         },
         commandDeserializer,
-        commandTopicBackup::commandTopicCorruption,
         errorHandler
     );
   }
@@ -149,7 +144,6 @@ public class CommandRunner implements Closeable {
       final Function<List<QueuedCommand>, List<QueuedCommand>> compactor,
       final Consumer<QueuedCommand> incompatibleCommandChecker,
       final Deserializer<Command> commandDeserializer,
-      final Supplier<Boolean> backupCorrupted,
       final Errors errorHandler
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
@@ -171,8 +165,6 @@ public class CommandRunner implements Closeable {
         Objects.requireNonNull(incompatibleCommandChecker, "incompatibleCommandChecker");
     this.commandDeserializer =
         Objects.requireNonNull(commandDeserializer, "commandDeserializer");
-    this.backupCorrupted =
-        Objects.requireNonNull(backupCorrupted, "backupCorrupted");
     this.errorHandler =
         Objects.requireNonNull(errorHandler, "errorHandler");
     this.incompatibleCommandDetected = false;
@@ -334,7 +326,7 @@ public class CommandRunner implements Closeable {
   }
 
   public CommandRunnerStatus checkCommandRunnerStatus() {
-    if (incompatibleCommandDetected || backupCorrupted.get()) {
+    if (incompatibleCommandDetected || commandStore.corruptionDetected()) {
       return CommandRunnerStatus.DEGRADED;
     }
 
@@ -352,7 +344,7 @@ public class CommandRunner implements Closeable {
   }
 
   public CommandRunnerDegradedReason getCommandRunnerDegradedReason() {
-    if (backupCorrupted.get()) {
+    if (commandStore.corruptionDetected()) {
       return CommandRunnerDegradedReason.CORRUPTED;
     }
 
@@ -364,7 +356,7 @@ public class CommandRunner implements Closeable {
   }
 
   public String getCommandRunnerDegradedWarning() {
-    if (backupCorrupted.get()) {
+    if (commandStore.corruptionDetected()) {
       return errorHandler.commandRunnerDegradedBackupCorruptedErrorMessage();
     }
 
@@ -399,7 +391,7 @@ public class CommandRunner implements Closeable {
     public void run() {
       try {
         while (!closed) {
-          if (incompatibleCommandDetected || backupCorrupted.get()) {
+          if (incompatibleCommandDetected || commandStore.corruptionDetected()) {
             LOG.warn("CommandRunner entering degraded state due to: {}",
                 getCommandRunnerDegradedReason());
             closeEarly();

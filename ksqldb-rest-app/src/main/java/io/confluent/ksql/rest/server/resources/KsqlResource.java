@@ -290,19 +290,15 @@ public class KsqlResource implements KsqlConfigurable {
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
-      e.printStackTrace();
       throw e;
     } catch (final KsqlStatementException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
-      e.printStackTrace();
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
-      e.printStackTrace();
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
-      e.printStackTrace();
       return errorHandler.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }

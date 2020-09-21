@@ -99,9 +99,7 @@ public class RecoveryTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator =
       mock(DenyListPropertyValidator.class);
-  
-  @Mock
-  private CommandTopicBackup commandTopicBackup = mock(CommandTopicBackup.class);
+
   @Mock
   private Errors errorHandler = mock(Errors.class);
 
@@ -112,7 +110,6 @@ public class RecoveryTest {
   @Before
   public void setup() {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
-    when(commandTopicBackup.commandTopicCorruption()).thenReturn(false);
   }
 
   @After
@@ -179,7 +176,12 @@ public class RecoveryTest {
     public Producer<CommandId, Command> createTransactionalProducer() {
       return transactionalProducer;
     }
-    
+
+    @Override
+    public boolean corruptionDetected() {
+      return false;
+    }
+
     @Override
     public boolean isEmpty() {
       return commandLog.isEmpty();
@@ -230,7 +232,6 @@ public class RecoveryTest {
           Duration.ofMillis(2000),
           "",
           InternalTopicSerdes.deserializer(Command.class),
-          commandTopicBackup,
           errorHandler
       );
 

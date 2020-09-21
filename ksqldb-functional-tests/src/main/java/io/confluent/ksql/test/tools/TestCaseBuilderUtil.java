@@ -19,6 +19,7 @@ import static com.google.common.io.Files.getNameWithoutExtension;
 
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -203,7 +204,7 @@ public final class TestCaseBuilderUtil {
         if (isCsOrCT(stmt)) {
           final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
           final ConfiguredStatement<?> configured =
-              ConfiguredStatement.of(prepare, Collections.emptyMap(), ksqlConfig);
+              ConfiguredStatement.of(prepare, SessionConfig.of(ksqlConfig, Collections.emptyMap()));
           final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
           topics.add(extractTopic.apply(withFormats));
         }

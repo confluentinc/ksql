@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
@@ -113,6 +114,8 @@ public class ConnectFormatTest {
 
     when(serde.serializer()).thenReturn(serializer);
     when(serde.deserializer()).thenReturn(deserializer);
+
+    when(persistenceSchema.features()).thenReturn(EnabledSerdeFeatures.of());
   }
 
   @Test
@@ -220,14 +223,11 @@ public class ConnectFormatTest {
     // Given:
     final SimpleColumn singleColumn = createColumn("bob", SqlTypes.INTEGER);
     when(persistenceSchema.columns()).thenReturn(ImmutableList.of(singleColumn));
-    when(persistenceSchema.features()).thenReturn(EnabledSerdeFeatures.of());
 
     // When:
-    final Serde<Struct> result = format.getSerde(persistenceSchema, formatProps, config, srFactory);
+    format.getSerde(persistenceSchema, formatProps, config, srFactory);
 
     // Then:
-    assertThat(result, is(serde));
-
     verify(format)
         .getConnectSerde(SINGLE_FIELD_SCHEMA, formatProps, config, srFactory, Struct.class);
   }
@@ -243,7 +243,8 @@ public class ConnectFormatTest {
     final ConnectSchema fieldSchema = (ConnectSchema) SINGLE_FIELD_SCHEMA.fields().get(0).schema();
 
     // When:
-    final Serde<Struct> result = format.getSerde(persistenceSchema, formatProps, config, srFactory);
+    final Serde<List<?>> result = format
+        .getSerde(persistenceSchema, formatProps, config, srFactory);
 
     // Then:
     verify(format)
@@ -251,6 +252,43 @@ public class ConnectFormatTest {
 
     assertThat(result.serializer(), instanceOf(UnwrappedSerializer.class));
     assertThat(result.deserializer(), instanceOf(UnwrappedDeserializer.class));
+  }
+
+  @Test
+  public void shouldThrowOnSerializationIfStructColumnValueDoesNotMatchSchema() {
+    // Given:
+    final SimpleColumn singleColumn = createColumn(
+        "bob",
+        SqlTypes.struct()
+            .field("vic", SqlTypes.STRING)
+            .build()
+    );
+    when(persistenceSchema.columns()).thenReturn(ImmutableList.of(singleColumn));
+
+    final ConnectSchema connectSchema = (ConnectSchema) SchemaBuilder.struct()
+        .field("vic", Schema.STRING_SCHEMA)
+        .build();
+
+    final Serializer<List<?>> serializer = format
+        .getSerde(persistenceSchema, formatProps, config, srFactory)
+        .serializer();
+
+    final List<?> values = ImmutableList.of(new Struct(connectSchema));
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize("topicName", values)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is(
+        "Failed to prepare Struct value field 'bob' for serialization. "
+            + "This could happen if the value was produced by a user-defined function "
+            + "where the schema has non-optional return types. ksqlDB requires all "
+            + "schemas to be optional at all levels of the Struct: the Struct itself, "
+            + "schemas for all fields within the Struct, and so on."
+    ));
   }
 
   private static SimpleColumn createColumn(final String name, final SqlType sqlType) {

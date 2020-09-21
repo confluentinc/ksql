@@ -43,6 +43,7 @@ import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -338,14 +339,14 @@ public class KsqlTesterTest {
         sinkSource.getSerdeOptions().keyFeatures()
     );
 
-    return sinkSource.getKsqlTopic().getKeyFormat()
-        .getFormat()
-        .getSerde(
-            schema,
-            sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo().getProperties(),
-            config,
-            serviceContext.getSchemaRegistryClientFactory()
-        );
+    return new GenericKeySerDe().create(
+        sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+        schema,
+        config,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    );
   }
 
   private Serde<GenericRow> valueSerde(final DataSource sinkSource) {

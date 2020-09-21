@@ -23,11 +23,13 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.common.serialization.Serdes;
 
 public final class DelimitedFormat implements Format {
 
@@ -56,7 +58,7 @@ public final class DelimitedFormat implements Format {
   }
 
   @Override
-  public Serde<Struct> getSerde(
+  public Serde<List<?>> getSerde(
       final PersistenceSchema schema,
       final Map<String, String> formatProperties,
       final KsqlConfig ksqlConfig,
@@ -66,8 +68,12 @@ public final class DelimitedFormat implements Format {
 
     final Delimiter delimiter = getDelimiter(formatProperties);
 
-    return new KsqlDelimitedSerdeFactory(delimiter)
-        .createSerde(schema, ksqlConfig, srClientFactory);
+    final CSVFormat csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.getDelimiter());
+
+    return Serdes.serdeFrom(
+        new KsqlDelimitedSerializer(schema, csvFormat),
+        new KsqlDelimitedDeserializer(schema, csvFormat)
+    );
   }
 
   private static Delimiter getDelimiter(final Map<String, String> formatProperties) {

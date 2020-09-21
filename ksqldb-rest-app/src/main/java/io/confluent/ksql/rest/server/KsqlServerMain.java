@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.KeyFormatUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -137,7 +138,7 @@ public class KsqlServerMain {
       throw new KsqlException("Invalid value for config '" + configName + "': " + formatName, e);
     }
 
-    if (type.equals("key") && !format.isSupportedKeyFormat()) {
+    if (type.equals("key") && !KeyFormatUtils.isSupportedKeyFormat(config, format)) {
       throw new KsqlException("Invalid value for config '" + configName + "': "
           + "The supplied format is not currently supported as a key format. "
           + "Format: '" + formatName + "'.");

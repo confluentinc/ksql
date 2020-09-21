@@ -181,14 +181,4 @@ public interface Format {
       Supplier<SchemaRegistryClient> srClientFactory
   );
 
-  /**
-   * All formats are supported as value formats. Until the primitive key work is complete,
-   * not all formats are supported as key formats. Once complete, this method may be removed.
-   *
-   * @return whether or not this format is supported for keys
-   */
-  default boolean isSupportedKeyFormat() {
-    return false;
-  }
-
 }

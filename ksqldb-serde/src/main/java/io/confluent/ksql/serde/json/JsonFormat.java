@@ -80,8 +80,4 @@ public class JsonFormat extends ConnectFormat {
     return jsonData.fromConnectSchema(schema);
   }
 
-  @Override
-  public boolean isSupportedKeyFormat() {
-    return true;
-  }
 }

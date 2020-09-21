@@ -49,6 +49,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormatUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AvroUtil;
@@ -322,6 +323,37 @@ final class EngineExecutor {
     }
   }
 
+  private void throwOnUnsupportedKeyFormat(final ConfiguredStatement<?> statement) {
+    try {
+      if (statement.getStatement() instanceof CreateSource) {
+        final CreateSource createSource = (CreateSource) statement.getStatement();
+        throwOnUnsupportedKeyFormat(
+            SourcePropertiesUtil.getKeyFormat(createSource.getProperties()));
+      }
+
+      if (statement.getStatement() instanceof CreateAsSelect) {
+        final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
+        createAsSelect.getProperties().getKeyFormat()
+            .ifPresent(this::throwOnUnsupportedKeyFormat);
+      }
+    } catch (KsqlStatementException e) {
+      throw e;
+    } catch (KsqlException e) {
+      throw new KsqlStatementException(
+          ErrorMessageUtil.buildErrorMessage(e),
+          statement.getStatementText(),
+          e.getCause());
+    }
+  }
+
+  private void throwOnUnsupportedKeyFormat(final FormatInfo formatInfo) {
+    final KsqlConfig config = ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties);
+    final Format format = FormatFactory.of(formatInfo);
+    if (!KeyFormatUtils.isSupportedKeyFormat(config, format)) {
+      throw new KsqlException("The key format '" + format.name() + "' is not currently supported.");
+    }
+  }
+
   private static void validateQuery(
       final DataSourceType dataSourceType,
       final ConfiguredStatement<?> statement
@@ -346,36 +378,6 @@ final class EngineExecutor {
   private static void throwOnNonExecutableStatement(final ConfiguredStatement<?> statement) {
     if (!KsqlEngine.isExecutableStatement(statement.getStatement())) {
       throw new KsqlStatementException("Statement not executable", statement.getStatementText());
-    }
-  }
-
-  private static void throwOnUnsupportedKeyFormat(final ConfiguredStatement<?> statement) {
-    try {
-      if (statement.getStatement() instanceof CreateSource) {
-        final CreateSource createSource = (CreateSource) statement.getStatement();
-        throwOnUnsupportedKeyFormat(
-            SourcePropertiesUtil.getKeyFormat(createSource.getProperties()));
-      }
-
-      if (statement.getStatement() instanceof CreateAsSelect) {
-        final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
-        createAsSelect.getProperties().getKeyFormat()
-            .ifPresent(EngineExecutor::throwOnUnsupportedKeyFormat);
-      }
-    } catch (KsqlStatementException e) {
-      throw e;
-    } catch (KsqlException e) {
-      throw new KsqlStatementException(
-          ErrorMessageUtil.buildErrorMessage(e),
-          statement.getStatementText(),
-          e.getCause());
-    }
-  }
-
-  private static void throwOnUnsupportedKeyFormat(final FormatInfo formatInfo) {
-    final Format format = FormatFactory.of(formatInfo);
-    if (!format.isSupportedKeyFormat()) {
-      throw new KsqlException("The key format '" + format.name() + "' is not currently supported.");
     }
   }
 

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.execution;
+package io.confluent.ksql.internal;
 
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -108,11 +108,11 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.responseSizeSensor.record(value);
   }
 
-  List<Sensor> getSensors() {
+  public List<Sensor> getSensors() {
     return sensors;
   }
 
-  Metrics getMetrics() {
+  public Metrics getMetrics() {
     return metrics;
   }
 

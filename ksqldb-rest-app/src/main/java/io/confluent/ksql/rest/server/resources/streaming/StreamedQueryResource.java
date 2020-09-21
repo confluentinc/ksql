@@ -19,13 +19,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.PullQueryExecutionUtil;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -37,9 +44,6 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
-import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -82,11 +86,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final ActivenessRegistrar activenessRegistrar;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
-  private KsqlConfig ksqlConfig;
-  private final PullQueryExecutor pullQueryExecutor;
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final RoutingFilterFactory routingFilterFactory;
+  private KsqlConfig ksqlConfig;
+  private RateLimiter rateLimiter;
 
+  @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue,
@@ -95,9 +101,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor,
       final DenyListPropertyValidator denyListPropertyValidator,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final RoutingFilterFactory routingFilterFactory,
+      final RateLimiter rateLimiter
   ) {
     this(
         ksqlEngine,
@@ -108,9 +115,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
         activenessRegistrar,
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor,
         denyListPropertyValidator,
-        pullQueryMetrics
+        pullQueryMetrics,
+        routingFilterFactory,
+        rateLimiter
     );
   }
 
@@ -126,9 +134,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor,
       final DenyListPropertyValidator denyListPropertyValidator,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final RoutingFilterFactory routingFilterFactory,
+      final RateLimiter rateLimiter
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -141,10 +150,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.authorizationValidator = authorizationValidator;
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
-    this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.routingFilterFactory =
+        Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
+    this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
   }
 
   @Override
@@ -267,9 +278,49 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
 
-    final PullQueryResult result = pullQueryExecutor.execute(
-        configured, requestProperties, serviceContext, isInternalRequest, pullQueryMetrics);
-    final TableRows tableRows = result.getTableRows();
+    final SessionConfig sessionConfig = configured.getSessionConfig();
+    if (!sessionConfig.getConfig(false)
+        .getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
+      throw new KsqlStatementException(
+          "Pull queries are disabled."
+              + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
+              + System.lineSeparator()
+              + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
+              + "this feature."
+              + System.lineSeparator(),
+          statement.getStatementText());
+    }
+
+    final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
+        sessionConfig.getConfig(false),
+        configured.getSessionConfig().getOverrides(),
+        requestProperties
+    );
+
+    // A request is considered forwarded if the request has the forwarded flag or if the request
+    // is from an internal listener.
+    final boolean isAlreadyForwarded = routingOptions.getIsSkipForwardRequest()
+        // Trust the forward request option if isInternalRequest isn't available.
+        && isInternalRequest.orElse(true);
+
+    // Only check the rate limit at the forwarding host
+    if (!isAlreadyForwarded) {
+      PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+    }
+
+    final PullQueryResult result = ksqlEngine.executePullQuery(
+        serviceContext,
+        configured,
+        routingFilterFactory,
+        routingOptions,
+        pullQueryMetrics
+    );
+    final TableRows tableRows = new TableRows(
+        statement.getStatementText(),
+        result.getQueryId(),
+        result.getSchema(),
+        result.getTableRows());
+
     final Optional<List<KsqlHostInfoEntity>> hosts = result.getSourceNodes()
         .map(list -> list.stream().map(KsqlNode::location)
             .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()))
@@ -389,4 +440,5 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private static GenericRow toGenericRow(final List<?> values) {
     return new GenericRow().appendAll(values);
   }
+
 }

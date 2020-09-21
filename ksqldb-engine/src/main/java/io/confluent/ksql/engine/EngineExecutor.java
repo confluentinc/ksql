@@ -18,9 +18,15 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
@@ -33,7 +39,12 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.physical.PhysicalPlan;
+import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan;
+import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
+import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -117,6 +128,56 @@ final class EngineExecutor {
         plan.getDdlCommand().isPresent())
     );
   }
+
+  /**
+   * Evaluates a pull query by first analyzing it, then building the logical plan and finally
+   * the physical plan. The execution is then done using the physical plan in a pipelined manner.
+   * @param statement The pull query
+   * @param routingFilterFactory The filters used for HA routing
+   * @param routingOptions Configuration parameters used for HA routing
+   * @param pullQueryMetrics JMX metrics
+   * @return the rows that are the result of evaluating the pull query
+   */
+  PullQueryResult executePullQuery(
+      final ConfiguredStatement<Query> statement,
+      final RoutingFilterFactory routingFilterFactory,
+      final RoutingOptions routingOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+  ) {
+
+    if (!statement.getStatement().isPullQuery()) {
+      throw new IllegalArgumentException("Executor can only handle pull queries");
+    }
+    final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    try {
+      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(), "");
+      final ImmutableAnalysis analysis = new RewrittenAnalysis(
+          queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
+          new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
+      );
+      final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
+      final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
+          statement, analysis, ksqlConfig);
+      final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(
+          logicalPlan,
+          ksqlConfig,
+          analysis,
+          statement);
+      final HARouting routing = new HARouting(
+          ksqlConfig, physicalPlan, routingFilterFactory, routingOptions, statement, serviceContext,
+          physicalPlan.getOutputSchema(), physicalPlan.getQueryId(), pullQueryMetrics);
+      return routing.handlePullQuery();
+    } catch (final Exception e) {
+      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+      throw new KsqlStatementException(
+          e.getMessage() == null ? "Server Error" : e.getMessage(),
+          statement.getStatementText(),
+          e
+      );
+    }
+  }
+
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   TransientQueryMetadata executeQuery(
@@ -234,7 +295,39 @@ final class EngineExecutor {
     return new ExecutorPlans(logicalPlan, physicalPlan);
   }
 
+  private LogicalPlanNode buildAndValidateLogicalPlan(
+      final ConfiguredStatement<?> statement,
+      final ImmutableAnalysis analysis,
+      final KsqlConfig config
+  ) {
+    final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
+        .buildPlan();
+    return new LogicalPlanNode(
+        statement.getStatementText(),
+        Optional.of(outputNode)
+    );
+  }
+
+  private PullPhysicalPlan buildPullPhysicalPlan(
+      final LogicalPlanNode logicalPlan,
+      final KsqlConfig config,
+      final ImmutableAnalysis analysis,
+      final ConfiguredStatement<Query> statement
+  ) {
+
+    final PullPhysicalPlanBuilder builder = new PullPhysicalPlanBuilder(
+        engineContext.getMetaStore(),
+        engineContext.getProcessingLogContext(),
+        PullQueryExecutionUtil.findMaterializingQuery(engineContext, analysis),
+        config,
+        analysis,
+        statement
+    );
+    return builder.buildPullPhysicalPlan(logicalPlan);
+  }
+
   private static final class ExecutorPlans {
+
     private final LogicalPlanNode logicalPlan;
     private final PhysicalPlan physicalPlan;
 
@@ -268,7 +361,8 @@ final class EngineExecutor {
     }
 
     if (existing.getDataSourceType() != outputNode.getNodeOutputType()) {
-      throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
+      throw new KsqlException(String.format(
+          "Incompatible data sink and query result. Data sink"
               + " (%s) type is %s but select query result is %s.",
           name.text(),
           existing.getDataSourceType(),
@@ -281,10 +375,10 @@ final class EngineExecutor {
 
     if (!resultSchema.compatibleSchema(existingSchema)) {
       throw new KsqlException("Incompatible schema between results and sink."
-          + System.lineSeparator()
-          + "Result schema is " + resultSchema
-          + System.lineSeparator()
-          + "Sink schema is " + existingSchema
+                                  + System.lineSeparator()
+                                  + "Result schema is " + resultSchema
+                                  + System.lineSeparator()
+                                  + "Sink schema is " + existingSchema
       );
     }
   }
@@ -318,16 +412,16 @@ final class EngineExecutor {
     if (statement.getStatement() instanceof CreateStreamAsSelect
         && dataSourceType == DataSourceType.KTABLE) {
       throw new KsqlStatementException("Invalid result type. "
-          + "Your SELECT query produces a TABLE. "
-          + "Please use CREATE TABLE AS SELECT statement instead.",
-          statement.getStatementText());
+                                           + "Your SELECT query produces a TABLE. "
+                                           + "Please use CREATE TABLE AS SELECT statement instead.",
+                                       statement.getStatementText());
     }
 
     if (statement.getStatement() instanceof CreateTableAsSelect
         && dataSourceType == DataSourceType.KSTREAM) {
-      throw new KsqlStatementException("Invalid result type. "
-          + "Your SELECT query produces a STREAM. "
-          + "Please use CREATE STREAM AS SELECT statement instead.",
+      throw new KsqlStatementException(
+          "Invalid result type. Your SELECT query produces a STREAM. "
+           + "Please use CREATE STREAM AS SELECT statement instead.",
           statement.getStatementText());
     }
   }

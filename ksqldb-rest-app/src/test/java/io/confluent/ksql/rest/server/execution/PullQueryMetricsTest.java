@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metrics.MetricCollectors;
 import java.util.Map;
 import org.apache.kafka.common.metrics.Metrics;
@@ -37,7 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PullQueryExecutorMetricsTest {
+public class PullQueryMetricsTest {
 
   private PullQueryExecutorMetrics pullMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";

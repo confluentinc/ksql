@@ -1,4 +1,4 @@
-{
+  {
   "comments": [
     "Tests covering Pull queries of (materialized) aggregate tables"
   ],
@@ -133,7 +133,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "'10' can not be converted to the type of the key column: ID INTEGER KEY",
+        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to '10' (STRING) with EQUAL.\nStatement: (ID = '10')",
         "status": 400
       }
     },
@@ -286,7 +286,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "'10' can not be converted to the type of the key column: ID INTEGER KEY",
+        "message": "Error in WHERE expression: Cannot compare ID (INTEGER) to '10' (STRING) with EQUAL.\nStatement: (ID = '10')",
         "status": 400
       }
     },
@@ -1211,7 +1211,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Primary key columns can not be NULL: (ID = null)",
+        "message": "Error in WHERE expression: Comparison with NULL not supported: INTEGER = NULL\nUse 'IS NULL' or 'IS NOT NULL' instead.\nStatement: (ID = null)",
         "status": 400
       }
     },

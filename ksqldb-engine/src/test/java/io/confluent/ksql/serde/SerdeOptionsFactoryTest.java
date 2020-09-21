@@ -82,7 +82,8 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.valueWrapping(), is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -102,7 +103,8 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.valueWrapping(), is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -117,7 +119,7 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.valueWrapping(), is(Optional.empty()));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -137,7 +139,7 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.valueWrapping(), is(Optional.empty()));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -157,7 +159,7 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.valueWrapping(), is(Optional.empty()));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -214,7 +216,8 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.valueWrapping(), is(Optional.of(SerdeOption.WRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.WRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -234,7 +237,8 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.valueWrapping(), is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
   @Test
@@ -254,7 +258,7 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.valueWrapping(), is(Optional.empty()));
+    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -306,7 +310,8 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.keyWrapping(), is(Optional.of(SerdeOption.UNWRAP_SINGLE_KEYS)));
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_KEYS)));
   }
 
   @Test
@@ -321,7 +326,7 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.keyWrapping(), is(Optional.empty()));
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 
   @Test
@@ -336,6 +341,6 @@ public class SerdeOptionsFactoryTest {
     );
 
     // Then:
-    assertThat(result.keyWrapping(), is(Optional.empty()));
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
   }
 }

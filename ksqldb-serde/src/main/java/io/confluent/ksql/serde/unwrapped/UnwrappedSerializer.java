@@ -18,31 +18,27 @@ package io.confluent.ksql.serde.unwrapped;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.serde.SerdeUtils;
+import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
 /**
  * Serializer that extracts the single column within a {@link Struct} and passes this to an inner
  * serializer.
  */
-public class UnwrappedSerializer<T> implements Serializer<Struct> {
+public class UnwrappedSerializer<T> implements Serializer<List<?>> {
 
   private final Serializer<T> inner;
-  private final Field field;
+  private final Class<T> colType;
 
   public UnwrappedSerializer(
-      final ConnectSchema schema,
       final Serializer<T> inner,
       final Class<T> colType
   ) {
     this.inner = requireNonNull(inner, "inner");
-    this.field = Unwrapped.getOnlyField(schema);
-
-    SerdeUtils.throwOnSchemaJavaTypeMismatch(field.schema(), colType);
+    this.colType = requireNonNull(colType, "colType");
   }
 
   @Override
@@ -51,22 +47,22 @@ public class UnwrappedSerializer<T> implements Serializer<Struct> {
   }
 
   @Override
-  public byte[] serialize(final String topic, final Struct struct) {
-    if (struct == null) {
+  public byte[] serialize(final String topic, final List<?> values) {
+    if (values == null) {
       return null;
     }
 
-    final T single = extractOnlyColumn(struct);
+    final T single = extractOnlyColumn(values, topic);
     return inner.serialize(topic, single);
   }
 
   @Override
-  public byte[] serialize(final String topic, final Headers headers, final Struct struct) {
+  public byte[] serialize(final String topic, final Headers headers, final List<?> struct) {
     if (struct == null) {
       return null;
     }
 
-    final T single = extractOnlyColumn(struct);
+    final T single = extractOnlyColumn(struct, topic);
     return inner.serialize(topic, headers, single);
   }
 
@@ -75,16 +71,11 @@ public class UnwrappedSerializer<T> implements Serializer<Struct> {
     inner.close();
   }
 
-  private T extractOnlyColumn(final Struct struct) {
-    final Object val = struct.get(field);
-    return castColValue(val);
-  }
+  private T extractOnlyColumn(final List<?> values, final String topic) {
+    SerdeUtils.throwOnColumnCountMismatch(1, values.size(), true, topic);
 
-  @SuppressWarnings("unchecked")
-  private T castColValue(final Object val) {
-    // Cast is safe as constructor has confirmed the Java type of the field matches T.
-    // And ksqlDB ensures only struct's with correct schema are passed.
-    return (T) val;
+    final Object val = values.get(0);
+    return SerdeUtils.safeCast(val, colType);
   }
 }
 

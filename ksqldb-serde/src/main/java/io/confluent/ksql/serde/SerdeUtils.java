@@ -19,6 +19,7 @@ import com.google.common.collect.Sets;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.unwrapped.UnwrappedDeserializer;
 import io.confluent.ksql.serde.unwrapped.UnwrappedSerializer;
+import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -26,7 +27,6 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 
 public final class SerdeUtils {
 
@@ -75,20 +75,26 @@ public final class SerdeUtils {
         .build();
   }
 
-  public static <T> Serializer<Struct> unwrappedSerializer(
-      final ConnectSchema schema,
+  public static <T> Serializer<List<?>> unwrappedSerializer(
       final Serializer<T> inner,
       final Class<T> type
   ) {
-    return new UnwrappedSerializer<>(schema, inner, type);
+    return new UnwrappedSerializer<>(inner, type);
   }
 
-  public static <T> Deserializer<Struct> unwrappedDeserializer(
-      final ConnectSchema schema,
-      final Deserializer<T> inner,
-      final Class<T> type
-  ) {
-    return new UnwrappedDeserializer<>(schema, inner, type);
+  public static Deserializer<List<?>> unwrappedDeserializer(final Deserializer<?> inner) {
+    return new UnwrappedDeserializer(inner);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T safeCast(final Object value, final Class<T> javaType) {
+    if (value != null && !javaType.isAssignableFrom(value.getClass())) {
+      throw new SerializationException("value does not match expected type. "
+          + "expected: " + javaType.getSimpleName()
+          + ", but got: " + value.getClass().getSimpleName());
+    }
+
+    return (T) value;
   }
 
   public static void throwOnSchemaJavaTypeMismatch(
@@ -100,6 +106,24 @@ public final class SerdeUtils {
       throw new IllegalArgumentException("schema does not match expected java type. "
           + "Expected: " + javaType + ", but got " + schemaType);
     }
+  }
+
+  public static void throwOnColumnCountMismatch(
+      final int expectedCount,
+      final int actualCount,
+      final boolean serialization,
+      final String topic
+  ) {
+    if (expectedCount == actualCount) {
+      return;
+    }
+
+    throw new SerializationException("Column count mismatch on "
+        + (serialization ? "serialization" : "deserialization")
+        + ". topic: " + topic
+        + ", expected: " + expectedCount
+        + ", got: " + actualCount
+    );
   }
 
   @SuppressWarnings("unchecked")

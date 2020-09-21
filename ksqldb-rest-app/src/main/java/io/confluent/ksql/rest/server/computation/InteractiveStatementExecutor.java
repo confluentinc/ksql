@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
@@ -42,7 +43,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -233,8 +233,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
         plan,
-        command.getOverwriteProperties(),
-        mergedConfig
+        SessionConfig.of(mergedConfig, command.getOverwriteProperties())
     );
     putStatus(
         commandId,

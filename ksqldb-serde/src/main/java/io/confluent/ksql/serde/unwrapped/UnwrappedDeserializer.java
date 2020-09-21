@@ -17,30 +17,20 @@ package io.confluent.ksql.serde.unwrapped;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.serde.SerdeUtils;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 
-public class UnwrappedDeserializer<T> implements Deserializer<Struct> {
+public class UnwrappedDeserializer implements Deserializer<List<?>> {
 
-  private final Field field;
-  private final ConnectSchema schema;
-  private final Deserializer<T> inner;
+  private final Deserializer<?> inner;
 
   public UnwrappedDeserializer(
-      final ConnectSchema schema,
-      final Deserializer<T> inner,
-      final Class<T> colType
+      final Deserializer<?> inner
   ) {
-    this.schema = requireNonNull(schema, "schema");
     this.inner = requireNonNull(inner, "inner");
-    this.field = Unwrapped.getOnlyField(schema);
-
-    SerdeUtils.throwOnSchemaJavaTypeMismatch(field.schema(), colType);
   }
 
   @Override
@@ -49,32 +39,28 @@ public class UnwrappedDeserializer<T> implements Deserializer<Struct> {
   }
 
   @Override
-  public Struct deserialize(final String topic, final byte[] bytes) {
+  public List<?> deserialize(final String topic, final byte[] bytes) {
     if (bytes == null) {
       return null;
     }
 
-    final T single = inner.deserialize(topic, bytes);
-    return wrapSingle(single);
+    final Object single = inner.deserialize(topic, bytes);
+    return Collections.singletonList(single);
   }
 
   @Override
-  public Struct deserialize(final String topic, final Headers headers, final byte[] bytes) {
+  public List<?> deserialize(final String topic, final Headers headers, final byte[] bytes) {
     if (bytes == null) {
       return null;
     }
 
     final Object single = inner.deserialize(topic, headers, bytes);
-    return wrapSingle(single);
+    return Collections.singletonList(single);
   }
 
   @Override
   public void close() {
     inner.close();
-  }
-
-  private Struct wrapSingle(final Object single) {
-    return new Struct(schema).put(field, single);
   }
 }
 

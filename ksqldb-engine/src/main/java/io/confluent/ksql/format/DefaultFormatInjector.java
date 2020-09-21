@@ -113,13 +113,13 @@ public class DefaultFormatInjector implements Injector {
 
     final PreparedStatement<CreateSource> prepared = buildPreparedStatement(withFormats);
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement
-        .of(prepared, original.getConfigOverrides(), original.getConfig());
+        .of(prepared, original.getSessionConfig());
 
     return Optional.of(configured);
   }
 
   private static KsqlConfig getConfig(final ConfiguredStatement<?> statement) {
-    return statement.getConfig().cloneWithPropertyOverwrite(statement.getConfigOverrides());
+    return statement.getSessionConfig().getConfig(true);
   }
 
   private static String getDefaultKeyFormat(final KsqlConfig config) {

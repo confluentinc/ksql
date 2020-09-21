@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.tree.Query;
@@ -60,7 +61,8 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
-        () -> pullQueryExecutor.execute(query, serviceContext, Optional.of(false), startTimeNanos)
+        () -> pullQueryExecutor
+            .execute(query, ImmutableMap.of(), serviceContext, Optional.of(false), startTimeNanos)
     );
 
     subscriber.onSubscribe(subscription);

@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * A {@code Format} is a serialization specification of a Kafka topic
@@ -174,7 +173,7 @@ public interface Format {
    * @param srClientFactory supplier of the SR client
    * @return a serde pair capable of (de)serializing the data in this format.
    */
-  Serde<Struct> getSerde(
+  Serde<List<?>> getSerde(
       PersistenceSchema schema,
       Map<String, String> formatProperties,
       KsqlConfig ksqlConfig,

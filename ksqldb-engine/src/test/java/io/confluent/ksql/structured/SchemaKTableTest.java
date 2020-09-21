@@ -26,6 +26,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -45,7 +46,6 @@ import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory;
 import io.confluent.ksql.execution.streams.ConsumedFactory;
@@ -66,6 +66,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -83,6 +84,7 @@ import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -90,6 +92,7 @@ import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Struct;
@@ -624,23 +627,26 @@ public class SchemaKTableTest {
     }
   }
 
-  private List<SelectExpression> givenInitialKTableOf(final String selectQuery) {
-    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
-        ksqlConfig,
-        selectQuery,
-        metaStore
-    );
+  @Test
+  public void shouldThrowOnIntoIfKeyFormatWindowInfoIsDifferent() {
+    // Given:
+    final SchemaKTable<?> table = buildSchemaKTable(ksqlTable, mockKTable);
 
-    initialSchemaKTable = new SchemaKTable<>(
-        buildSourceStep(logicalPlan.getLeftmostSourceNode().getSchema(), kTable),
-        logicalPlan.getLeftmostSourceNode().getSchema(),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
-    );
+    final KeyFormat windowedKeyFormat = KeyFormat.windowed(keyFormat.getFormatInfo(),
+        WindowInfo.of(WindowType.SESSION, Optional.empty()));
 
-    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    return projectNode.getSelectExpressions();
+    // When:
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> table.into(
+            "some-topic",
+            windowedKeyFormat,
+            valueFormat,
+            SerdeOptions.of(),
+            childContextStacker,
+            Optional.empty()
+        )
+    );
   }
 
   private PlanNode buildLogicalPlan(final String query) {
@@ -655,13 +661,6 @@ public class SchemaKTableTest {
     ).andReturn(resultTable);
   }
 
-  private void givenOuterJoin() {
-    final KTable resultTable = EasyMock.niceMock(KTable.class);
-    expect(mockKTable.outerJoin(
-        eq(secondKTable),
-        anyObject(KsqlValueJoiner.class))
-    ).andReturn(resultTable);
-  }
 
   private void givenLeftJoin() {
     final KTable resultTable = EasyMock.niceMock(KTable.class);

@@ -71,11 +71,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> into(
       final String kafkaTopicName,
+      final KeyFormat keyFormat,
       final ValueFormat valueFormat,
       final SerdeOptions options,
       final QueryContext.Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
+    if (!this.keyFormat.getWindowInfo().equals(keyFormat.getWindowInfo())) {
+      throw new IllegalArgumentException("Can't change windowing");
+    }
+
     final TableSink<K> step = ExecutionStepFactory.tableSink(
         contextStacker,
         sourceTableStep,
@@ -83,6 +88,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         kafkaTopicName,
         timestampColumn
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step),

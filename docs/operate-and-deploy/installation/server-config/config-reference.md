@@ -291,6 +291,9 @@ statements.
 
 The default value for this configuration is `KAFKA`.
 
+If not set and no explicit key format is provided in the statement, via either the `KEY_FORMAT` or the
+`FORMAT` property, the statement will be rejected as invalid.
+
 For supported formats, see [Serialization Formats](../../../developer-guide/serialization.md#serialization-formats).
 
 ### ksql.persistence.default.format.value
@@ -300,8 +303,8 @@ not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-refere
 or [CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md)
 statements.
 
-If not set and no explicit value is provided in the statement, via either the `VALUE_FORMAT` or the
-`FORMAT` property, an error will be thrown.
+If not set and no explicit value format is provided in the statement, via either the `VALUE_FORMAT` or the
+`FORMAT` property, the statement will be rejected as invalid.
 
 For supported formats, see [Serialization Formats](../../../developer-guide/serialization.md#serialization-formats).
 

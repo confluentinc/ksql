@@ -26,7 +26,7 @@ import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
 
 /**
- * Emits JMX metrics that for the CommandRunner thread. 
+ * Emits JMX metrics for the CommandRunner thread. 
  */
 public class CommandRunnerMetrics implements Closeable {
 

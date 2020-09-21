@@ -132,13 +132,13 @@ public class CommandRunnerTest {
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);
 
-    when(backupCorrupted.get()).thenReturn(false);
+    when(commandStore.corruptionDetected()).thenReturn(false);
     when(commandTopicExists.get()).thenReturn(true);
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
     when(errorHandler.commandRunnerDegradedIncompatibleCommandsErrorMessage()).thenReturn(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
     when(errorHandler.commandRunnerDegradedBackupCorruptedErrorMessage()).thenReturn(BACKUP_CORRUPTED_ERROR_MESSAGE);
     when(errorHandler.commandRunnerDegradedCommandTopicDeletedErrorMessage()).thenReturn(MISSING_COMMAND_TOPIC_ERROR_MESSAGE);
-
+    
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     commandRunner = new CommandRunner(
@@ -155,7 +155,6 @@ public class CommandRunnerTest {
         compactor,
         incompatibleCommandChecker,
         commandDeserializer,
-        backupCorrupted,
         errorHandler,
         commandTopicExists
     );
@@ -243,6 +242,9 @@ public class CommandRunnerTest {
 
     // When:
     commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
@@ -262,12 +264,14 @@ public class CommandRunnerTest {
     doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
-    verify(statementExecutor).handleRestore(eq(queuedCommand1));
-    verify(statementExecutor, never()).handleRestore(queuedCommand2);
-    verify(statementExecutor, never()).handleRestore(queuedCommand3);
+    verify(statementExecutor).handleStatement(eq(queuedCommand1));
+    verify(statementExecutor, never()).handleStatement(queuedCommand2);
+    verify(statementExecutor, never()).handleStatement(queuedCommand3);
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
@@ -281,6 +285,9 @@ public class CommandRunnerTest {
 
     // When:
     commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
@@ -300,37 +307,25 @@ public class CommandRunnerTest {
     doThrow(new IncomaptibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand2));
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
-    verify(statementExecutor, never()).handleRestore(queuedCommand3);
-  }
-
-  @Test
-  public void shouldEnterDegradedStateIfCommandTopicMissing() {
-    // Given:
-    givenQueuedCommands();
-    when(commandTopicExists.get()).thenReturn(false);
-
-    // When:
-    commandRunner.fetchAndRunCommands();
-
-    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
-    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(MISSING_COMMAND_TOPIC_ERROR_MESSAGE));
-    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED));
+    verify(statementExecutor, never()).handleStatement(queuedCommand3);
   }
 
   @Test
   public void shouldNotProcessCommandTopicIfBackupCorrupted() throws InterruptedException {
     // Given:
-    when(backupCorrupted.get()).thenReturn(true);
+    when(commandStore.corruptionDetected()).thenReturn(true);
 
     // When:
     commandRunner.start();
@@ -346,6 +341,23 @@ public class CommandRunnerTest {
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(BACKUP_CORRUPTED_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.CORRUPTED));
+  }
+
+  @Test
+  public void shouldEnterDegradedStateIfCommandTopicMissing() {
+    // Given:
+    givenQueuedCommands();
+    when(commandTopicExists.get()).thenReturn(false);
+
+    // When:
+    commandRunner.start();
+
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(MISSING_COMMAND_TOPIC_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED));
   }
 
   @Test

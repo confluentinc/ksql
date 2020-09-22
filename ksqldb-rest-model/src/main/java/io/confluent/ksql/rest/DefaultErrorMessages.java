@@ -39,8 +39,8 @@ public class DefaultErrorMessages implements ErrorMessages {
           + "The server must be restarted after performing either operation in order to resume "
           + "normal functionality";
 
-  public static final String COMMAND_RUNNER_DEGRADED_COMMAND_TOPIC_DELETED =
-      "The server is in a degraded state due to deletion of the command topic. "
+  public static final String COMMAND_RUNNER_DEGRADED_COMMAND_TOPIC_DELETED_MODIFIED =
+      "The server has detected that the command topic has been modified or deleted."
           + "DDL statements will not be processed."
           + System.lineSeparator()
           + "Restart the server to restore server functionality.";
@@ -81,7 +81,7 @@ public class DefaultErrorMessages implements ErrorMessages {
   }
 
   @Override
-  public String commandRunnerDegradedCommandTopicDeletedErrorMessage() {
-    return COMMAND_RUNNER_DEGRADED_COMMAND_TOPIC_DELETED;
+  public String commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage() {
+    return COMMAND_RUNNER_DEGRADED_COMMAND_TOPIC_DELETED_MODIFIED;
   }
 }

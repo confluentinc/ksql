@@ -135,7 +135,7 @@ public class CommandRunnerTest {
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
     when(errorHandler.commandRunnerDegradedIncompatibleCommandsErrorMessage()).thenReturn(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
     when(errorHandler.commandRunnerDegradedBackupCorruptedErrorMessage()).thenReturn(BACKUP_CORRUPTED_ERROR_MESSAGE);
-    when(errorHandler.commandRunnerDegradedCommandTopicDeletedErrorMessage()).thenReturn(MISSING_COMMAND_TOPIC_ERROR_MESSAGE);
+    when(errorHandler.commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage()).thenReturn(MISSING_COMMAND_TOPIC_ERROR_MESSAGE);
     
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
@@ -355,7 +355,9 @@ public class CommandRunnerTest {
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(MISSING_COMMAND_TOPIC_ERROR_MESSAGE));
-    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED));
+    assertThat(
+        commandRunner.getCommandRunnerDegradedReason(),
+        is(CommandRunner.CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED_OR_MODIFIED));
   }
 
   @Test
@@ -549,6 +551,7 @@ public class CommandRunnerTest {
     inOrder.verify(commandStore).close();
   }
 
+  @Test
   public void shouldCloseEarlyWhenOffsetOutOfRangeException() throws Exception {
     // Given:
     when(commandStore.getNewCommands(any()))

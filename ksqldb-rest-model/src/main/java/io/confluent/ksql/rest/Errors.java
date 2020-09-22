@@ -234,8 +234,8 @@ public final class Errors {
     return errorMessages.commandRunnerDegradedBackupCorruptedErrorMessage();
   }
 
-  public String commandRunnerDegradedCommandTopicDeletedErrorMessage() {
-    return errorMessages.commandRunnerDegradedCommandTopicDeletedErrorMessage();
+  public String commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage() {
+    return errorMessages.commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage();
   }
 
   public EndpointResponse generateResponse(

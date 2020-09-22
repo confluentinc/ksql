@@ -98,7 +98,8 @@ public class CommandRunner implements Closeable {
     NONE(errors -> ""),
     CORRUPTED(Errors::commandRunnerDegradedBackupCorruptedErrorMessage),
     INCOMPATIBLE_COMMAND(Errors::commandRunnerDegradedIncompatibleCommandsErrorMessage),
-    COMMAND_TOPIC_DELETED(Errors::commandRunnerDegradedCommandTopicDeletedErrorMessage);
+    COMMAND_TOPIC_DELETED_OR_MODIFIED(
+        Errors::commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage);
 
     private final Function<Errors, String> msgFactory;
 
@@ -445,12 +446,12 @@ public class CommandRunner implements Closeable {
             );
             closeEarly();
           } else if (commandTopicDeleted) {
-              LOG.warn("CommandRunner entering degraded state due to command topic deletion.");
-              state = new Status(
-                  CommandRunnerStatus.DEGRADED,
-                  CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED
-              );
-              closeEarly();
+            LOG.warn("CommandRunner entering degraded state due to command topic deletion.");
+            state = new Status(
+                CommandRunnerStatus.DEGRADED,
+                CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED_OR_MODIFIED
+            );
+            closeEarly();
           } else {
             LOG.trace("Polling for new writes to command topic");
             fetchAndRunCommands();
@@ -464,7 +465,7 @@ public class CommandRunner implements Closeable {
         LOG.warn("The command topic offset was reset. CommandRunner thread exiting.");
         state = new Status(
             CommandRunnerStatus.DEGRADED,
-            CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED
+            CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED_OR_MODIFIED
         );
         closeEarly();
       } finally {

@@ -30,6 +30,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -138,7 +139,7 @@ public class SchemaRegisterInjector implements Injector {
       final boolean registerIfSchemaExists
   ) {
     final Format format = FormatFactory.of(formatInfo);
-    if (!format.supportsSchemaInference()) {
+    if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       return;
     }
 

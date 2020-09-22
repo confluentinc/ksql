@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -144,7 +145,11 @@ public class ClusterTerminator {
 
   private static Set<String> subjectNames(final List<DataSource> sources) {
     return sources.stream()
-        .filter(s -> s.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference())
+        .filter(s -> s.getKsqlTopic()
+            .getValueFormat()
+            .getFormat()
+            .supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+        )
         .map(DataSource::getKsqlTopic)
         .map(KsqlTopic::getKafkaTopicName)
         .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)

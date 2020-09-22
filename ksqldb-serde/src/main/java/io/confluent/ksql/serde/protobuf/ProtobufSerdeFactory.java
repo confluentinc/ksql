@@ -15,12 +15,10 @@
 
 package io.confluent.ksql.serde.protobuf;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.connect.protobuf.ProtobufConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SchemaWalker;
-import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -43,10 +41,6 @@ final class ProtobufSerdeFactory {
 
   private ProtobufSerdeFactory() {
   }
-
-  static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
-      SerdeFeature.WRAP_SINGLES
-  );
 
   static <T> Serde<T> createSerde(
       final ConnectSchema schema,

@@ -40,6 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import io.confluent.ksql.serde.WindowInfo;
@@ -356,7 +357,7 @@ public final class SourceBuilder {
 
     final boolean useSR = FormatFactory
         .fromName(valueFormat.getFormat())
-        .supportsSchemaInference();
+        .supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
 
     if (!schemaRegistryEnabled || !useSR) {
       return (t1, t2, data) -> { };

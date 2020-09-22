@@ -39,13 +39,12 @@ import org.apache.kafka.common.serialization.Serde;
 public interface Format {
 
   /**
-   * The name of the {@code Format} specification. If this format supports
-   * Confluent Schema Registry integration (either builtin or custom via the
-   * {@code ParsedSchema} plugin support), this should match the value returned
-   * by {@link ParsedSchema#name()}. Note that this value is <i>case-sensitive</i>.
+   * The name of the {@code Format} specification.
+   *
+   * <p>As used for {@code FORMAT}, {@code VALUE_FORMAT} and {@code KEY_FORMAT} properties in SQL
+   * statements.
    *
    * @return the name of this Format
-   * @see #supportsSchemaInference()
    */
   String name();
 
@@ -63,28 +62,15 @@ public interface Format {
   }
 
   /**
-   * Indicates whether or not this format can support CREATE statements that
-   * omit the table elements and instead determine the schema from a Confluent
-   * Schema Registry query. If this method returns {@code true}, it is expected
-   * that the {@link #name()} corresponds with the schema format name returned
-   * by {@link ParsedSchema#name()} for this format.
-   *
-   * @return {@code true} if this {@code Format} supports schema inference
-   *         through Confluent Schema Registry
-   */
-  default boolean supportsSchemaInference() {
-    return false;
-  }
-
-  /**
    * Get a type for converting between {@link ParsedSchema} returned by Confluent Schema Registry
    * and ksqlDB's own schema types.
    *
    * <p>If this Format supports the {@link SerdeFeature#SCHEMA_INFERENCE} feature, it is expected
-   * that this method will be implemented.</p>
+   * that this method will be implemented.
    *
    * @param formatProperties any format specific properties
    * @return the converter
+   * @see SerdeFeature#SCHEMA_INFERENCE
    */
   default SchemaTranslator getSchemaTranslator(Map<String, String> formatProperties) {
     throw new UnsupportedOperationException(name() + " does not implement Schema Registry support");

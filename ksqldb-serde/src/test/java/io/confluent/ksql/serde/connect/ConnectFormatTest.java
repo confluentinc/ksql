@@ -96,11 +96,6 @@ public class ConnectFormatTest {
   }
 
   @Test
-  public void shouldSupportSchemaInference() {
-    assertThat(format.supportsSchemaInference(), is(true));
-  }
-
-  @Test
   public void shouldCallSubclassToCreateOuterWhenWrapped() {
     // Given:
     final SimpleColumn singleColumn = createColumn("bob", SqlTypes.INTEGER);

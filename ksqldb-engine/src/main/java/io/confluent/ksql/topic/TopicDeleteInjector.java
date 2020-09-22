@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -108,7 +109,12 @@ public class TopicDeleteInjector implements Injector {
       }
 
       try {
-        if (source.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference()) {
+        final boolean supportsSchemaInference = source.getKsqlTopic()
+            .getValueFormat()
+            .getFormat()
+            .supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
+
+        if (supportsSchemaInference) {
           SchemaRegistryUtil.deleteSubjectWithRetries(
                   schemaRegistryClient,
                   source.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
@@ -126,7 +132,7 @@ public class TopicDeleteInjector implements Injector {
     return statement.withStatement(withoutDeleteText, withoutDelete);
   }
 
-  private void checkSchemaError(final Exception error, final String sourceName) {
+  private static void checkSchemaError(final Exception error, final String sourceName) {
     if (!(error instanceof RestClientException
             && ((RestClientException) error).getErrorCode() == SUBJECT_NOT_FOUND_ERROR_CODE)) {
       throw new RuntimeException("Could not clean up the schema registry for topic: "

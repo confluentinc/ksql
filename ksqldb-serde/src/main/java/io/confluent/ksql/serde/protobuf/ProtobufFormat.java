@@ -30,6 +30,11 @@ import org.apache.kafka.connect.data.ConnectSchema;
 
 public class ProtobufFormat extends ConnectFormat {
 
+  static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.SCHEMA_INFERENCE,
+      SerdeFeature.WRAP_SINGLES
+  );
+
   public static final String NAME = "PROTOBUF";
 
   @Override
@@ -39,7 +44,7 @@ public class ProtobufFormat extends ConnectFormat {
 
   @Override
   public Set<SerdeFeature> supportedFeatures() {
-    return ProtobufSerdeFactory.SUPPORTED_FEATURES;
+    return SUPPORTED_FEATURES;
   }
 
   @Override

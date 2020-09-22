@@ -30,6 +30,7 @@ import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -137,7 +138,7 @@ public class DefaultSchemaInjector implements Injector {
     final FormatInfo valueFormat = SourcePropertiesUtil
         .getValueFormat(statement.getStatement().getProperties());
 
-    return FormatFactory.of(valueFormat).supportsSchemaInference();
+    return FormatFactory.of(valueFormat).supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
   }
 
   private static CreateSource addSchemaFields(

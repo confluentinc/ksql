@@ -52,11 +52,6 @@ import org.apache.kafka.connect.errors.DataException;
 public abstract class ConnectFormat implements Format {
 
   @Override
-  public boolean supportsSchemaInference() {
-    return true;
-  }
-
-  @Override
   public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties) {
     return new ConnectFormatSchemaTranslator(
         this,

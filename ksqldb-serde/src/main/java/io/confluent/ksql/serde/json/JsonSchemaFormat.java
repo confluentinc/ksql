@@ -31,6 +31,7 @@ import org.apache.kafka.connect.data.ConnectSchema;
 public class JsonSchemaFormat extends ConnectFormat {
 
   private static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.SCHEMA_INFERENCE,
       SerdeFeature.WRAP_SINGLES,
       SerdeFeature.UNWRAP_SINGLES
   );

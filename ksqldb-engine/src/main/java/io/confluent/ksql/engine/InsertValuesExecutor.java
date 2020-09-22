@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -284,7 +285,12 @@ public class InsertValuesExecutor {
     try {
       return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
-      if (dataSource.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference()) {
+      final boolean supportsSchemaInference = dataSource.getKsqlTopic()
+          .getValueFormat()
+          .getFormat()
+          .supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
+
+      if (supportsSchemaInference) {
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
         if (rootCause instanceof RestClientException) {
           switch (((RestClientException) rootCause).getStatus()) {

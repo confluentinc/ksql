@@ -47,11 +47,6 @@ public class JsonFormat extends ConnectFormat {
   }
 
   @Override
-  public boolean supportsSchemaInference() {
-    return false;
-  }
-
-  @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {

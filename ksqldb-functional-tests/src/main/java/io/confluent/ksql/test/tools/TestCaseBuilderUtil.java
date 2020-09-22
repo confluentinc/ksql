@@ -40,6 +40,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -151,7 +152,7 @@ public final class TestCaseBuilderUtil {
       final Format valueFormat = FormatFactory.of(valueFormatInfo);
 
       final Optional<ParsedSchema> valueSchema;
-      if (valueFormat.supportsSchemaInference()) {
+      if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
         final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
 
         SerdeOptions serdeOptions;

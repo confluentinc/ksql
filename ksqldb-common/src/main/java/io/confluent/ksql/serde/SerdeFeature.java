@@ -22,6 +22,15 @@ package io.confluent.ksql.serde;
 public enum SerdeFeature {
 
   /**
+   * The format supports interaction with the Confluent Schema Registry.
+   *
+   * <p>Indicates whether or not a format can support CREATE statements that
+   * omit the table elements and instead determine the schema from a Confluent Schema Registry
+   * query.
+   */
+  SCHEMA_INFERENCE,
+
+  /**
    * If the data being serialized contains only a single column, persist it wrapped within an
    * envelope of some kind, e.g. an Avro record, or JSON object.
    *

@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -27,6 +26,7 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -34,14 +34,16 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -82,31 +84,32 @@ public final class CreateSourceFactory {
       final KsqlConfig ksqlConfig
   ) {
     final SourceName sourceName = statement.getName();
-    final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
+    final CreateSourceProperties props = statement.getProperties();
+    final String topicName = ensureTopicExists(props, serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
-    final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
-        ksqlConfig,
-        statement.getProperties(),
-        schema
-    );
+    final Optional<TimestampColumn> timestampColumn =
+        buildTimestampColumn(ksqlConfig, props, schema);
+
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
+    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
 
     final SerdeOptions serdeOptions = serdeOptionsSupplier.build(
         schema,
-        topic.getKeyFormat().getFormat(),
-        topic.getValueFormat().getFormat(),
-        statement.getProperties().getSerdeOptions(),
+        FormatFactory.of(keyFormat),
+        FormatFactory.of(valueFormat),
+        props.getSerdeOptions(),
         ksqlConfig
     );
 
-    validateSerdesCanHandleSchemas(ksqlConfig, PhysicalSchema.from(schema, serdeOptions), topic);
+    validateSerdesCanHandleSchemas(ksqlConfig, schema, serdeOptions, keyFormat, valueFormat);
 
     return new CreateStreamCommand(
         sourceName,
         schema,
         timestampColumn,
-        topic.getKafkaTopicName(),
-        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
-        topic.getKeyFormat().getWindowInfo(),
+        topicName,
+        Formats.of(keyFormat, valueFormat, serdeOptions),
+        getWindowInfo(props),
         Optional.of(statement.isOrReplace())
     );
   }
@@ -116,17 +119,18 @@ public final class CreateSourceFactory {
       final KsqlConfig ksqlConfig
   ) {
     final SourceName sourceName = statement.getName();
-    final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
+    final CreateSourceProperties props = statement.getProperties();
+    final String topicName = ensureTopicExists(props, serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
     if (schema.key().isEmpty()) {
-      final boolean usingSchemaInference = statement.getProperties().getSchemaId().isPresent();
+      final boolean usingSchemaInference = props.getSchemaId().isPresent();
 
       final String additional = usingSchemaInference
           ? System.lineSeparator()
           + "Use a partial schema to define the primary key and still load the value columns from "
           + "the Schema Registry, for example:"
           + System.lineSeparator()
-          + "\tCREATE TABLE " + statement.getName().text() + " (ID INT PRIMARY KEY) WITH (...);"
+          + "\tCREATE TABLE " + sourceName.text() + " (ID INT PRIMARY KEY) WITH (...);"
           : "";
 
       throw new KsqlException(
@@ -134,29 +138,29 @@ public final class CreateSourceFactory {
       );
     }
 
-    final Optional<TimestampColumn> timestampColumn = buildTimestampColumn(
-        ksqlConfig,
-        statement.getProperties(),
-        schema
-    );
+    final Optional<TimestampColumn> timestampColumn =
+        buildTimestampColumn(ksqlConfig, props, schema);
+
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
+    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
 
     final SerdeOptions serdeOptions = serdeOptionsSupplier.build(
         schema,
-        topic.getKeyFormat().getFormat(),
-        topic.getValueFormat().getFormat(),
-        statement.getProperties().getSerdeOptions(),
+        FormatFactory.of(keyFormat),
+        FormatFactory.of(valueFormat),
+        props.getSerdeOptions(),
         ksqlConfig
     );
 
-    validateSerdesCanHandleSchemas(ksqlConfig, PhysicalSchema.from(schema, serdeOptions), topic);
+    validateSerdesCanHandleSchemas(ksqlConfig, schema, serdeOptions, keyFormat, valueFormat);
 
     return new CreateTableCommand(
         sourceName,
         schema,
         timestampColumn,
-        topic.getKafkaTopicName(),
-        Formats.of(topic.getKeyFormat(), topic.getValueFormat(), serdeOptions),
-        topic.getKeyFormat().getWindowInfo(),
+        topicName,
+        Formats.of(keyFormat, valueFormat, serdeOptions),
+        getWindowInfo(props),
         Optional.of(statement.isOrReplace())
     );
   }
@@ -175,7 +179,11 @@ public final class CreateSourceFactory {
     return tableElements.toLogicalSchema();
   }
 
-  private static KsqlTopic buildTopic(
+  private static Optional<WindowInfo> getWindowInfo(final CreateSourceProperties props) {
+    return props.getWindowType().map(type -> WindowInfo.of(type, props.getWindowSize()));
+  }
+
+  private static String ensureTopicExists(
       final CreateSourceProperties properties,
       final ServiceContext serviceContext
   ) {
@@ -184,7 +192,7 @@ public final class CreateSourceFactory {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
 
-    return TopicFactory.create(properties);
+    return kafkaTopicName;
   }
 
   private static Optional<TimestampColumn> buildTimestampColumn(
@@ -203,11 +211,15 @@ public final class CreateSourceFactory {
 
   private void validateSerdesCanHandleSchemas(
       final KsqlConfig ksqlConfig,
-      final PhysicalSchema physicalSchema,
-      final KsqlTopic topic
+      final LogicalSchema schema,
+      final SerdeOptions serdeOptions,
+      final FormatInfo keyFormat,
+      final FormatInfo valueFormat
   ) {
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, serdeOptions);
+
     keySerdeFactory.create(
-        topic.getKeyFormat().getFormatInfo(),
+        keyFormat,
         physicalSchema.keySchema(),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -216,7 +228,7 @@ public final class CreateSourceFactory {
     ).close();
 
     valueSerdeFactory.create(
-        topic.getValueFormat().getFormatInfo(),
+        valueFormat,
         physicalSchema.valueSchema(),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),

@@ -24,11 +24,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Util for compacting the restore commands
  */
 public final class RestoreCommandsCompactor {
+
+  static QueryId lastTerminateQueryId;
+  private static final Logger LOG = LoggerFactory.getLogger(RestoreCommandsCompactor.class);
 
   private RestoreCommandsCompactor() {
   }
@@ -86,6 +91,8 @@ public final class RestoreCommandsCompactor {
       if (queued.getAndDeserializeCommandId().getType() == Type.TERMINATE) {
         final QueryId queryId = new QueryId(queued.getAndDeserializeCommandId().getEntity());
         markShouldSkip(queryId, latestNodeWithId);
+        //keep track of the last terminate command
+        lastTerminateQueryId = queryId;
 
         // terminate commands don't get added to the list of commands to execute
         // because we "execute" them in this class by removing query plans from
@@ -151,4 +158,9 @@ public final class RestoreCommandsCompactor {
         node.queued.getOffset()
     ));
   }
+
+  static QueryId getLastTerminateQueryId() {
+    return lastTerminateQueryId;
+  }
+
 }

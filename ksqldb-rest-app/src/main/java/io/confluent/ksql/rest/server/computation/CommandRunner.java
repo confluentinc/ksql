@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -266,7 +267,7 @@ public class CommandRunner implements Closeable {
       }
 
       final List<QueuedCommand> compacted = compactor.apply(compatibleCommands);
-
+      final QueryId lastTerminateQueryId = RestoreCommandsCompactor.lastTerminateQueryId;
       compacted.forEach(
           command -> {
             currentCommandRef.set(new Pair<>(command, clock.instant()));
@@ -274,7 +275,7 @@ public class CommandRunner implements Closeable {
                 maxRetries,
                 STATEMENT_RETRY_MS,
                 MAX_STATEMENT_RETRY_MS,
-                () -> statementExecutor.handleRestore(command),
+                () -> statementExecutor.handleRestore(command, lastTerminateQueryId),
                 WakeupException.class
             );
             currentCommandRef.set(null);

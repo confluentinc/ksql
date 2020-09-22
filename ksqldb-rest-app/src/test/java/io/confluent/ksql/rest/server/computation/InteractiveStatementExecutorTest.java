@@ -227,7 +227,7 @@ public class InteractiveStatementExecutorTest {
     );
 
     // When:
-    statementExecutor.handleRestore(queuedCommand);
+    statementExecutor.handleRestore(queuedCommand, null);
   }
 
   @Test
@@ -548,7 +548,9 @@ public class InteractiveStatementExecutorTest {
     for (int i = 0; i < priorCommands.size(); i++) {
       final Pair<CommandId, Command> pair = priorCommands.get(i);
       statementExecutor.handleRestore(
-          new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
+          new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i),
+          null
+
       );
     }
 
@@ -632,7 +634,8 @@ public class InteractiveStatementExecutorTest {
             command,
             Optional.empty(),
             2L
-        )
+        ),
+        null
     );
 
     // Then:
@@ -655,7 +658,8 @@ public class InteractiveStatementExecutorTest {
             command,
             Optional.empty(),
             0L
-        )
+        ),
+        null
     );
 
     // Then:

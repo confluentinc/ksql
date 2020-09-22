@@ -187,8 +187,10 @@ public class CommandTopicBackupImplTest {
   }
 
   @Test
-  public void shouldCreateNewReplayFileIfNewRecordsDoNotMatchPreviousBackups() throws IOException {
+  public void shouldNotCreateNewReplayFileIfNewRecordsDoNotMatchPreviousBackups() throws IOException {
     // Given
+    commandTopicBackup = new CommandTopicBackupImpl(
+        backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker);
     final ConsumerRecord<CommandId, Command> record1 = newConsumerRecord(command1);
     commandTopicBackup.initialize();
     commandTopicBackup.writeCommandToBackup(record1);
@@ -198,22 +200,13 @@ public class CommandTopicBackupImplTest {
     // A 2nd initialize call will open the latest backup and read the previous replayed commands
     commandTopicBackup.initialize();
     final ConsumerRecord<CommandId, Command> record2 = newConsumerRecord(command2);
-    // Need to increase the ticker so the new file has a new timestamp
-    when(ticker.read()).thenReturn(2L);
-    // The write command will create a new replay file with the new command
+    // The write command will conflicts with what's already in the backup file
     commandTopicBackup.writeCommandToBackup(record2);
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then
-    List<Pair<CommandId, Command>> commands = previousReplayFile.readRecords();
-    assertThat(commands.size(), is(1));
-    assertThat(commands.get(0).left, is(command1.left));
-    assertThat(commands.get(0).right, is(command1.right));
-    commands = currentReplayFile.readRecords();
-    assertThat(commands.size(), is(1));
-    assertThat(commands.get(0).left, is(command2.left));
-    assertThat(commands.get(0).right, is(command2.right));
-    assertThat(currentReplayFile.getPath(), not(previousReplayFile.getPath()));
+    assertThat(currentReplayFile.getPath(), is(previousReplayFile.getPath()));
+    assertThat(commandTopicBackup.commandTopicCorruption(), is(true));
   }
 
   @Test
@@ -229,12 +222,9 @@ public class CommandTopicBackupImplTest {
     // When
     // A 2nd initialize call will open the latest backup and read the previous replayed commands
     commandTopicBackup.initialize();
-    // Need to increase the ticker so the new file has a new timestamp
-    when(ticker.read()).thenReturn(2L);
     // command1 is ignored because it was previously replayed
     commandTopicBackup.writeCommandToBackup(record1);
-    // The write command will create a new replay file with the new command, and command1 will
-    // be written to have a complete backup
+    // The write command will conflicts with what's already in the backup file
     final ConsumerRecord<CommandId, Command> record3 = newConsumerRecord(command3);
     commandTopicBackup.writeCommandToBackup(record3);
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
@@ -246,13 +236,16 @@ public class CommandTopicBackupImplTest {
     assertThat(commands.get(0).right, is(command1.right));
     assertThat(commands.get(1).left, is(command2.left));
     assertThat(commands.get(1).right, is(command2.right));
+
+    // the backup file should be the same and the contents shouldn't have been modified
     commands = currentReplayFile.readRecords();
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0).left, is(command1.left));
     assertThat(commands.get(0).right, is(command1.right));
-    assertThat(commands.get(1).left, is(command3.left));
-    assertThat(commands.get(1).right, is(command3.right));
-    assertThat(currentReplayFile.getPath(), not(previousReplayFile.getPath()));
+    assertThat(commands.get(1).left, is(command2.left));
+    assertThat(commands.get(1).right, is(command2.right));
+    assertThat(currentReplayFile.getPath(), is(previousReplayFile.getPath()));
+    assertThat(commandTopicBackup.commandTopicCorruption(), is(true));
   }
 
   @Test

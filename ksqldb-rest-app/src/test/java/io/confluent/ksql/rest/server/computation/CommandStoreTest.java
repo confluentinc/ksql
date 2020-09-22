@@ -35,19 +35,18 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
+import io.confluent.ksql.rest.server.CommandTopicBackup;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.confluent.ksql.util.Pair;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
@@ -90,6 +89,8 @@ public class CommandStoreTest {
   private Serializer<Command> commandSerializer;
   @Mock
   private Deserializer<CommandId> commandIdDeserializer;
+  @Mock
+  private CommandTopicBackup commandTopicBackup;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -150,7 +151,8 @@ public class CommandStoreTest {
         TIMEOUT,
         commandIdSerializer,
         commandSerializer,
-        commandIdDeserializer
+        commandIdDeserializer,
+        commandTopicBackup
     );
   }
 

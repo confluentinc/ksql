@@ -103,6 +103,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final DenyListPropertyValidator denyListPropertyValidator;
+  private final Supplier<String> commandRunnerWarning;
   private RequestValidator validator;
   private RequestHandler handler;
   private final Errors errorHandler;
@@ -126,7 +127,8 @@ public class KsqlResource implements KsqlConfigurable {
         Injectors.DEFAULT,
         authorizationValidator,
         errorHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunner::getCommandRunnerDegradedWarning
     );
   }
 
@@ -138,7 +140,8 @@ public class KsqlResource implements KsqlConfigurable {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Supplier<String> commandRunnerWarning
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
@@ -152,6 +155,8 @@ public class KsqlResource implements KsqlConfigurable {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.commandRunnerWarning =
+        Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
 
   @Override
@@ -190,8 +195,7 @@ public class KsqlResource implements KsqlConfigurable {
             authorizationValidator,
             new ValidatedCommandFactory(),
             errorHandler,
-            () -> commandRunner.checkCommandRunnerStatus()
-                == CommandRunner.CommandRunnerStatus.DEGRADED
+            commandRunnerWarning
         ),
         ksqlEngine,
         config,
@@ -280,11 +284,9 @@ public class KsqlResource implements KsqlConfigurable {
       );
 
       LOG.info("Processed successfully: " + request);
-      addCommandRunnerDegradedWarning(
+      addCommandRunnerWarning(
           entities,
-          errorHandler,
-          () -> commandRunner.checkCommandRunnerStatus()
-              == CommandRunner.CommandRunnerStatus.DEGRADED);
+          commandRunnerWarning);
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
       LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
@@ -325,15 +327,15 @@ public class KsqlResource implements KsqlConfigurable {
         });
   }
 
-  private static void addCommandRunnerDegradedWarning(
+  private static void addCommandRunnerWarning(
       final KsqlEntityList entityList,
-      final Errors errorHandler,
-      final Supplier<Boolean> commandRunnerDegraded
+      final Supplier<String> commandRunnerWarning
   ) {
-    if (commandRunnerDegraded.get()) {
+    final String commandRunnerIssueString = commandRunnerWarning.get();
+    if (!commandRunnerIssueString.equals("")) {
       for (final KsqlEntity entity: entityList) {
         entity.updateWarnings(Collections.singletonList(
-            new KsqlWarning(errorHandler.commandRunnerDegradedErrorMessage())));
+            new KsqlWarning(commandRunnerIssueString)));
       }
     }
   }

@@ -226,8 +226,12 @@ public final class Errors {
     return errorMessages.transactionInitTimeoutErrorMessage(e);
   }
 
-  public String commandRunnerDegradedErrorMessage() {
-    return errorMessages.commandRunnerDegradedErrorMessage();
+  public String commandRunnerDegradedIncompatibleCommandsErrorMessage() {
+    return errorMessages.commandRunnerDegradedIncompatibleCommandsErrorMessage();
+  }
+
+  public String commandRunnerDegradedBackupCorruptedErrorMessage() {
+    return errorMessages.commandRunnerDegradedBackupCorruptedErrorMessage();
   }
 
   public EndpointResponse generateResponse(

@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +45,8 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.CommandTopicBackup;
+import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -95,6 +98,9 @@ public class RecoveryTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator =
       mock(DenyListPropertyValidator.class);
+
+  @Mock
+  private Errors errorHandler = mock(Errors.class);
 
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
@@ -169,7 +175,12 @@ public class RecoveryTest {
     public Producer<CommandId, Command> createTransactionalProducer() {
       return transactionalProducer;
     }
-    
+
+    @Override
+    public boolean corruptionDetected() {
+      return false;
+    }
+
     @Override
     public boolean isEmpty() {
       return commandLog.isEmpty();
@@ -219,7 +230,8 @@ public class RecoveryTest {
           "ksql-service-id",
           Duration.ofMillis(2000),
           "",
-          InternalTopicSerdes.deserializer(Command.class)
+          InternalTopicSerdes.deserializer(Command.class),
+          errorHandler
       );
 
       this.ksqlResource = new KsqlResource(
@@ -228,7 +240,7 @@ public class RecoveryTest {
           Duration.ofMillis(0),
           ()->{},
           Optional.of((sc, metastore, statement) -> { }),
-          mock(Errors.class),
+          errorHandler,
           denyListPropertyValidator
       );
 

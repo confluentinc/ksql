@@ -26,6 +26,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,6 +48,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
@@ -130,7 +132,7 @@ public class DistributingExecutorTest {
   @Mock
   private Errors errorHandler;
   @Mock
-  private Supplier<Boolean> commandRunnerDegraded;
+  private Supplier<String> commandRunnerWarning;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -147,7 +149,7 @@ public class DistributingExecutorTest {
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
     when(executionContext.getMetaStore()).thenReturn(metaStore);
     when(executionContext.createSandbox(any())).thenReturn(sandboxContext);
-    when(commandRunnerDegraded.get()).thenReturn(false);
+    when(commandRunnerWarning.get()).thenReturn("");
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
     when(validatedCommandFactory.create(any(), any())).thenReturn(command);
@@ -163,7 +165,7 @@ public class DistributingExecutorTest {
         Optional.of(authorizationValidator),
         validatedCommandFactory,
         errorHandler,
-        commandRunnerDegraded
+        commandRunnerWarning
     );
   }
 
@@ -229,15 +231,16 @@ public class DistributingExecutorTest {
   }
 
   @Test
-  public void shouldNotInitTransactionWhenCommandRunnerDegraded() {
+  public void shouldNotInitTransactionWhenCommandRunnerWarningPresent() {
     // When:
-    when(commandRunnerDegraded.get()).thenReturn(true);
+    when(commandRunnerWarning.get()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
 
     // Then:
     assertThrows(
         KsqlServerException.class,
         () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
     );
+    verify(transactionalProducer, never()).initTransactions();
   }
 
   @Test

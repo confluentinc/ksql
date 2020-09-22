@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -79,12 +80,19 @@ public class CommandTopic {
 
   public Iterable<ConsumerRecord<byte[], byte[]>> getNewCommands(final Duration timeout) {
     final Iterable<ConsumerRecord<byte[], byte[]>> iterable = commandConsumer.poll(timeout);
+    final List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
 
     if (iterable != null) {
-      iterable.forEach(this::backupRecord);
+      for (ConsumerRecord<byte[], byte[]> record : iterable) {
+        backupRecord(record);
+        if (commandTopicBackup.commandTopicCorruption()) {
+          return records;
+        }
+        records.add(record);
+      }
     }
 
-    return iterable;
+    return records;
   }
 
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
@@ -100,6 +108,10 @@ public class CommandTopic {
       log.debug("Received {} records from poll", records.count());
       for (final ConsumerRecord<byte[], byte[]> record : records) {
         backupRecord(record);
+        
+        if (commandTopicBackup.commandTopicCorruption()) {
+          return restoreCommands;
+        }
 
         if (record.value() == null) {
           continue;

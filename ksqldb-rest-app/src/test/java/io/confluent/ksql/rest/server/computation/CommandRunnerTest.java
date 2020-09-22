@@ -37,6 +37,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -47,16 +48,13 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
-import io.confluent.ksql.util.Pair;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.Before;
@@ -72,6 +70,8 @@ import org.mockito.stubbing.Answer;
 @RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerTest {
   private static final long COMMAND_RUNNER_HEALTH_TIMEOUT = 1000;
+  private static final String BACKUP_CORRUPTED_ERROR_MESSAGE = "corrupted";
+  private static final String INCOMPATIBLE_COMMANDS_ERROR_MESSAGE = "incompatible";
 
   @Mock
   private InteractiveStatementExecutor statementExecutor;
@@ -103,6 +103,8 @@ public class CommandRunnerTest {
   private Consumer<QueuedCommand> incompatibleCommandChecker;
   @Mock
   private Deserializer<Command> commandDeserializer;
+  @Mock
+  private Errors errorHandler;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
@@ -123,7 +125,10 @@ public class CommandRunnerTest {
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand2);
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);
 
+    when(commandStore.corruptionDetected()).thenReturn(false);
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(errorHandler.commandRunnerDegradedIncompatibleCommandsErrorMessage()).thenReturn(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
+    when(errorHandler.commandRunnerDegradedBackupCorruptedErrorMessage()).thenReturn(BACKUP_CORRUPTED_ERROR_MESSAGE);
 
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
@@ -140,7 +145,8 @@ public class CommandRunnerTest {
         clock,
         compactor,
         incompatibleCommandChecker,
-        commandDeserializer
+        commandDeserializer,
+        errorHandler
     );
   }
 
@@ -226,6 +232,9 @@ public class CommandRunnerTest {
 
     // When:
     commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
@@ -233,8 +242,9 @@ public class CommandRunnerTest {
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
     verify(statementExecutor, never()).handleRestore(queuedCommand3);
-    
   }
 
   @Test
@@ -244,23 +254,30 @@ public class CommandRunnerTest {
     doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
-    verify(statementExecutor).handleRestore(eq(queuedCommand1));
-    verify(statementExecutor, never()).handleRestore(queuedCommand2);
-    verify(statementExecutor, never()).handleRestore(queuedCommand3);
+    verify(statementExecutor).handleStatement(eq(queuedCommand1));
+    verify(statementExecutor, never()).handleStatement(queuedCommand2);
+    verify(statementExecutor, never()).handleStatement(queuedCommand3);
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
   }
 
   @Test
-  public void shouldProcessPartialListOfCommandsOnIncomaptibleCommandInRestore() {
+  public void shouldProcessPartialListOfCommandsOnIncompatibleCommandInRestore() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
     doThrow(new IncomaptibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
     commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
@@ -268,25 +285,52 @@ public class CommandRunnerTest {
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
     verify(statementExecutor, never()).handleRestore(queuedCommand3);
   }
 
   @Test
-  public void shouldProcessPartialListOfCommandsOnIncomaptibleCommandInFetch() {
+  public void shouldProcessPartialListOfCommandsOnIncompatibleCommandInFetch() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
     doThrow(new IncomaptibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.start();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommand2));
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
-    verify(statementExecutor, never()).handleRestore(queuedCommand3);
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
+    verify(statementExecutor, never()).handleStatement(queuedCommand3);
+  }
+
+  @Test
+  public void shouldNotProcessCommandTopicIfBackupCorrupted() throws InterruptedException {
+    // Given:
+    when(commandStore.corruptionDetected()).thenReturn(true);
+
+    // When:
+    commandRunner.start();
+    verify(commandStore, never()).close();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+
+    // Then:
+    final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(commandStore).close();
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(BACKUP_CORRUPTED_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.CORRUPTED));
   }
 
   @Test

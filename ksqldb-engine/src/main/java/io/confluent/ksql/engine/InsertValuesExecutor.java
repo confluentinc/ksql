@@ -129,8 +129,7 @@ public class InsertValuesExecutor {
   ) {
     final InsertValues insertValues = statement.getStatement();
     final MetaStore metaStore = executionContext.getMetaStore();
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
+    final KsqlConfig config = statement.getSessionConfig().getConfig(true);
 
     final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
@@ -184,11 +183,10 @@ public class InsertValuesExecutor {
       final DataSource dataSource,
       final ServiceContext serviceContext
   ) {
-    throwIfDisabled(statement.getConfig());
+    throwIfDisabled(statement.getSessionConfig().getConfig(false));
 
     final InsertValues insertValues = statement.getStatement();
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
+    final KsqlConfig config = statement.getSessionConfig().getConfig(true);
 
     try {
       final KsqlGenericRecord row = new GenericRecordFactory(config, metaStore, clock).build(

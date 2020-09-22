@@ -20,7 +20,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
@@ -35,7 +35,6 @@ import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
-import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
@@ -78,22 +77,26 @@ public class SchemaRegisterInjector implements Injector {
 
     final LogicalSchema schema = cs.getStatement().getElements().toLogicalSchema();
 
-    final KsqlTopic ksqlTopic = TopicFactory.create(cs.getStatement().getProperties());
+    final FormatInfo keyFormat = SourcePropertiesUtil
+        .getKeyFormat(cs.getStatement().getProperties());
+
+    final FormatInfo valueFormat = SourcePropertiesUtil
+        .getValueFormat(cs.getStatement().getProperties());
 
     final SerdeOptions serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
         schema,
-        ksqlTopic.getKeyFormat().getFormat(),
-        ksqlTopic.getValueFormat().getFormat(),
+        FormatFactory.of(keyFormat),
+        FormatFactory.of(valueFormat),
         cs.getStatement().getProperties().getSerdeOptions(),
-        cs.getConfig()
+        cs.getSessionConfig().getConfig(false)
     );
 
     registerSchema(
         schema,
         cs.getStatement().getProperties().getKafkaTopic(),
-        cs.getStatement().getProperties().getFormatInfo(),
+        valueFormat,
         serdeOptions,
-        cs.getConfig(),
+        cs.getSessionConfig().getConfig(false),
         cs.getStatementText(),
         false
     );
@@ -118,7 +121,7 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
         queryMetadata.getPhysicalSchema().serdeOptions(),
-        cas.getConfig(),
+        cas.getSessionConfig().getConfig(false),
         cas.getStatementText(),
         true
     );

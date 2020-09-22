@@ -19,7 +19,9 @@ import static com.google.common.io.Files.getNameWithoutExtension;
 
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -29,18 +31,22 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,7 +141,7 @@ public final class TestCaseBuilderUtil {
   ) {
     final KsqlParser parser = new DefaultKsqlParser();
 
-    final Function<PreparedStatement<?>, Topic> extractTopic = (PreparedStatement<?> stmt) -> {
+    final Function<ConfiguredStatement<?>, Topic> extractTopic = (ConfiguredStatement<?> stmt) -> {
       final CreateSource statement = (CreateSource) stmt.getStatement();
 
       final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
@@ -149,8 +155,8 @@ public final class TestCaseBuilderUtil {
         try {
           serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
               logicalSchema,
-              ksqlTopic.getKeyFormat().getFormat(),
-              ksqlTopic.getValueFormat().getFormat(),
+              FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties())),
+              FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties())),
               statement.getProperties().getSerdeOptions(),
               ksqlConfig
           );
@@ -197,7 +203,10 @@ public final class TestCaseBuilderUtil {
 
         if (isCsOrCT(stmt)) {
           final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
-          topics.add(extractTopic.apply(prepare));
+          final ConfiguredStatement<?> configured =
+              ConfiguredStatement.of(prepare, SessionConfig.of(ksqlConfig, Collections.emptyMap()));
+          final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
+          topics.add(extractTopic.apply(withFormats));
         }
       }
 

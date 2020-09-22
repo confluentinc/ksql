@@ -18,7 +18,6 @@ package ${package};
 import io.confluent.ksql.function.udaf.Udaf;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -53,7 +52,7 @@ public class SummaryStatsUdafTests {
         SummaryStatsUdaf.createUdaf();
 
     // When:
-    Map<String, Double> newAggregate = udaf.aggregate(900.0, aggregate(1.0, 400.0, 400.0));
+    final Map<String, Double> newAggregate = udaf.aggregate(900.0, aggregate(1.0, 400.0, 400.0));
 
     // Then:
     Assert.assertEquals(

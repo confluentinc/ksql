@@ -15,7 +15,7 @@
         {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"ID": 10}}
       ],
       "responses": [
-        {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
+        {"admin": {"@type": "currentStatus"}}
       ]
     },
     {
@@ -222,7 +222,7 @@
         {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"id!": 10}}
       ],
       "responses": [
-        {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
+        {"admin": {"@type": "currentStatus"}}
       ]
     },
     {
@@ -381,7 +381,7 @@
         {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": 10}
       ],
       "responses": [
-        {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
+        {"admin": {"@type": "currentStatus"}}
       ]
     }
   ]

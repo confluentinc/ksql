@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
@@ -501,6 +502,7 @@ public class InsertValuesExecutorTest {
     givenDataSourceWithSchema("_confluent-ksql-default__command-topic", SCHEMA,
         SerdeOptions.of(), false);
 
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
         PreparedStatement.of(
             "",
@@ -512,8 +514,7 @@ public class InsertValuesExecutorTest {
                     new StringLiteral("str"),
                     new LongLiteral(2L)
                 ))),
-        ImmutableMap.of(),
-        new KsqlConfig(ImmutableMap.of())
+        SessionConfig.of(ksqlConfig, ImmutableMap.of())
     );
 
     // When:
@@ -533,6 +534,7 @@ public class InsertValuesExecutorTest {
     givenDataSourceWithSchema("default_ksql_processing_log", SCHEMA,
         SerdeOptions.of(), false);
 
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
         PreparedStatement.of(
             "",
@@ -544,8 +546,7 @@ public class InsertValuesExecutorTest {
                     new StringLiteral("str"),
                     new LongLiteral(2L)
                 ))),
-        ImmutableMap.of(),
-        new KsqlConfig(ImmutableMap.of())
+        SessionConfig.of(ksqlConfig, ImmutableMap.of())
     );
 
     // When:
@@ -872,13 +873,10 @@ public class InsertValuesExecutorTest {
       final List<ColumnName> columns,
       final List<Expression> values
   ) {
-    return ConfiguredStatement.of(
-        PreparedStatement.of(
+    return ConfiguredStatement.of(PreparedStatement.of(
             "",
-            new InsertValues(SourceName.of("TOPIC"), columns, values)),
-        ImmutableMap.of(),
-        new KsqlConfig(ImmutableMap.of())
-    );
+            new InsertValues(SourceName.of("TOPIC"), columns, values)), SessionConfig.of(
+        new KsqlConfig(ImmutableMap.of()), ImmutableMap.of()));
   }
 
   private void givenSourceStreamWithSchema(

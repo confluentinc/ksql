@@ -165,7 +165,20 @@ CREATE STREAM bar AS SELECT * FROM foo;
 ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAZ', value_format='JSON');
 
 ----------------------------------------------------------------------------------------------------
---@test: assert stream with wrong topic format should fail
+--@test: assert stream with wrong key format should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected key format does not match actual for source BAR
+----------------------------------------------------------------------------------------------------
+SET 'ksql.key.format.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', key_format='KAFKA', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', key_format='AVRO', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong value format should fail
 
 --@expected.error: io.confluent.ksql.util.KsqlException
 --@expected.message: Expected value format does not match actual for source BAR
@@ -174,6 +187,39 @@ CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='
 CREATE STREAM bar AS SELECT * FROM foo;
 
 ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='AVRO');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with wrong format should fail
+
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: Expected value format does not match actual for source BAR
+----------------------------------------------------------------------------------------------------
+SET 'ksql.key.format.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', format='KAFKA');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', key_format='KAFKA', value_format='JSON');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with explicit format
+----------------------------------------------------------------------------------------------------
+SET 'ksql.key.format.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', format='KAFKA');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', key_format='KAFKA', value_format='KAFKA');
+
+----------------------------------------------------------------------------------------------------
+--@test: assert stream with explicit expected format
+----------------------------------------------------------------------------------------------------
+SET 'ksql.key.format.enabled' = 'true';
+
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', key_format='KAFKA', value_format='KAFKA');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', format='KAFKA');
 
 ----------------------------------------------------------------------------------------------------
 --@test: assert stream with wrong timestamp column

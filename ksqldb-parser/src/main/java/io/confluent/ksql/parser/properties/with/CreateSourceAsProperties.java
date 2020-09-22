@@ -25,8 +25,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
@@ -66,11 +64,8 @@ public final class CreateSourceAsProperties {
   private CreateSourceAsProperties(final Map<String, Literal> originals) {
     this.props = new PropertiesConfig(CreateAsConfigs.CONFIG_METADATA, originals);
 
+    CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
-  }
-
-  public Optional<Format> getValueFormat() {
-    return getFormatInfo().map(FormatFactory::of);
   }
 
   public Optional<String> getKafkaTopic() {
@@ -105,12 +100,20 @@ public final class CreateSourceAsProperties {
     return SerdeOptions.of(builder.build());
   }
 
-  public Optional<FormatInfo> getFormatInfo() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
-        .map(format -> FormatInfo.of(format, getFormatProperties()));
+  public Optional<FormatInfo> getKeyFormat() {
+    final String keyFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
+    return Optional.ofNullable(keyFormat).map(format -> FormatInfo.of(format, ImmutableMap.of()));
   }
 
-  public Map<String, String> getFormatProperties() {
+  public Optional<FormatInfo> getValueFormat() {
+    final String valueFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY));
+    return Optional.ofNullable(valueFormat)
+        .map(format -> FormatInfo.of(format, getValueFormatProperties()));
+  }
+
+  public Map<String, String> getValueFormatProperties() {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
     final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
@@ -159,5 +162,9 @@ public final class CreateSourceAsProperties {
   @Override
   public int hashCode() {
     return Objects.hash(props);
+  }
+
+  private Optional<String> getFormatName() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.FORMAT_PROPERTY));
   }
 }

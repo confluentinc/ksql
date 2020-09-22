@@ -50,7 +50,7 @@ public final class FormatFactory {
   }
 
   public static Format fromName(final String name) {
-    switch (name) {
+    switch (name.toUpperCase()) {
       case AvroFormat.NAME:       return AVRO;
       case JsonFormat.NAME:       return JSON;
       case JsonSchemaFormat.NAME: return JSON_SR;

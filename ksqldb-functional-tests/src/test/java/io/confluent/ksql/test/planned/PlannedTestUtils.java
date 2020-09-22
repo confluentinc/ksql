@@ -50,7 +50,7 @@ public final class PlannedTestUtils {
     // Place temporary logic here to exclude test cases based on feature flags, etc.
     return !(boolean) testCase
         .properties()
-        .getOrDefault(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED, false);
+        .getOrDefault(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, false);
   }
 
   public static boolean isSamePlan(

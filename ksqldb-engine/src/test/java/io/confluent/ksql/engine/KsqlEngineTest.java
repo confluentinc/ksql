@@ -17,7 +17,6 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.engine.KsqlEngineTestUtil.execute;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasFullName;
-import static io.confluent.ksql.statement.ConfiguredStatement.of;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static java.util.Collections.emptyMap;
@@ -42,6 +41,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -50,6 +50,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -103,7 +104,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
 
-  private static final KsqlConfig KSQL_CONFIG = KsqlConfigTestUtil.create("what-eva");
+  private static final KsqlConfig KSQL_CONFIG = KsqlConfigTestUtil.create(
+      "what-eva",
+      ImmutableMap.of(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true));
 
   private MutableMetaStore metaStore;
   @Spy
@@ -227,8 +230,8 @@ public class KsqlEngineTest {
     final ExecuteResult result = sandbox
         .execute(sandboxServiceContext, ConfiguredStatement.of(
             sandbox.prepare(statements.get(1)),
-            Collections.emptyMap(),
-            KSQL_CONFIG));
+            SessionConfig.of(KSQL_CONFIG, Collections.emptyMap())
+        ));
 
     // Then:
     assertThat(result.getQuery(), is(not(Optional.empty())));
@@ -464,7 +467,7 @@ public class KsqlEngineTest {
     // Given:
     final ParsedStatement stmt = parse(
         "CREATE STREAM S1_NOTEXIST (COL1 BIGINT, COL2 VARCHAR) "
-            + "WITH  (KAFKA_TOPIC = 'S1_NOTEXIST', VALUE_FORMAT = 'JSON');").get(0);
+            + "WITH  (KAFKA_TOPIC = 'S1_NOTEXIST', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0);
 
     final PreparedStatement<?> prepared = prepare(stmt);
 
@@ -473,7 +476,7 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement.of(prepared, Collections.emptyMap(), KSQL_CONFIG)
+            ConfiguredStatement.of(prepared, SessionConfig.of(KSQL_CONFIG, Collections.emptyMap()))
         )
     );
 
@@ -511,11 +514,11 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotEnforceTopicExistenceWhileParsing() {
     final String runScriptContent = "CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
-        + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
+        + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');\n"
         + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
         + "S1 GROUP BY COL1;\n"
         + "CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
-        + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
+        + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');\n";
 
     final List<?> parsedStatements = ksqlEngine.parse(runScriptContent);
 
@@ -527,14 +530,14 @@ public class KsqlEngineTest {
     // Given:
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE STREAM S1 (COL1 BIGINT) "
-            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');").get(0));
+            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0));
 
     // When:
     final KsqlStatementException e = assertThrows(
         KsqlStatementException.class,
         () -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+            ConfiguredStatement.of(statement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of()))
         )
     );
 
@@ -543,7 +546,7 @@ public class KsqlEngineTest {
         "Kafka topic does not exist: i_do_not_exist")));
     assertThat(e, statementText(is(
         "CREATE STREAM S1 (COL1 BIGINT)"
-            + " WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');")));
+            + " WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');")));
   }
 
   @Test
@@ -551,14 +554,14 @@ public class KsqlEngineTest {
     // Given:
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE STREAM S1 (COL1 BIGINT) "
-            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');").get(0));
+            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0));
 
     // When:
     final KsqlStatementException e = assertThrows(
         KsqlStatementException.class,
         () -> ksqlEngine.execute(
             serviceContext,
-            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+            ConfiguredStatement.of(statement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of()))
         )
     );
 
@@ -571,7 +574,7 @@ public class KsqlEngineTest {
     final String runScriptContent = "CREATE STREAM S1 \n"
         + "(COL1 BIGINT, COL2 VARCHAR)\n"
         + " WITH \n"
-        + "(KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n";
+        + "(KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');\n";
 
     final List<?> parsedStatements = ksqlEngine.parse(runScriptContent);
 
@@ -589,7 +592,7 @@ public class KsqlEngineTest {
         () -> execute(
             serviceContext,
             ksqlEngine,
-            "create stream bar with (value_format='avro', kafka_topic='bar');",
+            "create stream bar with (key_format='kafka', value_format='avro', kafka_topic='bar');",
             KSQL_CONFIG,
             emptyMap()
         )
@@ -601,7 +604,7 @@ public class KsqlEngineTest {
             "The statement does not define any columns.")));
     assertThat(e, statementText(
         is(
-            "create stream bar with (value_format='avro', kafka_topic='bar');")));
+            "create stream bar with (key_format='kafka', value_format='avro', kafka_topic='bar');")));
   }
 
   @Test
@@ -976,10 +979,10 @@ public class KsqlEngineTest {
         + "   Multi-line comment\n"
         + "*/\n"
         + "CREATE STREAM S0 (a INT, b VARCHAR) "
-        + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED');\n"
+        + "      WITH (kafka_topic='s0_topic', value_format='DELIMITED', key_format='KAFKA');\n"
         + "\n"
         + "CREATE TABLE T1 (f0 BIGINT PRIMARY KEY, f1 DOUBLE) "
-        + "     WITH (kafka_topic='t1_topic', value_format='JSON');\n"
+        + "     WITH (kafka_topic='t1_topic', value_format='JSON', key_format='KAFKA');\n"
         + "\n"
         + "CREATE STREAM S1 AS SELECT * FROM S0;\n"
         + "\n"
@@ -998,7 +1001,8 @@ public class KsqlEngineTest {
           final PreparedStatement<?> prepared = ksqlEngine.prepare(stmt);
           final ExecuteResult result = ksqlEngine.execute(
               serviceContext,
-              ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
+              ConfiguredStatement
+                  .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>())));
           result.getQuery().ifPresent(queries::add);
           return prepared;
         })
@@ -1051,7 +1055,8 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> ksqlEngine.execute(
             serviceContext,
-            ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+            ConfiguredStatement
+                .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
         )
     );
 
@@ -1109,7 +1114,8 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> ksqlEngine.execute(
             serviceContext,
-            of(prepared, new HashMap<>(), KSQL_CONFIG)
+            ConfiguredStatement
+                .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
         )
     );
 
@@ -1175,7 +1181,8 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> sandbox.execute(
             serviceContext,
-            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+            ConfiguredStatement
+                .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
         )
     );
 
@@ -1198,7 +1205,8 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> sandbox.execute(
             serviceContext,
-            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+            ConfiguredStatement
+                .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
         )
     );
 
@@ -1213,10 +1221,10 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowIfStatementMissingTopicConfig() {
     final List<ParsedStatement> parsed = parse(
-        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO');"
-            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO');"
-            + "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');"
-            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');"
+        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO', KEY_FORMAT='KAFKA');"
+            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO', KEY_FORMAT='KAFKA');"
+            + "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');"
+            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');"
     );
 
     for (final ParsedStatement statement : parsed) {
@@ -1232,28 +1240,41 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldThrowIfStatementMissingValueFormatConfig() {
+  public void shouldThrowOnUnsupportedKeyFormatForCreateSource() {
     // Given:
     givenTopicsExist("foo");
+    final PreparedStatement<?> prepared =
+        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='avro');").get(0));
 
-    final List<ParsedStatement> parsed = parse(
-        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (KAFKA_TOPIC='foo');"
-            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (KAFKA_TOPIC='foo');"
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> sandbox.execute(
+            sandboxServiceContext,
+            ConfiguredStatement.of(prepared, SessionConfig.of(KSQL_CONFIG, Collections.emptyMap()))
+        )
     );
 
-    for (final ParsedStatement statement : parsed) {
+    // Then:
+    assertThat(e.getMessage(), containsString("The key format 'AVRO' is not currently supported."));
+  }
 
-      try {
-        // When:
-        ksqlEngine.prepare(statement);
+  @Test
+  public void shouldThrowOnUnsupportedKeyFormatForCSAS() {
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "CREATE STREAM FOO WITH (KEY_FORMAT='AVRO') AS SELECT * FROM ORDERS;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
 
-        // Then:
-        Assert.fail();
-      } catch (final KsqlStatementException e) {
-        assertThat(e.getMessage(), containsString(
-            "Missing required property \"VALUE_FORMAT\" which has no default value."));
-      }
-    }
+    // Then:
+    assertThat(e, rawMessage(containsString("The key format 'AVRO' is not currently supported.")));
   }
 
   @Test
@@ -1282,7 +1303,7 @@ public class KsqlEngineTest {
     final int numPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
+        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON', KEY_FORMAT='KAFKA');"
             + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
             + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
             + "DROP TABLE TEST3;");
@@ -1293,7 +1314,9 @@ public class KsqlEngineTest {
     statements
         .forEach(stmt -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
+            ConfiguredStatement
+                .of(sandbox.prepare(stmt), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
+                )));
 
     // Then:
     assertThat(metaStore.getSource(SourceName.of("TEST3")), is(notNullValue()));
@@ -1310,7 +1333,7 @@ public class KsqlEngineTest {
     topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, Collections.emptyMap());
 
     final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
+        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');"
             + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
             + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
             + "DROP TABLE TEST3;");
@@ -1319,7 +1342,9 @@ public class KsqlEngineTest {
     statements.forEach(
         stmt -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG))
+            ConfiguredStatement
+                .of(sandbox.prepare(stmt), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
+                ))
     );
 
     // Then:
@@ -1336,7 +1361,8 @@ public class KsqlEngineTest {
     // When:
     sandbox.execute(
         sandboxServiceContext,
-        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+        ConfiguredStatement
+            .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:
@@ -1360,7 +1386,8 @@ public class KsqlEngineTest {
     // When:
     sandbox.execute(
         sandboxServiceContext,
-        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+        ConfiguredStatement
+            .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:
@@ -1398,7 +1425,8 @@ public class KsqlEngineTest {
     // When:
     final ExecuteResult result = sandbox.execute(
         sandboxServiceContext,
-        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+        ConfiguredStatement
+            .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:
@@ -1458,12 +1486,13 @@ public class KsqlEngineTest {
     // Given:
     givenTopicsExist("foo");
     final PreparedStatement<?> statement =
-        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json');").get(0));
+        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='kafka');").get(0));
 
     // When:
     final ExecuteResult result = sandbox.execute(
         sandboxServiceContext,
-        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+        ConfiguredStatement
+            .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:
@@ -1595,15 +1624,18 @@ public class KsqlEngineTest {
   ) {
     ksqlEngine.execute(
         serviceContext,
-        ConfiguredStatement.of(ksqlEngine.prepare(statement), new HashMap<>(), KSQL_CONFIG));
+        ConfiguredStatement
+            .of(ksqlEngine.prepare(statement), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
+            ));
     sandbox = ksqlEngine.createSandbox(serviceContext);
   }
 
   private void givenSqlAlreadyExecuted(final String sql) {
-    parse(sql).forEach(stmt ->
-        ksqlEngine.execute(
-            serviceContext,
-            ConfiguredStatement.of(ksqlEngine.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
+    parse(sql).forEach(stmt -> ksqlEngine.execute(
+        serviceContext,
+        ConfiguredStatement
+            .of(ksqlEngine.prepare(stmt), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
+            )));
 
     sandbox = ksqlEngine.createSandbox(serviceContext);
   }

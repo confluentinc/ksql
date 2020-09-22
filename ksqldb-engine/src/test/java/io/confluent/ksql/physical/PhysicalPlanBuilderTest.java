@@ -64,34 +64,28 @@ public class PhysicalPlanBuilderTest {
 
   private static final String CREATE_STREAM_TEST1 = "CREATE STREAM TEST1 "
       + "(ROWKEY STRING KEY, COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) "
-      + "WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');";
+      + "WITH (KAFKA_TOPIC = 'test1', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST2 = "CREATE STREAM TEST2 "
       + "(ID2 BIGINT KEY, COL0 VARCHAR, COL1 BIGINT) "
-      + " WITH (KAFKA_TOPIC = 'test2', VALUE_FORMAT = 'JSON');";
+      + " WITH (KAFKA_TOPIC = 'test2', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_STREAM_TEST3 = "CREATE STREAM TEST3 "
       + "(ID3 BIGINT KEY, COL0 BIGINT, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test3', VALUE_FORMAT = 'JSON');";
+      + " WITH (KAFKA_TOPIC = 'test3', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_TABLE_TEST4 = "CREATE TABLE TEST4 "
       + "(ID BIGINT PRIMARY KEY, COL0 BIGINT, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test4', VALUE_FORMAT = 'JSON');";
+      + " WITH (KAFKA_TOPIC = 'test4', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
 
   private static final String CREATE_TABLE_TEST5 = "CREATE TABLE TEST5 "
       + "(ID BIGINT PRIMARY KEY, COL0 BIGINT, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test5', VALUE_FORMAT = 'JSON');";
-
-  private static final String CREATE_STREAM_TEST6 = "CREATE STREAM TEST6 "
-      + "(ID BIGINT KEY, COL0 VARCHAR, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test6', VALUE_FORMAT = 'JSON');";
-
-  private static final String CREATE_STREAM_TEST7 = "CREATE STREAM TEST7 "
-      + "(ID BIGINT KEY, COL0 VARCHAR, COL1 DOUBLE) "
-      + " WITH (KAFKA_TOPIC = 'test7', VALUE_FORMAT = 'JSON');";
+      + " WITH (KAFKA_TOPIC = 'test5', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');";
 
   private static final String simpleSelectFilter = "SELECT rowkey, col0, col2 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
-  private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create("what-eva");
+  private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create(
+      "what-eva",
+      ImmutableMap.of(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true));
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
 
@@ -215,7 +209,7 @@ public class PhysicalPlanBuilderTest {
   public void shouldCreatePlanForInsertIntoStreamFromStream() {
     // Given:
     final String cs = "CREATE STREAM test1 (ROWKEY STRING KEY, col0 INT) "
-        + "WITH (KAFKA_TOPIC='test1', VALUE_FORMAT='JSON');";
+        + "WITH (KAFKA_TOPIC='test1', KEY_FORMAT = 'KAFKA', VALUE_FORMAT='JSON');";
     final String csas = "CREATE STREAM s0 AS SELECT * FROM test1;";
     final String insertInto = "INSERT INTO s0 SELECT * FROM test1;";
     givenKafkaTopicsExist("test1");

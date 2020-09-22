@@ -25,7 +25,7 @@ public final class CreateAsConfigs {
   private static final ConfigDef CONFIG_DEF = new ConfigDef();
 
   static {
-    CommonCreateConfigs.addToConfigDef(CONFIG_DEF, false, false);
+    CommonCreateConfigs.addToConfigDef(CONFIG_DEF, false);
   }
 
   public static final ConfigMetaData CONFIG_METADATA = ConfigMetaData.of(CONFIG_DEF);

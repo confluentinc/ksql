@@ -63,6 +63,13 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       final Optional<Integer> schemaId,
       final FormatInfo expectedFormat
   ) {
+    final Format format = formatFactory.apply(expectedFormat);
+    final SchemaTranslator translator = format.getSchemaTranslator(expectedFormat.getProperties());
+
+    if (!parsedSchema.schemaType().equals(translator.name())) {
+      return incorrectFormat(topic, expectedFormat.getFormat(), parsedSchema.schemaType());
+    }
+
     try {
       final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
 

@@ -97,7 +97,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   }
 
   @Test
-  public void shouldReturnErrorFromGetValueSchemaIfSchemaIsNotInExpectedFormat() {
+  public void shouldReturnErrorFromGetValueSchemaIfSchemaIsNotInExpectedFormat() throws Exception {
     // Given:
     when(parsedSchema.schemaType()).thenReturn(ProtobufSchema.TYPE);
 

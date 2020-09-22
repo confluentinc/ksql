@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.FormatProperties;
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.Map;
 
 /**
@@ -27,6 +26,11 @@ import java.util.Map;
  */
 @Immutable
 class AvroProperties {
+
+  static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
+  static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
+  static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
+      AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
 
   static final String FULL_SCHEMA_NAME = "fullSchemaName";
   static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(FULL_SCHEMA_NAME);
@@ -41,6 +45,6 @@ class AvroProperties {
 
   String getFullSchemaName() {
     return properties
-        .getOrDefault(FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+        .getOrDefault(FULL_SCHEMA_NAME, DEFAULT_AVRO_SCHEMA_FULL_NAME);
   }
 }

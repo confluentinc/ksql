@@ -729,6 +729,29 @@
           {"finalMessage":"Limit Reached"}
         ]}
       ]
+    },
+    {
+      "name": "non-windowed stream - non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, ID INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[11, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
     }
   ]
 }

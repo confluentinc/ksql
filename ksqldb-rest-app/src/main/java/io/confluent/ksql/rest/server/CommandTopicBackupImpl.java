@@ -152,9 +152,8 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
   void writeCommandToBackup(final ConsumerRecord<CommandId, Command> record) {
     if (corruptionDetected) {
-      LOG.warn("Failure to write command topic data to backup. "
-          + "Corruption detected in command topic.");
-      return;
+      throw new KsqlServerException(
+          "Failed to write record due to out of sync command topic and backup file: " + record);
     }
 
     if (isRestoring()) {
@@ -162,7 +161,9 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
         // Ignore backup because record was already replayed
         return;
       } else {
-        LOG.info("Previous command topic backup does not match the new command topic data.");
+        LOG.warn("Backup is out of sync with the current command topic. "
+            + "Backups will not work until the previous command topic is "
+            + "restored or all backup files are deleted.");
         corruptionDetected = true;
         return;
       }

@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
+import io.confluent.ksql.util.KsqlServerException;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -84,8 +86,10 @@ public class CommandTopic {
 
     if (iterable != null) {
       for (ConsumerRecord<byte[], byte[]> record : iterable) {
-        backupRecord(record);
-        if (commandTopicBackup.commandTopicCorruption()) {
+        try {
+          backupRecord(record);
+        } catch (final KsqlServerException e) {
+          log.warn("Error backing up record from command topic.");
           return records;
         }
         records.add(record);
@@ -107,9 +111,10 @@ public class CommandTopic {
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
       for (final ConsumerRecord<byte[], byte[]> record : records) {
-        backupRecord(record);
-        
-        if (commandTopicBackup.commandTopicCorruption()) {
+        try {
+          backupRecord(record);
+        } catch (final KsqlServerException e) {
+          log.warn("Error backing up record from command topic.");
           return restoreCommands;
         }
 

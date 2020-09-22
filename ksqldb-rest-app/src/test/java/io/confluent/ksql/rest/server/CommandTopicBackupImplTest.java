@@ -186,7 +186,7 @@ public class CommandTopicBackupImplTest {
   }
 
   @Test
-  public void shouldNotCreateNewReplayFileIfNewRecordsDoNotMatchPreviousBackups() throws IOException {
+  public void shouldNotCreateNewReplayFileIfNewRecordsDoNotMatchPreviousBackups() {
     // Given
     commandTopicBackup = new CommandTopicBackupImpl(
         backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker);
@@ -206,6 +206,12 @@ public class CommandTopicBackupImplTest {
     // Then
     assertThat(currentReplayFile.getPath(), is(previousReplayFile.getPath()));
     assertThat(commandTopicBackup.commandTopicCorruption(), is(true));
+    try {
+      commandTopicBackup.writeCommandToBackup(record2);
+      assertThat(true, is(false));
+    } catch (final KsqlServerException e) {
+      // This is expected so we do nothing
+    }
   }
 
   @Test

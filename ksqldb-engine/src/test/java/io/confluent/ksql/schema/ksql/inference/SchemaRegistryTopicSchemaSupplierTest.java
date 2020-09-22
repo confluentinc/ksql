@@ -91,13 +91,13 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
     when(format.getSchemaTranslator(any())).thenReturn(schemaTranslator);
     when(schemaTranslator.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1, column2));
+    when(schemaTranslator.name()).thenReturn("AVRO");
 
-    when(expectedValueFormat.getFormat()).thenReturn("AVRO");
     when(expectedValueFormat.getProperties()).thenReturn(formatProperties);
   }
 
   @Test
-  public void shouldReturnErrorFromGetValueSchemaIfSchemaIsNotInExpectedFormat() throws Exception {
+  public void shouldReturnErrorFromGetValueSchemaIfSchemaIsNotInExpectedFormat() {
     // Given:
     when(parsedSchema.schemaType()).thenReturn(ProtobufSchema.TYPE);
 

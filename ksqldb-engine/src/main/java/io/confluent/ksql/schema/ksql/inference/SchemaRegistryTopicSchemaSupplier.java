@@ -101,7 +101,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
     final SchemaTranslator translator = format.getSchemaTranslator(expectedFormat.getProperties());
 
     if (!parsedSchema.schemaType().equals(translator.name())) {
-      return incorrectFormat(topic, expectedFormat.getFormat(), parsedSchema.schemaType());
+      return incorrectFormat(topic, translator.name(), parsedSchema.schemaType());
     }
 
     try {

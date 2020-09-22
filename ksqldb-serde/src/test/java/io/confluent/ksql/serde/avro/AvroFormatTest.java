@@ -13,7 +13,6 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.EnabledSerdeFeatures;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
@@ -32,8 +31,6 @@ public class AvroFormatTest {
   private KsqlConfig config;
   @Mock
   private Supplier<SchemaRegistryClient> srFactory;
-  @Mock
-  private FormatInfo formatInfo;
 
   private AvroFormat format;
   private Map<String, String> formatProps;
@@ -42,8 +39,6 @@ public class AvroFormatTest {
   public void setUp() {
     format = new AvroFormat();
     formatProps = new HashMap<>();
-
-    when(formatInfo.getProperties()).thenReturn(formatProps);
   }
 
   @Test
@@ -62,24 +57,6 @@ public class AvroFormatTest {
 
     // Then:
     assertThat(e.getMessage(), is("Schema is not compatible with Avro: Illegal initial character: 1AintRight"));
-  }
-
-  @Test
-  public void shouldThrowWhenBuildingAvroSchemafSchemaContainsInvalidAvroNames() {
-    // Given:
-    final PersistenceSchema schema = PersistenceSchema.from(
-        ImmutableList.of(column("2Bad")),
-        EnabledSerdeFeatures.of()
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> format.toParsedSchema(schema, formatInfo)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), is("Schema is not compatible with Avro: Illegal initial character: 2Bad"));
   }
 
   private static SimpleColumn column(final String name) {

@@ -45,11 +45,12 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
-import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
+import io.confluent.ksql.serde.connect.ConnectSchemaUtil;
 import java.io.IOException;
 import java.util.Collections;
 import org.junit.Before;
@@ -307,7 +308,7 @@ public class AvroUtilTest {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
     final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-    final org.apache.kafka.connect.data.Schema connectSchema = new ConnectSchemaTranslator()
+    final org.apache.kafka.connect.data.Schema connectSchema = ConnectSchemaUtil
         .toKsqlSchema(avroData.toConnectSchema(avroSchema));
 
     final ConnectToSqlTypeConverter converter = SchemaConverters
@@ -324,14 +325,13 @@ public class AvroUtilTest {
   }
 
   private static AvroSchema avroSchema(final PhysicalSchema schema) {
-    return (AvroSchema) new AvroFormat().toParsedSchema(
+    final SchemaTranslator translator = new AvroFormat()
+        .getSchemaTranslator(ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME));
+
+    return (AvroSchema) translator.toParsedSchema(
         PersistenceSchema.from(
             schema.logicalSchema().value(),
             schema.serdeOptions().valueFeatures()
-        ),
-        FormatInfo.of(
-            AvroFormat.NAME,
-            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME)
         )
     );
   }

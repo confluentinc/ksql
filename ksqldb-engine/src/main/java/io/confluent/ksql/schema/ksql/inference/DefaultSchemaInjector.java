@@ -106,11 +106,12 @@ public class DefaultSchemaInjector implements Injector {
   private SchemaAndId getValueSchema(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    final String topicName = statement.getStatement().getProperties().getKafkaTopic();
+    final CreateSourceProperties props = statement.getStatement().getProperties();
 
-    final SchemaResult result = statement.getStatement().getProperties().getSchemaId()
-        .map(id -> schemaSupplier.getValueSchema(topicName, Optional.of(id)))
-        .orElseGet(() -> schemaSupplier.getValueSchema(topicName, Optional.empty()));
+    final FormatInfo expectedValueFormat = SourcePropertiesUtil.getValueFormat(props);
+
+    final SchemaResult result = schemaSupplier
+        .getValueSchema(props.getKafkaTopic(), props.getSchemaId(), expectedValueFormat);
 
     if (result.failureReason.isPresent()) {
       final Exception cause = result.failureReason.get();

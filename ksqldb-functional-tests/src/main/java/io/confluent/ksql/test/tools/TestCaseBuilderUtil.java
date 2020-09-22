@@ -39,6 +39,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -167,11 +168,13 @@ public final class TestCaseBuilderUtil {
           serdeOptions = SerdeOptions.of();
         }
 
+        final SchemaTranslator translator = valueFormat
+            .getSchemaTranslator(valueFormatInfo.getProperties());
+
         valueSchema = logicalSchema.value().isEmpty()
             ? Optional.empty()
-            : Optional.of(valueFormat.toParsedSchema(
-                PersistenceSchema.from(logicalSchema.value(), serdeOptions.valueFeatures()),
-                valueFormatInfo
+            : Optional.of(translator.toParsedSchema(
+                PersistenceSchema.from(logicalSchema.value(), serdeOptions.valueFeatures())
             ));
       } else {
         valueSchema = Optional.empty();

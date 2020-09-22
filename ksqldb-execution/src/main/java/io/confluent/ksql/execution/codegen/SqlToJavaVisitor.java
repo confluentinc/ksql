@@ -939,10 +939,7 @@ public class SqlToJavaVisitor {
       final SqlType schema = expr.getRight();
       final String exprStr;
       if (schema.baseType() == SqlBaseType.DECIMAL) {
-        final SqlDecimal decimal = (SqlDecimal) schema;
-        final int precision = decimal.getPrecision();
-        final int scale = decimal.getScale();
-        exprStr = String.format("DecimalUtil.format(%d, %d, %s)", precision, scale, expr.getLeft());
+        exprStr = expr.getLeft() + ".toPlainString()";
       } else {
         if (ksqlConfig.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)) {
           exprStr = "Objects.toString(" + expr.getLeft() + ", null)";

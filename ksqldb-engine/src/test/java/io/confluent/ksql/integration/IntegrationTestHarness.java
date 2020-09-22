@@ -69,7 +69,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
 

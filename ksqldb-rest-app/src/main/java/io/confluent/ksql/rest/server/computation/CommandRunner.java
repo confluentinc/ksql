@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.computation;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
-import io.confluent.ksql.rest.server.CommandTopicBackup;
 import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -101,14 +100,35 @@ public class CommandRunner implements Closeable {
     INCOMPATIBLE_COMMAND(Errors::commandRunnerDegradedIncompatibleCommandsErrorMessage),
     COMMAND_TOPIC_DELETED(Errors::commandRunnerDegradedCommandTopicDeletedErrorMessage);
 
-    private Function<Errors, String> msgFactory;
+    private final Function<Errors, String> msgFactory;
 
     public String getMsg(final Errors errors) {
       return msgFactory.apply(errors);
     }
 
-    CommandRunnerDegradedReason(Function<Errors, String> msgFactory) {
+    CommandRunnerDegradedReason(final Function<Errors, String> msgFactory) {
       this.msgFactory = msgFactory;
+    }
+  }
+
+  public static class Status {
+    private final CommandRunnerStatus status;
+    private final CommandRunnerDegradedReason degradedReason;
+
+    public Status(
+        final CommandRunnerStatus status,
+        final CommandRunnerDegradedReason degradedReason
+    ) {
+      this.status = status;
+      this.degradedReason = degradedReason;
+    }
+
+    public CommandRunnerStatus getStatus() {
+      return status;
+    }
+
+    public CommandRunnerDegradedReason getDegradedReason() {
+      return degradedReason;
     }
   }
 
@@ -402,26 +422,6 @@ public class CommandRunner implements Closeable {
     return getCommandRunnerDegradedReason().getMsg(errorHandler);
   }
 
-  public static class Status {
-    private final CommandRunnerStatus status;
-    private final CommandRunnerDegradedReason degradedReason;
-
-    public Status(
-        final CommandRunnerStatus status,
-        final CommandRunnerDegradedReason degradedReason
-    ) {
-      this.status = status;
-      this.degradedReason = degradedReason;
-    }
-
-    public CommandRunnerStatus getStatus() {
-      return status;
-    }
-    public CommandRunnerDegradedReason getDegradedReason() {
-      return degradedReason;
-    }
-  }
-
   private class Runner implements Runnable {
 
     @Override
@@ -429,7 +429,8 @@ public class CommandRunner implements Closeable {
       try {
         while (!closed) {
           if (incompatibleCommandDetected) {
-            LOG.warn("CommandRunner entering degraded state due to encountering an incompatible command");
+            LOG.warn("CommandRunner entering degraded state due to "
+                + "encountering an incompatible command");
             state = new Status(
                 CommandRunnerStatus.DEGRADED,
                 CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND

@@ -15,6 +15,12 @@
 
 package io.confluent.ksql.analyzer;
 
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
+
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -27,22 +33,14 @@ import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
+import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
-import java.util.Optional;
-import java.util.function.BiFunction;
-
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 public class RewrittenAnalysisTest {
 

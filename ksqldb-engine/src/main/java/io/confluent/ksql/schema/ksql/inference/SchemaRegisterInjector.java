@@ -77,11 +77,15 @@ public class SchemaRegisterInjector implements Injector {
 
     final LogicalSchema schema = cs.getStatement().getElements().toLogicalSchema();
 
-    final FormatInfo valueFormat =
-        SourcePropertiesUtil.getValueFormat(cs.getStatement().getProperties());
+    final FormatInfo keyFormat = SourcePropertiesUtil
+        .getKeyFormat(cs.getStatement().getProperties());
+
+    final FormatInfo valueFormat = SourcePropertiesUtil
+        .getValueFormat(cs.getStatement().getProperties());
+
     final SerdeOptions serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
         schema,
-        FormatFactory.of(SourcePropertiesUtil.getKeyFormat(cs.getStatement().getProperties())),
+        FormatFactory.of(keyFormat),
         FormatFactory.of(valueFormat),
         cs.getStatement().getProperties().getSerdeOptions(),
         cs.getSessionConfig().getConfig(false)

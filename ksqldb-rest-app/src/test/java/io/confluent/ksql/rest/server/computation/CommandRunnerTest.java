@@ -107,8 +107,6 @@ public class CommandRunnerTest {
   @Mock
   private Deserializer<Command> commandDeserializer;
   @Mock
-  private Supplier<Boolean> backupCorrupted;
-  @Mock
   private Supplier<Boolean> commandTopicExists;
   @Mock
   private Errors errorHandler;

@@ -69,6 +69,7 @@ pip install mkdocs-git-revision-date-plugin
 pip install pymdown-extensions
 pip install mkdocs-material
 pip install mkdocs-redirects
+pip install mdx_truly_sane_lists
 ```
 
 Build the docs

@@ -116,7 +116,7 @@ public class Options {
   @SuppressWarnings("unused") // Accessed via reflection
   @Option(
       name = {EXECUTE_OPTION, EXECUTE_SHORT_OPTION},
-      description = "Execute a command and quit.")
+      description = "Execute one or more SQL statements and quit.")
   private String execute = null;
 
   public static Options parse(final String...args) throws IOException {
@@ -199,6 +199,12 @@ public class Options {
   }
 
   public String getExecute() {
-    return execute;
+    if (execute == null || execute.isEmpty()) {
+      return execute;
+    }
+
+    // Append a colon if not specified
+    final char lastChar = execute.charAt(execute.length() - 1);
+    return (lastChar != ';') ? execute + ";" : execute;
   }
 }

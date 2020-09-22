@@ -192,7 +192,9 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     } catch (final EndOfFileException exception) {
       // Ignore - only used by runInteractively() to exit the CLI
     } catch (final Exception exception) {
-      LOGGER.error("", exception);
+      LOGGER.error("An error occurred while running a command. Error = "
+          + exception.getMessage(), exception);
+
       terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
           exception.toString());
     }
@@ -212,7 +214,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         terminal.writer().println("Exiting ksqlDB.");
         eof = true;
       } catch (final Exception exception) {
-        LOGGER.error("", exception);
+        LOGGER.error("An error occurred while running a command. Error = "
+            + exception.getMessage(), exception);
         terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
             exception.toString());
       }

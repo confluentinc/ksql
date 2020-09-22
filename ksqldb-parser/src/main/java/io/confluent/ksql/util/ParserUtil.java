@@ -47,9 +47,9 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ParserUtil {
-
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   /**
    * Source names must adhere to the kafka topic naming convention. We restrict
    * it here instead of as a parser rule to allow for a more descriptive error

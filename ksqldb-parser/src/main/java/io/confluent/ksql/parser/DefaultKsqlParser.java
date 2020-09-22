@@ -55,7 +55,8 @@ public class DefaultKsqlParser implements KsqlParser {
         //Checks if the error is a reserved keyword error
         final String tokenName = ((Token) offendingSymbol).getText();
         final String newMessage =
-                "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier";
+                "\"" + tokenName + "\" is a reserved keyword and it can't be used as an identifier."
+                + " You can use it as an identifier by escaping it as \'" + tokenName + "\' ";
         throw new ParsingException(newMessage, e, line, charPositionInLine);
       } else {
         throw new ParsingException(message, e, line, charPositionInLine);

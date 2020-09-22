@@ -18,6 +18,7 @@ package io.confluent.ksql.structured;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -37,6 +38,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -51,6 +53,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -58,6 +61,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.junit.Before;
 import org.junit.Test;
@@ -466,6 +470,34 @@ public class SchemaKStreamTest {
           schemaKTable.getSchema()))
       );
     }
+  }
+
+  @Test
+  public void shouldThrowOnIntoIfKeyFormatWindowInfoIsDifferent() {
+    // Given:
+    final SchemaKStream stream = new SchemaKStream(
+        sourceStep,
+        ksqlStream.getSchema(),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+
+    final KeyFormat windowedKeyFormat = KeyFormat.windowed(keyFormat.getFormatInfo(),
+        WindowInfo.of(WindowType.SESSION, Optional.empty()));
+
+    // When:
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> stream.into(
+            "some-topic",
+            windowedKeyFormat,
+            valueFormat,
+            SerdeOptions.of(),
+            childContextStacker,
+            Optional.empty()
+        )
+    );
   }
 
   private SchemaKStream buildSchemaKStream(

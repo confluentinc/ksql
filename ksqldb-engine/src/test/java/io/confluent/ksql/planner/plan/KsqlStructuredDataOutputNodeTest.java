@@ -37,6 +37,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -68,6 +69,7 @@ public class KsqlStructuredDataOutputNodeTest {
       .build();
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
+  private static final KeyFormat PROTOBUF_KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.PROTOBUF.name()));
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
 
   @Mock
@@ -95,13 +97,14 @@ public class KsqlStructuredDataOutputNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
 
-    when(sourceStream.into(any(), any(), any(), any(), any()))
+    when(sourceStream.into(any(), any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
 
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
     when(ksqlTopic.getKafkaTopicName()).thenReturn(SINK_KAFKA_TOPIC_NAME);
+    when(ksqlTopic.getKeyFormat()).thenReturn(PROTOBUF_KEY_FORMAT);
     when(ksqlTopic.getValueFormat()).thenReturn(JSON_FORMAT);
 
     buildNode();
@@ -143,26 +146,39 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
-        .of(AvroFormat.FULL_SCHEMA_NAME, "name")));
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(
+        FormatFactory.AVRO.name(),
+        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "key-name")
+    ));
 
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
+        FormatFactory.AVRO.name(),
+        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "name")
+    ));
+
+    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
 
-    // When/Then (should not throw):
+    // When:
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(sourceStream).into(any(), eq(valueFormat), any(), any(), any());
+    verify(sourceStream).into(any(), eq(keyFormat), eq(valueFormat), any(), any(), any());
   }
 
   @Test
   public void shouldCallInto() {
+    // Given:
+    when(ksqlTopic.getKeyFormat()).thenReturn(PROTOBUF_KEY_FORMAT);
+    when(ksqlTopic.getValueFormat()).thenReturn(JSON_FORMAT);
+
     // When:
     final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(sourceStream).into(
         eq(SINK_KAFKA_TOPIC_NAME),
+        eq(PROTOBUF_KEY_FORMAT),
         eq(JSON_FORMAT),
         eq(SerdeOptions.of()),
         stackerCaptor.capture(),

@@ -86,11 +86,16 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> into(
       final String kafkaTopicName,
+      final KeyFormat keyFormat,
       final ValueFormat valueFormat,
       final SerdeOptions options,
       final QueryContext.Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
+    if (!this.keyFormat.getWindowInfo().equals(keyFormat.getWindowInfo())) {
+      throw new IllegalArgumentException("Into can't change windowing");
+    }
+
     final StreamSink<K> step = ExecutionStepFactory.streamSink(
         contextStacker,
         Formats.of(keyFormat, valueFormat, options),
@@ -98,6 +103,7 @@ public class SchemaKStream<K> {
         kafkaTopicName,
         timestampColumn
     );
+
     return new SchemaKStream<>(
         step,
         resolveSchema(step),

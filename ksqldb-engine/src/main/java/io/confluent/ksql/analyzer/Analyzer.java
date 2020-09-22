@@ -200,14 +200,15 @@ class Analyzer {
       final Optional<KsqlWindowExpression> ksqlWindow = analysis.getWindowExpression()
           .map(WindowExpression::getKsqlWindowExpression);
 
+      final KeyFormat keyFormat = analysis
+          .getFrom()
+          .getDataSource()
+          .getKsqlTopic()
+          .getKeyFormat();
+
       return ksqlWindow
-          .map(w -> KeyFormat.windowed(
-              FormatInfo.of(FormatFactory.KAFKA.name()), w.getWindowInfo()))
-          .orElseGet(() -> analysis
-              .getFrom()
-              .getDataSource()
-              .getKsqlTopic()
-              .getKeyFormat());
+          .map(w -> KeyFormat.windowed(keyFormat.getFormatInfo(), w.getWindowInfo()))
+          .orElse(keyFormat);
     }
 
     private Format getValueFormat(final Sink sink) {
@@ -223,7 +224,6 @@ class Analyzer {
           .getValueFormat()
           .getFormatInfo();
     }
-
 
     @Override
     protected AstNode visitQuery(

@@ -20,7 +20,6 @@ import static com.google.common.io.Files.getNameWithoutExtension;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -31,17 +30,18 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.SerdeOptionsFactory;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -143,21 +143,23 @@ public final class TestCaseBuilderUtil {
 
     final Function<ConfiguredStatement<?>, Topic> extractTopic = (ConfiguredStatement<?> stmt) -> {
       final CreateSource statement = (CreateSource) stmt.getStatement();
+      final CreateSourceProperties props = statement.getProperties();
 
-      final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
+      final FormatInfo valueFormatInfo = SourcePropertiesUtil.getValueFormat(props);
+      final Format keyFormat = FormatFactory.of(SourcePropertiesUtil.getKeyFormat(props));
+      final Format valueFormat = FormatFactory.of(valueFormatInfo);
 
-      final ValueFormat valueFormat = ksqlTopic.getValueFormat();
       final Optional<ParsedSchema> valueSchema;
-      if (valueFormat.getFormat().supportsSchemaInference()) {
+      if (valueFormat.supportsSchemaInference()) {
         final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
 
         SerdeOptions serdeOptions;
         try {
           serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
               logicalSchema,
-              FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties())),
-              FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties())),
-              statement.getProperties().getSerdeOptions(),
+              keyFormat,
+              valueFormat,
+              props.getSerdeOptions(),
               ksqlConfig
           );
         } catch (final Exception e) {
@@ -167,24 +169,21 @@ public final class TestCaseBuilderUtil {
 
         valueSchema = logicalSchema.value().isEmpty()
             ? Optional.empty()
-            : Optional.of(valueFormat.getFormat().toParsedSchema(
-                PersistenceSchema.from(
-                    logicalSchema.value(),
-                    serdeOptions.valueFeatures()
-                ),
-                valueFormat.getFormatInfo()
+            : Optional.of(valueFormat.toParsedSchema(
+                PersistenceSchema.from(logicalSchema.value(), serdeOptions.valueFeatures()),
+                valueFormatInfo
             ));
       } else {
         valueSchema = Optional.empty();
       }
 
-      final int partitions = statement.getProperties().getPartitions()
+      final int partitions = props.getPartitions()
           .orElse(Topic.DEFAULT_PARTITIONS);
 
-      final short rf = statement.getProperties().getReplicas()
+      final short rf = props.getReplicas()
           .orElse(Topic.DEFAULT_RF);
 
-      return new Topic(ksqlTopic.getKafkaTopicName(), partitions, rf, valueSchema);
+      return new Topic(props.getKafkaTopic(), partitions, rf, valueSchema);
     };
 
     try {

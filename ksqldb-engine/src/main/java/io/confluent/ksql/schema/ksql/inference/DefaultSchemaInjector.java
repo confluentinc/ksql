@@ -90,8 +90,7 @@ public class DefaultSchemaInjector implements Injector {
   private Optional<ConfiguredStatement<CreateSource>> forCreateStatement(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    if (hasValueElements(statement)
-        || !supportsSchemaInference(statement)) {
+    if (hasValueElements(statement) || !valueFormatSupportsSchemaInference(statement)) {
       return Optional.empty();
     }
 
@@ -131,11 +130,12 @@ public class DefaultSchemaInjector implements Injector {
         .anyMatch(e -> e.getNamespace().equals(Namespace.VALUE));
   }
 
-  private static boolean supportsSchemaInference(
+  private static boolean valueFormatSupportsSchemaInference(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    final FormatInfo valueFormat =
-        SourcePropertiesUtil.getValueFormat(statement.getStatement().getProperties());
+    final FormatInfo valueFormat = SourcePropertiesUtil
+        .getValueFormat(statement.getStatement().getProperties());
+
     return FormatFactory.of(valueFormat).supportsSchemaInference();
   }
 

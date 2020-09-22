@@ -82,11 +82,11 @@ public final class KafkaStreamsThreadError implements ProcessingLogger.ErrorMess
   private Struct streamsThreadError() {
     final Struct threadError = new Struct(MessageType.KAFKA_STREAMS_THREAD_ERROR.getSchema())
         .put(
-            ProcessingLogMessageSchema.KAFKA_STREAMS_THREAD_ERROR_FIELD_MESSAGE,
-            errorMsg)
-        .put(
             ProcessingLogMessageSchema.KAFKA_STREAMS_THREAD_ERROR_FIELD_NAME,
             thread.getName())
+        .put(
+            ProcessingLogMessageSchema.KAFKA_STREAMS_THREAD_ERROR_FIELD_MESSAGE,
+            errorMsg)
         .put(
             ProcessingLogMessageSchema.KAFKA_STREAMS_THREAD_ERROR_FIELD_CAUSE,
             ErrorMessageUtil.getErrorMessages(exception));

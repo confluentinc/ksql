@@ -77,7 +77,7 @@ public final class ProcessingLogMessageSchema {
       .build();
 
   public static final String KAFKA_STREAMS_THREAD_ERROR_FIELD_MESSAGE = "errorMessage";
-  public static final String KAFKA_STREAMS_THREAD_ERROR_FIELD_NAME = "name";
+  public static final String KAFKA_STREAMS_THREAD_ERROR_FIELD_NAME = "threadName";
   public static final String KAFKA_STREAMS_THREAD_ERROR_FIELD_CAUSE = "cause";
 
   private static final Schema KAFKA_STREAMS_THREAD_ERROR_SCHEMA = SchemaBuilder.struct()
@@ -85,6 +85,7 @@ public final class ProcessingLogMessageSchema {
       .field(KAFKA_STREAMS_THREAD_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
       .field(KAFKA_STREAMS_THREAD_ERROR_FIELD_NAME, Schema.OPTIONAL_STRING_SCHEMA)
       .field(KAFKA_STREAMS_THREAD_ERROR_FIELD_CAUSE, CAUSE_SCHEMA)
+      .optional()
       .build();
 
   public enum MessageType {

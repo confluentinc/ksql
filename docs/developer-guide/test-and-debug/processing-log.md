@@ -204,6 +204,20 @@ message.serializationError.topic (STRING)
 :   The {{ site.ak }} topic to which the ksqlDB row that failed to serialize
     would have been produced.
 
+message.kafkaStreamsThreadError.message (STRING)
+
+:   A string containing a human-readable error message detailing the
+    error encountered.
+
+message.kafkaStreamsThreadError.name (STRING)
+
+:   A string containing the thread name.
+
+message.kafkaStreamsThreadError.cause (LIST<STRING>)
+
+:   A list of strings containing human-readable error messages
+    for the chain of exceptions that caused the main error.
+
 Log Stream
 ----------
 
@@ -307,7 +321,11 @@ ksql> CREATE STREAM PROCESSING_LOG_STREAM (
                  errorMessage STRING,
                  record STRING,
                  cause ARRAY<STRING>,
-                `topic` STRING>>)
+                `topic` STRING>>,
+             kafkaStreamsError STRUCT<
+                 threadName STRING,
+                 errorMessage STRING,
+                 cause ARRAY<STRING>)
          WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
 ```
 

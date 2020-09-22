@@ -70,6 +70,9 @@ import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class QueryExecutor {
+  private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
+      = "ksql.logger.thread.exception.uncaught";
+
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final SessionConfig config;
   private final ProcessingLogContext processingLogContext;
@@ -232,8 +235,7 @@ public final class QueryExecutor {
         classifier,
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        (ProcessingLogger) streamsProperties.get(
-            ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER)
+        processingLogContext.getLoggerFactory().getLogger(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER)
     );
   }
 

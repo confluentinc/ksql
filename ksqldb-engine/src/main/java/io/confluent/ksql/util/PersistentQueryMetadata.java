@@ -164,6 +164,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return materializationProvider;
   }
 
+  @VisibleForTesting
+  public ProcessingLogger getProcessingLogger() {
+    return processingLogger;
+  }
+
   public Optional<Materialization> getMaterialization(
       final QueryId queryId,
       final QueryContext.Stacker contextStacker

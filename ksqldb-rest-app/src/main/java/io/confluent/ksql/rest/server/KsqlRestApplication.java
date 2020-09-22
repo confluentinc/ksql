@@ -34,6 +34,7 @@ import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.MonitoredEndpoints;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.QueryMonitor;
 import io.confluent.ksql.execution.streams.RoutingFilter;
@@ -894,13 +895,16 @@ public final class KsqlRestApplication implements Executable {
 
     final String createCmd = "CREATE STREAM " + COMMANDS_STREAM_NAME
         + " (STATEMENT STRING)"
-        + " WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
+        + " WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
 
     final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
     ksqlEngine.execute(
         serviceContext,
-        ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfigNoPort)
+        ConfiguredStatement.of(
+            prepared,
+            SessionConfig.of(ksqlConfigNoPort, ImmutableMap.of())
+        )
     );
   }
 

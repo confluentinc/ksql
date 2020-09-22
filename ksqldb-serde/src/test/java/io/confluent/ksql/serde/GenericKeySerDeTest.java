@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,9 +31,12 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
@@ -65,7 +69,11 @@ public class GenericKeySerDeTest {
   @Mock
   private ProcessingLogContext processingLogCxt;
   @Mock
-  private Serde<Struct> innerSerde;
+  private Serde<List<?>> innerSerde;
+  @Mock
+  private Serializer<List<?>> innerSerializer;
+  @Mock
+  private Deserializer<List<?>> innerDeserializer;
   @Mock
   private Serde<Object> loggingSerde;
 
@@ -77,6 +85,9 @@ public class GenericKeySerDeTest {
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+
+    when(innerSerde.serializer()).thenReturn(innerSerializer);
+    when(innerSerde.deserializer()).thenReturn(innerDeserializer);
   }
 
   @Test
@@ -104,7 +115,7 @@ public class GenericKeySerDeTest {
     factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(innerSerde, LOGGER_PREFIX, processingLogCxt);
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
   }
 
   @Test
@@ -114,7 +125,7 @@ public class GenericKeySerDeTest {
         .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(innerSerde, LOGGER_PREFIX, processingLogCxt);
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
   }
 
   @Test

@@ -21,9 +21,11 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -43,11 +45,13 @@ import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.test.KsqlTestException;
 import io.confluent.ksql.test.driver.TestDriverPipeline.TopicInfo;
 import io.confluent.ksql.test.parser.SqlTestLoader;
@@ -108,6 +112,7 @@ public class KsqlTesterTest {
   private ServiceContext serviceContext;
   private KsqlEngine engine;
   private KsqlConfig config;
+  private Injector formatInjector;
   private TestDriverPipeline driverPipeline;
   private FakeKafkaTopicClient topicClient;
 
@@ -145,6 +150,7 @@ public class KsqlTesterTest {
     this.topicClient = new FakeKafkaTopicClient();
     this.serviceContext = TestServiceContext.create(topicClient, () -> srClient);
     this.config = new KsqlConfig(BASE_CONFIG);
+    this.formatInjector = new DefaultFormatInjector();
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
     this.engine = new KsqlEngine(
@@ -193,8 +199,8 @@ public class KsqlTesterTest {
   @SuppressWarnings("unchecked")
   private void execute(final ParsedStatement parsedStatement) {
     final PreparedStatement<?> engineStatement = engine.prepare(parsedStatement);
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        engineStatement, overrides, config);
+    final ConfiguredStatement<?> configured = ConfiguredStatement
+        .of(engineStatement, SessionConfig.of(config, overrides));
 
     createTopics(engineStatement);
 
@@ -209,9 +215,10 @@ public class KsqlTesterTest {
       return;
     }
 
+    final ConfiguredStatement<?> injected = formatInjector.inject(configured);
     final ExecuteResult result = engine.execute(
         serviceContext,
-        configured);
+        injected);
 
     // is DDL statement
     if (!result.getQuery().isPresent()) {
@@ -326,9 +333,9 @@ public class KsqlTesterTest {
     } else if (statement instanceof AssertTombstone) {
       AssertExecutor.assertTombstone(engine, config, (AssertTombstone) statement, driverPipeline);
     } else if (statement instanceof AssertStream) {
-      AssertExecutor.assertStream(engine, ((AssertStream) statement));
+      AssertExecutor.assertStream(engine, config, ((AssertStream) statement));
     } else if (statement instanceof AssertTable) {
-      AssertExecutor.assertTable(engine, ((AssertTable) statement));
+      AssertExecutor.assertTable(engine, config, ((AssertTable) statement));
     }
   }
 
@@ -338,14 +345,14 @@ public class KsqlTesterTest {
         sinkSource.getSerdeOptions().keyFeatures()
     );
 
-    return sinkSource.getKsqlTopic().getKeyFormat()
-        .getFormat()
-        .getSerde(
-            schema,
-            sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo().getProperties(),
-            config,
-            serviceContext.getSchemaRegistryClientFactory()
-        );
+    return new GenericKeySerDe().create(
+        sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+        schema,
+        config,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    );
   }
 
   private Serde<GenericRow> valueSerde(final DataSource sinkSource) {

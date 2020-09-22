@@ -87,7 +87,6 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
-      .put(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 0L)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .build();
 

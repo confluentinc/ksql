@@ -135,6 +135,23 @@ public class KsqlConfig extends AbstractConfig {
       + "in interactive mode. Once this limit is reached, any further persistent queries will not "
       + "be accepted.";
 
+  public static final String KSQL_KEY_FORMAT_ENABLED = "ksql.key.format.enabled";
+  public static final Boolean KSQL_KEY_FORMAT_ENABLED_DEFAULT = false;
+  public static final String KSQL_KEY_FORMAT_ENABLED_DOC =
+      "Feature flag for non-Kafka key formats";
+
+  public static final String KSQL_DEFAULT_KEY_FORMAT_CONFIG = "ksql.persistence.default.format.key";
+  private static final String KSQL_DEFAULT_KEY_FORMAT_DEFAULT = "KAFKA";
+  private static final String KSQL_DEFAULT_KEY_FORMAT_DOC =
+      "Key format that will be used by default if none is specified in the WITH properties of "
+          + "CREATE STREAM/TABLE statements.";
+
+  public static final String KSQL_DEFAULT_VALUE_FORMAT_CONFIG =
+      "ksql.persistence.default.format.value";
+  private static final String KSQL_DEFAULT_VALUE_FORMAT_DOC =
+      "Value format that will be used by default if none is specified in the WITH properties of "
+          + "CREATE STREAM/TABLE statements.";
+
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
 
@@ -308,14 +325,6 @@ public class KsqlConfig extends AbstractConfig {
       "Bound the number of bytes that the buffer can use for suppression. Negative size means the"
       + " buffer will be unbounded. If the maximum capacity is exceeded, the query will be"
       + " terminated";
-
-  // Defaults for config NOT defined by this class's ConfigDef:
-  static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
-      .<String, Object>builder()
-      // Improve join predictability by generally allowing a second poll to ensure both sizes
-      // of a join have data. See https://github.com/confluentinc/ksql/issues/5537.
-      .put(KSQL_STREAMS_PREFIX + StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 500L)
-      .build();
 
   public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS
       = "ksql.query.retry.backoff.initial.ms";
@@ -586,6 +595,24 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
+        ).define(
+            KSQL_KEY_FORMAT_ENABLED,
+            Type.BOOLEAN,
+            KSQL_KEY_FORMAT_ENABLED_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_KEY_FORMAT_ENABLED_DOC
+        ).define(
+            KSQL_DEFAULT_KEY_FORMAT_CONFIG,
+            Type.STRING,
+            KSQL_DEFAULT_KEY_FORMAT_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_DEFAULT_KEY_FORMAT_DOC
+        ).define(
+            KSQL_DEFAULT_VALUE_FORMAT_CONFIG,
+            Type.STRING,
+            null,
+            ConfigDef.Importance.LOW,
+            KSQL_DEFAULT_VALUE_FORMAT_DOC
         ).define(
             KSQL_WRAP_SINGLE_VALUES,
             ConfigDef.Type.BOOLEAN,
@@ -865,7 +892,7 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
-    super(configDef(generation), addNonKsqlDefaults(props));
+    super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
@@ -892,12 +919,6 @@ public class KsqlConfig extends AbstractConfig {
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
-  }
-
-  private static Map<?, ?> addNonKsqlDefaults(final Map<?, ?> props) {
-    final Map<Object, Object> withDefaults = new HashMap<>(props);
-    NON_KSQL_DEFAULTS.forEach(withDefaults::putIfAbsent);
-    return withDefaults;
   }
 
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {

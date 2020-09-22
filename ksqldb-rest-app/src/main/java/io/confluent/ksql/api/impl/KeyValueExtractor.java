@@ -23,7 +23,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.ParserUtil;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
@@ -39,11 +38,10 @@ public final class KeyValueExtractor {
 
   public static Struct extractKey(
       final JsonObject values,
-      final LogicalSchema logicalSchema,
+      final ConnectSchema connectSchema,
       final SqlValueCoercer sqlValueCoercer
   ) {
-    final ConnectSchema keySchema = ConnectSchemas.columnsToConnectSchema(logicalSchema.key());
-    final Struct key = new Struct(keySchema);
+    final Struct key = new Struct(connectSchema);
     for (final Field field : key.schema().fields()) {
       final Object value = values.getValue(field.name());
       if (value == null) {

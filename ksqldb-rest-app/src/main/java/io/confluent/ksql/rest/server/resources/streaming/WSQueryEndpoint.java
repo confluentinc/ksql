@@ -20,6 +20,7 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INVALI
 import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AGAIN_LATER;
 
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -263,8 +264,8 @@ public class WSQueryEndpoint {
     final PreparedStatement<Query> statement =
         PreparedStatement.of(info.request.getKsql(), query);
 
-    final ConfiguredStatement<Query> configured =
-        ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
+    final ConfiguredStatement<Query> configured = ConfiguredStatement
+        .of(statement, SessionConfig.of(ksqlConfig, clientLocalProperties));
 
     if (query.isPullQuery()) {
       pullQueryPublisher.start(

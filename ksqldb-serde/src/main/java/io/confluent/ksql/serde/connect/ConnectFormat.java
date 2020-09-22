@@ -30,20 +30,25 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
-import org.jetbrains.annotations.NotNull;
+import org.apache.kafka.connect.errors.DataException;
 
 /**
  * Base class for formats that internally leverage Connect's data model, i.e. it's {@link Schema}
@@ -106,7 +111,7 @@ public abstract class ConnectFormat implements Format {
   }
 
   @Override
-  public Serde<Struct> getSerde(
+  public Serde<List<?>> getSerde(
       final PersistenceSchema schema,
       final Map<String, String> formatProps,
       final KsqlConfig config,
@@ -121,21 +126,13 @@ public abstract class ConnectFormat implements Format {
     final Class<?> targetType = SchemaConverters.connectToJavaTypeConverter()
         .toJavaType(innerSchema);
 
-    if (schema.features().enabled(SerdeFeature.UNWRAP_SINGLES)) {
-      return handleUnwrapping(innerSchema, outerSchema, formatProps, config, srFactory, targetType);
-    }
-
-    if (!targetType.equals(Struct.class)) {
-      throw new IllegalArgumentException("Expected STRUCT, got " + targetType);
-    }
-
-    return getConnectSerde(innerSchema, formatProps, config, srFactory, Struct.class);
+    return schema.features().enabled(SerdeFeature.UNWRAP_SINGLES)
+        ? handleUnwrapped(innerSchema, formatProps, config, srFactory, targetType)
+        : handleWrapped(innerSchema, formatProps, config, srFactory, targetType);
   }
 
-  @NotNull
-  private <T> Serde<Struct> handleUnwrapping(
+  private <T> Serde<List<?>> handleUnwrapped(
       final ConnectSchema innerSchema,
-      final ConnectSchema outerSchema,
       final Map<String, String> formatProps,
       final KsqlConfig config,
       final Supplier<SchemaRegistryClient> srFactory,
@@ -145,8 +142,28 @@ public abstract class ConnectFormat implements Format {
         getConnectSerde(innerSchema, formatProps, config, srFactory, targetType);
 
     return Serdes.serdeFrom(
-        SerdeUtils.unwrappedSerializer(outerSchema, innerSerde.serializer(), targetType),
-        SerdeUtils.unwrappedDeserializer(outerSchema, innerSerde.deserializer(), targetType)
+        SerdeUtils.unwrappedSerializer(innerSerde.serializer(), targetType),
+        SerdeUtils.unwrappedDeserializer(innerSerde.deserializer())
+    );
+  }
+
+  private Serde<List<?>> handleWrapped(
+      final ConnectSchema innerSchema,
+      final Map<String, String> formatProps,
+      final KsqlConfig config,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<?> targetType
+  ) {
+    if (!targetType.equals(Struct.class)) {
+      throw new IllegalArgumentException("Expected STRUCT, got " + targetType);
+    }
+
+    final Serde<Struct> connectSerde =
+        getConnectSerde(innerSchema, formatProps, config, srFactory, Struct.class);
+
+    return Serdes.serdeFrom(
+        new ListToStructSerializer(connectSerde.serializer(), innerSchema),
+        new StructToListDeserializer(connectSerde.deserializer(), innerSchema.fields().size())
     );
   }
 
@@ -190,6 +207,115 @@ public abstract class ConnectFormat implements Format {
     @Override
     public SqlType type() {
       return type;
+    }
+  }
+
+  private static class ListToStructSerializer implements Serializer<List<?>> {
+
+    private final Serializer<Struct> inner;
+    private final ConnectSchema structSchema;
+
+    ListToStructSerializer(
+        final Serializer<Struct> inner,
+        final ConnectSchema structSchema
+    ) {
+      this.inner = Objects.requireNonNull(inner, "inner");
+      this.structSchema = Objects.requireNonNull(structSchema, "structSchema");
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs, final boolean isKey) {
+      inner.configure(configs, isKey);
+    }
+
+    @Override
+    public byte[] serialize(final String topic, final List<?> values) {
+      if (values == null) {
+        return null;
+      }
+
+      final List<Field> fields = structSchema.fields();
+
+      SerdeUtils.throwOnColumnCountMismatch(fields.size(), values.size(), true, topic);
+
+      final Struct struct = new Struct(structSchema);
+
+      final Iterator<Field> fIt = fields.iterator();
+      final Iterator<?> vIt = values.iterator();
+
+      while (fIt.hasNext()) {
+        putField(struct, fIt.next(), vIt.next());
+      }
+
+      return inner.serialize(topic, struct);
+    }
+
+    @Override
+    public void close() {
+      inner.close();
+    }
+
+    private static void putField(final Struct struct, final Field field, final Object value) {
+      try {
+        struct.put(field, value);
+      } catch (DataException e) {
+        // Add more info to error message in case of Struct to call out struct schemas
+        // with non-optional fields from incorrectly-written UDFs as a potential cause:
+        // https://github.com/confluentinc/ksql/issues/5364
+        if (!(value instanceof Struct)) {
+          throw e;
+        } else {
+          throw new SerializationException(
+              "Failed to prepare Struct value field '" + field.name() + "' for serialization. "
+                  + "This could happen if the value was produced by a user-defined function "
+                  + "where the schema has non-optional return types. ksqlDB requires all "
+                  + "schemas to be optional at all levels of the Struct: the Struct itself, "
+                  + "schemas for all fields within the Struct, and so on.",
+              e);
+        }
+      }
+    }
+  }
+
+  private static class StructToListDeserializer implements Deserializer<List<?>> {
+
+    private final Deserializer<Struct> inner;
+    private final int numColumns;
+
+    StructToListDeserializer(final Deserializer<Struct> deserializer, final int numColumns) {
+      this.inner = Objects.requireNonNull(deserializer, "deserializer");
+      this.numColumns = numColumns;
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs, final boolean isKey) {
+      inner.configure(configs, isKey);
+    }
+
+    @Override
+    public List<?> deserialize(final String topic, final byte[] bytes) {
+      if (bytes == null) {
+        return null;
+      }
+
+      final Struct struct = inner.deserialize(topic, bytes);
+
+      final List<Field> fields = struct.schema().fields();
+
+      SerdeUtils.throwOnColumnCountMismatch(numColumns, fields.size(), false, topic);
+
+      final List<Object> values = new ArrayList<>(numColumns);
+
+      for (final Field field : fields) {
+        values.add(struct.get(field));
+      }
+
+      return values;
+    }
+
+    @Override
+    public void close() {
+      inner.close();
     }
   }
 }

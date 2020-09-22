@@ -176,7 +176,7 @@ class Analyzer {
 
       // overwrite any inheritable properties if they were explicitly
       // specified in the statement
-      sourceProperties.putAll(sink.getProperties().getFormatProperties());
+      sourceProperties.putAll(sink.getProperties().getValueFormatProperties());
 
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
           format.name(),
@@ -211,8 +211,8 @@ class Analyzer {
     }
 
     private Format getValueFormat(final Sink sink) {
-      return sink.getProperties().getValueFormat()
-          .orElseGet(() -> FormatFactory.of(getSourceInfo()));
+      return FormatFactory.of(
+          sink.getProperties().getValueFormat().orElseGet(this::getSourceInfo));
     }
 
     private FormatInfo getSourceInfo() {

@@ -74,6 +74,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -81,6 +82,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -234,12 +236,12 @@ public class KsqlResourceTest {
           true,
           CreateSourceProperties.from(ImmutableMap.of(
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
+              "KEY_FORMAT", new StringLiteral("kafka"),
               "VALUE_FORMAT", new StringLiteral("avro")
           ))));
   private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
       STMT_0_WITH_SCHEMA,
-      ImmutableMap.of(),
-      new KsqlConfig(getDefaultKsqlConfig())
+      SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
   );
 
   private static final PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement.of(
@@ -251,13 +253,13 @@ public class KsqlResourceTest {
           true,
           CreateSourceProperties.from(ImmutableMap.of(
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
+              "KEY_FORMAT", new StringLiteral("kafka"),
               "VALUE_FORMAT", new StringLiteral("avro")
           ))));
-  private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement.of(
-      STMT_1_WITH_SCHEMA,
-      ImmutableMap.of(),
-      new KsqlConfig(getDefaultKsqlConfig())
-  );
+  private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement
+      .of(STMT_1_WITH_SCHEMA,
+          SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
+      );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -845,7 +847,7 @@ public class KsqlResourceTest {
   public void shouldFailIfCreateStatementMissingKafkaTopicName() {
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON');",
+        "CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
         BAD_REQUEST.code());
 
     // Then:
@@ -854,7 +856,7 @@ public class KsqlResourceTest {
     assertThat(result.getMessage(),
         containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
     assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
-        is("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON');"));
+        is("CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -900,7 +902,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlRestException e = assertThrows(
         KsqlRestException.class,
-        () -> makeRequest("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='unknown');")
+        () -> makeRequest("CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', KAFKA_TOPIC='unknown');")
     );
 
     // Then:
@@ -912,14 +914,14 @@ public class KsqlResourceTest {
   public void shouldDistributeAvroCreateStatementWithColumns() {
     // When:
     makeSingleRequest(
-        "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
+        "CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
         CommandStatusEntity.class);
 
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
         argThat(is(commandWithStatement(
-            "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');"))),
+            "CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');"))),
         any(Producer.class)
     );
   }
@@ -936,7 +938,8 @@ public class KsqlResourceTest {
     final PreparedStatement<?> statementWithTopic =
         ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
     final ConfiguredStatement<?> configuredStatement =
-        ConfiguredStatement.of(statementWithTopic, ImmutableMap.of(), ksqlConfig);
+        ConfiguredStatement.of(statementWithTopic, SessionConfig.of(ksqlConfig, ImmutableMap.of())
+        );
 
     when(sandboxTopicInjector.inject(argThat(is(configured(preparedStatementText(sql))))))
         .thenReturn((ConfiguredStatement<Statement>) configuredStatement);
@@ -965,7 +968,8 @@ public class KsqlResourceTest {
     final PreparedStatement<?> statementWithTopic =
         ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
     final ConfiguredStatement<?> configured =
-        ConfiguredStatement.of(statementWithTopic, ImmutableMap.of(), ksqlConfig);
+        ConfiguredStatement.of(statementWithTopic, SessionConfig.of(ksqlConfig, ImmutableMap.of())
+        );
 
     when(topicInjector.inject(argThat(is(configured(preparedStatementText(sql))))))
         .thenReturn((ConfiguredStatement<Statement>) configured);
@@ -1023,7 +1027,7 @@ public class KsqlResourceTest {
     // Given:
     givenMockEngine();
 
-    final String sql = "CREATE STREAM NO_SCHEMA WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');";
+    final String sql = "CREATE STREAM NO_SCHEMA WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');";
 
     when(sandboxSchemaInjector.inject(argThat(configured(preparedStatementText(sql)))))
         .thenReturn((ConfiguredStatement) CFG_0_WITH_SCHEMA);
@@ -1051,7 +1055,7 @@ public class KsqlResourceTest {
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM S WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
+        "CREATE STREAM S WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
         BAD_REQUEST.code());
 
     // Then:
@@ -1071,7 +1075,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlRestException e = assertThrows(
         KsqlRestException.class,
-        () -> makeRequest("CREATE STREAM S WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');")
+        () -> makeRequest("CREATE STREAM S WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');")
     );
 
     // Then:
@@ -1085,7 +1089,7 @@ public class KsqlResourceTest {
     // When:
     final KsqlRestException e = assertThrows(
         KsqlRestException.class,
-        () -> makeRequest("CREATE STREAM S WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');")
+        () -> makeRequest("CREATE STREAM S WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');")
     );
 
     // Then:
@@ -1101,7 +1105,7 @@ public class KsqlResourceTest {
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM S1 WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM test_stream;",
+        "CREATE STREAM S1 WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO') AS SELECT * FROM test_stream;",
         BAD_REQUEST.code());
 
     // Then:
@@ -1903,7 +1907,7 @@ public class KsqlResourceTest {
     givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenKafkaTopicExists("topic2");
     final String createSql =
-        "CREATE STREAM SOURCE (val int) WITH (kafka_topic='topic2', value_format='json');";
+        "CREATE STREAM SOURCE (val int) WITH (kafka_topic='topic2', key_format='kafka', value_format='json');";
 
     // When:
     final KsqlRestException e = assertThrows(
@@ -1923,7 +1927,7 @@ public class KsqlResourceTest {
     givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenKafkaTopicExists("topic2");
     final String createSql =
-        "CREATE TABLE SOURCE (id int primary key, val int) WITH (kafka_topic='topic2', value_format='json');";
+        "CREATE TABLE SOURCE (id int primary key, val int) WITH (kafka_topic='topic2', key_format='kafka', value_format='json');";
 
     // When:
     final KsqlRestException e = assertThrows(
@@ -2372,6 +2376,7 @@ public class KsqlResourceTest {
     configMap.put("ksql.command.topic.suffix", "commands");
     configMap.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088");
     configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, APPLICATION_SERVER);
+    configMap.put(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "KAFKA");
 
     final Properties properties = new Properties();
     properties.putAll(configMap);

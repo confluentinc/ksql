@@ -17,7 +17,9 @@ package io.confluent.ksql.parser.properties.with;
 
 import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_SIZE_PROPERTY;
@@ -39,7 +41,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
@@ -59,7 +60,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CreateSourcePropertiesTest {
 
   private static final java.util.Map<String, Literal> MINIMUM_VALID_PROPS = ImmutableMap.of(
-      CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("AvRo"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("foo")
   );
 
@@ -73,7 +73,6 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(properties.getKafkaTopic(), is("foo"));
-    assertThat(properties.getValueFormat(), is(FormatFactory.AVRO));
   }
 
   @Test
@@ -86,7 +85,8 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getSchemaId(), is(Optional.empty()));
-    assertThat(properties.getFormatInfo(), is(FormatInfo.of("AvRo")));
+    assertThat(properties.getKeyFormat(), is(Optional.empty()));
+    assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getSerdeOptions(), is(SerdeOptions.of()));
@@ -131,7 +131,7 @@ public class CreateSourcePropertiesTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Invalid datatime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
+    assertThat(e.getMessage(), containsString("Invalid datetime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
   }
 
   @Test
@@ -290,11 +290,15 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
+            .put(CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("AvRo"))
             .put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
             .build());
 
     // Then:
-    assertThat(properties.getFormatInfo().getProperties().get(AvroFormat.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormat()
+        .map(FormatInfo::getProperties)
+        .map(props -> props.get(AvroFormat.FULL_SCHEMA_NAME)),
+        is(Optional.of("schema")));
   }
 
   @Test
@@ -392,22 +396,6 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
-  public void shouldFailIfNoValueFormat() {
-    // Given:
-    final HashMap<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
-    props.remove(VALUE_FORMAT_PROPERTY);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> CreateSourceProperties.from(props)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Missing required property \"VALUE_FORMAT\" which has no default value."));
-  }
-
-  @Test
   public void shouldFailIfInvalidWindowConfig() {
     // When:
     final Exception e = assertThrows(
@@ -469,7 +457,7 @@ public class CreateSourcePropertiesTest {
     final String sql = props.toString();
 
     // Then:
-    assertThat(sql, is("KAFKA_TOPIC='foo', VALUE_FORMAT='AvRo', WRAP_SINGLE_VALUE='True'"));
+    assertThat(sql, is("KAFKA_TOPIC='foo', WRAP_SINGLE_VALUE='True'"));
   }
 
   @Test
@@ -486,5 +474,58 @@ public class CreateSourcePropertiesTest {
 
     // Then:
     assertThat(sql, containsString("WRAP_SINGLE_VALUE=true"));
+  }
+
+  @Test
+  public void shouldGetKeyAndValueFormatFromFormat() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"))
+            .put(VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat().get().getFormat(), is("KAFKA"));
+    assertThat(props.getValueFormat().get().getFormat(), is("AVRO"));
+  }
+
+  @Test
+  public void shouldThrowIfKeyFormatAndFormatProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put(KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"))
+                .put(FORMAT_PROPERTY, new StringLiteral("JSON"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot supply both 'KEY_FORMAT' and 'FORMAT' properties, "
+        + "as 'FORMAT' sets both key and value formats."));
+    assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
+  }
+
+  @Test
+  public void shouldThrowIfValueFormatAndFormatProvided() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CreateSourceProperties.from(
+            ImmutableMap.<String, Literal>builder()
+                .putAll(MINIMUM_VALID_PROPS)
+                .put(VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"))
+                .put(FORMAT_PROPERTY, new StringLiteral("KAFKA"))
+                .build())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties, "
+        + "as 'FORMAT' sets both key and value formats."));
+    assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
   }
 }

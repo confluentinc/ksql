@@ -45,16 +45,16 @@ import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.InsertsPublisher;
 import io.confluent.ksql.api.client.KsqlArray;
-import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
-import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -908,14 +908,13 @@ public class ClientIntegrationTest {
     assertThat(description.timestampColumn(), is(Optional.empty()));
     assertThat(description.windowType(), is(Optional.empty()));
     assertThat(description.sqlStatement(), is(
-        "CREATE STREAM " + TEST_STREAM + " (`STR` STRING KEY, `LONG` BIGINT, "
-            + "`DEC` DECIMAL(4, 2), `ARRAY` ARRAY<STRING>, `MAP` MAP<STRING, STRING>, "
-            + "`STRUCT` STRUCT<`F1` INTEGER>, `COMPLEX` STRUCT<`DECIMAL` DECIMAL(2, 1), "
-            + "`STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, `ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, "
-            + "`ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, `ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, "
-            + "`MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, `MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, "
-            + "`MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>) WITH "
-            + "(kafka_topic='" + TEST_TOPIC + "', value_format='json');"));
+        "CREATE STREAM " + TEST_STREAM + " (STR STRING KEY, LONG BIGINT, DEC DECIMAL(4, 2), "
+            + "ARRAY ARRAY<STRING>, MAP MAP<STRING, STRING>, STRUCT STRUCT<F1 INTEGER>, "
+            + "COMPLEX STRUCT<`DECIMAL` DECIMAL(2, 1), STRUCT STRUCT<F1 STRING, F2 INTEGER>, "
+            + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
+            + "ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, "
+            + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>) "
+            + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');"));
   }
 
   @Test

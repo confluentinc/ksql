@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.MetaStore;
@@ -71,7 +72,6 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
@@ -101,11 +101,8 @@ public class DistributingExecutorTest {
       ))
   );
   private static final ConfiguredStatement<Statement> CONFIGURED_STATEMENT =
-      ConfiguredStatement.of(
-          PreparedStatement.of("statement", STATEMENT),
-          ImmutableMap.of(),
-          KSQL_CONFIG
-      );
+      ConfiguredStatement.of(PreparedStatement.of("statement", STATEMENT),
+          SessionConfig.of(KSQL_CONFIG, ImmutableMap.of()));
   private static final CommandIdAssigner IDGEN = new CommandIdAssigner();
 
   @Mock
@@ -272,7 +269,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     when(schemaInjector.inject(any())).thenThrow(new KsqlException("Could not infer!"));
 
     // When:
@@ -295,7 +293,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
         .checkAuthorization(eq(userSecurityContext), any(), eq(configured.getStatement()));
 
@@ -314,7 +313,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     doNothing().when(authorizationValidator)
         .checkAuthorization(eq(userSecurityContext), any(), any());
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
@@ -339,7 +339,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     doReturn(null).when(metaStore).getSource(SourceName.of("s1"));
 
     // When:
@@ -359,7 +360,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     final DataSource dataSource = mock(DataSource.class);
     doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
     when(dataSource.getKafkaTopicName()).thenReturn("_confluent-ksql-default__command-topic");
@@ -382,7 +384,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     final DataSource dataSource = mock(DataSource.class);
     doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
     when(dataSource.getKafkaTopicName()).thenReturn("default_ksql_processing_log");

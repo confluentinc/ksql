@@ -30,11 +30,13 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -158,7 +160,7 @@ public final class TestExecutorUtil {
         && testCase.getExpectedTopology().get().getPlan().isPresent()) {
       return testCase.getExpectedTopology().get().getPlan().get()
           .stream()
-          .map(p -> ConfiguredKsqlPlan.of(p, testCase.properties(), ksqlConfig))
+          .map(p -> ConfiguredKsqlPlan.of(p, SessionConfig.of(ksqlConfig, testCase.properties())))
           .collect(Collectors.toList());
     }
     return PlannedStatementIterator.of(engine, testCase, ksqlConfig, srClient, stubKafkaService);
@@ -426,7 +428,9 @@ public final class TestExecutorUtil {
     private Optional<ConfiguredKsqlPlan> planStatement(final ParsedStatement stmt) {
       final PreparedStatement<?> prepared = executionContext.prepare(stmt);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
+          prepared,
+          SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
+      );
 
       if (prepared.getStatement() instanceof InsertValues) {
         StubInsertValuesExecutor.of(stubKafkaService, executionContext).execute(
@@ -438,21 +442,19 @@ public final class TestExecutorUtil {
         return Optional.empty();
       }
 
+      final ConfiguredStatement<?> withFormats =
+          new DefaultFormatInjector().inject(configured);
       final ConfiguredStatement<?> withSchema =
           schemaInjector
-              .map(injector -> injector.inject(configured))
-              .orElse((ConfiguredStatement) configured);
+              .map(injector -> injector.inject(withFormats))
+              .orElse((ConfiguredStatement) withFormats);
       final ConfiguredStatement<?> reformatted =
           new SqlFormatInjector(executionContext).inject(withSchema);
 
       final KsqlPlan plan = executionContext
           .plan(executionContext.getServiceContext(), reformatted);
       return Optional.of(
-          ConfiguredKsqlPlan.of(
-              rewritePlan(plan),
-              reformatted.getConfigOverrides(),
-              reformatted.getConfig()
-          )
+          ConfiguredKsqlPlan.of(rewritePlan(plan), reformatted.getSessionConfig())
       );
     }
 

@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

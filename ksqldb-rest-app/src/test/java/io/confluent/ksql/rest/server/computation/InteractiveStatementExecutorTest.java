@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -99,6 +100,7 @@ public class InteractiveStatementExecutorTest {
       + "biz bigint,"
       + " baz varchar) "
       + "WITH (kafka_topic = 'foo', "
+      + "key_format = 'kafka', "
       + "value_format = 'json');";
   private static final CommandId COMMAND_ID = new CommandId(Type.STREAM, "foo", Action.CREATE);
   private static final QueryId QUERY_ID = new QueryId("qid");
@@ -264,12 +266,13 @@ public class InteractiveStatementExecutorTest {
     // get a statement instance
     final String ddlText
         = "CREATE STREAM pageviews (viewtime bigint, pageid varchar) " +
-        "WITH (kafka_topic='pageview_topic', VALUE_FORMAT='json');";
+        "WITH (kafka_topic='pageview_topic', KEY_FORMAT='kafka', VALUE_FORMAT='json');";
     final String statementText
         = "CREATE STREAM user1pv AS select * from pageviews WHERE userid = 'user1';";
     final PreparedStatement<?> ddlStatement = statementParser.parseSingleStatement(ddlText);
     final ConfiguredStatement<?> configuredStatement =
-        ConfiguredStatement.of(ddlStatement, emptyMap(), originalConfig);
+        ConfiguredStatement
+            .of(ddlStatement, SessionConfig.of(originalConfig, emptyMap()));
     ksqlEngine.execute(serviceContext, configuredStatement);
 
     when(mockQueryMetadata.getQueryId()).thenReturn(mock(QueryId.class));
@@ -330,7 +333,10 @@ public class InteractiveStatementExecutorTest {
     // Then:
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
         plannedCommand.getOriginalProperties());
-    verify(mockEngine).execute(serviceContext, ConfiguredKsqlPlan.of(plan, emptyMap(), expectedConfig));
+    verify(mockEngine).execute(
+        serviceContext,
+        ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap()))
+    );
   }
 
   @Test
@@ -423,7 +429,10 @@ public class InteractiveStatementExecutorTest {
 
     // Then:
     verify(mockConfig).overrideBreakingConfigsWithOriginalValues(savedConfigs);
-    verify(mockEngine).execute(any(), eq(ConfiguredKsqlPlan.of(plan, emptyMap(), mergedConfig)));
+    verify(mockEngine).execute(
+        any(),
+        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig, emptyMap())))
+    );
   }
 
   @Test
@@ -442,9 +451,8 @@ public class InteractiveStatementExecutorTest {
       handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
     } catch (final KsqlStatementException e) {
       // Then:
-      assertEquals("Cannot add stream 'FOO': A stream with the same name already exists\n" +
-              "Statement: " + CREATE_STREAM_FOO_STATEMENT,
-          e.getMessage());
+      assertThat(e.getMessage(),
+          containsString("Cannot add stream 'FOO': A stream with the same name already exists"));
     }
     final InOrder inOrder = Mockito.inOrder(status);
     final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
@@ -669,7 +677,7 @@ public class InteractiveStatementExecutorTest {
     private final ConfiguredKsqlPlan plan;
 
     ConfiguredKsqlPlanMatcher(final KsqlPlan ksqlPlan) {
-      plan = ConfiguredKsqlPlan.of(ksqlPlan, Collections.emptyMap(), ksqlConfig);
+      plan = ConfiguredKsqlPlan.of(ksqlPlan, SessionConfig.of(ksqlConfig, emptyMap()));
     }
 
     @Override
@@ -683,7 +691,8 @@ public class InteractiveStatementExecutorTest {
     private final ConfiguredStatement<?> statement;
 
     ConfiguredStatementMatcher(final PreparedStatement<?> preparedStatement) {
-      statement = ConfiguredStatement.of(preparedStatement, Collections.<String, Object>emptyMap(), ksqlConfig);
+      statement = ConfiguredStatement.of(preparedStatement,
+          SessionConfig.of(ksqlConfig, emptyMap()));
     }
 
     @Override
@@ -770,6 +779,7 @@ public class InteractiveStatementExecutorTest {
             + " pageid varchar, "
             + "userid varchar) "
             + "WITH (kafka_topic = 'pageview_topic_json', "
+            + "key_format = 'kafka', "
             + "value_format = 'json');",
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
     );
@@ -988,7 +998,8 @@ public class InteractiveStatementExecutorTest {
 
   private Command commandWithPlan(final String sql, final Map<String, String> originalProperties) {
     final PreparedStatement<?> prepared = statementParser.parseSingleStatement(sql);
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared, Collections.emptyMap(), ksqlConfig);
+    final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, emptyMap());
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared, sessionConfig);
     final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
     return new Command(sql, Collections.emptyMap(), originalProperties, Optional.of(plan));
   }

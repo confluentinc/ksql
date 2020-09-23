@@ -739,7 +739,6 @@ public class RecoveryTest {
     server.submitCommands("CREATE STREAM D AS SELECT * FROM A;");
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
-    System.out.println(queryIdNames);
     assertThat(queryIdNames, contains(new QueryId("CSAS_C_2"), new QueryId("CSAS_D_3")));
   }
 

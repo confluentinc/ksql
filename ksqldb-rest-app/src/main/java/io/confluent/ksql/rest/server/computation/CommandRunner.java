@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
@@ -265,6 +266,7 @@ public class CommandRunner implements Closeable {
       }
 
       final List<QueuedCommand> compacted = compactor.apply(compatibleCommands);
+
       compacted.forEach(
           command -> {
             currentCommandRef.set(new Pair<>(command, clock.instant()));

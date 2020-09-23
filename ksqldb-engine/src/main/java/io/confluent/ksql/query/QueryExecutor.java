@@ -24,6 +24,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -235,8 +237,16 @@ public final class QueryExecutor {
         classifier,
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        processingLogContext.getLoggerFactory().getLogger(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER)
+        getUncaughtExceptionProcessingLogger(queryId)
     );
+  }
+
+  private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
+    final QueryContext.Stacker stacker = new QueryContext.Stacker()
+        .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
+
+    return processingLogContext.getLoggerFactory().getLogger(
+            QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
   }
 
   private TransientQueryQueue buildTransientQueryQueue(

@@ -18,7 +18,9 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -248,8 +250,10 @@ public class QueryExecutorTest {
   public void shouldBuildPersistentQueryCorrectly() {
     // Given:
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLogger("ksql.logger.thread.exception.uncaught"))
-        .thenReturn(uncaughtProcessingLogger);
+    when(processingLoggerFactory.getLogger(
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
+            .push("ksql.logger.thread.exception.uncaught").getQueryContext())
+    )).thenReturn(uncaughtProcessingLogger);
 
     // When:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(

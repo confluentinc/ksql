@@ -1170,7 +1170,6 @@ public class KsqlParserTest {
     // Then:
     assertThat(result.getName(), equalTo(SourceName.of("ORDERS")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(FormatFactory.JSON));
   }
 
   @Test

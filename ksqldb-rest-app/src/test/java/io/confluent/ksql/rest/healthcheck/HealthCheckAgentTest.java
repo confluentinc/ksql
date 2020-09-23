@@ -44,9 +44,11 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
+
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -146,6 +148,32 @@ public class HealthCheckAgentTest {
   public void shouldReturnHealthyIfKafkaCheckFailsWithAuthorizationException() {
     // Given:
     doThrow(KsqlTopicAuthorizationException.class).when(adminClient).describeTopics(any(), any());
+
+    // When:
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
+
+    // Then:
+    assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getIsHealthy(), is(true));
+  }
+
+  @Test
+  public void shouldReturnHealthyIfKafkaCheckFailsWithUnknownTopicOrPartitionExceptionAsRootCause() {
+    // Given:
+    when(adminClient.describeTopics(any(), any())).thenThrow(new RuntimeException(new UnknownTopicOrPartitionException()));
+
+    // When:
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
+
+    // Then:
+    assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getIsHealthy(), is(true));
+  }
+
+  @Test
+  public void shouldReturnHealthyIfKafkaCheckFailsWithUnknownTopicOrPartitionException() {
+    // Given:
+    when(adminClient.describeTopics(any(), any())).thenThrow(new UnknownTopicOrPartitionException());
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();

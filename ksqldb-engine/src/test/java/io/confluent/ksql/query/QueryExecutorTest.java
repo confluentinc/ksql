@@ -18,7 +18,9 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -170,6 +172,8 @@ public class QueryExecutorTest {
   private SessionConfig config;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
+  @Captor
+  private ArgumentCaptor<String> processingLoggerNameCaptor;
 
   private QueryExecutor queryBuilder;
   private final Stacker stacker = new Stacker();
@@ -197,9 +201,6 @@ public class QueryExecutorTest {
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
-    when(topology.describe()).thenReturn(topoDesc);
-    when(topoDesc.subtopologies()).thenReturn(ImmutableSet.of());
-    when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(streamsBuilder.build(any())).thenReturn(topology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
@@ -247,6 +248,13 @@ public class QueryExecutorTest {
 
   @Test
   public void shouldBuildPersistentQueryCorrectly() {
+    // Given:
+    final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
+    when(processingLoggerFactory.getLogger(
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
+            .push("ksql.logger.thread.exception.uncaught").getQueryContext())
+    )).thenReturn(uncaughtProcessingLogger);
+
     // When:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
@@ -269,6 +277,7 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
+    assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
   }
 
   @Test

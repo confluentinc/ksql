@@ -18,6 +18,8 @@ package io.confluent.ksql.api.client.integration;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_KEY_FORMAT_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -68,6 +70,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
@@ -126,7 +129,7 @@ public class ClientIntegrationTest {
           .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
           .build(),
-      SerdeFeatures.of(),
+      SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
       SerdeFeatures.of()
   );
 
@@ -175,6 +178,8 @@ public class ClientIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_KEY_FORMAT_ENABLED, true)
+      .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .build();
 
   @ClassRule
@@ -896,7 +901,7 @@ public class ClientIntegrationTest {
       assertThat(description.fields().get(i).isKey(), is(isKey));
     }
     assertThat(description.topic(), is(TEST_TOPIC));
-    assertThat(description.keyFormat(), is("KAFKA"));
+    assertThat(description.keyFormat(), is("JSON"));
     assertThat(description.valueFormat(), is("JSON"));
     assertThat(description.readQueries(), hasSize(1));
     assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
@@ -920,7 +925,7 @@ public class ClientIntegrationTest {
             + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
             + "ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, "
             + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>) "
-            + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');"));
+            + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='JSON', VALUE_FORMAT='JSON');"));
   }
 
   @Test

@@ -18,13 +18,14 @@ query results from other tables or streams.
       Creating streams is similar to creating tables. For more information,
       see [Create a ksqlDB Stream](create-a-stream.md).
       
-ksqlDB can't infer the topic value's data format, so you must provide the
-format of the values that are stored in the topic. In this example, the
-data format is `JSON`. For all supported formats, see
+ksqlDB can't infer the data format of the topic key or value, so you must provide the
+format of the keys and values that are stored in the topic, either explicitly in the WITH clause
+or by configuring defaults using the [ksql.persistence.default.format.key](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatkey)
+and [ksql.persistence.default.format.value](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatvalue)
+configurations. In this example, the
+value format is `JSON` and the key format is `KAFKA`. For all supported formats, see
 [Serialization Formats](serialization.md#serialization-formats).
 
-ksqlDB requires keys to be serialized using {{ site.ak }}'s own serializers or
-compatible serializers. For supported data types, see the [`KAFKA` format](./serialization.md#kafka). 
 If the data in your {{ site.ak }} topics doesn't have a suitable key format, 
 see [Key Requirements](syntax-reference.md#key-requirements).
 
@@ -58,6 +59,10 @@ CREATE TABLE users (
     VALUE_FORMAT='JSON'
 );
 ```
+
+!!! tip
+      If the key and value formats for the table are identical, the `FORMAT` property
+      may be used in place of specifying the `KEY_FORMAT` and `VALUE_FORMAT` separately.
 
 Your output should resemble:
 

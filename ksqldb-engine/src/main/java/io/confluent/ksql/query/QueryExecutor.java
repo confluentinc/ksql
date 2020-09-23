@@ -24,6 +24,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -70,6 +72,9 @@ import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class QueryExecutor {
+  private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
+      = "ksql.logger.thread.exception.uncaught";
+
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final SessionConfig config;
   private final ProcessingLogContext processingLogContext;
@@ -231,8 +236,17 @@ public final class QueryExecutor {
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         classifier,
         physicalPlan,
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+        getUncaughtExceptionProcessingLogger(queryId)
     );
+  }
+
+  private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
+    final QueryContext.Stacker stacker = new QueryContext.Stacker()
+        .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
+
+    return processingLogContext.getLoggerFactory().getLogger(
+            QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
   }
 
   private TransientQueryQueue buildTransientQueryQueue(

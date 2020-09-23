@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
@@ -80,6 +81,8 @@ public class SandboxedPersistentQueryMetadataTest {
   private QueryErrorClassifier queryErrorClassifier;
   @Mock
   private ExecutionStep<?> physicalPlan;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   private PersistentQueryMetadata query;
   private SandboxedPersistentQueryMetadata sandbox;
@@ -109,7 +112,8 @@ public class SandboxedPersistentQueryMetadataTest {
         CLOSE_TIMEOUT,
         queryErrorClassifier,
         physicalPlan,
-        10
+        10,
+        processingLogger
     );
 
     sandbox = SandboxedPersistentQueryMetadata.of(query, closeCallback);

@@ -194,8 +194,8 @@
       "properties": {
         "ksql.persistence.default.format.value": "JSON"
       },
-      "input": [{"topic": "input", "key": "foo", "value": "bar"}],
-      "output": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}],
+      "inputs": [{"topic": "input", "key": "foo", "value": "bar"}],
+      "outputs": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}],
       "post": {
         "topics": {
           "topics": [

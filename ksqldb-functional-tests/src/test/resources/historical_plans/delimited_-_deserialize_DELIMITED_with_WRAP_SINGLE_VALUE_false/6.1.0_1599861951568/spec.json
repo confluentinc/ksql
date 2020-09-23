@@ -20,6 +20,8 @@
       "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "inputs": [{"topic": "input_topic", "key": "foo", "value": "1"}],
+    "outputs": [{"topic": "OUTPUT", "key": "foo", "value": "1"}],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",

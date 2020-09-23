@@ -80,7 +80,6 @@ public final class RestIntegrationTestUtil {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
-
       throwOnError(res);
 
       return awaitResults(restClient, res.getResponse());
@@ -307,12 +306,12 @@ public final class RestIntegrationTestUtil {
     if (!(e instanceof CommandStatusEntity)) {
       return e;
     }
-
     CommandStatusEntity cse = (CommandStatusEntity) e;
     final String commandId = cse.getCommandId().toString();
 
     while (cse.getCommandStatus().getStatus() != Status.ERROR
-        && cse.getCommandStatus().getStatus() != Status.SUCCESS) {
+        && cse.getCommandStatus().getStatus() != Status.SUCCESS
+        && cse.getCommandStatus().getStatus() != Status.QUEUED) {
 
       final RestResponse<CommandStatus> res = ksqlRestClient.makeStatusRequest(commandId);
 

@@ -96,10 +96,8 @@ public class CommandRunner implements Closeable {
 
   public enum CommandRunnerDegradedReason {
     NONE(errors -> ""),
-    CORRUPTED(Errors::commandRunnerDegradedBackupCorruptedErrorMessage),
-    INCOMPATIBLE_COMMAND(Errors::commandRunnerDegradedIncompatibleCommandsErrorMessage),
-    COMMAND_TOPIC_DELETED_OR_MODIFIED(
-        Errors::commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage);
+    CORRUPTED(Errors::commandRunnerDegradedCorruptedErrorMessage),
+    INCOMPATIBLE_COMMAND(Errors::commandRunnerDegradedIncompatibleCommandsErrorMessage);
 
     private final Function<Errors, String> msgFactory;
 
@@ -449,7 +447,7 @@ public class CommandRunner implements Closeable {
             LOG.warn("CommandRunner entering degraded state due to command topic deletion.");
             state = new Status(
                 CommandRunnerStatus.DEGRADED,
-                CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED_OR_MODIFIED
+                CommandRunnerDegradedReason.CORRUPTED
             );
             closeEarly();
           } else {
@@ -465,7 +463,7 @@ public class CommandRunner implements Closeable {
         LOG.warn("The command topic offset was reset. CommandRunner thread exiting.");
         state = new Status(
             CommandRunnerStatus.DEGRADED,
-            CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED_OR_MODIFIED
+            CommandRunnerDegradedReason.CORRUPTED
         );
         closeEarly();
       } finally {

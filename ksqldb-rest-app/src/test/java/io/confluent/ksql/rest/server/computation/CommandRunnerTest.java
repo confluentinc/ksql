@@ -72,9 +72,8 @@ import org.mockito.stubbing.Answer;
 @RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerTest {
   private static final long COMMAND_RUNNER_HEALTH_TIMEOUT = 1000;
-  private static final String BACKUP_CORRUPTED_ERROR_MESSAGE = "corrupted";
+  private static final String CORRUPTED_ERROR_MESSAGE = "corrupted";
   private static final String INCOMPATIBLE_COMMANDS_ERROR_MESSAGE = "incompatible";
-  private static final String MISSING_COMMAND_TOPIC_ERROR_MESSAGE = "command topic missing";
 
   @Mock
   private InteractiveStatementExecutor statementExecutor;
@@ -134,8 +133,7 @@ public class CommandRunnerTest {
     when(commandTopicExists.get()).thenReturn(true);
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
     when(errorHandler.commandRunnerDegradedIncompatibleCommandsErrorMessage()).thenReturn(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
-    when(errorHandler.commandRunnerDegradedBackupCorruptedErrorMessage()).thenReturn(BACKUP_CORRUPTED_ERROR_MESSAGE);
-    when(errorHandler.commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage()).thenReturn(MISSING_COMMAND_TOPIC_ERROR_MESSAGE);
+    when(errorHandler.commandRunnerDegradedCorruptedErrorMessage()).thenReturn(CORRUPTED_ERROR_MESSAGE);
     
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
@@ -337,7 +335,7 @@ public class CommandRunnerTest {
     inOrder.verify(executor).awaitTermination(anyLong(), any());
     inOrder.verify(commandStore).close();
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
-    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(BACKUP_CORRUPTED_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(CORRUPTED_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.CORRUPTED));
   }
 
@@ -354,10 +352,10 @@ public class CommandRunnerTest {
     threadTask.run();
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
-    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(MISSING_COMMAND_TOPIC_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(CORRUPTED_ERROR_MESSAGE));
     assertThat(
         commandRunner.getCommandRunnerDegradedReason(),
-        is(CommandRunner.CommandRunnerDegradedReason.COMMAND_TOPIC_DELETED_OR_MODIFIED));
+        is(CommandRunner.CommandRunnerDegradedReason.CORRUPTED));
   }
 
   @Test

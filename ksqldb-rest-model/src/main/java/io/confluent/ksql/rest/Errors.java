@@ -230,12 +230,8 @@ public final class Errors {
     return errorMessages.commandRunnerDegradedIncompatibleCommandsErrorMessage();
   }
 
-  public String commandRunnerDegradedBackupCorruptedErrorMessage() {
-    return errorMessages.commandRunnerDegradedBackupCorruptedErrorMessage();
-  }
-
-  public String commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage() {
-    return errorMessages.commandRunnerDegradedCommandTopicDeletedModifiedErrorMessage();
+  public String commandRunnerDegradedCorruptedErrorMessage() {
+    return errorMessages.commandRunnerDegradedCorruptedErrorMessage();
   }
 
   public EndpointResponse generateResponse(

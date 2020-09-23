@@ -24,6 +24,7 @@ import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFacto
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.ParserKeywordValidatorUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +39,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   private final Map<String, UdfFactory> udfs = new HashMap<>();
   private final Map<String, AggregateFunctionFactory> udafs = new HashMap<>();
   private final Map<String, TableFunctionFactory> udtfs = new HashMap<>();
-  private final FunctionNameValidator functionNameValidator = new FunctionNameValidator();
+  private final ParserKeywordValidatorUtil functionNameValidator = new ParserKeywordValidatorUtil();
 
   public InternalFunctionRegistry() {
     new BuiltInInitializer(this).init();

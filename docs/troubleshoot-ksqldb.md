@@ -326,13 +326,7 @@ for typical sources of processing failures.
 Check the ksqlDB Server logs
 ----------------------------
 
-Check the ksqlDB Server logs for errors using the command:
-
-```bash
-confluent log ksql-server
-```
-
-ksqlDB writes most of its log messages to `stdout` by default.
+ksqlDB writes most of its log messages to ``stdout`` by default.
 
 Look for logs in the default directory at `/usr/local/logs` or in the
 `LOG_DIR` that you assigned when starting the CLI. See
@@ -348,6 +342,13 @@ logs, for example:
 ```bash
 docker logs <container-id>
 docker-compose logs ksql-server
+```
+
+Use the {{ site. confluentcli }} to check the ksqlDB server logs for errors
+by using the command:
+
+```bash
+confluent local services ksql-server log
 ```
 
 Suggested Reading

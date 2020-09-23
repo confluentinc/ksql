@@ -165,9 +165,9 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1), any());
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2), any());
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3), any());
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand1);
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand2);
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand3);
   }
 
   @Test
@@ -185,7 +185,7 @@ public class CommandRunnerTest {
     inOrder.verify(commandStore).wakeup();
     inOrder.verify(clusterTerminator).terminateCluster(anyList());
 
-    verify(statementExecutor, never()).handleRestore(any(), any());
+    verify(statementExecutor, never()).handleRestore(any());
   }
 
   @Test
@@ -198,7 +198,7 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(any(), any());
+    verify(statementExecutor, never()).handleRestore(any());
   }
 
   @Test
@@ -223,10 +223,10 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1), any());
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3), any());
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand1);
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand3);
 
-    verify(statementExecutor, never()).handleRestore(eq(queuedCommand2), any());
+    verify(statementExecutor, never()).handleRestore(queuedCommand2);
   }
 
   @Test
@@ -243,14 +243,14 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1), any());
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2), any());
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand1);
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand2);
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
 
-    verify(statementExecutor, never()).handleRestore(eq(queuedCommand3), any());
+    verify(statementExecutor, never()).handleRestore(queuedCommand3);
   }
 
   @Test
@@ -287,13 +287,13 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1), any());
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2), any());
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand1);
+    inOrder.verify(statementExecutor).handleRestore(queuedCommand2);
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
-    verify(statementExecutor, never()).handleRestore(eq(queuedCommand3), any());
+    verify(statementExecutor, never()).handleRestore(queuedCommand3);
   }
 
   @Test
@@ -414,9 +414,9 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(eq(queuedCommand1), any());
-    verify(statementExecutor, never()).handleRestore(eq(queuedCommand2), any());
-    verify(statementExecutor, never()).handleRestore(eq(queuedCommand3), any());
+    verify(statementExecutor, never()).handleRestore(queuedCommand1);
+    verify(statementExecutor, never()).handleRestore(queuedCommand2);
+    verify(statementExecutor, never()).handleRestore(queuedCommand3);
   }
 
   @Test
@@ -483,7 +483,7 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(eq(queuedCommand2), any());
+    verify(statementExecutor, never()).handleRestore(queuedCommand2);
   }
 
   @Test
@@ -525,7 +525,7 @@ public class CommandRunnerTest {
     inOrder.verify(executor).awaitTermination(anyLong(), any());
     inOrder.verify(commandStore).close();
     verify(commandStore, never()).getNewCommands(any());
-    verify(statementExecutor, times(2)).handleRestore(any(), any());
+    verify(statementExecutor, times(2)).handleRestore(any());
   }
 
   @Test

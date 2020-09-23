@@ -25,7 +25,5 @@ public interface ErrorMessages {
 
   String commandRunnerDegradedIncompatibleCommandsErrorMessage();
 
-  String commandRunnerDegradedBackupCorruptedErrorMessage();
-  
-  String commandRunnerDegradedCommandTopicDeletedErrorMessage();
+  String commandRunnerDegradedCorruptedErrorMessage();
 }

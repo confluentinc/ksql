@@ -585,7 +585,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (ROWKEY STRING KEY, C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;",
-        "TERMINATE CsAs_b_0;",
+        "TERMINATE CsAs_b_1;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT ROWKEY, C2 FROM A;"
     );
@@ -608,7 +608,7 @@ public class RecoveryTest {
         "CREATE STREAM A (ROWKEY STRING KEY, C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;",
         "CREATE OR REPLACE STREAM B AS SELECT ROWKEY, C1, C2 FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;"
     );
@@ -632,7 +632,7 @@ public class RecoveryTest {
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
         "INSERT INTO B SELECT * FROM A;",
-        "TERMINATE InsertQuery_0;",
+        "TERMINATE InsertQuery_2;",
         "INSERT INTO B SELECT * FROM A;"
     );
     shouldRecover(commands);
@@ -644,7 +644,7 @@ public class RecoveryTest {
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
         "INSERT INTO B SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "TERMINATE InsertQuery_2;"
     );
     shouldRecover(commands);
@@ -655,7 +655,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B;"
     );
     shouldRecover(commands);
@@ -666,7 +666,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;"
+        "TERMINATE CSAS_B_1;"
     );
 
     addDuplicateOfLastCommand(); // Add duplicate of "TERMINATE CSAS_B_0;"
@@ -686,7 +686,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B DELETE TOPIC;"
     );
 
@@ -709,7 +709,7 @@ public class RecoveryTest {
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
 
-    assertThat(queryIdNames, contains(new QueryId("CSAS_C_0")));
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_1")));
   }
 
   @Test
@@ -717,7 +717,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;");
+        "TERMINATE CSAS_B_1;");
 
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
@@ -725,7 +725,7 @@ public class RecoveryTest {
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
 
-    assertThat(queryIdNames, contains(new QueryId("CSAS_C_1")));
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_2")));
   }
 
   @Test
@@ -733,7 +733,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;");
+        "TERMINATE CSAS_B_1;");
 
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
@@ -741,7 +741,7 @@ public class RecoveryTest {
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
 
-    assertThat(queryIdNames, contains(new QueryId("CSAS_C_1")));
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_2")));
   }
 
 

@@ -266,7 +266,6 @@ public class CommandRunner implements Closeable {
       }
 
       final List<QueuedCommand> compacted = compactor.apply(compatibleCommands);
-      final QueryId greatestQueryId = RestoreCommandsCompactor.greatestQueryId;
       compacted.forEach(
           command -> {
             currentCommandRef.set(new Pair<>(command, clock.instant()));
@@ -274,7 +273,7 @@ public class CommandRunner implements Closeable {
                 maxRetries,
                 STATEMENT_RETRY_MS,
                 MAX_STATEMENT_RETRY_MS,
-                () -> statementExecutor.handleRestore(command, greatestQueryId),
+                () -> statementExecutor.handleRestore(command),
                 WakeupException.class
             );
             currentCommandRef.set(null);

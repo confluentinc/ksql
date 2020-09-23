@@ -960,7 +960,7 @@ public class InteractiveStatementExecutorTest {
 
   private void terminateQueries() {
     final Command terminateCommand1 = new Command(
-        "TERMINATE CSAS_USER1PV_0;",
+        "TERMINATE CSAS_USER1PV_1;",
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty()

@@ -161,11 +161,9 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
         // Ignore backup because record was already replayed
         return;
       } else {
-        LOG.warn("Backup is out of sync with the current command topic. "
-            + "Backups will not work until the previous command topic is "
-            + "restored or all backup files are deleted.");
         corruptionDetected = true;
-        return;
+        throw new KsqlServerException(
+            "Failed to write record due to out of sync command topic and backup file: " + record);
       }
     } else if (latestReplay.size() > 0) {
       // clear latest replay from memory

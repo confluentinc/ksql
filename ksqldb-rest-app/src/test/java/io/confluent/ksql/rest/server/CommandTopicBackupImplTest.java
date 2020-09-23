@@ -200,7 +200,12 @@ public class CommandTopicBackupImplTest {
     commandTopicBackup.initialize();
     final ConsumerRecord<CommandId, Command> record2 = newConsumerRecord(command2);
     // The write command will conflicts with what's already in the backup file
-    commandTopicBackup.writeCommandToBackup(record2);
+    try {
+      commandTopicBackup.writeCommandToBackup(record2);
+      assertThat(true, is(false));
+    } catch (final KsqlServerException e) {
+      // This is expected so we do nothing
+    }
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then
@@ -231,7 +236,12 @@ public class CommandTopicBackupImplTest {
     commandTopicBackup.writeCommandToBackup(record1);
     // The write command will conflicts with what's already in the backup file
     final ConsumerRecord<CommandId, Command> record3 = newConsumerRecord(command3);
-    commandTopicBackup.writeCommandToBackup(record3);
+    try {
+      commandTopicBackup.writeCommandToBackup(record3);
+      assertThat(true, is(false));
+    } catch (final KsqlServerException e) {
+      // This is expected so we do nothing
+    }
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then

@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class RestoreCommandsCompactor {
 
-  static QueryId lastTerminateQueryId;
+  static QueryId greatestQueryId;
   private static final Logger LOG = LoggerFactory.getLogger(RestoreCommandsCompactor.class);
 
   private RestoreCommandsCompactor() {
@@ -92,7 +92,7 @@ public final class RestoreCommandsCompactor {
         final QueryId queryId = new QueryId(queued.getAndDeserializeCommandId().getEntity());
         markShouldSkip(queryId, latestNodeWithId);
         //keep track of the last terminate command
-        lastTerminateQueryId = queryId;
+        //lastTerminateQueryId = queryId;
 
         // terminate commands don't get added to the list of commands to execute
         // because we "execute" them in this class by removing query plans from
@@ -134,6 +134,13 @@ public final class RestoreCommandsCompactor {
 
   private static Optional<QueuedCommand> compact(final CompactedNode node) {
     final Command command = node.command;
+
+    if (command.getPlan().get().getQueryPlan().isPresent()) {
+      if (greatestQueryId == null) {
+        greatestQueryId = command.getPlan().get().getQueryPlan().get().getQueryId();
+      }
+    }
+
     if (!node.shouldSkip) {
       return Optional.of(node.queued);
     }
@@ -159,8 +166,8 @@ public final class RestoreCommandsCompactor {
     ));
   }
 
-  static QueryId getLastTerminateQueryId() {
-    return lastTerminateQueryId;
+  static QueryId getGreatestQueryId() {
+    return greatestQueryId;
   }
 
 }

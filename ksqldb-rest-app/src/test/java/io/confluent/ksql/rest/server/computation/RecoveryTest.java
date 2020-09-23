@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -712,6 +711,39 @@ public class RecoveryTest {
 
     assertThat(queryIdNames, contains(new QueryId("CSAS_C_0")));
   }
+
+  @Test
+  public void shouldIncrementQueryIDsNoPlans() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;");
+
+    final KsqlServer server = new KsqlServer(commands);
+    server.recover();
+    server.submitCommands("CREATE STREAM C AS SELECT * FROM A;");
+    final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
+        .keySet();
+
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_1")));
+  }
+
+  @Test
+  public void shouldIncrementQueryIDsWithPlan() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;");
+
+    final KsqlServer server = new KsqlServer(commands);
+    server.recover();
+    server.submitCommands("CREATE STREAM C AS SELECT * FROM A;");
+    final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
+        .keySet();
+
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_1")));
+  }
+
 
   // Simulate bad commands that have been introduced due to race condition in logic producing to cmd topic
   private void addDuplicateOfLastCommand() {

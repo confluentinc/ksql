@@ -16,8 +16,8 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -43,7 +43,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
@@ -267,7 +266,7 @@ public class CommandRunner implements Closeable {
       }
 
       final List<QueuedCommand> compacted = compactor.apply(compatibleCommands);
-      final QueryId lastTerminateQueryId = RestoreCommandsCompactor.lastTerminateQueryId;
+      final QueryId greatestQueryId = RestoreCommandsCompactor.greatestQueryId;
       compacted.forEach(
           command -> {
             currentCommandRef.set(new Pair<>(command, clock.instant()));
@@ -275,7 +274,7 @@ public class CommandRunner implements Closeable {
                 maxRetries,
                 STATEMENT_RETRY_MS,
                 MAX_STATEMENT_RETRY_MS,
-                () -> statementExecutor.handleRestore(command, lastTerminateQueryId),
+                () -> statementExecutor.handleRestore(command, greatestQueryId),
                 WakeupException.class
             );
             currentCommandRef.set(null);

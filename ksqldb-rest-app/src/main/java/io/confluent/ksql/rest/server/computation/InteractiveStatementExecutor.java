@@ -130,11 +130,11 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     );
   }
 
-  void handleRestore(final QueuedCommand queuedCommand, final QueryId lastTerminateQueryId) {
+  void handleRestore(final QueuedCommand queuedCommand, final QueryId greatestQueryId) {
     throwIfNotConfigured();
 
-    final Optional<QueryId> queryId = lastTerminateQueryId == null
-        ? Optional.empty() : Optional.of(lastTerminateQueryId);
+    final Optional<QueryId> queryId = greatestQueryId == null
+        ? Optional.empty() : Optional.of(greatestQueryId);
     handleStatementWithTerminatedQueries(
         queuedCommand.getAndDeserializeCommand(commandDeserializer),
         queuedCommand.getAndDeserializeCommandId(),
@@ -196,7 +196,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final Optional<CommandStatusFuture> commandStatusFuture,
       final Mode mode,
       final long offset,
-      final Optional<QueryId> lastTerminateQueryId
+      final Optional<QueryId> greatestQueryId
   ) {
     try {
       if (command.getPlan().isPresent()) {
@@ -207,7 +207,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
             command.getPlan().get(),
             mode,
             offset,
-            lastTerminateQueryId);
+            greatestQueryId);
         return;
       }
       final String statementString = command.getStatement();
@@ -241,7 +241,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final KsqlPlan plan,
       final Mode mode,
       final long offset,
-      final Optional<QueryId> lastTerminateQueryId
+      final Optional<QueryId> greatestQueryId
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
@@ -254,20 +254,15 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
     );
     final ExecuteResult result = ksqlEngine.execute(serviceContext, configured);
+    long queryID = Long.MIN_VALUE;
+    if (greatestQueryId.isPresent() && mode == Mode.RESTORE) {
+      final String ltq = greatestQueryId.get().toString();
+      final int lastIndex = ltq.lastIndexOf("_");
+      queryID = Long.parseLong(ltq.substring(lastIndex + 1));
+      queryIdGenerator.setNextId(queryID + 1);
+    }
     if (result.getQuery().isPresent()) {
-      long queryID = Long.MIN_VALUE;
-      if (lastTerminateQueryId.isPresent()) {
-        final String ltq = lastTerminateQueryId.get().toString();
-        final int lastIndex = ltq.lastIndexOf("_");
-        queryID = Long.parseLong(ltq.substring(lastIndex + 1));
-      }
-      // We increase the queryID by 1 if the last command was a terminate,
-      // to avoid the new command getting the same queryId.
-      if (offset > 0 && offset == queryID - 1) {
-        queryIdGenerator.setNextId(queryID + 1);
-      } else {
-        queryIdGenerator.setNextId(offset + 1);
-      }
+      queryIdGenerator.setNextId(offset + 1);
       if (mode == Mode.EXECUTE) {
         result.getQuery().get().start();
       }

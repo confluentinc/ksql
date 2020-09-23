@@ -750,7 +750,9 @@ public final class KsqlRestApplication implements Executable {
             KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
         metricsPrefix,
         InternalTopicSerdes.deserializer(Command.class),
-        errorHandler
+        errorHandler,
+        serviceContext.getTopicClient(),
+        commandTopicName
     );
   
     final KsqlResource ksqlResource = new KsqlResource(

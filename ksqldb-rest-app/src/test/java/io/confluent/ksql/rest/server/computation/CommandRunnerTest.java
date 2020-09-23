@@ -55,6 +55,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.Before;
@@ -70,7 +72,7 @@ import org.mockito.stubbing.Answer;
 @RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerTest {
   private static final long COMMAND_RUNNER_HEALTH_TIMEOUT = 1000;
-  private static final String BACKUP_CORRUPTED_ERROR_MESSAGE = "corrupted";
+  private static final String CORRUPTED_ERROR_MESSAGE = "corrupted";
   private static final String INCOMPATIBLE_COMMANDS_ERROR_MESSAGE = "incompatible";
 
   @Mock
@@ -104,6 +106,8 @@ public class CommandRunnerTest {
   @Mock
   private Deserializer<Command> commandDeserializer;
   @Mock
+  private Supplier<Boolean> commandTopicExists;
+  @Mock
   private Errors errorHandler;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
@@ -126,10 +130,11 @@ public class CommandRunnerTest {
     doNothing().when(incompatibleCommandChecker).accept(queuedCommand3);
 
     when(commandStore.corruptionDetected()).thenReturn(false);
+    when(commandTopicExists.get()).thenReturn(true);
     when(compactor.apply(any())).thenAnswer(inv -> inv.getArgument(0));
     when(errorHandler.commandRunnerDegradedIncompatibleCommandsErrorMessage()).thenReturn(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
-    when(errorHandler.commandRunnerDegradedBackupCorruptedErrorMessage()).thenReturn(BACKUP_CORRUPTED_ERROR_MESSAGE);
-
+    when(errorHandler.commandRunnerDegradedCorruptedErrorMessage()).thenReturn(CORRUPTED_ERROR_MESSAGE);
+    
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     commandRunner = new CommandRunner(
@@ -146,7 +151,8 @@ public class CommandRunnerTest {
         compactor,
         incompatibleCommandChecker,
         commandDeserializer,
-        errorHandler
+        errorHandler,
+        commandTopicExists
     );
   }
 
@@ -329,8 +335,27 @@ public class CommandRunnerTest {
     inOrder.verify(executor).awaitTermination(anyLong(), any());
     inOrder.verify(commandStore).close();
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
-    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(BACKUP_CORRUPTED_ERROR_MESSAGE));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(CORRUPTED_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.CORRUPTED));
+  }
+
+  @Test
+  public void shouldEnterDegradedStateIfCommandTopicMissing() {
+    // Given:
+    givenQueuedCommands();
+    when(commandTopicExists.get()).thenReturn(false);
+
+    // When:
+    commandRunner.start();
+
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+
+    assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+    assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(CORRUPTED_ERROR_MESSAGE));
+    assertThat(
+        commandRunner.getCommandRunnerDegradedReason(),
+        is(CommandRunner.CommandRunnerDegradedReason.CORRUPTED));
   }
 
   @Test
@@ -511,6 +536,26 @@ public class CommandRunnerTest {
         .thenReturn(Collections.singletonList(queuedCommand2));
     doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand2);
     
+    // When:
+    commandRunner.start();
+    verify(commandStore, never()).close();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+
+    // Then:
+    final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(commandStore).close();
+  }
+
+  @Test
+  public void shouldCloseEarlyWhenOffsetOutOfRangeException() throws Exception {
+    // Given:
+    when(commandStore.getNewCommands(any()))
+        .thenReturn(Collections.singletonList(queuedCommand1))
+        .thenThrow(new OffsetOutOfRangeException(Collections.singletonMap(new TopicPartition("command_topic", 0), 0L)));
+
     // When:
     commandRunner.start();
     verify(commandStore, never()).close();

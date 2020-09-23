@@ -25,19 +25,16 @@ public class DefaultErrorMessages implements ErrorMessages {
           + System.lineSeparator()
           + "This is most likely due to the service being rolled back to an earlier version.";
 
-  public static final String COMMAND_RUNNER_DEGRADED_BACKUP_CORRUPTED_ERROR_MESSAGE =
-      "The server has detected that the command topic may be corrupted. The backup of the "
-          + "command topic does not match the current contents of command topic."
+  public static final String COMMAND_RUNNER_DEGRADED_CORRUPTED_ERROR_MESSAGE =
+      "The server has detected corruption in the command topic due "
+          + "to modifications performed on it. "
           + System.lineSeparator()
-          + "DDL statements will not be processed until either:"
+          + "DDL statements will not be processed any further."
           + System.lineSeparator()
-          + "1. The current command topic is deleted and the backup file is used "
-          + "to restore the command topic."
+          + "If a backup of the command topic is available, "
+          + "restore the command topic using the backup file."
           + System.lineSeparator()
-          + "2. The current backup file is deleted."
-          + System.lineSeparator()
-          + "The server must be restarted after performing either operation in order to resume "
-          + "normal functionality";
+          + "A server restart is required to restore full functionality.";
   
 
   @Override
@@ -70,7 +67,7 @@ public class DefaultErrorMessages implements ErrorMessages {
   }
 
   @Override
-  public String commandRunnerDegradedBackupCorruptedErrorMessage() {
-    return COMMAND_RUNNER_DEGRADED_BACKUP_CORRUPTED_ERROR_MESSAGE;
+  public String commandRunnerDegradedCorruptedErrorMessage() {
+    return COMMAND_RUNNER_DEGRADED_CORRUPTED_ERROR_MESSAGE;
   }
 }

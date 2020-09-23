@@ -110,7 +110,7 @@ public class CommandTopicFunctionalTest {
             return results2.stream().allMatch(ksqlEntity -> {
               final List<KsqlWarning> warnings = ksqlEntity.getWarnings();
               return warnings.size() == 1
-                  && warnings.get(0).getMessage().equals(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_COMMAND_TOPIC_DELETED);
+                  && warnings.get(0).getMessage().equals(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_CORRUPTED_ERROR_MESSAGE);
             });
       },
       is(true));
@@ -128,7 +128,7 @@ public class CommandTopicFunctionalTest {
       assertThat("Warning isn't corrupted warning",
           ksqlEntity.getWarnings()
               .get(0).getMessage()
-              .equals(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_BACKUP_CORRUPTED_ERROR_MESSAGE));
+              .equals(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_CORRUPTED_ERROR_MESSAGE));
     });
     
     // First server should still be in DEGRADED state even though second server created command topic on start up
@@ -138,7 +138,7 @@ public class CommandTopicFunctionalTest {
       assertThat("Warning isn't command topic deleted warning",
           ksqlEntity.getWarnings()
               .get(0).getMessage()
-              .equals(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_COMMAND_TOPIC_DELETED));
+              .equals(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_CORRUPTED_ERROR_MESSAGE));
     });
   }
 

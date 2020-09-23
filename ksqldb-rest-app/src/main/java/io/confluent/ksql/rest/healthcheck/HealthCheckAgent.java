@@ -36,7 +36,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,7 +149,8 @@ public class HealthCheckAgent {
         isHealthy = true;
       } catch (final Exception e) {
         log.error("Error describing command topic during health check", e);
-        isHealthy = false;
+        isHealthy = e instanceof UnknownTopicOrPartitionException
+            || ExceptionUtils.getRootCause(e) instanceof UnknownTopicOrPartitionException;
       }
 
       return new HealthCheckResponseDetail(isHealthy);

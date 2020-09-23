@@ -165,9 +165,9 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand1);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand2);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand3);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
   }
 
   @Test
@@ -223,8 +223,8 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand1);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand3);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
 
     verify(statementExecutor, never()).handleRestore(queuedCommand2);
   }
@@ -243,8 +243,8 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand1);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand2);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
@@ -287,8 +287,8 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand1);
-    inOrder.verify(statementExecutor).handleRestore(queuedCommand2);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
 
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));

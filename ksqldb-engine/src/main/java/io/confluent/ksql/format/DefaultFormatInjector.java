@@ -55,10 +55,6 @@ public class DefaultFormatInjector implements Injector {
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement
   ) {
-    if (featureFlagNotEnabled(statement)) {
-      validateLegacyFormatProperties(statement);
-    }
-
     if (statement.getStatement() instanceof CreateSource) {
       return handleCreateSource((ConfiguredStatement<CreateSource>) statement);
     }
@@ -144,21 +140,6 @@ public class DefaultFormatInjector implements Injector {
     }
 
     return format;
-  }
-
-  private static void validateLegacyFormatProperties(final ConfiguredStatement<?> statement) {
-    if (statement.getStatement() instanceof CreateSource) {
-      final CreateSource createStatement = (CreateSource) statement.getStatement();
-
-      if (!createStatement.getProperties().getValueFormat().isPresent()) {
-        throw new ParseFailedException("Failed to prepare statement: Missing required property "
-            + "\"VALUE_FORMAT\" which has no default value.");
-      }
-    }
-  }
-
-  private static boolean featureFlagNotEnabled(final ConfiguredStatement<?> statement) {
-    return !getConfig(statement).getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED);
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

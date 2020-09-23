@@ -205,13 +205,9 @@ public class DefaultFormatInjectorTest {
   }
 
   private void givenConfig(
-      final Map<String, Object> additionalProps,
+      final Map<String, Object> props,
       final Map<String, ?> configOverrides
   ) {
-    final HashMap<String, Object> props = new HashMap<>();
-    props.put(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true);
-    props.putAll(additionalProps);
-
     csStatement = ConfiguredStatement.of(
         PreparedStatement.of("some sql", createSource),
         SessionConfig.of(new KsqlConfig(props), configOverrides));

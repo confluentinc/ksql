@@ -23,7 +23,7 @@ period (e.g. a minute) we need to keep that level of granularity for the default
 
 ## What is not in scope
 
-- N/A
+- Deprecation of the old syntax
 
 ## Value/Return
 
@@ -68,10 +68,14 @@ The entry in `join-streams-and-tables.md` will be updated to include the followi
 
 ```md
 When you join two streams, you must specify a WITHIN clause for matching
-records that both occur within a specified time interval and optionally a
-grace period. The WITHIN clause will specify the "look back" period on 
-the non-triggering stream while the grace period will define how late a record
-may arrive before being processed.
+records that both occur within a specified time interval and a grace period. 
+The WITHIN clause will specify the "look back" period on the non-triggering stream 
+while the grace period will define how out-of-order records will be accepted.
+
+While the grace period is optional, it is recommended to supply a value, otherwise the
+default grace period is 24 hours. The local state for a window is not cleaned up
+until the grace period has elapsed, so tuning this value to make sense for your specific
+application is worthwhile.
 
 For valid time units, see [Time Units](../syntax-reference.md#time-units).
 

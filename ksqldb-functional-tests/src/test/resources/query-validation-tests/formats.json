@@ -79,6 +79,16 @@
       }
     },
     {
+      "name": "missing value format",
+      "statements": [
+        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Statement is missing the 'VALUE_FORMAT' property from the WITH clause. Either provide one or set a default via the 'ksql.persistence.default.format.value' config."
+      }
+    },
+    {
       "name": "unsupported key format - create source",
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='AVRO');"

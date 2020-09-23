@@ -251,7 +251,7 @@ Where each line of the output is the password encrypted using different
 mechanisms, starting with plain text. Copy any of the password encrypted
 lines onto the password file.
 
-The roles names are defined next to the encrypted password. These
+The role names are defined next to the encrypted password. These
 are used by the `LoginModule` to map users to roles.
 
 Here's an example of the password file:
@@ -273,13 +273,13 @@ authentication.realm=<KsqlServer-Props-in-jaas_config.file>
 authentication.roles=<user-role1>,<user-role2>,...
 ```
 
-The `authentication.method` specifies ksqlDB to authenticate users using `BASIC`
+The `authentication.method` property indicates that ksqlDB authenticates users by using `BASIC`
 user and password credentials.
 
 The `authentication.realm` config must match a section within
 `jaas_config.file`, which provides the login module for authentication.
 
-In this example, the `authentication.realm` config is set to the `KsqlServer-Props`, which
+In this example, the `authentication.realm` config is set to `KsqlServer-Props`, which
 was defined in the previous section:
 
 ```properties
@@ -290,14 +290,15 @@ The `authentication.roles` config defines a comma-separated list of user
 roles with access to the ksqlDB server. To be authorized to use the ksqlDB Server,
 an authenticated user must belong to at least one of these roles.
 
-For example, if you define `admin` and `developer` roles, ksqlDB will allow access to only users that contain these roles
-(see configuration for the password file under the `jaas_config.file` section).
+For example, if you define `admin` and `developer` roles, ksqlDB allows access only to users that contain these roles
+For more information, see the configuration for the password file in the `jaas_config.file` section.
 
 ```properties
 authentication.roles=admin,developer
 ```
 
-Note. You can authorize any role by setting the `authentication.roles` to `**`.
+!!! note
+    You can authorize any role by setting the `authentication.roles` to `**`.
 
 ###  Example
 
@@ -326,8 +327,8 @@ authentication.roles=admin
 ```
 
 The ksqlDB server authenticates users `fred`, `harry`, `tom`, and `dick` based on the
-user and password credentials found in the password file. But only `fred` and `dick` will
-be authorized to access the server because they're under the `admin` role.
+user and password credentials found in the password file. But only `fred` and `dick`
+authorized to access the server because they're under the `admin` role.
 
 ### Configure the CLI for Basic HTTP Authentication
 

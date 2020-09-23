@@ -195,13 +195,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   ) {
     try {
       if (command.getPlan().isPresent()) {
-        executePlan(
-            command,
-            commandId,
-            commandStatusFuture,
-            command.getPlan().get(),
-            mode,
-            offset);
+        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode, offset);
         return;
       }
       final String statementString = command.getStatement();

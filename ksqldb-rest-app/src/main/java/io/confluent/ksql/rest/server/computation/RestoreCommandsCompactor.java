@@ -127,7 +127,6 @@ public final class RestoreCommandsCompactor {
 
   private static Optional<QueuedCommand> compact(final CompactedNode node) {
     final Command command = node.command;
-
     if (!node.shouldSkip) {
       return Optional.of(node.queued);
     }

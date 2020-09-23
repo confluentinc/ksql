@@ -731,15 +731,16 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
+        "CREATE STREAM C AS SELECT * FROM A;",
         "TERMINATE CSAS_B_1;");
 
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
-    server.submitCommands("CREATE STREAM C AS SELECT * FROM A;");
+    server.submitCommands("CREATE STREAM D AS SELECT * FROM A;");
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
-
-    assertThat(queryIdNames, contains(new QueryId("CSAS_C_2")));
+    System.out.println(queryIdNames);
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_2"), new QueryId("CSAS_D_3")));
   }
 
 

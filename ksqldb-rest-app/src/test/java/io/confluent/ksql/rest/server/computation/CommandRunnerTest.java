@@ -249,7 +249,6 @@ public class CommandRunnerTest {
     assertThat(commandRunner.checkCommandRunnerStatus(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
     assertThat(commandRunner.getCommandRunnerDegradedWarning(), is(INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
     assertThat(commandRunner.getCommandRunnerDegradedReason(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND));
-
     verify(statementExecutor, never()).handleRestore(queuedCommand3);
   }
 

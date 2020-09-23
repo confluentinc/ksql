@@ -39,9 +39,9 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 public class HealthCheckAgent {
   private static final Logger log = LoggerFactory.getLogger(HealthCheckAgent.class);

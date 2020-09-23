@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function;
+package io.confluent.ksql.util;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -22,9 +22,9 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import org.antlr.v4.runtime.Vocabulary;
 import org.junit.Test;
 
-public class FunctionNameValidatorTest {
+public class ParserKeywordValidatorUtilTest {
 
-  private final FunctionNameValidator validator = new FunctionNameValidator();
+  private final ParserKeywordValidatorUtil validator = new ParserKeywordValidatorUtil();
 
   @Test
   public void shouldNotAllowJavaReservedWords() {

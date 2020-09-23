@@ -239,6 +239,28 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The 'DELIMITED' format does not support type 'MAP'"
       }
+    },
+    {
+      "name": "read written decimals",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, v DECIMAL(33, 16)) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INTERMEDIATE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "12345678987654321.2345678987654321"},
+        {"topic": "test_topic", "value": ".12"},
+        {"topic": "test_topic", "value": "-12345.12"},
+        {"topic": "test_topic", "value": "\"-12345.12\""},
+        {"topic": "test_topic", "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "12345678987654321.2345678987654321"},
+        {"topic": "OUTPUT", "value": "0.1200000000000000"},
+        {"topic": "OUTPUT", "value": "\"-12345.1200000000000000\""},
+        {"topic": "OUTPUT", "value": "\"-12345.1200000000000000\""},
+        {"topic": "OUTPUT", "value": "0.0000000000000000"}
+      ]
     }
   ]
 }

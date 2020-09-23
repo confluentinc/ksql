@@ -18,8 +18,6 @@ package io.confluent.ksql.serde.delimited;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlDecimal;
-import io.confluent.ksql.util.DecimalUtil;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -92,12 +90,13 @@ class KsqlDelimitedSerializer implements Serializer<List<?>> {
       final SimpleColumn column = columnIt.next();
 
       return column.type().baseType().equals(SqlBaseType.DECIMAL)
-          ? handleDecimal((BigDecimal) value, (SqlDecimal) column.type())
+          ? handleDecimal((BigDecimal) value)
           : value;
     }
 
-    private static String handleDecimal(final BigDecimal value, final SqlDecimal sqlType) {
-      return DecimalUtil.format(sqlType.getPrecision(), sqlType.getScale(), value);
+    private static String handleDecimal(final BigDecimal value) {
+      // Avoid scientific notation for now:
+      return value.toPlainString();
     }
   }
 }

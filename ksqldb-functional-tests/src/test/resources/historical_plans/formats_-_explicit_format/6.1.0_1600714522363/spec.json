@@ -20,6 +20,8 @@
       "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (kafka_topic='input', format='KAFKA');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "inputs": [{"topic": "input", "key": "foo", "value": "bar"}],
+    "outputs": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}],
     "properties" : {
       "ksql.persistence.default.format.value" : "JSON"
     },

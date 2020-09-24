@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
@@ -30,7 +29,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema.Type;
 
 public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
 
@@ -50,19 +48,6 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
     return new RowDeserializer();
   }
 
-  private SqlType getColumnType(final boolean isKey) {
-    final List<Column> columns = isKey ? schema.key() : schema.value();
-    if (columns.isEmpty()) {
-      throw new IllegalStateException("No columns in schema");
-    }
-
-    if (columns.size() != 1) {
-      throw new IllegalStateException("KAFKA format only supports single column schemas.");
-    }
-
-    return columns.get(0).type();
-  }
-
   private Serde<?> getSerde(final boolean isKey) {
     final List<Column> columns = isKey ? schema.key() : schema.value();
     if (columns.isEmpty()) {
@@ -79,16 +64,12 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   }
 
   private static Serde<?> getSerde(final SqlType sqlType) {
-    final Type connectType = SchemaConverters.sqlToConnectConverter()
-        .toConnectSchema(sqlType)
-        .type();
-
-    switch (connectType) {
-      case INT32:
+    switch (sqlType.baseType()) {
+      case INTEGER:
         return Serdes.Integer();
-      case INT64:
+      case BIGINT:
         return Serdes.Long();
-      case FLOAT64:
+      case DOUBLE:
         return Serdes.Double();
       case STRING:
         return Serdes.String();

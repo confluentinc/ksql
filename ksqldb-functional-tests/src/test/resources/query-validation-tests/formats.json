@@ -93,14 +93,14 @@
     {
       "name": "unsupported key format - create source",
       "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='AVRO');"
+        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='PROTOBUF');"
       ],
       "properties": {
         "ksql.key.format.enabled": true
       },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'AVRO' is not currently supported."
+        "message": "The key format 'PROTOBUF' is not currently supported."
       }
     },
     {

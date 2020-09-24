@@ -151,8 +151,6 @@
       ]
     },
     {
-      "enabled": false,
-      "commment": "WIP - requires enhancement to QTT, which currently deserializes doubles as BigDecimal",
       "name": "DOUBLE - key",
       "statements": [
         "CREATE STREAM INPUT (K DOUBLE KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
@@ -706,6 +704,22 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "JSON only supports MAP types with STRING keys"
       }
+    },
+    {
+      "name": "keyless JSON",
+      "statements": [
+        "CREATE STREAM INPUT (V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "input_topic", "value": {"V": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"V": 0}}
+      ]
     }
   ]
 }

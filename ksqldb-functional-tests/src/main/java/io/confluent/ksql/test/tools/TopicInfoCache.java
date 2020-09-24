@@ -267,6 +267,11 @@ public class TopicInfoCache {
     }
 
     private Object coerceKey(final Object key) {
+      // Only KAFKA format needs any key coercion at the moment:
+      if (!(keyFormat.getFormat() instanceof KafkaFormat)) {
+        return key;
+      }
+
       if (schema.key().isEmpty()) {
         // No key column
         // - pass the key in as a string to allow tests to pass in data that should be ignored:

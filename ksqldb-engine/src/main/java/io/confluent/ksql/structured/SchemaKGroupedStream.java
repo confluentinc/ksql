@@ -27,8 +27,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
@@ -104,9 +102,9 @@ public class SchemaKGroupedStream {
     );
   }
 
-  private static KeyFormat getKeyFormat(final WindowExpression windowExpression) {
+  private KeyFormat getKeyFormat(final WindowExpression windowExpression) {
     return KeyFormat.windowed(
-        FormatInfo.of(FormatFactory.KAFKA.name()),
+        keyFormat.getFormatInfo(),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
   }

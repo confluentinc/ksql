@@ -155,7 +155,7 @@ public final class TestCaseBuilderUtil {
 
         SerdeOptions serdeOptions;
         try {
-          serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
+          serdeOptions = SerdeOptionsFactory.build(
               logicalSchema,
               keyFormat,
               valueFormat,

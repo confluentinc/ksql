@@ -15,13 +15,11 @@
 
 package io.confluent.ksql.serde;
 
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOptions.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -35,7 +33,7 @@ public final class SerdeOptionsFactory {
   }
 
   /**
-   * Build serde options for {@code `CREATE STREAM`} and {@code `CREATE TABLE`} statements.
+   * Build serde options for C* and C*AS statements.
    *
    * @param schema the logical schema of the create statement.
    * @param keyFormat the format of the key.
@@ -44,41 +42,8 @@ public final class SerdeOptionsFactory {
    * @param ksqlConfig the session config, used to retrieve defaults.
    * @return the set of serde options the statement defines.
    */
-  public static SerdeOptions buildForCreateStatement(
+  public static SerdeOptions build(
       final LogicalSchema schema,
-      final Format keyFormat,
-      final Format valueFormat,
-      final SerdeOptions explicitOptions,
-      final KsqlConfig ksqlConfig
-  ) {
-    final boolean singleColumn = schema.value().size() == 1;
-    return build(singleColumn, keyFormat, valueFormat, explicitOptions, ksqlConfig);
-  }
-
-  /**
-   * Build serde options for {@code `CREATE STREAM AS SELECT`} and {@code `CREATE TABLE AS SELECT`}
-   * statements.
-   *
-   * @param valueColumnNames the set of column names in the schema.
-   * @param keyFormat the format of the key.
-   * @param valueFormat the format of the value.
-   * @param wrapSingleValues explicitly set single value wrapping flag.
-   * @param ksqlConfig the session config, used to retrieve defaults.
-   * @return the set of serde options the statement defines.
-   */
-  public static SerdeOptions buildForCreateAsStatement(
-      final List<ColumnName> valueColumnNames,
-      final Format keyFormat,
-      final Format valueFormat,
-      final SerdeOptions wrapSingleValues,
-      final KsqlConfig ksqlConfig
-  ) {
-    final boolean singleColumn = valueColumnNames.size() == 1;
-    return build(singleColumn, keyFormat, valueFormat, wrapSingleValues, ksqlConfig);
-  }
-
-  private static SerdeOptions build(
-      final boolean singleColumn,
       final Format keyFormat,
       final Format valueFormat,
       final SerdeOptions explicitOptions,
@@ -86,20 +51,24 @@ public final class SerdeOptionsFactory {
   ) {
     final Builder builder = SerdeOptions.builder();
 
-    getKeyWrapping(keyFormat)
+    getKeyWrapping(schema.key().size() == 1, keyFormat)
         .ifPresent(builder::add);
 
-    getValueWrapping(singleColumn, valueFormat, explicitOptions, ksqlConfig)
+    getValueWrapping(schema.value().size() == 1, valueFormat, explicitOptions, ksqlConfig)
         .ifPresent(builder::add);
 
     return builder.build();
   }
 
-  private static Optional<SerdeOption> getKeyWrapping(final Format keyFormat) {
+  private static Optional<SerdeOption> getKeyWrapping(
+      final boolean singleKey,
+      final Format keyFormat
+  ) {
     // Until ksqlDB supports WRAP_SINGLE_KEYS in the WITH clause, we explicitly set
     // UNWRAP_SINGLE_KEYS for any key format that supports both wrapping and unwrapping to avoid
     // ambiguity later:
-    if (keyFormat.supportsFeature(SerdeFeature.UNWRAP_SINGLES)
+    if (singleKey
+        && keyFormat.supportsFeature(SerdeFeature.UNWRAP_SINGLES)
         && keyFormat.supportsFeature(SerdeFeature.WRAP_SINGLES)
     ) {
       return Optional.of(SerdeOption.UNWRAP_SINGLE_KEYS);
@@ -108,7 +77,7 @@ public final class SerdeOptionsFactory {
   }
 
   private static Optional<SerdeOption> getValueWrapping(
-      final boolean singleColumn,
+      final boolean singleValue,
       final Format valueFormat,
       final SerdeOptions explicitOptions,
       final KsqlConfig ksqlConfig
@@ -117,15 +86,15 @@ public final class SerdeOptionsFactory {
         .findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS);
 
     if (valueWrapping.isPresent()) {
-      validateExplicitValueWrapping(singleColumn, valueFormat, valueWrapping.get());
+      validateExplicitValueWrapping(singleValue, valueFormat, valueWrapping.get());
       return valueWrapping;
     }
 
-    return getDefaultValueWrapping(singleColumn, valueFormat, ksqlConfig);
+    return getDefaultValueWrapping(singleValue, valueFormat, ksqlConfig);
   }
 
   private static void validateExplicitValueWrapping(
-      final boolean singleColumn,
+      final boolean singleValue,
       final Format valueFormat,
       final SerdeOption wrappingOption
   ) {
@@ -136,18 +105,18 @@ public final class SerdeOptionsFactory {
           + value + "'.");
     }
 
-    if (!singleColumn) {
+    if (!singleValue) {
       throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE
           + "' is only valid for single-field value schemas");
     }
   }
 
   private static Optional<SerdeOption> getDefaultValueWrapping(
-      final boolean singleColumn,
+      final boolean singleValue,
       final Format valueFormat,
       final KsqlConfig ksqlConfig
   ) {
-    if (!singleColumn) {
+    if (!singleValue) {
       return Optional.empty();
     }
 

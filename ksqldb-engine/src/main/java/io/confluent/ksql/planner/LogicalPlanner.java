@@ -194,10 +194,6 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode,
       final Into intoDataSource
   ) {
-    final List<ColumnName> columnNames = sourcePlanNode.getSchema().value().stream()
-        .map(Column::name)
-        .collect(Collectors.toList());
-
     final Format keyFormat = intoDataSource.getKsqlTopic()
         .getKeyFormat()
         .getFormat();
@@ -206,8 +202,8 @@ public class LogicalPlanner {
         .getValueFormat()
         .getFormat();
 
-    return SerdeOptionsFactory.buildForCreateAsStatement(
-        columnNames,
+    return SerdeOptionsFactory.build(
+        sourcePlanNode.getSchema(),
         keyFormat,
         valueFormat,
         analysis.getProperties().getSerdeOptions(),

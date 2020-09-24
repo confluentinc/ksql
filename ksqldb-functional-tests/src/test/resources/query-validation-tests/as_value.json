@@ -114,6 +114,47 @@
           {"name": "OUTPUT", "type": "stream", "schema": "I2_ID INT KEY, I1_ID INT, I1_V0 INT, I1_V1 INT, I2_V0 INT, I2_V1 INT"}
         ]
       }
+    },
+    {
+      "name": "BOOLEAN",
+      "statements": [
+        "CREATE STREAM INPUT (ID BOOLEAN KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "input", "key": true, "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"ID_COPY": true, "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID BOOLEAN KEY, ID_COPY BOOLEAN, V1 INT"}
+        ]
+      }
+    },{
+      "name": "DECIMAL",
+      "statements": [
+        "CREATE STREAM INPUT (ID DECIMAL(4,2) KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "input", "key": 12.30, "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 12.30, "value": {"ID_COPY": 12.30, "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID DECIMAL(4,2) KEY, ID_COPY DECIMAL(4,2), V1 INT"}
+        ]
+      }
     }
   ]
 }

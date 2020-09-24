@@ -16,20 +16,29 @@
 package io.confluent.ksql.serde;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -175,5 +184,100 @@ public class GenericKeySerDeTest {
 
     // Then:
     assertThat(result, is(instanceOf(SessionWindowedSerde.class)));
+  }
+
+  @Test
+  public void shouldNotThrowOnNoKeyColumns() {
+    // Given:
+    schema = PersistenceSchema.from(ImmutableList.of(), EnabledSerdeFeatures.of());
+
+    // When:
+    factory
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+
+    // Then (did not throw):
+  }
+
+  @Test
+  public void shouldThrowOnMultipleKeyColumns() {
+    // Given:
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.STRING), column(SqlTypes.INTEGER)),
+        EnabledSerdeFeatures.of()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [STRING, INTEGER]"));
+  }
+
+  @Test
+  public void shouldThrowOnArrayKeyColumn() {
+    // Given:
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.array(SqlTypes.STRING))),
+        EnabledSerdeFeatures.of()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [ARRAY<STRING>]"));
+  }
+
+  @Test
+  public void shouldThrowOnMapKeyColumn() {
+    // Given:
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))),
+        EnabledSerdeFeatures.of()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [MAP<STRING, STRING>]"));
+  }
+
+  @Test
+  public void shouldThrowOnStructKeyColumn() {
+    // Given:
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.struct().field("F", SqlTypes.STRING).build())),
+        EnabledSerdeFeatures.of()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [MAP<STRING, STRING>]"));
+  }
+
+  private static SimpleColumn column(final SqlType type) {
+    final SimpleColumn column = mock(SimpleColumn.class, type.toString());
+    when(column.name()).thenReturn(ColumnName.of(type.toString()));
+    when(column.type()).thenReturn(type);
+    return column;
   }
 }

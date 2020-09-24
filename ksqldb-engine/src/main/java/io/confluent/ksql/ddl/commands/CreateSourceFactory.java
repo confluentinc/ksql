@@ -59,7 +59,7 @@ public final class CreateSourceFactory {
   public CreateSourceFactory(final ServiceContext serviceContext) {
     this(
         serviceContext,
-        SerdeOptionsFactory::buildForCreateStatement,
+        SerdeOptionsFactory::build,
         new GenericKeySerDe(),
         new GenericRowSerDe()
     );

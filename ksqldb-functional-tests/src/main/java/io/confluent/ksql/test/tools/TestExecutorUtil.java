@@ -333,7 +333,7 @@ public final class TestExecutorUtil {
     } catch (final KsqlStatementException e) {
       if (plans.hasNext()) {
         throw new AssertionError("Only the last statement in a negative test should fail. "
-            + "Yet in this case statement " + idx + " failed.");
+            + "Yet in this case statement " + idx + " failed.", e);
       }
       throw e;
     }

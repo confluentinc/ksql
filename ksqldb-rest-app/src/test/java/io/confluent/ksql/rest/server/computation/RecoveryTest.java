@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,7 +44,6 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.CommandTopicBackup;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -67,7 +65,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.StreamsConfig;
@@ -586,7 +583,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (ROWKEY STRING KEY, C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;",
-        "TERMINATE CsAs_b_0;",
+        "TERMINATE CsAs_b_1;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT ROWKEY, C2 FROM A;"
     );
@@ -609,7 +606,7 @@ public class RecoveryTest {
         "CREATE STREAM A (ROWKEY STRING KEY, C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;",
         "CREATE OR REPLACE STREAM B AS SELECT ROWKEY, C1, C2 FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT ROWKEY, C1 FROM A;"
     );
@@ -633,7 +630,7 @@ public class RecoveryTest {
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
         "INSERT INTO B SELECT * FROM A;",
-        "TERMINATE InsertQuery_0;",
+        "TERMINATE InsertQuery_2;",
         "INSERT INTO B SELECT * FROM A;"
     );
     shouldRecover(commands);
@@ -645,7 +642,7 @@ public class RecoveryTest {
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
         "INSERT INTO B SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "TERMINATE InsertQuery_2;"
     );
     shouldRecover(commands);
@@ -656,7 +653,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B;"
     );
     shouldRecover(commands);
@@ -667,7 +664,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;"
+        "TERMINATE CSAS_B_1;"
     );
 
     addDuplicateOfLastCommand(); // Add duplicate of "TERMINATE CSAS_B_0;"
@@ -687,7 +684,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B DELETE TOPIC;"
     );
 
@@ -710,8 +707,41 @@ public class RecoveryTest {
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
         .keySet();
 
-    assertThat(queryIdNames, contains(new QueryId("CSAS_C_0")));
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_1")));
   }
+
+  @Test
+  public void shouldIncrementQueryIDsNoPlans() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_1;");
+
+    final KsqlServer server = new KsqlServer(commands);
+    server.recover();
+    server.submitCommands("CREATE STREAM C AS SELECT * FROM A;");
+    final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
+        .keySet();
+
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_2")));
+  }
+
+  @Test
+  public void shouldIncrementQueryIDsWithPlan() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "CREATE STREAM C AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_1;");
+
+    final KsqlServer server = new KsqlServer(commands);
+    server.recover();
+    server.submitCommands("CREATE STREAM D AS SELECT * FROM A;");
+    final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries())
+        .keySet();
+    assertThat(queryIdNames, contains(new QueryId("CSAS_C_2"), new QueryId("CSAS_D_3")));
+  }
+
 
   // Simulate bad commands that have been introduced due to race condition in logic producing to cmd topic
   private void addDuplicateOfLastCommand() {

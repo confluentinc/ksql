@@ -241,8 +241,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
     );
     final ExecuteResult result = ksqlEngine.execute(serviceContext, configured);
+    queryIdGenerator.setNextId(offset + 1);
     if (result.getQuery().isPresent()) {
-      queryIdGenerator.setNextId(offset + 1);
       if (mode == Mode.EXECUTE) {
         result.getQuery().get().start();
       }

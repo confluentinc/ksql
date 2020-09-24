@@ -862,7 +862,7 @@ public class ClientIntegrationTest {
 
     // Then
     assertThat(queries.get(0).getQueryType(), is(QueryType.PERSISTENT));
-    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_0"));
+    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
     assertThat(queries.get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
             + "  " + TEST_STREAM + ".STR STR,\n"
@@ -894,7 +894,7 @@ public class ClientIntegrationTest {
     assertThat(description.valueFormat(), is("JSON"));
     assertThat(description.readQueries(), hasSize(1));
     assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
-    assertThat(description.readQueries().get(0).getId(), is("CTAS_" + AGG_TABLE + "_0"));
+    assertThat(description.readQueries().get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
     assertThat(description.readQueries().get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
             + "  " + TEST_STREAM + ".STR STR,\n"

@@ -20,6 +20,8 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.CommandTopicBackup;
+import io.confluent.ksql.rest.server.CommandTopicBackupImpl;
+import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -87,8 +89,7 @@ public class CommandStore implements CommandQueue, Closeable {
         final String commandTopicName,
         final Duration commandQueueCatchupTimeout,
         final Map<String, Object> kafkaConsumerProperties,
-        final Map<String, Object> kafkaProducerProperties,
-        final CommandTopicBackup commandTopicBackup
+        final Map<String, Object> kafkaProducerProperties
     ) {
       kafkaConsumerProperties.put(
           ConsumerConfig.ISOLATION_LEVEL_CONFIG,
@@ -106,6 +107,14 @@ public class CommandStore implements CommandQueue, Closeable {
           ProducerConfig.ACKS_CONFIG,
           "all"
       );
+
+      CommandTopicBackup commandTopicBackup = new CommandTopicBackupNoOp();
+      if (!ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION).isEmpty()) {
+        commandTopicBackup = new CommandTopicBackupImpl(
+            ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION),
+            commandTopicName
+        );
+      }
 
       return new CommandStore(
           commandTopicName,

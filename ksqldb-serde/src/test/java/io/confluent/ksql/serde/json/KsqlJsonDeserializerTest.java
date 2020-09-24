@@ -539,6 +539,40 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
+  public void shouldFixScaleWhenDeserializingDecimalsWithTooSmallAScale() {
+    // Given:
+    final KsqlJsonDeserializer<BigDecimal> deserializer =
+        givenDeserializerForSchema(DecimalUtil.builder(4, 3).build(), BigDecimal.class);
+
+    final byte[] bytes = addMagic("1.1".getBytes(UTF_8));
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(new BigDecimal("1.100")));
+  }
+
+  @Test
+  public void shouldThrowIfDecimalHasLargerScale() {
+    // Given:
+    final KsqlJsonDeserializer<BigDecimal> deserializer =
+        givenDeserializerForSchema(DecimalUtil.builder(4, 1).build(), BigDecimal.class);
+
+    final byte[] bytes = addMagic("1.12".getBytes(UTF_8));
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot fit decimal '1.12' into DECIMAL(4, 1) without rounding."));
+  }
+
+  @Test
   public void shouldDeserializeScientificNotation() {
     // Given:
     final KsqlJsonDeserializer<BigDecimal> deserializer = 
@@ -550,7 +584,7 @@ public class KsqlJsonDeserializerTest {
     final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
 
     // Then:
-    assertThat(result, is(new BigDecimal("1e+1")));
+    assertThat(result, is(new BigDecimal("10.0")));
   }
 
   @Test

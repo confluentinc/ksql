@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
+import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -84,8 +86,12 @@ public class CommandTopic {
 
     if (iterable != null) {
       for (ConsumerRecord<byte[], byte[]> record : iterable) {
-        backupRecord(record);
-        if (commandTopicBackup.commandTopicCorruption()) {
+        try {
+          backupRecord(record);
+        } catch (final KsqlServerException e) {
+          log.warn("Backup is out of sync with the current command topic. "
+              + "Backups will not work until the previous command topic is "
+              + "restored or all backup files are deleted.");
           return records;
         }
         records.add(record);
@@ -107,9 +113,12 @@ public class CommandTopic {
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
       for (final ConsumerRecord<byte[], byte[]> record : records) {
-        backupRecord(record);
-        
-        if (commandTopicBackup.commandTopicCorruption()) {
+        try {
+          backupRecord(record);
+        } catch (final KsqlServerException e) {
+          log.warn("Backup is out of sync with the current command topic. "
+              + "Backups will not work until the previous command topic is "
+              + "restored or all backup files are deleted.");
           return restoreCommands;
         }
 

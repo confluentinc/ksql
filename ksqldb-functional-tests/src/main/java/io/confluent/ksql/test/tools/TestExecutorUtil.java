@@ -331,7 +331,7 @@ public final class TestExecutorUtil {
       }
       return ImmutableList.copyOf(queries.values());
     } catch (final KsqlStatementException e) {
-      if (plans.hasNext()) {
+      if (testCase.expectedException().isPresent() && plans.hasNext()) {
         throw new AssertionError("Only the last statement in a negative test should fail. "
             + "Yet in this case statement " + idx + " failed.", e);
       }

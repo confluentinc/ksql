@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -271,12 +270,11 @@ public class GenericKeySerDeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Unsupported key schema: [MAP<STRING, STRING>]"));
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [STRUCT<`F` STRING>]"));
   }
 
   private static SimpleColumn column(final SqlType type) {
     final SimpleColumn column = mock(SimpleColumn.class, type.toString());
-    when(column.name()).thenReturn(ColumnName.of(type.toString()));
     when(column.type()).thenReturn(type);
     return column;
   }

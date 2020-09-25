@@ -39,7 +39,6 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOptions;
@@ -174,7 +173,7 @@ public class SchemaKGroupedStreamTest {
 
     // Then:
     final KeyFormat expected = KeyFormat.windowed(
-        FormatInfo.of(FormatFactory.KAFKA.name()),
+        keyFormatInfo,
         WindowInfo.of(WindowType.SESSION, Optional.empty())
     );
     assertThat(

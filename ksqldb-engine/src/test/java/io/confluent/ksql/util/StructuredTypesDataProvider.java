@@ -28,6 +28,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,7 +82,7 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
       .put("BAZ", genericRow(3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(2)))
       .put("BUZZ", genericRow(4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateStruct(88), generateComplexStruct(3)))
       // Additional entries for repeated keys
-      .put("BAZ", genericRow(5L, new BigDecimal("12"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateStruct(0), generateComplexStruct(4)))
+      .put("BAZ", genericRow(5L, new BigDecimal("12.0"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateStruct(0), generateComplexStruct(4)))
       .put("BUZZ", genericRow(6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(5)))
       .build();
 
@@ -136,7 +137,7 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
   private static Struct generateComplexStruct(final int i) {
     final Struct complexStruct = new Struct(COMPLEX_FIELD_SCHEMA);
 
-    complexStruct.put("DECIMAL", new BigDecimal(i));
+    complexStruct.put("DECIMAL", new BigDecimal(i).setScale(1, RoundingMode.UNNECESSARY));
 
     final Struct struct = new Struct(COMPLEX_FIELD_SCHEMA.field("STRUCT").schema());
     struct.put("F1", "v" + i);

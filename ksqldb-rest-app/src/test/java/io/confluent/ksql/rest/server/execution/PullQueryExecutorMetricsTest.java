@@ -56,7 +56,7 @@ public class PullQueryExecutorMetricsTest {
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
     when(time.nanoseconds()).thenReturn(6000L);
 
-    pullMetrics =   new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS);
+    pullMetrics =   new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time);
   }
 
   @After

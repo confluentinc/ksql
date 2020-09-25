@@ -72,18 +72,17 @@ public final class OldApiUtils {
     pullQueryMetrics
         .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordRequestSize(
             routingContext.request().bytesRead()));
-    //Record latency at microsecond scale
-    pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
-        .recordLatency(startTimeNanos));
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {
-      handleOldApiResponse(server, routingContext, endpointResponse, pullQueryMetrics);
+      handleOldApiResponse(
+          server, routingContext, endpointResponse, pullQueryMetrics, startTimeNanos);
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
-      handleOldApiResponse(server, routingContext, mapException(t), pullQueryMetrics);
+      handleOldApiResponse(
+          server, routingContext, mapException(t), pullQueryMetrics, startTimeNanos);
       return null;
     });
   }
@@ -91,7 +90,8 @@ public final class OldApiUtils {
   static void handleOldApiResponse(
       final Server server, final RoutingContext routingContext,
       final EndpointResponse endpointResponse,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final long startTimeNanos
   ) {
     final HttpServerResponse response = routingContext.response();
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
@@ -128,6 +128,9 @@ public final class OldApiUtils {
     pullQueryMetrics
         .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordResponseSize(
             routingContext.response().bytesWritten()));
+    pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
+        .recordLatency(startTimeNanos));
+
   }
 
   private static void streamEndpointResponse(final Server server,

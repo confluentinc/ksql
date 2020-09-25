@@ -53,17 +53,18 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Metrics metrics;
   private final Map<String, String> customMetricsTags;
   private final String ksqlServiceId;
-  private final Time time = Time.SYSTEM;
+  private final Time time;
 
   public PullQueryExecutorMetrics(
       final String ksqlServiceId,
-      final Map<String, String> customMetricsTags
+      final Map<String, String> customMetricsTags,
+      final Time time
   ) {
-
-    this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
-    this.metrics = MetricCollectors.getMetrics();
     this.ksqlServiceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlServiceId;
+    this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
+    this.time = Objects.requireNonNull(time, "time");
+    this.metrics = MetricCollectors.getMetrics();
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
@@ -89,8 +90,6 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordLatency(final long startTimeNanos) {
     // Record latency at microsecond scale
-    //this.latencySensor.record(value);
-    //this.requestRateSensor.record(1);
     final long nowNanos = time.nanoseconds();
     final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
     this.latencySensor.record(latency);

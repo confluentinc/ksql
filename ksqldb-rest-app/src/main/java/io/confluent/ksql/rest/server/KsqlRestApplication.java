@@ -141,6 +141,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
@@ -718,9 +719,9 @@ public final class KsqlRestApplication implements Executable {
         KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED)
         ? Optional.of(new PullQueryExecutorMetrics(
         ksqlEngine.getServiceId(),
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)))
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),
+        Time.SYSTEM))
         : Optional.empty();
-
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,

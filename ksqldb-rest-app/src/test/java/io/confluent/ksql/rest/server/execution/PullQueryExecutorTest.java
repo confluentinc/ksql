@@ -81,7 +81,7 @@ public class PullQueryExecutorTest {
       final Exception e = assertThrows(
           KsqlStatementException.class,
           () -> pullQueryExecutor.execute(
-              query, engine.getServiceContext(), Optional.empty(),  Optional.empty())
+              query, ImmutableMap.of(), engine.getServiceContext(), Optional.empty(),  Optional.empty())
       );
 
       // Then:

@@ -263,8 +263,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
 
-    final PullQueryResult result = pullQueryExecutor
-        .execute(configured, serviceContext, isInternalRequest, pullQueryMetrics);
+    final PullQueryResult result = pullQueryExecutor.execute(
+        configured, requestProperties, serviceContext, isInternalRequest, pullQueryMetrics);
     final TableRows tableRows = result.getTableRows();
     final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
         .map(KsqlNode::location)

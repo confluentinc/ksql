@@ -86,7 +86,7 @@ public class PullQueryPublisherTest {
         TIME_NANOS);
 
     PullQueryResult result = new PullQueryResult(entity, Optional.empty());
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenReturn(result);
+    when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenReturn(result);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -110,7 +110,7 @@ public class PullQueryPublisherTest {
     subscription.request(1);
 
     // Then:
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.of(false), Optional.empty());
+    verify(pullQueryExecutor).execute(statement, ImmutableMap.of(), serviceContext, Optional.of(false), Optional.empty());
   }
 
   @Test
@@ -123,7 +123,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(any());
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.of(false), Optional.empty());
+    verify(pullQueryExecutor).execute(statement, ImmutableMap.of(), serviceContext, Optional.of(false), Optional.empty());
   }
 
   @Test
@@ -158,7 +158,7 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
     final Throwable e = new RuntimeException("Boom!");
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenThrow(e);
+    when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenThrow(e);
 
     // When:
     subscription.request(1);

@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.tree.Query;
@@ -66,7 +67,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         subscriber,
         () -> {
           final PullQueryResult result = pullQueryExecutor.execute(
-              query, serviceContext, Optional.of(false), pullQueryMetrics);
+              query, ImmutableMap.of(), serviceContext, Optional.of(false), pullQueryMetrics);
           //Record latency at microsecond scale
           pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
               .recordLatency(startTimeNanos));

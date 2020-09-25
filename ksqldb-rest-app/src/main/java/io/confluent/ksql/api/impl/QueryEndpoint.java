@@ -109,7 +109,7 @@ public class QueryEndpoint {
       final long startTimeNanos
   ) {
     final PullQueryResult result = pullQueryExecutor.execute(
-        statement, serviceContext, Optional.of(false), pullQueryMetrics);
+        statement, ImmutableMap.of(), serviceContext, Optional.of(false), pullQueryMetrics);
     pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
     final TableRows tableRows = result.getTableRows();
 

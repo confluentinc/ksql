@@ -82,6 +82,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
@@ -142,7 +143,7 @@ public class SchemaKTableTest {
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
   private static final Expression TEST_2_COL_2 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
-  private static final KeyFormat keyFormat = KeyFormat
+  private KeyFormat keyFormat = KeyFormat
       .nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
   private static final ValueFormat valueFormat = ValueFormat
       .of(FormatInfo.of(FormatFactory.JSON.name()));
@@ -437,6 +438,7 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForGroupBy() {
     // Given:
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
     final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
@@ -457,6 +459,36 @@ public class SchemaKTableTest {
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 Formats.of(initialSchemaKTable.keyFormat, valueFormat, SerdeOptions.of()),
+                groupByExpressions
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForGroupByWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+    // Given:
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+    final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+    final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
+
+    // When:
+    final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
+        valueFormat,
+        groupByExpressions,
+        childContextStacker
+    );
+
+    // Then:
+    assertThat(
+        groupedSchemaKTable.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.tableGroupBy(
+                childContextStacker,
+                initialSchemaKTable.getSourceTableStep(),
+                Formats.of(initialSchemaKTable.keyFormat, valueFormat, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_KEYS)),
                 groupByExpressions
             )
         )

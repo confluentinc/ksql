@@ -39,6 +39,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
@@ -81,7 +82,7 @@ public class SchemaKGroupedTableTest {
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
-  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+  private KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
 
   @Test
   public void shouldFailWindowedTableAggregation() {
@@ -140,8 +141,11 @@ public class SchemaKGroupedTableTest {
   @Test
   public void shouldBuildStepForAggregate() {
     // Given:
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
+
     final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
 
+    // When:
     final SchemaKTable result = kGroupedTable.aggregate(
         NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
@@ -158,6 +162,37 @@ public class SchemaKGroupedTableTest {
                 queryContext,
                 kGroupedTable.getSourceTableStep(),
                 Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
+                NON_AGG_COLUMNS,
+                ImmutableList.of(SUM, COUNT)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForAggregateWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+    // Given:
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+
+    final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
+
+    // When:
+    final SchemaKTable result = kGroupedTable.aggregate(
+        NON_AGG_COLUMNS,
+        ImmutableList.of(SUM, COUNT),
+        Optional.empty(),
+        valueFormat,
+        queryContext
+    );
+
+    // Then:
+    assertThat(
+        result.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.tableAggregate(
+                queryContext,
+                kGroupedTable.getSourceTableStep(),
+                Formats.of(keyFormat, valueFormat, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_KEYS)),
                 NON_AGG_COLUMNS,
                 ImmutableList.of(SUM, COUNT)
             )

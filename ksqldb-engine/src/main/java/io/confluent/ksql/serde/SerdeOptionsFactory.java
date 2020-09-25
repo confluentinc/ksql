@@ -35,6 +35,38 @@ public final class SerdeOptionsFactory {
   }
 
   /**
+   * Build serde options for internal topics.
+   *
+   * <p>Internal topics don't normally need any serde options set, as they use the format
+   * defaults.  However, until ksqlDB supports wrapped single keys, any internal topic with a key
+   * format that supports both wrapping and unwrapping needs to have an explicit {@link
+   * SerdeOption#UNWRAP_SINGLE_KEYS} set to ensure backwards compatibility is easily achievable once
+   * wrapped keys are supported.
+   *
+   * <p>Note: The unwrap feature should only be set when there is only a single key column. As
+   * ksql does not yet support multiple key columns, the only time there is no a single key column
+   * is when there is no key column, i.e. key-less streams. Internal topics, i.e. changelog and 
+   * repartition topics, are never key-less. Hence this method can safely set the unwrap feature
+   * without checking the schema.
+   *
+   * <p>The code that sets the option can be removed once wrapped keys are supported. Issue 6296
+   * tracks the removal.
+   *
+   * @param keyFormat the key format.
+   * @return the options
+   * @see <a href=https://github.com/confluentinc/ksql/issues/6296>Issue 6296</a>
+   * @see InternalFormats#of 
+   */
+  public static SerdeOptions buildInternal(final Format keyFormat) {
+    final Builder builder = SerdeOptions.builder();
+
+    getKeyWrapping(keyFormat)
+        .ifPresent(builder::add);
+
+    return builder.build();
+  }
+
+  /**
    * Build serde options for {@code `CREATE STREAM`} and {@code `CREATE TABLE`} statements.
    *
    * @param schema the logical schema of the create statement.

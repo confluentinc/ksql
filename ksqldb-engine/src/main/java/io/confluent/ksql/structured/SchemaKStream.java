@@ -44,6 +44,7 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
@@ -168,7 +169,7 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.LEFT,
         keyColName,
-        Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
+        InternalFormats.of(keyFormat, valueFormat),
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
@@ -194,8 +195,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.LEFT,
         keyColName,
-        Formats.of(keyFormat, leftFormat, SerdeOptions.of()),
-        Formats.of(keyFormat, rightFormat, SerdeOptions.of()),
+        InternalFormats.of(keyFormat, leftFormat),
+        InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -220,7 +221,7 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.INNER,
         keyColName,
-        Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
+        InternalFormats.of(keyFormat, valueFormat),
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
@@ -246,8 +247,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.INNER,
         keyColName,
-        Formats.of(keyFormat, leftFormat, SerdeOptions.of()),
-        Formats.of(keyFormat, rightFormat, SerdeOptions.of()),
+        InternalFormats.of(keyFormat, leftFormat),
+        InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -274,8 +275,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.OUTER,
         keyColName,
-        Formats.of(keyFormat, leftFormat, SerdeOptions.of()),
-        Formats.of(keyFormat, rightFormat, SerdeOptions.of()),
+        InternalFormats.of(keyFormat, leftFormat),
+        InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -371,7 +372,7 @@ public class SchemaKStream<K> {
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
         sourceStep,
-        Formats.of(rekeyedKeyFormat, valueFormat, SerdeOptions.of()),
+        InternalFormats.of(rekeyedKeyFormat, valueFormat),
         groupByExpressions
     );
 
@@ -397,7 +398,7 @@ public class SchemaKStream<K> {
         ExecutionStepFactory.streamGroupByKey(
             contextStacker,
             (ExecutionStep) sourceStep,
-            Formats.of(rekeyedKeyFormat, valueFormat, SerdeOptions.of())
+            InternalFormats.of(rekeyedKeyFormat, valueFormat)
         );
     return new SchemaKGroupedStream(
         step,

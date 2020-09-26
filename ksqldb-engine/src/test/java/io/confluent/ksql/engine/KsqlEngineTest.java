@@ -1279,8 +1279,8 @@ public class KsqlEngineTest {
 
     // When:
     ExecuteResult executeResult = ksqlEngine.execute(
-        serviceContext,
-        of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:
@@ -1331,8 +1331,8 @@ public class KsqlEngineTest {
 
     // When:
     ExecuteResult executeResult = ksqlEngine.execute(
-        serviceContext,
-        of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:

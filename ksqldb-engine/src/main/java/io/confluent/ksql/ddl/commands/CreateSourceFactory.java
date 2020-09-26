@@ -89,7 +89,7 @@ public final class CreateSourceFactory {
         requireNonNull(valueSerdeFeaturesSupplier, "valueSerdeFeaturesSupplier");
     this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
     this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
-    this.metaStore = metaStore;
+    this.metaStore = requireNonNull(metaStore);
   }
 
   public CreateStreamCommand createStreamCommand(final KsqlStructuredDataOutputNode outputNode) {
@@ -120,8 +120,8 @@ public final class CreateSourceFactory {
       final String sourceType = dataSource.getDataSourceType().getKsqlType();
       if (!statement.isNotExists()) {
         throw new KsqlException(
-            String.format("Cannot add %s '%s': A %s with the same name already exists",
-                sourceType, sourceName.text(), sourceType));
+            String.format("Cannot add stream '%s': A %s with the same name already exists",
+               sourceName.text(), sourceType.toLowerCase()));
       }
     }
 
@@ -158,12 +158,12 @@ public final class CreateSourceFactory {
     final LogicalSchema schema = buildSchema(statement.getElements());
     final DataSource dataSource = metaStore.getSource(sourceName);
 
-    if (dataSource != null) {
+    if (dataSource != null && !statement.isOrReplace()) {
       final String sourceType = dataSource.getDataSourceType().getKsqlType();
       if (!statement.isNotExists()) {
         throw new KsqlException(
-            String.format("Cannot add %s '%s': A %s with the same name already exists",
-                sourceType, sourceName.text(), sourceType));
+            String.format("Cannot add table '%s': A %s with the same name already exists",
+                sourceName.text(), sourceType.toLowerCase()));
       }
     }
     if (schema.key().isEmpty()) {

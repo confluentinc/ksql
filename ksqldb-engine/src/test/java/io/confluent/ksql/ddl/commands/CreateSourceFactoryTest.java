@@ -1033,7 +1033,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("A STREAM with the same name already exists"));
+        containsString("Cannot add stream 'bob': A stream with the same name already exists"));
   }
 
   @Test
@@ -1052,7 +1052,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("A TABLE with the same name already exists"));
+        containsString("Cannot add table 'table_bob': A table with the same name already exists"));
   }
 
   private void givenProperty(final String name, final Literal value) {

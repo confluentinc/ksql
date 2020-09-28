@@ -15,34 +15,45 @@
 
 package io.confluent.ksql.test.model;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.serde.SerdeOption;
-import java.util.Collections;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.test.tools.TestJsonMapper;
 import java.util.Optional;
 import org.junit.Test;
 
 public class SourceNodeTest {
+
+  private static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   static final SourceNode INSTANCE = new SourceNode(
       "bob",
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
-      Optional.of(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES))
+      Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES)),
+      Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES))
   );
-  static final SourceNode INSTANCE_WITHOUT_SERDE_OPTIONS = new SourceNode(
+
+  private static final SourceNode INSTANCE_WITHOUT_SERDE_FEATURES = new SourceNode(
       "bob",
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.empty(),
       Optional.empty()
   );
-  static final SourceNode INSTANCE_WITH_EMPTY_SERDE_OPTIONS = new SourceNode(
+
+  private static final SourceNode INSTANCE_WITH_EMPTY_SERDE_FEATURES = new SourceNode(
       "bob",
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
-      Optional.of(Collections.emptySet())
+      Optional.of(ImmutableSet.of()),
+      Optional.of(ImmutableSet.of())
   );
 
   @Test
@@ -51,12 +62,36 @@ public class SourceNodeTest {
   }
 
   @Test
-  public void shouldRoundTripWithoutSerdeOptions() {
-    ModelTester.assertRoundTrip(INSTANCE_WITHOUT_SERDE_OPTIONS);
+  public void shouldRoundTripWithoutSerdeFeatures() {
+    ModelTester.assertRoundTrip(INSTANCE_WITHOUT_SERDE_FEATURES);
   }
 
   @Test
-  public void shouldRoundTripWithEmptySerdeOptions() {
-    ModelTester.assertRoundTrip(INSTANCE_WITH_EMPTY_SERDE_OPTIONS);
+  public void shouldRoundTripWithEmptySerdeFeatures() {
+    ModelTester.assertRoundTrip(INSTANCE_WITH_EMPTY_SERDE_FEATURES);
+  }
+
+  @Test
+  public void shouldReadLegacy() throws Exception {
+    // Given:
+    final String legacy = "{"
+        + "\"name\": \"OUTPUT\", "
+        + "\"type\": \"stream\", "
+        + "\"schema\": \"ROWKEY INT KEY, `C1` INT\","
+        + "\"serdeOptions\": [\"UNWRAP_SINGLE_VALUES\"]"
+        + "}";
+
+    // When:
+    final Object deserialized = OBJECT_MAPPER.readValue(legacy, SourceNode.class);
+
+    // Then:
+    assertThat(deserialized, is(new SourceNode(
+        "OUTPUT",
+        "stream",
+        Optional.of("ROWKEY INT KEY, `C1` INT"),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES))
+    )));
   }
 }

@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/latest-offset-udaf.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER, `KSQL_INTERNAL_COL_3` BOOLEAN",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER, `KSQL_INTERNAL_COL_3` BOOLEAN"
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `F0` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `F0` INTEGER"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` INTEGER>>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` INTEGER>>"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>"
     }
   },
   "testCase" : {
@@ -119,24 +115,20 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `F0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -145,9 +137,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -158,9 +148,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }

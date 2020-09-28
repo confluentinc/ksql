@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/multiple-avro-maps.json",
   "schemas" : {
     "CSAS_SINK_0.SINK" : {
-      "schema" : "`M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>"
     },
     "CSAS_SINK_0.KsqlTopic.Source" : {
-      "schema" : "`M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>"
     }
   },
   "testCase" : {
@@ -105,24 +103,20 @@
         "schema" : "`M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "SINK",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -131,9 +125,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/average-udaf.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` DOUBLE",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` DOUBLE"
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `VALUE` DOUBLE",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `VALUE` DOUBLE"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` DOUBLE, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` DOUBLE, `COUNT` BIGINT>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` DOUBLE, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` DOUBLE, `COUNT` BIGINT>"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `AVG` DOUBLE"
     }
   },
   "testCase" : {
@@ -125,24 +121,20 @@
         "schema" : "`ID` STRING KEY, `VALUE` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -151,9 +143,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -161,9 +151,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

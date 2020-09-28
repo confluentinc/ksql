@@ -4,24 +4,19 @@
   "path" : "query-validation-tests/suppress.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ID` STRING, `ROWTIME` BIGINT"
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `COL1` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COL1` STRING"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ID` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `COUNT` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COUNT` BIGINT"
     },
     "CTAS_OUTPUT_0.Suppress.Suppress" : {
-      "schema" : "`ID` STRING KEY, `COUNT` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COUNT` BIGINT"
     }
   },
   "testCase" : {
@@ -118,8 +113,7 @@
         "schema" : "`ID` STRING KEY, `COL1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
@@ -127,16 +121,13 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -145,9 +136,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -158,9 +147,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Suppress-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -171,9 +158,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }

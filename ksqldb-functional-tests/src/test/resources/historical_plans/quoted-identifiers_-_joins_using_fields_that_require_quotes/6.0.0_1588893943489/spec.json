@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_JOINED_0.KafkaTopic_Left.Source" : {
-      "schema" : "`K` STRING KEY, `SELECT` STRING, `field!` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `SELECT` STRING, `field!` STRING"
     },
     "CSAS_JOINED_0.JOINED" : {
-      "schema" : "`L_SELECT` STRING KEY, `field!` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`L_SELECT` STRING KEY, `field!` STRING"
     },
     "CSAS_JOINED_0.KafkaTopic_Right.Source" : {
-      "schema" : "`K` STRING KEY, `with.dot` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `with.dot` STRING"
     },
     "CSAS_JOINED_0.Join.Left" : {
-      "schema" : "`SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_K` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_K` STRING"
     }
   },
   "testCase" : {
@@ -70,32 +66,27 @@
         "schema" : "`K` STRING KEY, `with.dot` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "JOINED",
         "type" : "STREAM",
         "schema" : "`SELECT` STRING KEY, `field!` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "L",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `SELECT` STRING, `field!` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "JOINED",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -104,9 +95,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -115,9 +104,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -126,9 +113,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

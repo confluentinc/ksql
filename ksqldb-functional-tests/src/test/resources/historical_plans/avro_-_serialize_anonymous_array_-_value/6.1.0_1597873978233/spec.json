@@ -4,12 +4,11 @@
   "path" : "query-validation-tests/avro.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`FOO` ARRAY<BIGINT>",
-      "serdeOptions" : [ ]
+      "schema" : "`FOO` ARRAY<BIGINT>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` ARRAY<BIGINT>",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "UNWRAP_SINGLES" ]
     }
   },
   "testCase" : {
@@ -91,24 +90,20 @@
         "schema" : "`FOO` ARRAY<BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+        }
       }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`FOO` ARRAY<BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -117,12 +112,11 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "AVRO",
+            "features": [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)"
     }
   },
   "testCase" : {
@@ -105,24 +103,20 @@
         "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -131,9 +125,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

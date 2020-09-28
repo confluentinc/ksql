@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/delimited.json",
   "schemas" : {
     "CSAS_OUTPUT_1.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)"
     },
     "CSAS_OUTPUT_1.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)"
     }
   },
   "testCase" : {
@@ -73,32 +71,27 @@
         "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "INTERMEDIATE",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -107,9 +100,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -118,9 +109,7 @@
         }, {
           "name" : "INTERMEDIATE",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

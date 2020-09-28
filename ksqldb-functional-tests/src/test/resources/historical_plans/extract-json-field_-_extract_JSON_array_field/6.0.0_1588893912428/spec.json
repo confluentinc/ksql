@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/extract-json-field.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ARRAY_FIELD` ARRAY<STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ARRAY_FIELD` ARRAY<STRING>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `COL1` STRING, `COL2` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `COL1` STRING, `COL2` STRING"
     }
   },
   "testCase" : {
@@ -72,24 +70,20 @@
         "schema" : "`K` STRING KEY, `COL1` STRING, `COL2` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ARRAY_FIELD` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -98,9 +92,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

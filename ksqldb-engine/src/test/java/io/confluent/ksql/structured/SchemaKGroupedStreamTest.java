@@ -42,6 +42,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
@@ -107,6 +108,7 @@ public class SchemaKGroupedStreamTest {
 
   @Before
   public void setUp() {
+    when(keyFormat.getFormat()).thenReturn(FormatFactory.KAFKA);
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(valueFormat.getFormatInfo()).thenReturn(valueformatInfo);
     schemaGroupedStream = new SchemaKGroupedStream(
@@ -152,8 +154,36 @@ public class SchemaKGroupedStreamTest {
             ExecutionStepFactory.streamAggregate(
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
-                Formats.of(keyFormat, valueFormat,
-                    SerdeOptions.of()),
+                Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
+                NON_AGGREGATE_COLUMNS,
+                ImmutableList.of(AGG)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForAggregateWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+    // Given:
+    when(keyFormat.getFormat()).thenReturn(FormatFactory.JSON);
+
+    // When:
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        NON_AGGREGATE_COLUMNS,
+        ImmutableList.of(AGG),
+        Optional.empty(),
+        valueFormat,
+        queryContext
+    );
+
+    // Then:
+    assertThat(
+        result.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.streamAggregate(
+                queryContext,
+                schemaGroupedStream.getSourceStep(),
+                Formats.of(keyFormat, valueFormat, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_KEYS)),
                 NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG)
             )

@@ -52,8 +52,9 @@ public final class Formats {
     return of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), options);
   }
 
+  @SuppressWarnings("unused") // Invoked by reflection by Jackson
   @JsonCreator
-  public static Formats from(
+  static Formats from(
       @JsonProperty(value = "keyFormat", required = true) final FormatInfo keyFormat,
       @JsonProperty(value = "valueFormat", required = true) final FormatInfo valueFormat,
       @JsonProperty(value = "options") final Optional<Set<SerdeOption>> options

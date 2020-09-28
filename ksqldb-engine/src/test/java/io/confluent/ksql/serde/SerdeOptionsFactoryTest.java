@@ -343,4 +343,32 @@ public class SerdeOptionsFactoryTest {
     // Then:
     assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
   }
+
+  @Test
+  public void shouldSetUnwrappedKeysIfInternalTopicHasKeyFormatSupportsBothWrappingAndUnwrapping() {
+    // When:
+    final SerdeOptions result = SerdeOptionsFactory.buildInternal(JSON);
+
+    // Then:
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS),
+        is(Optional.of(SerdeOption.UNWRAP_SINGLE_KEYS)));
+  }
+
+  @Test
+  public void shouldNotSetUnwrappedKeysIfInternalTopicHasKeyFormatsSupportsOnlyWrapping() {
+    // When:
+    final SerdeOptions result = SerdeOptionsFactory.buildInternal(PROTOBUF);
+
+    // Then:
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldNotSetUnwrappedKeysIInternalTopicHasfKeyFormatsSupportsOnlyUnwrapping() {
+    // When:
+    final SerdeOptions result = SerdeOptionsFactory.buildInternal(KAFKA);
+
+    // Then:
+    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
+  }
 }

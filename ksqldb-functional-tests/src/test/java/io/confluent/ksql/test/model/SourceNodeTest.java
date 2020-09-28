@@ -28,6 +28,7 @@ public class SourceNodeTest {
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
       Optional.of(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES))
   );
   static final SourceNode INSTANCE_WITHOUT_SERDE_OPTIONS = new SourceNode(
@@ -35,6 +36,7 @@ public class SourceNodeTest {
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
       Optional.empty()
   );
   static final SourceNode INSTANCE_WITH_EMPTY_SERDE_OPTIONS = new SourceNode(
@@ -42,6 +44,7 @@ public class SourceNodeTest {
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
       Optional.of(Collections.emptySet())
   );
 

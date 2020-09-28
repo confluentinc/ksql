@@ -50,6 +50,7 @@ public final class SourceNode {
   private final String type;
   private final Optional<String> schema;
   private final Optional<KeyFormatNode> keyFormat;
+  private final Optional<String> valueFormat;
   private final Optional<Set<SerdeOption>> serdeOptions;
 
   public SourceNode(
@@ -57,12 +58,14 @@ public final class SourceNode {
       final String type,
       final Optional<String> schema,
       final Optional<KeyFormatNode> keyFormat,
+      final Optional<String> valueFormat,
       final Optional<Set<SerdeOption>> serdeOptions
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
+    this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
     this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions");
 
     if (this.name.isEmpty()) {
@@ -83,6 +86,10 @@ public final class SourceNode {
 
   public Optional<KeyFormatNode> getKeyFormat() {
     return keyFormat;
+  }
+
+  public Optional<String> getValueFormat() {
+    return valueFormat;
   }
 
   public Optional<String> getSchema() {
@@ -117,13 +124,23 @@ public final class SourceNode {
         .map(MetaStoreMatchers::hasKeyFormat)
         .orElse(null);
 
+    final Matcher<DataSource> valueFormatMatcher = valueFormat
+        .map(Matchers::is)
+        .map(MetaStoreMatchers::hasValueFormat)
+        .orElse(null);
+
     final Matcher<DataSource> serdeOptionsMatcher = serdeOptions
         .map(options -> Matchers.containsInAnyOrder(options.toArray()))
         .map(MetaStoreMatchers::hasSerdeOptions)
         .orElse(null);
 
     final Matcher<DataSource>[] matchers = Stream
-        .of(nameMatcher, typeMatcher, schemaMatcher, keyFormatMatcher, serdeOptionsMatcher)
+        .of(nameMatcher,
+            typeMatcher,
+            schemaMatcher,
+            keyFormatMatcher,
+            valueFormatMatcher,
+            serdeOptionsMatcher)
         .filter(Objects::nonNull)
         .toArray(Matcher[]::new);
 
@@ -143,12 +160,13 @@ public final class SourceNode {
         && type.equals(that.type)
         && schema.equals(that.schema)
         && keyFormat.equals(that.keyFormat)
+        && valueFormat.equals(that.valueFormat)
         && serdeOptions.equals(that.serdeOptions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type, schema, keyFormat, serdeOptions);
+    return Objects.hash(name, type, schema, keyFormat, valueFormat, serdeOptions);
   }
 
   private static Class<? extends DataSource> toType(final String type) {
@@ -187,10 +205,13 @@ public final class SourceNode {
       final Optional<KeyFormatNode> keyFormat = JsonParsingUtil
           .getOptional("keyFormat", node, jp, KeyFormatNode.class);
 
+      final Optional<String> valueFormat = JsonParsingUtil
+          .getOptional("valueFormat", node, jp, String.class);
+
       final Optional<Set<SerdeOption>> serdeOptions = JsonParsingUtil
           .getOptional("serdeOptions", node, jp, new TypeReference<Set<SerdeOption>>() { });
 
-      return new SourceNode(name, type, rawSchema, keyFormat, serdeOptions);
+      return new SourceNode(name, type, rawSchema, keyFormat, valueFormat, serdeOptions);
     }
   }
 
@@ -200,6 +221,7 @@ public final class SourceNode {
         dataSource.getDataSourceType().getKsqlType(),
         Optional.of(dataSource.getSchema().toString()),
         Optional.of(KeyFormatNode.fromKeyFormat(dataSource.getKsqlTopic().getKeyFormat())),
+        Optional.of(dataSource.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat()),
         Optional.of(dataSource.getSerdeOptions().all())
     );
   }

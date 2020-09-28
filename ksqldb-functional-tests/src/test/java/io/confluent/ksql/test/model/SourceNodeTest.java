@@ -34,6 +34,7 @@ public class SourceNodeTest {
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
       Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES)),
       Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES))
   );
@@ -43,6 +44,7 @@ public class SourceNodeTest {
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
       Optional.empty(),
       Optional.empty()
   );
@@ -52,6 +54,7 @@ public class SourceNodeTest {
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
       Optional.of(ImmutableSet.of()),
       Optional.of(ImmutableSet.of())
   );
@@ -89,6 +92,7 @@ public class SourceNodeTest {
         "OUTPUT",
         "stream",
         Optional.of("ROWKEY INT KEY, `C1` INT"),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES))

@@ -207,17 +207,13 @@ public class RestTestExecutor implements Closeable {
           topicInfo.getKeySerializer(),
           topicInfo.getValueSerializer()
       )) {
-        for (int idx = 0; idx < records.size(); idx++) {
-          final Record record = records.get(idx);
-
-          final Record coerced = topicInfo.coerceRecord(record, idx);
-
+        for (final Record record : records) {
           producer.send(new ProducerRecord<>(
               topicName,
               null,
-              coerced.timestamp().orElse(0L),
-              coerced.key(),
-              coerced.value()
+              record.timestamp().orElse(0L),
+              record.key(),
+              record.value()
           ));
         }
       } catch (final Exception e) {

@@ -657,15 +657,6 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
-    CommandTopicBackup commandTopicBackup = new CommandTopicBackupNoOp();
-    if (!ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION).isEmpty()) {
-      commandTopicBackup = new CommandTopicBackupImpl(
-          ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION),
-          commandTopicName
-      );
-    }
-    final CommandTopicBackup finalCommandTopicBackup = commandTopicBackup;
-
     final CommandStore commandStore = CommandStore.Factory.create(
         ksqlConfig,
         commandTopicName,
@@ -673,8 +664,7 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
             restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandProducerProperties()),
-        finalCommandTopicBackup
+            restConfig.getCommandProducerProperties())
     );
 
     final InteractiveStatementExecutor statementExecutor =

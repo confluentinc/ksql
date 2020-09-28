@@ -36,7 +36,7 @@
         "KSQL_COL_2" : 3.1,
         "KSQL_COL_3" : true,
         "KSQL_COL_4" : "foo",
-        "KSQL_COL_5" : 123.456,
+        "KSQL_COL_5" : 123.4560000000,
         "KSQL_COL_6" : {
           "A" : "bar"
         }

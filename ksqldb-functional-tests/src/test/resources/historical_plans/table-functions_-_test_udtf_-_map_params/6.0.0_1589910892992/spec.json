@@ -75,7 +75,7 @@
       "topic" : "OUTPUT",
       "key" : "0",
       "value" : {
-        "KSQL_COL_0" : "123.456"
+        "KSQL_COL_0" : "123.4560000000"
       }
     }, {
       "topic" : "OUTPUT",

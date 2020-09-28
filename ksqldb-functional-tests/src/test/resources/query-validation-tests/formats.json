@@ -37,22 +37,20 @@
         {"topic": "OUTPUT", "value": {"FOO": 10}}
       ],
       "post": {
-        "topics": {
-          "topics": [
-            {
-              "name" : "input_topic",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"},
-              "partitions": 4
-            },
-            {
-              "name" : "OUTPUT",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"},
-              "partitions": 4
-            }
-          ]
-        }
+        "sources": [
+          {
+            "name" : "INPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "JSON"
+          },
+          {
+            "name" : "OUTPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "JSON"
+          }
+        ]
       }
     },
     {
@@ -72,22 +70,20 @@
         {"topic": "OUTPUT", "value": {"FOO": 10}}
       ],
       "post": {
-        "topics": {
-          "topics": [
-            {
-              "name" : "input_topic",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"},
-              "partitions": 4
-            },
-            {
-              "name" : "OUTPUT",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"},
-              "partitions": 4
-            }
-          ]
-        }
+        "sources": [
+          {
+            "name" : "INPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "JSON"
+          },
+          {
+            "name" : "OUTPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "JSON"
+          }
+        ]
       }
     },
     {
@@ -132,22 +128,20 @@
         {"topic": "OUTPUT", "value": {"FOO": 10}}
       ],
       "post": {
-        "topics": {
-          "topics": [
-            {
-              "name" : "input_topic",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"},
-              "partitions": 4
-            },
-            {
-              "name" : "OUTPUT",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"},
-              "partitions": 4
-            }
-          ]
-        }
+        "sources": [
+          {
+            "name" : "INPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "JSON"
+          },
+          {
+            "name" : "OUTPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "JSON"
+          }
+        ]
       }
     },
     {
@@ -167,22 +161,20 @@
         {"topic": "OUTPUT", "value": {"FOO": 10}}
       ],
       "post": {
-        "topics": {
-          "topics": [
-            {
-              "name" : "input_topic",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"},
-              "partitions": 4
-            },
-            {
-              "name" : "OUTPUT",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"},
-              "partitions": 4
-            }
-          ]
-        }
+        "sources": [
+          {
+            "name" : "INPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "JSON"
+          },
+          {
+            "name" : "OUTPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "JSON"
+          }
+        ]
       }
     },
     {
@@ -197,22 +189,20 @@
       "inputs": [{"topic": "input", "key": "foo", "value": "bar"}],
       "outputs": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}],
       "post": {
-        "topics": {
-          "topics": [
-            {
-              "name" : "input",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "KAFKA"},
-              "partitions": 4
-            },
-            {
-              "name" : "OUTPUT",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "KAFKA"},
-              "partitions": 4
-            }
-          ]
-        }
+        "sources": [
+          {
+            "name" : "INPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "KAFKA"
+          },
+          {
+            "name" : "OUTPUT",
+            "type" : "stream",
+            "keyFormat" : {"format": "KAFKA"},
+            "valueFormat" : "KAFKA"
+          }
+        ]
       }
     },
     {

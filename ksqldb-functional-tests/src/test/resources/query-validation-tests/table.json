@@ -27,7 +27,6 @@
         {"topic": "test_topic", "key": "1", "value": "2"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-KsqlTopic-Reduce-changelog", "key": "1", "value": "2"},
         {"topic": "T1", "key": "1", "value": "2"}
       ]
     },
@@ -44,7 +43,6 @@
         {"topic": "test_topic", "key": "1", "value": "2"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-KsqlTopic-Reduce-changelog", "key": "1", "value": "2"},
         {"topic": "T1", "key": "1", "value": "2"}
       ]
     },

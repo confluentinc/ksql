@@ -73,6 +73,20 @@ public final class MetaStoreMatchers {
     };
   }
 
+  public static Matcher<DataSource> hasValueFormat(
+      final Matcher<? super String> matcher
+  ) {
+    return new FeatureMatcher<DataSource, String>(
+        matcher,
+        "source with value format",
+        "value format") {
+      @Override
+      protected String featureValueOf(final DataSource actual) {
+        return actual.getKsqlTopic().getValueFormat().getFormatInfo().getFormat();
+      }
+    };
+  }
+
   public static Matcher<DataSource> hasKeySerdeFeatures(
       final Matcher<? super Iterable<? super SerdeFeature>> expected
   ) {

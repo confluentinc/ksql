@@ -16,12 +16,11 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,14 +29,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
+import io.confluent.ksql.util.KsqlServerException;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -93,7 +91,6 @@ public class CommandTopicTest {
     consumerRecords =
         new ConsumerRecords<>(Collections.singletonMap(topicPartition, ImmutableList.of(record1, record2, record3)));
     commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, commandTopicBackup);
-    when(commandTopicBackup.commandTopicCorruption()).thenReturn(false);
   }
 
   @Test
@@ -110,9 +107,7 @@ public class CommandTopicTest {
   public void shouldGetCommandsThatDoNotCorruptBackup() {
     // Given:
     when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
-    when(commandTopicBackup.commandTopicCorruption())
-        .thenReturn(false)
-        .thenReturn(true);
+    doNothing().doThrow(new KsqlServerException("error")).when(commandTopicBackup).writeRecord(any());
 
     // When:
     final Iterable<ConsumerRecord<byte[], byte[]>> newCommands = commandTopic
@@ -135,9 +130,7 @@ public class CommandTopicTest {
         .thenReturn(someConsumerRecords(
             record3))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
-    when(commandTopicBackup.commandTopicCorruption())
-        .thenReturn(false)
-        .thenReturn(true);
+    doNothing().doThrow(new KsqlServerException("error")).when(commandTopicBackup).writeRecord(any());
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic

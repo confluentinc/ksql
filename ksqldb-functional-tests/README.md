@@ -308,6 +308,7 @@ A post condition can define the list of sources that must exist in the metastore
   "type": "table",
   "schema": "ID BIGINT KEY, FOO STRING",
   "keyFormat": {"format": "KAFKA"},
+  "valueFormat": "JSON",
   "keyFeatures": ["UNWRAP_SINGLES"],
   "valueFeatures": ["WRAP_SINGLES"]
 }
@@ -321,6 +322,7 @@ Each source can define the following attributes:
 | type         | (Required) Specifies if the source is a STREAM or TABLE. |
 | schema       | (Optional) Specifies the SQL schema for the source. |
 | keyFormat    | (Optional) Key serialization format for the source. |
+| valueFormat  | (Optional) Value serialization format for the source. |
 | keyFeatures  | (Optional) List of expected key serde features for the source. |
 | valueFeatures| (Optional) List of expected value serde features for the source. |
 

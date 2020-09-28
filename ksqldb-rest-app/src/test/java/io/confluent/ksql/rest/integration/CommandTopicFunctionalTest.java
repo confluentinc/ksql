@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
@@ -28,12 +28,10 @@ import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
-
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.util.ReservedInternalTopics;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -105,7 +103,7 @@ public class CommandTopicFunctionalTest {
 
     // Slight delay in warnings appearing since a consumer poll has to complete before CommandRunner becomes DEGRADED
     assertThatEventually(
-      "Command topic deleted warning should be present in response", () -> {
+      "Corrupted warning should be present in response", () -> {
             final List<KsqlEntity> results2 = makeKsqlRequest(REST_APP_1, "show streams; show topics; show tables;");
             return results2.stream().allMatch(ksqlEntity -> {
               final List<KsqlWarning> warnings = ksqlEntity.getWarnings();
@@ -135,7 +133,7 @@ public class CommandTopicFunctionalTest {
     final List<KsqlEntity> results4 = makeKsqlRequest(REST_APP_1, "show streams;");
     results4.forEach(ksqlEntity -> {
       assertThat("Warning should be present in response", ksqlEntity.getWarnings().size() == 1);
-      assertThat("Warning isn't command topic deleted warning",
+      assertThat("Warning isn't corrupted warning",
           ksqlEntity.getWarnings()
               .get(0).getMessage()
               .equals(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_CORRUPTED_ERROR_MESSAGE));

@@ -39,7 +39,7 @@ public class ComparisonUtilTest {
       SqlDecimal.of(4, 2),
       SqlTypes.STRING,
       SqlTypes.array(SqlTypes.STRING),
-      SqlTypes.map(SqlTypes.STRIN
+      SqlTypes.map(SqlTypes.STRING),
       SqlTypes.struct().field("foo", SqlTypes.BIGINT).build()
   );
 

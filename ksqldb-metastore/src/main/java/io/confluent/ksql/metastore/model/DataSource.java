@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Optional;
 
@@ -59,16 +58,6 @@ public interface DataSource {
    * @return the physical schema.
    */
   LogicalSchema getSchema();
-
-  /**
-   * Get the physical serde options of the source.
-   *
-   * <p>These options can be combined with the logical schema to build the {@code PhysicalSchema} of
-   * the source.
-   *
-   * @return the source's serde options.
-   */
-  SerdeOptions getSerdeOptions();
 
   /**
    * @return the topic backing the source.

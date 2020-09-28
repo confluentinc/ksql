@@ -18,7 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.Objects;
 
 /**
@@ -31,15 +31,15 @@ import java.util.Objects;
 public final class PhysicalSchema {
 
   private final LogicalSchema logicalSchema;
-  private final SerdeOptions serdeOptions;
   private final PersistenceSchema keySchema;
   private final PersistenceSchema valueSchema;
 
   public static PhysicalSchema from(
       final LogicalSchema logicalSchema,
-      final SerdeOptions serdeOptions
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valueFeatures
   ) {
-    return new PhysicalSchema(logicalSchema, serdeOptions);
+    return new PhysicalSchema(logicalSchema, keyFeatures, valueFeatures);
   }
 
   /**
@@ -47,13 +47,6 @@ public final class PhysicalSchema {
    */
   public LogicalSchema logicalSchema() {
     return logicalSchema;
-  }
-
-  /**
-   * @return the serde options of this physical schema.
-   */
-  public SerdeOptions serdeOptions() {
-    return serdeOptions;
   }
 
   /**
@@ -72,12 +65,12 @@ public final class PhysicalSchema {
 
   private PhysicalSchema(
       final LogicalSchema logicalSchema,
-      final SerdeOptions serdeOptions
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valueFeatures
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
-    this.serdeOptions = requireNonNull(serdeOptions, "serdeOptions");
-    this.keySchema = PersistenceSchema.from(logicalSchema.key(), serdeOptions.keyFeatures());
-    this.valueSchema = PersistenceSchema.from(logicalSchema.value(), serdeOptions.valueFeatures());
+    this.keySchema = PersistenceSchema.from(logicalSchema.key(), keyFeatures);
+    this.valueSchema = PersistenceSchema.from(logicalSchema.value(), valueFeatures);
   }
 
   @Override
@@ -89,21 +82,20 @@ public final class PhysicalSchema {
       return false;
     }
     final PhysicalSchema that = (PhysicalSchema) o;
-    return Objects.equals(logicalSchema, that.logicalSchema)
-        && Objects.equals(serdeOptions, that.serdeOptions)
+    return Objects.equals(keySchema, that.keySchema)
         && Objects.equals(valueSchema, that.valueSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logicalSchema, serdeOptions);
+    return Objects.hash(keySchema, valueSchema);
   }
 
   @Override
   public String toString() {
     return "PhysicalSchema{"
-        + "logicalSchema=" + logicalSchema
-        + ", serdeOptions=" + serdeOptions
+        + "keySchema=" + keySchema
+        + ", valueSchema=" + valueSchema
         + '}';
   }
 }

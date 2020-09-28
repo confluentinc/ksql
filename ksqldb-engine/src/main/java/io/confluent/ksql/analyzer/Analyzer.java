@@ -23,7 +23,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -59,8 +58,8 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
@@ -151,23 +150,18 @@ class Analyzer {
               + sink.getName().toString(FormatOptions.noEscape()));
         }
 
-        analysis.setInto(Into.of(
-            sink.getName(),
-            false,
-            existing.getKsqlTopic()
-        ));
+        analysis.setInto(Into.existingSink(sink.getName(), existing.getKsqlTopic()));
         return;
       }
 
       final String topicName = sink.getProperties().getKafkaTopic()
           .orElseGet(() -> topicPrefix + sink.getName().text());
 
-      final KeyFormat keyFormat = buildKeyFormat();
       final Format format = getValueFormat(sink);
 
       final Map<String, String> sourceProperties = new HashMap<>();
-      if (format.name().equals(getSourceInfo().getFormat())) {
-        getSourceInfo().getProperties().forEach((k, v) -> {
+      if (format.name().equals(getSourceValueInfo().getFormat())) {
+        getSourceValueInfo().getProperties().forEach((k, v) -> {
           if (format.getInheritableProperties().contains(k)) {
             sourceProperties.put(k, v);
           }
@@ -178,45 +172,35 @@ class Analyzer {
       // specified in the statement
       sourceProperties.putAll(sink.getProperties().getValueFormatProperties());
 
-      final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
-          format.name(),
-          sourceProperties
-      ));
-
-      final KsqlTopic intoKsqlTopic = new KsqlTopic(
-          topicName,
-          keyFormat,
-          valueFormat
-      );
-
-      analysis.setInto(Into.of(
-          sink.getName(),
-          true,
-          intoKsqlTopic
-      ));
-    }
-
-    private KeyFormat buildKeyFormat() {
-      final Optional<KsqlWindowExpression> ksqlWindow = analysis.getWindowExpression()
-          .map(WindowExpression::getKsqlWindowExpression);
-
-      final KeyFormat keyFormat = analysis
+      final KeyFormat srcKeyFormat = analysis
           .getFrom()
           .getDataSource()
           .getKsqlTopic()
           .getKeyFormat();
 
-      return ksqlWindow
-          .map(w -> KeyFormat.windowed(keyFormat.getFormatInfo(), w.getWindowInfo()))
-          .orElse(keyFormat);
+      final Optional<WindowInfo> explicitWindowInfo = analysis.getWindowExpression()
+          .map(WindowExpression::getKsqlWindowExpression)
+          .map(KsqlWindowExpression::getWindowInfo);
+
+      final Optional<WindowInfo> windowInfo = explicitWindowInfo.isPresent()
+          ? explicitWindowInfo
+          : srcKeyFormat.getWindowInfo();
+
+      analysis.setInto(Into.newSink(
+          sink.getName(),
+          topicName,
+          windowInfo,
+          srcKeyFormat.getFormatInfo(),
+          FormatInfo.of(format.name(), sourceProperties)
+      ));
     }
 
     private Format getValueFormat(final Sink sink) {
       return FormatFactory.of(
-          sink.getProperties().getValueFormat().orElseGet(this::getSourceInfo));
+          sink.getProperties().getValueFormat().orElseGet(this::getSourceValueInfo));
     }
 
-    private FormatInfo getSourceInfo() {
+    private FormatInfo getSourceValueInfo() {
       return analysis
           .getFrom()
           .getDataSource()
@@ -573,7 +557,7 @@ class Analyzer {
     public void validate() {
       final String kafkaSources = analysis.getAllDataSources().stream()
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
-              == FormatFactory.KAFKA)
+                  .equals(KafkaFormat.NAME))
           .map(AliasedDataSource::getAlias)
           .map(SourceName::text)
           .collect(Collectors.joining(", "));

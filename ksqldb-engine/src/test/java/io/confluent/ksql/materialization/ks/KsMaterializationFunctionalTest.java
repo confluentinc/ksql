@@ -47,7 +47,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -678,7 +678,7 @@ public class KsMaterializationFunctionalTest {
         output.toUpperCase(),
         USER_DATA_PROVIDER.data().size(),
         VALUE_FORMAT,
-        PhysicalSchema.from(aggregateSchema, SerdeOptions.of()),
+        PhysicalSchema.from(aggregateSchema, SerdeFeatures.of(), SerdeFeatures.of()),
         keyDeserializer
     );
   }

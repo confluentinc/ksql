@@ -38,7 +38,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -69,8 +69,10 @@ public class KsqlStructuredDataOutputNodeTest {
       .build();
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
-  private static final KeyFormat PROTOBUF_KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.PROTOBUF.name()));
-  private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final KeyFormat PROTOBUF_KEY_FORMAT = KeyFormat
+      .nonWindowed(FormatInfo.of(FormatFactory.PROTOBUF.name()), SerdeFeatures.of());
+  private static final ValueFormat JSON_FORMAT = ValueFormat
+      .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
 
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
@@ -97,7 +99,7 @@ public class KsqlStructuredDataOutputNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
 
-    when(sourceStream.into(any(), any(), any(), any(), any(), any()))
+    when(sourceStream.into(any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
 
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
@@ -146,15 +148,21 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(
-        FormatFactory.AVRO.name(),
-        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "key-name")
-    ));
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(
+        FormatInfo.of(
+            FormatFactory.AVRO.name(),
+            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "key-name")
+        ),
+        SerdeFeatures.of()
+    );
 
-    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
-        FormatFactory.AVRO.name(),
-        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "name")
-    ));
+    final ValueFormat valueFormat = ValueFormat.of(
+        FormatInfo.of(
+            FormatFactory.AVRO.name(),
+            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "name")
+        ),
+        SerdeFeatures.of()
+    );
 
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
@@ -163,7 +171,7 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(sourceStream).into(any(), eq(keyFormat), eq(valueFormat), any(), any(), any());
+    verify(sourceStream).into(eq(ksqlTopic), any(), any());
   }
 
   @Test
@@ -177,10 +185,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(sourceStream).into(
-        eq(SINK_KAFKA_TOPIC_NAME),
-        eq(PROTOBUF_KEY_FORMAT),
-        eq(JSON_FORMAT),
-        eq(SerdeOptions.of()),
+        eq(ksqlTopic),
         stackerCaptor.capture(),
         eq(outputNode.getTimestampColumn())
     );
@@ -205,7 +210,6 @@ public class KsqlStructuredDataOutputNodeTest {
         ksqlTopic,
         OptionalInt.empty(),
         createInto,
-        SerdeOptions.of(),
         SourceName.of(PLAN_NODE_ID.toString())
     );
   }

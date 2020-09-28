@@ -218,7 +218,8 @@ public class WindowingIntTest {
     final DataSource source = ksqlContext.getMetaStore().getSource(SourceName.of(resultStream0));
     resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
   }
 
@@ -246,7 +247,8 @@ public class WindowingIntTest {
 
     resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     assertOutputOf(resultStream1, expected, tableRowMatcher);

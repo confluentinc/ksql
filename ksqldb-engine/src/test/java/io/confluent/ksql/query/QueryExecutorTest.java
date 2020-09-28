@@ -47,7 +47,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -107,10 +108,16 @@ public class QueryExecutorTest {
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
 
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+  private static final KeyFormat KEY_FORMAT = KeyFormat
+      .nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+
+  private static final ValueFormat VALUE_FORMAT = ValueFormat
+      .of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of());
+
   private static final PhysicalSchema SINK_PHYSICAL_SCHEMA = PhysicalSchema.from(
       SINK_SCHEMA,
-      SerdeOptions.of()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
   private static final OptionalInt LIMIT = OptionalInt.of(123);
   private static final String SERVICE_ID = "service-";
@@ -172,8 +179,6 @@ public class QueryExecutorTest {
   private SessionConfig config;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
-  @Captor
-  private ArgumentCaptor<String> processingLoggerNameCaptor;
 
   private QueryExecutor queryBuilder;
   private final Stacker stacker = new Stacker();
@@ -181,11 +186,11 @@ public class QueryExecutorTest {
   @Before
   public void setup() {
     when(sink.getSchema()).thenReturn(SINK_SCHEMA);
-    when(sink.getSerdeOptions()).thenReturn(SerdeOptions.of());
     when(sink.getKsqlTopic()).thenReturn(ksqlTopic);
     when(sink.getName()).thenReturn(SINK_NAME);
     when(sink.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
+    when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
@@ -404,7 +409,7 @@ public class QueryExecutorTest {
     // Then:
     assertThat(
         capturedStreamsProperties().get(StreamsConfig.APPLICATION_ID_CONFIG),
-        equalTo("_confluent-ksql-service-persistent-queryid")
+        equalTo("_confluent-ksql-service-" + PERSISTENT_PREFIX + "queryid")
     );
   }
 

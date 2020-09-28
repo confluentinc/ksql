@@ -34,7 +34,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -42,7 +41,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
@@ -54,7 +53,6 @@ import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
@@ -75,9 +73,6 @@ public class AnalyzerFunctionalTest {
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
 
-  @Mock
-  private Sink sink;
-
   private Query query;
   private Analyzer analyzer;
 
@@ -86,7 +81,7 @@ public class AnalyzerFunctionalTest {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     avroMetaStore = MetaStoreFixture.getNewMetaStore(
         new InternalFunctionRegistry(),
-        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
+        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
     );
 
     analyzer = new Analyzer(jsonMetaStore, "");
@@ -108,9 +103,10 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "com.custom.schema")))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(), is(FormatInfo.of(
+        FormatFactory.AVRO.name(),
+        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "com.custom.schema"))
+    ));
   }
 
   @Test
@@ -124,8 +120,8 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
+        is(FormatInfo.of(FormatFactory.AVRO.name())));
   }
 
   @Test
@@ -140,9 +136,9 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
-            .of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
+        is(FormatInfo.of(FormatFactory.AVRO.name(),
+            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1"))));
   }
 
   @Test
@@ -153,9 +149,10 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
         ValueFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")))
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")),
+            SerdeFeatures.of())
     );
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -167,7 +164,6 @@ public class AnalyzerFunctionalTest {
         "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
         SourceName.of("S0"),
         schema,
-        SerdeOptions.of(),
         Optional.empty(),
         false,
         ksqlTopic
@@ -183,8 +179,8 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
+        is(FormatInfo.of(FormatFactory.AVRO.name())));
   }
 
   @Test
@@ -199,8 +195,8 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
+        is(FormatInfo.of(FormatFactory.AVRO.name())));
   }
 
   @Test
@@ -372,15 +368,14 @@ public class AnalyzerFunctionalTest {
 
     final KsqlTopic topic = new KsqlTopic(
         "ks",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of())
     );
 
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",
         SourceName.of("KAFKA_SOURCE"),
         schema,
-        SerdeOptions.of(),
         Optional.empty(),
         false,
         topic

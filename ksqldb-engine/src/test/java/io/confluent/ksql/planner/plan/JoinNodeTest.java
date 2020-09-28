@@ -57,6 +57,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -128,8 +129,10 @@ public class JoinNodeTest {
       RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
-  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.DELIMITED.name()));
+  private static final ValueFormat VALUE_FORMAT = ValueFormat
+      .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+  private static final ValueFormat OTHER_FORMAT = ValueFormat
+      .of(FormatInfo.of(FormatFactory.DELIMITED.name()), SerdeFeatures.of());
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder;
   private JoinNode joinNode;
@@ -568,23 +571,6 @@ public class JoinNodeTest {
         .valueColumn(SYNTH_KEY, SqlTypes.BIGINT)
         .build()
     ));
-  }
-
-  @Test
-  public void shouldNotUseSourceSerdeOptionsForInternalTopics() {
-    // Given:
-    setupStream(left, leftSchemaKStream);
-    setupStream(right, rightSchemaKStream);
-
-    final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, left, right, WITHIN_EXPRESSION);
-
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(leftSource, never()).getSerdeOptions();
-    verify(rightSource, never()).getSerdeOptions();
   }
 
   @Test

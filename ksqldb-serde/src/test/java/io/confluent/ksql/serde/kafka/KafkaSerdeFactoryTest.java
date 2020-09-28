@@ -29,7 +29,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
@@ -172,7 +172,9 @@ public class KafkaSerdeFactoryTest {
         .valueColumn(ColumnName.of("f0"), SqlTypes.INTEGER)
         .build();
 
-    final PersistenceSchema schema = PhysicalSchema.from(logical, SerdeOptions.of()).keySchema();
+    final PersistenceSchema schema = PhysicalSchema
+        .from(logical, SerdeFeatures.of(), SerdeFeatures.of())
+        .keySchema();
 
     final Serde<List<?>> serde = KafkaSerdeFactory.createSerde(schema);
 
@@ -192,7 +194,9 @@ public class KafkaSerdeFactoryTest {
         .valueColumn(ColumnName.of("f0"), SqlTypes.INTEGER)
         .build();
 
-    final PersistenceSchema schema = PhysicalSchema.from(logical, SerdeOptions.of()).keySchema();
+    final PersistenceSchema schema = PhysicalSchema
+        .from(logical, SerdeFeatures.of(), SerdeFeatures.of())
+        .keySchema();
 
     final Serde<List<?>> serde = KafkaSerdeFactory.createSerde(schema);
 
@@ -258,7 +262,8 @@ public class KafkaSerdeFactoryTest {
   }
 
   private static PersistenceSchema getPersistenceSchema(final LogicalSchema logical) {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(logical, SerdeOptions.of());
+    final PhysicalSchema physicalSchema = PhysicalSchema
+        .from(logical, SerdeFeatures.of(), SerdeFeatures.of());
     return physicalSchema.valueSchema();
   }
 }

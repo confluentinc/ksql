@@ -703,7 +703,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final ParsedSchema parsedSchema = new AvroFormat().toParsedSchema(
           PersistenceSchema.from(
               schema.logicalSchema().value(),
-              schema.serdeOptions().valueFeatures()
+              schema.valueSchema().features()
           ),
           FormatInfo.of(
               AvroFormat.NAME,

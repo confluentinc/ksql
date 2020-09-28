@@ -45,7 +45,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
@@ -78,7 +78,7 @@ public class TestExecutorTest {
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
   private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(LOGICAL_SCHEMA, SerdeOptions.of());
+      PhysicalSchema.from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
   @Mock
   private StubKafkaService kafkaService;
@@ -175,7 +175,8 @@ public class TestExecutorTest {
   @Test
   public void shouldVerifyTopologySchemas() {
     // Given:
-    givenExpectedTopology("a-topology", ImmutableMap.of("matching", new SchemaNode(LOGICAL_SCHEMA.toString(), Optional.of(ImmutableSet.of()))));
+    givenExpectedTopology("a-topology", ImmutableMap.of("matching",
+        new SchemaNode(LOGICAL_SCHEMA.toString(), ImmutableSet.of(), ImmutableSet.of())));
     givenActualTopology("a-topology", ImmutableMap.of("matching", PHYSICAL_SCHEMA));
 
     // When:
@@ -209,7 +210,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnSchemasMismatch() {
     // Given:
-    givenExpectedTopology("the-topology", ImmutableMap.of("expected", new SchemaNode("wrong schema", Optional.of(ImmutableSet.of()))));
+    givenExpectedTopology("the-topology", ImmutableMap.of("expected",
+        new SchemaNode("wrong schema", ImmutableSet.of(), ImmutableSet.of())));
     givenActualTopology("the-topology", ImmutableMap.of("actual", PHYSICAL_SCHEMA));
 
     // When:
@@ -352,8 +354,8 @@ public class TestExecutorTest {
         ImmutableList.of(
             new PostTopicNode(
                 sinkTopic.getName(),
-                KeyFormat.nonWindowed(FormatInfo.of("Kafka")),
-                ValueFormat.of(FormatInfo.of("Json")),
+                KeyFormat.nonWindowed(FormatInfo.of("Kafka"), SerdeFeatures.of()),
+                ValueFormat.of(FormatInfo.of("Json"), SerdeFeatures.of()),
                 OptionalInt.empty()
             )
         )
@@ -382,9 +384,11 @@ public class TestExecutorTest {
   private void givenDataSourceTopic(final LogicalSchema schema) {
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKeyFormat())
-        .thenReturn(KeyFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), Optional.empty()));
+        .thenReturn(KeyFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of(),
+            Optional.empty()
+        ));
     when(topic.getValueFormat())
-        .thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())));
+        .thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of()));
 
     final SourceName sourceName = SourceName.of(TestExecutorTest.SINK_TOPIC_NAME + "_source");
 
@@ -394,7 +398,6 @@ public class TestExecutorTest {
     when(dataSource.getKafkaTopicName()).thenReturn(TestExecutorTest.SINK_TOPIC_NAME);
     when(dataSource.getName()).thenReturn(sourceName);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
-    when(dataSource.getSerdeOptions()).thenReturn(SerdeOptions.of());
     allSources.put(sourceName, dataSource);
   }
 

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -54,7 +55,7 @@ public class Entries {
   private static final Schema STRING_STRUCT_SCHEMA = buildStructSchema(
       Schema.OPTIONAL_STRING_SCHEMA);
   private static final Schema STRUCT_STRUCT_SCHEMA = buildStructSchema(
-      new SchemaBuilder(org.apache.kafka.connect.data.Schema.Type.STRUCT).optional());
+      new ConnectSchema(Schema.Type.STRUCT).schema());
 
   private static final String KEY_FIELD_NAME = "K";
   private static final String VALUE_FIELD_NAME = "V";

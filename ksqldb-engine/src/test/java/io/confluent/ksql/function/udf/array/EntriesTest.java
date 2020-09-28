@@ -28,6 +28,8 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
@@ -68,6 +70,12 @@ public class EntriesTest {
   }
 
   @Test
+  public void shouldComputeStructEntries() {
+    final Map<String, Struct> map = createMapOfStructs();
+    shouldComputeEntries(map, () -> entriesUdf.entriesStruct(map, false));
+  }
+
+  @Test
   public void shouldComputeIntEntriesSorted() {
     final Map<String, Integer> map = createMap(i -> i);
     shouldComputeEntriesSorted(map, () -> entriesUdf.entriesInt(map, true));
@@ -95,6 +103,12 @@ public class EntriesTest {
   public void shouldComputeStringEntriesSorted() {
     final Map<String, String> map = createMap(String::valueOf);
     shouldComputeEntriesSorted(map, () -> entriesUdf.entriesString(map, true));
+  }
+
+  @Test
+  public void shouldComputeStructEntriesSorted() {
+    final Map<String, Struct> map = createMapOfStructs();
+    shouldComputeEntriesSorted(map, () -> entriesUdf.entriesStruct(map, true));
   }
 
   @Test
@@ -130,11 +144,11 @@ public class EntriesTest {
   private <T> void shouldComputeEntries(final Map<String, T> map, final Supplier<List<Struct>> supplier) {
     final List<Struct> out = supplier.get();
     assertThat(out, hasSize(map.size()));
-      for (final Struct struct : out) {
-          final T val = map.get(struct.getString("K"));
-          assertThat(val == null, is(false));
-          assertThat(val, is(struct.get("V")));
-      }
+    for (final Struct struct : out) {
+      final T val = map.get(struct.getString("K"));
+      assertThat(val == null, is(false));
+      assertThat(val, is(struct.get("V")));
+    }
   }
 
   private <T> void shouldComputeEntriesSorted(final Map<String, T> map, final Supplier<List<Struct>> supplier) {
@@ -158,4 +172,13 @@ public class EntriesTest {
     return map;
   }
 
+  private Map<String, Struct> createMapOfStructs() {
+    final Map<String, Struct> map = new HashMap<>();
+    final ConnectSchema schema = new ConnectSchema(Schema.Type.STRUCT).schema();
+    for (int i = 0; i < ENTRIES; i++) {
+      final Struct struct = new Struct(schema);
+      map.put(UUID.randomUUID().toString(), struct);
+    }
+    return map;
+  }
 }

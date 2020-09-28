@@ -28,7 +28,6 @@
 * allow implicit cast of numbers literals to decimals on insert/select ([#6005](https://github.com/confluentinc/ksql/pull/6005)) ([2bc15dd](https://github.com/confluentinc/ksql/commit/2bc15ddeec9938e3613cce20d1dbbd7af120c899))
 * allow joins in windowed aggregations ([9452ab6](https://github.com/confluentinc/ksql/commit/9452ab6d072882264c60042b655af52c5dc07cbf)), closes [#5898](https://github.com/confluentinc/ksql/issues/5898) [#5931](https://github.com/confluentinc/ksql/issues/5931)
 * avoid losing cause of processing errors ([#5937](https://github.com/confluentinc/ksql/pull/5937)) ([014c049](https://github.com/confluentinc/ksql/commit/014c049cfd6b964ae63ac39185ac44b7370c5fbb))
-* change default grace period to zero ([#5874](https://github.com/confluentinc/ksql/pull/5874)) ([7e841ed](https://github.com/confluentinc/ksql/commit/7e841ed5112800ced86ee19ce5be66c1ac966ee4))
 * NPE when udf metrics enabled ([#5960](https://github.com/confluentinc/ksql/pull/5960)) ([e32183f](https://github.com/confluentinc/ksql/commit/e32183fb4d77371ed3f4b610f5abf68d888c65f4))
 * protobuf format does not support unwrapping ([#6033](https://github.com/confluentinc/ksql/pull/6033)) ([6c08e5d](https://github.com/confluentinc/ksql/commit/6c08e5dd0f374518db2d22a39f829961af339503))
 * remove unnecessary parser token ([#6048](https://github.com/confluentinc/ksql/pull/6048)) ([a6c3864](https://github.com/confluentinc/ksql/commit/a6c386423e0d069c1693de1bd5524de906cdc29e))

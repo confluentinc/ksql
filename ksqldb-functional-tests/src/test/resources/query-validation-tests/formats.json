@@ -41,13 +41,13 @@
           "topics": [
             {
               "name" : "input_topic",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"},
               "partitions": 4
             },
             {
               "name" : "OUTPUT",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"},
               "partitions": 4
             }
@@ -76,13 +76,13 @@
           "topics": [
             {
               "name" : "input_topic",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"},
               "partitions": 4
             },
             {
               "name" : "OUTPUT",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"},
               "partitions": 4
             }
@@ -136,13 +136,13 @@
           "topics": [
             {
               "name" : "input_topic",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"},
               "partitions": 4
             },
             {
               "name" : "OUTPUT",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"},
               "partitions": 4
             }
@@ -171,13 +171,13 @@
           "topics": [
             {
               "name" : "input_topic",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"},
               "partitions": 4
             },
             {
               "name" : "OUTPUT",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"},
               "partitions": 4
             }
@@ -201,13 +201,13 @@
           "topics": [
             {
               "name" : "input",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "KAFKA"},
               "partitions": 4
             },
             {
               "name" : "OUTPUT",
-              "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+              "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "KAFKA"},
               "partitions": 4
             }

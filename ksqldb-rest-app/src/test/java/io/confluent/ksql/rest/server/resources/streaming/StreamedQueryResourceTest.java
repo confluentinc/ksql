@@ -192,7 +192,7 @@ public class StreamedQueryResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     pullQueryExecutor = new PullQueryExecutor(
-        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, SERVICE_ID, time);
+        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, SERVICE_ID);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,
@@ -203,7 +203,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
 
     testResource.configure(VALID_CONFIG);
@@ -231,7 +232,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
 
     // When:
@@ -385,7 +387,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"

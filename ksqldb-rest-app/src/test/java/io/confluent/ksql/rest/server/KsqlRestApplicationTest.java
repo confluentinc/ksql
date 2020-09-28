@@ -499,7 +499,8 @@ public class KsqlRestApplicationTest {
         Optional.of(lagReportingAgent),
         vertx,
         queryMonitor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
   }
 

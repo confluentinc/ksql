@@ -57,7 +57,7 @@ public class ItemDataProvider extends TestDataProvider {
     super("ITEM", PHYSICAL_SCHEMA, ROWS);
   }
 
-  private static Struct buildKey(final String key) {
+  public static Struct buildKey(final String key) {
     return KEY_BUILDER.build(key);
   }
 }

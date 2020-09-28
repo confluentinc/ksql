@@ -116,7 +116,7 @@ public class ApiIntegrationTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(TEST_TOPIC);
 
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
 
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
 

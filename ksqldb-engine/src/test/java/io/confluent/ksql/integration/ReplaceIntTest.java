@@ -100,7 +100,7 @@ public class ReplaceIntTest {
             "CREATE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1 FROM source;",
             outputTopic));
 
-    TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.JSON);
+    TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.KAFKA, FormatFactory.JSON);
     assertForSource("PROJECT", outputTopic, ImmutableMap.of("1", GenericRow.genericRow("A")));
 
     // When:
@@ -108,7 +108,7 @@ public class ReplaceIntTest {
         String.format(
             "CREATE OR REPLACE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1, col2 FROM source;",
             outputTopic));
-    TEST_HARNESS.produceRows(inputTopic, new Provider("2", "B", 2), FormatFactory.JSON);
+    TEST_HARNESS.produceRows(inputTopic, new Provider("2", "B", 2), FormatFactory.KAFKA, FormatFactory.JSON);
 
     // Then:
     final Map<String, GenericRow> expected = ImmutableMap.of(
@@ -127,15 +127,15 @@ public class ReplaceIntTest {
             "CREATE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1 FROM source;",
             outputTopic));
 
-    TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.JSON);
+    TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.KAFKA, FormatFactory.JSON);
     assertForSource("PROJECT", outputTopic, ImmutableMap.of("1", GenericRow.genericRow("A")));
 
     // When:
     ksqlContext.sql(
         String.format(
             "CREATE OR REPLACE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1 FROM source WHERE col1 <> 'A';", outputTopic));
-    TEST_HARNESS.produceRows(inputTopic, new Provider("2", "A", 2), FormatFactory.JSON); // this row should be filtered out
-    TEST_HARNESS.produceRows(inputTopic, new Provider("3", "C", 3), FormatFactory.JSON);
+    TEST_HARNESS.produceRows(inputTopic, new Provider("2", "A", 2), FormatFactory.KAFKA, FormatFactory.JSON); // this row should be filtered out
+    TEST_HARNESS.produceRows(inputTopic, new Provider("3", "C", 3), FormatFactory.KAFKA, FormatFactory.JSON);
 
     // Then:
     final Map<String, GenericRow> expected = ImmutableMap.of(
@@ -158,7 +158,7 @@ public class ReplaceIntTest {
     );
 
     assertThat(
-        TEST_HARNESS.verifyAvailableUniqueRows(topic, expected.size(), FormatFactory.JSON, resultSchema),
+        TEST_HARNESS.verifyAvailableUniqueRows(topic, expected.size(), FormatFactory.KAFKA, FormatFactory.JSON, resultSchema),
         is(expected)
     );
   }

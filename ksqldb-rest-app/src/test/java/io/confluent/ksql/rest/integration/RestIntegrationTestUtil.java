@@ -272,13 +272,13 @@ public final class RestIntegrationTestUtil {
   }
 
   public static void createStream(final TestKsqlRestApp restApp,
-      final TestDataProvider<?> dataProvider) {
+      final TestDataProvider dataProvider) {
     createStream(restApp, dataProvider, Optional.empty());
   }
 
   public static void createStream(
       final TestKsqlRestApp restApp,
-      final TestDataProvider<?> dataProvider,
+      final TestDataProvider dataProvider,
       final Optional<BasicCredentials> userCreds
   ) {
     makeKsqlRequest(

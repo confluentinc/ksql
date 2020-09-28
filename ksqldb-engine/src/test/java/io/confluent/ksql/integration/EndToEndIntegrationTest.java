@@ -15,6 +15,7 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static java.lang.String.format;
@@ -86,6 +87,7 @@ public class EndToEndIntegrationTest {
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
   private static final String USER_TABLE = "users_original";
 
+  private static final Format KEY_FORMAT = KAFKA;
   private static final Format VALUE_FORMAT = JSON;
   private static final UserDataProvider USER_DATA_PROVIDER = new UserDataProvider();
 
@@ -140,6 +142,7 @@ public class EndToEndIntegrationTest {
     TEST_HARNESS.produceRows(
         USERS_TOPIC,
         USER_DATA_PROVIDER,
+        KEY_FORMAT,
         VALUE_FORMAT,
         () -> System.currentTimeMillis() - 10000
     );
@@ -147,6 +150,7 @@ public class EndToEndIntegrationTest {
     TEST_HARNESS.produceRows(
         PAGE_VIEW_TOPIC,
         PAGE_VIEW_DATA_PROVIDER,
+        KEY_FORMAT,
         VALUE_FORMAT,
         System::currentTimeMillis
     );
@@ -221,7 +225,7 @@ public class EndToEndIntegrationTest {
         PAGE_VIEW_STREAM));
 
     TEST_HARNESS.produceRows(
-        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
+        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, System::currentTimeMillis);
 
     TEST_HARNESS.waitForSubjectToBePresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 

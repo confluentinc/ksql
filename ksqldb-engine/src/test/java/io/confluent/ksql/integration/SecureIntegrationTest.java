@@ -16,6 +16,7 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
@@ -350,7 +351,7 @@ public class SecureIntegrationTest {
 
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
-    TEST_HARNESS.produceRows(INPUT_TOPIC, orderDataProvider, JSON);
+    TEST_HARNESS.produceRows(INPUT_TOPIC, orderDataProvider, KAFKA, JSON);
   }
 
   private void awaitAsyncInputTopicCreation() {

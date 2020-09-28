@@ -143,7 +143,11 @@ public class OrderDataProvider extends TestDataProvider {
     super("ORDER", PHYSICAL_SCHEMA, ROWS);
   }
 
-  private static Struct buildKey(final String key) {
+  public Struct keyFrom(final String key) {
+    return buildKey(key);
+  }
+
+  public static Struct buildKey(final String key) {
     return KEY_BUILDER.build(key);
   }
 }

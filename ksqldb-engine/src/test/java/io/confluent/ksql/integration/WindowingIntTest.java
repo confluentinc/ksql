@@ -17,6 +17,7 @@ package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
 import static io.confluent.ksql.test.util.MapMatchers.mapHasItems;
@@ -115,8 +116,8 @@ public class WindowingIntTest {
     TEST_HARNESS.ensureTopics(sourceTopicName, ORDERS_STREAM.toUpperCase());
 
     final OrderDataProvider dataProvider = new OrderDataProvider();
-    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> batch0SentMs);
-    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> batch0SentMs + batch1Delay);
+    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, KAFKA, JSON, () -> batch0SentMs);
+    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, KAFKA, JSON, () -> batch0SentMs + batch1Delay);
 
     createOrdersStream();
 

@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.util.StructKeyUtil;
@@ -53,6 +54,10 @@ public class UserDataProvider extends TestDataProvider {
 
   public UserDataProvider() {
     super("USER", PHYSICAL_SCHEMA, ROWS);
+  }
+
+  public String getStringKey(final int position) {
+    return Iterables.get(data().keySet(), position).getString("USERID");
   }
 
   private static Struct buildKey(final String key) {

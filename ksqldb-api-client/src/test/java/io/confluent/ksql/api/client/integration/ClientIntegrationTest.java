@@ -66,6 +66,7 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
@@ -113,7 +114,10 @@ public class ClientIntegrationTest {
   private static final List<ColumnType> TEST_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP", "STRUCT", "STRUCT"));
   private static final List<KsqlArray> TEST_EXPECTED_ROWS = convertToClientRows(
-      TEST_DATA_PROVIDER.data());
+      TEST_DATA_PROVIDER.data(), TEST_DATA_PROVIDER.key());
+
+  private static final Format KEY_FORMAT = FormatFactory.JSON;
+  private static final Format VALUE_FORMAT = FormatFactory.JSON;
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final String AN_AGG_KEY = "FOO";
@@ -126,12 +130,12 @@ public class ClientIntegrationTest {
       SerdeFeatures.of()
   );
 
-  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER = new TestDataProvider<>(
+  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
   private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.kstreamName();
 
-  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider<>(
+  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES_2", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC_2 = EMPTY_TEST_DATA_PROVIDER_2.topicName();
   private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.kstreamName();
@@ -182,7 +186,7 @@ public class ClientIntegrationTest {
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC, EMPTY_TEST_TOPIC_2);
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER_2);
@@ -194,7 +198,8 @@ public class ClientIntegrationTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
         4, // Only unique keys are counted
-        FormatFactory.JSON,
+        KEY_FORMAT,
+        VALUE_FORMAT,
         AGG_SCHEMA
     );
   }
@@ -1126,11 +1131,14 @@ public class ClientIntegrationTest {
     assertThat(obj.toString(), is(obj.toJsonString()));
   }
 
-  private static List<KsqlArray> convertToClientRows(final Multimap<String, GenericRow> data) {
+  private static List<KsqlArray> convertToClientRows(
+      final Multimap<Struct, GenericRow> data,
+      final String keyField
+  ) {
     final List<KsqlArray> expectedRows = new ArrayList<>();
-    for (final Map.Entry<String, GenericRow> entry : data.entries()) {
+    for (final Map.Entry<Struct, GenericRow> entry : data.entries()) {
       final KsqlArray expectedRow = new KsqlArray()
-          .add(entry.getKey());
+          .add(entry.getKey().getString(keyField));
       for (final Object value : entry.getValue().values()) {
         if (value instanceof Struct) {
           expectedRow.add(StructuredTypesDataProvider.structToMap((Struct) value));
@@ -1148,7 +1156,7 @@ public class ClientIntegrationTest {
   }
 
   private static Matcher<? super StreamInfo> streamForProvider(
-      final TestDataProvider<?> testDataProvider
+      final TestDataProvider testDataProvider
   ) {
     return streamInfo(testDataProvider.kstreamName(), testDataProvider.topicName(), "JSON");
   }

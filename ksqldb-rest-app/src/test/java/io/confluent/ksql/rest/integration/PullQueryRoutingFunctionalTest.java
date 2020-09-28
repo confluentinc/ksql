@@ -31,7 +31,6 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -98,7 +97,7 @@ public class PullQueryRoutingFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TemporaryFolder TMP = new TemporaryFolder();
   private static final int BASE_TIME = 1_000_000;
-  private final static String KEY = Iterables.get(USER_PROVIDER.data().keySet(), 0);
+  private final static String KEY = USER_PROVIDER.getStringKey(0);
   private final AtomicLong timestampSupplier = new AtomicLong(BASE_TIME);
   private String output;
   private String queryId;
@@ -213,6 +212,7 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
@@ -372,6 +372,7 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
@@ -495,6 +496,7 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_PROVIDER.data().size(),
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         AGGREGATE_SCHEMA
     );

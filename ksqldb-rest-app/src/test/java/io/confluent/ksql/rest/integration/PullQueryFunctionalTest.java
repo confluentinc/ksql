@@ -87,6 +87,7 @@ public class PullQueryFunctionalTest {
   private static final String USER_WITH_ACCESS_PWD = "changeme";
 
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
+  private static final Format KEY_FORMAT = FormatFactory.KAFKA;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final int HEADER = 1;
 
@@ -156,6 +157,7 @@ public class PullQueryFunctionalTest {
     TEST_HARNESS.produceRows(
         USER_TOPIC,
         USER_PROVIDER,
+        KEY_FORMAT,
         VALUE_FORMAT,
         timestampSupplier::getAndIncrement
     );
@@ -184,7 +186,7 @@ public class PullQueryFunctionalTest {
   @Test
   public void shouldGetSingleKeyFromBothNodes() {
     // Given:
-    final String key = Iterables.get(USER_PROVIDER.data().keySet(), 0);
+    final String key = USER_PROVIDER.getStringKey(0);
 
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
@@ -211,7 +213,7 @@ public class PullQueryFunctionalTest {
   @Test
   public void shouldGetSingleWindowedKeyFromBothNodes() {
     // Given:
-    final String key = Iterables.get(USER_PROVIDER.data().keySet(), 0);
+    final String key = USER_PROVIDER.getStringKey(0);
 
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
@@ -257,6 +259,7 @@ public class PullQueryFunctionalTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_PROVIDER.data().size(),
+        KEY_FORMAT,
         VALUE_FORMAT,
         AGGREGATE_SCHEMA
     );

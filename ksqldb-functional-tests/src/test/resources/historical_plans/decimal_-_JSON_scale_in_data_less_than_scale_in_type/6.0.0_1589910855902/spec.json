@@ -55,31 +55,31 @@
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 10
+        "DEC" : 10.0000
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 1
+        "DEC" : 1.0000
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 0.1
+        "DEC" : 0.1000
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 0.01
+        "DEC" : 0.0100
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 0.001
+        "DEC" : 0.0010
       }
     }, {
       "topic" : "OUTPUT",

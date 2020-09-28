@@ -212,7 +212,18 @@
       ]
     },
     {
-      "name": "array comparison",
+      "name": "array comparison fails",
+      "statements": [
+        "CREATE STREAM INPUT (A INT KEY, B ARRAY<INT>, C ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT A, B < C, B > C FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Cannot compare B (ARRAY<INTEGER>) to C (ARRAY<INTEGER>) with LESS_THAN."
+      }
+    },
+    {
+      "name": "array equality",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B ARRAY<INT>, C ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT A, B = C, B <> C, B IS NOT DISTINCT FROM C, B IS DISTINCT FROM C FROM INPUT;"
@@ -227,7 +238,18 @@
       ]
     },
     {
-      "name": "map comparison",
+      "name": "map comparison fails",
+      "statements": [
+        "CREATE STREAM INPUT (A INT KEY, B MAP<STRING, INT>, C MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT A, B < C, B > C FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Cannot compare B (MAP<STRING, INTEGER>) to C (MAP<STRING, INTEGER>) with LESS_THAN."
+      }
+    },
+    {
+      "name": "map equality",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B MAP<STRING, INT>, C MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT A, B = C, B <> C, B IS NOT DISTINCT FROM C, B IS DISTINCT FROM C FROM INPUT;"
@@ -244,10 +266,21 @@
       ]
     },
     {
-      "name": "struct comparison",
+      "name": "struct comparison fails",
       "statements": [
         "CREATE STREAM INPUT (A INT KEY, B STRUCT<ID INT>, C STRUCT<ID INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT A, B = C, B <> C, B IS NOT DISTINCT FROM C, B IS DISTINCT FROM C FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT A, B < C, B > C FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Cannot compare B (STRUCT<`ID` INTEGER>) to C (STRUCT<`ID` INTEGER>) with LESS_THAN."
+      }
+    },
+    {
+      "name": "struct equality",
+      "statements": [
+        "CREATE STREAM INPUT (A INT KEY, B STRUCT<ID INT>, C STRUCT<ID INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+	"CREATE STREAM OUTPUT AS SELECT A, B = C, B <> C, B IS NOT DISTINCT FROM C, B IS DISTINCT FROM C FROM INPUT;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"B": {"id": 2}, "C": {"id": 2.0}}},

@@ -94,9 +94,9 @@ public final class AssertExecutor {
           CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME,
           CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
       )).add(new SourceProperty(
-          DataSource::getSerdeOptions,
-          (cs, cfg) -> cs.getProperties().getSerdeOptions(),
-          "serde options",
+          ds -> ds.getKsqlTopic().getValueFormat().getFeatures(),
+          (cs, cfg) -> cs.getProperties().getValueSerdeFeatures(),
+          "value serde features",
           CommonCreateConfigs.WRAP_SINGLE_VALUE
       )).add(new SourceProperty(
           ds -> ds.getTimestampColumn().map(TimestampColumn::getColumn),

@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -108,7 +109,10 @@ public class TopicDeleteInjector implements Injector {
       }
 
       try {
-        if (source.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference()) {
+        final Format valueFormat = FormatFactory
+            .fromName(source.getKsqlTopic().getValueFormat().getFormat());
+
+        if (valueFormat.supportsSchemaInference()) {
           SchemaRegistryUtil.deleteSubjectWithRetries(
                   schemaRegistryClient,
                   source.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

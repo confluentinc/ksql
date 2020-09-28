@@ -47,7 +47,7 @@ public final class AvroUtil {
     final AvroSchema parsedSchema = (AvroSchema) new AvroFormat().toParsedSchema(
         PersistenceSchema.from(
             ddl.getSchema().value(),
-            formats.getOptions().valueFeatures()
+            formats.getValueFeatures()
         ),
         formats.getValueFormat()
     );

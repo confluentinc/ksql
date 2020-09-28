@@ -200,7 +200,8 @@ public final class QueryExecutor {
 
     final PhysicalSchema querySchema = PhysicalSchema.from(
         sinkDataSource.getSchema(),
-        sinkDataSource.getSerdeOptions()
+        sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>

@@ -21,7 +21,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
 import java.util.Set;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -73,16 +73,30 @@ public final class MetaStoreMatchers {
     };
   }
 
-  public static Matcher<DataSource> hasSerdeOptions(
-      final Matcher<? super Iterable<? super SerdeOption>> matcher
+  public static Matcher<DataSource> hasKeySerdeFeatures(
+      final Matcher<? super Iterable<? super SerdeFeature>> expected
   ) {
-    return new FeatureMatcher<DataSource, Set<SerdeOption>>(
-        matcher,
-        "source with serde options",
-        "serde options") {
+    return new FeatureMatcher<DataSource, Set<SerdeFeature>>(
+        expected,
+        "source with key serde features",
+        "key serde features") {
       @Override
-      protected Set<SerdeOption> featureValueOf(final DataSource actual) {
-        return actual.getSerdeOptions().all();
+      protected Set<SerdeFeature> featureValueOf(final DataSource actual) {
+        return actual.getKsqlTopic().getKeyFormat().getFeatures().all();
+      }
+    };
+  }
+
+  public static Matcher<DataSource> hasValueSerdeFeatures(
+      final Matcher<? super Iterable<? super SerdeFeature>> expected
+  ) {
+    return new FeatureMatcher<DataSource, Set<SerdeFeature>>(
+        expected,
+        "source with value serde features",
+        "value serde features") {
+      @Override
+      protected Set<SerdeFeature> featureValueOf(final DataSource actual) {
+        return actual.getKsqlTopic().getValueFormat().getFeatures().all();
       }
     };
   }

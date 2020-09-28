@@ -22,8 +22,8 @@ import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.Pair;
 import java.util.Objects;
 import java.util.Optional;
@@ -161,9 +161,9 @@ public class DataGenProducer {
 
   private Serializer<Struct> getKeySerializer(final LogicalSchema schema) {
     final Set<SerdeFeature> supported = keySerializerFactory.format().supportedFeatures();
-    final EnabledSerdeFeatures features = supported.contains(SerdeFeature.UNWRAP_SINGLES)
-        ? EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
-        : EnabledSerdeFeatures.of();
+    final SerdeFeatures features = supported.contains(SerdeFeature.UNWRAP_SINGLES)
+        ? SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+        : SerdeFeatures.of();
 
     final PersistenceSchema persistenceSchema = PersistenceSchema.from(schema.key(), features);
     return keySerializerFactory.create(persistenceSchema);
@@ -171,7 +171,7 @@ public class DataGenProducer {
 
   private Serializer<GenericRow> getValueSerializer(final LogicalSchema schema) {
     final PersistenceSchema persistenceSchema = PersistenceSchema
-        .from(schema.value(), EnabledSerdeFeatures.of());
+        .from(schema.value(), SerdeFeatures.of());
     return valueSerializerFactory.create(persistenceSchema);
   }
 

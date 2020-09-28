@@ -32,6 +32,7 @@ import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
@@ -196,7 +197,7 @@ public class TopicInfoCache {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Serializer<Object> getValueSerializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormat(), schema);
+          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
 
       final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient);
 
@@ -229,7 +230,7 @@ public class TopicInfoCache {
 
     public Deserializer<?> getValueDeserializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormat(), schema);
+          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
 
       final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient);
 
@@ -295,7 +296,7 @@ public class TopicInfoCache {
 
     private Object coerceValue(final Object value) {
       // Only KAFKA format needs any value coercion at the moment:
-      if (!(valueFormat.getFormat() instanceof KafkaFormat)) {
+      if (!(valueFormat.getFormat().equals(KafkaFormat.NAME))) {
         return value;
       }
 

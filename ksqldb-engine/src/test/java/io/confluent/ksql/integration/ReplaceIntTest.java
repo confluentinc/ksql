@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -37,6 +39,7 @@ import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TestDataProvider;
 import java.util.Map;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -160,7 +163,7 @@ public class ReplaceIntTest {
     );
   }
 
-  private static class Provider extends TestDataProvider<String> {
+  private static class Provider extends TestDataProvider {
 
     private static final String SQL = "k VARCHAR KEY, col1 VARCHAR, col2 INT";
     private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
@@ -168,6 +171,7 @@ public class ReplaceIntTest {
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.INTEGER)
         .build();
+    private static final KeyBuilder KEY_BUILDER = StructKeyUtil.keyBuilder(LOGICAL_SCHEMA);
 
     public Provider(final String k, final String col1, final int col2) {
       super(
@@ -177,12 +181,12 @@ public class ReplaceIntTest {
       );
     }
 
-    private static Multimap<String, GenericRow> rows(
+    private static Multimap<Struct, GenericRow> rows(
         final String key,
         final String col1,
         final Integer col2
     ) {
-      return ImmutableListMultimap.of(key, GenericRow.genericRow(col1, col2));
+      return ImmutableListMultimap.of(KEY_BUILDER.build(key), GenericRow.genericRow(col1, col2));
     }
   }
 

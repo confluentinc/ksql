@@ -24,19 +24,20 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 
-public class TestDataProvider<K> {
+public class TestDataProvider {
 
   private final String topicName;
   private final PhysicalSchema schema;
-  private final Multimap<K, GenericRow> data;
+  private final Multimap<Struct, GenericRow> data;
   private final String kstreamName;
 
   public TestDataProvider(
       final String namePrefix,
       final PhysicalSchema schema,
-      final Multimap<K, GenericRow> data
+      final Multimap<Struct, GenericRow> data
   ) {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
     this.kstreamName = namePrefix + "_KSTREAM";
@@ -62,11 +63,11 @@ public class TestDataProvider<K> {
     return schema;
   }
 
-  public Multimap<K, GenericRow> data() {
+  public Multimap<Struct, GenericRow> data() {
     return data;
   }
 
-  public Map<K, GenericRow> finalData() {
+  public Map<Struct, GenericRow> finalData() {
     return data.entries().stream()
         .collect(Collectors.toMap(
             Entry::getKey,

@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -46,6 +47,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -91,6 +93,8 @@ public class CommandStoreTest {
   private Deserializer<CommandId> commandIdDeserializer;
   @Mock
   private CommandTopicBackup commandTopicBackup;
+  @Mock
+  private TransactionManager<CommandId, Command> transactionManager;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -142,29 +146,42 @@ public class CommandStoreTest {
 
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
+    doAnswer(inv -> {
+      final Function<Producer<CommandId, Command>, Object> arg0 = inv.getArgument(0);
+      return arg0.apply(transactionalProducer);
+    }).when(transactionManager).executeTransaction(any());
+
     commandStore = new CommandStore(
         COMMAND_TOPIC_NAME,
         commandTopic,
         sequenceNumberFutureStore,
         Collections.emptyMap(),
-        Collections.emptyMap(),
         TIMEOUT,
-        commandIdSerializer,
-        commandSerializer,
         commandIdDeserializer,
-        commandTopicBackup
+        commandTopicBackup,
+        transactionManager
     );
+  }
+
+  @Test
+  public void shouldEnqueueSuccessfulCommandTransactionally() {
+    // When:
+    commandStore.enqueueCommand(commandId, command);
+
+    // Then:
+    verify(transactionManager).executeTransaction(any());
+    verify(transactionalProducer).send(any());
   }
 
   @Test
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
-    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command);
 
     // When:
     assertThrows(
         IllegalStateException.class,
-        () -> commandStore.enqueueCommand(commandId, command, transactionalProducer)
+        () -> commandStore.enqueueCommand(commandId, command)
     );
   }
 
@@ -177,7 +194,7 @@ public class CommandStoreTest {
 
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> commandStore.enqueueCommand(commandId, command, transactionalProducer)
+        () -> commandStore.enqueueCommand(commandId, command)
     );
 
     assertThat(e.getMessage(), containsString(
@@ -185,7 +202,7 @@ public class CommandStoreTest {
     ));
 
     // When:
-    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command);
 
     // Then: did not throw.
   }
@@ -194,11 +211,11 @@ public class CommandStoreTest {
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
     when(commandIdDeserializer.deserialize(any(), any())).thenReturn(commandId);
-    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command);
     commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
     // Should:
-    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command);
   }
 
   @Test
@@ -221,7 +238,7 @@ public class CommandStoreTest {
     when(commandIdDeserializer.deserialize(any(),any())).thenReturn(commandId);
 
     // When:
-    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command);
 
     // Then:
     verify(transactionalProducer).send(any(ProducerRecord.class));
@@ -256,7 +273,7 @@ public class CommandStoreTest {
     when(transactionalProducer.send(any(ProducerRecord.class))).thenReturn(testFuture);
 
     // When:
-    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+    commandStore.enqueueCommand(commandId, command);
 
     // Then:
     verify(transactionalProducer).send(new ProducerRecord<>(
@@ -271,7 +288,7 @@ public class CommandStoreTest {
   public void shouldIncludeCommandSequenceNumberInSuccessfulQueuedCommandStatus() {
     // When:
     final QueuedCommandStatus commandStatus =
-        commandStore.enqueueCommand(commandId, command, transactionalProducer);
+        commandStore.enqueueCommand(commandId, command);
 
     // Then:
     assertThat(commandStatus.getCommandSequenceNumber(), equalTo(recordMetadata.offset()));

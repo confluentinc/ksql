@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-import org.apache.kafka.clients.producer.Producer;
 
 /**
  * Represents a queue of {@link Command}s that must be distributed to all
@@ -37,15 +36,10 @@ public interface CommandQueue extends Closeable {
    *
    * @param commandId              The id of the command to be distributed
    * @param command                The command to be distributed
-   * @param transactionalProducer  The transactional producer used to for enqueue the command
    * @return an asynchronous tracker that can be used to determine the current
    *         state of the command
    */
-  QueuedCommandStatus enqueueCommand(
-      CommandId commandId,
-      Command command,
-      Producer<CommandId, Command> transactionalProducer
-  );
+  QueuedCommandStatus enqueueCommand(CommandId commandId, Command command);
   
   /**
    * Polls the Queue for any commands that have been enqueued since the last
@@ -79,13 +73,6 @@ public interface CommandQueue extends Closeable {
    */
   void ensureConsumedPast(long seqNum, Duration timeout)
       throws InterruptedException, TimeoutException;
-
-  /**
-   * Creates a transactional producer for producing to the command topic.
-   *
-   * @return a TransactionalProducer
-   */
-  Producer<CommandId, Command> createTransactionalProducer();
 
   /**
    * Blocks until the command topic consumer has processed all records up to

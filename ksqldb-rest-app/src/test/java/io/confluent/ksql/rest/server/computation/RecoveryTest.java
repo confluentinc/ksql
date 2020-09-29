@@ -66,7 +66,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -89,9 +88,6 @@ public class RecoveryTest {
 
   private KsqlSecurityContext securityContext;
 
-  @Mock
-  @SuppressWarnings("unchecked")
-  private final Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator =
       mock(DenyListPropertyValidator.class);
@@ -127,18 +123,15 @@ public class RecoveryTest {
   private static class FakeCommandQueue implements CommandQueue {
     private final List<QueuedCommand> commandLog;
     private int offset;
-    private final Producer<CommandId, Command> transactionalProducer;
 
-    FakeCommandQueue(final List<QueuedCommand> commandLog, final Producer<CommandId, Command> transactionalProducer) {
+    FakeCommandQueue(final List<QueuedCommand> commandLog) {
       this.commandLog = commandLog;
-      this.transactionalProducer = transactionalProducer;
     }
 
     @Override
     public QueuedCommandStatus enqueueCommand(
         final CommandId commandId,
-        final Command command,
-        final Producer<CommandId, Command> transactionalProducer
+        final Command command
     ) {
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
@@ -166,11 +159,6 @@ public class RecoveryTest {
 
     @Override
     public void ensureConsumedPast(final long seqNum, final Duration timeout) {
-    }
-
-    @Override
-    public Producer<CommandId, Command> createTransactionalProducer() {
-      return transactionalProducer;
     }
 
     @Override
@@ -207,7 +195,7 @@ public class RecoveryTest {
     KsqlServer(final List<QueuedCommand> commandLog) {
       final SpecificQueryIdGenerator queryIdGenerator = new SpecificQueryIdGenerator();
       this.ksqlEngine = createKsqlEngine(queryIdGenerator);
-      this.fakeCommandQueue = new FakeCommandQueue(commandLog, transactionalProducer);
+      this.fakeCommandQueue = new FakeCommandQueue(commandLog);
       serverState = new ServerState();
       serverState.setReady();
 

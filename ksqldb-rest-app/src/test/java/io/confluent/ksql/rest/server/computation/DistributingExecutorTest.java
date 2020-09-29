@@ -72,15 +72,11 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
-import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -126,8 +122,6 @@ public class DistributingExecutorTest {
   @Mock
   private ValidatedCommandFactory validatedCommandFactory;
   @Mock
-  private Producer<CommandId, Command> transactionalProducer;
-  @Mock
   private Command command;
   @Mock
   private Errors errorHandler;
@@ -143,7 +137,7 @@ public class DistributingExecutorTest {
     scnCounter = new AtomicLong();
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(queue.enqueueCommand(any(), any(), any())).thenReturn(status);
+    when(queue.enqueueCommand(any(), any())).thenReturn(status);
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
@@ -153,7 +147,6 @@ public class DistributingExecutorTest {
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
     when(validatedCommandFactory.create(any(), any())).thenReturn(command);
-    when(queue.createTransactionalProducer()).thenReturn(transactionalProducer);
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
@@ -167,42 +160,6 @@ public class DistributingExecutorTest {
         errorHandler,
         commandRunnerWarning
     );
-  }
-
-  @Test
-  public void shouldEnqueueSuccessfulCommandTransactionally() {
-    // When:
-    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
-
-    // Then:
-    final InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, validatedCommandFactory);
-    inOrder.verify(transactionalProducer).initTransactions();
-    inOrder.verify(transactionalProducer).beginTransaction();
-    inOrder.verify(queue).waitForCommandConsumer();
-    inOrder.verify(validatedCommandFactory).create(
-        CONFIGURED_STATEMENT,
-        sandboxContext
-    );
-    inOrder.verify(queue).enqueueCommand(
-        IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()),
-        command,
-        transactionalProducer
-    );
-    inOrder.verify(transactionalProducer).commitTransaction();
-    inOrder.verify(transactionalProducer).close();
-  }
-
-  @Test
-  public void shouldNotAbortTransactionIfInitTransactionFails() {
-    // Given:
-    doThrow(TimeoutException.class).when(transactionalProducer).initTransactions();
-
-    // When:
-    assertThrows(
-        KsqlServerException.class,
-        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
-    );
-    verify(transactionalProducer, times(0)).abortTransaction();
   }
 
   @Test
@@ -231,7 +188,7 @@ public class DistributingExecutorTest {
   }
 
   @Test
-  public void shouldNotInitTransactionWhenCommandRunnerWarningPresent() {
+  public void shouldNotEnqueueCommandWhenCommandRunnerWarningPresent() {
     // When:
     when(commandRunnerWarning.get()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
 
@@ -240,7 +197,7 @@ public class DistributingExecutorTest {
         KsqlServerException.class,
         () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
     );
-    verify(transactionalProducer, never()).initTransactions();
+    verify(queue, never()).enqueueCommand(any(), any());
   }
 
   @Test
@@ -248,7 +205,7 @@ public class DistributingExecutorTest {
     // Given:
     final KsqlException cause = new KsqlException("fail");
 
-    when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
+    when(queue.enqueueCommand(any(), any())).thenThrow(cause);
 
     // When:
     final Exception e = assertThrows(
@@ -260,7 +217,6 @@ public class DistributingExecutorTest {
     assertThat(e.getMessage(), containsString(
         "Could not write the statement 'statement' into the command topic."));
     assertThat(e.getCause(), (is(cause)));
-    verify(transactionalProducer, times(1)).abortTransaction();
   }
 
   @Test

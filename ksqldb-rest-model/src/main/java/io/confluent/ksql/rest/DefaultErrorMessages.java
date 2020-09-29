@@ -44,7 +44,7 @@ public class DefaultErrorMessages implements ErrorMessages {
 
   @Override
   public String transactionInitTimeoutErrorMessage(final Exception e) {
-    return "Timeout while initializing transaction to the KSQL command topic."
+    return "Timeout while initializing a transaction."
         + System.lineSeparator()
         + "If you're running a single Kafka broker, " 
         + "ensure that the following configs are set to 1 on the broker:"

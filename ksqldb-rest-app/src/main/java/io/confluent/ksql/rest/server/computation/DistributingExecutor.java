@@ -32,18 +32,13 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.common.errors.AuthorizationException;
-import org.apache.kafka.common.errors.OutOfOrderSequenceException;
-import org.apache.kafka.common.errors.ProducerFencedException;
-import org.apache.kafka.common.errors.TimeoutException;
 
 /**
  * A {@code StatementExecutor} that encapsulates a command queue and will
@@ -124,32 +119,16 @@ public class DistributingExecutor {
 
     checkAuthorization(injected, securityContext, executionContext);
 
-    final Producer<CommandId, Command> transactionalProducer =
-        commandQueue.createTransactionalProducer();
+    try {
+      final Pair<CommandId, Command> commandRecord = buildCommandRecord(injected, executionContext);
 
-    try {
-      transactionalProducer.initTransactions();
-    } catch (final TimeoutException e) {
-      throw new KsqlServerException(errorHandler.transactionInitTimeoutErrorMessage(e), e);
-    } catch (final Exception e) {
-      throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
-          statement.getStatementText()), e);
-    }
-    
-    try {
-      transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
 
-      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
-      final Command command = validatedCommandFactory.create(
-          injected,
-          executionContext.createSandbox(executionContext.getServiceContext())
+      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(
+          commandRecord.getLeft(),
+          commandRecord.getRight()
       );
-      final QueuedCommandStatus queuedCommandStatus =
-          commandQueue.enqueueCommand(commandId, command, transactionalProducer);
 
-      transactionalProducer.commitTransaction();
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
@@ -159,23 +138,24 @@ public class DistributingExecutor {
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()
       ));
-    } catch (final ProducerFencedException
-        | OutOfOrderSequenceException
-        | AuthorizationException e
-    ) {
-      // We can't recover from these exceptions, so our only option is close producer and exit.
-      // This catch doesn't abortTransaction() since doing that would throw another exception.
-      throw new KsqlServerException(String.format(
-          "Could not write the statement '%s' into the command topic.",
-          statement.getStatementText()), e);
     } catch (final Exception e) {
-      transactionalProducer.abortTransaction();
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic.",
           statement.getStatementText()), e);
-    } finally {
-      transactionalProducer.close();
     }
+  }
+
+  private Pair<CommandId, Command> buildCommandRecord(
+      final ConfiguredStatement<?> configuredStatement,
+      final KsqlExecutionContext executionContext
+  ) {
+    final CommandId commandId = commandIdAssigner.getCommandId(configuredStatement.getStatement());
+    final Command command = validatedCommandFactory.create(
+        configuredStatement,
+        executionContext.createSandbox(executionContext.getServiceContext())
+    );
+
+    return Pair.of(commandId, command);
   }
 
   private void checkAuthorization(

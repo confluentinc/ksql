@@ -61,7 +61,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -184,7 +183,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.StreamsConfig;
@@ -298,8 +296,6 @@ public class KsqlResourceTest {
   @Mock
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
-  private Producer<CommandId, Command> transactionalProducer;
-  @Mock
   private Errors errorsHandler;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
@@ -348,15 +344,13 @@ public class KsqlResourceTest {
 
     when(commandRunner.getCommandQueue()).thenReturn(commandStore);
     when(commandRunnerWarning.get()).thenReturn("");
-    when(commandStore.createTransactionalProducer())
-        .thenReturn(transactionalProducer);
 
     ksqlEngine = realEngine;
     when(sandbox.getMetaStore()).thenAnswer(inv -> metaStore.copy());
 
     addTestTopicAndSources();
 
-    when(commandStore.enqueueCommand(any(), any(), any(Producer.class)))
+    when(commandStore.enqueueCommand(any(), any()))
         .thenReturn(commandStatus)
         .thenReturn(commandStatus1)
         .thenReturn(commandStatus2);
@@ -662,9 +656,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(sql))),
-        any(Producer.class)
-    );
+        argThat(is(commandWithStatement(sql))));
   }
 
   @Test
@@ -811,8 +803,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(sql))),
-        any(Producer.class)
+        argThat(is(commandWithStatement(sql)))
     );
   }
 
@@ -825,8 +816,7 @@ public class KsqlResourceTest {
     verify(commandStore).enqueueCommand(
         any(),
         argThat(is(commandWithOverwrittenProperties(
-            VALID_EXECUTABLE_REQUEST.getConfigOverrides()))),
-        any(Producer.class)
+            VALID_EXECUTABLE_REQUEST.getConfigOverrides())))
     );
   }
 
@@ -920,8 +910,7 @@ public class KsqlResourceTest {
     verify(commandStore).enqueueCommand(
         any(),
         argThat(is(commandWithStatement(
-            "CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');"))),
-        any(Producer.class)
+            "CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');")))
     );
   }
 
@@ -950,8 +939,7 @@ public class KsqlResourceTest {
     verify(sandbox).plan(any(SandboxedServiceContext.class), eq(configuredStatement));
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(sql))),
-        any(Producer.class)
+        argThat(is(commandWithStatement(sql)))
     );
   }
 
@@ -979,8 +967,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(sqlWithTopic))),
-        any()
+        argThat(is(commandWithStatement(sqlWithTopic)))
     );
   }
 
@@ -1041,8 +1028,7 @@ public class KsqlResourceTest {
     verify(sandbox).plan(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getStatementText()))),
-        any()
+        argThat(is(commandWithStatement(CFG_1_WITH_SCHEMA.getStatementText())))
     );
   }
 
@@ -1246,7 +1232,7 @@ public class KsqlResourceTest {
     );
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any(), any(), any(Producer.class));
+    verify(commandStore, never()).enqueueCommand(any(), any());
   }
 
   @Test
@@ -1264,8 +1250,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(terminateSql))),
-        any()
+        argThat(is(commandWithStatement(terminateSql)))
     );
 
     assertThat(result.getStatementText(), is(terminateSql));
@@ -1286,8 +1271,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(terminateSql))),
-        any()
+        argThat(is(commandWithStatement(terminateSql)))
     );
 
     assertThat(result.getStatementText(), is(terminateSql));
@@ -1453,8 +1437,7 @@ public class KsqlResourceTest {
     verify(commandStore).enqueueCommand(
         any(),
         argThat(is(commandWithOverwrittenProperties(
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))),
-        any()
+            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"))))
     );
 
     assertThat(results, hasSize(1));
@@ -1475,8 +1458,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithOverwrittenProperties(emptyMap()))),
-        any()
+        argThat(is(commandWithOverwrittenProperties(emptyMap())))
     );
   }
 
@@ -1527,8 +1509,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithOverwrittenProperties(emptyMap()))),
-        any(Producer.class)
+        argThat(is(commandWithOverwrittenProperties(emptyMap())))
     );
 
     assertThat(result.getStatementText(), is(csas));
@@ -1561,8 +1542,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithOverwrittenProperties(emptyMap()))),
-        any()
+        argThat(is(commandWithOverwrittenProperties(emptyMap())))
     );
   }
 
@@ -1611,7 +1591,7 @@ public class KsqlResourceTest {
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
 
-    verify(commandStore, never()).enqueueCommand(any(), any(), any());
+    verify(commandStore, never()).enqueueCommand(any(), any());
   }
 
   @Test
@@ -1840,18 +1820,16 @@ public class KsqlResourceTest {
         (CommandStatusEntity) ((KsqlEntityList) response.getEntity()).get(0);
     assertThat(commandStatusEntity.getCommandStatus().getStatus(),
         equalTo(CommandStatus.Status.QUEUED));
-    verify(transactionalProducer, times(1)).initTransactions();
     verify(commandStore).enqueueCommand(
         any(),
-        argThat(is(commandWithStatement(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))),
-        any()
+        argThat(is(commandWithStatement(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)))
     );
   }
 
   @Test
   public void shouldFailIfCannotWriteTerminateCommand() {
     // Given:
-    when(commandStore.enqueueCommand(any(), any(), any(Producer.class)))
+    when(commandStore.enqueueCommand(any(), any()))
         .thenThrow(new KsqlException(""));
 
     // When:
@@ -1897,7 +1875,7 @@ public class KsqlResourceTest {
         BAD_REQUEST.code());
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any(), any(), any(Producer.class));
+    verify(commandStore, never()).enqueueCommand(any(), any());
   }
 
   @Test
@@ -1982,7 +1960,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldThrowServerErrorOnFailedToDistribute() {
     // Given:
-    when(commandStore.enqueueCommand(any(), any(), any(Producer.class)))
+    when(commandStore.enqueueCommand(any(), any()))
         .thenThrow(new KsqlException("blah"));
     final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
 

@@ -663,6 +663,11 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
+    final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
+        KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
+        ErrorMessages.class
+    ));
+
     final CommandStore commandStore = CommandStore.Factory.create(
         ksqlConfig,
         commandTopicName,
@@ -670,7 +675,8 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
             restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandProducerProperties())
+            restConfig.getCommandProducerProperties()),
+        errorHandler
     );
 
     final InteractiveStatementExecutor statementExecutor =
@@ -696,11 +702,6 @@ public final class KsqlRestApplication implements Executable {
 
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
-
-    final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
-        KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
-        ErrorMessages.class
-    ));
 
     final Optional<LagReportingAgent> lagReportingAgent =
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);

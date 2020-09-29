@@ -60,9 +60,12 @@ import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
+import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
@@ -93,6 +96,8 @@ import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AlterOption;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
@@ -671,6 +676,26 @@ public class AstBuilder {
           getLocation(ctx),
           getIdentifierText(ctx.identifier()),
           ctx.EXISTS() != null
+      );
+    }
+
+    @Override
+    public Node visitAlterSource(final AlterSourceContext ctx) {
+      return new AlterSource(
+          ParserUtil.getSourceName(ctx.sourceName()),
+          ctx.STREAM() != null ? DataSourceType.KSTREAM : DataSourceType.KTABLE,
+          ctx.alterOption()
+              .stream()
+              .map(gf -> (AlterOption) visit(gf))
+              .collect(Collectors.toList())
+      );
+    }
+
+    @Override
+    public Node visitAlterOption(final AlterOptionContext ctx) {
+      return new AlterOption(
+          getIdentifierText(ctx.identifier()),
+          typeParser.getType(ctx.type())
       );
     }
 

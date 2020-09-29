@@ -25,6 +25,8 @@ import io.confluent.ksql.name.Name;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AlterOption;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
@@ -493,6 +495,22 @@ public final class SqlFormatter {
       return null;
     }
 
+    @Override
+    public Void visitAlterSource(final AlterSource node, final Integer indent) {
+      append(indent, String.format(
+          "ALTER %s %s ",
+          node.getDataSourceType().getKsqlType(),
+          node.getName().text()));
+
+      builder.append(
+          node.getAlterOptions()
+              .stream()
+              .map(SqlFormatter::formatAlterOption)
+              .collect(Collectors.joining(", "))
+      );
+      return null;
+    }
+
     private void processRelation(final Relation relation, final Integer indent) {
       if (relation instanceof Table) {
         builder.append("TABLE ")
@@ -635,5 +653,9 @@ public final class SqlFormatter {
 
   private static String escapedName(final Name<?> name) {
     return name.toString(FORMAT_OPTIONS);
+  }
+
+  private static String formatAlterOption(final AlterOption option) {
+    return "ADD COLUMN " + option.getColumnName() + " " + option.getType();
   }
 }

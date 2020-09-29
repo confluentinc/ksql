@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
@@ -36,10 +37,13 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.tree.AlterOption;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -60,6 +64,8 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
@@ -106,6 +112,8 @@ public class CommandFactoriesTest {
   @Mock
   private DropTypeFactory dropTypeFactory;
   @Mock
+  private AlterSourceFactory alterSourceFactory;
+  @Mock
   private CreateStreamCommand createStreamCommand;
   @Mock
   private CreateTableCommand createTableCommand;
@@ -115,6 +123,8 @@ public class CommandFactoriesTest {
   private RegisterTypeCommand registerTypeCommand;
   @Mock
   private DropTypeCommand dropTypeCommand;
+  @Mock
+  private AlterSourceCommand alterSourceCommand;
 
   private CommandFactories commandFactories;
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -134,6 +144,7 @@ public class CommandFactoriesTest {
     when(dropSourceFactory.create(any(DropTable.class))).thenReturn(dropSourceCommand);
     when(registerTypeFactory.create(any())).thenReturn(registerTypeCommand);
     when(dropTypeFactory.create(any())).thenReturn(dropTypeCommand);
+    when(alterSourceFactory.create(any())).thenReturn(alterSourceCommand);
 
     givenCommandFactoriesWithMocks();
   }
@@ -150,7 +161,8 @@ public class CommandFactoriesTest {
         createSourceFactory,
         dropSourceFactory,
         registerTypeFactory,
-        dropTypeFactory
+        dropTypeFactory,
+        alterSourceFactory
     );
   }
 
@@ -215,6 +227,20 @@ public class CommandFactoriesTest {
         statement,
         ksqlConfig.cloneWithPropertyOverwrite(OVERRIDES)
     );
+  }
+
+  @Test
+  public void shouldCreateCommandForAlterSource() {
+    // Given:
+    final AlterSource ddlStatement = new AlterSource(SOME_NAME, DataSourceType.KSTREAM, new ArrayList<>());
+
+    // When:
+    final DdlCommand result = commandFactories
+        .create(sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+
+    // Then:
+    assertThat(result, is(alterSourceCommand));
+    verify(alterSourceFactory).create(ddlStatement);
   }
 
   @Test

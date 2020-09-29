@@ -35,7 +35,7 @@ public class PlannedTestRewriterTest {
    * and now need to correct bad historic test data.
    */
   @Test
-  @Ignore
+  //@Ignore
   public void rewritePlans() {
     new PlannedTestRewriter(PlannedTestRewriter.FULL)
         .rewriteTestCasePlans(new TestCasePlanLoader().all());

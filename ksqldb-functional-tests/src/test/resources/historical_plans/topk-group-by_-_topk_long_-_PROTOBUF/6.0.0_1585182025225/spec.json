@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/topk-group-by.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` ARRAY<BIGINT>",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` ARRAY<BIGINT>"
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOPK` ARRAY<BIGINT>",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOPK` ARRAY<BIGINT>"
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_INTERNAL_COL_2` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_INTERNAL_COL_2` INTEGER"
     }
   },
   "testCase" : {
@@ -123,24 +119,20 @@
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOPK` ARRAY<BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -148,9 +140,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -159,9 +149,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

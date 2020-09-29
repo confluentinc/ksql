@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/sink-partitions-replicas.json",
   "schemas" : {
     "CSAS_S_0.KsqlTopic.Source" : {
-      "schema" : "`C1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`C1` INTEGER"
     },
     "CSAS_S_0.S" : {
-      "schema" : "`C1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`C1` INTEGER"
     }
   },
   "testCase" : {
@@ -58,24 +56,20 @@
         "schema" : "`C1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`C1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "S",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -84,9 +78,7 @@
         }, {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

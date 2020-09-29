@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`FIELD` STRING KEY, `KSQL_INTERNAL_COL_0` STRUCT<`FIELD` STRING>, `KSQL_INTERNAL_COL_1` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`FIELD` STRING KEY, `KSQL_INTERNAL_COL_0` STRUCT<`FIELD` STRING>, `KSQL_INTERNAL_COL_1` BIGINT"
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `DATA` STRUCT<`FIELD` STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRUCT<`FIELD` STRING>"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`FIELD` STRING KEY, `KSQL_INTERNAL_COL_0` STRUCT<`FIELD` STRING>, `KSQL_INTERNAL_COL_1` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`FIELD` STRING KEY, `KSQL_INTERNAL_COL_0` STRUCT<`FIELD` STRING>, `KSQL_INTERNAL_COL_1` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`FIELD` STRING KEY, `FIELD` STRING, `COUNT` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`FIELD` STRING KEY, `FIELD` STRING, `COUNT` BIGINT"
     }
   },
   "testCase" : {
@@ -98,24 +94,20 @@
         "schema" : "`ROWKEY` STRING KEY, `FIELD` STRING, `COUNT` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DATA` STRUCT<`FIELD` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -124,9 +116,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -134,9 +124,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -144,9 +132,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

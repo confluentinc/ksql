@@ -4,16 +4,13 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER"
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER"
     }
   },
   "testCase" : {
@@ -77,32 +74,27 @@
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "L",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -110,9 +102,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -121,9 +111,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -131,9 +119,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -142,9 +128,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

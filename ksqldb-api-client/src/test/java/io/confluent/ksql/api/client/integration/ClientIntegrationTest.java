@@ -67,7 +67,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -122,7 +122,8 @@ public class ClientIntegrationTest {
           .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
           .build(),
-      SerdeOptions.of()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
 
   private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER = new TestDataProvider<>(

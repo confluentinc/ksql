@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/stringtimestamp.json",
   "schemas" : {
     "CSAS_TS_0.TS" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` BIGINT"
     },
     "CSAS_TS_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `TIMESTAMP` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `TIMESTAMP` STRING"
     }
   },
   "testCase" : {
@@ -57,24 +55,20 @@
         "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `TIMESTAMP` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TS",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -83,9 +77,7 @@
         }, {
           "name" : "TS",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

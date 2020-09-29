@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_FOO-TOO_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` STRING"
     },
     "CSAS_FOO-TOO_0.foo-too" : {
-      "schema" : "`K` STRING KEY, `ID` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` STRING"
     }
   },
   "testCase" : {
@@ -45,24 +43,20 @@
         "schema" : "`K` STRING KEY, `ID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "foo-source",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "foo-source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -71,9 +65,7 @@
         }, {
           "name" : "foo-too",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

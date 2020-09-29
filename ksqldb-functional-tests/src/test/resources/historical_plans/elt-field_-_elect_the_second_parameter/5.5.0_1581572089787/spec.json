@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/elt-field.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `MESSAGE` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `MESSAGE` STRING"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `ELEM` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ELEM` STRING"
     }
   },
   "testCase" : {
@@ -61,24 +59,20 @@
         "schema" : "`ROWKEY` STRING KEY, `ELEM` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `MESSAGE` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -87,9 +81,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -19,6 +19,7 @@ import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
+import io.confluent.ksql.analyzer.Analysis.Into.NewTopic;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.FilterTypeValidator;
 import io.confluent.ksql.analyzer.FilterTypeValidator.FilterType;
@@ -26,6 +27,7 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -39,6 +41,7 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -72,10 +75,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.SerdeOptionsFactory;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -175,39 +180,45 @@ public class LogicalPlanner {
       );
     }
 
-    final Into intoDataSource = analysis.getInto().get();
+    final Into into = analysis.getInto().get();
+
+    final KsqlTopic existingTopic = getSinkTopic(into, sourcePlanNode.getSchema());
 
     return new KsqlStructuredDataOutputNode(
-        new PlanNodeId(intoDataSource.getName().text()),
+        new PlanNodeId(into.getName().text()),
         sourcePlanNode,
         inputSchema,
         timestampColumn,
-        intoDataSource.getKsqlTopic(),
+        existingTopic,
         analysis.getLimitClause(),
-        intoDataSource.isCreate(),
-        getSerdeOptions(sourcePlanNode, intoDataSource),
-        intoDataSource.getName()
+        into.isCreate(),
+        into.getName()
     );
   }
 
-  private SerdeOptions getSerdeOptions(
-      final PlanNode sourcePlanNode,
-      final Into intoDataSource
-  ) {
-    final Format keyFormat = intoDataSource.getKsqlTopic()
-        .getKeyFormat()
-        .getFormat();
+  private KsqlTopic getSinkTopic(final Into into, final LogicalSchema schema) {
+    if (into.getExistingTopic().isPresent()) {
+      return into.getExistingTopic().get();
+    }
 
-    final Format valueFormat = intoDataSource.getKsqlTopic()
-        .getValueFormat()
-        .getFormat();
+    final NewTopic newTopic = into.getNewTopic().orElseThrow(IllegalStateException::new);
 
-    return SerdeOptionsFactory.build(
-        sourcePlanNode.getSchema(),
-        keyFormat,
-        valueFormat,
-        analysis.getProperties().getSerdeOptions(),
+    final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
+        schema,
+        FormatFactory.of(newTopic.getKeyFormat())
+    );
+
+    final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
+        schema,
+        FormatFactory.of(newTopic.getValueFormat()),
+        analysis.getProperties().getValueSerdeFeatures(),
         ksqlConfig
+    );
+
+    return new KsqlTopic(
+        newTopic.getTopicName(),
+        KeyFormat.of(newTopic.getKeyFormat(), keyFeatures, newTopic.getWindowInfo()),
+        ValueFormat.of(newTopic.getValueFormat(), valFeatures)
     );
   }
 
@@ -231,7 +242,7 @@ public class LogicalPlanner {
   private Optional<LogicalSchema> getTargetSchema() {
     return analysis.getInto().filter(i -> !i.isCreate())
         .map(i -> metaStore.getSource(i.getName()))
-        .map(target -> target.getSchema());
+        .map(DataSource::getSchema);
   }
 
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
@@ -497,7 +508,7 @@ public class LogicalPlanner {
     );
   }
 
-  private SuppressNode buildSuppressNode(
+  private static SuppressNode buildSuppressNode(
       final PlanNode sourcePlanNode,
       final RefinementInfo refinementInfo
   ) {

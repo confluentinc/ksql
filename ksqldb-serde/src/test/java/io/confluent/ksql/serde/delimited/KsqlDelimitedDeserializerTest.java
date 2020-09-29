@@ -28,7 +28,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -328,7 +328,7 @@ public class KsqlDelimitedDeserializerTest {
   }
 
   private static PersistenceSchema persistenceSchema(final SimpleColumn... columns) {
-    return PersistenceSchema.from(Arrays.asList(columns), EnabledSerdeFeatures.of());
+    return PersistenceSchema.from(Arrays.asList(columns), SerdeFeatures.of());
   }
 
   private static KsqlDelimitedDeserializer createDeserializer(final PersistenceSchema schema) {

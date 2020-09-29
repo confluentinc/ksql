@@ -243,11 +243,7 @@ final class EngineExecutor {
       return Optional.empty();
     }
 
-    final Formats formats = Formats.of(
-        outputNode.getKsqlTopic().getKeyFormat(),
-        outputNode.getKsqlTopic().getValueFormat(),
-        outputNode.getSerdeOptions()
-    );
+    final Formats formats = Formats.from(outputNode.getKsqlTopic());
 
     final Statement statement = cfgStatement.getStatement();
     final CreateSourceCommand ddl;

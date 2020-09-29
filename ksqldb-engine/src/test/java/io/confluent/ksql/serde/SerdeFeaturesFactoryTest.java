@@ -18,18 +18,20 @@ package io.confluent.ksql.serde;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.serde.FormatFactory.PROTOBUF;
-import static io.confluent.ksql.serde.SerdeOptionsFactory.build;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,18 +39,21 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SerdeOptionsFactoryTest {
+public class SerdeFeaturesFactoryTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("k"), SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema MULTI_FIELD_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("k"), SqlTypes.STRING)
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("f1"), SqlTypes.DOUBLE)
       .build();
+
+  private static final List<ColumnName> SINGLE_COLUMN_NAME = ImmutableList.of(ColumnName.of("bob"));
+  private static final List<ColumnName> MULTI_FIELD_NAMES = ImmutableList.of(ColumnName.of("bob"), ColumnName.of("vic"));
 
   private KsqlConfig ksqlConfig;
 
@@ -65,17 +70,16 @@ public class SerdeOptionsFactoryTest {
     ));
 
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
+    final SerdeFeatures result = SerdeFeaturesFactory.buildValueFeatures(
         SINGLE_FIELD_SCHEMA,
-        KAFKA,
-        FormatFactory.JSON,
-        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+        JSON,
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
-        is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES),
+        is(Optional.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
@@ -86,32 +90,30 @@ public class SerdeOptionsFactoryTest {
     ));
 
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
+    final SerdeFeatures result = SerdeFeaturesFactory.buildValueFeatures(
         SINGLE_FIELD_SCHEMA,
-        KAFKA,
-        FormatFactory.JSON,
-        SerdeOptions.of(),
+        JSON,
+        SerdeFeatures.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS),
-        is(Optional.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES),
+        is(Optional.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
   public void shouldDefaultToNoSingleValueWrappingIfNoExplicitAndNoConfigDefault() {
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
+    final SerdeFeatures result = SerdeFeaturesFactory.buildValueFeatures(
         SINGLE_FIELD_SCHEMA,
-        KAFKA,
-        FormatFactory.JSON,
-        SerdeOptions.of(),
+        JSON,
+        SerdeFeatures.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
   }
 
   @Test
@@ -122,16 +124,15 @@ public class SerdeOptionsFactoryTest {
     ));
 
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
+    final SerdeFeatures result = SerdeFeaturesFactory.buildValueFeatures(
         SINGLE_FIELD_SCHEMA,
         KAFKA,
-        KAFKA,
-        SerdeOptions.of(),
+        SerdeFeatures.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
   }
 
   @Test
@@ -142,16 +143,15 @@ public class SerdeOptionsFactoryTest {
     ));
 
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
+    final SerdeFeatures result = SerdeFeaturesFactory.buildValueFeatures(
         MULTI_FIELD_SCHEMA,
-        FormatFactory.AVRO,
-        FormatFactory.JSON,
-        SerdeOptions.of(),
+        JSON,
+        SerdeFeatures.of(),
         ksqlConfig
     );
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.VALUE_WRAPPING_OPTIONS), is(Optional.empty()));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
   }
 
   @Test
@@ -159,11 +159,10 @@ public class SerdeOptionsFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> build(
+        () -> SerdeFeaturesFactory.buildValueFeatures(
             MULTI_FIELD_SCHEMA,
-            KAFKA,
             JSON,
-            SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES),
+            SerdeFeatures.of(SerdeFeature.WRAP_SINGLES),
             ksqlConfig
         )
     );
@@ -174,15 +173,14 @@ public class SerdeOptionsFactoryTest {
   }
 
   @Test
-  public void shouldThrowIfWrapSingleValuePresentForDelimited() {
+  public void shouldThrowIfWrapSingleValuePresentForFormatThatDoesNotSupportIt() {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> build(
+        () -> SerdeFeaturesFactory.buildValueFeatures(
             SINGLE_FIELD_SCHEMA,
-            KAFKA,
             PROTOBUF,
-            SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+            SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
             ksqlConfig
         )
     );
@@ -194,87 +192,65 @@ public class SerdeOptionsFactoryTest {
   @Test
   public void shouldSetUnwrappedKeysIfKeyFormatSupportsBothWrappingAndUnwrapping() {
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
+    final SerdeFeatures result = SerdeFeaturesFactory.buildKeyFeatures(
         SINGLE_FIELD_SCHEMA,
-        JSON,
-        PROTOBUF,
-        SerdeOptions.of(),
-        ksqlConfig
+        JSON
     );
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS),
-        is(Optional.of(SerdeOption.UNWRAP_SINGLE_KEYS)));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES),
+        is(Optional.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
   public void shouldNotSetUnwrappedKeysIfKeyFormatsSupportsOnlyWrapping() {
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
+    final SerdeFeatures result = SerdeFeaturesFactory.buildKeyFeatures(
         SINGLE_FIELD_SCHEMA,
-        PROTOBUF,
-        PROTOBUF,
-        SerdeOptions.of(),
-        ksqlConfig
+        PROTOBUF
     );
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
   }
 
   @Test
   public void shouldNotSetUnwrappedKeysIfKeyFormatsSupportsOnlyUnwrapping() {
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
+    final SerdeFeatures result = SerdeFeaturesFactory.buildKeyFeatures(
         SINGLE_FIELD_SCHEMA,
-        KAFKA,
-        PROTOBUF,
-        SerdeOptions.of(),
-        ksqlConfig
+        KAFKA
     );
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
   }
 
   @Test
-  public void shouldNotSetUnwrappedKeysIfFormatSupportsBothButIsKeyLess() {
-    // Given:
-    final LogicalSchema keyLessSchema = LogicalSchema.builder()
-        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
-        .build();
-
+  public void shouldSetUnwrappedKeysIfInternalTopicHasKeyFormatSupportsBothWrappingAndUnwrapping() {
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
-        keyLessSchema,
-        KAFKA,
-        PROTOBUF,
-        SerdeOptions.of(),
-        ksqlConfig
-    );
+    final SerdeFeatures result = SerdeFeaturesFactory.buildInternal(JSON);
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES),
+        is(Optional.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
-  public void shouldNotSetUnwrappedKeysIfFormatSupportsBothButIsMultipleKeyColumns() {
-    // Given:
-    final LogicalSchema multiKeySchema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.BIGINT)
-        .keyColumn(ColumnName.of("k1"), SqlTypes.BIGINT)
-        .build();
-
+  public void shouldNotSetUnwrappedKeysIfInternalTopicHasKeyFormatsSupportsOnlyWrapping() {
     // When:
-    final SerdeOptions result = SerdeOptionsFactory.build(
-        multiKeySchema,
-        KAFKA,
-        PROTOBUF,
-        SerdeOptions.of(),
-        ksqlConfig
-    );
+    final SerdeFeatures result = SerdeFeaturesFactory.buildInternal(PROTOBUF);
 
     // Then:
-    assertThat(result.findAny(SerdeOptions.KEY_WRAPPING_OPTIONS), is(Optional.empty()));
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldNotSetUnwrappedKeysIInternalTopicHasfKeyFormatsSupportsOnlyUnwrapping() {
+    // When:
+    final SerdeFeatures result = SerdeFeaturesFactory.buildInternal(KAFKA);
+
+    // Then:
+    assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
   }
 }

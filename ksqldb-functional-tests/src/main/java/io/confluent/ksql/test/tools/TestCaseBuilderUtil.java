@@ -39,8 +39,8 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.SerdeOptionsFactory;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
@@ -146,31 +146,29 @@ public final class TestCaseBuilderUtil {
       final CreateSourceProperties props = statement.getProperties();
 
       final FormatInfo valueFormatInfo = SourcePropertiesUtil.getValueFormat(props);
-      final Format keyFormat = FormatFactory.of(SourcePropertiesUtil.getKeyFormat(props));
       final Format valueFormat = FormatFactory.of(valueFormatInfo);
 
       final Optional<ParsedSchema> valueSchema;
       if (valueFormat.supportsSchemaInference()) {
         final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
 
-        SerdeOptions serdeOptions;
+        SerdeFeatures valFeatures;
         try {
-          serdeOptions = SerdeOptionsFactory.build(
+          valFeatures = SerdeFeaturesFactory.buildValueFeatures(
               logicalSchema,
-              keyFormat,
               valueFormat,
-              props.getSerdeOptions(),
+              props.getValueSerdeFeatures(),
               ksqlConfig
           );
         } catch (final Exception e) {
           // Catch block allows negative tests to fail in the correct place, later.
-          serdeOptions = SerdeOptions.of();
+          valFeatures = SerdeFeatures.of();
         }
 
         valueSchema = logicalSchema.value().isEmpty()
             ? Optional.empty()
             : Optional.of(valueFormat.toParsedSchema(
-                PersistenceSchema.from(logicalSchema.value(), serdeOptions.valueFeatures()),
+                PersistenceSchema.from(logicalSchema.value(), valFeatures),
                 valueFormatInfo
             ));
       } else {

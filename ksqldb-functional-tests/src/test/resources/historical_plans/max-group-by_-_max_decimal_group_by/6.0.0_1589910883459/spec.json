@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/max-group-by.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 2)"
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)"
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)"
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)"
     }
   },
   "testCase" : {
@@ -196,24 +192,20 @@
         "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -221,9 +213,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -232,9 +222,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

@@ -5,11 +5,10 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "UNWRAP_SINGLES" ]
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER"
     }
   },
   "testCase" : {
@@ -53,35 +52,30 @@
         "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "AVRO",
+            "features": [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 1
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

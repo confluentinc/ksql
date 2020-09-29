@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`K` BIGINT KEY, `K` BIGINT, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` BIGINT KEY, `K` BIGINT, `VALUE` BIGINT"
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` BIGINT KEY, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` BIGINT KEY, `VALUE` BIGINT"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`K` BIGINT KEY, `K` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` BIGINT KEY, `K` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` BIGINT KEY, `MAX` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` BIGINT KEY, `MAX` BIGINT"
     }
   },
   "testCase" : {
@@ -75,8 +71,7 @@
         "schema" : "`K` BIGINT KEY, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
@@ -85,16 +80,13 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -103,9 +95,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 30.000000000
@@ -117,9 +107,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 30.000000000

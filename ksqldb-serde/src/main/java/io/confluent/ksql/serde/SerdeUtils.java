@@ -34,7 +34,7 @@ public final class SerdeUtils {
   }
 
   public static void throwOnUnsupportedFeatures(
-      final EnabledSerdeFeatures requestedFeatures,
+      final SerdeFeatures requestedFeatures,
       final Set<SerdeFeature> supportedFeatures
   ) {
     final Set<SerdeFeature> unsupported = Sets
@@ -55,7 +55,7 @@ public final class SerdeUtils {
    */
   public static ConnectSchema applySinglesUnwrapping(
       final Schema schema,
-      final EnabledSerdeFeatures features
+      final SerdeFeatures features
   ) {
     if (!features.enabled(SerdeFeature.UNWRAP_SINGLES)) {
       return (ConnectSchema) schema;

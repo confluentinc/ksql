@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -70,7 +71,6 @@ public class DdlCommandExec {
           sql,
           createStream.getSourceName(),
           createStream.getSchema(),
-          createStream.getFormats().getOptions(),
           createStream.getTimestampColumn(),
           withQuery,
           getKsqlTopic(createStream)
@@ -85,7 +85,6 @@ public class DdlCommandExec {
           sql,
           createTable.getSourceName(),
           createTable.getSchema(),
-          createTable.getFormats().getOptions(),
           createTable.getTimestampColumn(),
           withQuery,
           getKsqlTopic(createTable)
@@ -130,11 +129,13 @@ public class DdlCommandExec {
     }
   }
 
-  private static KsqlTopic getKsqlTopic(final CreateSourceCommand createSource) {
+  private static KsqlTopic getKsqlTopic(final CreateSourceCommand cs) {
+    final Formats formats = cs.getFormats();
+
     return new KsqlTopic(
-        createSource.getTopicName(),
-        KeyFormat.of(createSource.getFormats().getKeyFormat(), createSource.getWindowInfo()),
-        ValueFormat.of(createSource.getFormats().getValueFormat())
+        cs.getTopicName(),
+        KeyFormat.of(formats.getKeyFormat(), formats.getKeyFeatures(), cs.getWindowInfo()),
+        ValueFormat.of(formats.getValueFormat(), formats.getValueFeatures())
     );
   }
 }

@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/like.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` INTEGER, `VAL` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `VAL` STRING"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `ID` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` INTEGER"
     }
   },
   "testCase" : {
@@ -46,24 +44,20 @@
         "schema" : "`K` STRING KEY, `ID` INTEGER, `VAL` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -72,9 +66,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

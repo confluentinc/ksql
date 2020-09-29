@@ -75,12 +75,13 @@ public class PullQueryExecutorTest {
               SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of()));
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
           engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(),
-          engine.getEngine().getServiceId(), time);
+          engine.getEngine().getServiceId());
 
       // When:
       final Exception e = assertThrows(
           KsqlStatementException.class,
-          () -> pullQueryExecutor.execute(query, ImmutableMap.of(), engine.getServiceContext(), Optional.empty(), 0L)
+          () -> pullQueryExecutor.execute(
+              query, ImmutableMap.of(), engine.getServiceContext(), Optional.empty(),  Optional.empty())
       );
 
       // Then:
@@ -137,7 +138,7 @@ public class PullQueryExecutorTest {
     public void shouldRateLimit() {
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
           engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(),
-          engine.getEngine().getServiceId(), time);
+          engine.getEngine().getServiceId());
 
       // When:
       pullQueryExecutor.checkRateLimit();

@@ -5,11 +5,10 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`V` ARRAY<DOUBLE>",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "UNWRAP_SINGLES" ]
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`V` ARRAY<DOUBLE>",
-      "serdeOptions" : [ ]
+      "schema" : "`V` ARRAY<DOUBLE>"
     }
   },
   "testCase" : {
@@ -51,8 +50,7 @@
         "schema" : "`V` ARRAY<DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "INPUT",
         "type" : "STREAM",
@@ -60,26 +58,23 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

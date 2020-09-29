@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING"
     }
   },
   "testCase" : {
@@ -55,24 +53,20 @@
         "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -81,9 +75,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

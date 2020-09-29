@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
+import static io.confluent.ksql.serde.SerdeFeature.WRAP_SINGLES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -22,10 +24,7 @@ import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
-import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.ImmutableTester;
 import org.junit.Test;
 
@@ -40,7 +39,7 @@ public class PhysicalSchemaTest {
   @Test
   public void shouldNPE() {
     new NullPointerTester()
-        .setDefault(SerdeOptions.class, SerdeOptions.of())
+        .setDefault(SerdeFeatures.class, SerdeFeatures.of())
         .setDefault(LogicalSchema.class, SCHEMA)
         .testAllPublicStaticMethods(PhysicalSchema.class);
   }
@@ -57,14 +56,17 @@ public class PhysicalSchemaTest {
     final LogicalSchema diffSchema = LogicalSchema.builder().build();
     new EqualsTester()
         .addEqualityGroup(
-            PhysicalSchema.from(SCHEMA, SerdeOptions.of()),
-            PhysicalSchema.from(SCHEMA, SerdeOptions.of())
+            PhysicalSchema.from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
+            PhysicalSchema.from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of())
         )
         .addEqualityGroup(
-            PhysicalSchema.from(diffSchema, SerdeOptions.of())
+            PhysicalSchema.from(diffSchema, SerdeFeatures.of(), SerdeFeatures.of())
         )
         .addEqualityGroup(
-            PhysicalSchema.from(SCHEMA, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES))
+            PhysicalSchema.from(SCHEMA, SerdeFeatures.of(UNWRAP_SINGLES), SerdeFeatures.of())
+        )
+        .addEqualityGroup(
+            PhysicalSchema.from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of(WRAP_SINGLES))
         )
         .testEquals();
   }
@@ -73,12 +75,12 @@ public class PhysicalSchemaTest {
   public void shouldReturnKeySchema() {
     // When:
     final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_KEYS));
+        .from(SCHEMA, SerdeFeatures.of(UNWRAP_SINGLES), SerdeFeatures.of());
 
     // Then:
     assertThat(result.keySchema(), is(PersistenceSchema.from(
         SCHEMA.key(),
-        EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+        SerdeFeatures.of(UNWRAP_SINGLES)
     )));
   }
 
@@ -86,12 +88,12 @@ public class PhysicalSchemaTest {
   public void shouldReturnValueSchema() {
     // When:
     final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA, SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES));
+        .from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of(WRAP_SINGLES));
 
     // Then:
     assertThat(result.valueSchema(), is(PersistenceSchema.from(
         SCHEMA.value(),
-        EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES)
+        SerdeFeatures.of(WRAP_SINGLES)
     )));
   }
 }

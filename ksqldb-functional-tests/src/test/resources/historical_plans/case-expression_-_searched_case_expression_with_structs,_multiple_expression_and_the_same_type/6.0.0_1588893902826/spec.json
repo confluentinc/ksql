@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>"
     },
     "CSAS_S1_0.S1" : {
-      "schema" : "`ID` STRING KEY, `CASE_RESAULT` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `CASE_RESAULT` STRING"
     }
   },
   "testCase" : {
@@ -123,24 +121,20 @@
         "schema" : "`ID` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `CASE_RESAULT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "S1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -149,9 +143,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

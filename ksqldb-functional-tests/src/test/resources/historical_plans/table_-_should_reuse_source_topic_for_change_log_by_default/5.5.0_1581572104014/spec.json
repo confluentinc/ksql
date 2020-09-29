@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/table.json",
   "schemas" : {
     "CTAS_T1_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT"
     },
     "CTAS_T1_0.T1" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT"
     }
   },
   "testCase" : {
@@ -41,24 +39,20 @@
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "T1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "T1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -67,9 +61,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

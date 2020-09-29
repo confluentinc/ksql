@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/cube.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `COL1` INTEGER, `COL2` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COL1` INTEGER, `COL2` INTEGER"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `VAL` ARRAY<INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `VAL` ARRAY<INTEGER>"
     }
   },
   "testCase" : {
@@ -83,24 +81,20 @@
         "schema" : "`ID` STRING KEY, `VAL` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `COL1` INTEGER, `COL2` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -109,9 +103,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

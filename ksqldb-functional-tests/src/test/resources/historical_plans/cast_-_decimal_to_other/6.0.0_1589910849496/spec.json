@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
     "CSAS_OUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `VAL` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `VAL` DECIMAL(4, 2)"
     },
     "CSAS_OUT_0.OUT" : {
-      "schema" : "`ID` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `S` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `S` STRING"
     }
   },
   "testCase" : {
@@ -116,24 +114,20 @@
         "schema" : "`ID` STRING KEY, `VAL` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `S` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -142,9 +136,7 @@
         }, {
           "name" : "OUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

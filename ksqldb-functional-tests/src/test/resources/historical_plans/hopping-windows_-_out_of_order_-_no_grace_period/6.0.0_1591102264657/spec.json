@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT"
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT"
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
     }
   },
   "testCase" : {
@@ -226,8 +222,7 @@
         "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "S2",
         "type" : "TABLE",
@@ -236,16 +231,13 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "HOPPING",
               "size" : 30.000000000
@@ -257,9 +249,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -268,9 +258,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "HOPPING",
               "size" : 30.000000000

@@ -62,7 +62,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -121,7 +121,8 @@ public class StreamAggregateBuilderTest {
   );
   private static final PhysicalSchema PHYSICAL_AGGREGATE_SCHEMA = PhysicalSchema.from(
       AGGREGATE_SCHEMA,
-      SerdeOptions.of()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
@@ -238,7 +239,7 @@ public class StreamAggregateBuilderTest {
     aggregate = new StreamAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOptions.of()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         NON_AGG_COLUMNS,
         FUNCTIONS
     );
@@ -262,7 +263,7 @@ public class StreamAggregateBuilderTest {
     windowedAggregate = new StreamWindowedAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOptions.of()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
         new TumblingWindowExpression(
@@ -279,7 +280,7 @@ public class StreamAggregateBuilderTest {
     windowedAggregate = new StreamWindowedAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOptions.of()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
         new HoppingWindowExpression(
@@ -307,7 +308,7 @@ public class StreamAggregateBuilderTest {
     windowedAggregate = new StreamWindowedAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOptions.of()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         NON_AGG_COLUMNS,
         FUNCTIONS,
         new SessionWindowExpression(

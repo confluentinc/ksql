@@ -12,8 +12,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
@@ -51,7 +51,7 @@ public class AvroFormatTest {
     // Given:
     final PersistenceSchema schema = PersistenceSchema.from(
         ImmutableList.of(column("1AintRight")),
-        EnabledSerdeFeatures.of()
+        SerdeFeatures.of()
     );
 
     // When:
@@ -69,7 +69,7 @@ public class AvroFormatTest {
     // Given:
     final PersistenceSchema schema = PersistenceSchema.from(
         ImmutableList.of(column("2Bad")),
-        EnabledSerdeFeatures.of()
+        SerdeFeatures.of()
     );
 
     // When:

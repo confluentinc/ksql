@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/select.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` INTEGER KEY, `ROWTIME_COPY` BIGINT, `NAME_COPY` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `ROWTIME_COPY` BIGINT, `NAME_COPY` STRING"
     }
   },
   "testCase" : {
@@ -48,24 +46,20 @@
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID_COPY` INTEGER KEY, `ROWTIME_COPY` BIGINT, `NAME_COPY` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -74,9 +68,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

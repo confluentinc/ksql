@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
     "CSAS_TS_0.TS" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING"
     },
     "CSAS_TS_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING"
     }
   },
   "testCase" : {
@@ -35,24 +33,20 @@
         "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TS",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -61,9 +55,7 @@
         }, {
           "name" : "TS",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

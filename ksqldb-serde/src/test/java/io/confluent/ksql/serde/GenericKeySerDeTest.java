@@ -188,7 +188,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldNotThrowOnNoKeyColumns() {
     // Given:
-    schema = PersistenceSchema.from(ImmutableList.of(), EnabledSerdeFeatures.of());
+    schema = PersistenceSchema.from(ImmutableList.of(), SerdeFeatures.of());
 
     // When:
     factory
@@ -202,7 +202,7 @@ public class GenericKeySerDeTest {
     // Given:
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.STRING), column(SqlTypes.INTEGER)),
-        EnabledSerdeFeatures.of()
+        SerdeFeatures.of()
     );
 
     // When:
@@ -221,7 +221,7 @@ public class GenericKeySerDeTest {
     // Given:
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.array(SqlTypes.STRING))),
-        EnabledSerdeFeatures.of()
+        SerdeFeatures.of()
     );
 
     // When:
@@ -240,7 +240,7 @@ public class GenericKeySerDeTest {
     // Given:
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))),
-        EnabledSerdeFeatures.of()
+        SerdeFeatures.of()
     );
 
     // When:
@@ -259,7 +259,7 @@ public class GenericKeySerDeTest {
     // Given:
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.struct().field("F", SqlTypes.STRING).build())),
-        EnabledSerdeFeatures.of()
+        SerdeFeatures.of()
     );
 
     // When:

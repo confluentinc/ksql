@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_TEST2_0.TEST2" : {
-      "schema" : "`ID` STRING KEY, `RESULT` BOOLEAN",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `RESULT` BOOLEAN"
     },
     "CSAS_TEST2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)"
     }
   },
   "testCase" : {
@@ -136,24 +134,20 @@
         "schema" : "`ID` STRING KEY, `RESULT` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -162,9 +156,7 @@
         }, {
           "name" : "TEST2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

@@ -16,8 +16,7 @@
 package io.confluent.ksql.test.model;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.serde.SerdeOption;
-import java.util.Collections;
+import io.confluent.ksql.serde.SerdeFeature;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -28,21 +27,29 @@ public class SourceNodeTest {
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
-      Optional.of(ImmutableSet.of(SerdeOption.UNWRAP_SINGLE_VALUES))
+      Optional.of("JSON"),
+      Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES)),
+      Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES))
   );
-  static final SourceNode INSTANCE_WITHOUT_SERDE_OPTIONS = new SourceNode(
+
+  private static final SourceNode INSTANCE_WITHOUT_SERDE_FEATURES = new SourceNode(
       "bob",
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
+      Optional.empty(),
       Optional.empty()
   );
-  static final SourceNode INSTANCE_WITH_EMPTY_SERDE_OPTIONS = new SourceNode(
+
+  private static final SourceNode INSTANCE_WITH_EMPTY_SERDE_FEATURES = new SourceNode(
       "bob",
       "stream",
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
-      Optional.of(Collections.emptySet())
+      Optional.of("JSON"),
+      Optional.of(ImmutableSet.of()),
+      Optional.of(ImmutableSet.of())
   );
 
   @Test
@@ -51,12 +58,12 @@ public class SourceNodeTest {
   }
 
   @Test
-  public void shouldRoundTripWithoutSerdeOptions() {
-    ModelTester.assertRoundTrip(INSTANCE_WITHOUT_SERDE_OPTIONS);
+  public void shouldRoundTripWithoutSerdeFeatures() {
+    ModelTester.assertRoundTrip(INSTANCE_WITHOUT_SERDE_FEATURES);
   }
 
   @Test
-  public void shouldRoundTripWithEmptySerdeOptions() {
-    ModelTester.assertRoundTrip(INSTANCE_WITH_EMPTY_SERDE_OPTIONS);
+  public void shouldRoundTripWithEmptySerdeFeatures() {
+    ModelTester.assertRoundTrip(INSTANCE_WITH_EMPTY_SERDE_FEATURES);
   }
 }

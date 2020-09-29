@@ -247,7 +247,7 @@ ASSERT STREAM bar (id INT KEY, col1 VARCHAR) WITH (kafka_topic='BAR', value_form
 --@test: assert stream with wrong topic should fail
 
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: Expected serde options does not match actual for source BAR
+--@expected.message: Expected value serde features does not match actual for source BAR
 ----------------------------------------------------------------------------------------------------
 CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
 CREATE STREAM bar AS SELECT * FROM foo;

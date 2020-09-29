@@ -24,12 +24,12 @@ import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
@@ -217,7 +217,7 @@ public class SerdeBenchmark {
       final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
 
       final PersistenceSchema persistenceSchema = PersistenceSchema
-          .from(schema.key(), EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+          .from(schema.key(), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
       return new GenericKeySerDe().create(
           formatInfo,
@@ -239,7 +239,7 @@ public class SerdeBenchmark {
 
       return GenericRowSerDe.from(
           format,
-          PersistenceSchema.from(schema.value(), EnabledSerdeFeatures.of()),
+          PersistenceSchema.from(schema.value(), SerdeFeatures.of()),
           new KsqlConfig(Collections.emptyMap()),
           () -> srClient,
           "benchmark",

@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` INTEGER KEY, `ID` INTEGER, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` INTEGER KEY, `ID` INTEGER, `NAME` STRING"
     }
   },
   "testCase" : {
@@ -46,24 +44,20 @@
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` INTEGER KEY, `ID` INTEGER, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -72,9 +66,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -95,11 +95,25 @@
         "valueFormat" : {
           "$ref" : "#/definitions/FormatInfo"
         },
+        "keyFeatures" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string",
+            "enum" : [ "WRAP_SINGLES", "UNWRAP_SINGLES" ]
+          }
+        },
+        "valueFeatures" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string",
+            "enum" : [ "WRAP_SINGLES", "UNWRAP_SINGLES" ]
+          }
+        },
         "options" : {
           "type" : "array",
           "items" : {
             "type" : "string",
-            "enum" : [ "WRAP_SINGLE_VALUES", "UNWRAP_SINGLE_VALUES", "UNWRAP_SINGLE_KEYS" ]
+            "enum" : [ "WRAP_SINGLE_VALUES", "UNWRAP_SINGLE_VALUES" ]
           }
         }
       },

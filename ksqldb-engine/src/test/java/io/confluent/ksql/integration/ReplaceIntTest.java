@@ -32,7 +32,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TestDataProvider;
@@ -72,7 +72,7 @@ public class ReplaceIntTest {
   }
 
   @Test
-  public void shouldReplaceDDL() throws InterruptedException {
+  public void shouldReplaceDDL()  {
     // When:
     ksqlContext.sql(
         String.format(
@@ -148,7 +148,11 @@ public class ReplaceIntTest {
       final Map<String, GenericRow> expected
   ) {
     DataSource source = ksqlContext.getMetaStore().getSource(SourceName.of(sourceName));
-    PhysicalSchema resultSchema = PhysicalSchema.from(source.getSchema(), source.getSerdeOptions());
+    PhysicalSchema resultSchema = PhysicalSchema.from(
+        source.getSchema(),
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
+    );
 
     assertThat(
         TEST_HARNESS.verifyAvailableUniqueRows(topic, expected.size(), FormatFactory.JSON, resultSchema),
@@ -166,7 +170,11 @@ public class ReplaceIntTest {
         .build();
 
     public Provider(final String k, final String col1, final int col2) {
-      super("SOURCE", PhysicalSchema.from(LOGICAL_SCHEMA, SerdeOptions.of()), rows(k, col1, col2));
+      super(
+          "SOURCE",
+          PhysicalSchema.from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
+          rows(k, col1, col2)
+      );
     }
 
     private static Multimap<String, GenericRow> rows(

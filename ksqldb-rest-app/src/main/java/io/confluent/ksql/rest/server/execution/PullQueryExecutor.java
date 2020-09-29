@@ -111,7 +111,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
@@ -142,24 +141,19 @@ public final class PullQueryExecutor {
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
-  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
       final RoutingFilterFactory routingFilterFactory,
       final KsqlConfig ksqlConfig,
-      final String serviceId,
-      final Time time
+      final String serviceId
   ) {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
-    this.pullQueryMetrics = ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED)
-        ? Optional.of(new PullQueryExecutorMetrics(serviceId,
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS), time))
-        : Optional.empty();
+
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -177,7 +171,7 @@ public final class PullQueryExecutor {
       final Map<String, Object> requestProperties,
       final ServiceContext serviceContext,
       final Optional<Boolean> isInternalRequest,
-      final long startTimeNanos
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
@@ -249,8 +243,6 @@ public final class PullQueryExecutor {
           routingOptions
       );
 
-      pullQueryMetrics.ifPresent(metrics ->
-          metrics.recordLatency(startTimeNanos));
       return result;
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
@@ -268,10 +260,6 @@ public final class PullQueryExecutor {
       throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
           + rateLimiter.getRate() + " qps.");
     }
-  }
-
-  public void closeMetrics() {
-    pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
   }
 
   private PullQueryResult handlePullQuery(

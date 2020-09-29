@@ -383,6 +383,21 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}}
       ]
+    },
+    {
+      "name": "non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, 'key');"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"ID": 10}}
+      ]
     }
   ]
 }

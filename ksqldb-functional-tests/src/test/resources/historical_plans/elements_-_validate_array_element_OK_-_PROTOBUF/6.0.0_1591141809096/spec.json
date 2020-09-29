@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`V0` ARRAY<INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`V0` ARRAY<INTEGER>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`V0` ARRAY<INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`V0` ARRAY<INTEGER>"
     }
   },
   "testCase" : {
@@ -47,24 +45,20 @@
         "schema" : "`V0` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`V0` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -73,9 +67,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

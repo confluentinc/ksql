@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/explode.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>, `F1` BIGINT, `F2` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>, `F1` BIGINT, `F2` BIGINT"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `KSQL_COL_2` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `KSQL_COL_2` BIGINT"
     }
   },
   "testCase" : {
@@ -57,24 +55,20 @@
         "schema" : "`ID` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `KSQL_COL_2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>, `F1` BIGINT, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -83,9 +77,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -29,6 +29,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.TestFrameworkException;
@@ -192,7 +193,7 @@ public class TopicInfoCache {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Serializer<Object> getValueSerializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormat(), schema);
+          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
 
       final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient);
 
@@ -225,7 +226,7 @@ public class TopicInfoCache {
 
     public Deserializer<?> getValueDeserializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormat(), schema);
+          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
 
       final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient);
 

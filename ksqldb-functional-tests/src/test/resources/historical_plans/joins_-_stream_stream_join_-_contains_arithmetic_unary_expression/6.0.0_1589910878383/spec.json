@@ -4,24 +4,19 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING"
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`T_ID` INTEGER KEY, `T_NAME` STRING, `T_ROWTIME` BIGINT, `T_ID` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`T_ID` INTEGER KEY, `T_NAME` STRING, `T_ROWTIME` BIGINT, `T_ID` INTEGER"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`T_ID` INTEGER KEY, `T_NAME` STRING, `TT_NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`T_ID` INTEGER KEY, `T_NAME` STRING, `TT_NAME` STRING"
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING"
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`TT_KSQL_COL_0` INTEGER KEY, `TT_NAME` STRING, `TT_ROWTIME` BIGINT, `TT_ID` INTEGER, `TT_KSQL_COL_0` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`TT_KSQL_COL_0` INTEGER KEY, `TT_NAME` STRING, `TT_ROWTIME` BIGINT, `TT_ID` INTEGER, `TT_KSQL_COL_0` INTEGER"
     }
   },
   "testCase" : {
@@ -71,32 +66,27 @@
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`T_ID` INTEGER KEY, `T_NAME` STRING, `TT_NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000012-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -104,9 +94,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000013-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -114,9 +102,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -124,9 +110,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -135,9 +119,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -146,9 +128,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

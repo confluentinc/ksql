@@ -4,12 +4,11 @@
   "path" : "query-validation-tests/json.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`V` STRUCT<`A` DOUBLE>",
-      "serdeOptions" : [ ]
+      "schema" : "`V` STRUCT<`A` DOUBLE>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`V` STRUCT<`A` DOUBLE>",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "UNWRAP_SINGLES" ]
     }
   },
   "testCase" : {
@@ -56,23 +55,20 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
-      }, {
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
+    }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`V` STRUCT<`A` DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -81,12 +77,11 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

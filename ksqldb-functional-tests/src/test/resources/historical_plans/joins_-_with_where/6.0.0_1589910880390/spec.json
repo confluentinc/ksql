@@ -4,24 +4,19 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`USER` STRING KEY, `URL` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`USER` STRING KEY, `URL` STRING"
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`I_USER` STRING KEY, `I_IMPRESSION_ID` BIGINT, `I_URL` STRING, `I_ROWTIME` BIGINT, `I_USER` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`I_USER` STRING KEY, `I_IMPRESSION_ID` BIGINT, `I_URL` STRING, `I_ROWTIME` BIGINT, `I_USER` STRING"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING"
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING"
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`C_USER` STRING KEY, `C_URL` STRING, `C_ROWTIME` BIGINT, `C_USER` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`C_USER` STRING KEY, `C_URL` STRING, `C_ROWTIME` BIGINT, `C_USER` STRING"
     }
   },
   "testCase" : {
@@ -79,32 +74,27 @@
         "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "CLICKS",
         "type" : "STREAM",
         "schema" : "`USER` STRING KEY, `URL` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "IMPRESSIONS",
         "type" : "STREAM",
         "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -112,9 +102,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -122,9 +110,7 @@
         }, {
           "name" : "clicks",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -133,9 +119,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -144,9 +128,7 @@
         }, {
           "name" : "impressions",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `V0` INTEGER, `V1` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`KSQL_COL_0` STRING KEY, `V0` INTEGER, `V1` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER"
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`V0` INTEGER KEY, `V1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`V0` INTEGER KEY, `V1` INTEGER"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `V0` INTEGER, `V1` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`KSQL_COL_0` STRING KEY, `V0` INTEGER, `V1` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `SUM` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`KSQL_COL_0` STRING KEY, `SUM` INTEGER"
     }
   },
   "testCase" : {
@@ -131,24 +127,20 @@
         "schema" : "`KSQL_COL_0` STRING KEY, `SUM` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`V0` INTEGER KEY, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -157,9 +149,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -168,9 +158,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -179,9 +167,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

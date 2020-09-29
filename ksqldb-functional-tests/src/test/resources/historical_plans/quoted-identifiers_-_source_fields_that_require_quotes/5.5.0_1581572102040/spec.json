@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING"
     }
   },
   "testCase" : {
@@ -49,24 +47,20 @@
         "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING, `*bad!chars*` STRING, `SELECT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -75,9 +69,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

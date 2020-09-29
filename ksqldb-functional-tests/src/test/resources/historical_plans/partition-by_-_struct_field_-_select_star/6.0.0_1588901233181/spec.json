@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`TOWN` STRING KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER, `ID` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`TOWN` STRING KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER, `ID` INTEGER"
     }
   },
   "testCase" : {
@@ -54,24 +52,20 @@
         "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`TOWN` STRING KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -80,9 +74,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

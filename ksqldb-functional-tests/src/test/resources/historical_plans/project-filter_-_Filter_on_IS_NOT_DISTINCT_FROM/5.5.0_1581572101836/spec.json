@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER"
     },
     "CSAS_S1_0.S1" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER"
     }
   },
   "testCase" : {
@@ -65,24 +63,20 @@
         "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "S1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -91,9 +85,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

@@ -140,7 +140,7 @@ public class KeyFormatTest {
   }
 
   @Test
-  public void shouldHandleNoneWindowedFunctionsForNonWindowed() {
+  public void shouldHandleNonWindowedFunctionsForNonWindowed() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(JSON.name()), SerdeFeatures.of());
 

@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
@@ -28,12 +28,10 @@ import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
-
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import io.confluent.ksql.util.ReservedInternalTopics;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.Before;
 import org.junit.BeforeClass;

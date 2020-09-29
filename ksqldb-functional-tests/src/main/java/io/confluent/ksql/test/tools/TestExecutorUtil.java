@@ -49,6 +49,8 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -184,8 +186,12 @@ public final class TestExecutorUtil {
 
   private static Optional<ParsedSchema> getSchema(
       final DataSource dataSource,
-      final SchemaRegistryClient schemaRegistryClient) {
-    if (dataSource.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference()) {
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
+    final Format valueFormat = FormatFactory
+        .fromName(dataSource.getKsqlTopic().getValueFormat().getFormat());
+
+    if (valueFormat.supportsSchemaInference()) {
       try {
         final String subject =
             dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;

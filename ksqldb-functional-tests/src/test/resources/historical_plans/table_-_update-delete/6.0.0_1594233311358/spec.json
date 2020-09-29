@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/table.json",
   "schemas" : {
     "CTAS_T1_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER"
     },
     "CTAS_T1_0.T1" : {
-      "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` INTEGER"
     }
   },
   "testCase" : {
@@ -60,24 +58,20 @@
         "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "T1",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "T1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -86,9 +80,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-KsqlTopic-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -96,9 +88,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

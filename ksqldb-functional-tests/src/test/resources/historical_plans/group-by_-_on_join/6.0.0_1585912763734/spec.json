@@ -4,24 +4,19 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`T1_ROWKEY` BIGINT KEY, `T1_TOTAL` INTEGER, `T2_TOTAL` INTEGER, `T1_ROWKEY` BIGINT, `KSQL_INTERNAL_COL_3` INTEGER, `KSQL_INTERNAL_COL_4` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`T1_ROWKEY` BIGINT KEY, `T1_TOTAL` INTEGER, `T2_TOTAL` INTEGER, `T1_ROWKEY` BIGINT, `KSQL_INTERNAL_COL_3` INTEGER, `KSQL_INTERNAL_COL_4` INTEGER"
     },
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER"
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`T1_ROWKEY` BIGINT KEY, `T1_TOTAL` INTEGER, `T2_TOTAL` INTEGER, `T1_ROWKEY` BIGINT, `KSQL_AGG_VARIABLE_0` INTEGER, `KSQL_AGG_VARIABLE_1` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`T1_ROWKEY` BIGINT KEY, `T1_TOTAL` INTEGER, `T2_TOTAL` INTEGER, `T1_ROWKEY` BIGINT, `KSQL_AGG_VARIABLE_0` INTEGER, `KSQL_AGG_VARIABLE_1` BIGINT"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`T1_ROWKEY` BIGINT KEY, `SUM` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`T1_ROWKEY` BIGINT KEY, `SUM` INTEGER"
     }
   },
   "testCase" : {
@@ -159,32 +154,27 @@
         "schema" : "`ROWKEY` BIGINT KEY, `SUM` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "T1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "T2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `TOTAL` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "T1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -193,9 +183,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -203,9 +191,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -213,9 +199,7 @@
         }, {
           "name" : "T2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -224,9 +208,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

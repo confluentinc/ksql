@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` INTEGER KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` INTEGER KEY, `ID` BIGINT"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` INTEGER KEY, `ID` BIGINT, `KEY` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`K` INTEGER KEY, `ID` BIGINT, `KEY` INTEGER"
     }
   },
   "testCase" : {
@@ -72,24 +70,20 @@
         "schema" : "`K` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`K` INTEGER KEY, `ID` BIGINT, `KEY` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -98,9 +92,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

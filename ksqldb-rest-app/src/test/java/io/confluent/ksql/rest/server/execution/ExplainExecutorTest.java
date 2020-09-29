@@ -38,6 +38,7 @@ import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
@@ -187,7 +188,8 @@ public class ExplainExecutorTest {
     when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PERSISTENT);
 
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+    when(sinkTopic.getKeyFormat()).thenReturn(
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
     when(metadata.getResultTopic()).thenReturn(sinkTopic);
 
     return metadata;

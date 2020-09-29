@@ -4,24 +4,19 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `V` BIGINT"
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ID` INTEGER KEY, `S1_V` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `S1_V` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`S1_ID` INTEGER KEY, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_V` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_V` BIGINT, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`S1_ID` INTEGER KEY, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_V` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_V` BIGINT, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT"
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `V` BIGINT"
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ID` INTEGER KEY, `S2_V` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `S2_V` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT"
     }
   },
   "testCase" : {
@@ -151,8 +146,7 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 5000
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "S1",
         "type" : "STREAM",
@@ -161,8 +155,7 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 5000
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "S2",
         "type" : "STREAM",
@@ -171,16 +164,13 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 2000
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "HOPPING",
               "size" : 5.000000000
@@ -192,9 +182,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "HOPPING",
               "size" : 5.000000000
@@ -206,9 +194,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "HOPPING",
               "size" : 5.000000000
@@ -221,9 +207,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "HOPPING",
               "size" : 5.000000000
@@ -236,9 +220,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 2.000000000

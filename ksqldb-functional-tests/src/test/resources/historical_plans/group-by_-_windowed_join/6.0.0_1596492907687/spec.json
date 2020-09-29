@@ -4,28 +4,22 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_TEST_0.Join.Left" : {
-      "schema" : "`B_ID` STRING KEY, `B_ID` STRING, `B_ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`B_ID` STRING KEY, `B_ID` STRING, `B_ROWTIME` BIGINT"
     },
     "CTAS_TEST_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`A_ID` STRING KEY, `A_ID` STRING, `B_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`A_ID` STRING KEY, `A_ID` STRING, `B_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT"
     },
     "CTAS_TEST_0.TEST" : {
-      "schema" : "`A_ID` STRING KEY, `COUNT` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`A_ID` STRING KEY, `COUNT` BIGINT"
     },
     "CTAS_TEST_0.Aggregate.GroupBy" : {
-      "schema" : "`A_ID` STRING KEY, `A_ID` STRING, `B_ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`A_ID` STRING KEY, `A_ID` STRING, `B_ROWTIME` BIGINT"
     },
     "CTAS_TEST_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` STRING KEY, `REGIONID` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `REGIONID` STRING"
     },
     "CTAS_TEST_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING"
     }
   },
   "testCase" : {
@@ -107,16 +101,14 @@
         "schema" : "`ID` STRING KEY, `REGIONID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "B",
         "type" : "STREAM",
         "schema" : "`ID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "TABLE",
@@ -125,16 +117,13 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 60000
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 60.000000000
@@ -146,9 +135,7 @@
         }, {
           "name" : "a",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -157,9 +144,7 @@
         }, {
           "name" : "b",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -168,9 +153,7 @@
         }, {
           "name" : "TEST",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 60.000000000
@@ -183,9 +166,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 60.000000000
@@ -197,9 +178,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 60.000000000

@@ -4,12 +4,11 @@
   "path" : "query-validation-tests/avro.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `FOO` BOOLEAN",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `FOO` BOOLEAN"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`K` STRING KEY, `FOO` BOOLEAN",
-      "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "WRAP_SINGLES" ]
     }
   },
   "testCase" : {
@@ -86,24 +85,20 @@
         "schema" : "`K` STRING KEY, `FOO` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
+        }
       }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `FOO` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -112,12 +107,11 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "AVRO",
+            "features" : [ "WRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

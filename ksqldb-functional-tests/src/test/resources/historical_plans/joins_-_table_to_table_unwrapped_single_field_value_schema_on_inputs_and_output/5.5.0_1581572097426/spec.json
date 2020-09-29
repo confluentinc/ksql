@@ -5,15 +5,15 @@
   "schemas" : {
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "UNWRAP_SINGLES" ]
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "UNWRAP_SINGLES" ]
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "UNWRAP_SINGLES" ]
     }
   },
   "testCase" : {
@@ -76,57 +76,51 @@
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+        }
       }, {
         "name" : "T1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+        }
       }, {
         "name" : "T2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "T1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "JSON",
+            "features": [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         }, {
           "name" : "T2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "JSON",
+            "features": [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "JSON",
+            "features": [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

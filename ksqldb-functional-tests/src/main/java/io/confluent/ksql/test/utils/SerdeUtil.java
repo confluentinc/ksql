@@ -28,6 +28,7 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
@@ -111,7 +112,7 @@ public final class SerdeUtil {
       final LogicalSchema schema
   ) {
     final SerdeSupplier<T> inner = (SerdeSupplier<T>) getSerdeSupplier(
-        keyFormat.getFormat(),
+        FormatFactory.of(keyFormat.getFormatInfo()),
         schema
     );
 

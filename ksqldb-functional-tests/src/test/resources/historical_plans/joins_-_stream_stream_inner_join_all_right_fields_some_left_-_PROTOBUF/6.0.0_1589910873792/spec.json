@@ -4,24 +4,19 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_INNER_JOIN_0.INNER_JOIN" : {
-      "schema" : "`TT_ID` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`TT_ID` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `NAME` STRING"
     },
     "CSAS_INNER_JOIN_0.Join.Left" : {
-      "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `TT_VALUE` BIGINT, `TT_ROWTIME` BIGINT, `TT_ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `TT_VALUE` BIGINT, `TT_ROWTIME` BIGINT, `TT_ID` BIGINT"
     },
     "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT"
     },
     "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT"
     },
     "CSAS_INNER_JOIN_0.Join.Right" : {
-      "schema" : "`T_ID` BIGINT KEY, `T_F1` STRING, `T_F2` BIGINT, `T_ROWTIME` BIGINT, `T_ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`T_ID` BIGINT KEY, `T_F1` STRING, `T_F2` BIGINT, `T_ROWTIME` BIGINT, `T_ID` BIGINT"
     }
   },
   "testCase" : {
@@ -147,32 +142,27 @@
         "schema" : "`TT_ID` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST_STREAM",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -180,9 +170,7 @@
         }, {
           "name" : "INNER_JOIN",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -191,9 +179,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -201,9 +187,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -212,9 +196,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

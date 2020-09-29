@@ -40,7 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -138,7 +138,8 @@ public class JsonFormatTest {
 
     final PhysicalSchema schema = PhysicalSchema.from(
         messageSchema,
-        SerdeOptions.of()
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
     );
 
     TEST_HARNESS.produceRows(messageLogTopic, records.entrySet(), schema, JSON);
@@ -252,7 +253,8 @@ public class JsonFormatTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     return TEST_HARNESS

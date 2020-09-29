@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/array-min-max-sort.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>"
     }
   },
   "testCase" : {
@@ -121,24 +119,20 @@
         "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -147,9 +141,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

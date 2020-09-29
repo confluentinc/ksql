@@ -24,7 +24,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 
 public class ItemDataProvider extends TestDataProvider<String> {
 
@@ -34,7 +34,7 @@ public class ItemDataProvider extends TestDataProvider<String> {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOptions.of());
+      .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
   private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
       .<String, GenericRow>builder()

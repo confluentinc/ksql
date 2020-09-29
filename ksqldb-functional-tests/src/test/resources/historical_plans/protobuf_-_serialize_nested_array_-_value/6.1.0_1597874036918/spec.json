@@ -4,12 +4,11 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`FOO` ARRAY<BIGINT>",
-      "serdeOptions" : [ ]
+      "schema" : "`FOO` ARRAY<BIGINT>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` ARRAY<BIGINT>",
-      "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "WRAP_SINGLES" ]
     }
   },
   "testCase" : {
@@ -67,24 +66,20 @@
         "schema" : "`FOO` ARRAY<BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
+        }
       }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`FOO` ARRAY<BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -93,12 +88,11 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "PROTOBUF"
+            "format" : "PROTOBUF",
+            "features" : [ "WRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

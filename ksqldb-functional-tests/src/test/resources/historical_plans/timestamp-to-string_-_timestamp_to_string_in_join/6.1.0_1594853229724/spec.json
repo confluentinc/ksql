@@ -4,28 +4,22 @@
   "path" : "query-validation-tests/timestamp-to-string.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT"
     },
     "CTAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`P_KSQL_COL_0` STRING KEY, `P_WLAN_SA` ARRAY<STRING>, `P_ROWTIME` BIGINT, `P_K` STRING, `P_KSQL_COL_0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`P_KSQL_COL_0` STRING KEY, `P_WLAN_SA` ARRAY<STRING>, `P_ROWTIME` BIGINT, `P_K` STRING, `P_KSQL_COL_0` STRING"
     },
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>"
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING"
     }
   },
   "testCase" : {
@@ -74,32 +68,27 @@
         "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "DEVICES",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -107,9 +96,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -117,9 +104,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -127,9 +112,7 @@
         }, {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -138,9 +121,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -148,9 +129,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -159,9 +138,7 @@
         }, {
           "name" : "devices",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

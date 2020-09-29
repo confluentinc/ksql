@@ -42,8 +42,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -89,7 +89,7 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
-    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of()));
+    assertThat(properties.getValueSerdeFeatures(), is(SerdeFeatures.of()));
   }
 
   @Test
@@ -337,7 +337,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
+    assertThat(properties.getValueSerdeFeatures(), is(SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)));
   }
 
   @Test
@@ -363,7 +363,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.WRAP_SINGLE_VALUES)));
+    assertThat(properties.getValueSerdeFeatures(), is(SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)));
   }
 
   @Test
@@ -376,7 +376,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getSerdeOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(properties.getValueSerdeFeatures(), is(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test

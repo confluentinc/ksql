@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S3_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>"
     },
     "CSAS_S3_0.S3" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING"
     }
   },
   "testCase" : {
@@ -103,24 +101,20 @@
         "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "ARRAY_ARRAY",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -129,9 +123,7 @@
         }, {
           "name" : "S3",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

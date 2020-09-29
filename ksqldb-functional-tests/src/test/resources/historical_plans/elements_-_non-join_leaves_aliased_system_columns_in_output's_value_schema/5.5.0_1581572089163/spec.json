@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING"
     }
   },
   "testCase" : {
@@ -62,8 +60,7 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -71,16 +68,13 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -92,9 +86,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }

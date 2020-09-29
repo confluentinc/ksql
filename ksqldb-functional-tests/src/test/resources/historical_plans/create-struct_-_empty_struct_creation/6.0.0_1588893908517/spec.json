@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
     "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `COL1` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COL1` STRING"
     },
     "CSAS_BIG_STRUCT_0.BIG_STRUCT" : {
-      "schema" : "`ID` STRING KEY, `S` STRUCT< >",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `S` STRUCT< >"
     }
   },
   "testCase" : {
@@ -45,24 +43,20 @@
         "schema" : "`ID` STRING KEY, `COL1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "BIG_STRUCT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `S` STRUCT< >",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -71,9 +65,7 @@
         }, {
           "name" : "BIG_STRUCT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

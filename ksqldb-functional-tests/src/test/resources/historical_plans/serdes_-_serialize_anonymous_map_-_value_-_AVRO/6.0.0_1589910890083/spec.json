@@ -4,12 +4,11 @@
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "valueFeatures" : [ "UNWRAP_SINGLES" ]
     }
   },
   "testCase" : {
@@ -133,24 +132,20 @@
         "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -159,12 +154,11 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "AVRO",
+            "features": [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

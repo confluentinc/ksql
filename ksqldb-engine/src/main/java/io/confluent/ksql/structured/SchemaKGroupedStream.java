@@ -30,6 +30,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -106,6 +107,7 @@ public class SchemaKGroupedStream {
   private static KeyFormat getKeyFormat(final WindowExpression windowExpression) {
     return KeyFormat.windowed(
         FormatInfo.of(FormatFactory.KAFKA.name()),
+        SerdeFeatures.of(),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
   }

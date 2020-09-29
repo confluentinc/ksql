@@ -21,7 +21,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,7 +39,7 @@ import java.util.Objects;
 public final class PersistenceSchema {
 
   private final ImmutableList<SimpleColumn> columns;
-  private final EnabledSerdeFeatures features;
+  private final SerdeFeatures features;
 
   /**
    * Build a persistence schema from the logical key or value schema.
@@ -50,14 +50,14 @@ public final class PersistenceSchema {
    */
   public static PersistenceSchema from(
       final List<? extends SimpleColumn> columns,
-      final EnabledSerdeFeatures features
+      final SerdeFeatures features
   ) {
     return new PersistenceSchema(columns, features);
   }
 
   private PersistenceSchema(
       final List<? extends SimpleColumn> columns,
-      final EnabledSerdeFeatures features
+      final SerdeFeatures features
   ) {
     this.features = requireNonNull(features, "features");
     this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns"));
@@ -69,7 +69,7 @@ public final class PersistenceSchema {
     }
   }
 
-  public EnabledSerdeFeatures features() {
+  public SerdeFeatures features() {
     return features;
   }
 

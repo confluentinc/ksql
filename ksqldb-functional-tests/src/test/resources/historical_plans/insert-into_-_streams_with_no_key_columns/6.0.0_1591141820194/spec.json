@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "INSERTQUERY_1.OUTPUT" : {
-      "schema" : "`K` STRING, `DATA` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING, `DATA` STRING"
     },
     "INSERTQUERY_1.KsqlTopic.Source" : {
-      "schema" : "`K` STRING, `DATA` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING, `DATA` STRING"
     }
   },
   "testCase" : {
@@ -65,32 +63,27 @@
         "schema" : "`K` STRING, `DATA` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "SOURCE1",
         "type" : "STREAM",
         "schema" : "`K` STRING, `DATA` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "SOURCE2",
         "type" : "STREAM",
         "schema" : "`K` STRING, `DATA` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "stream-source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -99,9 +92,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -110,9 +101,7 @@
         }, {
           "name" : "insert-source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

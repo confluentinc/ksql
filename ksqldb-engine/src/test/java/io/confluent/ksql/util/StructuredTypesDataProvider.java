@@ -25,7 +25,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -69,7 +69,7 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOptions.of());
+      .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
   private static final ConnectSchema VALUE_CONNECT_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.value());
   private static final Schema STRUCT_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("STRUCT").schema();

@@ -25,7 +25,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -37,7 +36,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final boolean doCreateInto;
-  private final SerdeOptions serdeOptions;
   private final SourceName intoSourceName;
 
   public KsqlStructuredDataOutputNode(
@@ -48,12 +46,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlTopic ksqlTopic,
       final OptionalInt limit,
       final boolean doCreateInto,
-      final SerdeOptions serdeOptions,
       final SourceName intoSourceName
   ) {
     super(id, source, schema, limit, timestampColumn);
 
-    this.serdeOptions = requireNonNull(serdeOptions, "serdeOptions");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
@@ -67,10 +63,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
-  }
-
-  public SerdeOptions getSerdeOptions() {
-    return serdeOptions;
   }
 
   public SourceName getIntoSourceName() {
@@ -90,10 +82,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
 
     return schemaKStream.into(
-        getKsqlTopic().getKafkaTopicName(),
-        getKsqlTopic().getKeyFormat(),
-        getKsqlTopic().getValueFormat(),
-        serdeOptions,
+        ksqlTopic,
         contextStacker,
         getTimestampColumn()
     );

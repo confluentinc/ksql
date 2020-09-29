@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.physical;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.hasSerdeOptions;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.hasValueSerdeFeatures;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,7 +39,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -202,7 +202,7 @@ public class PhysicalPlanBuilderTest {
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
     assertThat(persistentQuery.getResultTopic().getValueFormat().getFormat(),
-        equalTo(FormatFactory.DELIMITED));
+        equalTo(FormatFactory.DELIMITED.name()));
   }
 
   @Test
@@ -336,7 +336,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST2")),
-        hasSerdeOptions(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+        hasValueSerdeFeatures(hasItem(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
@@ -351,7 +351,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST5")),
-        hasSerdeOptions(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
+        hasValueSerdeFeatures(hasItem(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
@@ -365,7 +365,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(engineMetastore.getSource(SourceName.of("TEST5")),
-        hasSerdeOptions(not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES))));
+        hasValueSerdeFeatures(not(hasItem(SerdeFeature.UNWRAP_SINGLES))));
   }
 
   @SuppressWarnings("SameParameterValue")

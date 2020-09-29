@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/as_value.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER"
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`I1_KSQL_COL_0` INTEGER KEY, `I1_V0` INTEGER, `I1_V1` INTEGER, `I1_ROWTIME` BIGINT, `I1_ID` INTEGER, `I1_KSQL_COL_0` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`I1_KSQL_COL_0` INTEGER KEY, `I1_V0` INTEGER, `I1_V1` INTEGER, `I1_ROWTIME` BIGINT, `I1_ID` INTEGER, `I1_KSQL_COL_0` INTEGER"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`I2_ID` INTEGER KEY, `I1_ID` INTEGER, `I1_V0` INTEGER, `I1_V1` INTEGER, `I2_V0` INTEGER, `I2_V1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`I2_ID` INTEGER KEY, `I1_ID` INTEGER, `I1_V0` INTEGER, `I1_V1` INTEGER, `I2_V0` INTEGER, `I2_V1` INTEGER"
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER"
     }
   },
   "testCase" : {
@@ -69,32 +65,27 @@
         "schema" : "`I2_ID` INTEGER KEY, `I1_ID` INTEGER, `I1_V0` INTEGER, `I1_V1` INTEGER, `I2_V0` INTEGER, `I2_V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "I1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "I2",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -102,9 +93,7 @@
         }, {
           "name" : "i2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -113,9 +102,7 @@
         }, {
           "name" : "i1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -124,9 +111,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -135,9 +120,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

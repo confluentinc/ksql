@@ -94,9 +94,8 @@ public class PostConditions {
 
     final String text = values.stream()
         .map(s -> s.getDataSourceType() + ":" + s.getName().text()
-            + ", value:" + s.getSchema()
-            + ", keyFormat:" + s.getKsqlTopic().getKeyFormat()
-            + ", serdeOptions: " + s.getSerdeOptions()
+            + ", schema:" + s.getSchema()
+            + ", topic:" + s.getKsqlTopic()
         )
         .collect(Collectors.joining(System.lineSeparator()));
 

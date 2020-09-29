@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
     "CSAS_OUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `COL0` INTEGER, `COL1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COL0` INTEGER, `COL1` INTEGER"
     },
     "CSAS_OUT_0.OUT" : {
-      "schema" : "`ID` STRING KEY, `VAL` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `VAL` STRING"
     }
   },
   "testCase" : {
@@ -62,24 +60,20 @@
         "schema" : "`ID` STRING KEY, `COL0` INTEGER, `COL1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `VAL` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -88,9 +82,7 @@
         }, {
           "name" : "OUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

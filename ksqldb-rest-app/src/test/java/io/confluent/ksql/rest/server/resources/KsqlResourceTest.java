@@ -149,7 +149,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -2012,7 +2012,7 @@ public class KsqlResourceTest {
     return new SourceInfo.Table(
         table.getName().toString(FormatOptions.noEscape()),
         table.getKsqlTopic().getKafkaTopicName(),
-        table.getKsqlTopic().getValueFormat().getFormat().name(),
+        table.getKsqlTopic().getValueFormat().getFormat(),
         table.getKsqlTopic().getKeyFormat().isWindowed()
     );
   }
@@ -2024,7 +2024,7 @@ public class KsqlResourceTest {
     return new SourceInfo.Stream(
         stream.getName().toString(FormatOptions.noEscape()),
         stream.getKsqlTopic().getKafkaTopicName(),
-        stream.getKsqlTopic().getValueFormat().getFormat().name()
+        stream.getKsqlTopic().getValueFormat().getFormat()
     );
   }
 
@@ -2338,8 +2338,8 @@ public class KsqlResourceTest {
   ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     givenKafkaTopicExists(topicName);
@@ -2349,7 +2349,6 @@ public class KsqlResourceTest {
               "statementText",
               SourceName.of(sourceName),
               schema,
-              SerdeOptions.of(),
               Optional.empty(),
               false,
               ksqlTopic
@@ -2361,7 +2360,6 @@ public class KsqlResourceTest {
               "statementText",
               SourceName.of(sourceName),
               schema,
-              SerdeOptions.of(),
               Optional.empty(),
               false,
               ksqlTopic

@@ -24,7 +24,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
@@ -44,7 +44,7 @@ public class KsqlDelimitedSerializerTest {
           .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
           .build().value(),
-      EnabledSerdeFeatures.of()
+      SerdeFeatures.of()
   );
 
   private static final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.withDelimiter(',');
@@ -236,7 +236,7 @@ public class KsqlDelimitedSerializerTest {
         LogicalSchema.builder()
             .valueColumn(ColumnName.of("id"), columnType)
             .build().value(),
-        EnabledSerdeFeatures.of()
+        SerdeFeatures.of()
     );
   }
 }

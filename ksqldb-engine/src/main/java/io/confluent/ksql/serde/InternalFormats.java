@@ -28,10 +28,10 @@ public final class InternalFormats {
   /**
    * Build formats for internal topics.
    *
-   * <p>Internal topics don't normally need any serde options set, as they use the format
+   * <p>Internal topics don't normally need any serde features set, as they use the format
    * defaults.  However, until ksqlDB supports wrapped single keys, any internal topic with a key
    * format that supports both wrapping and unwrapping needs to have an explicit {@link
-   * SerdeOption#UNWRAP_SINGLE_KEYS} set to ensure backwards compatibility is easily achievable once
+   * SerdeFeature#UNWRAP_SINGLES} set to ensure backwards compatibility is easily achievable once
    * wrapped keys are supported.
    * 
    * <p>Note: The unwrap feature should only be set when there is only a single key column. As
@@ -47,13 +47,14 @@ public final class InternalFormats {
    * @param valueFormat value format.
    * @return Formats instance.
    * @see <a href=https://github.com/confluentinc/ksql/issues/6296>Issue 6296</a>
-   * @see SerdeOptionsFactory#buildInternal 
+   * @see SerdeFeaturesFactory#buildInternal
    */
   public static Formats of(final KeyFormat keyFormat, final ValueFormat valueFormat) {
     return Formats.of(
-        keyFormat,
-        valueFormat,
-        SerdeOptionsFactory.buildInternal(keyFormat.getFormat())
+        keyFormat.getFormatInfo(),
+        valueFormat.getFormatInfo(),
+        SerdeFeaturesFactory.buildInternal(FormatFactory.of(keyFormat.getFormatInfo())),
+        SerdeFeatures.of()
     );
   }
 }

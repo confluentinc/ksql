@@ -29,8 +29,8 @@ import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -156,15 +156,15 @@ public final class CreateSourceProperties {
     return builder.build();
   }
 
-  public SerdeOptions getSerdeOptions() {
-    final ImmutableSet.Builder<SerdeOption> builder = ImmutableSet.builder();
+  public SerdeFeatures getValueSerdeFeatures() {
+    final ImmutableSet.Builder<SerdeFeature> builder = ImmutableSet.builder();
 
     final Boolean wrapping = props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE);
     if (wrapping != null) {
-      builder.add(wrapping ? SerdeOption.WRAP_SINGLE_VALUES : SerdeOption.UNWRAP_SINGLE_VALUES);
+      builder.add(wrapping ? SerdeFeature.WRAP_SINGLES : SerdeFeature.UNWRAP_SINGLES);
     }
 
-    return SerdeOptions.of(builder.build());
+    return SerdeFeatures.from(builder.build());
   }
 
   public CreateSourceProperties withSchemaId(final int id) {

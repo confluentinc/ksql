@@ -103,8 +103,8 @@ public class QueryAnalyzerFunctionalTest {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat().getFormat(),
-        is(FormatFactory.DELIMITED));
+    assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat().getFormat(),
+        is(FormatFactory.DELIMITED.name()));
   }
 
   private Query givenQuery(final String sql) {

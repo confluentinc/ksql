@@ -22,6 +22,7 @@ import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -46,7 +47,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -86,22 +87,19 @@ public class SchemaKStream<K> {
   }
 
   public SchemaKStream<K> into(
-      final String kafkaTopicName,
-      final KeyFormat keyFormat,
-      final ValueFormat valueFormat,
-      final SerdeOptions options,
+      final KsqlTopic topic,
       final QueryContext.Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
-    if (!this.keyFormat.getWindowInfo().equals(keyFormat.getWindowInfo())) {
+    if (!keyFormat.getWindowInfo().equals(topic.getKeyFormat().getWindowInfo())) {
       throw new IllegalArgumentException("Into can't change windowing");
     }
 
     final StreamSink<K> step = ExecutionStepFactory.streamSink(
         contextStacker,
-        Formats.of(keyFormat, valueFormat, options),
+        Formats.from(topic),
         sourceStep,
-        kafkaTopicName,
+        topic.getKafkaTopicName(),
         timestampColumn
     );
 
@@ -363,7 +361,8 @@ public class SchemaKStream<K> {
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
-    final KeyFormat rekeyedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
+    final KeyFormat rekeyedKeyFormat = KeyFormat
+        .nonWindowed(keyFormat.getFormatInfo(), SerdeFeatures.of());
 
     if (repartitionNotNeeded(groupByExpressions)) {
       return groupByKey(rekeyedKeyFormat, valueFormat, contextStacker);

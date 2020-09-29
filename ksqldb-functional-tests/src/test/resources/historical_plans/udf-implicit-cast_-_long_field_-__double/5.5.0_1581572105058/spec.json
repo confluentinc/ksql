@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/udf-implicit-cast.json",
   "schemas" : {
     "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE"
     },
     "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE, `LAT2` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE, `LAT2` BIGINT"
     }
   },
   "testCase" : {
@@ -49,24 +47,20 @@
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE, `LAT2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "DISTANCE_STREAM",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -75,9 +69,7 @@
         }, {
           "name" : "DISTANCE_STREAM",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

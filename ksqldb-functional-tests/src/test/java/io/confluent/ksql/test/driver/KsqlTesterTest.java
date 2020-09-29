@@ -139,6 +139,7 @@ public class KsqlTesterTest {
         .toArray(Object[][]::new);
   }
 
+  @SuppressWarnings("unused")
   public KsqlTesterTest(final String testCase, final Path file, final List<TestStatement> statements) {
     this.file = Objects.requireNonNull(file, "file");
     this.statements = statements;
@@ -342,7 +343,7 @@ public class KsqlTesterTest {
   private Serde<Struct> keySerde(final DataSource sinkSource) {
     final PersistenceSchema schema = PersistenceSchema.from(
         sinkSource.getSchema().key(),
-        sinkSource.getSerdeOptions().keyFeatures()
+        sinkSource.getKsqlTopic().getKeyFormat().getFeatures()
     );
 
     return new GenericKeySerDe().create(
@@ -360,7 +361,8 @@ public class KsqlTesterTest {
         sinkSource.getKsqlTopic().getValueFormat().getFormatInfo(),
         PersistenceSchema.from(
             sinkSource.getSchema().value(),
-            sinkSource.getSerdeOptions().valueFeatures()),
+            sinkSource.getKsqlTopic().getValueFormat().getFeatures()
+        ),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",

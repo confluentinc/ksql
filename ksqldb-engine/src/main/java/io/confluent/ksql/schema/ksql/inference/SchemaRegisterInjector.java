@@ -29,8 +29,8 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.SerdeOptionsFactory;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -77,17 +77,13 @@ public class SchemaRegisterInjector implements Injector {
 
     final LogicalSchema schema = cs.getStatement().getElements().toLogicalSchema();
 
-    final FormatInfo keyFormat = SourcePropertiesUtil
-        .getKeyFormat(cs.getStatement().getProperties());
-
     final FormatInfo valueFormat = SourcePropertiesUtil
         .getValueFormat(cs.getStatement().getProperties());
 
-    final SerdeOptions serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
+    final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
         schema,
-        FormatFactory.of(keyFormat),
         FormatFactory.of(valueFormat),
-        cs.getStatement().getProperties().getSerdeOptions(),
+        cs.getStatement().getProperties().getValueSerdeFeatures(),
         cs.getSessionConfig().getConfig(false)
     );
 
@@ -95,7 +91,7 @@ public class SchemaRegisterInjector implements Injector {
         schema,
         cs.getStatement().getProperties().getKafkaTopic(),
         valueFormat,
-        serdeOptions,
+        valFeatures,
         cs.getSessionConfig().getConfig(false),
         cs.getStatementText(),
         false
@@ -120,7 +116,7 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getLogicalSchema(),
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
-        queryMetadata.getPhysicalSchema().serdeOptions(),
+        queryMetadata.getPhysicalSchema().valueSchema().features(),
         cas.getSessionConfig().getConfig(false),
         cas.getStatementText(),
         true
@@ -131,7 +127,7 @@ public class SchemaRegisterInjector implements Injector {
       final LogicalSchema schema,
       final String topic,
       final FormatInfo formatInfo,
-      final SerdeOptions serdeOptions,
+      final SerdeFeatures valFeatures,
       final KsqlConfig config,
       final String statementText,
       final boolean registerIfSchemaExists
@@ -157,7 +153,7 @@ public class SchemaRegisterInjector implements Injector {
         final ParsedSchema parsedSchema = format.toParsedSchema(
             PersistenceSchema.from(
                 schema.withoutPseudoAndKeyColsInValue().value(),
-                serdeOptions.valueFeatures()
+                valFeatures
             ),
             formatInfo
         );

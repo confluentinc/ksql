@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
@@ -39,27 +41,28 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
-import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.SerdeOptionsFactory;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Objects;
 import java.util.Optional;
 
 public final class CreateSourceFactory {
 
   private final ServiceContext serviceContext;
-  private final SerdeOptionsSupplier serdeOptionsSupplier;
+  private final SerdeFeaturessSupplier keySerdeFeaturesSupplier;
+  private final SerdeFeaturessSupplier valueSerdeFeaturesSupplier;
   private final KeySerdeFactory keySerdeFactory;
   private final ValueSerdeFactory valueSerdeFactory;
 
   public CreateSourceFactory(final ServiceContext serviceContext) {
     this(
         serviceContext,
-        SerdeOptionsFactory::buildForCreateStatement,
+        (s, f, e, k) -> SerdeFeaturesFactory.buildKeyFeatures(s, f),
+        SerdeFeaturesFactory::buildValueFeatures,
         new GenericKeySerDe(),
         new GenericRowSerDe()
     );
@@ -68,15 +71,18 @@ public final class CreateSourceFactory {
   @VisibleForTesting
   CreateSourceFactory(
       final ServiceContext serviceContext,
-      final SerdeOptionsSupplier serdeOptionsSupplier,
+      final SerdeFeaturessSupplier keySerdeFeaturesSupplier,
+      final SerdeFeaturessSupplier valueSerdeFeaturesSupplier,
       final KeySerdeFactory keySerdeFactory,
       final ValueSerdeFactory valueSerdeFactory
   ) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.serdeOptionsSupplier =
-        Objects.requireNonNull(serdeOptionsSupplier, "serdeOptionsSupplier");
-    this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
-    this.valueSerdeFactory = Objects.requireNonNull(valueSerdeFactory, "valueSerdeFactory");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.keySerdeFeaturesSupplier =
+        requireNonNull(keySerdeFeaturesSupplier, "keySerdeFeaturesSupplier");
+    this.valueSerdeFeaturesSupplier =
+        requireNonNull(valueSerdeFeaturesSupplier, "valueSerdeFeaturesSupplier");
+    this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
   public CreateStreamCommand createStreamCommand(
@@ -90,25 +96,12 @@ public final class CreateSourceFactory {
     final Optional<TimestampColumn> timestampColumn =
         buildTimestampColumn(ksqlConfig, props, schema);
 
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
-    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
-
-    final SerdeOptions serdeOptions = serdeOptionsSupplier.build(
-        schema,
-        FormatFactory.of(keyFormat),
-        FormatFactory.of(valueFormat),
-        props.getSerdeOptions(),
-        ksqlConfig
-    );
-
-    validateSerdesCanHandleSchemas(ksqlConfig, schema, serdeOptions, keyFormat, valueFormat);
-
     return new CreateStreamCommand(
         sourceName,
         schema,
         timestampColumn,
         topicName,
-        Formats.of(keyFormat, valueFormat, serdeOptions),
+        buildFormats(schema, props, ksqlConfig),
         getWindowInfo(props),
         Optional.of(statement.isOrReplace())
     );
@@ -141,28 +134,42 @@ public final class CreateSourceFactory {
     final Optional<TimestampColumn> timestampColumn =
         buildTimestampColumn(ksqlConfig, props, schema);
 
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
-    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
-
-    final SerdeOptions serdeOptions = serdeOptionsSupplier.build(
-        schema,
-        FormatFactory.of(keyFormat),
-        FormatFactory.of(valueFormat),
-        props.getSerdeOptions(),
-        ksqlConfig
-    );
-
-    validateSerdesCanHandleSchemas(ksqlConfig, schema, serdeOptions, keyFormat, valueFormat);
-
     return new CreateTableCommand(
         sourceName,
         schema,
         timestampColumn,
         topicName,
-        Formats.of(keyFormat, valueFormat, serdeOptions),
+        buildFormats(schema, props, ksqlConfig),
         getWindowInfo(props),
         Optional.of(statement.isOrReplace())
     );
+  }
+
+  private Formats buildFormats(
+      final LogicalSchema schema,
+      final CreateSourceProperties props,
+      final KsqlConfig ksqlConfig
+  ) {
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
+    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
+
+    final SerdeFeatures keyFeatures = keySerdeFeaturesSupplier.build(
+        schema,
+        FormatFactory.of(keyFormat),
+        SerdeFeatures.of(),
+        ksqlConfig
+    );
+
+    final SerdeFeatures valFeatures = valueSerdeFeaturesSupplier.build(
+        schema,
+        FormatFactory.of(valueFormat),
+        props.getValueSerdeFeatures(),
+        ksqlConfig
+    );
+
+    final Formats formats = Formats.of(keyFormat, valueFormat, keyFeatures, valFeatures);
+    validateSerdesCanHandleSchemas(ksqlConfig, schema, formats);
+    return formats;
   }
 
   private static LogicalSchema buildSchema(final TableElements tableElements) {
@@ -212,14 +219,13 @@ public final class CreateSourceFactory {
   private void validateSerdesCanHandleSchemas(
       final KsqlConfig ksqlConfig,
       final LogicalSchema schema,
-      final SerdeOptions serdeOptions,
-      final FormatInfo keyFormat,
-      final FormatInfo valueFormat
+      final Formats formats
   ) {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, serdeOptions);
+    final PhysicalSchema physicalSchema = PhysicalSchema
+        .from(schema, formats.getKeyFeatures(), formats.getValueFeatures());
 
     keySerdeFactory.create(
-        keyFormat,
+        formats.getKeyFormat(),
         physicalSchema.keySchema(),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -228,7 +234,7 @@ public final class CreateSourceFactory {
     ).close();
 
     valueSerdeFactory.create(
-        valueFormat,
+        formats.getValueFormat(),
         physicalSchema.valueSchema(),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -238,13 +244,12 @@ public final class CreateSourceFactory {
   }
 
   @FunctionalInterface
-  interface SerdeOptionsSupplier {
+  interface SerdeFeaturessSupplier {
 
-    SerdeOptions build(
+    SerdeFeatures build(
         LogicalSchema schema,
-        Format keyFormat,
-        Format valueFormat,
-        SerdeOptions explicitOptions,
+        Format format,
+        SerdeFeatures explicitFeatures,
         KsqlConfig ksqlConfig
     );
   }

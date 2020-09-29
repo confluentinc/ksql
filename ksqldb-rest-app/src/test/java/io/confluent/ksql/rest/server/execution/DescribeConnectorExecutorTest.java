@@ -50,6 +50,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
@@ -129,8 +130,8 @@ public class DescribeConnectorExecutorTest {
     when(source.getKsqlTopic()).thenReturn(
         new KsqlTopic(
             TOPIC,
-            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.AVRO.name())),
-            ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
+            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of()),
+            ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
         )
     );
     when(source.getSchema()).thenReturn(

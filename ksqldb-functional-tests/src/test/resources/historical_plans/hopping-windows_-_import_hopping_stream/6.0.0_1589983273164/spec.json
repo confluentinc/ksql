@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
     "CSAS_S2_0.S2" : {
-      "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
     },
     "CSAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
     }
   },
   "testCase" : {
@@ -155,8 +153,7 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "S2",
         "type" : "STREAM",
@@ -165,16 +162,13 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "HOPPING",
               "size" : 30.000000000
@@ -187,9 +181,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "HOPPING",
               "size" : 30.000000000

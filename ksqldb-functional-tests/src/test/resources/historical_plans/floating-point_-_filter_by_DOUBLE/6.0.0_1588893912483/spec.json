@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/floating-point.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` DOUBLE KEY, `ID` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`K` DOUBLE KEY, `ID` INTEGER"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` DOUBLE KEY, `ID` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`K` DOUBLE KEY, `ID` INTEGER"
     }
   },
   "testCase" : {
@@ -81,24 +79,20 @@
         "schema" : "`K` DOUBLE KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` DOUBLE KEY, `ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -107,9 +101,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

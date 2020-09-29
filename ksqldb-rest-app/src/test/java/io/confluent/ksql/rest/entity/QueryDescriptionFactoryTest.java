@@ -40,7 +40,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
@@ -120,7 +120,8 @@ public class QueryDescriptionFactoryTest {
     when(topology.describe()).thenReturn(topologyDescription);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(queryStreams);
 
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+    when(sinkTopic.getKeyFormat()).thenReturn(
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
     when(sinkDataSource.getKsqlTopic()).thenReturn(sinkTopic);
     when(sinkDataSource.getName()).thenReturn(SourceName.of("sink name"));
 
@@ -143,7 +144,7 @@ public class QueryDescriptionFactoryTest {
 
     persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
-        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeOptions.of()),
+        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
         sinkDataSource,
         "execution plan",

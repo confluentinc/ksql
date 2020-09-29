@@ -25,7 +25,7 @@ import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
@@ -66,13 +66,15 @@ public final class TableSuppressBuilder {
       final TableSuppress<K> step,
       final KsqlQueryBuilder queryBuilder,
       final KeySerdeFactory keySerdeFactory,
-      final BiFunction<LogicalSchema, SerdeOptions, PhysicalSchema> physicalSchemaFactory,
+      final PhysicalSchemaFactory physicalSchemaFactory,
       final BiFunction<Serde<K>, Serde<GenericRow>, Materialized> materializedFactory
   ) {
-    final PhysicalSchema physicalSchema = physicalSchemaFactory.apply(
+    final PhysicalSchema physicalSchema = physicalSchemaFactory.create(
         table.getSchema(),
-        step.getInternalFormats().getOptions()
+        step.getInternalFormats().getKeyFeatures(),
+        step.getInternalFormats().getValueFeatures()
     );
+
     final QueryContext queryContext = QueryContext.Stacker.of(
         step.getProperties().getQueryContext())
         .push(SUPPRESS_OP_NAME).getQueryContext();
@@ -121,5 +123,14 @@ public final class TableSuppressBuilder {
             suppressed,
             table.getSchema()
         );
+  }
+
+  interface PhysicalSchemaFactory {
+
+    PhysicalSchema create(
+        LogicalSchema schema,
+        SerdeFeatures keyFeatures,
+        SerdeFeatures valueFeatures
+    );
   }
 }

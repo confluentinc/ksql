@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
     "CTAS_RUSSELL_3K_HOURLY_0.RUSSELL_3K_HOURLY" : {
-      "schema" : "`TICKERID` STRING KEY, `TRADECOUNT` BIGINT, `TRADEVOLUMN` INTEGER, `MINBUYPRICE` INTEGER, `MAXBUYPRICE` INTEGER, `MINSELLPRICE` INTEGER, `MAXSELLPRICE` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`TICKERID` STRING KEY, `TRADECOUNT` BIGINT, `TRADEVOLUMN` INTEGER, `MINBUYPRICE` INTEGER, `MAXBUYPRICE` INTEGER, `MINSELLPRICE` INTEGER, `MAXSELLPRICE` INTEGER"
     },
     "CTAS_RUSSELL_3K_HOURLY_0.Aggregate.GroupBy" : {
-      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_INTERNAL_COL_5` INTEGER, `KSQL_INTERNAL_COL_6` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_INTERNAL_COL_5` INTEGER, `KSQL_INTERNAL_COL_6` INTEGER"
     },
     "CTAS_RUSSELL_3K_HOURLY_0.KsqlTopic.Source" : {
-      "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN",
-      "serdeOptions" : [ ]
+      "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN"
     },
     "CTAS_RUSSELL_3K_HOURLY_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` INTEGER, `KSQL_AGG_VARIABLE_2` INTEGER, `KSQL_AGG_VARIABLE_3` INTEGER, `KSQL_AGG_VARIABLE_4` INTEGER, `KSQL_AGG_VARIABLE_5` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` INTEGER, `KSQL_AGG_VARIABLE_2` INTEGER, `KSQL_AGG_VARIABLE_3` INTEGER, `KSQL_AGG_VARIABLE_4` INTEGER, `KSQL_AGG_VARIABLE_5` INTEGER"
     }
   },
   "testCase" : {
@@ -91,8 +87,7 @@
         "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "RUSSELL_3K_HOURLY",
         "type" : "TABLE",
@@ -101,16 +96,13 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 3600000
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -119,9 +111,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_RUSSELL_3K_HOURLY_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 3600.000000000
@@ -133,9 +123,7 @@
         }, {
           "name" : "RUSSELL_3K_HOURLY",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 3600.000000000

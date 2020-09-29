@@ -173,7 +173,9 @@ public class EndToEndIntegrationTest {
   public void shouldSelectAllFromUsers() throws Exception {
     final TransientQueryMetadata queryMetadata = executeStatement("SELECT * from %s EMIT CHANGES;", USER_TABLE);
 
-    final Set<?> expectedUsers = USER_DATA_PROVIDER.data().keySet();
+    final Set<String> expectedUsers = USER_DATA_PROVIDER.data().keySet().stream()
+        .map(s -> s.getString(USER_DATA_PROVIDER.key()))
+        .collect(Collectors.toSet());
 
     final List<GenericRow> rows = verifyAvailableRows(queryMetadata, expectedUsers.size());
 

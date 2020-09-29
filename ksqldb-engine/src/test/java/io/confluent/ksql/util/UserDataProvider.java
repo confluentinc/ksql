@@ -57,7 +57,7 @@ public class UserDataProvider extends TestDataProvider {
   }
 
   public String getStringKey(final int position) {
-    return Iterables.get(data().keySet(), position).getString("USERID");
+    return Iterables.get(data().keySet(), position).getString(key());
   }
 
   private static Struct buildKey(final String key) {

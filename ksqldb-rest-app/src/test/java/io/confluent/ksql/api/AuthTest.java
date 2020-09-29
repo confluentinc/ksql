@@ -133,7 +133,8 @@ public class AuthTest extends ApiTest {
           }
         },
         Optional.ofNullable(securityHandlerPlugin),
-        serverState);
+        serverState,
+        Optional.empty());
     server.start();
   }
 

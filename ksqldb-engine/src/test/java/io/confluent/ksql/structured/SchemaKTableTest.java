@@ -463,7 +463,7 @@ public class SchemaKTableTest {
                 Formats.of(
                     initialSchemaKTable.keyFormat.getFormatInfo(),
                     valueFormat.getFormatInfo(),
-                    SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+                    SerdeFeatures.of(),
                     SerdeFeatures.of()
                 ),
                 groupByExpressions

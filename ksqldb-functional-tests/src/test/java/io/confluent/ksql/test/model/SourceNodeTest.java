@@ -15,19 +15,12 @@
 
 package io.confluent.ksql.test.model;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.test.tools.TestJsonMapper;
 import java.util.Optional;
 import org.junit.Test;
 
 public class SourceNodeTest {
-
-  private static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   static final SourceNode INSTANCE = new SourceNode(
       "bob",
@@ -72,30 +65,5 @@ public class SourceNodeTest {
   @Test
   public void shouldRoundTripWithEmptySerdeFeatures() {
     ModelTester.assertRoundTrip(INSTANCE_WITH_EMPTY_SERDE_FEATURES);
-  }
-
-  @Test
-  public void shouldReadLegacy() throws Exception {
-    // Given:
-    final String legacy = "{"
-        + "\"name\": \"OUTPUT\", "
-        + "\"type\": \"stream\", "
-        + "\"schema\": \"ROWKEY INT KEY, `C1` INT\","
-        + "\"serdeOptions\": [\"UNWRAP_SINGLE_VALUES\"]"
-        + "}";
-
-    // When:
-    final Object deserialized = OBJECT_MAPPER.readValue(legacy, SourceNode.class);
-
-    // Then:
-    assertThat(deserialized, is(new SourceNode(
-        "OUTPUT",
-        "stream",
-        Optional.of("ROWKEY INT KEY, `C1` INT"),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES))
-    )));
   }
 }

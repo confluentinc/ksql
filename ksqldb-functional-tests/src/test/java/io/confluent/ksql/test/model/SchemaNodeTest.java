@@ -15,18 +15,11 @@
 
 package io.confluent.ksql.test.model;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.test.tools.TestJsonMapper;
 import org.junit.Test;
 
 public class SchemaNodeTest {
-
-  private static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   private static final SchemaNode INSTANCE = new SchemaNode(
     "Some Logical Schema",
@@ -48,24 +41,5 @@ public class SchemaNodeTest {
   @Test
   public void shouldRoundTripWithoutFeatures() {
     ModelTester.assertRoundTrip(NO_SERDE_FEATURES);
-  }
-
-  @Test
-  public void shouldReadLegacy() throws Exception {
-    // Given:
-    final String legacy = "{\n"
-        + " \"schema\" : \"Some Schema\",\n"
-        + " \"serdeOptions\" : [\"UNWRAP_SINGLE_VALUES\"]\n"
-        + "}";
-
-    // When:
-    final Object deserialized = OBJECT_MAPPER.readValue(legacy, SchemaNode.class);
-
-    // Then:
-    assertThat(deserialized, is(new SchemaNode(
-        "Some Schema",
-        ImmutableSet.of(),
-        ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES)
-    )));
   }
 }

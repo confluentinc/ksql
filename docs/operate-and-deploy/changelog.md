@@ -9,6 +9,7 @@ keywords: ksqldb, changelog
 Version 0.12.0
 --------------
 
+- [ksqlDB 0.12.0 Introduces Real-Time Query Upgrades and Automatic Query Restarts](https://www.confluent.io/blog/ksqldb-0-12-0-features-updates/)
 - [ksqlDB v0.12.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0120-2020-08-26)
 
 Version 0.11.0

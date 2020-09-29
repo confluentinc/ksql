@@ -104,9 +104,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
 
-  private static final KsqlConfig KSQL_CONFIG = KsqlConfigTestUtil.create(
-      "what-eva",
-      ImmutableMap.of(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true));
+  private static final KsqlConfig KSQL_CONFIG = KsqlConfigTestUtil.create("what-eva");
 
   private MutableMetaStore metaStore;
   @Spy

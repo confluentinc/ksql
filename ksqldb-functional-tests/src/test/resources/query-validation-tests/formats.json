@@ -11,24 +11,13 @@
       }
     },
     {
-      "name": "missing value format",
-      "statements": [
-        "CREATE STREAM TEST WITH (kafka_topic='test_topic');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "Failed to prepare statement: Missing required property \"VALUE_FORMAT\" which has no default value."
-      }
-    },
-    {
       "name": "explicit key and optional value format",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "properties": {
-        "ksql.persistence.default.format.value": "JSON",
-        "ksql.key.format.enabled": true
+        "ksql.persistence.default.format.value": "JSON"
       },
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": 10}}
@@ -60,8 +49,7 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "properties": {
-        "ksql.persistence.default.format.value": "JSON",
-        "ksql.key.format.enabled": true
+        "ksql.persistence.default.format.value": "JSON"
       },
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": 10}}
@@ -87,13 +75,20 @@
       }
     },
     {
+      "name": "missing value format",
+      "statements": [
+        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Statement is missing the 'VALUE_FORMAT' property from the WITH clause. Either provide one or set a default via the 'ksql.persistence.default.format.value' config."
+      }
+    },
+    {
       "name": "unsupported key format - create source",
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='AVRO');"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The key format 'AVRO' is not currently supported."
@@ -104,9 +99,6 @@
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='FOO');"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Unknown format: FOO"
@@ -151,7 +143,6 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "properties": {
-        "ksql.key.format.enabled": true,
         "ksql.persistence.default.format.value": "KAFKA"
       },
       "inputs": [
@@ -210,9 +201,6 @@
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The key format 'DELIMITED' is not currently supported."
@@ -223,9 +211,6 @@
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', format='FOO');"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Unknown format: FOO"
@@ -237,8 +222,7 @@
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', key_format='KAFKA', format='KAFKA');"
       ],
       "properties": {
-        "ksql.persistence.default.format.value": "JSON",
-        "ksql.key.format.enabled": true
+        "ksql.persistence.default.format.value": "JSON"
       },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -250,9 +234,6 @@
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='JSON', format='KAFKA');"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties, as 'FORMAT' sets both key and value formats. Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."

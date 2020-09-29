@@ -24,8 +24,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,9 +44,10 @@ public class KsqlDelimitedSerializerTest {
           .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
           .build().value(),
-      EnabledSerdeFeatures.of()
+      SerdeFeatures.of()
   );
-  protected static final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.withDelimiter(',');
+
+  private static final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.withDelimiter(',');
 
   private KsqlDelimitedSerializer serializer;
 
@@ -113,7 +115,8 @@ public class KsqlDelimitedSerializerTest {
     // Given:
     givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
 
-    final List<?> values = Collections.singletonList(BigDecimal.ZERO);
+    final List<?> values = Collections
+        .singletonList(BigDecimal.ZERO.setScale(2, RoundingMode.UNNECESSARY));
 
     // When:
     final byte[] bytes = serializer.serialize("", values);
@@ -127,7 +130,7 @@ public class KsqlDelimitedSerializerTest {
     // Given:
     givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
 
-    final List<?> values = Collections.singletonList(new BigDecimal("0.5"));
+    final List<?> values = Collections.singletonList(new BigDecimal("0.50"));
 
     // When:
     final byte[] bytes = serializer.serialize("", values);
@@ -141,7 +144,7 @@ public class KsqlDelimitedSerializerTest {
     // Given:
     givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
 
-    final List<?> values = Collections.singletonList(new BigDecimal("-0.5"));
+    final List<?> values = Collections.singletonList(new BigDecimal("-0.50"));
 
     // When:
     final byte[] bytes = serializer.serialize("", values);
@@ -151,21 +154,64 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
-  public void shouldSerializeNegativeDecimalWithPaddedZeros() {
+  public void shouldSerializeNegativeDecimalWithAsStringWithPaddedZeros() {
     // Given:
-    givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 3));
 
-    final List<?> values = Collections.singletonList(new BigDecimal("-1.12"));
+    final List<?> values = Collections.singletonList(new BigDecimal("-1.120"));
 
     // When:
     final byte[] bytes = serializer.serialize("", values);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-1.12\""));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-1.120\""));
+  }
+
+  @Test
+  public void shouldSerializeLargeDecimalWithoutThousandSeparator() {
+    // Given:
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
+
+    final List<?> values = Collections.singletonList(new BigDecimal("1234567890.00"));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", values);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1234567890.00"));
+  }
+
+  @Test
+  public void shouldSerializeReallyLargeDecimalWithoutScientificNotation() {
+    // Given:
+    givenSingleColumnSerializer(SqlTypes.decimal(10, 3));
+
+    final List<?> values = Collections.singletonList(new BigDecimal("10000000000.000"));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", values);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("10000000000.000"));
   }
 
   @Test
   public void shouldSerializeRowCorrectlyWithDifferentDelimiter() {
+    // Given:
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
+
+    final KsqlDelimitedSerializer serializer1 =
+        new KsqlDelimitedSerializer(SCHEMA, CSVFormat.DEFAULT.withDelimiter('\t'));
+
+    // When:
+    final byte[] bytes = serializer1.serialize("t1", values);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1511897796092\t1\titem_1\t10.0"));
+  }
+
+  @Test
+  public void shouldThrowOnArrayField() {
     // Given:
     final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
 
@@ -190,7 +236,7 @@ public class KsqlDelimitedSerializerTest {
         LogicalSchema.builder()
             .valueColumn(ColumnName.of("id"), columnType)
             .build().value(),
-        EnabledSerdeFeatures.of()
+        SerdeFeatures.of()
     );
   }
 }

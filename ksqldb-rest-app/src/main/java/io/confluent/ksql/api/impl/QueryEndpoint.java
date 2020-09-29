@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -52,12 +53,18 @@ public class QueryEndpoint {
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final PullQueryExecutor pullQueryExecutor;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
-  public QueryEndpoint(final KsqlEngine ksqlEngine, final KsqlConfig ksqlConfig,
-      final PullQueryExecutor pullQueryExecutor) {
+  public QueryEndpoint(
+      final KsqlEngine ksqlEngine,
+      final KsqlConfig ksqlConfig,
+      final PullQueryExecutor pullQueryExecutor,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+  ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
     this.pullQueryExecutor = pullQueryExecutor;
+    this.pullQueryMetrics = pullQueryMetrics;
   }
 
   public QueryPublisher createQueryPublisher(
@@ -72,7 +79,8 @@ public class QueryEndpoint {
     final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
 
     if (statement.getStatement().isPullQuery()) {
-      return createPullQueryPublisher(context, serviceContext, statement, startTimeNanos);
+      return createPullQueryPublisher(
+          context, serviceContext, statement, pullQueryMetrics, startTimeNanos);
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
@@ -97,10 +105,12 @@ public class QueryEndpoint {
       final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos
   ) {
     final PullQueryResult result = pullQueryExecutor.execute(
-        statement, ImmutableMap.of(), serviceContext, Optional.of(false), startTimeNanos);
+        statement, ImmutableMap.of(), serviceContext, Optional.of(false), pullQueryMetrics);
+    pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
     final TableRows tableRows = result.getTableRows();
 
     return new PullQueryPublisher(

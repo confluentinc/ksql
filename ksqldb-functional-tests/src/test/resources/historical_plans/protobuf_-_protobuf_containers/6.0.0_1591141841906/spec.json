@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>"
     }
   },
   "testCase" : {
@@ -53,24 +51,20 @@
         "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -79,9 +73,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

@@ -128,7 +128,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectInputFormat() throws Exception {
+  public void shouldFailWithIncorrectInputFormat() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
@@ -146,7 +146,7 @@ public class KsqlTestingToolTest {
 
 
   @Test
-  public void shouldFailWithOutputFileMissingField() throws Exception {
+  public void shouldFailWithOutputFileMissingField() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
@@ -163,7 +163,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithEmptyInput() throws Exception {
+  public void shouldFailWithEmptyInput() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
@@ -180,7 +180,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithEmptyOutput() throws Exception {
+  public void shouldFailWithEmptyOutput() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
@@ -200,14 +200,28 @@ public class KsqlTestingToolTest {
   public void shouldPropagateInsertValuesExecutorError() throws Exception {
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test6/statements.sql",
+        "src/test/resources/test-runner/incorrect/insert_values/statements.sql",
         null,
-        "src/test/resources/test-runner/incorrect-test6/output.json",
+        "src/test/resources/test-runner/incorrect/insert_values/output.json",
         Optional.empty());
 
     // Then:
     assertThat(errContent.toString(UTF_8),
         containsString("Test failed: Failed to insert values into 'TEST'."));
+  }
+
+  @Test
+  public void shouldReportMetaFailureIfAStatementOtherThanTheLastStatementFails() throws Exception {
+    // When:
+    KsqlTestingTool.runWithTripleFiles(
+        "src/test/resources/test-runner/incorrect/second_of_three_stmts_fails/statements.sql",
+        null,
+        "src/test/resources/test-runner/incorrect/second_of_three_stmts_fails/output.json",
+        Optional.empty());
+
+    // Then:
+    assertThat(errContent.toString(UTF_8),
+        containsString("Test failed: Only the last statement in a negative test should fail. Yet in this case statement 2 failed."));
   }
 
   @Test

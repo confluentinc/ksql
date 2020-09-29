@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -118,8 +117,10 @@ public class JoinIntTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
+
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
         "ITEM_1",
         genericRow("ORDER_1", 10.0, "home cinema")
@@ -176,7 +177,8 @@ public class JoinIntTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(
@@ -249,7 +251,8 @@ public class JoinIntTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final Map<String, GenericRow> expectedResults = ImmutableMap.of(

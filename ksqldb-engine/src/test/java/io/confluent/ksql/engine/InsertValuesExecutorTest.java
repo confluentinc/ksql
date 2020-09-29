@@ -61,13 +61,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
@@ -177,7 +176,7 @@ public class InsertValuesExecutorTest {
     when(serviceContext.getKafkaClientSupplier()).thenReturn(kafkaClientSupplier);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
-    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(valueSerde);
@@ -214,7 +213,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldInsertWrappedSingleField() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         valueColumnNames(SINGLE_VALUE_COLUMN_SCHEMA),
@@ -235,7 +234,8 @@ public class InsertValuesExecutorTest {
     // Given:
     givenSourceStreamWithSchema(
         SINGLE_VALUE_COLUMN_SCHEMA,
-        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)
+        SerdeFeatures.of(),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
     );
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -376,7 +376,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNullKeyForSourceWithKeyField() {
     // Given:
-    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allAndPseudoColumnNames(BIG_SCHEMA),
@@ -408,7 +408,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNegativeValueExpression() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0, COL1),
@@ -430,7 +430,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleUdfs() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0),
@@ -451,7 +451,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNestedUdfs() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0),
@@ -478,7 +478,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldAllowUpcast() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0, COL1),
@@ -500,7 +500,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenInsertValuesOnReservedInternalTopic() {
     // Given
     givenDataSourceWithSchema("_confluent-ksql-default__command-topic", SCHEMA,
-        SerdeOptions.of(), false);
+        SerdeFeatures.of(), SerdeFeatures.of(), false);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
@@ -532,7 +532,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenInsertValuesOnProcessingLogTopic() {
     // Given
     givenDataSourceWithSchema("default_ksql_processing_log", SCHEMA,
-        SerdeOptions.of(), false);
+        SerdeFeatures.of(), SerdeFeatures.of(), false);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
@@ -682,7 +682,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowIfColumnDoesNotExistInSchema() {
     // Given:
-    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SINGLE_VALUE_COLUMN_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(
@@ -706,7 +706,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFailOnDowncast() {
     // Given:
-    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(INT_COL),
@@ -728,7 +728,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleStreamsWithNoKeyField() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(K0, COL0, COL1),
@@ -750,7 +750,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleTablesWithNoKeyField() {
     // Given:
-    givenSourceTableWithSchema(SerdeOptions.of());
+    givenSourceTableWithSchema(SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(K0, COL0, COL1),
@@ -772,7 +772,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleStreamsWithNoKeyFieldAndNoRowKeyProvided() {
     // Given:
-    givenSourceStreamWithSchema(SCHEMA, SerdeOptions.of());
+    givenSourceStreamWithSchema(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0, COL1),
@@ -793,7 +793,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnTablesWithNoKeyFieldAndNoRowKeyProvided() {
     // Given:
-    givenSourceTableWithSchema(SerdeOptions.of());
+    givenSourceTableWithSchema(SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL0, COL1),
@@ -816,7 +816,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnTablesWithKeyFieldAndNullKeyFieldValueProvided() {
     // Given:
-    givenSourceTableWithSchema(SerdeOptions.of());
+    givenSourceTableWithSchema(SerdeFeatures.of(), SerdeFeatures.of());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         ImmutableList.of(COL1),
@@ -852,7 +852,7 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerdeFactory).create(
         FormatInfo.of(FormatFactory.KAFKA.name()),
-        PersistenceSchema.from(SCHEMA.key(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(SCHEMA.key(), SerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -861,7 +861,7 @@ public class InsertValuesExecutorTest {
 
     verify(valueSerdeFactory).create(
         FormatInfo.of(FormatFactory.JSON.name()),
-        PersistenceSchema.from(SCHEMA.value(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(SCHEMA.value(), SerdeFeatures.of()),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -881,27 +881,30 @@ public class InsertValuesExecutorTest {
 
   private void givenSourceStreamWithSchema(
       final LogicalSchema schema,
-      final SerdeOptions serdeOptions
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valFeatures
   ) {
-    givenDataSourceWithSchema(TOPIC_NAME, schema, serdeOptions, false);
+    givenDataSourceWithSchema(TOPIC_NAME, schema, keyFeatures, valFeatures, false);
   }
 
   private void givenSourceTableWithSchema(
-      final SerdeOptions serdeOptions
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valFeatures
   ) {
-    givenDataSourceWithSchema(TOPIC_NAME, SCHEMA, serdeOptions, true);
+    givenDataSourceWithSchema(TOPIC_NAME, SCHEMA, keyFeatures, valFeatures, true);
   }
 
   private void givenDataSourceWithSchema(
       final String topicName,
       final LogicalSchema schema,
-      final SerdeOptions serdeOptions,
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valFeatures,
       final boolean table
   ) {
     final KsqlTopic topic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), keyFeatures),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), valFeatures)
     );
 
     final DataSource dataSource;
@@ -910,7 +913,6 @@ public class InsertValuesExecutorTest {
           "",
           SourceName.of("TOPIC"),
           schema,
-          serdeOptions,
           Optional.empty(),
           false,
           topic
@@ -920,7 +922,6 @@ public class InsertValuesExecutorTest {
           "",
           SourceName.of("TOPIC"),
           schema,
-          serdeOptions,
           Optional.empty(),
           false,
           topic

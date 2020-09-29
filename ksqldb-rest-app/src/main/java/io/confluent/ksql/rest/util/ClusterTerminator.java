@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
@@ -97,7 +98,7 @@ public class ClusterTerminator {
               filterNonExistingTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final TopicDeletionDisabledException e) {
-      LOGGER.info("Did not delete any topics: ", e.getMessage());
+      LOGGER.info("Did not delete any topics: {}", e.getMessage());
     } catch (final Exception e) {
       throw new KsqlException(
           "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
@@ -145,9 +146,9 @@ public class ClusterTerminator {
 
   private static Set<String> subjectNames(final List<DataSource> sources) {
     return sources.stream()
-        .filter(s -> s.getKsqlTopic()
+        .filter(s -> FormatFactory.fromName(s.getKsqlTopic()
             .getValueFormat()
-            .getFormat()
+            .getFormat())
             .supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
         )
         .map(DataSource::getKsqlTopic)

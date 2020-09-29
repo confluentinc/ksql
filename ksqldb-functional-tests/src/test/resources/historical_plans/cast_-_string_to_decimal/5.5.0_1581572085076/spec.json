@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
     "CSAS_OUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING"
     },
     "CSAS_OUT_0.OUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `VAL` DECIMAL(2, 1)",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `VAL` DECIMAL(2, 1)"
     }
   },
   "testCase" : {
@@ -117,24 +115,20 @@
         "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "OUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `VAL` DECIMAL(2, 1)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -143,9 +137,7 @@
         }, {
           "name" : "OUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

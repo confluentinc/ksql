@@ -288,7 +288,8 @@ public final class SourceBuilder {
   private static PhysicalSchema getPhysicalSchema(final SourceStep<?> streamSource) {
     return PhysicalSchema.from(
         streamSource.getSourceSchema(),
-        streamSource.getFormats().getOptions()
+        streamSource.getFormats().getKeyFeatures(),
+        streamSource.getFormats().getValueFeatures()
     );
   }
 

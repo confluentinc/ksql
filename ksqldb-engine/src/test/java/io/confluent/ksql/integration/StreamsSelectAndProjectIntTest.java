@@ -30,6 +30,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -425,7 +426,7 @@ public class StreamsSelectAndProjectIntTest {
         .getMetaStore()
         .getSource(SourceName.of(resultStream.toUpperCase()));
 
-    return PhysicalSchema.from(source.getSchema(), source.getSerdeOptions());
+    return PhysicalSchema.from(source.getSchema(), SerdeFeatures.of(), SerdeFeatures.of());
   }
 
   private void createOrdersStream() {

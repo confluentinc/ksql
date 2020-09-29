@@ -28,7 +28,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -151,7 +151,7 @@ public class KsqlDelimitedDeserializerTest {
     final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result, contains(new BigDecimal("01.12")));
+    assertThat(result, contains(new BigDecimal("1.12")));
   }
 
   @Test
@@ -170,7 +170,64 @@ public class KsqlDelimitedDeserializerTest {
     final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result, contains(new BigDecimal("01.12")));
+    assertThat(result, contains(new BigDecimal("1.12")));
+  }
+
+  @Test
+  public void shouldDeserializeDecimalWithTooSmallScale() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "2".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final List<?> result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result, contains(new BigDecimal("2.00")));
+  }
+
+  @Test
+  public void shouldDeserializeNegativeDecimalSerializedAsNumber() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "-1.12".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final List<?> result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result, contains(new BigDecimal("-1.12")));
+  }
+
+  @Test
+  public void shouldDeserializeNegativeDecimalSerializedAsString() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "\"-01.12\"".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final List<?> result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result, contains(new BigDecimal("-1.12")));
   }
 
   @Test
@@ -271,7 +328,7 @@ public class KsqlDelimitedDeserializerTest {
   }
 
   private static PersistenceSchema persistenceSchema(final SimpleColumn... columns) {
-    return PersistenceSchema.from(Arrays.asList(columns), EnabledSerdeFeatures.of());
+    return PersistenceSchema.from(Arrays.asList(columns), SerdeFeatures.of());
   }
 
   private static KsqlDelimitedDeserializer createDeserializer(final PersistenceSchema schema) {

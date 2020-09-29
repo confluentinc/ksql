@@ -319,33 +319,6 @@ public class DecimalUtilTest {
   }
 
   @Test
-  public void shouldConvertString() {
-    // When:
-    final String decimal = DecimalUtil.format(3, 1, new BigDecimal("12.1"));
-
-    // Then:
-    assertThat(decimal, is("12.1"));
-  }
-
-  @Test
-  public void shouldConvertToStringAndAddTrailingZeros() {
-    // When:
-    final String decimal = DecimalUtil.format(4, 2, new BigDecimal("12.1"));
-
-    // Then:
-    assertThat(decimal, is("12.10"));
-  }
-
-  @Test
-  public void shouldConvertToStringButNotAddLeadingZeros() {
-    // When:
-    final String decimal = DecimalUtil.format(100, 1, new BigDecimal("12.1"));
-
-    // Then:
-    assertThat(decimal, is("12.1"));
-  }
-
-  @Test
   public void shouldFailIfBuilderWithZeroPrecision() {
     // When:
     final Exception e = assertThrows(

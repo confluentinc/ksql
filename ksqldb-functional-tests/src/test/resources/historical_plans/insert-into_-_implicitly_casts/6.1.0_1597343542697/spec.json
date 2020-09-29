@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "INSERTQUERY_0.KsqlTopic.Source" : {
-      "schema" : "`IGNORED` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`IGNORED` STRING"
     },
     "INSERTQUERY_0.TARGET" : {
-      "schema" : "`C1` DECIMAL(3, 2), `C2` DECIMAL(3, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`C1` DECIMAL(3, 2), `C2` DECIMAL(3, 2)"
     }
   },
   "testCase" : {
@@ -96,24 +94,20 @@
         "schema" : "`C1` DECIMAL(5, 2), `C2` DECIMAL(5, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "SOURCE",
         "type" : "STREAM",
         "schema" : "`IGNORED` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -122,9 +116,7 @@
         }, {
           "name" : "target",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

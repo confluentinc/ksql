@@ -17,6 +17,8 @@ package io.confluent.ksql.serde;
 
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
+import static io.confluent.ksql.serde.SerdeFeature.WRAP_SINGLES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -27,6 +29,7 @@ import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import org.junit.Test;
 
+@SuppressWarnings("UnstableApiUsage")
 public class ValueFormatTest {
 
   private static final FormatInfo FORMAT_INFO =
@@ -38,6 +41,8 @@ public class ValueFormatTest {
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
+        .setDefault(SerdeFeatures.class, SerdeFeatures.of())
+        .setDefault(FormatInfo.class, FormatInfo.of("AVRO"))
         .testAllPublicStaticMethods(ValueFormat.class);
   }
 
@@ -45,11 +50,14 @@ public class ValueFormatTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            ValueFormat.of(FORMAT_INFO),
-            ValueFormat.of(FORMAT_INFO)
+            ValueFormat.of(FORMAT_INFO, SerdeFeatures.of()),
+            ValueFormat.of(FORMAT_INFO, SerdeFeatures.of())
         )
         .addEqualityGroup(
-            ValueFormat.of(FormatInfo.of(JSON.name()))
+            ValueFormat.of(FormatInfo.of(JSON.name()), SerdeFeatures.of())
+        )
+        .addEqualityGroup(
+            ValueFormat.of(FORMAT_INFO, SerdeFeatures.of(WRAP_SINGLES))
         )
         .testEquals();
   }
@@ -57,36 +65,49 @@ public class ValueFormatTest {
   @Test
   public void shouldImplementToString() {
     // Given:
-    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO);
+    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO, SerdeFeatures.of(WRAP_SINGLES));
 
     // When:
     final String result = valueFormat.toString();
 
     // Then:
     assertThat(result, containsString(FORMAT_INFO.toString()));
+    assertThat(result, containsString(WRAP_SINGLES.toString()));
   }
 
   @Test
-  public void shouldGetFormat() {
+  public void shouldGetFormatName() {
     // Given:
-    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO);
+    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO, SerdeFeatures.of());
 
     // When:
-    final Format result = valueFormat.getFormat();
+    final String result = valueFormat.getFormat();
 
     // Then:
-    assertThat(result, is(FormatFactory.of(FORMAT_INFO)));
+    assertThat(result, is(FORMAT_INFO.getFormat()));
   }
 
   @Test
   public void shouldGetFormatInfo() {
     // Given:
-    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO);
+    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO, SerdeFeatures.of());
 
     // When:
     final FormatInfo result = valueFormat.getFormatInfo();
 
     // Then:
     assertThat(result, is(FORMAT_INFO));
+  }
+
+  @Test
+  public void shouldGetSereFeatures() {
+    // Given:
+    final ValueFormat valueFormat = ValueFormat.of(FORMAT_INFO, SerdeFeatures.of(UNWRAP_SINGLES));
+
+    // When:
+    final SerdeFeatures result = valueFormat.getFeatures();
+
+    // Then:
+    assertThat(result, is(SerdeFeatures.of(UNWRAP_SINGLES)));
   }
 }

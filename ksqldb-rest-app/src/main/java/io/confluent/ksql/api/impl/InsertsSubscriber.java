@@ -86,7 +86,8 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         dataSource.getSchema(),
-        dataSource.getSerdeOptions()
+        dataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final KeySerdeFactory keySerdeFactory = new GenericKeySerDe();

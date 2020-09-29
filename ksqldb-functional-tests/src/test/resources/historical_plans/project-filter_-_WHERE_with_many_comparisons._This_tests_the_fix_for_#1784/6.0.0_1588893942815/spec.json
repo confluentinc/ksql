@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_EVENTSTEST_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING"
     },
     "CSAS_EVENTSTEST_0.EVENTSTEST" : {
-      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING"
     }
   },
   "testCase" : {
@@ -48,24 +46,20 @@
         "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "EVENTSTEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "events",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -74,9 +68,7 @@
         }, {
           "name" : "EVENTSTEST",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

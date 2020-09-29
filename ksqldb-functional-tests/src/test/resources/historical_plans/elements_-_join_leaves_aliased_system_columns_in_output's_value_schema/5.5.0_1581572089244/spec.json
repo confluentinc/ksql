@@ -4,24 +4,19 @@
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `F1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `F1` INTEGER"
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ROWKEY` STRING KEY, `L_F0` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING, `L_WINDOWSTART` BIGINT, `L_WINDOWEND` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `L_F0` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING, `L_WINDOWSTART` BIGINT, `L_WINDOWEND` BIGINT"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING, `F0` INTEGER, `F1` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING, `F0` INTEGER, `F1` INTEGER"
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER"
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ROWKEY` STRING KEY, `R_F1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING, `R_WINDOWSTART` BIGINT, `R_WINDOWEND` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `R_F1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING, `R_WINDOWSTART` BIGINT, `R_WINDOWEND` BIGINT"
     }
   },
   "testCase" : {
@@ -92,8 +87,7 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 1000
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "RIGHT_STREAM",
         "type" : "STREAM",
@@ -102,8 +96,7 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 1000
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "LEFT_STREAM",
         "type" : "STREAM",
@@ -112,16 +105,13 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 1000
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 1.000000000
@@ -133,9 +123,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 1.000000000
@@ -147,9 +135,7 @@
         }, {
           "name" : "left",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 1.000000000
@@ -162,9 +148,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 1.000000000
@@ -177,9 +161,7 @@
         }, {
           "name" : "right",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 1.000000000

@@ -33,8 +33,8 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
@@ -137,7 +137,7 @@ public class ConnectFormatSchemaTranslatorTest {
         () -> translator.toParsedSchema(
             PersistenceSchema.from(
                 ImmutableList.of(createColumn("vic", SqlTypes.STRING)),
-                EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+                SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
             )
         )
     );
@@ -170,7 +170,7 @@ public class ConnectFormatSchemaTranslatorTest {
     translator.toParsedSchema(
         PersistenceSchema.from(
             ImmutableList.of(createColumn("bob", SqlTypes.INTEGER)),
-            EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+            SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
         )
     );
 

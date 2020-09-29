@@ -18,7 +18,6 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
@@ -29,8 +28,9 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -79,7 +79,7 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamWindowedAggregate(
           contextStacker,
           sourceStep,
-          Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
+          InternalFormats.of(keyFormat, valueFormat),
           nonAggregateColumns,
           aggregations,
           windowExpression.get().getKsqlWindowExpression()
@@ -89,7 +89,7 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamAggregate(
           contextStacker,
           sourceStep,
-          Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
+          InternalFormats.of(keyFormat, valueFormat),
           nonAggregateColumns,
           aggregations
       );
@@ -107,6 +107,7 @@ public class SchemaKGroupedStream {
   private static KeyFormat getKeyFormat(final WindowExpression windowExpression) {
     return KeyFormat.windowed(
         FormatInfo.of(FormatFactory.KAFKA.name()),
+        SerdeFeatures.of(),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
   }

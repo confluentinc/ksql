@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_REPARTITIONED_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN"
     },
     "CSAS_REPARTITIONED_0.REPARTITIONED" : {
-      "schema" : "`KSQL_COL_0` INTEGER KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `ID` BIGINT"
     }
   },
   "testCase" : {
@@ -72,24 +70,20 @@
         "schema" : "`K` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "REPARTITIONED",
         "type" : "STREAM",
         "schema" : "`KSQL_COL_0` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "REPARTITIONED",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -98,9 +92,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

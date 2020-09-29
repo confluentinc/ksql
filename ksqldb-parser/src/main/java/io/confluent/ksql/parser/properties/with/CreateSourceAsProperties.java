@@ -26,8 +26,8 @@ import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.util.KsqlException;
@@ -89,15 +89,15 @@ public final class CreateSourceAsProperties {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
   }
 
-  public SerdeOptions getSerdeOptions() {
-    final ImmutableSet.Builder<SerdeOption> builder = ImmutableSet.builder();
+  public SerdeFeatures getValueSerdeFeatures() {
+    final ImmutableSet.Builder<SerdeFeature> builder = ImmutableSet.builder();
 
     final Boolean wrapping = props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE);
     if (wrapping != null) {
-      builder.add(wrapping ? SerdeOption.WRAP_SINGLE_VALUES : SerdeOption.UNWRAP_SINGLE_VALUES);
+      builder.add(wrapping ? SerdeFeature.WRAP_SINGLES : SerdeFeature.UNWRAP_SINGLES);
     }
 
-    return SerdeOptions.of(builder.build());
+    return SerdeFeatures.from(builder.build());
   }
 
   public Optional<FormatInfo> getKeyFormat() {

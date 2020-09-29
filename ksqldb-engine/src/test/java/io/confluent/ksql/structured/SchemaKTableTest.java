@@ -77,12 +77,12 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -142,10 +142,10 @@ public class SchemaKTableTest {
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"));
   private static final Expression TEST_2_COL_2 =
       new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
-  private static final KeyFormat keyFormat = KeyFormat
-      .nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+  private KeyFormat keyFormat = KeyFormat
+      .nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
   private static final ValueFormat valueFormat = ValueFormat
-      .of(FormatInfo.of(FormatFactory.JSON.name()));
+      .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
 
   private PlanBuilder planBuilder;
 
@@ -155,6 +155,8 @@ public class SchemaKTableTest {
   private KeySerdeFactory<Struct> keySerdeFactory;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private KsqlTopic topic;
 
   @Before
   public void init() {
@@ -256,7 +258,7 @@ public class SchemaKTableTest {
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final LogicalSchema schema) {
     return GenericRowSerDe.from(
         topic.getValueFormat().getFormatInfo(),
-        PersistenceSchema.from(schema.value(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(schema.value(), SerdeFeatures.of()),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "test",
@@ -437,6 +439,8 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForGroupBy() {
     // Given:
+    keyFormat = KeyFormat
+        .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
     final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
@@ -456,7 +460,47 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableGroupBy(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                Formats.of(initialSchemaKTable.keyFormat, valueFormat, SerdeOptions.of()),
+                Formats.of(
+                    initialSchemaKTable.keyFormat.getFormatInfo(),
+                    valueFormat.getFormatInfo(),
+                    SerdeFeatures.of(),
+                    SerdeFeatures.of()
+                ),
+                groupByExpressions
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForGroupByWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+    // Given:
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+    final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+    final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
+
+    // When:
+    final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
+        valueFormat,
+        groupByExpressions,
+        childContextStacker
+    );
+
+    // Then:
+    assertThat(
+        groupedSchemaKTable.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.tableGroupBy(
+                childContextStacker,
+                initialSchemaKTable.getSourceTableStep(),
+                Formats.of(
+                    initialSchemaKTable.keyFormat.getFormatInfo(),
+                    valueFormat.getFormatInfo(),
+                    SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+                    SerdeFeatures.of()
+                ),
                 groupByExpressions
             )
         )
@@ -632,20 +676,16 @@ public class SchemaKTableTest {
     // Given:
     final SchemaKTable<?> table = buildSchemaKTable(ksqlTable, mockKTable);
 
-    final KeyFormat windowedKeyFormat = KeyFormat.windowed(keyFormat.getFormatInfo(),
-        WindowInfo.of(WindowType.SESSION, Optional.empty()));
+    when(topic.getKeyFormat()).thenReturn(KeyFormat.windowed(
+        keyFormat.getFormatInfo(),
+        SerdeFeatures.of(),
+        WindowInfo.of(WindowType.SESSION, Optional.empty())
+    ));
 
     // When:
     assertThrows(
         IllegalArgumentException.class,
-        () -> table.into(
-            "some-topic",
-            windowedKeyFormat,
-            valueFormat,
-            SerdeOptions.of(),
-            childContextStacker,
-            Optional.empty()
-        )
+        () -> table.into(topic, childContextStacker, Optional.empty())
     );
   }
 

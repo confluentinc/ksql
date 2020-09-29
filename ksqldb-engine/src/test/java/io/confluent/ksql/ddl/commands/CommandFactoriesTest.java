@@ -56,7 +56,7 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -313,8 +313,8 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
-    assertThat(((CreateStreamCommand) cmd).getFormats().getOptions().all(),
-        contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(((CreateStreamCommand) cmd).getFormats().getValueFeatures().all(),
+        contains(SerdeFeature.UNWRAP_SINGLES));
   }
 
   @Test
@@ -338,8 +338,8 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
-    assertThat(((CreateTableCommand) cmd).getFormats().getOptions().all(),
-        contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(((CreateTableCommand) cmd).getFormats().getValueFeatures().all(),
+        contains(SerdeFeature.UNWRAP_SINGLES));
   }
 
   private static TableElement tableElement(

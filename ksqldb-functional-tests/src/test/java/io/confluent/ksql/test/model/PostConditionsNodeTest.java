@@ -18,6 +18,8 @@ package io.confluent.ksql.test.model;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicsNode;
@@ -27,8 +29,12 @@ import org.junit.Test;
 
 public class PostConditionsNodeTest {
 
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of("AVRO"));
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of("JSON"));
+  private static final KeyFormat KEY_FORMAT = KeyFormat
+      .nonWindowed(FormatInfo.of("AVRO"), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+  private static final ValueFormat VALUE_FORMAT = ValueFormat
+      .of(FormatInfo.of("JSON"), SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+
   private static final OptionalInt PARTITION_COUNT = OptionalInt.of(14);
 
   @Test

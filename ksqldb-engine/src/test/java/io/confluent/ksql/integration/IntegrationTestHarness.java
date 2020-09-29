@@ -166,6 +166,13 @@ public final class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
+   * Deletes topics.
+   */
+  public void deleteTopics(List<String> topics) {
+    kafkaCluster.deleteTopics(topics);
+  }
+
+  /**
    * Produce a single record to a Kafka topic.
    *
    * @param topicName the topic to produce the record to.
@@ -702,7 +709,7 @@ public final class IntegrationTestHarness extends ExternalResource {
       final ParsedSchema parsedSchema = translator.toParsedSchema(
           PersistenceSchema.from(
               schema.logicalSchema().value(),
-              schema.serdeOptions().valueFeatures()
+              schema.valueSchema().features()
           )
       );
 

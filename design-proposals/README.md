@@ -58,7 +58,7 @@ Next KLIP number: **39**
 | [KLIP-15: KSQLDB new API and Client](klip-15-new-api-and-client.md)                                  | Proposal       |                   |            |               |
 | [KLIP-16: Introduce 'K$' dynamic views                                                               | Proposal       |                   |            |               |
 | [KLIP-17: Remove 'INSERT INTO' in favour of SQL Union](klip-17-sql-union.md)                         | Proposed       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/4125) |
-| [KLIP-18: Distributed Metastore](klip-18-distributed-metastore .md)                                  | Proposal       |                   |            |               |
+| [KLIP-18: Distributed Metastore](klip-18-distributed-metastore.md)                                   | Proposal       |                   |            |               |
 | [KLIP-19: Introduce Materialize Views](klip-19-materialize-views.md)                                 | Proposal       |                   |            |               |
 | [KLIP-20: Remove 'TERMINATE' statements](klip-20_remove_terminate.md)                                | Proposal       |                   |            |               |
 | [KLIP-21: Correct 'INSERT VALUES' semantics](klip-21_correct_insert_values_semantics.md)             | Proposal       |                   |            |               |
@@ -76,6 +76,7 @@ Next KLIP number: **39**
 | [KLIP-33: Key format](klip-33-key-format.md)                                                         | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6017) |
 | KLIP-34: Optional WITH for CREATE TABLE and CREATE STREAM                                            | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6065) |
 | KLIP-35: Dynamic Processing Log Levels                                                               | Proposal | | | |
+| [KLIP-36: GRACE period for stream-stream joins](klip-36-grace-stream-stream-joins.md)                | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6175)|
 | KLIP-36: GRACE period for stream-stream joins                                                        | Proposal | | | |
 | KLIP-37: System Tables                                                                               | Proposal | | | |
 | KLIP-38: Variable Substitution                                                                       | Proposal | | | |

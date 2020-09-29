@@ -265,7 +265,8 @@ public class UdfIntTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     return TEST_HARNESS.verifyAvailableUniqueRows(

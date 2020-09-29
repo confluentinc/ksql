@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.serde;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
+import java.util.Set;
 
 /**
  * Optional features a serde may support
@@ -38,7 +41,7 @@ public enum SerdeFeature {
    *
    * @see SerdeFeature#UNWRAP_SINGLES
    */
-  WRAP_SINGLES,
+  WRAP_SINGLES("UNWRAP_SINGLES"),
 
   /**
    * If the key/value being serialized contains only a single column, persist it as an anonymous
@@ -48,5 +51,27 @@ public enum SerdeFeature {
    *
    * @see SerdeFeature#WRAP_SINGLES
    */
-  UNWRAP_SINGLES;
+  UNWRAP_SINGLES("WRAP_SINGLES");
+
+  private final ImmutableSet<String> unvalidated;
+  private ImmutableSet<SerdeFeature> incompatibleWith;
+
+  SerdeFeature(final String... incompatibleWith) {
+    this.unvalidated = ImmutableSet.copyOf(incompatibleWith);
+  }
+
+  public Set<SerdeFeature> getIncompatibleWith() {
+    return incompatibleWith;
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  private void validate() {
+    this.incompatibleWith = unvalidated.stream()
+        .map(SerdeFeature::valueOf)
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  static {
+    Arrays.stream(SerdeFeature.values()).forEach(SerdeFeature::validate);
+  }
 }

@@ -154,7 +154,7 @@ public abstract class QueryMetadata {
     this.onStop = onStop;
   }
 
-  private void uncaughtHandler(final Thread t, final Throwable e) {
+  protected void uncaughtHandler(final Thread t, final Throwable e) {
     LOG.error("Unhandled exception caught in streams thread {}.", t.getName(), e);
     final QueryError queryError =
         new QueryError(

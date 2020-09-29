@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/kafka.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` BIGINT KEY, `FOO` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` BIGINT KEY, `FOO` BIGINT"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` BIGINT KEY, `FOO` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` BIGINT KEY, `FOO` BIGINT"
     }
   },
   "testCase" : {
@@ -20,6 +18,8 @@
       "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM INPUT (K BIGINT KEY, foo BIGINT) WITH (kafka_topic='input', value_format='KAFKA');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "inputs": [{"topic": "input", "key": 1, "value": 2}],
+    "outputs": [{"topic": "OUTPUT", "key": 1, "value": 2}],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
@@ -27,24 +27,20 @@
         "schema" : "`K` BIGINT KEY, `FOO` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` BIGINT KEY, `FOO` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "KAFKA"
@@ -53,9 +49,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "KAFKA"

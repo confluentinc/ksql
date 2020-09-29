@@ -47,15 +47,15 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -106,7 +106,9 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private PhysicalSchema physicalSchema;
   @Mock
-  private SerdeOptions serdeOptions;
+  private SerdeFeatures valFeatures;
+  @Mock
+  private PersistenceSchema valSchema;
 
   private final KsqlParser parser = new DefaultKsqlParser();
 
@@ -132,26 +134,24 @@ public class SchemaRegisterInjectorTest {
     when(queryMetadata.getLogicalSchema()).thenReturn(SCHEMA);
     when(queryMetadata.getResultTopic()).thenReturn(new KsqlTopic(
         "SINK",
-        KeyFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), Optional.empty()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
+        KeyFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of(), Optional.empty()
+        ),
+        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), valFeatures)
     ));
     when(queryMetadata.getPhysicalSchema()).thenReturn(physicalSchema);
 
-    when(physicalSchema.serdeOptions()).thenReturn(serdeOptions);
-
-    when(serdeOptions.valueFeatures())
-        .thenReturn(EnabledSerdeFeatures.of());
+    when(physicalSchema.valueSchema()).thenReturn(valSchema);
+    when(valSchema.features()).thenReturn(valFeatures);
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), valFeatures)
     );
     final KsqlStream<?> source = new KsqlStream<>(
         "",
         SourceName.of("SOURCE"),
         SCHEMA,
-        SerdeOptions.of(),
         Optional.empty(),
         false,
         sourceTopic
@@ -314,8 +314,7 @@ public class SchemaRegisterInjectorTest {
         + "WITH(value_format='AVRO', wrap_single_value='false') AS "
         + "SELECT * FROM SOURCE;");
 
-    when(serdeOptions.valueFeatures())
-        .thenReturn(EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+    when(valFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
 
     // When:
     injector.inject(statement);

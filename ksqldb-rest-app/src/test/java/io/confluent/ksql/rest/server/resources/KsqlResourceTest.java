@@ -149,7 +149,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -180,6 +180,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -302,6 +303,8 @@ public class KsqlResourceTest {
   private Errors errorsHandler;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private Supplier<String> commandRunnerWarning;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -344,6 +347,7 @@ public class KsqlResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     when(commandRunner.getCommandQueue()).thenReturn(commandStore);
+    when(commandRunnerWarning.get()).thenReturn("");
     when(commandStore.createTransactionalProducer())
         .thenReturn(transactionalProducer);
 
@@ -413,7 +417,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunnerWarning
     );
 
     // When:
@@ -444,7 +449,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunnerWarning
     );
 
     // When:
@@ -587,18 +593,15 @@ public class KsqlResourceTest {
         schema);
 
     // When:
-    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.DEGRADED);
-    when(errorsHandler.commandRunnerDegradedErrorMessage()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE);
-
     final SourceDescriptionList descriptionList1 = makeSingleRequest(
         "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
-    when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
+    when(commandRunnerWarning.get()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
     final SourceDescriptionList descriptionList2 = makeSingleRequest(
         "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
 
-    assertThat(descriptionList1.getWarnings().size(), is(1));
-    assertThat(descriptionList1.getWarnings().get(0).getMessage(), is(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_ERROR_MESSAGE));
-    assertThat(descriptionList2.getWarnings().size(), is(0));
+    assertThat(descriptionList1.getWarnings().size(), is(0));
+    assertThat(descriptionList2.getWarnings().size(), is(1));
+    assertThat(descriptionList2.getWarnings().get(0).getMessage(), is(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
   }
 
   @Test
@@ -2009,7 +2012,7 @@ public class KsqlResourceTest {
     return new SourceInfo.Table(
         table.getName().toString(FormatOptions.noEscape()),
         table.getKsqlTopic().getKafkaTopicName(),
-        table.getKsqlTopic().getValueFormat().getFormat().name(),
+        table.getKsqlTopic().getValueFormat().getFormat(),
         table.getKsqlTopic().getKeyFormat().isWindowed()
     );
   }
@@ -2021,7 +2024,7 @@ public class KsqlResourceTest {
     return new SourceInfo.Stream(
         stream.getName().toString(FormatOptions.noEscape()),
         stream.getKsqlTopic().getKafkaTopicName(),
-        stream.getKsqlTopic().getValueFormat().getFormat().name()
+        stream.getKsqlTopic().getValueFormat().getFormat()
     );
   }
 
@@ -2224,7 +2227,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunnerWarning
     );
 
     ksqlResource.configure(ksqlConfig);
@@ -2268,7 +2272,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        commandRunnerWarning
     );
     final Map<String, Object> props = new HashMap<>(ksqlRestConfig.getKsqlConfigProperties());
     props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
@@ -2333,8 +2338,8 @@ public class KsqlResourceTest {
   ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     givenKafkaTopicExists(topicName);
@@ -2344,7 +2349,6 @@ public class KsqlResourceTest {
               "statementText",
               SourceName.of(sourceName),
               schema,
-              SerdeOptions.of(),
               Optional.empty(),
               false,
               ksqlTopic
@@ -2356,7 +2360,6 @@ public class KsqlResourceTest {
               "statementText",
               SourceName.of(sourceName),
               schema,
-              SerdeOptions.of(),
               Optional.empty(),
               false,
               ksqlTopic

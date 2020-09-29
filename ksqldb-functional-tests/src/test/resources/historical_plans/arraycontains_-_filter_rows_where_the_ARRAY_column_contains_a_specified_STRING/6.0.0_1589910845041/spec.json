@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/arraycontains.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>"
     }
   },
   "testCase" : {
@@ -87,24 +85,20 @@
         "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        }
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -113,9 +107,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

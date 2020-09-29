@@ -187,39 +187,21 @@ CLI by using the `--config-file` command-line arguments, for example:
 <ksql-install>bin/ksql --config-file ./config/ksql-cli.properties https://localhost:8088
 ```
 
-Configuring listener for HTTP-BASIC Authentication
---------------------------------------------------
+Configuring listener for HTTP-BASIC Authentication/Authorization
+----------------------------------------------------------------
 
 ksqlDB can be configured to require users to authenticate using a username
-and password via the Basic HTTP authentication mechanism.
+and password via the Basic HTTP authentication mechanism. You can
+also provide role-base authorization by specifying which roles can access the ksqlDB server.
 
 !!! note
 	If you're using Basic authentication, we recommended that you
     [configure ksqlDB to use HTTPS for secure communication](#configuring-listner-for-ssl-encryption),
     because the Basic protocol passes credentials in plain text.
 
-Use the following settings to configure the ksqlDB server to require
-authentication:
+### Create the `jaas_config.file`
 
-```properties
-authentication.method=BASIC
-authentication.roles=<user-role1>,<user-role2>,...
-authentication.realm=<KsqlServer-Props-in-jaas_config.file>
-```
-
-The `authentication.roles` config defines a comma-separated list of user
-roles. To be authorized to use the ksqlDB Server, an authenticated user
-must belong to at least one of these roles.
-
-For example, if you define `admin`, `developer`, `user`, and `ksq-user`
-roles, the following configuration assigns them for authentication.
-
-```properties
-authentication.roles=admin,developer,user,ksq-user
-```
-
-The `authentication.realm` config must match a section within
-`jaas_config.file`, which defines how the server authenticates users.
+The file `jaas_config.file` defines how the ksqlDB server authenticates users.
 
 An example `jaas_config.file` is:
 
@@ -231,12 +213,6 @@ KsqlServer-Props {
 };
 ```
 
-In this example, the `authentication.realm` config should be set to `KsqlServer-Props`:
-
-```properties
-authentication.realm=KsqlServer-Props
-```
-
 The example `jaas_config.file` above uses the Jetty
 `PropertyFileLoginModule`, which itself authenticates users by checking
 for their credentials in a password file.
@@ -245,15 +221,6 @@ You can also use other implementations of the standard Java
 `LoginModule` interface, such as `JDBCLoginModule` for reading
 credentials from a database or the `LdapLoginModule`.
 
-The JAAS config file should be passed as a JVM option during server start,
-and the LoginModule implementation should provided to the server as well:
-
-```bash
-export KSQL_OPTS=-Djava.security.auth.login.config=/path/to/the/jaas_config.file
-export KSQL_CLASSPATH=<path-to-login-module-jar>/jetty-jaas-9.4.24.v20191120.jar
-<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksqldb/ksql-server.properties
-```
-
 In the `PropertyFileLoginModule` example above, the file parameter is the
 location of the password file. The format is:
 
@@ -261,14 +228,8 @@ location of the password file. The format is:
 <username>: <password-hash>[,<rolename> ...]
 ```
 
-Here's an example:
-
-```
-fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
-harry: changeme,user,developer
-tom: MD5:164c88b302622e17050af52c89945d44,user
-dick: CRYPT:adpexzg3FUZAk,admin,ksq-user
-```
+Specify one user and password per line. Roles are optional and are
+defined next to the password hash.
 
 The password hash for a user can be obtained by using the
 `org.eclipse.jetty.util.security.Password` utility, for example running:
@@ -287,7 +248,87 @@ CRYPT:frd5btY/mvXo6
 ```
 
 Where each line of the output is the password encrypted using different
-mechanisms, starting with plain text.
+mechanisms, starting with plain text. Copy any of the password encrypted
+lines onto the password file.
+
+The role names are defined next to the encrypted password. These
+are used by the `LoginModule` to map users to roles.
+
+Here's an example of the password file:
+
+```
+fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
+harry: changeme,user,developer
+tom: MD5:164c88b302622e17050af52c89945d44,user
+dick: CRYPT:adpexzg3FUZAk,admin,ksql-user
+```
+
+### Configure the ksqlDB server settings
+
+Use the following settings in the `ksql-server.properties` file:
+
+```properties
+authentication.method=BASIC
+authentication.realm=<KsqlServer-Props-in-jaas_config.file>
+authentication.roles=<user-role1>,<user-role2>,...
+```
+
+The `authentication.method` property indicates that ksqlDB authenticates users by using `BASIC`
+user and password credentials.
+
+The `authentication.realm` config must match a section within
+`jaas_config.file`, which provides the login module for authentication.
+
+In this example, the `authentication.realm` config is set to `KsqlServer-Props`, which
+was defined in the previous section:
+
+```properties
+authentication.realm=KsqlServer-Props
+```
+
+The `authentication.roles` config defines a comma-separated list of user
+roles with access to the ksqlDB server. To be authorized to use the ksqlDB Server,
+an authenticated user must belong to at least one of these roles.
+
+For example, if you define `admin` and `developer` roles, ksqlDB allows access only to users that contain these roles
+For more information, see the configuration for the password file in the `jaas_config.file` section.
+
+```properties
+authentication.roles=admin,developer
+```
+
+!!! note
+    You can authorize any role by setting the `authentication.roles` to `**`.
+
+###  Example
+
+Password file:
+```
+fred: OBF:1w8t1tvf1w261w8v1w1c1tvn1w8x,user,admin
+harry: changeme,user,developer
+tom: MD5:164c88b302622e17050af52c89945d44,user
+dick: CRYPT:adpexzg3FUZAk,admin,ksql-user
+```
+
+JAAS config file (`jaas_config.file`):
+```java
+KsqlServer-Props {
+  org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
+  file="/path/to/password-file"
+  debug="false";
+};
+```
+
+ksqlDB settings:
+```properties
+authentication.method=BASIC
+authentication.realm=KsqlServer-Props
+authentication.roles=admin
+```
+
+The ksqlDB server authenticates users `fred`, `harry`, `tom`, and `dick` based on the
+user and password credentials found in the password file. But only `fred` and `dick`
+authorized to access the server because they're under the `admin` role.
 
 ### Configure the CLI for Basic HTTP Authentication
 

@@ -126,7 +126,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       return SerdeUtils.castToTargetType(coerced, targetType);
     } catch (final Exception e) {
       throw new SerializationException(
-          "Failed to deserialize " + target + " from topic: " + topic, e);
+          "Failed to deserialize " + target + " from topic: " + topic + ". " + e.getMessage(), e);
     }
   }
 
@@ -173,17 +173,17 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
   }
 
   private static Object enforceValidBytes(final JsonValueContext context) {
-    final BigDecimal decimal;
     final boolean isDecimal = DecimalUtil.isDecimal(context.schema);
-    if (isDecimal && context.val instanceof NumericNode) {
-      decimal = context.val.decimalValue();
-      DecimalUtil.ensureFit(decimal, context.schema);
-      return decimal;
-    } else if (isDecimal && context.val instanceof TextNode) {
-      decimal = new BigDecimal(context.val.textValue());
-      DecimalUtil.ensureFit(decimal, context.schema);
-      return decimal;
+    if (isDecimal) {
+      if (context.val instanceof NumericNode) {
+        return DecimalUtil.ensureFit(context.val.decimalValue(), context.schema);
+      }
+
+      if (context.val instanceof TextNode) {
+        return DecimalUtil.ensureFit(new BigDecimal(context.val.textValue()), context.schema);
+      }
     }
+
     throw invalidConversionException(context.val, context.schema);
   }
 

@@ -32,8 +32,8 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.unwrapped.UnwrappedDeserializer;
 import io.confluent.ksql.serde.unwrapped.UnwrappedSerializer;
 import io.confluent.ksql.util.KsqlConfig;
@@ -92,7 +92,7 @@ public class ConnectFormatTest {
     when(serde.serializer()).thenReturn(serializer);
     when(serde.deserializer()).thenReturn(deserializer);
 
-    when(persistenceSchema.features()).thenReturn(EnabledSerdeFeatures.of());
+    when(persistenceSchema.features()).thenReturn(SerdeFeatures.of());
   }
 
   @Test
@@ -115,7 +115,7 @@ public class ConnectFormatTest {
     final SimpleColumn singleColumn = createColumn("bob", SqlTypes.INTEGER);
     when(persistenceSchema.columns()).thenReturn(ImmutableList.of(singleColumn));
     when(persistenceSchema.features())
-        .thenReturn(EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+        .thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     final ConnectSchema fieldSchema = (ConnectSchema) SINGLE_FIELD_SCHEMA.fields().get(0).schema();
 

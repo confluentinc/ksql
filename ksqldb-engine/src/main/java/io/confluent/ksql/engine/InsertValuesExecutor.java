@@ -28,6 +28,8 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
@@ -239,7 +241,8 @@ public class InsertValuesExecutor {
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         dataSource.getSchema(),
-        dataSource.getSerdeOptions()
+        dataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final Serde<Struct> keySerde = keySerdeFactory.create(
@@ -268,7 +271,8 @@ public class InsertValuesExecutor {
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         dataSource.getSchema(),
-        dataSource.getSerdeOptions()
+        dataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
@@ -285,12 +289,9 @@ public class InsertValuesExecutor {
     try {
       return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
-      final boolean supportsSchemaInference = dataSource.getKsqlTopic()
-          .getValueFormat()
-          .getFormat()
-          .supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
-
-      if (supportsSchemaInference) {
+      final Format valueFormat = FormatFactory
+          .fromName(dataSource.getKsqlTopic().getValueFormat().getFormat());
+      if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
         if (rootCause instanceof RestClientException) {
           switch (((RestClientException) rootCause).getStatus()) {

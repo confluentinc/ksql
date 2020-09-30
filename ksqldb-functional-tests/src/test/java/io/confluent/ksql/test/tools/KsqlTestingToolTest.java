@@ -211,20 +211,6 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldReportMetaFailureIfAStatementOtherThanTheLastStatementFails() throws Exception {
-    // When:
-    KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect/second_of_three_stmts_fails/statements.sql",
-        null,
-        "src/test/resources/test-runner/incorrect/second_of_three_stmts_fails/output.json",
-        Optional.empty());
-
-    // Then:
-    assertThat(errContent.toString(UTF_8),
-        containsString("Test failed: Only the last statement in a negative test should fail. Yet in this case statement 2 failed."));
-  }
-
-  @Test
   public void shouldRunProvidedExtensionDirTest() throws Exception {
 
     final File testFolder = new File(CORRECT_TESTS_FOLDER);

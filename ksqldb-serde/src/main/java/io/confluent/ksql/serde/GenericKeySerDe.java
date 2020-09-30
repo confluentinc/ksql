@@ -21,8 +21,13 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -106,6 +111,10 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext
   ) {
+    if (unsupportedSchema(schema.columns())) {
+      throw new KsqlException("Unsupported key schema: " + schema.columns());
+    }
+
     final Serde<List<?>> formatSerde = innerFactory
         .createFormatSerde("Key", format, schema, ksqlConfig, schemaRegistryClientFactory);
 
@@ -117,6 +126,19 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     serde.configure(Collections.emptyMap(), true);
 
     return serde;
+  }
+
+  private static boolean unsupportedSchema(final List<SimpleColumn> columns) {
+    if (columns.isEmpty()) {
+      return false;
+    }
+
+    if (columns.size() > 1) {
+      return true;
+    }
+
+    final SqlType sqlType = columns.get(0).type();
+    return !(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal);
   }
 
   private static Serde<Struct> toStructSerde(

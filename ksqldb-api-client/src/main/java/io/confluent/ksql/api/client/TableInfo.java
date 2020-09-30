@@ -31,13 +31,17 @@ public interface TableInfo {
   String getTopic();
 
   /**
-   * @return the format of the data in this table
+   * @return the key format of the data in this table
    */
-  String getFormat();
+  String getKeyFormat();
+
+  /**
+   * @return the value format of the data in this table
+   */
+  String getValueFormat();
 
   /**
    * @return whether this ksqlDB table is windowed
    */
   boolean isWindowed();
-
 }

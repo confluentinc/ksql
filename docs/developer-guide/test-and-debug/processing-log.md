@@ -276,10 +276,10 @@ When you start ksqlDB, you should see the stream in your list of streams:
 ```
 ksql> list streams;
 
- Stream Name        | Kafka Topic            | Format
-------------------------------------------------------
- PROCESSING_LOG     | processing_log         | JSON
-------------------------------------------------------
+ Stream Name    | Kafka Topic      | Key Format | Value Format | Windowed
+-------------------------------------------------------------------------
+ PROCESSING_LOG | processing_log   | KAFKA      | JSON         |
+-------------------------------------------------------------------------
 
 ksql> describe PROCESSING_LOG;
 

@@ -113,12 +113,16 @@ public class ListSourceExecutorTest {
         new SourceInfo.Stream(
             stream1.getName().toString(FormatOptions.noEscape()),
             stream1.getKafkaTopicName(),
-            stream1.getKsqlTopic().getValueFormat().getFormat()
+            stream1.getKsqlTopic().getKeyFormat().getFormat(),
+            stream1.getKsqlTopic().getValueFormat().getFormat(),
+            stream1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Stream(
             stream2.getName().toString(FormatOptions.noEscape()),
             stream2.getKafkaTopicName(),
-            stream2.getKsqlTopic().getValueFormat().getFormat()
+            stream2.getKsqlTopic().getKeyFormat().getFormat(),
+            stream2.getKsqlTopic().getValueFormat().getFormat(),
+            stream1.getKsqlTopic().getKeyFormat().isWindowed()
         )
     ));
   }
@@ -179,12 +183,14 @@ public class ListSourceExecutorTest {
         new SourceInfo.Table(
             table1.getName().toString(FormatOptions.noEscape()),
             table1.getKsqlTopic().getKafkaTopicName(),
+            table2.getKsqlTopic().getKeyFormat().getFormat(),
             table1.getKsqlTopic().getValueFormat().getFormat(),
             table1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Table(
             table2.getName().toString(FormatOptions.noEscape()),
             table2.getKsqlTopic().getKafkaTopicName(),
+            table2.getKsqlTopic().getKeyFormat().getFormat(),
             table2.getKsqlTopic().getValueFormat().getFormat(),
             table2.getKsqlTopic().getKeyFormat().isWindowed()
         )

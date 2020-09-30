@@ -70,10 +70,10 @@ SHOW STREAMS;
 Your output should resemble:
 
 ```
- Stream Name | Kafka Topic | Format
----------------------------------------
- PAGEVIEWS   | pageviews   | DELIMITED
----------------------------------------
+ Stream Name | Kafka Topic | Key Format | Value Format | Windowed
+-----------------------------------------------------------------
+ PAGEVIEWS   | pageviews   | KAFKA      | DELIMITED    | false   
+-----------------------------------------------------------------
 ```
 
 Get the schema for the stream:

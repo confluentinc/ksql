@@ -2012,6 +2012,7 @@ public class KsqlResourceTest {
     return new SourceInfo.Table(
         table.getName().toString(FormatOptions.noEscape()),
         table.getKsqlTopic().getKafkaTopicName(),
+        table.getKsqlTopic().getKeyFormat().getFormat(),
         table.getKsqlTopic().getValueFormat().getFormat(),
         table.getKsqlTopic().getKeyFormat().isWindowed()
     );
@@ -2024,7 +2025,9 @@ public class KsqlResourceTest {
     return new SourceInfo.Stream(
         stream.getName().toString(FormatOptions.noEscape()),
         stream.getKsqlTopic().getKafkaTopicName(),
-        stream.getKsqlTopic().getValueFormat().getFormat()
+        stream.getKsqlTopic().getKeyFormat().getFormat(),
+        stream.getKsqlTopic().getValueFormat().getFormat(),
+        stream.getKsqlTopic().getKeyFormat().isWindowed()
     );
   }
 

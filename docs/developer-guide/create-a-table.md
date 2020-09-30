@@ -76,10 +76,10 @@ SHOW TABLES;
 Your output should resemble:
 
 ```
- Table Name | Kafka Topic | Format | Windowed
-----------------------------------------------
- USERS      | users       | JSON   | false
-----------------------------------------------
+ Table Name | Kafka Topic | Key Format | Value Format | Windowed
+----------------------------------------------------------------
+ USERS      | users       | KAFKA      | JSON          | false
+----------------------------------------------------------------
 ```
 
 Get the schema for the table:
@@ -216,11 +216,11 @@ SHOW TABLES;
 Your output should resemble:
 
 ```
- Table Name   | Kafka Topic  | Format | Windowed
--------------------------------------------------
- USERS        | users        | JSON   | false
- USERS_FEMALE | USERS_FEMALE | JSON   | false
--------------------------------------------------
+ Table Name   | Kafka Topic  | Key Format | Value Format | Windowed
+-------------------------------------------------------------------
+ USERS        | users        | KAFKA      | JSON         | false
+ USERS_FEMALE | USERS_FEMALE | KAFKA      | JSON         | false
+-------------------------------------------------------------------
 ```
 
 Print some rows in the table:

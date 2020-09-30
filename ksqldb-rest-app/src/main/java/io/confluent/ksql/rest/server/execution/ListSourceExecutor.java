@@ -342,7 +342,9 @@ public final class ListSourceExecutor {
     return new Stream(
         dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
-        dataSource.getKsqlTopic().getValueFormat().getFormat()
+        dataSource.getKsqlTopic().getKeyFormat().getFormat(),
+        dataSource.getKsqlTopic().getValueFormat().getFormat(),
+        dataSource.getKsqlTopic().getKeyFormat().isWindowed()
     );
   }
 
@@ -350,6 +352,7 @@ public final class ListSourceExecutor {
     return new Table(
         dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
+        dataSource.getKsqlTopic().getKeyFormat().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormat(),
         dataSource.getKsqlTopic().getKeyFormat().isWindowed()
     );

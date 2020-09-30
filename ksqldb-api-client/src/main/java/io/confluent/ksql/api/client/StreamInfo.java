@@ -31,8 +31,17 @@ public interface StreamInfo {
   String getTopic();
 
   /**
-   * @return the format of the data in this stream
+   * @return the key format of the data in this stream
    */
-  String getFormat();
+  String getKeyFormat();
 
+  /**
+   * @return the value format of the data in this stream
+   */
+  String getValueFormat();
+
+  /**
+   * @return whether the key is windowed.
+   */
+  boolean isWindowed();
 }

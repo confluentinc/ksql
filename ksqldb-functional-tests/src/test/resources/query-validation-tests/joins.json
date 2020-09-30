@@ -1988,6 +1988,21 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"R_A": 1, "L_B": 1, "R_B": -1, "L_C": 2, "R_C": -2}, "timestamp":  11}
       ]
+    },
+    {
+      "name": "key format mismatch",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', key_format='KAFKA', value_format='JSON');",
+        "CREATE TABLE R (A INT PRIMARY KEY, B INT, C INT) WITH (kafka_topic='RIGHT', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R ON L.A = R.A;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Incompatible key formats. `L` has KAFKA while `R` has JSON"
+      }
     }
   ]
 }

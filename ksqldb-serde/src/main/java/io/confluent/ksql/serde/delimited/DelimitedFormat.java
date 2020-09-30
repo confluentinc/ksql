@@ -20,6 +20,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatProperties;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
@@ -64,6 +65,7 @@ public final class DelimitedFormat implements Format {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
+    FormatProperties.validateProperties(name(), formatProperties, getSupportedProperties());
     SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
 
     final Delimiter delimiter = getDelimiter(formatProperties);

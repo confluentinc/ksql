@@ -44,7 +44,6 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
-
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.common.KafkaFuture;

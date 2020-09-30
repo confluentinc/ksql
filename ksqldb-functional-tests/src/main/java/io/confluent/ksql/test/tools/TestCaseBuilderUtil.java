@@ -39,6 +39,8 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -149,7 +151,7 @@ public final class TestCaseBuilderUtil {
       final Format valueFormat = FormatFactory.of(valueFormatInfo);
 
       final Optional<ParsedSchema> valueSchema;
-      if (valueFormat.supportsSchemaInference()) {
+      if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
         final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
 
         SerdeFeatures valFeatures;
@@ -165,11 +167,13 @@ public final class TestCaseBuilderUtil {
           valFeatures = SerdeFeatures.of();
         }
 
+        final SchemaTranslator translator = valueFormat
+            .getSchemaTranslator(valueFormatInfo.getProperties());
+
         valueSchema = logicalSchema.value().isEmpty()
             ? Optional.empty()
-            : Optional.of(valueFormat.toParsedSchema(
-                PersistenceSchema.from(logicalSchema.value(), valFeatures),
-                valueFormatInfo
+            : Optional.of(translator.toParsedSchema(
+                PersistenceSchema.from(logicalSchema.value(), valFeatures)
             ));
       } else {
         valueSchema = Optional.empty();

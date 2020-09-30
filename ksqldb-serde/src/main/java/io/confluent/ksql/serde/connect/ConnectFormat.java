@@ -15,29 +15,21 @@
 
 package io.confluent.ksql.serde.connect;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.errorprone.annotations.Immutable;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -46,7 +38,6 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 
@@ -60,54 +51,13 @@ import org.apache.kafka.connect.errors.DataException;
  */
 public abstract class ConnectFormat implements Format {
 
-  private final Function<Schema, Schema> toKsqlTransformer;
-
-  public ConnectFormat() {
-    this(new ConnectSchemaTranslator()::toKsqlSchema);
-  }
-
-  @VisibleForTesting
-  ConnectFormat(final Function<Schema, Schema> toKsqlTransformer) {
-    this.toKsqlTransformer = Objects.requireNonNull(toKsqlTransformer, "toKsqlTransformer");
-  }
-
   @Override
-  public boolean supportsSchemaInference() {
-    return true;
-  }
-
-  @Override
-  public List<SimpleColumn> toColumns(final ParsedSchema schema) {
-    Schema connectSchema = toConnectSchema(schema);
-
-    if (connectSchema.type() != Type.STRUCT) {
-      if (!supportsFeature(SerdeFeature.UNWRAP_SINGLES)) {
-        throw new KsqlException("Schema returned from schema registry is anonymous type, "
-            + "but format " + name() + " does not support anonymous types. "
-            + "schema: " + schema);
-      }
-
-      connectSchema = SerdeUtils.wrapSingle(connectSchema);
-    }
-
-    final Schema rowSchema = toKsqlTransformer.apply(connectSchema);
-
-    return rowSchema.fields().stream()
-        .map(ConnectFormat::toColumn)
-        .collect(Collectors.toList());
-  }
-
-  public ParsedSchema toParsedSchema(
-      final PersistenceSchema schema,
-      final FormatInfo formatInfo
-  ) {
-    SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
-
-    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
-    final ConnectSchema innerSchema = SerdeUtils
-        .applySinglesUnwrapping(outerSchema, schema.features());
-
-    return fromConnectSchema(innerSchema, formatInfo);
+  public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties) {
+    return new ConnectFormatSchemaTranslator(
+        this,
+        formatProperties,
+        ConnectSchemaUtil::toKsqlSchema
+    );
   }
 
   @Override
@@ -167,6 +117,10 @@ public abstract class ConnectFormat implements Format {
     );
   }
 
+  protected abstract ConnectSchemaTranslator getConnectSchemaTranslator(
+      Map<String, String> formatProps
+  );
+
   protected abstract <T> Serde<T> getConnectSerde(
       ConnectSchema connectSchema,
       Map<String, String> formatProps,
@@ -174,41 +128,6 @@ public abstract class ConnectFormat implements Format {
       Supplier<SchemaRegistryClient> srFactory,
       Class<T> targetType
   );
-
-  protected abstract Schema toConnectSchema(ParsedSchema schema);
-
-  protected abstract ParsedSchema fromConnectSchema(Schema schema, FormatInfo formatInfo);
-
-  private static SimpleColumn toColumn(final Field field) {
-    final ColumnName name = ColumnName.of(field.name());
-    final SqlType type = SchemaConverters.connectToSqlConverter().toSqlType(field.schema());
-    return new ConnectColumn(name, type);
-  }
-
-  @Immutable
-  private static final class ConnectColumn implements SimpleColumn {
-
-    private final ColumnName name;
-    private final SqlType type;
-
-    private ConnectColumn(
-        final ColumnName name,
-        final SqlType type
-    ) {
-      this.name = Objects.requireNonNull(name, "name");
-      this.type = Objects.requireNonNull(type, "type");
-    }
-
-    @Override
-    public ColumnName name() {
-      return name;
-    }
-
-    @Override
-    public SqlType type() {
-      return type;
-    }
-  }
 
   private static class ListToStructSerializer implements Serializer<List<?>> {
 

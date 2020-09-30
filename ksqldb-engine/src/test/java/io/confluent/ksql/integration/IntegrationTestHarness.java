@@ -39,6 +39,7 @@ import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -567,7 +568,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    *
    * @param topicNames the names of the topics to await existence for.
    */
-  public void waitForTopicsToBePresent(final String... topicNames) throws Exception {
+  public void waitForTopicsToBePresent(final String... topicNames) {
     assertThatEventually(
         "topics not all present after 30 seconds. topics: " + Arrays.toString(topicNames),
         () -> {
@@ -589,7 +590,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    *
    * @param subjectName the name of the subject to await existence for.
    */
-  public void waitForSubjectToBePresent(final String subjectName) throws Exception {
+  public void waitForSubjectToBePresent(final String subjectName) {
     assertThatEventually(
         "subject not present after 30 seconds. subject: " + subjectName,
         () -> {
@@ -610,7 +611,7 @@ public final class IntegrationTestHarness extends ExternalResource {
    *
    * @param subjectName the name of the subject to await absence for.
    */
-  public void waitForSubjectToBeAbsent(final String subjectName) throws Exception {
+  public void waitForSubjectToBeAbsent(final String subjectName) {
     assertThatEventually(
         "subject still present after 30 seconds. subject: " + subjectName,
         () -> {
@@ -700,14 +701,15 @@ public final class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema) {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
-      final ParsedSchema parsedSchema = new AvroFormat().toParsedSchema(
+      final Map<String, String> formatProps = ImmutableMap
+          .of(AvroFormat.FULL_SCHEMA_NAME, "test_" + topicName);
+
+      final SchemaTranslator translator = new AvroFormat().getSchemaTranslator(formatProps);
+
+      final ParsedSchema parsedSchema = translator.toParsedSchema(
           PersistenceSchema.from(
               schema.logicalSchema().value(),
               schema.valueSchema().features()
-          ),
-          FormatInfo.of(
-              AvroFormat.NAME,
-              ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "test_" + topicName)
           )
       );
 

@@ -99,14 +99,14 @@
           "type" : "array",
           "items" : {
             "type" : "string",
-            "enum" : [ "WRAP_SINGLES", "UNWRAP_SINGLES" ]
+            "enum" : [ "SCHEMA_INFERENCE", "WRAP_SINGLES", "UNWRAP_SINGLES" ]
           }
         },
         "valueFeatures" : {
           "type" : "array",
           "items" : {
             "type" : "string",
-            "enum" : [ "WRAP_SINGLES", "UNWRAP_SINGLES" ]
+            "enum" : [ "SCHEMA_INFERENCE", "WRAP_SINGLES", "UNWRAP_SINGLES" ]
           }
         },
         "options" : {

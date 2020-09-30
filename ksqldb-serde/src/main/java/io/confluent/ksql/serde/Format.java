@@ -16,12 +16,9 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -42,13 +39,12 @@ import org.apache.kafka.common.serialization.Serde;
 public interface Format {
 
   /**
-   * The name of the {@code Format} specification. If this format supports
-   * Confluent Schema Registry integration (either builtin or custom via the
-   * {@code ParsedSchema} plugin support), this should match the value returned
-   * by {@link ParsedSchema#name()}. Note that this value is <i>case-sensitive</i>.
+   * The name of the {@code Format} specification.
+   *
+   * <p>As used for {@code FORMAT}, {@code VALUE_FORMAT} and {@code KEY_FORMAT} properties in SQL
+   * statements.
    *
    * @return the name of this Format
-   * @see #supportsSchemaInference()
    */
   String name();
 
@@ -66,48 +62,18 @@ public interface Format {
   }
 
   /**
-   * Indicates whether or not this format can support CREATE statements that
-   * omit the table elements and instead determine the schema from a Confluent
-   * Schema Registry query. If this method returns {@code true}, it is expected
-   * that the {@link #name()} corresponds with the schema format name returned
-   * by {@link ParsedSchema#name()} for this format.
+   * Get a type for converting between {@link ParsedSchema} returned by Confluent Schema Registry
+   * and ksqlDB's own schema types.
    *
-   * @return {@code true} if this {@code Format} supports schema inference
-   *         through Confluent Schema Registry
+   * <p>If this Format supports the {@link SerdeFeature#SCHEMA_INFERENCE} feature, it is expected
+   * that this method will be implemented.
+   *
+   * @param formatProperties any format specific properties
+   * @return the converter
+   * @see SerdeFeature#SCHEMA_INFERENCE
    */
-  default boolean supportsSchemaInference() {
-    return false;
-  }
-
-  /**
-   * Converts the {@link ParsedSchema} returned by Confluent Schema Registry into a list of columns,
-   * which ksqlDB can use to infer the stream or table schema.
-   *
-   * <p>If this Format {@link #supportsSchemaInference()}, it is expected that
-   * this method will be implemented.</p>
-   *
-   * @param schema the {@code ParsedSchema} returned from Schema Registry
-   * @return the list of columns the schema defines
-   */
-  default List<SimpleColumn> toColumns(ParsedSchema schema) {
-    throw new KsqlException("Format does not implement Schema Registry support: " + name());
-  }
-
-  /**
-   * Converts a list of columns into a {@link ParsedSchema}.
-   *
-   * <p>Currently only used to support the testing tool, which calls this method to obtain the
-   * {@link ParsedSchema} with which to populate the Schema Registry.
-   *
-   * @param schema persistence schema
-   * @param formatInfo the format info potentially containing additional info required to convert
-   * @return the {@code ParsedSchema} which will be added to the Schema Registry
-   */
-  default ParsedSchema toParsedSchema(
-      PersistenceSchema schema,
-      FormatInfo formatInfo
-  ) {
-    throw new KsqlException("Format does not implement Schema Registry support: " + name());
+  default SchemaTranslator getSchemaTranslator(Map<String, String> formatProperties) {
+    throw new UnsupportedOperationException(name() + " does not implement Schema Registry support");
   }
 
   /**
@@ -121,16 +87,7 @@ public interface Format {
     // by default, this method ensures that there are no property names
     // (case-insensitive) that are not in the getSupportedProperties()
     // and that none of the values are empty
-    final SetView<String> diff = Sets.difference(properties.keySet(), getSupportedProperties());
-    if (!diff.isEmpty()) {
-      throw new KsqlException(name() + " does not support the following configs: " + diff);
-    }
-
-    properties.forEach((k, v) -> {
-      if (v.trim().isEmpty()) {
-        throw new KsqlException(k + " cannot be empty. Format configuration: " + properties);
-      }
-    });
+    FormatProperties.validateProperties(name(), properties, getSupportedProperties());
   }
 
   /**

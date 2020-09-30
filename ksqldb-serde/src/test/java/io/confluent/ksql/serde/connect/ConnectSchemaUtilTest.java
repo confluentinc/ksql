@@ -29,9 +29,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 
-public class ConnectSchemaTranslatorTest {
-
-  private final ConnectSchemaTranslator schemaTranslator = new ConnectSchemaTranslator();
+public class ConnectSchemaUtilTest {
 
   @Test
   public void shouldTranslatePrimitives() {
@@ -44,7 +42,7 @@ public class ConnectSchemaTranslatorTest {
         .field("booleanField", Schema.BOOLEAN_SCHEMA)
         .build();
 
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
     assertThat(ksqlSchema.schema().type(), equalTo(Schema.Type.STRUCT));
     assertThat(ksqlSchema.fields().size(), equalTo(connectSchema.fields().size()));
     for (int i = 0; i < ksqlSchema.fields().size(); i++) {
@@ -65,7 +63,7 @@ public class ConnectSchemaTranslatorTest {
         .field("mapField", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
         .build();
 
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
     assertThat(ksqlSchema.field("MAPFIELD"), notNullValue());
     final Schema mapSchema = ksqlSchema.field("MAPFIELD").schema();
     assertThat(mapSchema.type(), equalTo(Schema.Type.MAP));
@@ -86,7 +84,7 @@ public class ConnectSchemaTranslatorTest {
                     .build()))
         .build();
 
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
     assertThat(ksqlSchema.field("MAPFIELD"), notNullValue());
     final Schema mapSchema = ksqlSchema.field("MAPFIELD").schema();
     assertThat(mapSchema.type(), equalTo(Schema.Type.MAP));
@@ -105,7 +103,7 @@ public class ConnectSchemaTranslatorTest {
         .field("arrayField", SchemaBuilder.array(Schema.INT32_SCHEMA))
         .build();
 
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
     assertThat(ksqlSchema.field("ARRAYFIELD"), notNullValue());
     final Schema arraySchema = ksqlSchema.field("ARRAYFIELD").schema();
     assertThat(arraySchema.type(), equalTo(Schema.Type.ARRAY));
@@ -125,7 +123,7 @@ public class ConnectSchemaTranslatorTest {
                     .build()))
         .build();
 
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
     assertThat(ksqlSchema.field("ARRAYFIELD"), notNullValue());
     final Schema arraySchema = ksqlSchema.field("ARRAYFIELD").schema();
     assertThat(arraySchema.type(), equalTo(Schema.Type.ARRAY));
@@ -146,7 +144,7 @@ public class ConnectSchemaTranslatorTest {
         .field("structField", connectInnerSchema)
         .build();
 
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
     assertThat(ksqlSchema.field("STRUCTFIELD"), notNullValue());
     final Schema innerSchema = ksqlSchema.field("STRUCTFIELD").schema();
     assertThat(innerSchema.fields().size(), equalTo(connectInnerSchema.fields().size()));
@@ -168,7 +166,7 @@ public class ConnectSchemaTranslatorTest {
         .field("mapfield", SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
         .build();
 
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
 
     assertThat(ksqlSchema.field("MAPFIELD"), notNullValue());
     final Schema mapSchema = ksqlSchema.field("MAPFIELD").schema();
@@ -187,7 +185,7 @@ public class ConnectSchemaTranslatorTest {
         .build();
 
     // When:
-    final Schema ksqlSchema = schemaTranslator.toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
 
     // Then:
     assertThat(ksqlSchema.fields(), hasSize(1));
@@ -205,7 +203,7 @@ public class ConnectSchemaTranslatorTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> schemaTranslator.toKsqlSchema(connectSchema)
+        () -> ConnectSchemaUtil.toKsqlSchema(connectSchema)
     );
 
     // Then:

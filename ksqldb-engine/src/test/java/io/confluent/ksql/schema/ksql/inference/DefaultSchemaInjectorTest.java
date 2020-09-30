@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -49,10 +50,10 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -145,7 +146,7 @@ public class DefaultSchemaInjectorTest {
     ctStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ct),
         SessionConfig.of(config, ImmutableMap.of()));
 
-    when(schemaSupplier.getValueSchema(eq(KAFKA_TOPIC), any()))
+    when(schemaSupplier.getValueSchema(any(), any(), any()))
         .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     when(cs.getElements()).thenReturn(TableElements.of());
@@ -218,28 +219,7 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
-  public void shouldThrowIfSchemaNotRegisteredOrNotCompatible() {
-    // Given:
-    when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.failure(new KsqlException("schema missing or incompatible")));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> injector.inject(ctStatement)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "schema missing or incompatible"));
-  }
-
-  @Test
   public void shouldAddElementsToCsStatement() {
-    // Given:
-    when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
-
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
@@ -249,10 +229,6 @@ public class DefaultSchemaInjectorTest {
 
   @Test
   public void shouldAddElementsToCtStatement() {
-    // Given:
-    when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
-
     // When:
     final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
@@ -262,10 +238,6 @@ public class DefaultSchemaInjectorTest {
 
   @Test
   public void shouldBuildNewCsStatementText() {
-    // Given:
-    when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
-
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
@@ -287,10 +259,6 @@ public class DefaultSchemaInjectorTest {
 
   @Test
   public void shouldBuildNewCtStatementText() {
-    // Given:
-    when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.empty()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
-
     // When:
     final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
 
@@ -311,12 +279,32 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
-  public void shouldBuildNewCsStatementTextFromId() {
+  public void shouldGetValueSchemaWithoutSchemaId() {
+    // When:
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
+
+    // Then:
+    assertThat(result.getStatementText(), is(
+        "CREATE TABLE `ct` ("
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
+            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID=5, VALUE_FORMAT='avro');"
+    ));
+
+    verify(schemaSupplier).getValueSchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("AVRO"));
+  }
+
+  @Test
+  public void shouldGetValueSchemaWithSchemaId() {
     // Given:
     when(cs.getProperties()).thenReturn(supportedPropsWith("SCHEMA_ID", "42"));
-
-    when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.of(42)))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
@@ -335,41 +323,12 @@ public class DefaultSchemaInjectorTest {
             + "`decimalField` DECIMAL(4, 2)) "
             + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID='42', VALUE_FORMAT='avro');"
     ));
-  }
 
-  @Test
-  public void shouldBuildNewCtStatementTextFromId() {
-    // Given:
-    when(ct.getProperties()).thenReturn(supportedPropsWith("SCHEMA_ID", "42"));
-
-    when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.of(42)))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
-
-    // When:
-    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
-
-    // Then:
-    assertThat(result.getStatementText(), is(
-        "CREATE TABLE `ct` ("
-            + "`intField` INTEGER, "
-            + "`bigIntField` BIGINT, "
-            + "`doubleField` DOUBLE, "
-            + "`stringField` STRING, "
-            + "`booleanField` BOOLEAN, "
-            + "`arrayField` ARRAY<INTEGER>, "
-            + "`mapField` MAP<STRING, BIGINT>, "
-            + "`structField` STRUCT<`s0` BIGINT>, "
-            + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', SCHEMA_ID='42', VALUE_FORMAT='avro');"
-    ));
+    verify(schemaSupplier).getValueSchema(any(), eq(Optional.of(42)), any());
   }
 
   @Test
   public void shouldAddSchemaIdIfNotPresentAlready() {
-    // Given:
-    when(schemaSupplier.getValueSchema(KAFKA_TOPIC, Optional.empty()))
-        .thenReturn(SchemaResult.success(schemaAndId(SUPPORTED_SCHEMAS, SCHEMA_ID)));
-
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
@@ -400,7 +359,7 @@ public class DefaultSchemaInjectorTest {
     when(col0.name()).thenReturn(ColumnName.of("CREATE"));
     when(col0.type()).thenReturn(SqlTypes.BIGINT);
 
-    when(schemaSupplier.getValueSchema(any(), any()))
+    when(schemaSupplier.getValueSchema(any(), any(), any()))
         .thenReturn(SchemaResult.success(schemaAndId(ImmutableList.of(col0), SCHEMA_ID)));
 
     // When:
@@ -413,7 +372,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldThrowIfSchemaSupplierThrows() {
     // Given:
-    when(schemaSupplier.getValueSchema(any(), any()))
+    when(schemaSupplier.getValueSchema(any(), any(), any()))
         .thenThrow(new KsqlException("Oh no!"));
 
     // When:
@@ -423,8 +382,7 @@ public class DefaultSchemaInjectorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Oh no"));
+    assertThat(e.getMessage(), containsString("Oh no"));
   }
 
   @SuppressWarnings("SameParameterValue")

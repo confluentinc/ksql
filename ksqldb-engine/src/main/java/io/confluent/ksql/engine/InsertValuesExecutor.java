@@ -33,6 +33,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -290,7 +291,7 @@ public class InsertValuesExecutor {
     } catch (final Exception e) {
       final Format valueFormat = FormatFactory
           .fromName(dataSource.getKsqlTopic().getValueFormat().getFormat());
-      if (valueFormat.supportsSchemaInference()) {
+      if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
         if (rootCause instanceof RestClientException) {
           switch (((RestClientException) rootCause).getStatus()) {

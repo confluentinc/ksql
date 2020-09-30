@@ -51,6 +51,7 @@ import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -191,18 +192,20 @@ public final class TestExecutorUtil {
     final Format valueFormat = FormatFactory
         .fromName(dataSource.getKsqlTopic().getValueFormat().getFormat());
 
-    if (valueFormat.supportsSchemaInference()) {
-      try {
-        final String subject =
-            dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+    if (!valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+      return Optional.empty();
+    }
 
-        final SchemaMetadata metadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
-        return Optional.of(
-            schemaRegistryClient.getSchemaBySubjectAndId(subject, metadata.getId())
-        );
-      } catch (final Exception e) {
-        // do nothing
-      }
+    try {
+      final String subject =
+          dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+      final SchemaMetadata metadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
+      return Optional.of(
+          schemaRegistryClient.getSchemaBySubjectAndId(subject, metadata.getId())
+      );
+    } catch (final Exception e) {
+      // do nothing
     }
     return Optional.empty();
   }

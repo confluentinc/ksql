@@ -58,7 +58,7 @@ Next KLIP number: **39**
 | [KLIP-15: KSQLDB new API and Client](klip-15-new-api-and-client.md)                                  | Proposal       |                   |            |               |
 | [KLIP-16: Introduce 'K$' dynamic views                                                               | Proposal       |                   |            |               |
 | [KLIP-17: Remove 'INSERT INTO' in favour of SQL Union](klip-17-sql-union.md)                         | Proposed       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/4125) |
-| [KLIP-18: Distributed Metastore](klip-18-distributed-metastore.md)                                  | Proposal       |                   |            |               |
+| [KLIP-18: Distributed Metastore](klip-18-distributed-metastore.md)                                   | Proposal       |                   |            |               |
 | [KLIP-19: Introduce Materialize Views](klip-19-materialize-views.md)                                 | Proposal       |                   |            |               |
 | [KLIP-20: Remove 'TERMINATE' statements](klip-20_remove_terminate.md)                                | Proposal       |                   |            |               |
 | [KLIP-21: Correct 'INSERT VALUES' semantics](klip-21_correct_insert_values_semantics.md)             | Proposal       |                   |            |               |

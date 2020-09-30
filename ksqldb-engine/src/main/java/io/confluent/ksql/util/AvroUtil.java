@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import java.io.IOException;
 import org.apache.hc.core5.http.HttpStatus;
@@ -44,12 +45,14 @@ public final class AvroUtil {
       return;
     }
 
-    final AvroSchema parsedSchema = (AvroSchema) new AvroFormat().toParsedSchema(
+    final SchemaTranslator translator = new AvroFormat()
+        .getSchemaTranslator(format.getProperties());
+
+    final AvroSchema parsedSchema = (AvroSchema) translator.toParsedSchema(
         PersistenceSchema.from(
             ddl.getSchema().value(),
             formats.getValueFeatures()
-        ),
-        formats.getValueFormat()
+        )
     );
 
     final String topicName = ddl.getTopicName();

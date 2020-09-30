@@ -29,6 +29,8 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -133,7 +135,7 @@ public class SchemaRegisterInjector implements Injector {
       final boolean registerIfSchemaExists
   ) {
     final Format format = FormatFactory.of(formatInfo);
-    if (!format.supportsSchemaInference()) {
+    if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       return;
     }
 
@@ -150,12 +152,13 @@ public class SchemaRegisterInjector implements Injector {
       final String subject = topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
 
       if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
-        final ParsedSchema parsedSchema = format.toParsedSchema(
+        final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());
+
+        final ParsedSchema parsedSchema = translator.toParsedSchema(
             PersistenceSchema.from(
                 schema.withoutPseudoAndKeyColsInValue().value(),
                 valFeatures
-            ),
-            formatInfo
+            )
         );
 
         srClient.register(subject, parsedSchema);

@@ -38,7 +38,7 @@ public interface KeySerdeFactory {
    * @param schemaRegistryClientFactory supplier of SR client.
    * @param loggerNamePrefix processing logger name prefix
    * @param processingLogContext processing logger context.
-   * @return the value serde.
+   * @return the key serde.
    */
   Serde<Struct> create(
       FormatInfo format,
@@ -59,7 +59,7 @@ public interface KeySerdeFactory {
    * @param schemaRegistryClientFactory supplier of SR client.
    * @param loggerNamePrefix processing logger name prefix
    * @param processingLogContext processing logger context.
-   * @return the value serde.
+   * @return the key serde.
    */
   Serde<Windowed<Struct>> create(
       FormatInfo format,

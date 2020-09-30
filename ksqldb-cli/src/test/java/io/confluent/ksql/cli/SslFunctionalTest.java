@@ -16,6 +16,7 @@
 package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -81,7 +82,7 @@ public class SslFunctionalTest {
   public static void classSetUp() {
     final OrderDataProvider dataProvider = new OrderDataProvider();
     TEST_HARNESS.getKafkaCluster().createTopics(TOPIC_NAME);
-    TEST_HARNESS.produceRows(dataProvider.topicName(), dataProvider, JSON);
+    TEST_HARNESS.produceRows(dataProvider.topicName(), dataProvider, KAFKA, JSON);
   }
 
   @Before

@@ -138,7 +138,7 @@ public class SystemAuthenticationFunctionalTest {
   private static void commonClassSetup(final IntegrationTestHarness TEST_HARNESS,
       final TestKsqlRestApp REST_APP_0) {
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER, Optional.of(USER1));
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,

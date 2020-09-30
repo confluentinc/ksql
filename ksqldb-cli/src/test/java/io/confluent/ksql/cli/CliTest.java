@@ -91,6 +91,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -188,9 +189,9 @@ public class CliTest {
         DELIMITED_TOPIC
     );
 
-    TEST_HARNESS.produceRows(JSON_TOPIC, ORDER_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(JSON_TOPIC, ORDER_DATA_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
     TEST_HARNESS.produceRecord(DELIMITED_TOPIC, null, null);
-    TEST_HARNESS.produceRows(DELIMITED_TOPIC, new ItemDataProvider(), FormatFactory.DELIMITED);
+    TEST_HARNESS.produceRows(DELIMITED_TOPIC, new ItemDataProvider(), FormatFactory.KAFKA, FormatFactory.DELIMITED);
 
     try (Cli cli = Cli.build(1L, 1000L, OutputFormat.JSON, restClient)) {
       createKStream(ORDER_DATA_PROVIDER, cli);
@@ -241,7 +242,7 @@ public class CliTest {
     }
   }
 
-  private static void createKStream(final TestDataProvider<?> dataProvider, final Cli cli) {
+  private static void createKStream(final TestDataProvider dataProvider, final Cli cli) {
     run("CREATE STREAM " + dataProvider.kstreamName()
             + " (" + dataProvider.ksqlSchemaString(false) + ")"
             + " WITH (value_format = 'json', kafka_topic = '" + dataProvider.topicName() + "');",
@@ -265,7 +266,7 @@ public class CliTest {
   private void testCreateStreamAsSelect(
       final String selectQuery,
       final PhysicalSchema resultSchema,
-      final Map<String, GenericRow> expectedResults
+      final Map<Struct, GenericRow> expectedResults
   ) {
     final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
@@ -280,6 +281,7 @@ public class CliTest {
       TEST_HARNESS.verifyAvailableUniqueRows(
           streamName,
           is(expectedResults),
+          FormatFactory.KAFKA,
           FormatFactory.JSON,
           resultSchema
       );
@@ -508,29 +510,29 @@ public class CliTest {
 
   @Test
   public void testSelectProject() {
-    final Map<String, GenericRow> expectedResults = ImmutableMap
-        .<String, GenericRow>builder()
-        .put("ORDER_1", genericRow(
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap
+        .<Struct, GenericRow>builder()
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_1"), genericRow(
             "ITEM_1",
             10.0,
             ImmutableList.of(100.0, 110.99, 90.0)))
-        .put("ORDER_2", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_2"), genericRow(
             "ITEM_2",
             20.0,
             ImmutableList.of(10.0, 10.99, 9.0)))
-        .put("ORDER_3", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_3"), genericRow(
             "ITEM_3",
             30.0,
             ImmutableList.of(10.0, 10.99, 91.0)))
-        .put("ORDER_4", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_4"), genericRow(
             "ITEM_4",
             40.0,
             ImmutableList.of(10.0, 140.99, 94.0)))
-        .put("ORDER_5", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_5"), genericRow(
             "ITEM_5",
             50.0,
             ImmutableList.of(160.0, 160.99, 98.0)))
-        .put("ORDER_6", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_6"), genericRow(
             "ITEM_8",
             80.0,
             ImmutableList.of(1100.0, 1110.99, 970.0)))
@@ -557,8 +559,8 @@ public class CliTest {
 
   @Test
   public void testSelectFilter() {
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ORDER_6",
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
+        ORDER_DATA_PROVIDER.keyFrom("ORDER_6"),
         genericRow(
             8L,
             "ITEM_8",
@@ -579,10 +581,10 @@ public class CliTest {
 
   @Test
   public void testTransientSelect() {
-    final Multimap<String, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get("ORDER_1"), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get("ORDER_2"), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get("ORDER_3"), genericRow()).values();
+    final Multimap<Struct, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
         "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
@@ -642,10 +644,10 @@ public class CliTest {
 
   @Test
   public void testTransientContinuousSelectStar() {
-    final Multimap<String, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get("ORDER_1"), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get("ORDER_2"), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get("ORDER_3"), genericRow()).values();
+    final Multimap<Struct, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
         "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
@@ -699,8 +701,8 @@ public class CliTest {
         SerdeFeatures.of()
     );
 
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ORDER_6",
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
+        ORDER_DATA_PROVIDER.keyFrom("ORDER_6"),
         genericRow("ITEM_8", 800.0, 1110.0, 12.0, true)
     );
 

@@ -18,6 +18,7 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -25,6 +26,8 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -37,8 +40,8 @@ import io.confluent.ksql.util.OrderDataProvider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -87,11 +90,11 @@ public class JoinIntTest {
 
     // we want the table events to always be present (less than the ts in the stream
     // including the time extractor)
-    TEST_HARNESS.produceRows(itemTableTopicJson, ITEM_DATA_PROVIDER, JSON, () -> 0L);
-    TEST_HARNESS.produceRows(itemTableTopicAvro, ITEM_DATA_PROVIDER, AVRO, () -> 0L);
+    TEST_HARNESS.produceRows(itemTableTopicJson, ITEM_DATA_PROVIDER, KAFKA, JSON, () -> 0L);
+    TEST_HARNESS.produceRows(itemTableTopicAvro, ITEM_DATA_PROVIDER, KAFKA, AVRO, () -> 0L);
 
-    TEST_HARNESS.produceRows(orderStreamTopicJson, ORDER_DATA_PROVIDER, JSON, () -> now);
-    TEST_HARNESS.produceRows(orderStreamTopicAvro, ORDER_DATA_PROVIDER, AVRO, () -> now);
+    TEST_HARNESS.produceRows(orderStreamTopicJson, ORDER_DATA_PROVIDER, KAFKA, JSON, () -> now);
+    TEST_HARNESS.produceRows(orderStreamTopicAvro, ORDER_DATA_PROVIDER, KAFKA, AVRO, () -> now);
 
     createStreams();
   }
@@ -100,8 +103,7 @@ public class JoinIntTest {
                                           final String orderStreamTopic,
                                           final String orderStreamName,
                                           final String itemTableName,
-                                          final Format dataSourceSerDe)
-      throws Exception {
+                                          final Format valueFormat) {
 
     final String queryString =
             "CREATE STREAM " + testStreamName + " AS "
@@ -114,44 +116,18 @@ public class JoinIntTest {
 
     final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(testStreamName));
+    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
-    final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema(),
-        source.getKsqlTopic().getKeyFormat().getFeatures(),
-        source.getKsqlTopic().getValueFormat().getFeatures()
-    );
-
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ITEM_1",
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
+        keyBuilder.build("ITEM_1"),
         genericRow("ORDER_1", 10.0, "home cinema")
     );
 
-    final Map<String, GenericRow> results = new HashMap<>();
-    assertThatEventually("failed to complete join correctly", () -> {
-          results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
-              testStreamName,
-              1,
-              dataSourceSerDe,
-              resultSchema));
-
-      final boolean success = results.equals(expectedResults);
-      if (!success) {
-        try {
-          // The join may not be triggered fist time around due to order in which the
-          // consumer pulls the records back. So we publish again to make the stream
-          // trigger the join.
-          TEST_HARNESS
-              .produceRows(orderStreamTopic, ORDER_DATA_PROVIDER, dataSourceSerDe, () -> now);
-        } catch(final Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
-      return success;
-        }, is(true), MAX_WAIT_MS, TimeUnit.MILLISECONDS);
+    assertExpectedResults(expectedResults, source, orderStreamTopic, KAFKA, valueFormat);
   }
 
   @Test
-  public void shouldInsertLeftJoinOrderAndItems() throws Exception {
+  public void shouldInsertLeftJoinOrderAndItems() {
     final String testStreamName = "OrderedWithDescription".toUpperCase();
 
     final String commonSql =
@@ -174,43 +150,18 @@ public class JoinIntTest {
 
     final DataSource source = ksqlContext.getMetaStore()
         .getSource(SourceName.of(testStreamName));
+    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
-    final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema(),
-        source.getKsqlTopic().getKeyFormat().getFeatures(),
-        source.getKsqlTopic().getValueFormat().getFeatures()
-    );
-
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ITEM_1",
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
+        keyBuilder.build("ITEM_1"),
         genericRow("ORDER_1", 10.0, "home cinema")
     );
 
-    final Map<String, GenericRow> results = new HashMap<>();
-    assertThatEventually("failed to complete join correctly", () -> {
-      results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
-          testStreamName,
-          1,
-          JSON,
-          resultSchema));
-
-      final boolean success = results.equals(expectedResults);
-      if (!success) {
-        try {
-          // The join may not be triggered fist time around due to order in which the
-          // consumer pulls the records back. So we publish again to make the stream
-          // trigger the join.
-          TEST_HARNESS.produceRows(orderStreamTopicJson, ORDER_DATA_PROVIDER, JSON, () -> now);
-        } catch(final Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
-      return success;
-    }, is(true), MAX_WAIT_MS, TimeUnit.MILLISECONDS);
+    assertExpectedResults(expectedResults, source, orderStreamTopicJson, KAFKA, JSON);
   }
 
   @Test
-  public void shouldLeftJoinOrderAndItemsJson() throws Exception {
+  public void shouldLeftJoinOrderAndItemsJson() {
     shouldLeftJoinOrderAndItems(
         "ORDERWITHDESCRIPTIONJSON",
         orderStreamTopicJson,
@@ -221,7 +172,7 @@ public class JoinIntTest {
   }
 
   @Test
-  public void shouldLeftJoinOrderAndItemsAvro() throws Exception {
+  public void shouldLeftJoinOrderAndItemsAvro() {
     shouldLeftJoinOrderAndItems(
         "ORDERWITHDESCRIPTIONAVRO",
         orderStreamTopicAvro,
@@ -231,7 +182,7 @@ public class JoinIntTest {
   }
 
   @Test
-  public void shouldUseTimeStampFieldFromStream() throws Exception {
+  public void shouldUseTimeStampFieldFromStream() {
     final String queryString = "CREATE STREAM JOINED AS "
         + "SELECT " + ORDER_STREAM_NAME_AVRO + ".ITEMID, ORDERID, ORDERUNITS, DESCRIPTION "
         + "FROM " + ORDER_STREAM_NAME_AVRO + " LEFT JOIN " + ITEM_TABLE_NAME_AVRO + " "
@@ -244,48 +195,64 @@ public class JoinIntTest {
 
     ksqlContext.sql(queryString);
 
-    final String outputStream = "OUTPUT";
-
     final DataSource source = ksqlContext.getMetaStore()
-        .getSource(SourceName.of(outputStream));
+        .getSource(SourceName.of("OUTPUT"));
+    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
-    final PhysicalSchema resultSchema = PhysicalSchema.from(
-        source.getSchema(),
-        source.getKsqlTopic().getKeyFormat().getFeatures(),
-        source.getKsqlTopic().getValueFormat().getFeatures()
-    );
-
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ITEM_1",
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
+        keyBuilder.build("ITEM_1"),
         genericRow("ORDER_1", "home cinema", 1L)
     );
 
-    final AtomicInteger attempts = new AtomicInteger();
-    final Map<String, GenericRow> results = new HashMap<>();
+    assertExpectedResults(expectedResults, source, orderStreamTopicAvro, KAFKA, AVRO, 120000);
+  }
+
+  private void assertExpectedResults(
+      final Map<Struct, GenericRow> expectedResults,
+      final DataSource outputSource,
+      final String inputTopic,
+      final Format inputKeyFormat,
+      final Format inputValueFormat
+  ) {
+    assertExpectedResults(expectedResults, outputSource, inputTopic, inputKeyFormat, inputValueFormat, MAX_WAIT_MS);
+  }
+
+  private void assertExpectedResults(
+      final Map<Struct, GenericRow> expectedResults,
+      final DataSource outputSource,
+      final String inputTopic,
+      final Format inputKeyFormat,
+      final Format inputValueFormat,
+      final long timeoutMs
+  ) {
+    final PhysicalSchema schema = PhysicalSchema.from(
+        outputSource.getSchema(),
+        outputSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        outputSource.getKsqlTopic().getValueFormat().getFeatures()
+    );
+
+    final Map<Struct, GenericRow> results = new HashMap<>();
     assertThatEventually("failed to complete join correctly", () -> {
       results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
-          outputStream,
+          outputSource.getKafkaTopicName(),
           1,
-          AVRO,
-          resultSchema));
+          FormatFactory.of(outputSource.getKsqlTopic().getKeyFormat().getFormatInfo()),
+          FormatFactory.of(outputSource.getKsqlTopic().getValueFormat().getFormatInfo()),
+          schema));
 
       final boolean success = results.equals(expectedResults);
       if (!success) {
-        final int failedAttempts = attempts.getAndIncrement();
-        if (failedAttempts >= 5) {
-          return true;
-        }
         try {
           // The join may not be triggered fist time around due to order in which the
           // consumer pulls the records back. So we publish again to make the stream
           // trigger the join.
-          TEST_HARNESS.produceRows(orderStreamTopicAvro, ORDER_DATA_PROVIDER, AVRO, () -> now);
+          TEST_HARNESS.produceRows(inputTopic, ORDER_DATA_PROVIDER, inputKeyFormat, inputValueFormat, () -> now);
         } catch(final Exception e) {
           throw new RuntimeException(e);
         }
       }
       return success;
-    }, is(true), 120000, TimeUnit.MILLISECONDS);
+    }, is(true), timeoutMs, TimeUnit.MILLISECONDS);
 
     assertThat(results, is(expectedResults));
   }

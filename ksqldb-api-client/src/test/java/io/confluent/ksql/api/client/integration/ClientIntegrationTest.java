@@ -18,6 +18,8 @@ package io.confluent.ksql.api.client.integration;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_KEY_FORMAT_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -66,7 +68,9 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
@@ -113,7 +117,10 @@ public class ClientIntegrationTest {
   private static final List<ColumnType> TEST_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP", "STRUCT", "STRUCT"));
   private static final List<KsqlArray> TEST_EXPECTED_ROWS = convertToClientRows(
-      TEST_DATA_PROVIDER.data());
+      TEST_DATA_PROVIDER.data(), TEST_DATA_PROVIDER.key());
+
+  private static final Format KEY_FORMAT = FormatFactory.JSON;
+  private static final Format VALUE_FORMAT = FormatFactory.JSON;
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final String AN_AGG_KEY = "FOO";
@@ -122,16 +129,16 @@ public class ClientIntegrationTest {
           .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
           .build(),
-      SerdeFeatures.of(),
+      SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
       SerdeFeatures.of()
   );
 
-  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER = new TestDataProvider<>(
+  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
   private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.kstreamName();
 
-  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider<>(
+  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES_2", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC_2 = EMPTY_TEST_DATA_PROVIDER_2.topicName();
   private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.kstreamName();
@@ -171,6 +178,8 @@ public class ClientIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_KEY_FORMAT_ENABLED, true)
+      .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .build();
 
   @ClassRule
@@ -182,7 +191,7 @@ public class ClientIntegrationTest {
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC, EMPTY_TEST_TOPIC_2);
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER_2);
@@ -194,7 +203,8 @@ public class ClientIntegrationTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
         4, // Only unique keys are counted
-        FormatFactory.JSON,
+        KEY_FORMAT,
+        VALUE_FORMAT,
         AGG_SCHEMA
     );
   }
@@ -891,7 +901,7 @@ public class ClientIntegrationTest {
       assertThat(description.fields().get(i).isKey(), is(isKey));
     }
     assertThat(description.topic(), is(TEST_TOPIC));
-    assertThat(description.keyFormat(), is("KAFKA"));
+    assertThat(description.keyFormat(), is("JSON"));
     assertThat(description.valueFormat(), is("JSON"));
     assertThat(description.readQueries(), hasSize(1));
     assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
@@ -915,7 +925,7 @@ public class ClientIntegrationTest {
             + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
             + "ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, "
             + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>) "
-            + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');"));
+            + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='JSON', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -1126,11 +1136,14 @@ public class ClientIntegrationTest {
     assertThat(obj.toString(), is(obj.toJsonString()));
   }
 
-  private static List<KsqlArray> convertToClientRows(final Multimap<String, GenericRow> data) {
+  private static List<KsqlArray> convertToClientRows(
+      final Multimap<Struct, GenericRow> data,
+      final String keyField
+  ) {
     final List<KsqlArray> expectedRows = new ArrayList<>();
-    for (final Map.Entry<String, GenericRow> entry : data.entries()) {
+    for (final Map.Entry<Struct, GenericRow> entry : data.entries()) {
       final KsqlArray expectedRow = new KsqlArray()
-          .add(entry.getKey());
+          .add(entry.getKey().getString(keyField));
       for (final Object value : entry.getValue().values()) {
         if (value instanceof Struct) {
           expectedRow.add(StructuredTypesDataProvider.structToMap((Struct) value));
@@ -1148,7 +1161,7 @@ public class ClientIntegrationTest {
   }
 
   private static Matcher<? super StreamInfo> streamForProvider(
-      final TestDataProvider<?> testDataProvider
+      final TestDataProvider testDataProvider
   ) {
     return streamInfo(testDataProvider.kstreamName(), testDataProvider.topicName(), "JSON");
   }

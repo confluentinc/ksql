@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -93,8 +92,8 @@ public class PullQuerySingleNodeFunctionalTest {
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
   private static final int HEADER = 1;
   private static final int BASE_TIME = 1_000_000;
-  private final static String KEY = Iterables.get(USER_PROVIDER.data().keySet(), 0);
-  private final static String KEY_3 = Iterables.get(USER_PROVIDER.data().keySet(), 3);
+  private final static String KEY = USER_PROVIDER.getStringKey(0);
+  private final static String KEY_3 = USER_PROVIDER.getStringKey(3);
   private static final Map<String, ?> LAG_FILTER_3 =
       ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG, "3");
 
@@ -180,6 +179,7 @@ public class PullQuerySingleNodeFunctionalTest {
     TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
@@ -309,6 +309,7 @@ public class PullQuerySingleNodeFunctionalTest {
     testHarness.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_PROVIDER.data().size(),
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         AGGREGATE_SCHEMA
     );

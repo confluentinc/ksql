@@ -4,6 +4,7 @@
 
 ### Features
 
+* support CREATE OR REPLACE w/ config guard but w/o restrictions ([#5766](https://github.com/confluentinc/ksql/pull/5766)) ([e7ff81a](https://github.com/confluentinc/ksql/commit/e7ff81a9f8d7d2f6852c729ec0edc3deef5fc6f0))
 * add a serverStatus to ServerInfo and display the status in the CLI ([#6040](https://github.com/confluentinc/ksql/pull/6040)) ([1921d0e](https://github.com/confluentinc/ksql/commit/1921d0eaf7f9005014cb5c1158fa12e29f1c2fd2))
 * Add consumer offsets to DESCRIBE EXTENDED ([#5476](https://github.com/confluentinc/ksql/pull/5476)) ([9ce3c97](https://github.com/confluentinc/ksql/commit/9ce3c9746d21d544e6d39dde4c2b6932d738a5e0))
 * add Ksql warning to KsqlResource response when CommandRunner degraded ([#6039](https://github.com/confluentinc/ksql/pull/6039)) ([6d547da](https://github.com/confluentinc/ksql/commit/6d547da0be73df38ac64d351e68db858f4631f9b))

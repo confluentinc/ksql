@@ -249,7 +249,7 @@ public final class SourceNode {
         dataSource.getDataSourceType().getKsqlType(),
         Optional.of(dataSource.getSchema().toString()),
         Optional.of(KeyFormatNode.fromKeyFormat(dataSource.getKsqlTopic().getKeyFormat())),
-        Optional.of(dataSource.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat()),
+        Optional.of(dataSource.getKsqlTopic().getValueFormat().getFormatInfo().getFormat()),
         Optional.of(dataSource.getKsqlTopic().getKeyFormat().getFeatures().all()),
         Optional.of(dataSource.getKsqlTopic().getValueFormat().getFeatures().all())
     );

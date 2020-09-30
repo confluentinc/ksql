@@ -29,7 +29,9 @@ import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicsNode;
 import io.confluent.ksql.test.model.SourceNode;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -78,8 +80,12 @@ public class PostConditions {
       final List<PostTopicNode> topics,
       final List<SourceNode> sources
   ) {
+    // Sort so that we get consistent ordering in historic specs:
+    final List<SourceNode> sortedSources = new ArrayList<>(sources);
+    sortedSources.sort(Comparator.comparing(SourceNode::getName));
+
     return new PostConditionsNode(
-        sources,
+        sortedSources,
         Optional.of(new PostTopicsNode(
             sourceNode.getTopics().flatMap(PostTopicsNode::getBlackList),
             Optional.of(topics)

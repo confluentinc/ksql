@@ -70,14 +70,20 @@
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `KEY` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

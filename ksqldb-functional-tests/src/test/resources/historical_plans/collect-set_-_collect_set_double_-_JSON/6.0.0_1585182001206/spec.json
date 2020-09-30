@@ -88,19 +88,25 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE DOUBLE) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  COLLECT_SET(TEST.VALUE) COLLECTED\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

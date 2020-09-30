@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/binary-comparison.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`A` INTEGER KEY, `B` ARRAY<STRUCT<`ID` INTEGER>>, `C` ARRAY<STRUCT<`ID` INTEGER>>",
-      "serdeOptions" : [ ]
+      "schema" : "`A` INTEGER KEY, `B` ARRAY<STRUCT<`ID` INTEGER>>, `C` ARRAY<STRUCT<`ID` INTEGER>>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN",
-      "serdeOptions" : [ ]
+      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN"
     }
   },
   "testCase" : {
@@ -88,7 +86,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -96,7 +96,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

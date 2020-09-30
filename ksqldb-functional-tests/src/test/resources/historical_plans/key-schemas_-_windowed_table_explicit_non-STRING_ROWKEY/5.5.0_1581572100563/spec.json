@@ -73,7 +73,10 @@
         "schema" : "`ROWKEY` BIGINT KEY, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
@@ -82,7 +85,10 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

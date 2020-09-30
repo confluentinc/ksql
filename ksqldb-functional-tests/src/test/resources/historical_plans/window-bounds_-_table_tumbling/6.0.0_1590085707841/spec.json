@@ -137,13 +137,6 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, IGNORED STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE S2 as SELECT ID, WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `IGNORED` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ID` BIGINT KEY, `WSTART` BIGINT, `WEND` BIGINT, `COUNT` BIGINT",
@@ -151,7 +144,20 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `IGNORED` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

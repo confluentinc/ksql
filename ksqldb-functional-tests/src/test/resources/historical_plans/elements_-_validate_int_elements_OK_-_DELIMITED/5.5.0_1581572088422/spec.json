@@ -39,14 +39,20 @@
         "schema" : "`ROWKEY` STRING KEY, `V0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `V0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -67,26 +67,35 @@
     "statements" : [ "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');", "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.Y PARTITION BY A;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
+        "name" : "L",
         "type" : "STREAM",
-        "schema" : "`X` INTEGER KEY, `Y` INTEGER, `Z` INTEGER",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `L_ROWTIME` BIGINT, `R_Y` INTEGER, `R_Z` INTEGER, `R_ROWTIME` BIGINT, `R_X` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
-        "name" : "L",
+        "name" : "R",
         "type" : "STREAM",
-        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "schema" : "`X` INTEGER KEY, `Y` INTEGER, `Z` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

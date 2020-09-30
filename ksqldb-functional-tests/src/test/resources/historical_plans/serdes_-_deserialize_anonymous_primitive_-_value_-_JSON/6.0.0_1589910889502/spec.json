@@ -52,14 +52,20 @@
         "schema" : "`K` STRING KEY, `FOO` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `FOO` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
@@ -69,7 +75,7 @@
           },
           "valueFormat" : {
             "format" : "JSON",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 1
         }, {

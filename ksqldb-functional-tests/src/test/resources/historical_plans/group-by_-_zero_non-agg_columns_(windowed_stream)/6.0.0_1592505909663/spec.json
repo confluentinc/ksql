@@ -88,7 +88,10 @@
         "schema" : "`VALUE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
@@ -97,7 +100,10 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 1000
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

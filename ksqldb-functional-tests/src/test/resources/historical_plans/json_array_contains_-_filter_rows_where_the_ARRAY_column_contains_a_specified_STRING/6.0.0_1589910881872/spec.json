@@ -94,14 +94,20 @@
         "schema" : "`K` STRING KEY, `COLORS` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `COLORS` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

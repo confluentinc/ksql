@@ -102,14 +102,20 @@
         "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `REGIONID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "B",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "TABLE",
@@ -118,7 +124,10 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 60000
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

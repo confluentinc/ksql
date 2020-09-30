@@ -137,14 +137,20 @@
         "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `LISTS_DIST` ARRAY<ARRAY<STRING>>, `MAPS_DIST` ARRAY<MAP<STRING, INTEGER>>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

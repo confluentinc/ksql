@@ -109,33 +109,45 @@
     "statements" : [ "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');", "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');", "CREATE STREAM S3 (ID INT KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT S3.ID, s1.V0, t2.V0, s3.V0 FROM S1 JOIN T2 ON S1.ID = T2.ID JOIN S3 WITHIN 10 seconds ON S1.ID = S3.ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S3",
-        "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`S3_ID` INTEGER KEY, `S1_V0` BIGINT, `T2_V0` BIGINT, `S3_V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
-      }, {
-        "name" : "T2",
-        "type" : "TABLE",
-        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "S3",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "T2",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

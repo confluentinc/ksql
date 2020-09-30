@@ -63,26 +63,35 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, WLAN_SA ARRAY<VARCHAR>) WITH (kafka_topic='input', value_format='JSON');", "CREATE TABLE DEVICES (ROWKEY STRING PRIMARY KEY, NAME VARCHAR) WITH (kafka_topic='devices', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT D.NAME AS DEVICE_NAME, TIMESTAMPTOSTRING(MIN(P.ROWTIME),'yyyy-MM-dd HH:mm:ss zzz','Europe/London') FROM INPUT P INNER JOIN DEVICES D ON P.WLAN_SA[1] = D.ROWKEY GROUP BY D.NAME emit changes;" ],
     "post" : {
       "sources" : [ {
+        "name" : "DEVICES",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
-      }, {
-        "name" : "DEVICES",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

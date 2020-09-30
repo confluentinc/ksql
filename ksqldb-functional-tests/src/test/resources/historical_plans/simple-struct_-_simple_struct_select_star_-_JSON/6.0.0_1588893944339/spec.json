@@ -331,14 +331,20 @@
         "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

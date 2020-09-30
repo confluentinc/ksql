@@ -97,14 +97,20 @@
         "schema" : "`ID` STRING KEY, `M` MAP<STRING, INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `KS` ARRAY<STRING>, `VALS` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -103,19 +103,25 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, a DECIMAL(4,2), b DECIMAL(4,2)) WITH (kafka_topic='test', value_format='AVRO');", "CREATE STREAM TEST2 AS SELECT ID, (a + b) AS RESULT FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `RESULT` DECIMAL(5, 2)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `RESULT` DECIMAL(5, 2)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

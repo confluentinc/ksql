@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/binary-comparison.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`A` INTEGER KEY, `B` BOOLEAN, `C` BIGINT, `D` DOUBLE, `E` DECIMAL(4, 3), `F` STRING, `G` ARRAY<INTEGER>, `H` MAP<STRING, INTEGER>, `I` STRUCT<`ID` INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`A` INTEGER KEY, `B` BOOLEAN, `C` BIGINT, `D` DOUBLE, `E` DECIMAL(4, 3), `F` STRING, `G` ARRAY<INTEGER>, `H` MAP<STRING, INTEGER>, `I` STRUCT<`ID` INTEGER>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` BOOLEAN, `KSQL_COL_5` BOOLEAN, `KSQL_COL_6` BOOLEAN, `KSQL_COL_7` BOOLEAN, `KSQL_COL_8` BOOLEAN",
-      "serdeOptions" : [ ]
+      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` BOOLEAN, `KSQL_COL_5` BOOLEAN, `KSQL_COL_6` BOOLEAN, `KSQL_COL_7` BOOLEAN, `KSQL_COL_8` BOOLEAN"
     }
   },
   "testCase" : {
@@ -96,7 +94,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -104,7 +104,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

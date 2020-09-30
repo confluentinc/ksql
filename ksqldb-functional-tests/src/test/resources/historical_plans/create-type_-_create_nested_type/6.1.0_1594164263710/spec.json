@@ -57,14 +57,20 @@
         "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "PEOPLE",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

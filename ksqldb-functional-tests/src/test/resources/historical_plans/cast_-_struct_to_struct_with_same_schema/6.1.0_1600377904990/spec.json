@@ -44,19 +44,25 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 INT, `f1` INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 INTEGER, `f1` INTEGER>) FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `F0` STRUCT<`F0` INTEGER, `f1` INTEGER>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `KSQL_COL_0` STRUCT<`F0` INTEGER, `f1` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `F0` STRUCT<`F0` INTEGER, `f1` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

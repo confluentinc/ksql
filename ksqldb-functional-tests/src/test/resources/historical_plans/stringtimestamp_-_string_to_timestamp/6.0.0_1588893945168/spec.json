@@ -55,14 +55,20 @@
         "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `TIMESTAMP` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TS",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

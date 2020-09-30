@@ -76,7 +76,10 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -84,7 +87,10 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

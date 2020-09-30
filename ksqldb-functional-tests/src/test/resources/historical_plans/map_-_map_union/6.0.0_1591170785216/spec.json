@@ -126,14 +126,20 @@
         "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

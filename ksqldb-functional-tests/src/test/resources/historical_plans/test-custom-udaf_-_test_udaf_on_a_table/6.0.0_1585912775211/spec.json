@@ -84,19 +84,25 @@
     "statements" : [ "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, NAME STRING, REGION STRING) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='DELIMITED');", "CREATE TABLE SUM_ID_BY_REGION AS SELECT\n  TEST.REGION REGION,\n  TEST_UDAF(TEST.ID) KSQL_COL_0\nFROM TEST TEST\nGROUP BY TEST.REGION\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "SUM_ID_BY_REGION",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `KSQL_COL_0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

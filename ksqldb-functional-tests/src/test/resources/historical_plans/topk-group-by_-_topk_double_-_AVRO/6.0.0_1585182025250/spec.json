@@ -132,19 +132,25 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, VALUE DOUBLE) WITH (KAFKA_TOPIC='test_topic', KEY='ID', VALUE_FORMAT='AVRO');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  TOPK(TEST.VALUE, 3) TOPK\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOPK` ARRAY<DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

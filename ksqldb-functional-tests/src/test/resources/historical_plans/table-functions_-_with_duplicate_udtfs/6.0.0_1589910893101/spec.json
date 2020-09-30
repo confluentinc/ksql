@@ -73,14 +73,20 @@
         "schema" : "`K` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `MY_ARR` ARRAY<BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

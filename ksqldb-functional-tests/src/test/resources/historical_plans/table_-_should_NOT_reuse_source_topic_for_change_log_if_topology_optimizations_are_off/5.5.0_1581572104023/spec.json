@@ -45,19 +45,25 @@
     },
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "T1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -59,26 +59,35 @@
     "statements" : [ "CREATE STREAM L (K STRING KEY, A STRING, B STRING) WITH (kafka_topic='LEFT', value_format='JSON', KEY='A');", "CREATE STREAM R (K STRING KEY, C STRING, D STRING) WITH (kafka_topic='RIGHT', value_format='JSON', KEY='C');", "CREATE STREAM OUTPUT AS SELECT L.K AS LK, R.K FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.D PARTITION BY L.K;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
+        "name" : "L",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `C` STRING, `D` STRING",
+        "schema" : "`K` STRING KEY, `A` STRING, `B` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`LK` STRING KEY, `R_K` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
-        "name" : "L",
+        "name" : "R",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `A` STRING, `B` STRING",
+        "schema" : "`K` STRING KEY, `C` STRING, `D` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

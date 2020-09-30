@@ -61,19 +61,25 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(7,5)) WITH (kafka_topic='test', value_format='AVRO');", "CREATE STREAM TEST2 AS SELECT ID, -dec AS negated FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `NEGATED` DECIMAL(7, 5)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `DEC` DECIMAL(7, 5)",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `NEGATED` DECIMAL(7, 5)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

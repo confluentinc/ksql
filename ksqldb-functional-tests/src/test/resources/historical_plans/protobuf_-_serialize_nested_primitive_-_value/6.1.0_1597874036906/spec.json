@@ -61,19 +61,25 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='PROTOBUF');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `FOO` BOOLEAN",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `FOO` BOOLEAN",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `FOO` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "WRAP_SINGLES" ]
       } ],
       "topics" : {
         "topics" : [ {

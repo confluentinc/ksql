@@ -106,14 +106,20 @@
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CUSTOM_FORMATTED_START_DATE` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

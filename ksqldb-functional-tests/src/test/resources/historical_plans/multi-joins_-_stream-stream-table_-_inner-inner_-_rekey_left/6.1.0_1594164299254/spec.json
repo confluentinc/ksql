@@ -125,28 +125,40 @@
         "schema" : "`K` INTEGER KEY, `S1_V0` BIGINT, `S2_V0` BIGINT, `T3_V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `K` INTEGER, `V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
-      }, {
-        "name" : "T3",
-        "type" : "TABLE",
-        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "T3",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

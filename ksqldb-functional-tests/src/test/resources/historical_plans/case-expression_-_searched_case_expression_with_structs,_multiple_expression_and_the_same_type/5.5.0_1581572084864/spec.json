@@ -121,14 +121,20 @@
         "schema" : "`ROWKEY` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `CASE_RESAULT` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

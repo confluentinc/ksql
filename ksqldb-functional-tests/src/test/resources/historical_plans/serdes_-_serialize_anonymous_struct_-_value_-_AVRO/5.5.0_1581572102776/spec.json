@@ -108,14 +108,20 @@
         "schema" : "`ROWKEY` STRING KEY, `FOO` STRUCT<`F0` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` STRUCT<`F0` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       } ],
       "topics" : {
         "topics" : [ {
@@ -134,7 +140,7 @@
           },
           "valueFormat" : {
             "format" : "AVRO",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

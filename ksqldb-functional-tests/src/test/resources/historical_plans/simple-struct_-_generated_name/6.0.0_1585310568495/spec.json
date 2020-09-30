@@ -51,14 +51,20 @@
         "schema" : "`ROWKEY` STRING KEY, `A` STRUCT<`B` MAP<STRING, STRUCT<`C` ARRAY<STRUCT<`D` INTEGER>>>>>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `A__B['key$Name[]']__C[1]__D` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

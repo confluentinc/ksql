@@ -39,14 +39,20 @@
         "schema" : "`K` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` BIGINT, `MIN_VALUE` DOUBLE, `NEG_MIN_VALUE` DOUBLE, `MIN_NORMAL` DOUBLE, `NEG_MIN_NORMAL` DOUBLE, `MAX_VALUE` DOUBLE, `NEG_MAX_VALUE` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

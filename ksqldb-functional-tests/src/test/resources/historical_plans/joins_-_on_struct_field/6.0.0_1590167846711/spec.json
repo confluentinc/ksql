@@ -160,21 +160,30 @@
         "schema" : "`ROWKEY` INTEGER KEY, `S1_ID` INTEGER, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S2_ID` INTEGER, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `A` BIGINT, `B` STRUCT<`C` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `X` BIGINT, `Y` STRUCT<`Z` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

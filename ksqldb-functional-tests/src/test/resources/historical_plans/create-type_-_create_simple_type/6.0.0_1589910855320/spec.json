@@ -46,19 +46,25 @@
     "statements" : [ "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;", "CREATE TABLE addresses (K STRING PRIMARY KEY, address ADDRESS) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE copy AS SELECT * FROM addresses;" ],
     "post" : {
       "sources" : [ {
-        "name" : "COPY",
-        "type" : "TABLE",
-        "schema" : "`K` STRING KEY, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "ADDRESSES",
         "type" : "TABLE",
         "schema" : "`K` STRING KEY, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "COPY",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

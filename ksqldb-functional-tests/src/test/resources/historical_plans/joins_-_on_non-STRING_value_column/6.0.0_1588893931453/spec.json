@@ -75,26 +75,35 @@
     "statements" : [ "CREATE STREAM INPUT_STREAM (K STRING KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');", "CREATE TABLE INPUT_TABLE (ID BIGINT PRIMARY KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT *, S.ROWTIME, T.ROWTIME FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT_STREAM",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `SF` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "INPUT_TABLE",
         "type" : "TABLE",
         "schema" : "`ID` BIGINT KEY, `TF` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

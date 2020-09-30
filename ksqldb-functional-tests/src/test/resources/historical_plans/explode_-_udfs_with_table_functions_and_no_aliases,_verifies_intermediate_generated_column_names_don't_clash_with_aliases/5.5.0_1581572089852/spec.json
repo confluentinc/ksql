@@ -55,14 +55,20 @@
         "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `KSQL_COL_2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `MY_ARR` ARRAY<BIGINT>, `F1` BIGINT, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

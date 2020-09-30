@@ -54,14 +54,20 @@
         "schema" : "`K` STRING KEY, `S` STRUCT<`S` STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S7",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

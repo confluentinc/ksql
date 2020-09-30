@@ -119,14 +119,20 @@
         "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `BOOLS_DIST` ARRAY<BOOLEAN>, `INTS_DIST` ARRAY<INTEGER>, `BIGINTS_DIST` ARRAY<BIGINT>, `DOUBLES_DIST` ARRAY<DOUBLE>, `STRINGS_DIST` ARRAY<STRING>, `DECIMALS_DIST` ARRAY<DECIMAL(2, 1)>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

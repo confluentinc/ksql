@@ -146,7 +146,10 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 5000
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S1",
         "type" : "STREAM",
@@ -155,7 +158,10 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 5000
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S2",
         "type" : "STREAM",
@@ -164,7 +170,10 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 2000
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

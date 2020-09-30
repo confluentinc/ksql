@@ -64,26 +64,35 @@
     "statements" : [ "CREATE STREAM L (L0 INTEGER, L1 INTEGER) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON');", "CREATE STREAM R (R0 INTEGER, R1 INTEGER) WITH (KAFKA_TOPIC='right_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  L.ROWKEY L_ROWKEY,\n  L.L1 L1,\n  R.R1 R1\nFROM L L\nINNER JOIN R R WITHIN 11 SECONDS ON ((L.L0 = R.R0))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
+        "name" : "L",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `R0` INTEGER, `R1` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `L0` INTEGER, `L1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
-        "name" : "L",
+        "name" : "R",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `L0` INTEGER, `L1` INTEGER",
+        "schema" : "`ROWKEY` STRING KEY, `R0` INTEGER, `R1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

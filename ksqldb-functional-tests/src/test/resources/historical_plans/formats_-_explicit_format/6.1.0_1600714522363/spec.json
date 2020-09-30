@@ -12,32 +12,50 @@
   },
   "testCase" : {
     "name" : "explicit format",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "foo",
+      "value" : "bar"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "foo",
+      "value" : "bar"
+    } ],
     "topics" : [ {
       "name" : "input",
       "replicas" : 1,
       "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (kafka_topic='input', format='KAFKA');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
-    "inputs": [{"topic": "input", "key": "foo", "value": "bar"}],
-    "outputs": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}],
     "properties" : {
       "ksql.persistence.default.format.value" : "JSON"
     },
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `FOO` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `FOO` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

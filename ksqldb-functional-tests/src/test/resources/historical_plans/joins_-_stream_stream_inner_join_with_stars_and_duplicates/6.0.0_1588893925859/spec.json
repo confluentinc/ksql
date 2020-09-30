@@ -147,21 +147,30 @@
         "schema" : "`TT_ID` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `F1_2` STRING, `TT_NAME` STRING, `TT_VALUE` BIGINT, `NAME_2` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST_STREAM",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

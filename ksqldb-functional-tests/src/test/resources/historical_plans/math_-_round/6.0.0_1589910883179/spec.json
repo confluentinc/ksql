@@ -265,14 +265,20 @@
         "schema" : "`K` STRING KEY, `R0` BIGINT, `R00` DOUBLE, `R1` DOUBLE, `R2` DOUBLE, `R10` DOUBLE, `1R` DOUBLE, `2R` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `V` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

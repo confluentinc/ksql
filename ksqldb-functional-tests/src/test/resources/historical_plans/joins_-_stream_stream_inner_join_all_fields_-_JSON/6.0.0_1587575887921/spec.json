@@ -272,21 +272,30 @@
         "schema" : "`ROWKEY` BIGINT KEY, `TT_ROWKEY` BIGINT, `TT_ID` BIGINT, `TT_NAME` STRING, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_F1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST_STREAM",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

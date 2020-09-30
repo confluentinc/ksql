@@ -69,26 +69,35 @@
     "statements" : [ "CREATE TABLE L (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT ROWKEY, L.ID, R.ID, L.V0, R.V1 FROM L FULL OUTER JOIN R on L.id = R.id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
+        "name" : "L",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
-        "name" : "L",
+        "name" : "R",
         "type" : "TABLE",
         "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -52,19 +52,25 @@
     "statements" : [ "CREATE STREAM TEST (START STRING, `END` STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S1 AS SELECT TEST.`END` `END`\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `START` STRING, `END` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `END` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `START` STRING, `END` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -84,19 +84,25 @@
     "statements" : [ "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');", "CREATE TABLE OUTPUT AS SELECT INITCAP(COL1) AS G1, COL2 AS G2, trim(COL3) AS G3, COUNT(*) FROM input GROUP BY INITCAP(col1), col2, trim(col3) HAVING substring(trim(col3),1,4) = 'teen';" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`KSQL_COL_1` STRING KEY, `KSQL_COL_0` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`KSQL_COL_1` STRING KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

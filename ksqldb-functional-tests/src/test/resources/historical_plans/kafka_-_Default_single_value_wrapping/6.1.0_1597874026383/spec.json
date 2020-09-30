@@ -12,29 +12,47 @@
   },
   "testCase" : {
     "name" : "Default single value wrapping",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "foo",
+      "value" : 1
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "foo",
+      "value" : 1
+    } ],
     "topics" : [ {
       "name" : "input",
       "replicas" : 1,
       "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input', value_format='KAFKA');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
-    "inputs": [{"topic": "input", "key": "foo", "value": 1}],
-    "outputs": [{"topic": "OUTPUT", "key": "foo", "value": 1}],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `FOO` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `FOO` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

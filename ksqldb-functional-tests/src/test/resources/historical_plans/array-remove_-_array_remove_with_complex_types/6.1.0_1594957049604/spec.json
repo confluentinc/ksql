@@ -124,14 +124,20 @@
         "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `BAD_LIST` ARRAY<STRING>, `MAPS` ARRAY<MAP<STRING, INTEGER>>, `BAD_MAP` MAP<STRING, INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

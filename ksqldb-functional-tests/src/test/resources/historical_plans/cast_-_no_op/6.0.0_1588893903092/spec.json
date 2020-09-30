@@ -39,14 +39,20 @@
         "schema" : "`ID` STRING KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` INTEGER, `KSQL_COL_2` BIGINT, `KSQL_COL_3` DOUBLE, `KSQL_COL_4` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `B` BOOLEAN, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `S` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

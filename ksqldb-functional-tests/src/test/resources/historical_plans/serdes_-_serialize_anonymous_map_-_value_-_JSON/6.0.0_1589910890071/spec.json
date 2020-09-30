@@ -103,14 +103,20 @@
         "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       } ],
       "topics" : {
         "topics" : [ {
@@ -129,7 +135,7 @@
           },
           "valueFormat" : {
             "format" : "JSON",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

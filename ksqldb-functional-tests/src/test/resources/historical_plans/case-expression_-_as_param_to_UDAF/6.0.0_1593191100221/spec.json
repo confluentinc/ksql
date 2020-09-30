@@ -82,13 +82,6 @@
     "statements" : [ "CREATE STREAM russell_3k_trades (tickerId VARCHAR KEY, quantity INT, price INT, buy BOOLEAN) WITH (kafka_topic='test_topic',value_format='json');", "CREATE TABLE russell_3k_hourly AS SELECT tickerId, count(*) as tradeCount, sum(quantity) as tradeVolumn, min(CASE WHEN buy THEN price ELSE null END) as minBuyPrice, max(CASE WHEN buy THEN price ELSE null END) as maxBuyPrice, min(CASE WHEN buy THEN null ELSE price END) as minSellPrice, max(CASE WHEN buy THEN null ELSE price END) as maxSellPrice FROM russell_3k_trades WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY tickerId;" ],
     "post" : {
       "sources" : [ {
-        "name" : "RUSSELL_3K_TRADES",
-        "type" : "STREAM",
-        "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "RUSSELL_3K_HOURLY",
         "type" : "TABLE",
         "schema" : "`TICKERID` STRING KEY, `TRADECOUNT` BIGINT, `TRADEVOLUMN` INTEGER, `MINBUYPRICE` INTEGER, `MAXBUYPRICE` INTEGER, `MINSELLPRICE` INTEGER, `MAXSELLPRICE` INTEGER",
@@ -96,7 +89,20 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 3600000
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "RUSSELL_3K_TRADES",
+        "type" : "STREAM",
+        "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

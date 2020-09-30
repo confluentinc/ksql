@@ -60,26 +60,35 @@
     "statements" : [ "CREATE STREAM L (ID INT KEY, x bigint) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM R (ID DOUBLE KEY, x bigint) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT l.id, L.x FROM L JOIN R WITHIN 30 seconds ON L.id = CAST(R.id AS INT);" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
+        "name" : "L",
         "type" : "STREAM",
-        "schema" : "`ID` DOUBLE KEY, `X` BIGINT",
+        "schema" : "`ID` INTEGER KEY, `X` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
-        "name" : "L",
+        "name" : "R",
         "type" : "STREAM",
-        "schema" : "`ID` INTEGER KEY, `X` BIGINT",
+        "schema" : "`ID` DOUBLE KEY, `X` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -72,14 +72,20 @@
         "schema" : "`ID` INTEGER KEY, `C1` BOOLEAN, `C2` INTEGER, `C3` BIGINT, `C4` DOUBLE, `C5` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `C1` BOOLEAN, `C2` INTEGER, `C3` BIGINT, `C4` DOUBLE, `C5` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

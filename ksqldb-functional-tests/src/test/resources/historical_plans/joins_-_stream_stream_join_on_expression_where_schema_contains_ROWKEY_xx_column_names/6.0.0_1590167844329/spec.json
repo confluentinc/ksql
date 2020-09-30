@@ -74,26 +74,35 @@
     "statements" : [ "CREATE STREAM TEST1 (ROWKEY bigint KEY, ROWKEY_2 bigint) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM TEST2 (ROWKEY_1 int KEY, ROWKEY_3 int) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT t.ROWKEY, t.ROWKEY_2 FROM test1 t JOIN test2 tt WITHIN 30 seconds ON t.ROWKEY = CAST(tt.ROWKEY_1 AS BIGINT);" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY_1` INTEGER KEY, `ROWKEY_3` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ROWKEY_2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ROWKEY_2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY_1` INTEGER KEY, `ROWKEY_3` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

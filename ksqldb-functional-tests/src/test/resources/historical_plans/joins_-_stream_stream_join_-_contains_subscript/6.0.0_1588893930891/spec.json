@@ -67,26 +67,35 @@
     "statements" : [ "CREATE STREAM TEST1 (ID INT KEY, NAME STRING) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE STREAM TEST2 (K STRING KEY, ID ARRAY<INT>) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT T.ID, TT.K FROM test1 t JOIN test2 tt WITHIN 30 SECONDS ON t.id = tt.id[1];" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` ARRAY<INTEGER>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`T_ID` INTEGER KEY, `K` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST1",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

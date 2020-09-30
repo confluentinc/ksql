@@ -34,19 +34,25 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE T1 AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "T1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

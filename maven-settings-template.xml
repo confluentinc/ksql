@@ -16,12 +16,19 @@
           <name>Confluent</name>
           <url>PACKAGES_MAVEN_URL</url>
         </repository>
+
+        <!-- needed for HTML API doc generation post-release only --> 
+        <repository>
+          <id>ksqldb-staging</id>
+          <name>ksqlDB staging</name>
+          <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+        </repository>
       </repositories>
 
       <pluginRepositories>
 
         <pluginRepository>
-          <id>confluent-artifactory-central</id>
+          <id>confluent-other</id>
           <name>Confluent Plugin Repository</name>
           <url>PACKAGES_MAVEN_URL</url>
           <layout>default</layout>

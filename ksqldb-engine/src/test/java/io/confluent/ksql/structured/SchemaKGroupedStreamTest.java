@@ -202,14 +202,13 @@ public class SchemaKGroupedStreamTest {
     );
 
     // Then:
-    final FormatInfo expected = FormatInfo.of(FormatFactory.KAFKA.name());
     assertThat(
         result.getSourceTableStep(),
         equalTo(
             ExecutionStepFactory.streamWindowedAggregate(
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
-                Formats.of(expected, valueformatInfo, SerdeFeatures.of(), SerdeFeatures.of()),
+                Formats.of(keyFormatInfo, valueformatInfo, SerdeFeatures.of(), SerdeFeatures.of()),
                 NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG),
                 KSQL_WINDOW_EXP

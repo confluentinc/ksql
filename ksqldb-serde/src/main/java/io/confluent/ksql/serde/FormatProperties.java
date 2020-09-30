@@ -29,14 +29,20 @@ public final class FormatProperties {
   private FormatProperties() {
   }
 
+  /**
+   * Helper to validate the supplied {@code properties} against a {@link
+   * Format#getSupportedProperties() format's supported properties}.
+   *
+   * @param formatName the name of the format - only used in error messages
+   * @param properties the properties the user supplied
+   * @param supportedProperties the formats supported properties
+   * @throws KsqlException on unknown keys or empty values.
+   */
   public static void validateProperties(
       final String formatName,
       final Map<String, String> properties,
       final Set<String> supportedProperties
   ) {
-    // by default, this method ensures that there are no property names
-    // (case-insensitive) that are not in the getSupportedProperties()
-    // and that none of the values are empty
     final SetView<String> diff = Sets.difference(properties.keySet(), supportedProperties);
     if (!diff.isEmpty()) {
       throw new KsqlException(formatName + " does not support the following configs: " + diff);

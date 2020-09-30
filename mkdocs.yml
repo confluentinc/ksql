@@ -225,5 +225,5 @@ extra:
         cprelease: 6.0.0
         releasepostbranch: 6.0.0-post
         scalaversion: 2.12
-        version: 5.5
+        version: 6.0
         voluble_version: 0.3.1

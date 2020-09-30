@@ -132,7 +132,10 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S2",
         "type" : "STREAM",
@@ -140,7 +143,10 @@
         "keyFormat" : {
           "format" : "KAFKA",
           "windowType" : "SESSION"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

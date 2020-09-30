@@ -38,19 +38,25 @@
     "statements" : [ "CREATE STREAM INPUT (COL1 STRING) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='JSON');", "CREATE STREAM BIG_STRUCT AS SELECT STRUCT() S\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `COL1` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "BIG_STRUCT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `S` STRUCT< >",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `COL1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -47,14 +47,20 @@
         "schema" : "`COL0` INTEGER KEY, `COL1` BIGINT, `COL2` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`COL0` INTEGER KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` DOUBLE, `KSQL_COL_2` BIGINT, `KSQL_COL_3` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

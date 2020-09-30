@@ -61,19 +61,25 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(21,19)) WITH (kafka_topic='test', value_format='AVRO');", "CREATE STREAM TEST2 AS SELECT * FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

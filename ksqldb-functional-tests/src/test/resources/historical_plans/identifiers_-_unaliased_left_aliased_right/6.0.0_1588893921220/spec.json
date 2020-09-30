@@ -60,26 +60,35 @@
     "statements" : [ "CREATE STREAM INPUT_1 (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON', KEY='FOO');", "CREATE STREAM INPUT_2 (ROWKEY INT KEY, foo INT, bar INT) WITH (kafka_topic='t2', value_format='JSON', KEY='FOO');", "CREATE STREAM OUTPUT AS SELECT INPUT_1.FOO, INPUT_1.BAR, I2.BAR FROM INPUT_1 JOIN INPUT_2 AS I2 WITHIN 1 MINUTE ON INPUT_1.FOO = I2.FOO;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`INPUT_1_FOO` INTEGER KEY, `INPUT_1_BAR` INTEGER, `I2_BAR` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT_1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "INPUT_2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`INPUT_1_FOO` INTEGER KEY, `INPUT_1_BAR` INTEGER, `I2_BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

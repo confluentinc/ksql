@@ -79,14 +79,20 @@
         "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `FOO` MAP<STRING, STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
@@ -96,7 +102,7 @@
           },
           "valueFormat" : {
             "format" : "AVRO",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 1
         }, {

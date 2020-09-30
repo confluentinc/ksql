@@ -46,14 +46,20 @@
         "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "EVENTSTEST",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

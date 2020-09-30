@@ -103,19 +103,25 @@
     "statements" : [ "CREATE STREAM TEST (A DECIMAL(4, 2), B DECIMAL(4, 2)) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='AVRO');", "CREATE STREAM TEST2 AS SELECT (TEST.A * TEST.B) RESULT\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `RESULT` DECIMAL(9, 4)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `RESULT` DECIMAL(9, 4)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

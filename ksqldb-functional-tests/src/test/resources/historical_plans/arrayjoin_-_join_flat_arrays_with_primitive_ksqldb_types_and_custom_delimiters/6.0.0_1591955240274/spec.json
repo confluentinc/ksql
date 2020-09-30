@@ -53,14 +53,20 @@
         "schema" : "`ID` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING, `KSQL_COL_2` STRING, `KSQL_COL_3` STRING, `KSQL_COL_4` STRING, `KSQL_COL_5` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `BOOLEANARRAY` ARRAY<BOOLEAN>, `INTARRAY` ARRAY<INTEGER>, `BIGINTARRAY` ARRAY<BIGINT>, `DOUBLEARRAY` ARRAY<DOUBLE>, `DECIMALARRAY` ARRAY<DECIMAL(5, 2)>, `STRINGARRAY` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

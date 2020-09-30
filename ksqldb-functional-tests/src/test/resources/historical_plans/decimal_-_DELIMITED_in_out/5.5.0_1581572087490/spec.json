@@ -34,19 +34,25 @@
     "statements" : [ "CREATE STREAM TEST (DEC DECIMAL(21, 19)) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='DELIMITED');", "CREATE STREAM TEST2 AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

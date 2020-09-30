@@ -60,14 +60,20 @@
         "schema" : "`ROWKEY` STRING KEY, `COL0` DOUBLE, `COL1` DOUBLE",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUT",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `VAL` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

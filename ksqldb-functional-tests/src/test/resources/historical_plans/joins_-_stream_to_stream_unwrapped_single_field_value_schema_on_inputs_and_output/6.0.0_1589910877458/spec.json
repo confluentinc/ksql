@@ -72,21 +72,30 @@
         "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       }, {
         "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `NAME` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       } ],
       "topics" : {
         "topics" : [ {
@@ -96,7 +105,7 @@
           },
           "valueFormat" : {
             "format" : "JSON",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           }
         }, {
           "name" : "S1",
@@ -105,7 +114,7 @@
           },
           "valueFormat" : {
             "format" : "JSON",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         }, {
@@ -115,7 +124,7 @@
           },
           "valueFormat" : {
             "format" : "JSON",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           }
         }, {
           "name" : "S2",
@@ -124,7 +133,7 @@
           },
           "valueFormat" : {
             "format" : "JSON",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         }, {
@@ -134,7 +143,7 @@
           },
           "valueFormat" : {
             "format" : "JSON",
-            "features": [ "UNWRAP_SINGLES" ]
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

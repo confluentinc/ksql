@@ -53,14 +53,20 @@
         "schema" : "`C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
         "schema" : "`C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

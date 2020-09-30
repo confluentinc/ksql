@@ -84,19 +84,25 @@
     "statements" : [ "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');", "CREATE TABLE OUTPUT AS SELECT col1['foo'] AS NEW_KEY, AS_VALUE(col1['foo']) as VV, COUNT(*) AS COUNT FROM INPUT GROUP BY col1['foo'];" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`NEW_KEY` STRING KEY, `VV` STRING, `COUNT` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ID` INTEGER KEY, `COL1` MAP<STRING, STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`NEW_KEY` STRING KEY, `VV` STRING, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

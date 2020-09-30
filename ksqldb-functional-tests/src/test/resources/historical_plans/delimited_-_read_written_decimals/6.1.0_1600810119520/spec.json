@@ -71,21 +71,30 @@
         "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
-      }, {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "INTERMEDIATE",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

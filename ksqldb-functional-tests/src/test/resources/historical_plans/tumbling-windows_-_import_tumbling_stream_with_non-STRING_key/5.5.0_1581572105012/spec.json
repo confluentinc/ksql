@@ -106,15 +106,6 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_SIZE='30 seconds', WINDOW_TYPE='Tumbling');", "CREATE STREAM S2 AS SELECT\n  *,\n  TEST.WINDOWSTART WSTART,\n  TEST.WINDOWEND WEND,\n  TEST.ROWKEY KEY\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "windowType" : "TUMBLING",
-          "windowSize" : 30000
-        }
-      }, {
         "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
@@ -122,7 +113,22 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 30000
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

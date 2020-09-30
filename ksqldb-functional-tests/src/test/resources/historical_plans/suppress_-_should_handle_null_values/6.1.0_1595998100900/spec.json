@@ -106,7 +106,10 @@
         "schema" : "`ID` STRING KEY, `COL1` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
@@ -115,7 +118,10 @@
           "format" : "KAFKA",
           "windowType" : "TUMBLING",
           "windowSize" : 2
-        }
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -15,6 +15,7 @@ Version 0.12.0
 Version 0.11.0
 --------------
 
+- [Announcing ksqlDB 0.11.0](https://www.confluent.io/blog/ksqldb-0-11-0-features-and-improvements)
 - [ksqlDB v0.11.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0110-2020-08-03)
 
 Version 0.10.1

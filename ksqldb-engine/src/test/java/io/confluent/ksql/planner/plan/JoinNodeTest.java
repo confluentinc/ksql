@@ -786,7 +786,7 @@ public class JoinNodeTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("Incompatible key format. `left` has AVRO while `right` has JSON"));
+        containsString("Incompatible key formats. `left` has AVRO while `right` has JSON"));
   }
 
   @Test

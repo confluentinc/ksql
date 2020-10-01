@@ -73,7 +73,7 @@ public class JoinNode extends PlanNode {
   }
 
   private static final ImmutableList<KeyProperty> KEY_PROPERTIES = ImmutableList.of(
-      new KeyProperty("format", kf -> kf.getFormatInfo().getFormat()),
+      new KeyProperty("formats", kf -> kf.getFormatInfo().getFormat()),
       new KeyProperty("properties", kf -> kf.getFormatInfo().getProperties()),
       new KeyProperty("features", KeyFormat::getFeatures),
       new KeyProperty("widowing", kf -> kf.getWindowInfo()

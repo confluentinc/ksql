@@ -687,6 +687,26 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Schema is not compatible with Avro: Illegal initial character: 1AvroDoesNotLikeFieldsThatStartWithNumbers"
       }
+    },
+    {
+      "name": "empty full schema name",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (kafka_topic='input_topic', value_format='AVRO', VALUE_AVRO_SCHEMA_FULL_NAME=' ');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "fullSchemaName cannot be empty. Format configuration: {fullSchemaName=}"
+      }
+    },
+    {
+      "name": "full schema name used with non-Avro format",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (kafka_topic='input_topic', value_format='JSON', VALUE_AVRO_SCHEMA_FULL_NAME='com.custom.schema');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "JSON does not support the following configs: [fullSchemaName]"
+      }
     }
   ]
 }

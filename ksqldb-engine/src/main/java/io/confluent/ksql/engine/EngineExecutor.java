@@ -49,7 +49,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormatUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -312,7 +311,7 @@ final class EngineExecutor {
     if (statement.getStatement() instanceof CreateSource) {
       final CreateSource createSource = (CreateSource) statement.getStatement();
       throwOnUnsupportedKeyFormat(
-          SourcePropertiesUtil.getKeyFormat(createSource.getProperties()));
+          SourcePropertiesUtil.getKeyFormat(createSource.getProperties()).getFormat());
     }
 
     if (statement.getStatement() instanceof CreateAsSelect) {
@@ -322,9 +321,9 @@ final class EngineExecutor {
     }
   }
 
-  private void throwOnUnsupportedKeyFormat(final FormatInfo formatInfo) {
+  private void throwOnUnsupportedKeyFormat(final String keyFormat) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
-    final Format format = FormatFactory.of(formatInfo);
+    final Format format = FormatFactory.fromName(keyFormat);
     if (!KeyFormatUtils.isSupportedKeyFormat(ksqlConfig, format)) {
       throw new KsqlException("The key format '" + format.name() + "' is not currently supported.");
     }

@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -36,6 +37,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -57,7 +59,6 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.util.KsqlException;
@@ -141,7 +142,9 @@ class Analyzer {
     }
 
     private void analyzeNonStdOutSink(final Sink sink) {
-      analysis.setProperties(sink.getProperties());
+      final CreateSourceAsProperties props = sink.getProperties();
+
+      analysis.setProperties(props);
 
       if (!sink.shouldCreateSink()) {
         final DataSource existing = metaStore.getSource(sink.getName());
@@ -154,29 +157,25 @@ class Analyzer {
         return;
       }
 
-      final String topicName = sink.getProperties().getKafkaTopic()
+      final String topicName = props.getKafkaTopic()
           .orElseGet(() -> topicPrefix + sink.getName().text());
 
-      final Format format = getValueFormat(sink);
-
-      final Map<String, String> sourceProperties = new HashMap<>();
-      if (format.name().equals(getSourceValueInfo().getFormat())) {
-        getSourceValueInfo().getProperties().forEach((k, v) -> {
-          if (format.getInheritableProperties().contains(k)) {
-            sourceProperties.put(k, v);
-          }
-        });
-      }
-
-      // overwrite any inheritable properties if they were explicitly
-      // specified in the statement
-      sourceProperties.putAll(sink.getProperties().getValueFormatProperties());
-
-      final KeyFormat srcKeyFormat = analysis
+      final KsqlTopic srcTopic = analysis
           .getFrom()
           .getDataSource()
-          .getKsqlTopic()
-          .getKeyFormat();
+          .getKsqlTopic();
+
+      final FormatInfo keyFmtInfo = buildFormatInfo(
+          props.getKeyFormat(),
+          props.getKeyFormatProperties(),
+          srcTopic.getKeyFormat().getFormatInfo()
+      );
+
+      final FormatInfo valueFmtInfo = buildFormatInfo(
+          props.getValueFormat(),
+          props.getValueFormatProperties(),
+          srcTopic.getValueFormat().getFormatInfo()
+      );
 
       final Optional<WindowInfo> explicitWindowInfo = analysis.getWindowExpression()
           .map(WindowExpression::getKsqlWindowExpression)
@@ -184,29 +183,34 @@ class Analyzer {
 
       final Optional<WindowInfo> windowInfo = explicitWindowInfo.isPresent()
           ? explicitWindowInfo
-          : srcKeyFormat.getWindowInfo();
+          : srcTopic.getKeyFormat().getWindowInfo();
 
-      analysis.setInto(Into.newSink(
-          sink.getName(),
-          topicName,
-          windowInfo,
-          srcKeyFormat.getFormatInfo(),
-          FormatInfo.of(format.name(), sourceProperties)
-      ));
+      analysis
+          .setInto(Into.newSink(sink.getName(), topicName, windowInfo, keyFmtInfo, valueFmtInfo));
     }
 
-    private Format getValueFormat(final Sink sink) {
-      return FormatFactory.of(
-          sink.getProperties().getValueFormat().orElseGet(this::getSourceValueInfo));
-    }
+    private FormatInfo buildFormatInfo(
+        final Optional<String> explicitFormat,
+        final Map<String, String> formatProperties,
+        final FormatInfo sourceFormat
+    ) {
+      final String formatName = explicitFormat.orElse(sourceFormat.getFormat());
+      final Format format = FormatFactory.fromName(formatName);
 
-    private FormatInfo getSourceValueInfo() {
-      return analysis
-          .getFrom()
-          .getDataSource()
-          .getKsqlTopic()
-          .getValueFormat()
-          .getFormatInfo();
+      final Map<String, String> props = new HashMap<>();
+      if (formatName.equals(sourceFormat.getFormat())) {
+        sourceFormat.getProperties().forEach((k, v) -> {
+          if (format.getInheritableProperties().contains(k)) {
+            props.put(k, v);
+          }
+        });
+      }
+
+      // overwrite any inheritable properties if they were explicitly
+      // specified in the statement
+      props.putAll(formatProperties);
+
+      return FormatInfo.of(formatName, props);
     }
 
     @Override

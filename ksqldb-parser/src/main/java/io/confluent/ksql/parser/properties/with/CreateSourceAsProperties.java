@@ -25,7 +25,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -100,17 +99,22 @@ public final class CreateSourceAsProperties {
     return SerdeFeatures.from(builder.build());
   }
 
-  public Optional<FormatInfo> getKeyFormat() {
+  public Optional<String> getKeyFormat() {
     final String keyFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
-    return Optional.ofNullable(keyFormat).map(format -> FormatInfo.of(format, ImmutableMap.of()));
+    return Optional.ofNullable(keyFormat);
   }
 
-  public Optional<FormatInfo> getValueFormat() {
+  public Optional<String> getValueFormat() {
     final String valueFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY));
-    return Optional.ofNullable(valueFormat)
-        .map(format -> FormatInfo.of(format, getValueFormatProperties()));
+    return Optional.ofNullable(valueFormat);
+  }
+
+  @SuppressWarnings("MethodMayBeStatic")
+  public Map<String, String> getKeyFormatProperties() {
+    // Current none.... coming soon.
+    return ImmutableMap.of();
   }
 
   public Map<String, String> getValueFormatProperties() {

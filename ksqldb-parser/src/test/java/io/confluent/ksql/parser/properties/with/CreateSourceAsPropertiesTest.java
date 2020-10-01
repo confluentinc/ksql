@@ -41,6 +41,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Test;
 
+@SuppressWarnings("UnstableApiUsage")
 public class CreateSourceAsPropertiesTest {
 
   @Test
@@ -250,8 +251,8 @@ public class CreateSourceAsPropertiesTest {
             VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO")));
 
     // When / Then:
-    assertThat(props.getKeyFormat().get().getFormat(), is("KAFKA"));
-    assertThat(props.getValueFormat().get().getFormat(), is("AVRO"));
+    assertThat(props.getKeyFormat(), is(Optional.of("KAFKA")));
+    assertThat(props.getValueFormat(), is(Optional.of("AVRO")));
   }
 
   @Test

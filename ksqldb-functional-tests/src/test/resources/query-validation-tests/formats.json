@@ -293,6 +293,108 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The key format 'AVRO' is not currently supported"
       }
+    },
+    {
+      "name": "override key format - create stream as select",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources": [
+          {"name" : "INPUT", "type" : "stream", "keyFormat" : {"format": "KAFKA"}, "valueFormat" : "JSON"},
+          {"name" : "OUTPUT", "type" : "stream", "keyFormat" : {"format": "JSON"}, "valueFormat" : "JSON"}
+        ]
+      }
+    },
+    {
+      "name": "override key format - create table as select",
+      "statements": [
+        "CREATE TABLE INPUT (K STRING PRIMARY KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='JSON');",
+        "CREATE TABLE OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources": [
+          {"name" : "INPUT", "type" : "table", "keyFormat" : {"format": "KAFKA"}, "valueFormat" : "JSON"},
+          {"name" : "OUTPUT", "type" : "table", "keyFormat" : {"format": "JSON"}, "valueFormat" : "JSON"}
+        ]
+      }
+    },
+    {
+      "name": "override formats - create stream as select",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources": [
+          {"name" : "INPUT", "type" : "stream", "keyFormat" : {"format": "KAFKA"}, "valueFormat" : "AVRO"},
+          {"name" : "OUTPUT", "type" : "stream", "keyFormat" : {"format": "JSON"}, "valueFormat" : "JSON"}
+        ]
+      }
+    },
+    {
+      "name": "override formats - create table as select",
+      "statements": [
+        "CREATE TABLE INPUT (K STRING PRIMARY KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='AVRO');",
+        "CREATE TABLE OUTPUT WITH (format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources": [
+          {"name" : "INPUT", "type" : "table", "keyFormat" : {"format": "KAFKA"}, "valueFormat" : "AVRO"},
+          {"name" : "OUTPUT", "type" : "table", "keyFormat" : {"format": "JSON"}, "valueFormat" : "JSON"}
+        ]
+      }
+    },
+    {
+      "name": "override key format - with unsupported type",
+      "statements": [
+        "CREATE STREAM INPUT (K BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT WITH (key_format='KAFKA') AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'KAFKA' format does not support type 'BOOLEAN'"
+      }
     }
   ]
 }

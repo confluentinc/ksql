@@ -47,7 +47,7 @@ currently supported as key formats. See individual formats for details.
 | Feature                      | Supported |
 |------------------------------|-----------|
 | As value format              | Yes       |
-| As key format                | No        |
+| As key format                | Yes       |
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
 | [Single field wrapping][2]   | No        |

@@ -22,7 +22,7 @@ import java.util.List;
 public final class KeyFormatUtils {
 
   private static final List<Format> SUPPORTED_KEY_FORMATS =
-      ImmutableList.of(FormatFactory.KAFKA);
+      ImmutableList.of(FormatFactory.KAFKA, FormatFactory.DELIMITED);
   private static final List<Format> KEY_FORMATS_UNDER_DEVELOPMENT =
       ImmutableList.of(FormatFactory.JSON);
 

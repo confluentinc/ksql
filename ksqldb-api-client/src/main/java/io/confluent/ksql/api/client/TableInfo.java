@@ -31,6 +31,14 @@ public interface TableInfo {
   String getTopic();
 
   /**
+   * @deprecated since 0.14, use {@link #getValueFormat()}
+   */
+  @Deprecated
+  default String getFormat() {
+    return getValueFormat();
+  }
+
+  /**
    * @return the key format of the data in this table
    */
   String getKeyFormat();

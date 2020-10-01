@@ -148,36 +148,12 @@ public final class TestCaseBuilderUtil {
       final CreateSourceProperties props = statement.getProperties();
 
       final FormatInfo valueFormatInfo = SourcePropertiesUtil.getValueFormat(props);
-      final Format valueFormat = FormatFactory.of(valueFormatInfo);
+      final Format valueFormat = FormatFactory.fromName(valueFormatInfo.getFormat());
 
-      final Optional<ParsedSchema> valueSchema;
-      if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
-        final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
-
-        SerdeFeatures valFeatures;
-        try {
-          valFeatures = SerdeFeaturesFactory.buildValueFeatures(
-              logicalSchema,
-              valueFormat,
-              props.getValueSerdeFeatures(),
-              ksqlConfig
-          );
-        } catch (final Exception e) {
-          // Catch block allows negative tests to fail in the correct place, later.
-          valFeatures = SerdeFeatures.of();
-        }
-
-        final SchemaTranslator translator = valueFormat
-            .getSchemaTranslator(valueFormatInfo.getProperties());
-
-        valueSchema = logicalSchema.value().isEmpty()
-            ? Optional.empty()
-            : Optional.of(translator.toParsedSchema(
-                PersistenceSchema.from(logicalSchema.value(), valFeatures)
-            ));
-      } else {
-        valueSchema = Optional.empty();
-      }
+      final Optional<ParsedSchema> valueSchema =
+          valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+              ? buildValueSchema(sql, ksqlConfig, statement, props, valueFormatInfo, valueFormat)
+              : Optional.empty();
 
       final int partitions = props.getPartitions()
           .orElse(Topic.DEFAULT_PARTITIONS);
@@ -217,6 +193,57 @@ public final class TestCaseBuilderUtil {
       System.out.println("Error parsing statement (which may be expected): " + sql);
       e.printStackTrace(System.out);
       return null;
+    }
+  }
+
+  private static Optional<ParsedSchema> buildValueSchema(
+      final String sql,
+      final KsqlConfig ksqlConfig,
+      final CreateSource statement,
+      final CreateSourceProperties props,
+      final FormatInfo valueFormatInfo,
+      final Format valueFormat
+  ) {
+    final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
+    if (logicalSchema.value().isEmpty()) {
+      return Optional.empty();
+    }
+
+    final SerdeFeatures valFeatures =
+        buildValueFeatures(ksqlConfig, props, valueFormat, logicalSchema);
+
+    try {
+      final SchemaTranslator translator = valueFormat
+          .getSchemaTranslator(valueFormatInfo.getProperties());
+
+      return Optional.of(translator.toParsedSchema(
+          PersistenceSchema.from(logicalSchema.value(), valFeatures)
+      ));
+    } catch (final Exception e) {
+      // Statement won't parse: this will be detected/handled later.
+      System.out
+          .println("Error getting schema translator statement (which may be expected): " + sql);
+      e.printStackTrace(System.out);
+      return Optional.empty();
+    }
+  }
+
+  private static SerdeFeatures buildValueFeatures(
+      final KsqlConfig ksqlConfig,
+      final CreateSourceProperties props,
+      final Format valueFormat,
+      final LogicalSchema logicalSchema
+  ) {
+    try {
+      return SerdeFeaturesFactory.buildValueFeatures(
+          logicalSchema,
+          valueFormat,
+          props.getValueSerdeFeatures(),
+          ksqlConfig
+      );
+    } catch (final Exception e) {
+      // Catch block allows negative tests to fail in the correct place, i.e. later.
+      return SerdeFeatures.of();
     }
   }
 

@@ -200,49 +200,6 @@ public class AnalyzerFunctionalTest {
   }
 
   @Test
-  public void shouldFailIfExplicitNamespaceIsProvidedForNonAvroTopic() {
-    final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='JSON', VALUE_AVRO_SCHEMA_FULL_NAME='com.custom.schema', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
-    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
-    final Query query = createStreamAsSelect.getQuery();
-
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "JSON does not support the following configs: [fullSchemaName]"));
-  }
-
-  @Test
-  public void shouldFailIfExplicitNamespaceIsProvidedButEmpty() {
-    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
-        "CREATE STREAM FOO "
-            + "WITH (VALUE_FORMAT='AVRO', VALUE_AVRO_SCHEMA_FULL_NAME='', KAFKA_TOPIC='TEST_TOPIC1') "
-            + "AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
-
-    final Query query = createStreamAsSelect.getQuery();
-
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "fullSchemaName cannot be empty. Format configuration: {fullSchemaName=}"
-    ));
-  }
-
-  @Test
   public void shouldCaptureProjectionColumnRefs() {
     // Given:
     query = parseSingle("Select COL0, COL0 + COL1, SUBSTRING(COL2, 1) from TEST1;");

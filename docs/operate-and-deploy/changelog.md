@@ -16,6 +16,11 @@ Version 0.11.0
 
 - [ksqlDB v0.11.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0110-2020-08-03)
 
+Version 0.10.2
+--------------
+
+- [ksqlDB v0.10.2 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0102-2020-07-09)
+
 Version 0.10.1
 --------------
 

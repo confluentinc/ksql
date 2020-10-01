@@ -74,6 +74,29 @@
 
 * ksqlDB now creates windowed tables with cleanup policy "compact,delete", rather than "compact". Also, topics that back streams are always created with cleanup policy "delete", rather than the broker default (by default, "delete").
 
+
+## [0.10.2](https://github.com/confluentinc/ksql/releases/tag/v0.10.2-ksqldb) (TBD)
+
+### Bug Fixes
+
+* adds a handler to gracefully shutdown ([#5895](https://github.com/confluentinc/ksql/pull/5895)) ([5fbf171](https://github.com/confluentinc/ksql/commit/5fbf17188282684834ba45077b45ea65c028c9cb))
+* allow expressions in flat map ([#6165](https://github.com/confluentinc/ksql/pull/6165)) ([b6ad9bc](https://github.com/confluentinc/ksql/commit/b6ad9bccf1fbac1ade2c586fa6bd40b33b19d35a))
+* allow joins in windowed aggregations ([9452ab6](https://github.com/confluentinc/ksql/commit/9452ab6d072882264c60042b655af52c5dc07cbf)), closes [#5898](https://github.com/confluentinc/ksql/issues/5898) [#5931](https://github.com/confluentinc/ksql/issues/5931)
+* always use the changelog subject in table state stores ([#5823](https://github.com/confluentinc/ksql/pull/5823)) ([#5837](https://github.com/confluentinc/ksql/issues/5837)) ([c87aa69](https://github.com/confluentinc/ksql/commit/c87aa6940aa480dbecf1393ff16a70d53a9d51d5))
+* avoid losing cause of processing errors ([#5937](https://github.com/confluentinc/ksql/pull/5937)) ([014c049](https://github.com/confluentinc/ksql/commit/014c049cfd6b964ae63ac39185ac44b7370c5fbb))
+* close query on invalid use of HTTP/2 with /query endpoint (6.0.x) ([#5885](https://github.com/confluentinc/ksql/pull/5885)) ([0b75411](https://github.com/confluentinc/ksql/commit/0b75411628df58ccb68ca04501e99828e63b22f3))
+* create /var/lib/kafka-streams directory on RPM installation ([#6126](https://github.com/confluentinc/ksql/pull/6126)) ([31ed3d3](https://github.com/confluentinc/ksql/commit/31ed3d3aca2de26fb44ca42bb651a1ddfc86f671))
+* ksqlDB should not truncate decimals ([#5763](https://github.com/confluentinc/ksql/pull/5763)) ([ba833f7](https://github.com/confluentinc/ksql/commit/ba833f7849f101f5faacba490faad30a551795c7))
+* remove schema compat check if schema exists ([#5871](https://github.com/confluentinc/ksql/pull/5871)) ([9bcb5b0](https://github.com/confluentinc/ksql/commit/9bcb5b05c892a1ae437ca25281afc08263cae70f))
+* Reuse KsqlClient instance for inter node requests ([#5742](https://github.com/confluentinc/ksql/pull/5742)) ([#5844](https://github.com/confluentinc/ksql/issues/5844)) ([7645abd](https://github.com/confluentinc/ksql/commit/7645abd7c8e00e3c0e83796fe592357684776a90))
+* windowed table topic retention fixes ([#5842](https://github.com/confluentinc/ksql/pull/5842)) ([b3db23c](https://github.com/confluentinc/ksql/commit/b3db23ca536ffe32c3fd78449d5554568bc1118a))
+
+
+### BREAKING CHANGES
+
+* ksqlDB now creates windowed tables with cleanup policy "compact,delete", rather than "compact". Also, topics that back streams are always created with cleanup policy "delete", rather than the broker default (by default, "delete").
+
+
 ## [0.10.1](https://github.com/confluentinc/ksql/releases/tag/v0.10.1-ksqldb) (2020-07-09)
 
 ### Bug Fixes

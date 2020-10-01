@@ -381,6 +381,20 @@
           {"name" : "OUTPUT", "type" : "table", "keyFormat" : {"format": "JSON"}, "valueFormat" : "JSON"}
         ]
       }
+    },
+    {
+      "name": "override key format - with unsupported type",
+      "statements": [
+        "CREATE STREAM INPUT (K BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT WITH (key_format='KAFKA') AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The 'KAFKA' format does not support type 'BOOLEAN'"
+      }
     }
   ]
 }

@@ -120,8 +120,23 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
   private boolean isRecordInLatestReplay(final ConsumerRecord<CommandId, Command> record) {
     final Pair<CommandId, Command> latestReplayRecord = latestReplay.get(latestReplayIdx);
-    if (record.key().equals(latestReplayRecord.left)
-        && record.value().equals(latestReplayRecord.right)) {
+
+    final boolean equalRecord;
+    switch (replayFile.getVersion()) {
+      // Compare only the command statement for non-versioned files. The command properties in the
+      // the backup may have missing nulls and empty values, which cause records to be different.
+      // Nulls and empty values are always written in backups V1 and newer.
+      case NO_VERSION:
+        equalRecord = record.key().equals(latestReplayRecord.getLeft())
+            && record.value().getStatement().equalsIgnoreCase(
+                latestReplayRecord.getRight().getStatement());
+        break;
+      default:
+        equalRecord = record.key().equals(latestReplayRecord.getLeft())
+            && record.value().equals(latestReplayRecord.getRight());
+    }
+
+    if (equalRecord) {
       latestReplayIdx++;
       return true;
     }
@@ -196,10 +211,10 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   }
 
   private BackupReplayFile newReplayFile() {
-    return new BackupReplayFile(Paths.get(
+    return BackupReplayFile.newFile(Paths.get(
         backupLocation.getAbsolutePath(),
         String.format("%s%s_%s", PREFIX, topicName, ticker.read())
-    ).toFile());
+    ));
   }
 
   private Optional<BackupReplayFile> latestReplayFile() {
@@ -209,7 +224,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
     File latestBakFile = null;
     if (files != null) {
-      long latestTs = 0;
+      long latestTs = -1;
       for (int i = 0; i < files.length; i++) {
         final File bakFile = files[i];
         final String bakTimestamp = bakFile.getName().substring(prefixFilename.length());
@@ -230,7 +245,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     }
 
     return (latestBakFile != null)
-        ? Optional.of(new BackupReplayFile(latestBakFile))
+        ? Optional.of(BackupReplayFile.openFile(latestBakFile))
         : Optional.empty();
   }
 

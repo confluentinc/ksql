@@ -49,7 +49,16 @@ public class BackupReplayFileTest {
   @Before
   public void setup() throws IOException {
     internalReplayFile = backupLocation.newFile(REPLAY_FILE_NAME);
-    replayFile = new BackupReplayFile(internalReplayFile);
+    replayFile = BackupReplayFile.openFile(internalReplayFile);
+  }
+
+  @Test
+  public void shouldGetVersion() {
+    // When
+    final BackupReplayFile.Versions version = replayFile.getVersion();
+
+    // Then
+    assertThat(version, is(BackupReplayFile.Versions.NO_VERSION));
   }
 
   @Test
@@ -75,7 +84,8 @@ public class BackupReplayFileTest {
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), is(
         "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
-            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\"}"
+            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\""
+            + ",\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null,\"version\":null}"
     ));
   }
 
@@ -93,11 +103,13 @@ public class BackupReplayFileTest {
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0), is(
         "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
-            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\"}"
+            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\","
+            + "\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null,\"version\":null}"
     ));
     assertThat(commands.get(1), is(
         "\"stream/stream2/create\"" + KEY_VALUE_SEPARATOR
-            + "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\"}"
+            + "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\","
+            + "\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null,\"version\":null}"
     ));
   }
 
@@ -120,7 +132,8 @@ public class BackupReplayFileTest {
     assertThat(commands.get(0), is(
         "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
             + "{\"statement\":"
-            + "\"CREATE STREAM stream1 (id INT, f\\n1 INT) WITH (kafka_topic='topic1)\"}"
+            + "\"CREATE STREAM stream1 (id INT, f\\n1 INT) WITH (kafka_topic='topic1)\""
+            + ",\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null,\"version\":null}"
     ));
   }
 

@@ -49,6 +49,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
@@ -653,10 +654,12 @@ public class JoinNode extends PlanNode {
     }
   }
 
+  @Immutable
   private static class KeyProperty {
 
-    final String name;
-    final Function<KeyFormat, ?> getter;
+    private final String name;
+    @EffectivelyImmutable
+    private final Function<KeyFormat, ?> getter;
 
     KeyProperty(final String name, final Function<KeyFormat, ?> getter) {
       this.name = requireNonNull(name, "name");

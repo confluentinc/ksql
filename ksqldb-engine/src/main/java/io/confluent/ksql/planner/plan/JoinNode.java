@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -42,10 +43,13 @@ import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
@@ -56,6 +60,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -66,6 +71,20 @@ public class JoinNode extends PlanNode {
   public enum JoinType {
     INNER, LEFT, OUTER
   }
+
+  private static final ImmutableList<KeyProperty> KEY_PROPERTIES = ImmutableList.of(
+      new KeyProperty("formats", kf -> kf.getFormatInfo().getFormat()),
+      new KeyProperty("properties", kf -> kf.getFormatInfo().getProperties()),
+      new KeyProperty("features", KeyFormat::getFeatures),
+      new KeyProperty("widowing", kf -> kf.getWindowInfo()
+          .map(WindowInfo::getType)
+          .map(t -> t == WindowType.SESSION
+              ? "session windowing" : "non session windowing")
+          .orElse("no windowing"))
+  // Note: we deliberately do NOT fail if one side is HOPPING and the other is TUMBLING, or fail
+  // on different window sizes. This is because we only fail if the _schema_ of the key is
+  // different. Neither of these differences make the schemas different.
+  );
 
   private final JoinType joinType;
   private final JoinKey joinKey;
@@ -97,6 +116,8 @@ public class JoinNode extends PlanNode {
     this.left = requireNonNull(left, "left");
     this.right = requireNonNull(right, "right");
     this.withinExpression = requireNonNull(withinExpression, "withinExpression");
+
+    throwOnKeyMismatch(left, right);
   }
 
   @Override
@@ -209,8 +230,32 @@ public class JoinNode extends PlanNode {
             + "number of partitions match.");
   }
 
+  private static void throwOnKeyMismatch(final PlanNode left, final PlanNode right) {
+    final SourceName leftSrc = getSourceName(left);
+    final SourceName rightSrc = getSourceName(right);
+    final KeyFormat leftFmt = getKeyFormatForSource(left);
+    final KeyFormat rightFmt = getKeyFormatForSource(right);
+
+    KEY_PROPERTIES
+        .forEach(prop -> prop.check(leftSrc, leftFmt, rightSrc, rightFmt));
+  }
+
   private static SourceName getSourceName(final PlanNode node) {
     return node.getLeftmostSourceNode().getAlias();
+  }
+
+  private static KeyFormat getKeyFormatForSource(final PlanNode sourceNode) {
+    return sourceNode.getLeftmostSourceNode()
+        .getDataSource()
+        .getKsqlTopic()
+        .getKeyFormat();
+  }
+
+  private static ValueFormat getValueFormatForSource(final PlanNode sourceNode) {
+    return sourceNode.getLeftmostSourceNode()
+        .getDataSource()
+        .getKsqlTopic()
+        .getValueFormat();
   }
 
   private static class JoinerFactory {
@@ -281,13 +326,6 @@ public class JoinNode extends PlanNode {
 
       return ((SchemaKTable<K>) schemaKStream);
     }
-
-    static ValueFormat getFormatForSource(final PlanNode sourceNode) {
-      return sourceNode.getLeftmostSourceNode()
-          .getDataSource()
-          .getKsqlTopic()
-          .getValueFormat();
-    }
   }
 
   private static final class StreamToStreamJoiner<K> extends Joiner<K> {
@@ -321,8 +359,8 @@ public class JoinNode extends PlanNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getFormatForSource(joinNode.left),
-              getFormatForSource(joinNode.right),
+              getValueFormatForSource(joinNode.left),
+              getValueFormatForSource(joinNode.right),
               contextStacker
           );
         case OUTER:
@@ -330,8 +368,8 @@ public class JoinNode extends PlanNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getFormatForSource(joinNode.left),
-              getFormatForSource(joinNode.right),
+              getValueFormatForSource(joinNode.left),
+              getValueFormatForSource(joinNode.right),
               contextStacker
           );
         case INNER:
@@ -339,8 +377,8 @@ public class JoinNode extends PlanNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getFormatForSource(joinNode.left),
-              getFormatForSource(joinNode.right),
+              getValueFormatForSource(joinNode.left),
+              getValueFormatForSource(joinNode.right),
               contextStacker
           );
         default:
@@ -377,7 +415,7 @@ public class JoinNode extends PlanNode {
           return leftStream.leftJoin(
               rightTable,
               joinNode.getKeyColumnName(),
-              getFormatForSource(joinNode.left),
+              getValueFormatForSource(joinNode.left),
               contextStacker
           );
 
@@ -385,7 +423,7 @@ public class JoinNode extends PlanNode {
           return leftStream.join(
               rightTable,
               joinNode.getKeyColumnName(),
-              getFormatForSource(joinNode.left),
+              getValueFormatForSource(joinNode.left),
               contextStacker
           );
         case OUTER:
@@ -613,6 +651,34 @@ public class JoinNode extends PlanNode {
         final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin
     ) {
       return this;
+    }
+  }
+
+  @Immutable
+  private static class KeyProperty {
+
+    private final String name;
+    @EffectivelyImmutable
+    private final Function<KeyFormat, ?> getter;
+
+    KeyProperty(final String name, final Function<KeyFormat, ?> getter) {
+      this.name = requireNonNull(name, "name");
+      this.getter = requireNonNull(getter, "getter");
+    }
+
+    public void check(
+        final SourceName leftName,
+        final KeyFormat leftFmt,
+        final SourceName rightName,
+        final KeyFormat rightFmt
+    ) {
+      final Object left = getter.apply(leftFmt);
+      final Object right = getter.apply(rightFmt);
+      if (!left.equals(right)) {
+        throw new KsqlException("Incompatible key " + name + ". "
+            + leftName + " has " + left + " while " + rightName + " has " + right
+        );
+      }
     }
   }
 }

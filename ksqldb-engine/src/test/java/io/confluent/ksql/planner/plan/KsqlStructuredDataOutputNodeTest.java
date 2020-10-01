@@ -55,10 +55,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlStructuredDataOutputNodeTest {
 
-  private static final String QUERY_ID_VALUE = "output-test";
-
-  private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
-
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
@@ -105,7 +101,6 @@ public class KsqlStructuredDataOutputNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
-    when(ksqlTopic.getKafkaTopicName()).thenReturn(SINK_KAFKA_TOPIC_NAME);
     when(ksqlTopic.getKeyFormat()).thenReturn(PROTOBUF_KEY_FORMAT);
     when(ksqlTopic.getValueFormat()).thenReturn(JSON_FORMAT);
 

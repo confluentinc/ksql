@@ -31,13 +31,25 @@ public interface TableInfo {
   String getTopic();
 
   /**
-   * @return the format of the data in this table
+   * @deprecated since 0.14, use {@link #getValueFormat()}
    */
-  String getFormat();
+  @Deprecated
+  default String getFormat() {
+    return getValueFormat();
+  }
+
+  /**
+   * @return the key format of the data in this table
+   */
+  String getKeyFormat();
+
+  /**
+   * @return the value format of the data in this table
+   */
+  String getValueFormat();
 
   /**
    * @return whether this ksqlDB table is windowed
    */
   boolean isWindowed();
-
 }

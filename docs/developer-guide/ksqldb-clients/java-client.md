@@ -613,7 +613,13 @@ List ksqlDB streams:
 ```java
 List<StreamInfo> streams = client.listStreams().get();
 for (StreamInfo stream : streams) {
-  System.out.println(stream.getName() + " " + stream.getTopic() + " " + stream.getFormat());
+  System.out.println(
+     stream.getName() 
+     + " " + stream.getTopic() 
+     + " " + stream.getKeyFormat()
+     + " " + stream.getValueFormat()
+     + " " + stream.isWindowed()
+  );
 }
 ``` 
 
@@ -621,7 +627,13 @@ List ksqlDB tables:
 ```java
 List<TableInfo> tables = client.listTables().get();
 for (TableInfo table : tables) {
-  System.out.println(table.getName() + " " + table.getTopic() + " " + table.getFormat() + " " + table.isWindowed());
+  System.out.println(
+       table.getName() 
+       + " " + table.getTopic() 
+       + " " + table.getKeyFormat()
+       + " " + table.getValueFormat()
+       + " " + table.isWindowed()
+    );
 }
 ```
 
@@ -629,7 +641,11 @@ List Kafka topics:
 ```java
 List<TopicInfo> topics = client.listTopics().get();
 for (TopicInfo topic : topics) {
-  System.out.println(topic.getName() + " " + topic.getPartitions() + " " + topic.getReplicasPerPartition());
+  System.out.println(
+       topic.getName() 
+       + " " + topic.getPartitions() 
+       + " " + topic.getReplicasPerPartition()
+  );
 }
 ```
 

@@ -841,7 +841,9 @@ public class ClientIntegrationTest {
     final List<TableInfo> tables = client.listTables().get();
 
     // Then
-    assertThat("" + tables, tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
+    assertThat("" + tables, tables, contains(
+        tableInfo(AGG_TABLE, AGG_TABLE, KEY_FORMAT.name(), VALUE_FORMAT.name(), false)
+    ));
   }
 
   @SuppressWarnings("unchecked")
@@ -1163,11 +1165,21 @@ public class ClientIntegrationTest {
   private static Matcher<? super StreamInfo> streamForProvider(
       final TestDataProvider testDataProvider
   ) {
-    return streamInfo(testDataProvider.kstreamName(), testDataProvider.topicName(), "JSON");
+    return streamInfo(
+        testDataProvider.kstreamName(),
+        testDataProvider.topicName(),
+        KEY_FORMAT.name(),
+        VALUE_FORMAT.name(),
+        false
+    );
   }
 
   private static Matcher<? super StreamInfo> streamInfo(
-      final String streamName, final String topicName, final String format
+      final String streamName,
+      final String topicName,
+      final String keyFormat,
+      final String valueFormat,
+      final boolean isWindowed
   ) {
     return new TypeSafeDiagnosingMatcher<StreamInfo>() {
       @Override
@@ -1180,7 +1192,13 @@ public class ClientIntegrationTest {
         if (!topicName.equals(actual.getTopic())) {
           return false;
         }
-        if (!format.equals(actual.getFormat())) {
+        if (!keyFormat.equals(actual.getValueFormat())) {
+          return false;
+        }
+        if (!valueFormat.equals(actual.getValueFormat())) {
+          return false;
+        }
+        if (isWindowed != actual.isWindowed()) {
           return false;
         }
         return true;
@@ -1189,13 +1207,18 @@ public class ClientIntegrationTest {
       @Override
       public void describeTo(final Description description) {
         description.appendText(String.format(
-            "streamName: %s. topicName: %s. format: %s", streamName, topicName, format));
+            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            streamName, topicName, keyFormat, valueFormat, isWindowed));
       }
     };
   }
 
   private static Matcher<? super TableInfo> tableInfo(
-      final String tableName, final String topicName, final String format, final boolean isWindowed
+      final String tableName,
+      final String topicName,
+      final String keyFormat,
+      final String valueFormat,
+      final boolean isWindowed
   ) {
     return new TypeSafeDiagnosingMatcher<TableInfo>() {
       @Override
@@ -1208,7 +1231,10 @@ public class ClientIntegrationTest {
         if (!topicName.equals(actual.getTopic())) {
           return false;
         }
-        if (!format.equals(actual.getFormat())) {
+        if (!keyFormat.equals(actual.getKeyFormat())) {
+          return false;
+        }
+        if (!valueFormat.equals(actual.getValueFormat())) {
           return false;
         }
         if (isWindowed != actual.isWindowed()) {
@@ -1220,8 +1246,8 @@ public class ClientIntegrationTest {
       @Override
       public void describeTo(final Description description) {
         description.appendText(String.format(
-            "tableName: %s. topicName: %s. format: %s. isWindowed: %s",
-            tableName, topicName, format, isWindowed));
+            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            tableName, topicName, keyFormat, valueFormat, isWindowed));
       }
     };
   }

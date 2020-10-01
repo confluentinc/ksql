@@ -389,7 +389,7 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(ORDER_DATA_PROVIDER.kstreamName(), ORDER_DATA_PROVIDER.topicName(), "JSON")
+        isRow(ORDER_DATA_PROVIDER.kstreamName(), ORDER_DATA_PROVIDER.topicName(), "KAFKA", "JSON", "false")
     );
 
     assertRunListCommand("tables", is(EMPTY_RESULT));

@@ -282,7 +282,7 @@ public class KsqlRestApplicationTest {
     final StreamsList streamsList =
         new StreamsList(
             LIST_STREAMS_SQL,
-            Collections.singletonList(new SourceInfo.Stream(LOG_STREAM_NAME, "", "")));
+            Collections.singletonList(new SourceInfo.Stream(LOG_STREAM_NAME, "", "", "", false)));
     when(response.getEntity()).thenReturn(new KsqlEntityList(Collections.singletonList(streamsList)));
     
     when(ksqlResource.handleKsqlStatements(

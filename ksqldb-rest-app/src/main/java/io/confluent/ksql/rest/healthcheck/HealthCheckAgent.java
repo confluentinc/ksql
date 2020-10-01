@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.HealthCheckResponseDetail;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.ServerUtil;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -48,27 +49,32 @@ public class HealthCheckAgent {
 
   public static final String METASTORE_CHECK_NAME = "metastore";
   public static final String KAFKA_CHECK_NAME = "kafka";
+  public static final String COMMAND_RUNNER_CHECK_NAME = "commandRunner";
 
   private static final List<Check> DEFAULT_CHECKS = ImmutableList.of(
       new ExecuteStatementCheck(METASTORE_CHECK_NAME, "list streams; list tables; list queries;"),
-      new KafkaBrokerCheck(KAFKA_CHECK_NAME)
+      new KafkaBrokerCheck(KAFKA_CHECK_NAME),
+      new CommandRunnerCheck(COMMAND_RUNNER_CHECK_NAME)
   );
 
   private final SimpleKsqlClient ksqlClient;
   private final URI serverEndpoint;
   private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
+  private final CommandRunner commandRunner;
 
   public HealthCheckAgent(
       final SimpleKsqlClient ksqlClient,
       final KsqlRestConfig restConfig,
       final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final CommandRunner commandRunner
   ) {
     this.ksqlClient = Objects.requireNonNull(ksqlClient, "ksqlClient");
     this.serverEndpoint = ServerUtil.getServerAddress(restConfig);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
   }
 
   public HealthCheckResponse checkHealth() {
@@ -154,6 +160,26 @@ public class HealthCheckAgent {
       }
 
       return new HealthCheckResponseDetail(isHealthy);
+    }
+  }
+
+  private static class CommandRunnerCheck implements Check {
+    private final String name;
+
+    CommandRunnerCheck(final String name) {
+      this.name = Objects.requireNonNull(name, "name");
+    }
+
+    @Override
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public HealthCheckResponseDetail check(final HealthCheckAgent healthCheckAgent) {
+      return new HealthCheckResponseDetail(
+          healthCheckAgent.commandRunner.checkCommandRunnerStatus()
+              == CommandRunner.CommandRunnerStatus.RUNNING);
     }
   }
 }

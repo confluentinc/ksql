@@ -39,10 +39,15 @@ ksqlDB supports these serialization formats:
     serializers. See [KAFKA](#kafka) below.
 -   `PROTOBUF` supports Protocol Buffers. See [Protobuf](#protobuf) below.
 
+All formats are supported as value formats. Only a subset of formats are
+currently supported as key formats. See individual formats for details.
+
 ### DELIMITED
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | No        |
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
 | [Single field wrapping][2]   | No        |
@@ -75,6 +80,8 @@ This data format supports all SQL
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | `JSON`: Yes, `JSON_SR`: No |
 | [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
 | [Schema inference][1]        | `JSON`: No, `JSON_SR`: Yes |
 | [Single field wrapping][2]   | Yes       |
@@ -183,6 +190,8 @@ used.
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | No        |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
 | [Single field wrapping][2]   | Yes       |
@@ -275,6 +284,8 @@ Avro record's field name. The first case-insensitive match is used.
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | Yes       |
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
 | [Single field wrapping][2]   | No        |
@@ -333,6 +344,8 @@ format.
 
 | Feature                      | Supported |
 |------------------------------|-----------|
+| As value format              | Yes       |
+| As key format                | No        |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
 | [Single field wrapping][2]   | Yes       |

@@ -19,8 +19,9 @@ query results from other streams.
       see [Create a ksqlDB Table](create-a-table.md).
       
 ksqlDB can't infer the topic value's data format, so you must provide the
-format of the values that are stored in the topic. In this example, the
-data format is `DELIMITED`. 
+format of the values that are stored in the topic, either explicitly via the use of `VALUE_FORMAT`
+in the WITH clause, or by configuring a default value format by setting the [ksql.persistence.default.format.value](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatvalue)
+configuration. In this example, the data format is `DELIMITED`. 
 For all supported formats, see [Serialization Formats](serialization.md#serialization-formats).
 
 Create a Stream from an existing Kafka topic
@@ -100,14 +101,17 @@ For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 The previous SQL statement doesn't define a column to represent the data in the
 {{ site.ak }} message key in the underlying {{ site.ak }} topic. If the {{ site.ak }} message key 
 is serialized in a key format that ksqlDB supports, you can specify the key in the column list of 
-the CREATE STREAM statement.
+the CREATE STREAM statement. For support key formats, see [Serialization Formats](./serialization.md#serialization-formats).
 
-ksqlDB requires keys to be serialized using {{ site.ak }}'s own serializers or compatible
-serializers. For supported data types, see the [`KAFKA` format](./serialization.md#kafka). 
+ksqlDB can't infer the topic key's data format, so you must provide the
+format of the keys that are stored in the topic, either explicitly via the use of `KEY_FORMAT`
+in the WITH clause, or by configuring a default value format by setting the [ksql.persistence.default.format.key](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatkey)
+configuration. In this example, the key format is `KAFKA`. 
+
 If the data in your {{ site.ak }} topics doesn't have a suitable key format, 
 see [Key Requirements](syntax-reference.md#key-requirements).
 
-For example, the {{ site.ak }}  message key of the `pageviews` topic is a `BIGINT` containing the 
+For example, the {{ site.ak }} message key of the `pageviews` topic is a `BIGINT` containing the 
 `viewtime`, so you can write the CREATE STREAM statement like this:
 
 ```sql
@@ -117,9 +121,14 @@ CREATE STREAM pageviews_withkey (
     pageid VARCHAR
   ) WITH (
     KAFKA_TOPIC='pageviews',
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='DELIMITED'
   );
 ```
+
+!!! tip
+      If the key and value formats for the stream are identical, the `FORMAT` property
+      may be used in place of specifying the `KEY_FORMAT` and `VALUE_FORMAT` separately.
 
 Confirm that the KEY column in the new stream is `pageid` by using the
 `DESCRIBE EXTENDED` statement:
@@ -190,7 +199,7 @@ Kafka topic          : pageviews (partitions: 1, replication: 1)
 [...]
 ```
 
-### Creating a Table using Schema Inference
+### Creating a Stream using Schema Inference
 
 For supported [serialization formats](../developer-guide/serialization.md),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
@@ -227,6 +236,7 @@ CREATE STREAM pageviews(
     pageid VARCHAR
   ) WITH (
     KAFKA_TOPIC='pageviews',
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='DELIMITED',
     PARTITIONS=4,
     REPLICAS=3

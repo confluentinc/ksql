@@ -199,11 +199,11 @@
     {
       "name": "unsupported format - create source",
       "statements": [
-        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');"
+        "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', format='PROTOBUF');"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'DELIMITED' is not currently supported."
+        "message": "The key format 'PROTOBUF' is not currently supported."
       }
     },
     {

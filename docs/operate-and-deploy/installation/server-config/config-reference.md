@@ -296,6 +296,12 @@ If not set and no explicit key format is provided in the statement, via either t
 
 For supported formats, see [Serialization Formats](../../../developer-guide/serialization.md#serialization-formats).
 
+[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
+[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md) 
+statements that create streams or tables with key columns, where the source stream or table 
+has a [NONE](../../../developer-guide/serialization.md#none) key format, will also use the default
+key format set in this configuration if no explicit key format is declared in the `WITH` clause.
+
 ### ksql.persistence.default.format.value
 
 Sets the default value for the `VALUE_FORMAT` property if one is

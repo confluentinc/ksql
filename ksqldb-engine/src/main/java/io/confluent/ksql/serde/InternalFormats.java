@@ -16,6 +16,8 @@
 package io.confluent.ksql.serde;
 
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
 
 /**
  * Util class for creating internal formats.
@@ -50,10 +52,15 @@ public final class InternalFormats {
    * @see SerdeFeaturesFactory#buildInternal
    */
   public static Formats of(final KeyFormat keyFormat, final ValueFormat valueFormat) {
+    // Do not use NONE format for internal topics:
+    final FormatInfo formatInfo = keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)
+        ? FormatInfo.of(JsonFormat.NAME)
+        : keyFormat.getFormatInfo();
+
     return Formats.of(
-        keyFormat.getFormatInfo(),
+        formatInfo,
         valueFormat.getFormatInfo(),
-        SerdeFeaturesFactory.buildInternal(FormatFactory.of(keyFormat.getFormatInfo())),
+        SerdeFeaturesFactory.buildInternal(FormatFactory.of(formatInfo)),
         SerdeFeatures.of()
     );
   }

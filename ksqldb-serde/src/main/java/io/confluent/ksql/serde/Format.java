@@ -51,7 +51,9 @@ public interface Format {
   /**
    * @return The set of features the format supports.
    */
-  Set<SerdeFeature> supportedFeatures();
+  default Set<SerdeFeature> supportedFeatures() {
+    return ImmutableSet.of();
+  }
 
   /**
    * @param feature the feature to test

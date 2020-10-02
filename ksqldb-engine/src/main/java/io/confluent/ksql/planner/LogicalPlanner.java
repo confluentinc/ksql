@@ -76,11 +76,13 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -202,10 +204,11 @@ public class LogicalPlanner {
     }
 
     final NewTopic newTopic = into.getNewTopic().orElseThrow(IllegalStateException::new);
+    final FormatInfo keyFormat = getSinkKeyFormat(schema, newTopic);
 
     final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
         schema,
-        FormatFactory.of(newTopic.getKeyFormat())
+        FormatFactory.of(keyFormat)
     );
 
     final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
@@ -217,9 +220,23 @@ public class LogicalPlanner {
 
     return new KsqlTopic(
         newTopic.getTopicName(),
-        KeyFormat.of(newTopic.getKeyFormat(), keyFeatures, newTopic.getWindowInfo()),
+        KeyFormat.of(keyFormat, keyFeatures, newTopic.getWindowInfo()),
         ValueFormat.of(newTopic.getValueFormat(), valFeatures)
     );
+  }
+
+  private FormatInfo getSinkKeyFormat(final LogicalSchema schema, final NewTopic newTopic) {
+    // If the inherited key format is NONE, and the result has key columns, use default key format:
+    final boolean resultHasKeyColumns = !schema.key().isEmpty();
+    final boolean inheritedNone = !analysis.getProperties().getKeyFormat().isPresent()
+        && newTopic.getKeyFormat().getFormat().equals(NoneFormat.NAME);
+
+    if (!inheritedNone || !resultHasKeyColumns) {
+      return newTopic.getKeyFormat();
+    }
+
+    final String defaultKeyFormat = ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG);
+    return FormatInfo.of(defaultKeyFormat);
   }
 
   private Optional<TimestampColumn> getTimestampColumn(

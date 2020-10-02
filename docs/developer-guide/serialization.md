@@ -32,15 +32,74 @@ Serialization Formats
 
 ksqlDB supports these serialization formats:
 
--   `DELIMITED` supports comma separated values. See [DELIMITED](#delimited) below.
--   `JSON` and `JSON_SR` support JSON values. See [JSON](#json) below.
--   `AVRO` supports AVRO serialized values. See [AVRO](#avro) below.
--   `KAFKA` supports primitives serialized using the standard Kafka
-    serializers. See [KAFKA](#kafka) below.
--   `PROTOBUF` supports Protocol Buffers. See [Protobuf](#protobuf) below.
+-   [`NONE`](#none) used to indicate the data should not be derialized.
+-   [`DELIMITED`](#delimited) supports comma separated values.
+-   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and within schema registry integration 
+-   [`AVRO`](#avro) supports AVRO serialized values. 
+-   [`KAFKA`](#kafka) supports primitives serialized using the standard Kafka serializers. 
+-   [`PROTOBUF`](#protobuf) supports Protocol Buffers.
 
 All formats are supported as value formats. Only a subset of formats are
 currently supported as key formats. See individual formats for details.
+
+### NONE
+
+| Feature                      | Supported |
+|------------------------------|-----------|
+| As value format              | No        |
+| As key format                | Yes       |
+| [Schema Registry required][0]| No        |
+| [Schema inference][1]        | No        |
+| [Single field wrapping][2]   | No        |
+| [Single field unwrapping][2] | No        | 
+
+The `NONE` format is a special marker format that is used to indicate ksqlDB should not attempt to 
+deserialize that part of the  {{ site.ak }} record.
+
+It's main use is as the `KEY_FORMAT` of key-less streams, especially where a default key format 
+has been set, via `ksql.persistence.default.format.key`, that supports Schema inference. If the
+key format was not overridden, the server would attempt to load the key schema from the {{ site.sr }}.
+If the schema existed, the key columns would be inferred from the schema, which may not be the intent.
+If the schema did no exist, the statment would be rejected.  In such situations, the key format can
+be set to `NONE`: 
+
+```sql
+CREATE STREAM KEY_LESS_STREAM (
+    VAL STRING
+  ) WITH (
+    KEY_FORMAT='NONE',
+    VALUE_FORMAT='JSON',
+    KAFKA_TOPIC='foo'
+  );
+```
+
+Any statement using format `NONE` that defines columns will result in an error.
+
+If a `CREATE TABLE AS` or `CREATE STREAM AS` statement has a source with a key format of `NONE`, but
+the newly created table or stream has key column, then you may either explicitly define the key 
+format to use in the `WITH` clause, or the default key format, as set in `ksql.persistence.default.format.key`
+will be used.
+
+```sql
+-- keyless stream with NONE key format:
+CREATE STREAM KEY_LESS_STREAM (
+    VAL STRING
+  ) WITH (
+    KEY_FORMAT='NONE',
+    VALUE_FORMAT='JSON',
+    KAFKA_TOPIC='foo'
+  );
+
+-- Table created from stream with explicit key format declared in WITH clause:
+CREATE TABLE T WITH (KEY_FORMAT='KAFKA') AS 
+  SELECT VAL, COUNT() FROM KEY_LESS_STREAM
+  GROUP BY VAL;
+
+-- or, using the default key format set in the ksql.persistence.default.format.key config:
+CREATE TABLE T AS 
+  SELECT VAL, COUNT() FROM KEY_LESS_STREAM
+  GROUP BY VAL;
+```
 
 ### DELIMITED
 

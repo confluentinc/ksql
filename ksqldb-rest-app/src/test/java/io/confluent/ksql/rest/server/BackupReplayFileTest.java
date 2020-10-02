@@ -17,17 +17,16 @@ package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,16 +48,7 @@ public class BackupReplayFileTest {
   @Before
   public void setup() throws IOException {
     internalReplayFile = backupLocation.newFile(REPLAY_FILE_NAME);
-    replayFile = BackupReplayFile.openFile(internalReplayFile);
-  }
-
-  @Test
-  public void shouldGetVersion() {
-    // When
-    final BackupReplayFile.Versions version = replayFile.getVersion();
-
-    // Then
-    assertThat(version, is(BackupReplayFile.Versions.NO_VERSION));
+    replayFile = new BackupReplayFile(internalReplayFile);
   }
 
   @Test
@@ -74,10 +64,10 @@ public class BackupReplayFileTest {
   @Test
   public void shouldWriteRecord() throws IOException {
     // Given
-    final Pair<CommandId, Command> record = newStreamRecord("stream1");
+    final ConsumerRecord<byte[], byte[]> record = newStreamRecord("stream1");
 
     // When
-    replayFile.write(record.left, record.right);
+    replayFile.write(record);
 
     // Then
     final List<String> commands = Files.readAllLines(internalReplayFile.toPath());
@@ -85,46 +75,19 @@ public class BackupReplayFileTest {
     assertThat(commands.get(0), is(
         "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
             + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\""
-            + ",\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null,\"version\":null}"
-    ));
-  }
-
-  @Test
-  public void shouldWriteListOfRecords() throws IOException {
-    // Given
-    final Pair<CommandId, Command> record1 = newStreamRecord("stream1");
-    final Pair<CommandId, Command> record2 = newStreamRecord("stream2");
-
-    // When
-    replayFile.write(Arrays.asList(record1, record2));
-
-    // Then
-    final List<String> commands = Files.readAllLines(internalReplayFile.toPath());
-    assertThat(commands.size(), is(2));
-    assertThat(commands.get(0), is(
-        "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
-            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\","
-            + "\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null,\"version\":null}"
-    ));
-    assertThat(commands.get(1), is(
-        "\"stream/stream2/create\"" + KEY_VALUE_SEPARATOR
-            + "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\","
-            + "\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null,\"version\":null}"
+            + ",\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null}"
     ));
   }
 
   @Test
   public void shouldWriteRecordWithNewLineCharacterInCommand() throws IOException {
     // Given
-    final CommandId commandId1 = new CommandId(
-        CommandId.Type.STREAM, "stream1", CommandId.Action.CREATE);
-    final Command command1 = new Command(
-        "CREATE STREAM stream1 (id INT, f\n1 INT) WITH (kafka_topic='topic1)",
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()
-    );
+    final String commandId = buildKey("stream1");
+    final String command =
+        "{\"statement\":\"CREATE STREAM stream1 (id INT, f\\n1 INT) WITH (kafka_topic='topic1')\"}";
 
     // When
-    replayFile.write(commandId1, command1);
+    replayFile.write(newStreamRecord(commandId, command));
 
     // Then
     final List<String> commands = Files.readAllLines(internalReplayFile.toPath());
@@ -132,8 +95,7 @@ public class BackupReplayFileTest {
     assertThat(commands.get(0), is(
         "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
             + "{\"statement\":"
-            + "\"CREATE STREAM stream1 (id INT, f\\n1 INT) WITH (kafka_topic='topic1)\""
-            + ",\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null,\"version\":null}"
+            + "\"CREATE STREAM stream1 (id INT, f\\n1 INT) WITH (kafka_topic='topic1')\"}"
     ));
   }
 
@@ -149,37 +111,52 @@ public class BackupReplayFileTest {
   @Test
   public void shouldReadCommands() throws IOException {
     // Given
-    final Pair<CommandId, Command> record1 = newStreamRecord("stream1");
-    final Pair<CommandId, Command> record2 = newStreamRecord("stream2");
+    final ConsumerRecord<byte[], byte[]>  record1 = newStreamRecord("stream1");
+    final ConsumerRecord<byte[], byte[]>  record2 = newStreamRecord("stream2");
     Files.write(internalReplayFile.toPath(),
         String.format("%s%s%s%n%s%s%s",
             "\"stream/stream1/create\"",
             KEY_VALUE_SEPARATOR,
-            "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\"}",
+            "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\","
+                + "\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null}",
             "\"stream/stream2/create\"",
             KEY_VALUE_SEPARATOR,
-            "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\"}"
+            "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\","
+                + "\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null}"
             ).getBytes(StandardCharsets.UTF_8));
 
     // When
-    final List<Pair<CommandId, Command>> commands = replayFile.readRecords();
+    final List<Pair<byte[], byte[]>> commands = replayFile.readRecords();
 
     // Then
     assertThat(commands.size(), is(2));
-    assertThat(commands.get(0).left, is(record1.left));
-    assertThat(commands.get(0).right, is(record1.right));
-    assertThat(commands.get(1).left, is(record2.left));
-    assertThat(commands.get(1).right, is(record2.right));
+    assertThat(commands.get(0).left, is(record1.key()));
+    assertThat(commands.get(0).right, is(record1.value()));
+    assertThat(commands.get(1).left, is(record2.key()));
+    assertThat(commands.get(1).right, is(record2.value()));
   }
 
-  private Pair<CommandId, Command> newStreamRecord(final String streamName) {
-    final CommandId commandId = new CommandId(
-        CommandId.Type.STREAM, streamName, CommandId.Action.CREATE);
-    final Command command = new Command(
-        String.format("CREATE STREAM %s (id INT) WITH (kafka_topic='%s')", streamName, streamName),
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()
-    );
+  private ConsumerRecord<byte[], byte[]> newStreamRecord(final String streamName) {
+    return newStreamRecord(buildKey(streamName), buildValue(streamName));
+  }
 
-    return new Pair<>(commandId, command);
+  @SuppressWarnings("unchecked")
+  private ConsumerRecord<byte[], byte[]> newStreamRecord(final String key, final String value) {
+    final ConsumerRecord<byte[], byte[]> consumerRecord = mock(ConsumerRecord.class);
+
+    when(consumerRecord.key()).thenReturn(key.getBytes());
+    when(consumerRecord.value()).thenReturn(value.getBytes());
+
+    return consumerRecord;
+  }
+
+  private String buildKey(final String streamName) {
+    return String.format("\"stream/%s/create\"", streamName);
+  }
+
+  private String buildValue(final String streamName) {
+    return String.format("{\"statement\":\"CREATE STREAM %s (id INT) WITH (kafka_topic='%s')\","
+            + "\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null}",
+        streamName, streamName);
   }
 }

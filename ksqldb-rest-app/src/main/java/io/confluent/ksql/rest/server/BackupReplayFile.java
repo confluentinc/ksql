@@ -15,152 +15,70 @@
 
 package io.confluent.ksql.rest.server;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.execution.json.PlanJsonMapper;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 /**
  * A file that is used by the backup service to replay command_topic commands.
  */
 public final class BackupReplayFile implements Closeable {
-  enum Versions {
-    NO_VERSION, V1
-  }
+  private static final String KEY_VALUE_SEPARATOR_STR = ":";
+  private static final String NEW_LINE_SEPARATOR_STR = "\n";
 
-  // Current version of the Backup file
-  private static final String BACKUP_VERSION_HEADER = "BACKUP_VERSION";
-  private static final Versions DEFAULT_BACKUP_VERSION = Versions.V1;
-
-  // Include.ALWAYS is necessary to serialize nulls and empty values. This is required to allow
-  // the CommandTopicBackupImpl to compare against all properties from a record read from
-  // the command topic, which come with nulls and empty values.
-  private static final ObjectMapper MAPPER = PlanJsonMapper.INSTANCE.get()
-      .setSerializationInclusion(JsonInclude.Include.ALWAYS);
-
-  private static final String KEY_VALUE_SEPARATOR = ":";
+  private static final byte[] KEY_VALUE_SEPARATOR_BYTES =
+      KEY_VALUE_SEPARATOR_STR.getBytes(StandardCharsets.UTF_8);
+  private static final byte[] NEW_LINE_SEPARATOR_BYTES =
+      NEW_LINE_SEPARATOR_STR.getBytes(StandardCharsets.UTF_8);
 
   private final File file;
-  private final BufferedWriter writer;
-  private final Versions version;
+  private final FileOutputStream writer;
 
-  public static BackupReplayFile newFile(final Path path) {
-    final String versionHeader =
-        String.format("%s=%s%n", BACKUP_VERSION_HEADER, DEFAULT_BACKUP_VERSION);
-
-    try {
-      // Fails if the file already exists
-      Files.createFile(path, PosixFilePermissions.asFileAttribute(
-          PosixFilePermissions.fromString("rw-------")
-      ));
-
-      Files.write(path, versionHeader.getBytes(StandardCharsets.UTF_8));
-    } catch (final IOException e) {
-      throw new KsqlException(
-          String.format("Failed to create replay file: %s", path), e);
-    }
-
-    return new BackupReplayFile(path.toFile(), DEFAULT_BACKUP_VERSION);
-  }
-
-  public static BackupReplayFile openFile(final File file) {
-    return new BackupReplayFile(file, readVersion(file));
-  }
-
-  private static Versions readVersion(final File file) {
-    final Optional<String> firstLine;
-
-    try {
-      firstLine = Files.lines(file.toPath(), StandardCharsets.UTF_8).limit(1).findAny();
-    } catch (final IOException e) {
-      throw new KsqlException(
-          String.format("Failed to read replay file: %s", file.getAbsolutePath()), e);
-    }
-
-    if (firstLine.isPresent() && isVersionLine(firstLine.get())) {
-      final String backupVersion = firstLine.get().substring(BACKUP_VERSION_HEADER.length() + 1);
-      return Versions.valueOf(backupVersion);
-    }
-
-    return Versions.NO_VERSION;
-  }
-
-  private static boolean isVersionLine(final String line) {
-    return line.startsWith(BACKUP_VERSION_HEADER);
-  }
-
-  private BackupReplayFile(final File file, final Versions version) {
-    this.version = Objects.requireNonNull(version, "version");;
+  public BackupReplayFile(final File file) {
     this.file = Objects.requireNonNull(file, "file");
     this.writer = createWriter(file);
   }
 
-  private static BufferedWriter createWriter(final File file) {
+  private static FileOutputStream createWriter(final File file) {
     try {
-      return new BufferedWriter(new OutputStreamWriter(
-          new FileOutputStream(file, true),
-          StandardCharsets.UTF_8)
-      );
+      return new FileOutputStream(file, true);
     } catch (final FileNotFoundException e) {
       throw new KsqlException(
-          String.format("Failed to create replay file: %s", file.getAbsolutePath()), e);
+          String.format("Failed to create/open replay file: %s", file.getAbsolutePath()), e);
     }
-  }
-
-  public Versions getVersion() {
-    return version;
   }
 
   public String getPath() {
     return file.getAbsolutePath();
   }
 
-  public void write(final CommandId commandId, final Command command) throws IOException {
-    writer.write(MAPPER.writeValueAsString(commandId));
-    writer.write(KEY_VALUE_SEPARATOR);
-    writer.write(MAPPER.writeValueAsString(command));
-    writer.write("\n");
+  public void write(final ConsumerRecord<byte[], byte[]> record) throws IOException {
+    writer.write(record.key());
+    writer.write(KEY_VALUE_SEPARATOR_BYTES);
+    writer.write(record.value());
+    writer.write(NEW_LINE_SEPARATOR_BYTES);
     writer.flush();
   }
 
-  public void write(final List<Pair<CommandId, Command>> records) throws IOException {
-    for (final Pair<CommandId, Command> record : records) {
-      write(record.left, record.right);
-    }
-  }
-
-  public List<Pair<CommandId, Command>> readRecords() throws IOException {
-    final List<Pair<CommandId, Command>> commands = new ArrayList<>();
+  public List<Pair<byte[], byte[]>> readRecords() throws IOException {
+    final List<Pair<byte[], byte[]>> commands = new ArrayList<>();
     for (final String line : Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)) {
-      // Ignore version header
-      if (isVersionLine(line)) {
-        continue;
-      }
-
-      final String commandId = line.substring(0, line.indexOf(KEY_VALUE_SEPARATOR));
-      final String command = line.substring(line.indexOf(KEY_VALUE_SEPARATOR) + 1);
+      final String commandId = line.substring(0, line.indexOf(KEY_VALUE_SEPARATOR_STR));
+      final String command = line.substring(line.indexOf(KEY_VALUE_SEPARATOR_STR) + 1);
 
       commands.add(new Pair<>(
-          MAPPER.readValue(commandId.getBytes(StandardCharsets.UTF_8), CommandId.class),
-          MAPPER.readValue(command.getBytes(StandardCharsets.UTF_8), Command.class)
+          commandId.getBytes(StandardCharsets.UTF_8),
+          command.getBytes(StandardCharsets.UTF_8)
       ));
     }
 

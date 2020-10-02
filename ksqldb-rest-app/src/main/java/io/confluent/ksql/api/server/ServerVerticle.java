@@ -40,6 +40,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.nio.channels.ClosedChannelException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -201,7 +202,10 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(Versions.KSQL_V1_JSON)
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleWebsocket);
-
+    router.route(HttpMethod.GET, "/v1/configs")
+        .produces(Versions.KSQL_V1_JSON)
+        .produces(JSON_CONTENT_TYPE)
+        .handler(this::handleConfigRequest);
     return router;
   }
 
@@ -319,6 +323,15 @@ public class ServerVerticle extends AbstractVerticle {
     endpoints
         .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
             server.getWorkerExecutor(), apiSecurityContext);
+  }
+
+  private void handleConfigRequest(final RoutingContext routingContext) {
+    final List<String> requestedConfigs = routingContext.queryParam("name");
+    handleOldApiRequest(server, routingContext, null,
+        (request, apiSecurityContext) ->
+            endpoints
+                .executeConfig(requestedConfigs, DefaultApiSecurityContext.create(routingContext))
+    );
   }
 
   private static void chcHandler(final RoutingContext routingContext) {

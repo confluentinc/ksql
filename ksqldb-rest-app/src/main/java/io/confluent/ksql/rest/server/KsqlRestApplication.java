@@ -67,6 +67,7 @@ import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
+import io.confluent.ksql.rest.server.resources.ConfigResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
@@ -181,6 +182,7 @@ public final class KsqlRestApplication implements Executable {
   private final HealthCheckResource healthCheckResource;
   private volatile ServerMetadataResource serverMetadataResource;
   private volatile WSQueryEndpoint wsQueryEndpoint;
+  private final ConfigResource configResource;
   @SuppressWarnings("UnstableApiUsage")
   private volatile ListeningScheduledExecutorService oldApiWebsocketExecutor;
   private final Vertx vertx;
@@ -275,6 +277,7 @@ public final class KsqlRestApplication implements Executable {
         this.restConfig,
         this.ksqlConfigNoPort);
     this.queryMonitor = requireNonNull(ksqlQueryMonitor, "ksqlQueryMonitor");
+    this.configResource = new ConfigResource(ksqlConfig);
     MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     log.debug("ksqlDB API server instance created");
   }
@@ -334,7 +337,8 @@ public final class KsqlRestApplication implements Executable {
           lagReportingResource,
           healthCheckResource,
           serverMetadataResource,
-          wsQueryEndpoint
+          wsQueryEndpoint,
+          configResource
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState);

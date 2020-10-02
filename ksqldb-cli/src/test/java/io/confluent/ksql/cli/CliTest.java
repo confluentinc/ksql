@@ -140,8 +140,8 @@ public class CliTest {
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
       .build();
 
-  @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  @Rule
+  public final TemporaryFolder TMP = new TemporaryFolder();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -735,7 +735,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldPrintErrorIfCantConnectToRestServer() throws Exception {
+  public void shouldPrintErrorIfCantConnectToRestServerOnRunInteractively() throws Exception {
     givenRunInteractivelyWillExit();
 
     final KsqlRestClient mockRestClient = givenMockRestClient();
@@ -747,6 +747,21 @@ public class CliTest {
 
     assertThat(terminal.getOutputString(),
                containsString("Please ensure that the URL provided is for an active KSQL server."));
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantConnectToRestServerOnRunCommand() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getServerInfo())
+        .thenThrow(new KsqlRestClientException("Boom", new IOException("")));
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runCommand("this is a command");
+
+    assertThat(terminal.getOutputString(),
+        containsString("Please ensure that the URL provided is for an active KSQL server."));
   }
 
   @Test
@@ -950,7 +965,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldRunScript() throws Exception {
+  public void shouldRunScriptOnRunInteractively() throws Exception {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
@@ -963,6 +978,22 @@ public class CliTest {
 
     // When:
     localCli.runInteractively();
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
+  }
+
+  @Test
+  public void shouldRunScriptOnRunCommand() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";"
+        + "").getBytes(StandardCharsets.UTF_8));
+
+    // When:
+    localCli.runCommand("run script '" + scriptFile.getAbsolutePath() + "'");
 
     // Then:
     assertThat(terminal.getOutputString(),
@@ -1105,7 +1136,7 @@ public class CliTest {
 
   private void runCliSpecificCommand(final String command) {
     when(lineSupplier.get()).thenReturn(command).thenReturn("");
-    console.readLine();
+    console.nextNonCliCommand();
   }
 
   private void givenRunInteractivelyWillExit() {

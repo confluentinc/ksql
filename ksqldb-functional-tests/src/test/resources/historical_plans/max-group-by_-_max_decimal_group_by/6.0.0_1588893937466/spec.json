@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/max-group-by.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 2)"
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)"
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)"
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 2)"
     }
   },
   "testCase" : {
@@ -191,29 +187,31 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4, 2)) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE S2 as SELECT ID, max(value) as value FROM test group by id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` DECIMAL(4, 2)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -221,9 +219,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -232,9 +228,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

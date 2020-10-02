@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
@@ -51,6 +52,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
       materializationProviderBuilder;
 
   private Optional<MaterializationProvider> materializationProvider;
+  private ProcessingLogger processingLogger;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
@@ -72,7 +74,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final long closeTimeout,
       final QueryErrorClassifier errorClassifier,
       final ExecutionStep<?> physicalPlan,
-      final int maxQueryErrorsQueueSize
+      final int maxQueryErrorsQueueSize,
+      final ProcessingLogger processingLogger
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -98,9 +101,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
+    this.processingLogger = requireNonNull(processingLogger, "processingLogger");
 
     this.materializationProvider = materializationProviderBuilder
         .flatMap(builder -> builder.apply(getKafkaStreams()));
+
+    setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   protected PersistentQueryMetadata(
@@ -114,6 +120,15 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.materializationProvider = other.materializationProvider;
     this.physicalPlan = other.physicalPlan;
     this.materializationProviderBuilder = other.materializationProviderBuilder;
+    this.processingLogger = other.processingLogger;
+  }
+
+  @Override
+  protected void uncaughtHandler(final Thread thread, final Throwable error) {
+    super.uncaughtHandler(thread, error);
+
+    processingLogger.error(KafkaStreamsThreadError.of(
+        "Unhandled exception caught in streams thread", thread, error));
   }
 
   public DataSourceType getDataSourceType() {
@@ -147,6 +162,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
   @VisibleForTesting
   Optional<MaterializationProvider> getMaterializationProvider() {
     return materializationProvider;
+  }
+
+  @VisibleForTesting
+  public ProcessingLogger getProcessingLogger() {
+    return processingLogger;
   }
 
   public Optional<Materialization> getMaterialization(

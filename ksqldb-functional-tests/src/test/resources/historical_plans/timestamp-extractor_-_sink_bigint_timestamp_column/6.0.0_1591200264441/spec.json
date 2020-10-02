@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/timestamp-extractor.json",
   "schemas" : {
     "CSAS_TS_0.TS" : {
-      "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT"
     },
     "CSAS_TS_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `ID` BIGINT"
     }
   },
   "testCase" : {
@@ -71,7 +69,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TS",
         "type" : "STREAM",
@@ -79,15 +79,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -96,9 +96,7 @@
         }, {
           "name" : "TS",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

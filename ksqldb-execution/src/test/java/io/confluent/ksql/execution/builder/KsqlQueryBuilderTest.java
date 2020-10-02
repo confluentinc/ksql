@@ -42,8 +42,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -72,7 +72,8 @@ public class KsqlQueryBuilderTest {
           .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
           .build(),
-      SerdeOptions.of()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
 
   private static final QueryId QUERY_ID = new QueryId("fred");
@@ -248,11 +249,12 @@ public class KsqlQueryBuilderTest {
   }
 
   @Test
-  public void shouldTrackSchemasTakingIntoAccountSerdeOptions() {
+  public void shouldTrackSchemasTakingIntoAccountSerdeFeatures() {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
         SOME_SCHEMA.logicalSchema(),
-        SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)
+        SerdeFeatures.of(),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
     );
 
     // When:

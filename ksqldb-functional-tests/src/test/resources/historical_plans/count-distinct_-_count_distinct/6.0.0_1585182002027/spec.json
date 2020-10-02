@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/count-distinct.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `NAME` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ID` STRING, `NAME` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>"
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING"
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `COUNT` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ID` STRING, `COUNT` BIGINT"
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ID` STRING, `NAME` STRING"
     }
   },
   "testCase" : {
@@ -120,29 +116,31 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING, NAME STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE TABLE S2 AS SELECT\n  TEST.ID ID,\n  COUNT_DISTINCT(TEST.NAME) COUNT\nFROM TEST TEST\nGROUP BY TEST.ID\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `COUNT` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -150,9 +148,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -161,9 +157,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -171,9 +165,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

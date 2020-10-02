@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/histogram.json",
   "schemas" : {
     "CTAS_COUNT_BY_REGION_0.Aggregate.GroupBy" : {
-      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRING"
     },
     "CTAS_COUNT_BY_REGION_0.COUNT_BY_REGION" : {
-      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>",
-      "serdeOptions" : [ ]
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>"
     },
     "CTAS_COUNT_BY_REGION_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` MAP<STRING, BIGINT>",
-      "serdeOptions" : [ ]
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` MAP<STRING, BIGINT>"
     },
     "CTAS_COUNT_BY_REGION_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING"
     }
   },
   "testCase" : {
@@ -150,29 +146,31 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT, NAME STRING, REGION STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE COUNT_BY_REGION AS SELECT\n  TEST.REGION REGION,\n  HISTOGRAM(TEST.NAME) COUNTS\nFROM TEST TEST\nGROUP BY TEST.REGION\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "COUNT_BY_REGION",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `REGION` STRING, `COUNTS` MAP<STRING, BIGINT>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -180,9 +178,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -191,9 +187,7 @@
         }, {
           "name" : "COUNT_BY_REGION",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -202,9 +196,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COUNT_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

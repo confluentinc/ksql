@@ -20,6 +20,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
@@ -28,8 +29,10 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.SerdeOptionsFactory;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -76,19 +79,22 @@ public class SchemaRegisterInjector implements Injector {
 
     final LogicalSchema schema = cs.getStatement().getElements().toLogicalSchema();
 
-    final SerdeOptions serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
+    final FormatInfo valueFormat = SourcePropertiesUtil
+        .getValueFormat(cs.getStatement().getProperties());
+
+    final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
         schema,
-        cs.getStatement().getProperties().getValueFormat(),
-        cs.getStatement().getProperties().getSerdeOptions(),
-        cs.getConfig()
+        FormatFactory.of(valueFormat),
+        cs.getStatement().getProperties().getValueSerdeFeatures(),
+        cs.getSessionConfig().getConfig(false)
     );
 
     registerSchema(
         schema,
         cs.getStatement().getProperties().getKafkaTopic(),
-        cs.getStatement().getProperties().getFormatInfo(),
-        serdeOptions,
-        cs.getConfig(),
+        valueFormat,
+        valFeatures,
+        cs.getSessionConfig().getConfig(false),
         cs.getStatementText(),
         false
     );
@@ -112,8 +118,8 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getLogicalSchema(),
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
-        queryMetadata.getPhysicalSchema().serdeOptions(),
-        cas.getConfig(),
+        queryMetadata.getPhysicalSchema().valueSchema().features(),
+        cas.getSessionConfig().getConfig(false),
         cas.getStatementText(),
         true
     );
@@ -123,13 +129,13 @@ public class SchemaRegisterInjector implements Injector {
       final LogicalSchema schema,
       final String topic,
       final FormatInfo formatInfo,
-      final SerdeOptions serdeOptions,
+      final SerdeFeatures valFeatures,
       final KsqlConfig config,
       final String statementText,
       final boolean registerIfSchemaExists
   ) {
     final Format format = FormatFactory.of(formatInfo);
-    if (!format.supportsSchemaInference()) {
+    if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       return;
     }
 
@@ -146,12 +152,13 @@ public class SchemaRegisterInjector implements Injector {
       final String subject = topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
 
       if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
-        final ParsedSchema parsedSchema = format.toParsedSchema(
+        final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());
+
+        final ParsedSchema parsedSchema = translator.toParsedSchema(
             PersistenceSchema.from(
                 schema.withoutPseudoAndKeyColsInValue().value(),
-                serdeOptions.valueFeatures()
-            ),
-            formatInfo
+                valFeatures
+            )
         );
 
         srClient.register(subject, parsedSchema);

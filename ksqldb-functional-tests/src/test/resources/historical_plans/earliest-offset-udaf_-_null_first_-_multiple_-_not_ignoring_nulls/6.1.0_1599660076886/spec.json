@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/earliest-offset-udaf.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER, `KSQL_INTERNAL_COL_3` BOOLEAN",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER, `KSQL_INTERNAL_COL_3` BOOLEAN"
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `F0` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `F0` INTEGER"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` INTEGER>>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` INTEGER>>"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>"
     }
   },
   "testCase" : {
@@ -60,29 +56,31 @@
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2, false) AS L0 FROM INPUT GROUP BY ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "TABLE",
-        "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`ID` BIGINT KEY, `F0` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -91,9 +89,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -101,9 +97,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

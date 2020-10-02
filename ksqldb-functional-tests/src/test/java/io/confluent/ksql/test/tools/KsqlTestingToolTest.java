@@ -128,7 +128,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectInputFormat() throws Exception {
+  public void shouldFailWithIncorrectInputFormat() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
@@ -146,7 +146,7 @@ public class KsqlTestingToolTest {
 
 
   @Test
-  public void shouldFailWithOutputFileMissingField() throws Exception {
+  public void shouldFailWithOutputFileMissingField() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
@@ -163,7 +163,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithEmptyInput() throws Exception {
+  public void shouldFailWithEmptyInput() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
@@ -180,7 +180,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithEmptyOutput() throws Exception {
+  public void shouldFailWithEmptyOutput() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
@@ -200,9 +200,9 @@ public class KsqlTestingToolTest {
   public void shouldPropagateInsertValuesExecutorError() throws Exception {
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test6/statements.sql",
+        "src/test/resources/test-runner/incorrect/insert_values/statements.sql",
         null,
-        "src/test/resources/test-runner/incorrect-test6/output.json",
+        "src/test/resources/test-runner/incorrect/insert_values/output.json",
         Optional.empty());
 
     // Then:

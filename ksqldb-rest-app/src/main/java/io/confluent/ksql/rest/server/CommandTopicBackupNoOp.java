@@ -32,4 +32,9 @@ public class CommandTopicBackupNoOp implements CommandTopicBackup {
   public void close() {
     // no-op
   }
+
+  @Override
+  public boolean commandTopicCorruption() {
+    return false;
+  }
 }

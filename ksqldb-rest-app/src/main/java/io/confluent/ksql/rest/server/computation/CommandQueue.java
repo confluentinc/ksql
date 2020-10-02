@@ -100,6 +100,11 @@ public interface CommandQueue extends Closeable {
   boolean isEmpty();
 
   /**
+   * @return whether or not corruption is detected in the queue
+   */
+  boolean corruptionDetected();
+
+  /**
    * Cause any blocked {@link #getNewCommands(Duration)} calls to return early.
    *
    * <p>Useful when wanting to {@link #close()} the queue in a timely fashion.

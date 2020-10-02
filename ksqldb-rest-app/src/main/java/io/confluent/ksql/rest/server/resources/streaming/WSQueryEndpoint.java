@@ -20,6 +20,7 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INVALI
 import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AGAIN_LATER;
 
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -34,6 +35,7 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -71,6 +73,7 @@ public class WSQueryEndpoint {
   private final Errors errorHandler;
   private final PullQueryExecutor pullQueryExecutor;
   private final DenyListPropertyValidator denyListPropertyValidator;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -87,7 +90,8 @@ public class WSQueryEndpoint {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final PullQueryExecutor pullQueryExecutor,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     this(ksqlConfig,
         statementParser,
@@ -102,7 +106,8 @@ public class WSQueryEndpoint {
         authorizationValidator,
         errorHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        pullQueryMetrics
     );
   }
 
@@ -122,7 +127,8 @@ public class WSQueryEndpoint {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final PullQueryExecutor pullQueryExecutor,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -143,6 +149,7 @@ public class WSQueryEndpoint {
     this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
@@ -263,8 +270,8 @@ public class WSQueryEndpoint {
     final PreparedStatement<Query> statement =
         PreparedStatement.of(info.request.getKsql(), query);
 
-    final ConfiguredStatement<Query> configured =
-        ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
+    final ConfiguredStatement<Query> configured = ConfiguredStatement
+        .of(statement, SessionConfig.of(ksqlConfig, clientLocalProperties));
 
     if (query.isPullQuery()) {
       pullQueryPublisher.start(
@@ -274,6 +281,7 @@ public class WSQueryEndpoint {
           configured,
           streamSubscriber,
           pullQueryExecutor,
+          pullQueryMetrics,
           startTimeNanos
       );
     } else {
@@ -336,12 +344,14 @@ public class WSQueryEndpoint {
       final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
       final PullQueryExecutor pullQueryExecutor,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos
   ) {
     new PullQueryPublisher(
         serviceContext,
         query,
         pullQueryExecutor,
+        pullQueryMetrics,
         startTimeNanos
     ).subscribe(streamSubscriber);
   }
@@ -377,6 +387,7 @@ public class WSQueryEndpoint {
         ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber,
         PullQueryExecutor pullQueryExecutor,
+        Optional<PullQueryExecutorMetrics> pullQueryMetrics,
         long startTimeNanos);
 
   }

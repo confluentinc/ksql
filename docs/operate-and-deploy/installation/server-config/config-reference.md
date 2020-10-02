@@ -282,6 +282,38 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS`.
 
+### ksql.persistence.default.format.key
+
+Sets the default value for the `KEY_FORMAT` property if one is
+not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md)
+or [CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md)
+statements.
+
+The default value for this configuration is `KAFKA`.
+
+If not set and no explicit key format is provided in the statement, via either the `KEY_FORMAT` or the
+`FORMAT` property, the statement will be rejected as invalid.
+
+For supported formats, see [Serialization Formats](../../../developer-guide/serialization.md#serialization-formats).
+
+[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
+[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md) 
+statements that create streams or tables with key columns, where the source stream or table 
+has a [NONE](../../../developer-guide/serialization.md#none) key format, will also use the default
+key format set in this configuration if no explicit key format is declared in the `WITH` clause.
+
+### ksql.persistence.default.format.value
+
+Sets the default value for the `VALUE_FORMAT` property if one is
+not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md)
+or [CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md)
+statements.
+
+If not set and no explicit value format is provided in the statement, via either the `VALUE_FORMAT` or the
+`FORMAT` property, the statement will be rejected as invalid.
+
+For supported formats, see [Serialization Formats](../../../developer-guide/serialization.md#serialization-formats).
+
 ### ksql.persistence.wrap.single.values
 
 Sets the default value for the `WRAP_SINGLE_VALUE` property if one is

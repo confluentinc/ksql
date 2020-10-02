@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
     "CSAS_SESSION_STARTS_1.KsqlTopic.Source" : {
-      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT"
     },
     "CSAS_SESSION_STARTS_1.SESSION_STARTS" : {
-      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT"
     }
   },
   "testCase" : {
@@ -152,22 +150,15 @@
     "statements" : [ "CREATE STREAM DATA (USER_ID INT) WITH (kafka_topic='data', value_format='JSON');", "CREATE TABLE SESSIONS as SELECT USER_ID, COUNT(USER_ID) AS COUNT FROM DATA WINDOW SESSION (5 SECONDS) group by USER_ID;", "CREATE STREAM SESSION_STREAM (USER_ID INT KEY, COUNT BIGINT) WITH (kafka_topic='SESSIONS', value_format='JSON', window_type='Session');", "CREATE STREAM SESSION_STARTS AS SELECT * FROM SESSION_STREAM WHERE WINDOWSTART = WINDOWEND;" ],
     "post" : {
       "sources" : [ {
-        "name" : "SESSION_STREAM",
-        "type" : "STREAM",
-        "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "windowType" : "SESSION"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "DATA",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `USER_ID` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "SESSIONS",
         "type" : "TABLE",
@@ -176,7 +167,9 @@
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "SESSION_STARTS",
         "type" : "STREAM",
@@ -185,15 +178,26 @@
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "SESSION_STREAM",
+        "type" : "STREAM",
+        "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SESSIONS_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -204,9 +208,7 @@
         }, {
           "name" : "SESSION_STARTS",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -218,9 +220,7 @@
         }, {
           "name" : "SESSIONS",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -232,9 +232,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SESSIONS_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -245,9 +243,7 @@
         }, {
           "name" : "data",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

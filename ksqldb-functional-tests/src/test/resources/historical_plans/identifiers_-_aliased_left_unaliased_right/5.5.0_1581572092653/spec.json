@@ -4,24 +4,19 @@
   "path" : "query-validation-tests/identifiers.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER"
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `I1_FOO` INTEGER, `I1_BAR` INTEGER, `I1_ROWTIME` BIGINT, `I1_ROWKEY` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `I1_FOO` INTEGER, `I1_BAR` INTEGER, `I1_ROWTIME` BIGINT, `I1_ROWKEY` INTEGER"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `I1_BAR` INTEGER, `INPUT_2_BAR` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `I1_BAR` INTEGER, `INPUT_2_BAR` INTEGER"
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER"
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `INPUT_2_FOO` INTEGER, `INPUT_2_BAR` INTEGER, `INPUT_2_ROWTIME` BIGINT, `INPUT_2_ROWKEY` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `INPUT_2_FOO` INTEGER, `INPUT_2_BAR` INTEGER, `INPUT_2_ROWTIME` BIGINT, `INPUT_2_ROWKEY` INTEGER"
     }
   },
   "testCase" : {
@@ -65,21 +60,15 @@
     "statements" : [ "CREATE STREAM INPUT_1 (ROWKEY INTEGER KEY, FOO INTEGER, BAR INTEGER) WITH (KAFKA_TOPIC='t1', KEY='FOO', VALUE_FORMAT='JSON');", "CREATE STREAM INPUT_2 (ROWKEY INTEGER KEY, FOO INTEGER, BAR INTEGER) WITH (KAFKA_TOPIC='t2', KEY='FOO', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  I1.BAR I1_BAR,\n  INPUT_2.BAR INPUT_2_BAR\nFROM INPUT_1 I1\nINNER JOIN INPUT_2 INPUT_2 WITHIN 1 MINUTES ON ((I1.FOO = INPUT_2.FOO))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `I1_BAR` INTEGER, `INPUT_2_BAR` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "INPUT_1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "INPUT_2",
         "type" : "STREAM",
@@ -87,15 +76,25 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `I1_BAR` INTEGER, `INPUT_2_BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -103,9 +102,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -113,9 +110,7 @@
         }, {
           "name" : "t2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -124,9 +119,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -135,9 +128,7 @@
         }, {
           "name" : "t1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

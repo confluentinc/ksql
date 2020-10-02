@@ -18,10 +18,13 @@ package io.confluent.ksql.structured;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -37,6 +40,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -49,8 +53,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -58,6 +63,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,9 +81,12 @@ public class SchemaKStreamTest {
   private final MetaStore metaStore = MetaStoreFixture
       .getNewMetaStore(new InternalFunctionRegistry());
   private final KeyFormat keyFormat = KeyFormat
-      .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
-  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
-  private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(FormatFactory.DELIMITED.name()));
+      .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
+  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()),
+      SerdeFeatures.of());
+  private final ValueFormat rightFormat = ValueFormat
+      .of(FormatInfo.of(FormatFactory.DELIMITED.name()),
+          SerdeFeatures.of());
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
@@ -94,6 +103,8 @@ public class SchemaKStreamTest {
   private ExecutionStep sourceStep;
   @Mock
   private KsqlQueryBuilder queryBuilder;
+  @Mock
+  private KsqlTopic topic;
 
   @Before
   public void init() {
@@ -298,14 +309,15 @@ public class SchemaKStreamTest {
     );
 
     // Then:
-    final KeyFormat expectedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
     assertThat(
         groupedSchemaKStream.getSourceStep(),
         equalTo(
             ExecutionStepFactory.streamGroupByKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                Formats.of(expectedKeyFormat, valueFormat, SerdeOptions.of())
+                Formats
+                    .of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), SerdeFeatures.of(),
+                        SerdeFeatures.of())
             )
         )
     );
@@ -350,14 +362,15 @@ public class SchemaKStreamTest {
     );
 
     // Then:
-    final KeyFormat expectedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
     assertThat(
         groupedSchemaKStream.getSourceStep(),
         equalTo(
             ExecutionStepFactory.streamGroupBy(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                Formats.of(expectedKeyFormat, valueFormat, SerdeOptions.of()),
+                Formats
+                    .of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), SerdeFeatures.of(),
+                        SerdeFeatures.of()),
                 groupBy
             )
         )
@@ -432,7 +445,8 @@ public class SchemaKStreamTest {
                   childContextStacker,
                   testcase.left,
                   KEY,
-                  Formats.of(keyFormat, valueFormat, SerdeOptions.of()),
+                  Formats.of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(),
+                      SerdeFeatures.of(), SerdeFeatures.of()),
                   initialSchemaKStream.getSourceStep(),
                   schemaKTable.getSourceTableStep()
               )
@@ -466,6 +480,30 @@ public class SchemaKStreamTest {
           schemaKTable.getSchema()))
       );
     }
+  }
+
+  @Test
+  public void shouldThrowOnIntoIfKeyFormatWindowInfoIsDifferent() {
+    // Given:
+    final SchemaKStream stream = new SchemaKStream(
+        sourceStep,
+        ksqlStream.getSchema(),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+
+    when(topic.getKeyFormat()).thenReturn(KeyFormat.windowed(
+        keyFormat.getFormatInfo(),
+        SerdeFeatures.of(),
+        WindowInfo.of(WindowType.SESSION, Optional.empty())
+    ));
+
+    // When:
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> stream.into(topic, childContextStacker, Optional.empty())
+    );
   }
 
   private SchemaKStream buildSchemaKStream(

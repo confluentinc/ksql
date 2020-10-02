@@ -54,7 +54,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
@@ -93,7 +93,8 @@ public class TableAggregateBuilderTest {
   );
   private static final PhysicalSchema PHYSICAL_AGGREGATE_SCHEMA = PhysicalSchema.from(
       AGGREGATE_SCHEMA,
-      SerdeOptions.of()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
@@ -172,7 +173,7 @@ public class TableAggregateBuilderTest {
     aggregate = new TableAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOptions.of()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         NON_AGG_COLUMNS,
         FUNCTIONS
     );

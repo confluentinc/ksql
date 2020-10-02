@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` BIGINT KEY, `TF` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `TF` INTEGER"
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`S_SF` BIGINT KEY, `S_SF` BIGINT, `S_ROWTIME` BIGINT, `S_K` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`S_SF` BIGINT KEY, `S_SF` BIGINT, `S_ROWTIME` BIGINT, `S_K` STRING"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT"
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`K` STRING KEY, `SF` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `SF` BIGINT"
     }
   },
   "testCase" : {
@@ -79,21 +75,15 @@
     "statements" : [ "CREATE STREAM INPUT_STREAM (K STRING KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');", "CREATE TABLE INPUT_TABLE (ID BIGINT PRIMARY KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT *, S.ROWTIME, T.ROWTIME FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "INPUT_STREAM",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `SF` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "INPUT_TABLE",
         "type" : "TABLE",
@@ -101,15 +91,25 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -117,9 +117,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -127,9 +125,7 @@
         }, {
           "name" : "stream_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -138,9 +134,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -149,9 +143,7 @@
         }, {
           "name" : "table_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -16,20 +16,16 @@
 package io.confluent.ksql.serde.json;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.connect.json.JsonSchemaData;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.json.JsonSchema;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
+import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
 
 public class JsonFormat extends ConnectFormat {
 
@@ -43,9 +39,7 @@ public class JsonFormat extends ConnectFormat {
     return SUPPORTED_FEATURES;
   }
 
-  public static final String NAME = JsonSchema.TYPE;
-
-  private final JsonSchemaData jsonData = new JsonSchemaData();
+  public static final String NAME = "JSON";
 
   @Override
   public String name() {
@@ -53,8 +47,10 @@ public class JsonFormat extends ConnectFormat {
   }
 
   @Override
-  public boolean supportsSchemaInference() {
-    return false;
+  protected ConnectSchemaTranslator getConnectSchemaTranslator(
+      final Map<String, String> formatProps
+  ) {
+    throw new UnsupportedOperationException(name() + " does not implement Schema Registry support");
   }
 
   @Override
@@ -67,16 +63,5 @@ public class JsonFormat extends ConnectFormat {
   ) {
     return new KsqlJsonSerdeFactory(false)
         .createSerde(connectSchema, config, srFactory, targetType);
-  }
-
-  @Override
-  protected Schema toConnectSchema(final ParsedSchema schema) {
-    return jsonData.toConnectSchema((JsonSchema) schema);
-  }
-
-  @Override
-  protected ParsedSchema fromConnectSchema(final Schema schema,
-      final FormatInfo formatInfo) {
-    return jsonData.fromConnectSchema(schema);
   }
 }

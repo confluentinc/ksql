@@ -478,6 +478,42 @@ public class SqlToJavaVisitor {
       }
     }
 
+    private String visitArrayComparisonExpression(final ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "(%1$s.equals(%2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "(!%1$s.equals(%2$s))";
+        default:
+          throw new KsqlException("Unexpected array comparison: " + type.getValue());
+      }
+    }
+
+    private String visitMapComparisonExpression(final ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "(%1$s.equals(%2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "(!%1$s.equals(%2$s))";
+        default:
+          throw new KsqlException("Unexpected map comparison: " + type.getValue());
+      }
+    }
+
+    private String visitStructComparisonExpression(final ComparisonExpression.Type type) {
+      switch (type) {
+        case EQUAL:
+          return "(%1$s.equals(%2$s))";
+        case NOT_EQUAL:
+        case IS_DISTINCT_FROM:
+          return "(!%1$s.equals(%2$s))";
+        default:
+          throw new KsqlException("Unexpected struct comparison: " + type.getValue());
+      }
+    }
+
     private String visitScalarComparisonExpression(final ComparisonExpression.Type type) {
       switch (type) {
         case EQUAL:
@@ -552,10 +588,15 @@ public class SqlToJavaVisitor {
           case STRING:
             exprFormat += visitStringComparisonExpression(node.getType());
             break;
-          case MAP:
-            throw new KsqlException("Cannot compare MAP values");
           case ARRAY:
-            throw new KsqlException("Cannot compare ARRAY values");
+            exprFormat += visitArrayComparisonExpression(node.getType());
+            break;
+          case MAP:
+            exprFormat += visitMapComparisonExpression(node.getType());
+            break;
+          case STRUCT:
+            exprFormat += visitStructComparisonExpression(node.getType());
+            break;
           case BOOLEAN:
             exprFormat += visitBooleanComparisonExpression(node.getType());
             break;
@@ -939,10 +980,7 @@ public class SqlToJavaVisitor {
       final SqlType schema = expr.getRight();
       final String exprStr;
       if (schema.baseType() == SqlBaseType.DECIMAL) {
-        final SqlDecimal decimal = (SqlDecimal) schema;
-        final int precision = decimal.getPrecision();
-        final int scale = decimal.getScale();
-        exprStr = String.format("DecimalUtil.format(%d, %d, %s)", precision, scale, expr.getLeft());
+        exprStr = expr.getLeft() + ".toPlainString()";
       } else {
         if (ksqlConfig.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)) {
           exprStr = "Objects.toString(" + expr.getLeft() + ", null)";

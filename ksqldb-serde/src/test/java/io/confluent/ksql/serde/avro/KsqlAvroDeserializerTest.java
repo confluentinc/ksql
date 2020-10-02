@@ -35,7 +35,6 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.math.BigDecimal;
@@ -1521,7 +1520,7 @@ public class KsqlAvroDeserializerTest {
       final Class<T> targetType
   ) {
     final KsqlAvroSerdeFactory serdeFactory = new KsqlAvroSerdeFactory(
-        KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+        AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     final Deserializer<T> deserializer = serdeFactory.createSerde(
         schema,

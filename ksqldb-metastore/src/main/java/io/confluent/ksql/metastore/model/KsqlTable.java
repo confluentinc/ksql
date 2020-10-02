@@ -20,7 +20,6 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeOptions;
 import java.util.Optional;
 
 @Immutable
@@ -30,7 +29,6 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
       final String sqlExpression,
       final SourceName datasourceName,
       final LogicalSchema schema,
-      final SerdeOptions serdeOptions,
       final Optional<TimestampColumn> timestampExtractionPolicy,
       final boolean isKsqlSink,
       final KsqlTopic ksqlTopic
@@ -39,7 +37,6 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         sqlExpression,
         datasourceName,
         schema,
-        serdeOptions,
         timestampExtractionPolicy,
         DataSourceType.KTABLE,
         isKsqlSink,

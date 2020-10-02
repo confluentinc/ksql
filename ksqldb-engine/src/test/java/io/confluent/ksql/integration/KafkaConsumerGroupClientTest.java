@@ -16,6 +16,7 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItems;
@@ -169,7 +170,7 @@ public class KafkaConsumerGroupClientTest {
 
   private void givenTopicExistsWithData() {
     TEST_HARNESS.ensureTopics(PARTITION_COUNT, topicName);
-    TEST_HARNESS.produceRows(topicName, new OrderDataProvider(), JSON, System::currentTimeMillis);
+    TEST_HARNESS.produceRows(topicName, new OrderDataProvider(), KAFKA, JSON, System::currentTimeMillis);
   }
 
   private KafkaConsumer<String, byte[]> createConsumer(final String group) {

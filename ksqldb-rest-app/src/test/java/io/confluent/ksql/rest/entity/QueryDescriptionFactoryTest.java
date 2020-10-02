@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -39,7 +40,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
@@ -106,6 +107,8 @@ public class QueryDescriptionFactoryTest {
   private ExecutionStep<?> physicalPlan;
   @Mock
   private DataSource sinkDataSource;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -117,7 +120,8 @@ public class QueryDescriptionFactoryTest {
     when(topology.describe()).thenReturn(topologyDescription);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(queryStreams);
 
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+    when(sinkTopic.getKeyFormat()).thenReturn(
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
     when(sinkDataSource.getKsqlTopic()).thenReturn(sinkTopic);
     when(sinkDataSource.getName()).thenReturn(SourceName.of("sink name"));
 
@@ -140,7 +144,7 @@ public class QueryDescriptionFactoryTest {
 
     persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
-        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeOptions.of()),
+        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
         sinkDataSource,
         "execution plan",
@@ -156,7 +160,8 @@ public class QueryDescriptionFactoryTest {
         closeTimeout,
         QueryErrorClassifier.DEFAULT_CLASSIFIER,
         physicalPlan,
-        10
+        10,
+        processingLogger
     );
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);

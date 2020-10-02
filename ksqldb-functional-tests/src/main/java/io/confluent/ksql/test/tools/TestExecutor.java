@@ -87,7 +87,6 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
-      .put(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 0L)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .build();
 
@@ -244,7 +243,7 @@ public class TestExecutor implements Closeable {
         ));
   }
 
-  private void validateTopicData(
+  private static void validateTopicData(
       final String topicName,
       final List<Record> expected,
       final Collection<ProducerRecord<?, ?>> actual,
@@ -255,14 +254,12 @@ public class TestExecutor implements Closeable {
           + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
     }
 
-    final TopicInfo topicInfo = topicInfoCache.get(topicName);
-
     final Iterator<Record> expectedIt = expected.iterator();
     final Iterator<ProducerRecord<?, ?>> actualIt = actual.iterator();
 
     int i = 0;
     while (actualIt.hasNext() && expectedIt.hasNext()) {
-      final Record expectedRecord = topicInfo.coerceRecord(expectedIt.next(), i);
+      final Record expectedRecord = expectedIt.next();
       final ProducerRecord<?, ?> actualProducerRecord = actualIt.next();
 
       validateCreatedMessage(
@@ -326,21 +323,14 @@ public class TestExecutor implements Closeable {
       final TestCase testCase,
       final TopologyTestDriverContainer testDriver
   ) {
-    int inputRecordIndex = 0;
     for (final Record record : testCase.getInputRecords()) {
       if (testDriver.getSourceTopicNames().contains(record.getTopicName())) {
-
-        final TopicInfo topicInfo = topicInfoCache.get(record.getTopicName());
-
-        final Record coerced = topicInfo.coerceRecord(record, inputRecordIndex);
-
         processSingleRecord(
-            coerced.asProducerRecord(),
+            record.asProducerRecord(),
             testDriver,
             ImmutableSet.copyOf(kafka.getAllTopics())
         );
       }
-      ++inputRecordIndex;
     }
   }
 

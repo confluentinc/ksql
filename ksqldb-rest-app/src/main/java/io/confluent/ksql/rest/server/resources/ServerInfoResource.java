@@ -27,23 +27,28 @@ import java.util.function.Supplier;
 
 public class ServerInfoResource {
 
-  private final Supplier<ServerInfo> serverInfo;
+  private final Supplier<String> appVersion;
+  private final Supplier<String> kafkaClusterId;
+  private final Supplier<String> ksqlServiceId;
+  private final Supplier<CommandRunner.CommandRunnerStatus> serverStatus;
 
   public ServerInfoResource(
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final CommandRunner commandRunner) {
-    this.serverInfo = Suppliers.memoize(
-        () -> new ServerInfo(
-            AppInfo.getVersion(),
-            KafkaClusterUtil.getKafkaClusterId(serviceContext),
-            ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-            commandRunner.checkCommandRunnerStatus().toString()
-        )
-    )::get;
+    appVersion =  Suppliers.memoize(AppInfo::getVersion);
+    kafkaClusterId =  Suppliers.memoize(
+        () -> KafkaClusterUtil.getKafkaClusterId(serviceContext));
+    ksqlServiceId = Suppliers.memoize(
+        () -> ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    serverStatus = commandRunner::checkCommandRunnerStatus;
   }
 
   public EndpointResponse get() {
-    return EndpointResponse.ok(serverInfo.get());
+    return EndpointResponse.ok(new ServerInfo(
+        appVersion.get(),
+        kafkaClusterId.get(),
+        ksqlServiceId.get(),
+        serverStatus.get().toString()));
   }
 }

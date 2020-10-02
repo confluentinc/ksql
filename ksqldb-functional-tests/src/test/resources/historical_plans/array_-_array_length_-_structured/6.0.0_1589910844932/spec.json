@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/array.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `ARRAY_ARRAY` ARRAY<ARRAY<BOOLEAN>>, `MAP_ARRAY` ARRAY<MAP<STRING, INTEGER>>, `STRUCT_ARRAY` ARRAY<STRUCT<`V` BIGINT>>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ARRAY_ARRAY` ARRAY<ARRAY<BOOLEAN>>, `MAP_ARRAY` ARRAY<MAP<STRING, INTEGER>>, `STRUCT_ARRAY` ARRAY<STRUCT<`V` BIGINT>>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `ARRAY_LEN` INTEGER, `MAP_LEN` INTEGER, `STRUCT_LEN` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `ARRAY_LEN` INTEGER, `MAP_LEN` INTEGER, `STRUCT_LEN` INTEGER"
     }
   },
   "testCase" : {
@@ -62,7 +60,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -70,15 +70,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -87,9 +87,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

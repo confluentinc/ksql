@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
     "CSAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER"
     },
     "CSAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT"
     }
   },
   "testCase" : {
@@ -135,7 +133,9 @@
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S2",
         "type" : "STREAM",
@@ -144,15 +144,15 @@
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -164,9 +164,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }

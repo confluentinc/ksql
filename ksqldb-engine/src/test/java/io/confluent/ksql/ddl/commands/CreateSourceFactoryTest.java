@@ -22,7 +22,6 @@ import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
-import static io.confluent.ksql.schema.ksql.SystemColumns.ROWKEY_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
@@ -43,7 +42,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.ddl.commands.CreateSourceFactory.SerdeOptionsSupplier;
+import io.confluent.ksql.ddl.commands.CreateSourceFactory.SerdeFeaturessSupplier;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
@@ -55,6 +54,7 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -63,13 +63,12 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerdeFactory;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -94,10 +93,10 @@ public class CreateSourceFactoryTest {
   private static final SourceName SOME_NAME = SourceName.of("bob");
 
   private static final TableElement EXPLICIT_KEY =
-      tableElement(Namespace.KEY, ROWKEY_NAME.text(), new Type(SqlTypes.INTEGER));
+      tableElement(Namespace.KEY, "k", new Type(SqlTypes.INTEGER));
 
   private static final TableElement EXPLICIT_PRIMARY_KEY =
-      tableElement(Namespace.PRIMARY_KEY, ROWKEY_NAME.text(), new Type(SqlTypes.INTEGER));
+      tableElement(Namespace.PRIMARY_KEY, "k", new Type(SqlTypes.INTEGER));
 
   private static final TableElement ELEMENT1 =
       tableElement(VALUE, "bob", new Type(SqlTypes.STRING));
@@ -105,7 +104,10 @@ public class CreateSourceFactoryTest {
   private static final TableElement ELEMENT2 =
       tableElement(VALUE, "hojjat", new Type(BIGINT));
 
-  private static final TableElements ONE_ELEMENT = TableElements.of(ELEMENT1);
+  private static final TableElements ONE_KEY_ONE_VALUE = TableElements.of(
+      EXPLICIT_KEY,
+      ELEMENT1
+  );
 
   private static final TableElements TABLE_ELEMENTS_1_VALUE =
       TableElements.of(EXPLICIT_PRIMARY_KEY, ELEMENT1);
@@ -117,7 +119,7 @@ public class CreateSourceFactoryTest {
       TableElements.of(EXPLICIT_KEY, ELEMENT1, ELEMENT2);
 
   private static final LogicalSchema EXPECTED_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ROWKEY_NAME, SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("k"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("hojjat"), BIGINT)
       .build();
@@ -125,19 +127,19 @@ public class CreateSourceFactoryTest {
   private static final String TOPIC_NAME = "some topic";
 
   private static final Map<String, Literal> MINIMUM_PROPS = ImmutableMap.of(
+      CommonCreateConfigs.KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"),
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
-
-  private static final SerdeOptions SOME_SERDE_OPTIONS = SerdeOptions
-      .of(SerdeOption.UNWRAP_SINGLE_VALUES);
 
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
   private ServiceContext serviceContext;
   @Mock
-  private SerdeOptionsSupplier serdeOptionsSupplier;
+  private SerdeFeaturessSupplier keyOptionsSupplier;
+  @Mock
+  private SerdeFeaturessSupplier valOptionsSupplier;
   @Mock
   private KeySerdeFactory keySerdeFactory;
   @Mock
@@ -158,7 +160,10 @@ public class CreateSourceFactoryTest {
     when(topicClient.isTopicExists(any())).thenReturn(true);
     when(keySerdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(keySerde);
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(valueSerde);
-    when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SerdeOptions.of());
+    when(keyOptionsSupplier.build(any(), any(), any(), any()))
+        .thenReturn(SerdeFeatures.of());
+    when(valOptionsSupplier.build(any(), any(), any(), any()))
+        .thenReturn(SerdeFeatures.of());
 
     givenCommandFactories();
   }
@@ -170,7 +175,8 @@ public class CreateSourceFactoryTest {
   private void givenCommandFactoriesWithMocks() {
     createSourceFactory = new CreateSourceFactory(
         serviceContext,
-        serdeOptionsSupplier,
+        keyOptionsSupplier,
+        valOptionsSupplier,
         keySerdeFactory,
         valueSerdeFactory
     );
@@ -223,7 +229,7 @@ public class CreateSourceFactoryTest {
     givenProperty(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
 
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory
@@ -233,7 +239,8 @@ public class CreateSourceFactoryTest {
         );
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(cmd.getFormats().getValueFeatures(),
+        is(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
@@ -244,28 +251,29 @@ public class CreateSourceFactoryTest {
     ));
 
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory
         .createStreamCommand(statement, ksqlConfig);
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(cmd.getFormats().getValueFeatures(),
+        is(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
   public void shouldCreateStreamCommandWithSingleValueWrappingFromDefaultConfig() {
     // Given:
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true, withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory
         .createStreamCommand(statement, ksqlConfig);
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of()));
+    assertThat(cmd.getFormats().getValueFeatures(), is(SerdeFeatures.of()));
   }
 
   @Test
@@ -291,7 +299,8 @@ public class CreateSourceFactoryTest {
             ksqlConfig.cloneWithPropertyOverwrite(overrides));
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(cmd.getFormats().getValueFeatures(),
+        is(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
@@ -309,7 +318,8 @@ public class CreateSourceFactoryTest {
         .createTableCommand(statement, ksqlConfig);
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)));
+    assertThat(cmd.getFormats().getValueFeatures(),
+        is(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
@@ -323,7 +333,7 @@ public class CreateSourceFactoryTest {
         .createTableCommand(statement, ksqlConfig);
 
     // Then:
-    assertThat(cmd.getFormats().getOptions(), is(SerdeOptions.of()));
+    assertThat(cmd.getFormats().getValueFeatures(), is(SerdeFeatures.of()));
   }
 
   @Test
@@ -364,7 +374,7 @@ public class CreateSourceFactoryTest {
   public void shouldNotThrowWhenThereAreElementsInCreateStream() {
     // Given:
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true, withProperties);
 
     // When:
     createSourceFactory.createStreamCommand(statement, ksqlConfig);
@@ -389,7 +399,7 @@ public class CreateSourceFactoryTest {
     // Given:
     when(topicClient.isTopicExists(any())).thenReturn(false);
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true, withProperties);
 
     // When:
     final Exception e = assertThrows(
@@ -407,7 +417,7 @@ public class CreateSourceFactoryTest {
   public void shouldNotThrowIfTopicDoesExist() {
     // Given:
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true, withProperties);
 
     // When:
     createSourceFactory.createStreamCommand(statement, ksqlConfig);
@@ -424,7 +434,7 @@ public class CreateSourceFactoryTest {
         new StringLiteral("`will-not-find-me`")
     );
     final CreateStream statement =
-        new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+        new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true, withProperties);
 
     // When:
     final Exception e = assertThrows(
@@ -439,14 +449,19 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
-  public void shouldBuildSerdeOptionsForStream() {
+  public void shouldBuildSerdeFeaturesForStream() {
     // Given:
     givenCommandFactoriesWithMocks();
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true,
+        withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(ColumnName.of("k"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
-    when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
+    when(keyOptionsSupplier.build(any(), any(), any(), any()))
+        .thenReturn(SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+    when(valOptionsSupplier.build(any(), any(), any(), any()))
+        .thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -455,13 +470,21 @@ public class CreateSourceFactoryTest {
     );
 
     // Then:
-    verify(serdeOptionsSupplier).build(
+    verify(keyOptionsSupplier).build(
         schema,
-        statement.getProperties().getValueFormat(),
-        statement.getProperties().getSerdeOptions(),
+        FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties())),
+        SerdeFeatures.of(),
         ksqlConfig
     );
-    assertThat(cmd.getFormats().getOptions(), is(SOME_SERDE_OPTIONS));
+    verify(valOptionsSupplier).build(
+        schema,
+        FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties())),
+        statement.getProperties().getValueSerdeFeatures(),
+        ksqlConfig
+    );
+    assertThat(cmd.getFormats().getKeyFeatures(), is(SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)));
+    assertThat(cmd.getFormats().getValueFeatures(),
+        is(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 
   @Test
@@ -563,7 +586,7 @@ public class CreateSourceFactoryTest {
     final CreateStream statement = new CreateStream(
         SOME_NAME,
         TableElements.of(
-            tableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
+            tableElement(Namespace.KEY, "k", new Type(SqlTypes.STRING)),
             ELEMENT1,
             ELEMENT2
         ),
@@ -580,7 +603,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("hojjat"), BIGINT)
         .build()
@@ -596,7 +619,7 @@ public class CreateSourceFactoryTest {
 
     when(keySerdeFactory.create(
         FormatInfo.of(KAFKA.name()),
-        PersistenceSchema.from(EXPECTED_SCHEMA.key(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(EXPECTED_SCHEMA.key(), SerdeFeatures.of()),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
@@ -622,7 +645,7 @@ public class CreateSourceFactoryTest {
 
     when(valueSerdeFactory.create(
         FormatInfo.of(JSON.name()),
-        PersistenceSchema.from(EXPECTED_SCHEMA.value(), EnabledSerdeFeatures.of()),
+        PersistenceSchema.from(EXPECTED_SCHEMA.value(), SerdeFeatures.of()),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
@@ -641,7 +664,8 @@ public class CreateSourceFactoryTest {
 
   @Test
   public void shouldDefaultToKafkaKeySerdeForStream() {
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true,
+        withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -660,7 +684,8 @@ public class CreateSourceFactoryTest {
     givenCommandFactoriesWithMocks();
     givenProperty("VALUE_FORMAT", new StringLiteral("Avro"));
     givenProperty("value_avro_schema_full_name", new StringLiteral("full.schema.name"));
-    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true,
+        withProperties);
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
@@ -830,7 +855,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, ROWKEY_NAME.text(), new Type(SqlTypes.STRING))),
+        TableElements.of(tableElement(KEY, "k", new Type(SqlTypes.STRING))),
         false,
         true,
         withProperties
@@ -847,7 +872,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, ROWKEY_NAME.text(), new Type(SqlTypes.INTEGER))),
+        TableElements.of(tableElement(KEY, "k", new Type(SqlTypes.INTEGER))),
         false,
         true,
         withProperties
@@ -859,7 +884,7 @@ public class CreateSourceFactoryTest {
 
     // Then:
     assertThat(cmd.getSchema().key(), contains(
-        keyColumn(ROWKEY_NAME, SqlTypes.INTEGER)
+        keyColumn(ColumnName.of("k"), SqlTypes.INTEGER)
     ));
   }
 
@@ -891,8 +916,10 @@ public class CreateSourceFactoryTest {
         KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
     ));
 
+    final TableElements noKey = TableElements.of(ELEMENT1);
+
     final CreateTable statement =
-        new CreateTable(SOME_NAME, ONE_ELEMENT, false, true, withProperties);
+        new CreateTable(SOME_NAME, noKey, false, true, withProperties);
 
     // When:
     final Exception e = assertThrows(

@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_foo-too_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING"
     },
     "CSAS_foo-too_0.foo-too" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` STRING"
     }
   },
   "testCase" : {
@@ -40,29 +38,31 @@
     "statements" : [ "CREATE STREAM `foo-source` (ID STRING) WITH (KAFKA_TOPIC='foo-source', VALUE_FORMAT='JSON');", "CREATE STREAM `foo-too` AS SELECT `foo-source`.ID ID\nFROM `foo-source` `foo-source`\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "foo-too",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "foo-source",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "foo-too",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "foo-source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -71,9 +71,7 @@
         }, {
           "name" : "foo-too",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

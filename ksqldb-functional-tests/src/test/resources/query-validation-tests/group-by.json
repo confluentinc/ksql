@@ -15,9 +15,6 @@
         {"topic": "test_topic", "timestamp": 12375, "key": 11, "value": {}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "timestamp": 12345, "key": 11, "value": {"ID": 11, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "timestamp": 12365, "key": 10, "value": {"ID": 10, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "timestamp": 12375, "key": 11, "value": {"ID": 11, "KSQL_AGG_VARIABLE_0": 2}},
         {"topic": "OUTPUT", "key": 11, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 10, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 11, "value": {"COUNT": 2}}
@@ -96,16 +93,6 @@
         {"topic": "test_topic", "key": 4, "value": {"data": "d1"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 3}},
         {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "d2", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 2}},
@@ -132,16 +119,6 @@
         {"topic": "test_topic", "key": 4, "value": {"ADDRESS": {"STREET": "1st Steet", "Town": "Oxford"}}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "Oxford", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "Oxford"}}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "London", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "London"}}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "Oxford", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "Oxford"}}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "London", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "London"}}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "Oxford", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "Oxford"}}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "Oxford", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "Oxford"}, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "London", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "London"}, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "Oxford", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "Oxford"}, "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "London", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "London"}, "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "Oxford", "value": {"ROWTIME": 0, "ADDRESS": {"STREET": "1st Steet", "TOWN": "Oxford"}, "KSQL_AGG_VARIABLE_0": 3}},
         {"topic": "OUTPUT", "key": "Oxford", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "London", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "Oxford", "value": {"COUNT": 2}},
@@ -168,16 +145,6 @@
         {"topic": "test_topic", "key": 4, "value": {"data": "2-"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "22"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 3, "value": {"ROWTIME": 0, "DATA": "333"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "-2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 3, "value": {"ROWTIME": 0, "DATA": "003"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "2-"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "22", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 3, "value": {"ROWTIME": 0, "DATA": "333", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "-2", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 3, "value": {"ROWTIME": 0, "DATA": "003", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "2-", "KSQL_AGG_VARIABLE_0": 3}},
         {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 3, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 2}},
@@ -204,16 +171,6 @@
         {"topic": "test_topic", "key": 4, "value": {"data": "d1"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 3}},
         {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "d2", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 2}},
@@ -240,16 +197,6 @@
         {"topic": "test_topic", "key": 4, "value": {"data": "d1"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 0, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 0, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 3}},
         {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "d2", "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": "d1", "value": {"COUNT": 2}},
@@ -276,16 +223,6 @@
         {"topic": "test_topic", "key": 4, "value": {"data": "2-"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "22"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 3, "value": {"ROWTIME": 0, "DATA": "333"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "-2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 3, "value": {"ROWTIME": 0, "DATA": "003"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "2-"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "22", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 3, "value": {"ROWTIME": 0, "DATA": "333", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "-2", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 3, "value": {"ROWTIME": 0, "DATA": "003", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "2-", "KSQL_AGG_VARIABLE_0": 3}},
         {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 3, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 2}},
@@ -312,17 +249,7 @@
         {"topic": "test_topic", "key": 4, "value": {"data": "2-"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "22"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 3, "value": {"ROWTIME": 0, "DATA": "333"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "-2"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 3, "value": {"ROWTIME": 0, "DATA": "003"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": {"ROWTIME": 0, "DATA": "2-"}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "22", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 3, "value": {"ROWTIME": 0, "DATA": "333", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "-2", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 3, "value": {"ROWTIME": 0, "DATA": "003", "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ROWTIME": 0, "DATA": "2-", "KSQL_AGG_VARIABLE_0": 3}},
-        {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 1}},
+         {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 3, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 2}},
         {"topic": "OUTPUT", "key": 3, "value": {"COUNT": 2}},
@@ -346,12 +273,6 @@
         {"topic": "test_topic", "value": {"data": 22}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 22, "value": {"ROWTIME": 0, "DATA": 22}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 333, "value": {"ROWTIME": 0, "DATA": 333}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 22, "value": {"ROWTIME": 0, "DATA": 22}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 22, "value": {"ROWTIME": 0, "DATA": 22, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 333, "value": {"ROWTIME": 0, "DATA": 333, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 22, "value": {"ROWTIME": 0, "DATA": 22, "KSQL_AGG_VARIABLE_0": 2}},
         {"topic": "OUTPUT", "key": 22, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 333, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 22, "value": {"COUNT": 2}}
@@ -702,12 +623,6 @@
         {"topic": "test_topic", "key": 0, "value": {"V1": 10}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "0|+|10", "value": {"V0": 0, "V1": 10, "KSQL_INTERNAL_COL_2": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "1|+|20", "value": {"V0": 1, "V1": 20, "KSQL_INTERNAL_COL_2": 21}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "0|+|10", "value": {"V0": 0, "V1": 10, "KSQL_INTERNAL_COL_2": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "0|+|10", "value": {"V0": 0, "V1": 10, "KSQL_AGG_VARIABLE_0": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "1|+|20", "value": {"V0": 1, "V1": 20, "KSQL_AGG_VARIABLE_0": 21}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "0|+|10", "value": {"V0": 0, "V1": 10, "KSQL_AGG_VARIABLE_0": 20}},
         {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 10}},
         {"topic": "OUTPUT", "key": "1|+|20", "value": {"SUM": 21}},
         {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 20}}
@@ -730,12 +645,6 @@
         {"topic": "test_topic", "key": 0, "value": {"V1": 10}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 10, "value": {"V0": 0, "V1": 10, "KSQL_INTERNAL_COL_2": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 21, "value": {"V0": 1, "V1": 20, "KSQL_INTERNAL_COL_2": 21}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 10, "value": {"V0": 0, "V1": 10, "KSQL_INTERNAL_COL_2": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 10, "value": {"V0": 0, "V1": 10, "KSQL_AGG_VARIABLE_0": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 21, "value": {"V0": 1, "V1": 20, "KSQL_AGG_VARIABLE_0": 21}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 10, "value": {"V0": 0, "V1": 10, "KSQL_AGG_VARIABLE_0": 20}},
         {"topic": "OUTPUT", "key": 10, "value": {"SUM": 10}},
         {"topic": "OUTPUT", "key": 21, "value": {"SUM": 21}},
         {"topic": "OUTPUT", "key": 10, "value": {"SUM": 20}}
@@ -758,12 +667,6 @@
         {"topic": "test_topic", "key": 0, "value": {"V1": 10}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "0|+|10", "value": {"V0": 0, "V1": 10, "KSQL_INTERNAL_COL_2": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "1|+|20", "value": {"V0": 1, "V1": 20, "KSQL_INTERNAL_COL_2": 21}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "0|+|10", "value": {"V0": 0, "V1": 10, "KSQL_INTERNAL_COL_2": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "0|+|10", "value": {"V0": 0, "V1": 10, "KSQL_AGG_VARIABLE_0": 10}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "1|+|20", "value": {"V0": 1, "V1": 20, "KSQL_AGG_VARIABLE_0": 21}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "0|+|10", "value": {"V0": 0, "V1": 10, "KSQL_AGG_VARIABLE_0": 20}},
         {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 10}},
         {"topic": "OUTPUT", "key": "1|+|20", "value": null},
         {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 20}}
@@ -847,11 +750,6 @@
         {"topic": "test_topic", "key": "d1", "value": "-"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": "d1,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": "d2,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": "d1,0,2"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": "d2,0,2"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": "d1,0,3"},
         {"topic": "OUTPUT", "key": "d1", "value": "1"},
         {"topic": "OUTPUT", "key": "d2", "value": "1"},
         {"topic": "OUTPUT", "key": "d1", "value": "2"},
@@ -890,11 +788,6 @@
         {"topic": "test_topic", "key": "d1", "value": {}, "timestamp": 5}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"K": "d1", "ROWTIME": 1, "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 1},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"K": "d2", "ROWTIME": 2, "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 2},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"K": "d1", "ROWTIME": 3, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 3},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"K": "d2", "ROWTIME": 4, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 4},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"K": "d1", "ROWTIME": 5, "KSQL_AGG_VARIABLE_0": 3}, "timestamp": 5},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0":1}, "timestamp": 1},
         {"topic": "OUTPUT", "key": "d2", "value": {"KSQL_COL_0":1}, "timestamp": 2},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0":2}, "timestamp": 3},
@@ -921,11 +814,6 @@
         {"topic": "test_topic", "key": "e", "value": {"ID": 1}, "timestamp": 5}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 1, "value": {"ID": 1, "ROWTIME": 1, "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 1},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ID": 2, "ROWTIME": 2, "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 2},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 1, "value": {"ID": 1, "ROWTIME": 3, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 3},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": {"ID": 2, "ROWTIME": 4, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 4},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 1, "value": {"ID": 1, "ROWTIME": 5, "KSQL_AGG_VARIABLE_0": 3}, "timestamp": 5},
         {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0":1}, "timestamp": 1},
         {"topic": "OUTPUT", "key": 2, "value": {"KSQL_COL_0":1}, "timestamp": 2},
         {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0":2}, "timestamp": 3},
@@ -952,11 +840,6 @@
         {"topic": "test_topic", "key": 3, "value": "3,a"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": "2,b,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,2"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": "2,b,0,2"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|3", "value": "3,a,0,1"},
         {"topic": "OUTPUT", "key": "a|+|1", "value": "1"},
         {"topic": "OUTPUT", "key": "b|+|2", "value": "1"},
         {"topic": "OUTPUT", "key": "a|+|1", "value": "2"},
@@ -1006,11 +889,6 @@
         {"topic": "test_topic", "key": 3, "value": {"F1": 3, "F2": "a"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|3", "value": {"F1": 3, "F2": "a", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
         {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 1}},
         {"topic": "OUTPUT", "key": "b|+|2", "value": {"KSQL_COL_0": 1}},
         {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 2}},
@@ -1085,13 +963,6 @@
         {"topic": "test_topic", "key": 1, "value": "1,a"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": "2,b,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|1", "value": "1,b,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": "2,b,0,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|1", "value": "1,b,0,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
         {"topic": "OUTPUT", "key": "a|+|1", "value": "1"},
         {"topic": "OUTPUT", "key": "b|+|2", "value": "1"},
         {"topic": "OUTPUT", "key": "a|+|1", "value": "0"},
@@ -1120,13 +991,6 @@
         {"topic": "test_topic", "key": 1, "value": "1,a"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": "2,b,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|1", "value": "1,b,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": "2,b,0,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|1", "value": "1,b,0,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": "1,a,0,1"},
         {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1"},
         {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,1"},
         {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,0"},
@@ -1156,13 +1020,6 @@
         {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|1", "value": {"F1": 1, "F2": "b", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|2", "value": {"F1": 2, "F2": "b", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "b|+|1", "value": {"F1": 1, "F2": "b", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "a|+|1", "value": {"F1": 1, "F2": "a", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
         {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 1}},
         {"topic": "OUTPUT", "key": "b|+|2", "value": {"KSQL_COL_0": 1}},
         {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 0}},
@@ -1191,16 +1048,6 @@
         {"topic": "test_topic", "value": "d1"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": "d1,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": "d2,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": "d1,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": "d2,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": "d1,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": "d1,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": "d2,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": "d1,0,2"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": "d2,0,2"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": "d1,0,3"},
         {"topic": "OUTPUT", "key": "d1", "value": "1"},
         {"topic": "OUTPUT", "key": "d2", "value": "1"},
         {"topic": "OUTPUT", "key": "d1", "value": "2"},
@@ -1227,16 +1074,6 @@
         {"topic": "test_topic", "value": "0.1"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.1, "value": "0.1,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.2, "value": "0.2,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.1, "value": "0.1,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.2, "value": "0.2,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 0.1, "value": "0.1,0"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.1, "value": "0.1,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.2, "value": "0.2,0,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.1, "value": "0.1,0,2"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.2, "value": "0.2,0,2"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 0.1, "value": "0.1,0,3"},
         {"topic": "OUTPUT", "key": 0.1, "value": "1"},
         {"topic": "OUTPUT", "key": 0.2, "value": "1"},
         {"topic": "OUTPUT", "key": 0.1, "value": "2"},
@@ -1264,16 +1101,6 @@
         {"topic": "test_topic", "value": {"DATA": "d1"}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"DATA": "d1", "ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"DATA": "d2", "ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"DATA": "d1", "ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d2", "value": {"DATA": "d2", "ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": "d1", "value": {"DATA": "d1", "ROWTIME": 0}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"DATA": "d1", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"DATA": "d2", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"DATA": "d1", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"DATA": "d2", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"DATA": "d1", "ROWTIME": 0, "KSQL_AGG_VARIABLE_0": 3}},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0":1}},
         {"topic": "OUTPUT", "key": "d2", "value": {"KSQL_COL_0":1}},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0":2}},
@@ -2007,9 +1834,6 @@
         {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 3}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 1, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 1},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"ROWTIME": 2, "DATA": "d2", "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 2},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"ROWTIME": 3, "DATA": "d1", "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 3},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 1}, "timestamp": 1},
         {"topic": "OUTPUT", "key": "d2", "value": {"KSQL_COL_0": 1}, "timestamp": 2},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 2}, "timestamp": 3}
@@ -2050,9 +1874,6 @@
         {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 3}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"DATA": "d1", "ROWTIME": 1, "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 1},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"DATA": "d2", "ROWTIME": 2, "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 2},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"DATA": "d1", "ROWTIME": 3, "KSQL_AGG_VARIABLE_0": 2, "KSQL_AGG_VARIABLE_1": 2}, "timestamp": 3},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 1, "COPY": "d1"}, "timestamp": 1},
         {"topic": "OUTPUT", "key": "d2", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 1, "COPY": "d2"}, "timestamp": 2},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 2, "COPY": "d1"}, "timestamp": 3}
@@ -2070,9 +1891,6 @@
         {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 3}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"DATA": "d1", "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 1},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d2", "value": {"DATA": "d2", "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 2},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": "d1", "value": {"DATA": "d1", "KSQL_AGG_VARIABLE_0": 2, "KSQL_AGG_VARIABLE_1": 2}, "timestamp": 3},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 1}, "timestamp": 1},
         {"topic": "OUTPUT", "key": "d2", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 1}, "timestamp": 2},
         {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 2}, "timestamp": 3}
@@ -2302,12 +2120,6 @@
         {"topic": "test_topic", "value": "2"}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": "2,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 3, "value": "3,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition", "key": 2, "value": "2,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": "2,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 3, "value": "3,1"},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "key": 2, "value": "2,2"},
         {"topic": "OUTPUT", "key": 2, "value": "1"},
         {"topic": "OUTPUT", "key": 3, "value": "1"},
         {"topic": "OUTPUT", "key": 2, "value": "2"}
@@ -2335,9 +2147,6 @@
         {"topic": "test_topic", "timestamp": 12375, "key": "11", "value": {}}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "timestamp": 12345, "key": "11", "value": {"Key": "11", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "timestamp": 12365, "key": "10", "value": {"Key": "10", "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog", "timestamp": 12375, "key": "11", "value": {"Key": "11", "KSQL_AGG_VARIABLE_0": 2}},
         {"topic": "OUTPUT", "key": "11", "value": {"Value": 1}},
         {"topic": "OUTPUT", "key": "10", "value": {"Value": 1}},
         {"topic": "OUTPUT", "key": "11", "value": {"Value": 2}}
@@ -2462,6 +2271,26 @@
         {"topic": "OUTPUT", "key": 1, "value": {"ID": 1}},
         {"topic": "OUTPUT", "key": 1, "value": {"ID": 2}},
         {"topic": "OUTPUT", "key": 1, "value": {"ID": 3}}
+      ]
+    },
+    {
+      "name": "non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT VAL, COUNT() AS COUNT FROM TEST GROUP BY VAL;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"VAL": true}},
+        {"topic": "test_topic", "key": 1, "value": {"VAL": false}},
+        {"topic": "test_topic", "key": 2, "value": {"VAL": true}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": false, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": true, "value": {"COUNT": 2}}
       ]
     }
   ]

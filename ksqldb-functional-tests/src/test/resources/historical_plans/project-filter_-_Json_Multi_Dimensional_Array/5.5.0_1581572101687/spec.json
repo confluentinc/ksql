@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S3_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>"
     },
     "CSAS_S3_0.S3" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING"
     }
   },
   "testCase" : {
@@ -98,29 +96,31 @@
     "statements" : [ "CREATE STREAM ARRAY_ARRAY (ID BIGINT, ARRAY_COL ARRAY<ARRAY<ARRAY<STRING>>>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S3 AS SELECT\n  ARRAY_ARRAY.ID ID,\n  ARRAY_ARRAY.ARRAY_COL[1][1][1] ARRAY_ITEM\nFROM ARRAY_ARRAY ARRAY_ARRAY\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S3",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "ARRAY_ARRAY",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<ARRAY<STRING>>>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "S3",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -129,9 +129,7 @@
         }, {
           "name" : "S3",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -4,28 +4,22 @@
   "path" : "query-validation-tests/timestamp-to-string.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT"
     },
     "CTAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`P_KSQL_COL_0` STRING KEY, `P_WLAN_SA` ARRAY<STRING>, `P_ROWTIME` BIGINT, `P_K` STRING, `P_KSQL_COL_0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`P_KSQL_COL_0` STRING KEY, `P_WLAN_SA` ARRAY<STRING>, `P_ROWTIME` BIGINT, `P_K` STRING, `P_KSQL_COL_0` STRING"
     },
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>"
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING"
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING"
     }
   },
   "testCase" : {
@@ -69,13 +63,25 @@
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, WLAN_SA ARRAY<VARCHAR>) WITH (kafka_topic='input', value_format='JSON');", "CREATE TABLE DEVICES (ROWKEY STRING PRIMARY KEY, NAME VARCHAR) WITH (kafka_topic='devices', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT D.NAME AS DEVICE_NAME, TIMESTAMPTOSTRING(MIN(P.ROWTIME),'yyyy-MM-dd HH:mm:ss zzz','Europe/London') FROM INPUT P INNER JOIN DEVICES D ON P.WLAN_SA[1] = D.ROWKEY GROUP BY D.NAME emit changes;" ],
     "post" : {
       "sources" : [ {
+        "name" : "DEVICES",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
@@ -83,23 +89,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "DEVICES",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -107,9 +105,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -117,9 +113,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -127,9 +121,7 @@
         }, {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -138,9 +130,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -148,9 +138,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -159,9 +147,7 @@
         }, {
           "name" : "devices",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.ConfigResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
@@ -80,6 +81,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final ServerMetadataResource serverMetadataResource;
   private final WSQueryEndpoint wsQueryEndpoint;
   private final ConfigResource configResource;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   public KsqlServerEndpoints(
@@ -97,7 +99,9 @@ public class KsqlServerEndpoints implements Endpoints {
       final HealthCheckResource healthCheckResource,
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
-      final ConfigResource configResource) {
+      final ConfigResource configResource,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+  ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
@@ -116,6 +120,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.serverMetadataResource = Objects.requireNonNull(serverMetadataResource);
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
     this.configResource = Objects.requireNonNull(configResource);
+    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
   }
 
   @Override
@@ -125,7 +130,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
     return executeOnWorker(
-        () -> new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor)
+        () -> new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor, pullQueryMetrics)
             .createQueryPublisher(sql, properties, context, workerExecutor,
                 ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
         workerExecutor);
@@ -156,17 +161,20 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeQueryRequest(final KsqlRequest request,
+  public CompletableFuture<EndpointResponse> executeQueryRequest(
+      final KsqlRequest request,
       final WorkerExecutor workerExecutor,
       final CompletableFuture<Void> connectionClosedFuture,
       final ApiSecurityContext apiSecurityContext,
-      final Optional<Boolean> isInternalRequest) {
+      final Optional<Boolean> isInternalRequest
+  ) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
             ksqlSecurityContext,
             request,
             connectionClosedFuture,
-            isInternalRequest), workerExecutor);
+            isInternalRequest
+        ), workerExecutor);
   }
 
   @Override

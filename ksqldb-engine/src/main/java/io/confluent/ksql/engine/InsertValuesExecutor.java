@@ -28,9 +28,12 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -129,8 +132,7 @@ public class InsertValuesExecutor {
   ) {
     final InsertValues insertValues = statement.getStatement();
     final MetaStore metaStore = executionContext.getMetaStore();
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
+    final KsqlConfig config = statement.getSessionConfig().getConfig(true);
 
     final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
@@ -184,11 +186,10 @@ public class InsertValuesExecutor {
       final DataSource dataSource,
       final ServiceContext serviceContext
   ) {
-    throwIfDisabled(statement.getConfig());
+    throwIfDisabled(statement.getSessionConfig().getConfig(false));
 
     final InsertValues insertValues = statement.getStatement();
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
+    final KsqlConfig config = statement.getSessionConfig().getConfig(true);
 
     try {
       final KsqlGenericRecord row = new GenericRecordFactory(config, metaStore, clock).build(
@@ -240,7 +241,8 @@ public class InsertValuesExecutor {
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         dataSource.getSchema(),
-        dataSource.getSerdeOptions()
+        dataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final Serde<Struct> keySerde = keySerdeFactory.create(
@@ -269,7 +271,8 @@ public class InsertValuesExecutor {
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         dataSource.getSchema(),
-        dataSource.getSerdeOptions()
+        dataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
@@ -286,7 +289,9 @@ public class InsertValuesExecutor {
     try {
       return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
-      if (dataSource.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference()) {
+      final Format valueFormat = FormatFactory
+          .fromName(dataSource.getKsqlTopic().getValueFormat().getFormat());
+      if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
         if (rootCause instanceof RestClientException) {
           switch (((RestClientException) rootCause).getStatus()) {

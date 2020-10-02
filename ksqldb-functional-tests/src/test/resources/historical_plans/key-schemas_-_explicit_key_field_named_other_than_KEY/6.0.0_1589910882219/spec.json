@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`OTHER` DOUBLE KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`OTHER` DOUBLE KEY, `ID` BIGINT"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`OTHER` DOUBLE KEY, `ID` BIGINT, `KEY` DOUBLE",
-      "serdeOptions" : [ ]
+      "schema" : "`OTHER` DOUBLE KEY, `ID` BIGINT, `KEY` DOUBLE"
     }
   },
   "testCase" : {
@@ -47,7 +45,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -55,15 +55,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -72,9 +72,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -31,11 +31,15 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
@@ -62,6 +66,12 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   private SimpleColumn column2;
   @Mock
   private Format format;
+  @Mock
+  private FormatInfo expectedValueFormat;
+  @Mock
+  private Map<String, String> formatProperties;
+  @Mock
+  private SchemaTranslator schemaTranslator;
 
   private SchemaRegistryTopicSchemaSupplier supplier;
 
@@ -79,7 +89,35 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
     when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
-    when(format.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1, column2));
+    when(format.getSchemaTranslator(any())).thenReturn(schemaTranslator);
+    when(schemaTranslator.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1, column2));
+    when(schemaTranslator.name()).thenReturn("AVRO");
+
+    when(expectedValueFormat.getProperties()).thenReturn(formatProperties);
+  }
+
+  @Test
+  public void shouldReturnErrorFromGetValueSchemaIfSchemaIsNotInExpectedFormat() {
+    // Given:
+    when(parsedSchema.schemaType()).thenReturn(ProtobufSchema.TYPE);
+
+    // When:
+    final SchemaResult result = supplier
+        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedValueFormat);
+
+    // Then:
+    assertThat(result.schemaAndId, is(Optional.empty()));
+    assertThat(result.failureReason, is(not(Optional.empty())));
+    assertThat(result.failureReason.get().getMessage(), is(
+        "Value schema is not in the expected format. "
+            + "You may want to set VALUE_FORMAT to 'PROTOBUF'."
+            + System.lineSeparator()
+            + "topic: " + TOPIC_NAME
+            + System.lineSeparator()
+            + "expected format: AVRO"
+            + System.lineSeparator()
+            + "actual format: PROTOBUF"
+    ));
   }
 
   @Test
@@ -89,7 +127,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(notFoundException());
 
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.empty());
+    final SchemaResult result = supplier
+        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedValueFormat);
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -106,7 +145,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(notFoundException());
 
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
+    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42),
+        expectedValueFormat);
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -123,7 +163,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(unauthorizedException());
 
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
+    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42),
+        expectedValueFormat);
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -140,7 +181,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(forbiddenException());
 
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
+    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42),
+        expectedValueFormat);
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -159,7 +201,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty())
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedValueFormat)
     );
 
     // Then:
@@ -176,7 +218,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42))
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedValueFormat)
     );
 
     // Then:
@@ -193,7 +235,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty())
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedValueFormat)
     );
 
     // Then:
@@ -210,7 +252,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42))
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedValueFormat)
     );
 
     // Then:
@@ -221,11 +263,12 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetValueSchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(format.toColumns(any()))
+    when(schemaTranslator.toColumns(any()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.empty());
+    final SchemaResult result = supplier
+        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedValueFormat);
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -239,7 +282,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldRequestCorrectSchemaOnGetValueSchema() throws Exception {
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.empty());
+    supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedValueFormat);
 
     // Then:
     verify(srClient).getLatestSchemaMetadata(TOPIC_NAME + "-value");
@@ -248,7 +291,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldRequestCorrectSchemaOnGetValueSchemaWithId() throws Exception {
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.of(42));
+    supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedValueFormat);
 
     // Then:
     verify(srClient).getSchemaBySubjectAndId(TOPIC_NAME + "-value", 42);
@@ -257,16 +300,18 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldPassWriteSchemaToFormat() {
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.empty());
+    supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedValueFormat);
 
     // Then:
-    verify(format).toColumns(parsedSchema);
+    verify(format).getSchemaTranslator(formatProperties);
+    verify(schemaTranslator).toColumns(parsedSchema);
   }
 
   @Test
   public void shouldReturnSchemaFromGetValueSchemaIfFound() {
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.empty());
+    final SchemaResult result = supplier
+        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedValueFormat);
 
     // Then:
     assertThat(result.schemaAndId, is(not(Optional.empty())));

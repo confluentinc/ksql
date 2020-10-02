@@ -15,14 +15,11 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,17 +28,14 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Struct;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,9 +52,6 @@ public class KsqlDelimitedDeserializerTest {
       column("COST", SqlTypes.decimal(4, 2))
   );
 
-  private static final ConnectSchema ORDER_CONNECT_SCHEMA = ConnectSchemas
-      .columnsToConnectSchema(ORDER_SCHEMA.columns());
-
   private KsqlDelimitedDeserializer deserializer;
 
   @Before
@@ -74,15 +65,10 @@ public class KsqlDelimitedDeserializerTest {
     final byte[] bytes = "1511897796092,1,item_1,10.0,10.10\r\n".getBytes(StandardCharsets.UTF_8);
 
     // When:
-    final Struct struct = deserializer.deserialize("", bytes);
+    final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_CONNECT_SCHEMA));
-    assertThat(struct.get("ORDERTIME"), is(1511897796092L));
-    assertThat(struct.get("ORDERID"), is(1L));
-    assertThat(struct.get("ITEMID"), is("item_1"));
-    assertThat(struct.get("ORDERUNITS"), is(10.0));
-    assertThat(struct.get("COST"), is(new BigDecimal("10.10")));
+    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0, new BigDecimal("10.10")));
   }
 
   @Test
@@ -91,15 +77,10 @@ public class KsqlDelimitedDeserializerTest {
     final byte[] bytes = "1511897796092,1,item_1,,\r\n".getBytes(StandardCharsets.UTF_8);
 
     // When:
-    final Struct struct = deserializer.deserialize("", bytes);
+    final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_CONNECT_SCHEMA));
-    assertThat(struct.get("ORDERTIME"), is(1511897796092L));
-    assertThat(struct.get("ORDERID"), is(1L));
-    assertThat(struct.get("ITEMID"), is("item_1"));
-    assertThat(struct.get("ORDERUNITS"), is(nullValue()));
-    assertThat(struct.get("COST"), is(nullValue()));
+    assertThat(result, contains(1511897796092L, 1L, "item_1", null, null));
   }
 
   @Test
@@ -110,26 +91,29 @@ public class KsqlDelimitedDeserializerTest {
     // When:
     final Exception e = assertThrows(
         SerializationException.class,
-        () -> deserializer.deserialize("", bytes)
+        () -> deserializer.deserialize("t", bytes)
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(is("Unexpected field count, csvFields:4 schemaFields:5"))));
+    assertThat(e.getCause().getMessage(),
+        is("Column count mismatch on deserialization. topic: t, expected: 5, got: 4"));
   }
 
   @Test
   public void shouldThrowIfRowHasTooMayColumns() {
     // Given:
-    final byte[] bytes = "1511897796092,1,item_1,10.0,10.10,extra\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092,1,item_1,10.0,10.10,extra\r\n"
+        .getBytes(StandardCharsets.UTF_8);
 
     // When:
     final Exception e = assertThrows(
         SerializationException.class,
-        () -> deserializer.deserialize("", bytes)
+        () -> deserializer.deserialize("t", bytes)
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(is("Unexpected field count, csvFields:6 schemaFields:5"))));
+    assertThat(e.getCause().getMessage(),
+        is("Column count mismatch on deserialization. topic: t, expected: 5, got: 6"));
   }
 
   @Test
@@ -145,10 +129,10 @@ public class KsqlDelimitedDeserializerTest {
     final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
 
     // When:
-    final Struct result = deserializer.deserialize("", bytes);
+    final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result.get("id"), CoreMatchers.is(10));
+    assertThat(result, contains(10));
   }
 
   @Test
@@ -164,10 +148,10 @@ public class KsqlDelimitedDeserializerTest {
     final byte[] bytes = "01.12".getBytes(StandardCharsets.UTF_8);
 
     // When:
-    final Struct result = deserializer.deserialize("", bytes);
+    final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result.get("cost"), is(new BigDecimal("01.12")));
+    assertThat(result, contains(new BigDecimal("1.12")));
   }
 
   @Test
@@ -183,10 +167,67 @@ public class KsqlDelimitedDeserializerTest {
     final byte[] bytes = "1.12".getBytes(StandardCharsets.UTF_8);
 
     // When:
-    final Struct result = deserializer.deserialize("", bytes);
+    final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result.get("cost"), is(new BigDecimal("01.12")));
+    assertThat(result, contains(new BigDecimal("1.12")));
+  }
+
+  @Test
+  public void shouldDeserializeDecimalWithTooSmallScale() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "2".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final List<?> result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result, contains(new BigDecimal("2.00")));
+  }
+
+  @Test
+  public void shouldDeserializeNegativeDecimalSerializedAsNumber() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "-1.12".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final List<?> result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result, contains(new BigDecimal("-1.12")));
+  }
+
+  @Test
+  public void shouldDeserializeNegativeDecimalSerializedAsString() {
+    // Given:
+    final PersistenceSchema schema = persistenceSchema(
+        column("cost", SqlTypes.decimal(4, 2))
+    );
+
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
+
+    final byte[] bytes = "\"-01.12\"".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final List<?> result = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(result, contains(new BigDecimal("-1.12")));
   }
 
   @Test
@@ -199,15 +240,10 @@ public class KsqlDelimitedDeserializerTest {
         new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT.withDelimiter('\t'));
 
     // When:
-    final Struct struct = deserializer.deserialize("", bytes);
+    final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_CONNECT_SCHEMA));
-    assertThat(struct.get("ORDERTIME"), is(1511897796092L));
-    assertThat(struct.get("ORDERID"), is(1L));
-    assertThat(struct.get("ITEMID"), is("item_1"));
-    assertThat(struct.get("ORDERUNITS"), is(10.0));
-    assertThat(struct.get("COST"), is(new BigDecimal("10.10")));
+    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0, new BigDecimal("10.10")));
   }
 
   @Test
@@ -219,41 +255,10 @@ public class KsqlDelimitedDeserializerTest {
         new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT.withDelimiter('|'));
 
     // When:
-    final Struct struct = deserializer.deserialize("", bytes);
+    final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(struct.schema(), is(ORDER_CONNECT_SCHEMA));
-    assertThat(struct.get("ORDERTIME"), is(1511897796092L));
-    assertThat(struct.get("ORDERID"), is(1L));
-    assertThat(struct.get("ITEMID"), is("item_1"));
-    assertThat(struct.get("ORDERUNITS"), is(10.0));
-    assertThat(struct.get("COST"), is(new BigDecimal("10.10")));
-  }
-
-  @Test
-  public void shouldThrowOnDeserializedTopLevelPrimitiveWhenSchemaHasMoreThanOneField() {
-    // Given:
-    final PersistenceSchema schema = persistenceSchema(
-        column("id", SqlTypes.INTEGER),
-        column("id2", SqlTypes.INTEGER)
-    );
-
-    final KsqlDelimitedDeserializer deserializer =
-        createDeserializer(schema);
-
-    final byte[] bytes = "10".getBytes(UTF_8);
-
-    // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> deserializer.deserialize("", bytes)
-    );
-
-    // Then:
-    assertThat(e.getCause(),
-        (instanceOf(KsqlException.class)));
-    assertThat(e.getCause(),
-        (hasMessage(CoreMatchers.is("Unexpected field count, csvFields:1 schemaFields:2"))));
+    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0d, new BigDecimal("10.10")));
   }
 
   @Test
@@ -265,12 +270,13 @@ public class KsqlDelimitedDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        UnsupportedOperationException.class,
+        KsqlException.class,
         () -> createDeserializer(schema)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("DELIMITED does not support type: ARRAY, field: ids"));
+    assertThat(e.getMessage(),
+        containsString("The 'DELIMITED' format does not support type 'ARRAY', column: `ids`"));
   }
 
   @Test
@@ -282,12 +288,13 @@ public class KsqlDelimitedDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        UnsupportedOperationException.class,
+        KsqlException.class,
         () -> createDeserializer(schema)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("DELIMITED does not support type: MAP, field: ids"));
+    assertThat(e.getMessage(),
+        containsString("The 'DELIMITED' format does not support type 'MAP', column: `ids`"));
   }
 
   @Test
@@ -304,13 +311,13 @@ public class KsqlDelimitedDeserializerTest {
 
     // When:
     final Exception e = assertThrows(
-        UnsupportedOperationException.class,
+        KsqlException.class,
         () -> createDeserializer(schema)
     );
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("DELIMITED does not support type: STRUCT, field: ids"));
+        containsString("The 'DELIMITED' format does not support type 'STRUCT', column: `ids`"));
   }
 
   private static SimpleColumn column(final String name, final SqlType type) {
@@ -321,7 +328,7 @@ public class KsqlDelimitedDeserializerTest {
   }
 
   private static PersistenceSchema persistenceSchema(final SimpleColumn... columns) {
-    return PersistenceSchema.from(Arrays.asList(columns), EnabledSerdeFeatures.of());
+    return PersistenceSchema.from(Arrays.asList(columns), SerdeFeatures.of());
   }
 
   private static KsqlDelimitedDeserializer createDeserializer(final PersistenceSchema schema) {

@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_JOINED_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `SELECT` STRING, `field!` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `SELECT` STRING, `field!` STRING"
     },
     "CSAS_JOINED_0.JOINED" : {
-      "schema" : "`ROWKEY` STRING KEY, `field!` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `field!` STRING"
     },
     "CSAS_JOINED_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING"
     },
     "CSAS_JOINED_0.Join.Left" : {
-      "schema" : "`ROWKEY` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING"
     }
   },
   "testCase" : {
@@ -65,21 +61,15 @@
     "statements" : [ "CREATE STREAM L (`SELECT` STRING, `field!` STRING) WITH (KAFKA_TOPIC='left_topic', VALUE_FORMAT='JSON');", "CREATE TABLE R (`with.dot` STRING) WITH (KAFKA_TOPIC='right_topic', KEY='`with.dot`', VALUE_FORMAT='JSON');", "CREATE STREAM JOINED AS SELECT L.`field!` `field!`\nFROM L L\nLEFT OUTER JOIN R R ON ((L.`SELECT` = R.`with.dot`))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "JOINED",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `field!` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "L",
         "type" : "STREAM",
@@ -87,15 +77,25 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `with.dot` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "JOINED",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -104,9 +104,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -115,9 +113,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -126,9 +122,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

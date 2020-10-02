@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
     "CSAS_S7_0.S7" : {
-      "schema" : "`K` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING"
     },
     "CSAS_S7_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `S` STRUCT<`S` STRING>",
-      "serdeOptions" : [ ]
+      "schema" : "`K` STRING KEY, `S` STRUCT<`S` STRING>"
     }
   },
   "testCase" : {
@@ -57,7 +55,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S7",
         "type" : "STREAM",
@@ -65,15 +65,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "S7",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -82,9 +82,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

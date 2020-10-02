@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/map.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>"
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>"
     }
   },
   "testCase" : {
@@ -129,7 +127,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -137,15 +137,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -154,9 +154,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

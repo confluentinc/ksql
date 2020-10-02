@@ -46,6 +46,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.StreamingOutput;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -191,7 +192,7 @@ public class StreamedQueryResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     pullQueryExecutor = new PullQueryExecutor(
-        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, SERVICE_ID, time);
+        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, SERVICE_ID);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,
@@ -202,7 +203,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
 
     testResource.configure(VALID_CONFIG);
@@ -230,7 +232,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
 
     // When:
@@ -384,7 +387,8 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
@@ -476,7 +480,8 @@ public class StreamedQueryResourceTest {
             10);
 
     when(mockKsqlEngine.executeQuery(serviceContext,
-        ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))
+        ConfiguredStatement
+            .of(query, SessionConfig.of(VALID_CONFIG, requestStreamsProperties))))
         .thenReturn(transientQueryMetadata);
 
     final EndpointResponse response =

@@ -36,9 +36,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HealthCheckAgent {
+  private static final Logger log = LoggerFactory.getLogger(HealthCheckAgent.class);
 
   public static final String METASTORE_CHECK_NAME = "metastore";
   public static final String KAFKA_CHECK_NAME = "kafka";
@@ -129,6 +134,7 @@ public class HealthCheckAgent {
       boolean isHealthy;
 
       try {
+        log.info("Checking ksql's ability to contact broker");
         healthCheckAgent.serviceContext
             .getAdminClient()
             .describeTopics(Collections.singletonList(commandTopic),
@@ -138,9 +144,12 @@ public class HealthCheckAgent {
 
         isHealthy = true;
       } catch (final KsqlTopicAuthorizationException e) {
+        log.info("ksqlDB denied access to describe cmd topic. This is considered healthy");
         isHealthy = true;
       } catch (final Exception e) {
-        isHealthy = false;
+        log.error("Error describing command topic during health check", e);
+        isHealthy = e instanceof UnknownTopicOrPartitionException
+            || ExceptionUtils.getRootCause(e) instanceof UnknownTopicOrPartitionException;
       }
 
       return new HealthCheckResponseDetail(isHealthy);

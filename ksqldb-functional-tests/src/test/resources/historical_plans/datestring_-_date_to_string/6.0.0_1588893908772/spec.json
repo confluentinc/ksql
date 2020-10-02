@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/datestring.json",
   "schemas" : {
     "CSAS_DATE_STREAM_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `START_DATE` INTEGER, `DATE_FORMAT` STRING"
     },
     "CSAS_DATE_STREAM_0.DATE_STREAM" : {
-      "schema" : "`ID` BIGINT KEY, `CUSTOM_FORMATTED_START_DATE` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ID` BIGINT KEY, `CUSTOM_FORMATTED_START_DATE` STRING"
     }
   },
   "testCase" : {
@@ -99,7 +97,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
@@ -107,15 +107,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -124,9 +124,7 @@
         }, {
           "name" : "DATE_STREAM",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

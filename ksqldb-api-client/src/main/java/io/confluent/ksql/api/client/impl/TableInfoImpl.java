@@ -22,19 +22,22 @@ public class TableInfoImpl implements TableInfo {
 
   private final String name;
   private final String topicName;
-  private final String format;
-  private final boolean isWindowed;
+  private final String keyFormat;
+  private final String valueFormat;
+  private final boolean windowed;
 
   TableInfoImpl(
       final String name,
       final String topicName,
-      final String format,
-      final boolean isWindowed
+      final String keyFormat,
+      final String valueFormat,
+      final boolean windowed
   ) {
     this.name = Objects.requireNonNull(name);
     this.topicName = Objects.requireNonNull(topicName);
-    this.format = Objects.requireNonNull(format);
-    this.isWindowed = isWindowed;
+    this.valueFormat = Objects.requireNonNull(valueFormat);
+    this.keyFormat = Objects.requireNonNull(keyFormat);
+    this.windowed = windowed;
   }
 
   @Override
@@ -48,13 +51,18 @@ public class TableInfoImpl implements TableInfo {
   }
 
   @Override
-  public String getFormat() {
-    return format;
+  public String getKeyFormat() {
+    return keyFormat;
+  }
+
+  @Override
+  public String getValueFormat() {
+    return valueFormat;
   }
 
   @Override
   public boolean isWindowed() {
-    return isWindowed;
+    return windowed;
   }
 
   @Override
@@ -66,15 +74,16 @@ public class TableInfoImpl implements TableInfo {
       return false;
     }
     final TableInfoImpl tableInfo = (TableInfoImpl) o;
-    return isWindowed == tableInfo.isWindowed
+    return windowed == tableInfo.windowed
         && name.equals(tableInfo.name)
         && topicName.equals(tableInfo.topicName)
-        && format.equals(tableInfo.format);
+        && keyFormat.equals(tableInfo.keyFormat)
+        && valueFormat.equals(tableInfo.valueFormat);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, topicName, format, isWindowed);
+    return Objects.hash(name, topicName, keyFormat, valueFormat, windowed);
   }
 
   @Override
@@ -82,8 +91,9 @@ public class TableInfoImpl implements TableInfo {
     return "TableInfo{"
         + "name='" + name + '\''
         + ", topicName='" + topicName + '\''
-        + ", format='" + format + '\''
-        + ", isWindowed=" + isWindowed
+        + ", keyFormat='" + keyFormat + '\''
+        + ", valueFormat='" + valueFormat + '\''
+        + ", windowed=" + windowed
         + '}';
   }
 }

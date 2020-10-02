@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/replace.json",
   "schemas" : {
     "CSAS_JSONIFIED_0.JSONIFIED" : {
-      "schema" : "`KSQL_COL_0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`KSQL_COL_0` STRING"
     },
     "CSAS_JSONIFIED_0.KsqlTopic.Source" : {
-      "schema" : "`MESSAGE` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`MESSAGE` STRING"
     }
   },
   "testCase" : {
@@ -42,7 +40,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "RAW",
         "type" : "STREAM",
@@ -50,15 +50,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "KAFKA"
@@ -67,9 +67,7 @@
         }, {
           "name" : "JSONIFIED",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "KAFKA"

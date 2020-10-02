@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
     "CSAS_S1_JOIN_T1_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT"
     },
     "CSAS_S1_JOIN_T1_0.S1_JOIN_T1" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING"
     },
     "CSAS_S1_JOIN_T1_0.Join.Left" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `S1_ID` BIGINT, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `S1_ID` BIGINT, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` BIGINT"
     },
     "CSAS_S1_JOIN_T1_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT"
     }
   },
   "testCase" : {
@@ -124,21 +120,15 @@
     "statements" : [ "CREATE STREAM S1 (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, TS BIGINT) WITH (KAFKA_TOPIC='s1', KEY='ID', TIMESTAMP='TS', VALUE_FORMAT='PROTOBUF');", "CREATE TABLE T1 (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING, F2 STRING, RTS BIGINT) WITH (KAFKA_TOPIC='t1', KEY='ID', TIMESTAMP='RTS', VALUE_FORMAT='PROTOBUF');", "CREATE STREAM S1_JOIN_T1 WITH (TIMESTAMP='TS') AS SELECT\n  S1.ID ID,\n  S1.NAME NAME,\n  S1.TS TS,\n  T1.F1 F1,\n  T1.F2 F2\nFROM S1 S1\nINNER JOIN T1 T1 ON ((S1.ID = T1.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "T1",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "S1",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S1_JOIN_T1",
         "type" : "STREAM",
@@ -146,15 +136,25 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "s1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -163,9 +163,7 @@
         }, {
           "name" : "S1_JOIN_T1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -174,9 +172,7 @@
         }, {
           "name" : "t1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

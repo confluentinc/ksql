@@ -4,20 +4,16 @@
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_JOINED_0.KafkaTopic_Left.Source" : {
-      "schema" : "`the key` STRING KEY, `SELECT` STRING, `field!` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`the key` STRING KEY, `SELECT` STRING, `field!` STRING"
     },
     "CSAS_JOINED_0.JOINED" : {
-      "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING"
     },
     "CSAS_JOINED_0.KafkaTopic_Right.Source" : {
-      "schema" : "`with.dot` STRING KEY, `field 0` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`with.dot` STRING KEY, `field 0` STRING"
     },
     "CSAS_JOINED_0.Join.Left" : {
-      "schema" : "`L_SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_the key` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`L_SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_the key` STRING"
     }
   },
   "testCase" : {
@@ -68,21 +64,15 @@
     "statements" : [ "CREATE STREAM L (`the key` STRING KEY, `SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (`with.dot` STRING PRIMARY KEY, `field 0` VARCHAR) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM JOINED as SELECT * FROM L LEFT JOIN R ON L.`SELECT` = R.`with.dot`;" ],
     "post" : {
       "sources" : [ {
-        "name" : "R",
-        "type" : "TABLE",
-        "schema" : "`with.dot` STRING KEY, `field 0` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "JOINED",
         "type" : "STREAM",
         "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "L",
         "type" : "STREAM",
@@ -90,15 +80,25 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`with.dot` STRING KEY, `field 0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "JOINED",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -107,9 +107,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -118,9 +116,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -129,9 +125,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -139,9 +133,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

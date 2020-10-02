@@ -4,16 +4,13 @@
   "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
     "CTAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT"
     },
     "CTAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING"
     },
     "CTAS_S1_JOIN_S2_0.S1_JOIN_S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING"
     }
   },
   "testCase" : {
@@ -114,21 +111,25 @@
     "statements" : [ "CREATE TABLE S1 (ROWKEY BIGINT KEY, ID BIGINT, NAME STRING, TS BIGINT) WITH (KAFKA_TOPIC='s1', KEY='ID', TIMESTAMP='TS', VALUE_FORMAT='JSON');", "CREATE TABLE S2 (ROWKEY BIGINT KEY, ID BIGINT, F1 STRING, F2 STRING) WITH (KAFKA_TOPIC='s2', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE S1_JOIN_S2 WITH (TIMESTAMP='TS') AS SELECT\n  S1.ID ID,\n  S1.NAME NAME,\n  S1.TS TS,\n  S2.F1 F1,\n  S2.F2 F2\nFROM S1 S1\nINNER JOIN S2 S2 ON ((S1.ID = S2.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "S1_JOIN_S2",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "S1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "S1_JOIN_S2",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S2",
         "type" : "TABLE",
@@ -136,15 +137,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "s2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -153,9 +154,7 @@
         }, {
           "name" : "s1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -164,9 +163,7 @@
         }, {
           "name" : "S1_JOIN_S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

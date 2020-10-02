@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
@@ -33,20 +36,16 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.ServerWebSocket;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class WSQueryEndpointTest {
@@ -74,7 +73,8 @@ public class WSQueryEndpointTest {
         Optional.empty(),
         mock(Errors.class),
         mock(PullQueryExecutor.class),
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty()
     );
   }
 

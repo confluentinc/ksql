@@ -4,12 +4,10 @@
   "path" : "query-validation-tests/tumbling-windows.json",
   "schemas" : {
     "CSAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER"
     },
     "CSAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT"
     }
   },
   "testCase" : {
@@ -108,16 +106,6 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY INTEGER KEY, ID BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_SIZE='30 seconds', WINDOW_TYPE='Tumbling');", "CREATE STREAM S2 AS SELECT\n  *,\n  TEST.WINDOWSTART WSTART,\n  TEST.WINDOWEND WEND,\n  TEST.ROWKEY KEY\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "windowType" : "TUMBLING",
-          "windowSize" : 30000
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` INTEGER",
@@ -126,15 +114,27 @@
           "windowType" : "TUMBLING",
           "windowSize" : 30000
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 30.000000000
@@ -147,9 +147,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 30.000000000

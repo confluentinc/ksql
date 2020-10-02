@@ -277,7 +277,8 @@ public final class KsqlRestApplication implements Executable {
         ksqlResource,
         serviceContext,
         this.restConfig,
-        this.ksqlConfigNoPort);
+        this.ksqlConfigNoPort,
+        this.commandRunner);
     this.queryMonitor = requireNonNull(ksqlQueryMonitor, "ksqlQueryMonitor");
     MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     this.pullQueryMetrics = requireNonNull(pullQueryMetrics, "pullQueryMetrics");

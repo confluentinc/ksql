@@ -21,13 +21,16 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -57,7 +60,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   private final Ticker ticker;
 
   private BackupReplayFile replayFile;
-  private List<Pair<CommandId, Command>> latestReplay;
+  private List<Pair<byte[], byte[]>> latestReplay;
   private int latestReplayIdx;
   private boolean corruptionDetected;
 
@@ -118,10 +121,11 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     return latestReplayIdx < latestReplay.size();
   }
 
-  private boolean isRecordInLatestReplay(final ConsumerRecord<CommandId, Command> record) {
-    final Pair<CommandId, Command> latestReplayRecord = latestReplay.get(latestReplayIdx);
-    if (record.key().equals(latestReplayRecord.left)
-        && record.value().equals(latestReplayRecord.right)) {
+  private boolean isRecordInLatestReplay(final ConsumerRecord<byte[], byte[]> record) {
+    final Pair<byte[], byte[]> latestReplayRecord = latestReplay.get(latestReplayIdx);
+
+    if (Arrays.equals(record.key(), latestReplayRecord.getLeft())
+        && Arrays.equals(record.value(), latestReplayRecord.getRight())) {
       latestReplayIdx++;
       return true;
     }
@@ -129,32 +133,34 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     return false;
   }
 
-  @Override
-  public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
-    final ConsumerRecord<CommandId, Command> deserializedRecord;
+  private void throwIfInvalidRecord(final ConsumerRecord<byte[], byte[]> record) {
     try {
-      deserializedRecord = new ConsumerRecord<>(
-          record.topic(),
-          record.partition(),
-          record.offset(),
-          InternalTopicSerdes.deserializer(CommandId.class)
-              .deserialize(record.topic(), record.key()),
-          InternalTopicSerdes.deserializer(Command.class)
-              .deserialize(record.topic(), record.value())
-      );
-    } catch (Exception e) {
-      LOG.error("Failed to deserialize command topic record when backing it up: {}:{}",
-          record.key(), record.value());
-      return;
+      InternalTopicSerdes.deserializer(CommandId.class).deserialize(record.topic(), record.key());
+    } catch (final Exception e) {
+      throw new KsqlException(String.format(
+          "Failed to backup record because it cannot deserialize key: %s",
+          new String(record.key(), StandardCharsets.UTF_8), e
+      ));
     }
-    writeCommandToBackup(deserializedRecord);
+
+    try {
+      InternalTopicSerdes.deserializer(Command.class).deserialize(record.topic(), record.value());
+    } catch (final Exception e) {
+      throw new KsqlException(String.format(
+          "Failed to backup record because it cannot deserialize value: %s",
+          new String(record.value(), StandardCharsets.UTF_8), e
+      ));
+    }
   }
 
-  void writeCommandToBackup(final ConsumerRecord<CommandId, Command> record) {
+  @Override
+  public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
     if (corruptionDetected) {
       throw new KsqlServerException(
           "Failed to write record due to out of sync command topic and backup file: " + record);
     }
+
+    throwIfInvalidRecord(record);
 
     if (isRestoring()) {
       if (isRecordInLatestReplay(record)) {
@@ -171,7 +177,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     }
 
     try {
-      replayFile.write(record.key(), record.value());
+      replayFile.write(record);
     } catch (final IOException e) {
       LOG.warn("Failed to write to file {}. The command topic backup is not complete. "
               + "Make sure the file exists and has permissions to write. KSQL must be restarted "

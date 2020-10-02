@@ -16,6 +16,7 @@
 package io.confluent.ksql.benchmark;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -183,6 +184,7 @@ public class SerdeBenchmark {
       return new RowGenerator(generator, keyField, Optional.empty());
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private static Generator getGenerator(final String schemaName) throws IOException {
       final Path schemaPath = SCHEMA_DIR.resolve(schemaName + SCHEMA_FILE_SUFFIX);
 

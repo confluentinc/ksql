@@ -32,7 +32,7 @@ Serialization Formats
 
 ksqlDB supports these serialization formats:
 
--   [`NONE`](#none) used to indicate the data should not be derialized.
+-   [`NONE`](#none) used to indicate the data should not be deserialized.
 -   [`DELIMITED`](#delimited) supports comma separated values.
 -   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and within schema registry integration 
 -   [`AVRO`](#avro) supports AVRO serialized values. 

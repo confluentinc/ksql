@@ -144,8 +144,8 @@ public class BackupReplayFileTest {
   private ConsumerRecord<byte[], byte[]> newStreamRecord(final String key, final String value) {
     final ConsumerRecord<byte[], byte[]> consumerRecord = mock(ConsumerRecord.class);
 
-    when(consumerRecord.key()).thenReturn(key.getBytes());
-    when(consumerRecord.value()).thenReturn(value.getBytes());
+    when(consumerRecord.key()).thenReturn(key.getBytes(StandardCharsets.UTF_8));
+    when(consumerRecord.value()).thenReturn(value.getBytes(StandardCharsets.UTF_8));
 
     return consumerRecord;
   }

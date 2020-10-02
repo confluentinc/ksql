@@ -28,6 +28,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -72,8 +73,8 @@ public class CommandTopicBackupImplTest {
   private ConsumerRecord<byte[], byte[]> newStreamRecord(final String key, final String value) {
     final ConsumerRecord<byte[], byte[]> consumerRecord = mock(ConsumerRecord.class);
 
-    when(consumerRecord.key()).thenReturn(key.getBytes());
-    when(consumerRecord.value()).thenReturn(value.getBytes());
+    when(consumerRecord.key()).thenReturn(key.getBytes(StandardCharsets.UTF_8));
+    when(consumerRecord.value()).thenReturn(value.getBytes(StandardCharsets.UTF_8));
 
     return consumerRecord;
   }
@@ -166,11 +167,12 @@ public class CommandTopicBackupImplTest {
     final Exception e = assertThrows(
         KsqlException.class,
         () -> commandTopicBackup.writeRecord(new ConsumerRecord<>(
-        "topic1", 0, 0, "stream/a/create/invalid".getBytes(), command1.value())));
+        "topic1", 0, 0,
+            "stream/a/create/invalid".getBytes(StandardCharsets.UTF_8), command1.value())));
 
     // Then
     assertThat(e.getMessage(), containsString(
-        "Cannot deserialize record key: stream/a/create/invalid"));
+        "Failed to backup record because it cannot deserialize key: stream/a/create/invalid"));
   }
 
   @Test
@@ -182,11 +184,12 @@ public class CommandTopicBackupImplTest {
     final Exception e = assertThrows(
         KsqlException.class,
         () -> commandTopicBackup.writeRecord(new ConsumerRecord<>(
-            "topic1", 0, 0, command1.key(), "my command".getBytes())));
+            "topic1", 0, 0, command1.key(),
+            "my command".getBytes(StandardCharsets.UTF_8))));
 
     // Then
     assertThat(e.getMessage(), containsString(
-        "Cannot deserialize record value: my command"));
+        "Failed to backup record because it cannot deserialize value: my command"));
   }
 
   @Test

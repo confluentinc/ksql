@@ -138,8 +138,8 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       InternalTopicSerdes.deserializer(CommandId.class).deserialize(record.topic(), record.key());
     } catch (final Exception e) {
       throw new KsqlException(String.format(
-          "Cannot deserialize record key: %s",
-          new String(record.key(), StandardCharsets.UTF_8)
+          "Failed to backup record because it cannot deserialize key: %s",
+          new String(record.key(), StandardCharsets.UTF_8), e
       ));
     }
 
@@ -147,8 +147,8 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       InternalTopicSerdes.deserializer(Command.class).deserialize(record.topic(), record.value());
     } catch (final Exception e) {
       throw new KsqlException(String.format(
-          "Cannot deserialize record value: %s",
-          new String(record.value(), StandardCharsets.UTF_8)
+          "Failed to backup record because it cannot deserialize value: %s",
+          new String(record.value(), StandardCharsets.UTF_8), e
       ));
     }
   }
@@ -215,7 +215,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
     File latestBakFile = null;
     if (files != null) {
-      long latestTs = -1;
+      long latestTs = 0;
       for (int i = 0; i < files.length; i++) {
         final File bakFile = files[i];
         final String bakTimestamp = bakFile.getName().substring(prefixFilename.length());

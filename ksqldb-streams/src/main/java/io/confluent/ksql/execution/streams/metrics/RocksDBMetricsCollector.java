@@ -60,13 +60,13 @@ public class RocksDBMetricsCollector implements MetricsReporter {
   private static final int UPDATE_INTERVAL_DEFAULT = 15;
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
-    .define(
-        UPDATE_INTERVAL_CONFIG,
-        Type.INT,
-        UPDATE_INTERVAL_DEFAULT,
-        Importance.LOW,
-        "minimum interval between computations of a metric value"
-    );
+      .define(
+          UPDATE_INTERVAL_CONFIG,
+          Type.INT,
+          UPDATE_INTERVAL_DEFAULT,
+          Importance.LOW,
+          "minimum interval between computations of a metric value"
+      );
 
   private static final Object lock = new Object();
 
@@ -83,7 +83,7 @@ public class RocksDBMetricsCollector implements MetricsReporter {
   }
 
   @Override
-  public void configure(Map<String, ?> map) {
+  public void configure(final Map<String, ?> map) {
     final AbstractConfig config = new AbstractConfig(CONFIG_DEF, map);
     configureShared(config, metrics);
   }
@@ -177,7 +177,7 @@ public class RocksDBMetricsCollector implements MetricsReporter {
     metrics.addMetric(metricName, (Gauge<BigInteger>) (c, t) -> registered.getValue());
   }
 
-  static class AggregatedMetric<T> {
+  static final class AggregatedMetric<T> {
     private final Class<T> clazz;
     private final BinaryOperator<T> aggregator;
     private final T identity;
@@ -230,7 +230,7 @@ public class RocksDBMetricsCollector implements MetricsReporter {
     }
   }
 
-  static class Interval {
+  static final class Interval {
     private final int intervalSeconds;
     private final AtomicReference<Instant> last;
     private final Supplier<Instant> clock;

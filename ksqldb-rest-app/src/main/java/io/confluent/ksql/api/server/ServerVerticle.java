@@ -332,7 +332,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   private void handleConfigRequest(final RoutingContext routingContext) {
     final List<String> requestedConfigs = routingContext.queryParam("name");
-    handleOldApiRequest(server, routingContext, null,
+    handleOldApiRequest(server, routingContext, null, Optional.empty(),
         (request, apiSecurityContext) ->
             endpoints
                 .executeConfig(requestedConfigs, DefaultApiSecurityContext.create(routingContext))

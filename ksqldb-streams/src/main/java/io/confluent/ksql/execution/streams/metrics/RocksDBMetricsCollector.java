@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 public class RocksDBMetricsCollector implements MetricsReporter {
   private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBMetricsCollector.class);
 
-  static final String KSQL_ROCKSDB_METRICS_GROUP = "io.confluent.ksql.rocksdb";
+  static final String KSQL_ROCKSDB_METRICS_GROUP = "ksql-rocksdb-aggregates";
   static final String NUMBER_OF_RUNNING_COMPACTIONS = "num-running-compactions";
   static final String BLOCK_CACHE_USAGE = "block-cache-usage";
   static final String BLOCK_CACHE_PINNED_USAGE = "block-cache-pinned-usage";
@@ -142,7 +142,7 @@ public class RocksDBMetricsCollector implements MetricsReporter {
   }
 
   private static void registerBigIntTotal(
-      final Interval interval,
+      final int interval,
       final Map<String, Collection<AggregatedMetric<?>>> registeredMetrics,
       final String name,
       final Metrics metrics
@@ -152,10 +152,28 @@ public class RocksDBMetricsCollector implements MetricsReporter {
         BigInteger.class,
         BigInteger::add,
         BigInteger.ZERO,
-        interval
+        new Interval(interval)
     );
     registeredMetrics.get(name).add(registered);
     final MetricName metricName = metrics.metricName(name + "-total", KSQL_ROCKSDB_METRICS_GROUP);
+    metrics.addMetric(metricName, (Gauge<BigInteger>) (c, t) -> registered.getValue());
+  }
+
+  private static void registerBigIntMax(
+      final int interval,
+      final Map<String, Collection<AggregatedMetric<?>>> registeredMetrics,
+      final String name,
+      final Metrics metrics
+  ) {
+    registeredMetrics.putIfAbsent(name, new LinkedList<>());
+    final AggregatedMetric<BigInteger> registered = new AggregatedMetric<>(
+        BigInteger.class,
+        BigInteger::max,
+        BigInteger.ZERO,
+        new Interval(interval)
+    );
+    registeredMetrics.get(name).add(registered);
+    final MetricName metricName = metrics.metricName(name + "-max", KSQL_ROCKSDB_METRICS_GROUP);
     metrics.addMetric(metricName, (Gauge<BigInteger>) (c, t) -> registered.getValue());
   }
 
@@ -241,11 +259,13 @@ public class RocksDBMetricsCollector implements MetricsReporter {
       if (registeredMetrics != null) {
         return;
       }
-      final Interval interval = new Interval(config.getInt(UPDATE_INTERVAL_CONFIG));
+      final int interval = config.getInt(UPDATE_INTERVAL_CONFIG);
       final Map<String, Collection<AggregatedMetric<?>>> builder = new HashMap<>();
       registerBigIntTotal(interval, builder, NUMBER_OF_RUNNING_COMPACTIONS, metrics);
       registerBigIntTotal(interval, builder, BLOCK_CACHE_USAGE, metrics);
+      registerBigIntMax(interval, builder, BLOCK_CACHE_USAGE, metrics);
       registerBigIntTotal(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
+      registerBigIntMax(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
       registerBigIntTotal(interval, builder, ESTIMATE_NUM_KEYS, metrics);
       registerBigIntTotal(interval, builder, ESTIMATE_TABLE_READERS_MEM, metrics);
       registeredMetrics = ImmutableMap.copyOf(

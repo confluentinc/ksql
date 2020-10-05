@@ -77,10 +77,40 @@ public class RocksDBMetricsCollectorTest {
     RocksDBMetricsCollector.reset();
   }
 
-  private void shouldComputeSumOfAllStoreMetrics(
-      final String name,
-      final String otherName
-  ) {
+  private void shouldComputeMaxOfAllStoreMetrics(final String name, final String otherName) {
+    // Given:
+    collector.metricChange(mockMetric(
+        StreamsMetricsImpl.STATE_STORE_LEVEL_GROUP, name, "a", BigInteger.valueOf(2)));
+    collector.metricChange(mockMetric(
+        StreamsMetricsImpl.STATE_STORE_LEVEL_GROUP, otherName, "a", BigInteger.valueOf(123)));
+    collector.metricChange(mockMetric(
+        StreamsMetricsImpl.STATE_STORE_LEVEL_GROUP, name, "b", BigInteger.valueOf(3)));
+
+    // When:
+    final Gauge<?> gauge = verifyAndGetRegisteredMetric(name + "-max");
+    final Object value = gauge.value(null, 0);
+
+    // Then:
+    assertThat(value, equalTo(BigInteger.valueOf(3)));
+  }
+
+  @Test
+  public void shouldComputeMaxOfBlockCacheUsage() {
+    shouldComputeSumOfAllStoreMetrics(
+        RocksDBMetricsCollector.BLOCK_CACHE_USAGE,
+        RocksDBMetricsCollector.BLOCK_CACHE_PINNED_USAGE
+    );
+  }
+
+  @Test
+  public void shouldComputeMaxOfBlockCachePinnedUsage() {
+    shouldComputeSumOfAllStoreMetrics(
+        RocksDBMetricsCollector.BLOCK_CACHE_PINNED_USAGE,
+        RocksDBMetricsCollector.BLOCK_CACHE_USAGE
+    );
+  }
+
+  private void shouldComputeSumOfAllStoreMetrics(final String name, final String otherName) {
     // Given:
     collector.metricChange(mockMetric(
         StreamsMetricsImpl.STATE_STORE_LEVEL_GROUP, name, "a", BigInteger.valueOf(2)));

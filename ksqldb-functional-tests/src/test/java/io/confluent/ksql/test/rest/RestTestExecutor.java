@@ -186,7 +186,7 @@ public class RestTestExecutor implements Closeable {
           createJob
       );
 
-      topic.getSchema().ifPresent(schema -> {
+      topic.getValueSchema().ifPresent(schema -> {
         try {
           serviceContext.getSchemaRegistryClient()
               .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);

@@ -177,28 +177,37 @@ public final class TestExecutorUtil {
   ) {
     final String kafkaTopicName = sinkDataSource.getKafkaTopicName();
 
-    final Optional<ParsedSchema> schema = getSchema(sinkDataSource, schemaRegistryClient);
+    final Optional<ParsedSchema> keySchema = getSchema(
+        sinkDataSource.getKsqlTopic().getKeyFormat().getFormat(),
+        sinkDataSource.getKsqlTopic().getKafkaTopicName(),
+        schemaRegistryClient
+    );
+    final Optional<ParsedSchema> valueSchema = getSchema(
+        sinkDataSource.getKsqlTopic().getValueFormat().getFormat(),
+        sinkDataSource.getKsqlTopic().getKafkaTopicName(),
+        schemaRegistryClient
+    );
 
-    final Topic sinkTopic = new Topic(kafkaTopicName, schema);
+    final Topic sinkTopic = new Topic(kafkaTopicName, keySchema, valueSchema);
 
     stubKafkaService.ensureTopic(sinkTopic);
     return sinkTopic;
   }
 
   private static Optional<ParsedSchema> getSchema(
-      final DataSource dataSource,
+      final String format,
+      final String topicName,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     final Format valueFormat = FormatFactory
-        .fromName(dataSource.getKsqlTopic().getValueFormat().getFormat());
+        .fromName(format);
 
     if (!valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       return Optional.empty();
     }
 
     try {
-      final String subject =
-          dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+      final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
 
       final SchemaMetadata metadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
       return Optional.of(
@@ -267,7 +276,7 @@ public final class TestExecutorUtil {
           topic.getNumPartitions(),
           topic.getReplicas());
 
-      topic.getSchema().ifPresent(schema -> {
+      topic.getValueSchema().ifPresent(schema -> {
         try {
           srClient.register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
         } catch (final Exception e) {

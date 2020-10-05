@@ -34,6 +34,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StubKafkaServiceTest {
 
   @Mock
+  private ParsedSchema avroKeySchema;
+  @Mock
   private ParsedSchema avroSchema;
   @Mock
   private ProducerRecord<String, String> producerRecord;
@@ -47,7 +49,7 @@ public class StubKafkaServiceTest {
 
     kafka = StubKafkaService.create();
 
-    topic = new Topic(producerRecord.topic(), Optional.of(avroSchema));
+    topic = new Topic(producerRecord.topic(), Optional.of(avroKeySchema), Optional.of(avroSchema));
   }
 
   @Test
@@ -67,7 +69,8 @@ public class StubKafkaServiceTest {
         topic.getName(),
         topic.getNumPartitions() + 1,
         topic.getReplicas() + 1,
-        topic.getSchema()
+        topic.getKeySchema(),
+        topic.getValueSchema()
     );
 
     // When:

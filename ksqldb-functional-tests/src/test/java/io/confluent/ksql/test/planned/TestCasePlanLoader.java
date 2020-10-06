@@ -335,7 +335,7 @@ public final class TestCasePlanLoader {
       return queryMetadata.getSchemas().entrySet().stream()
           .collect(Collectors.toMap(
               Entry::getKey,
-              e -> SchemaNode.fromPhysicalSchema(e.getValue())));
+              e -> SchemaNode.fromSchemaInfo(e.getValue())));
     }
 
     public List<PostTopicNode> getTopics() {

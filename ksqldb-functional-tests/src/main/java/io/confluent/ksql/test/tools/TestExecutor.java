@@ -303,7 +303,8 @@ public class TestExecutor implements Closeable {
           testCase.getGeneratedSchemas().entrySet().stream()
               .collect(Collectors.toMap(
                   Entry::getKey,
-                  e -> SchemaNode.fromPhysicalSchema(e.getValue())));
+                  e -> SchemaNode.fromSchemaInfo(e.getValue())));
+
       for (final Map.Entry<String, SchemaNode> e : expected.getSchemas().entrySet()) {
         assertThat("Schemas used by topology differ "
                 + "from those used by previous versions"

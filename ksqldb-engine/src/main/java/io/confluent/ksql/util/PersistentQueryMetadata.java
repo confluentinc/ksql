@@ -32,6 +32,7 @@ import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -143,7 +144,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return sinkDataSource.getName();
   }
 
-  public Map<String, PhysicalSchema> getSchemas() {
+  public Map<String, QuerySchemas.SchemaInfo> getSchemas() {
     return schemas.getSchemas();
   }
 

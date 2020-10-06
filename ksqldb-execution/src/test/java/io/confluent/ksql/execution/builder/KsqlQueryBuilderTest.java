@@ -39,11 +39,14 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.query.QuerySchemas.SchemaInfo;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -64,22 +67,26 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlQueryBuilderTest {
 
-  private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
-      LogicalSchema.builder()
-          .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-          .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
-          .build(),
-      SerdeFeatures.of(),
-      SerdeFeatures.of()
+  protected static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
+      .build();
+
+  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(
+      LOGICAL_SCHEMA,
+      SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+      SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)
   );
 
   private static final QueryId QUERY_ID = new QueryId("fred");
 
   private static final FormatInfo FORMAT_INFO = FormatInfo
-      .of(FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql"));
+      .of(FormatFactory.AVRO.name(),
+          ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql"));
 
   private static final WindowInfo WINDOW_INFO = WindowInfo
       .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)));
@@ -176,14 +183,14 @@ public class KsqlQueryBuilderTest {
     // Then:
     ksqlQueryBuilder.buildKeySerde(
         FORMAT_INFO,
-        SOME_SCHEMA,
+        PHYSICAL_SCHEMA,
         queryContext
     );
 
     // Then:
     verify(keySerdeFactory).create(
         FORMAT_INFO,
-        SOME_SCHEMA.keySchema(),
+        PHYSICAL_SCHEMA.keySchema(),
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
@@ -197,7 +204,7 @@ public class KsqlQueryBuilderTest {
     ksqlQueryBuilder.buildKeySerde(
         FORMAT_INFO,
         WINDOW_INFO,
-        SOME_SCHEMA,
+        PHYSICAL_SCHEMA,
         queryContext
     );
 
@@ -205,7 +212,7 @@ public class KsqlQueryBuilderTest {
     verify(keySerdeFactory).create(
         FORMAT_INFO,
         WINDOW_INFO,
-        SOME_SCHEMA.keySchema(),
+        PHYSICAL_SCHEMA.keySchema(),
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
@@ -218,14 +225,14 @@ public class KsqlQueryBuilderTest {
     // Then:
     ksqlQueryBuilder.buildValueSerde(
         FORMAT_INFO,
-        SOME_SCHEMA,
+        PHYSICAL_SCHEMA,
         queryContext
     );
 
     // Then:
     verify(valueSerdeFactory).create(
         FORMAT_INFO,
-        SOME_SCHEMA.valueSchema(),
+        PHYSICAL_SCHEMA.valueSchema(),
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
@@ -234,39 +241,44 @@ public class KsqlQueryBuilderTest {
   }
 
   @Test
-  public void shouldTrackSchemasUsed() {
+  public void shouldTrackKeySchemasUsed() {
     // When:
-    ksqlQueryBuilder.buildValueSerde(
+    ksqlQueryBuilder.buildKeySerde(
         FORMAT_INFO,
-        SOME_SCHEMA,
+        PHYSICAL_SCHEMA,
         queryContext
     );
 
     // Then:
-    final Map<String, PhysicalSchema> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
     assertThat(schemas.entrySet(), hasSize(1));
-    assertThat(schemas.get("fred.context"), is(SOME_SCHEMA));
+    assertThat(schemas.get("fred.context"), is(new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(KeyFormat.nonWindowed(
+            FormatInfo.of("AVRO", ImmutableMap.of("fullSchemaName", "io.confluent.ksql")),
+            SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES))),
+        Optional.empty()
+    )));
   }
 
   @Test
-  public void shouldTrackSchemasTakingIntoAccountSerdeFeatures() {
-    // Given:
-    final PhysicalSchema schema = PhysicalSchema.from(
-        SOME_SCHEMA.logicalSchema(),
-        SerdeFeatures.of(),
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
-    );
-
+  public void shouldTrackValueSchemasUsed() {
     // When:
     ksqlQueryBuilder.buildValueSerde(
         FORMAT_INFO,
-        schema,
+        PHYSICAL_SCHEMA,
         queryContext
     );
 
     // Then:
-    final Map<String, PhysicalSchema> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
     assertThat(schemas.entrySet(), hasSize(1));
-    assertThat(schemas.get("fred.context"), is(schema));
+    assertThat(schemas.get("fred.context"), is(new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.empty(),
+        Optional.of(ValueFormat.of(
+            FormatInfo.of("AVRO", ImmutableMap.of("fullSchemaName", "io.confluent.ksql")),
+            SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)))
+    )));
   }
 }

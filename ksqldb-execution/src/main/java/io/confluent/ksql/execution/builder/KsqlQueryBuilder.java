@@ -26,16 +26,17 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QuerySchemas;
-import java.util.LinkedHashMap;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -51,7 +52,7 @@ public final class KsqlQueryBuilder {
   private final KeySerdeFactory keySerdeFactory;
   private final ValueSerdeFactory valueSerdeFactory;
   private final QueryId queryId;
-  private final LinkedHashMap<String, PhysicalSchema> schemas = new LinkedHashMap<>();
+  private final QuerySchemas.Builder schemas = QuerySchemas.builder();
 
   public static KsqlQueryBuilder of(
       final StreamsBuilder streamsBuilder,
@@ -117,7 +118,7 @@ public final class KsqlQueryBuilder {
   }
 
   public QuerySchemas getSchemas() {
-    return QuerySchemas.of(schemas);
+    return schemas.build();
   }
 
   public QueryId getQueryId() {
@@ -146,6 +147,12 @@ public final class KsqlQueryBuilder {
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
+    schemas.track(
+        loggerNamePrefix,
+        schema.logicalSchema(),
+        KeyFormat.nonWindowed(format, schema.keySchema().features())
+    );
+
     return keySerdeFactory.create(
         format,
         schema.keySchema(),
@@ -163,6 +170,12 @@ public final class KsqlQueryBuilder {
       final QueryContext queryContext
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
+
+    schemas.track(
+        loggerNamePrefix,
+        schema.logicalSchema(),
+        KeyFormat.windowed(format, schema.keySchema().features(), window)
+    );
 
     return keySerdeFactory.create(
         format,
@@ -182,7 +195,11 @@ public final class KsqlQueryBuilder {
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
-    track(loggerNamePrefix, schema);
+    schemas.track(
+        loggerNamePrefix,
+        schema.logicalSchema(),
+        ValueFormat.of(format, schema.valueSchema().features())
+    );
 
     return valueSerdeFactory.create(
         format,
@@ -192,12 +209,5 @@ public final class KsqlQueryBuilder {
         loggerNamePrefix,
         processingLogContext
     );
-  }
-
-  private void track(final String loggerNamePrefix, final PhysicalSchema schema) {
-    if (schemas.containsKey(loggerNamePrefix)) {
-      throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
-    }
-    schemas.put(loggerNamePrefix, schema);
   }
 }

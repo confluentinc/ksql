@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.builder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -280,5 +281,61 @@ public class KsqlQueryBuilderTest {
             FormatInfo.of("AVRO", ImmutableMap.of("fullSchemaName", "io.confluent.ksql")),
             SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)))
     )));
+  }
+
+  @Test
+  public void shouldMergeKeyAndValueSchemaInfo() {
+    // When:
+    ksqlQueryBuilder.buildKeySerde(
+        FORMAT_INFO,
+        PHYSICAL_SCHEMA,
+        queryContext
+    );
+
+    ksqlQueryBuilder.buildValueSerde(
+        FORMAT_INFO,
+        PHYSICAL_SCHEMA,
+        queryContext
+    );
+
+    // Then:
+    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    assertThat(schemas.entrySet(), hasSize(1));
+    assertThat(schemas.get("fred.context"), is(new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(KeyFormat.nonWindowed(
+            FormatInfo.of("AVRO", ImmutableMap.of("fullSchemaName", "io.confluent.ksql")),
+            SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES))),
+        Optional.of(ValueFormat.of(
+            FormatInfo.of("AVRO", ImmutableMap.of("fullSchemaName", "io.confluent.ksql")),
+            SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)))
+    )));
+  }
+
+  @Test
+  public void shouldFailWhenTackingSerdeOnSchemaMismatch() {
+    // Given:
+    ksqlQueryBuilder.buildKeySerde(
+        FORMAT_INFO,
+        PHYSICAL_SCHEMA,
+        queryContext
+    );
+
+    final PhysicalSchema differentSchema = PhysicalSchema.from(
+        LogicalSchema.builder()
+            .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
+            .build(),
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
+    );
+
+    // When:
+    assertThrows(
+        IllegalStateException.class,
+        () -> ksqlQueryBuilder.buildValueSerde(
+            FORMAT_INFO,
+            differentSchema,
+            queryContext
+        ));
   }
 }

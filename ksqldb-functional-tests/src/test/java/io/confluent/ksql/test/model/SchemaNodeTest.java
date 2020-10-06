@@ -49,12 +49,12 @@ public class SchemaNodeTest {
   }
 
   @Test
-  public void shouldRoundNoKeyFormat() {
+  public void shouldRoundTripNoKeyFormat() {
     ModelTester.assertRoundTrip(NO_KEY_FORMAT);
   }
 
   @Test
-  public void shouldRoundNoValueFormat() {
+  public void shouldRoundTripNoValueFormat() {
     ModelTester.assertRoundTrip(NO_VALUE_FORMAT);
   }
 }

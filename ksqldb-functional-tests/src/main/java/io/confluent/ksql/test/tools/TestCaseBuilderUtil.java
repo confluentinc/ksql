@@ -157,7 +157,7 @@ public final class TestCaseBuilderUtil {
 
       final Optional<ParsedSchema> keySchema =
           keyFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
-              ? buildValueSchema(sql, logicalSchema.key(), keyFormatInfo, keyFormat, keySerdeFeats)
+              ? buildSchema(sql, logicalSchema.key(), keyFormatInfo, keyFormat, keySerdeFeats)
               : Optional.empty();
 
       final FormatInfo valFormatInfo = SourcePropertiesUtil.getValueFormat(props);
@@ -167,7 +167,7 @@ public final class TestCaseBuilderUtil {
 
       final Optional<ParsedSchema> valueSchema =
           valFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
-              ? buildValueSchema(
+              ? buildSchema(
                   sql, logicalSchema.value(), valFormatInfo, valFormat, valSerdeFeats)
               : Optional.empty();
 
@@ -212,22 +212,22 @@ public final class TestCaseBuilderUtil {
     }
   }
 
-  private static Optional<ParsedSchema> buildValueSchema(
+  private static Optional<ParsedSchema> buildSchema(
       final String sql,
       final List<Column> schema,
-      final FormatInfo valueFormatInfo,
-      final Format valueFormat,
-      final SerdeFeatures valFeatures
+      final FormatInfo formatInfo,
+      final Format format,
+      final SerdeFeatures serdeFeatures
   ) {
     if (schema.isEmpty()) {
       return Optional.empty();
     }
 
     try {
-      final SchemaTranslator translator = valueFormat
-          .getSchemaTranslator(valueFormatInfo.getProperties());
+      final SchemaTranslator translator = format
+          .getSchemaTranslator(formatInfo.getProperties());
 
-      return Optional.of(translator.toParsedSchema(PersistenceSchema.from(schema, valFeatures)
+      return Optional.of(translator.toParsedSchema(PersistenceSchema.from(schema, serdeFeatures)
       ));
     } catch (final Exception e) {
       // Statement won't parse: this will be detected/handled later.
@@ -238,14 +238,11 @@ public final class TestCaseBuilderUtil {
     }
   }
 
-  private static SerdeFeatures buildKeyFeatures(
-      final Format valueFormat,
-      final LogicalSchema logicalSchema
-  ) {
+  private static SerdeFeatures buildKeyFeatures(final Format format, final LogicalSchema schema) {
     try {
       return SerdeFeaturesFactory.buildKeyFeatures(
-          logicalSchema,
-          valueFormat
+          schema,
+          format
       );
     } catch (final Exception e) {
       // Catch block allows negative tests to fail in the correct place, i.e. later.

@@ -86,16 +86,6 @@ public class SchemaRegisterInjector implements Injector {
         schema,
         FormatFactory.of(keyFormat)
     );
-    registerSchema(
-        schema.key(),
-        statement.getProperties().getKafkaTopic(),
-        keyFormat,
-        keyFeatures,
-        cs.getSessionConfig().getConfig(false),
-        cs.getStatementText(),
-        false,
-        KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
-    );
 
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(statement.getProperties());
     final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
@@ -105,15 +95,16 @@ public class SchemaRegisterInjector implements Injector {
         cs.getSessionConfig().getConfig(false)
     );
 
-    registerSchema(
-        schema.withoutPseudoAndKeyColsInValue().value(),
+    registerSchemas(
+        schema,
         statement.getProperties().getKafkaTopic(),
+        keyFormat,
+        keyFeatures,
         valueFormat,
         valFeatures,
         cs.getSessionConfig().getConfig(false),
         cs.getStatementText(),
-        false,
-        KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+        false
     );
   }
 
@@ -131,24 +122,49 @@ public class SchemaRegisterInjector implements Injector {
             cas.getStatementText()
         ));
 
-    registerSchema(
-        queryMetadata.getLogicalSchema().key(),
+    registerSchemas(
+        queryMetadata.getLogicalSchema(),
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getKeyFormat().getFormatInfo(),
         queryMetadata.getPhysicalSchema().keySchema().features(),
-        cas.getSessionConfig().getConfig(false),
-        cas.getStatementText(),
-        true,
-        KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
-    );
-    registerSchema(
-        queryMetadata.getLogicalSchema().withoutPseudoAndKeyColsInValue().value(),
-        queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
         queryMetadata.getPhysicalSchema().valueSchema().features(),
         cas.getSessionConfig().getConfig(false),
         cas.getStatementText(),
-        true,
+        true
+    );
+  }
+
+  private void registerSchemas(
+      final LogicalSchema schema,
+      final String kafkaTopic,
+      final FormatInfo keyFormat,
+      final SerdeFeatures keySerdeFeatures,
+      final FormatInfo valueFormat,
+      final SerdeFeatures valueSerdeFeatures,
+      final KsqlConfig config,
+      final String statementText,
+      final boolean registerIfSchemaExists
+  ) {
+    registerSchema(
+        schema.key(),
+        kafkaTopic,
+        keyFormat,
+        keySerdeFeatures,
+        config,
+        statementText,
+        registerIfSchemaExists,
+        KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
+    );
+
+    registerSchema(
+        schema.value(),
+        kafkaTopic,
+        valueFormat,
+        valueSerdeFeatures,
+        config,
+        statementText,
+        registerIfSchemaExists,
         KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
     );
   }

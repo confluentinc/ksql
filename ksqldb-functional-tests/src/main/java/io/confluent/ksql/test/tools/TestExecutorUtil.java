@@ -35,6 +35,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -177,14 +178,15 @@ public final class TestExecutorUtil {
   ) {
     final String kafkaTopicName = sinkDataSource.getKafkaTopicName();
 
+    final KsqlTopic ksqlTopic = sinkDataSource.getKsqlTopic();
     final Optional<ParsedSchema> keySchema = getSchema(
-        sinkDataSource.getKsqlTopic().getKeyFormat().getFormat(),
-        sinkDataSource.getKsqlTopic().getKafkaTopicName(),
+        ksqlTopic.getKeyFormat().getFormat(),
+        ksqlTopic.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX,
         schemaRegistryClient
     );
     final Optional<ParsedSchema> valueSchema = getSchema(
-        sinkDataSource.getKsqlTopic().getValueFormat().getFormat(),
-        sinkDataSource.getKsqlTopic().getKafkaTopicName(),
+        ksqlTopic.getValueFormat().getFormat(),
+        ksqlTopic.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
         schemaRegistryClient
     );
 
@@ -196,7 +198,7 @@ public final class TestExecutorUtil {
 
   private static Optional<ParsedSchema> getSchema(
       final String format,
-      final String topicName,
+      final String subject,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     final Format valueFormat = FormatFactory
@@ -207,8 +209,6 @@ public final class TestExecutorUtil {
     }
 
     try {
-      final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-
       final SchemaMetadata metadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
       return Optional.of(
           schemaRegistryClient.getSchemaBySubjectAndId(subject, metadata.getId())

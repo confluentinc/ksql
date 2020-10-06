@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/array-remove.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `BAD_BOOL` BOOLEAN, `INTS` ARRAY<INTEGER>, `BAD_INT` INTEGER, `BIGINTS` ARRAY<BIGINT>, `BAD_BIGINT` BIGINT, `DOUBLES` ARRAY<DOUBLE>, `BAD_DOUBLE` DOUBLE, `STRINGS` ARRAY<STRING>, `BAD_STRING` STRING, `DECIMALS` ARRAY<DECIMAL(2, 1)>, `BAD_DECIMAL` DECIMAL(2, 1)"
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `BAD_BOOL` BOOLEAN, `INTS` ARRAY<INTEGER>, `BAD_INT` INTEGER, `BIGINTS` ARRAY<BIGINT>, `BAD_BIGINT` BIGINT, `DOUBLES` ARRAY<DOUBLE>, `BAD_DOUBLE` DOUBLE, `STRINGS` ARRAY<STRING>, `BAD_STRING` STRING, `DECIMALS` ARRAY<DECIMAL(2, 1)>, `BAD_DECIMAL` DECIMAL(2, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>"
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

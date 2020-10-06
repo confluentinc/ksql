@@ -4,10 +4,28 @@
   "path" : "query-validation-tests/delimited.json",
   "schemas" : {
     "CSAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED",
+        "properties" : {
+          "delimiter" : "SPACE"
+        }
+      }
     },
     "CSAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED",
+        "properties" : {
+          "delimiter" : "SPACE"
+        }
+      }
     }
   },
   "testCase" : {

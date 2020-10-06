@@ -42,6 +42,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.schema.query.QuerySchemas.SchemaInfo;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -106,6 +108,10 @@ public class TestExecutorTest {
   private SchemaRegistryClient srClient;
   @Mock
   private TestExecutionListener listener;
+  @Mock
+  private KeyFormat keyFormat;
+  @Mock
+  private ValueFormat valueFormat;
 
   private TestExecutor executor;
   private final Map<SourceName, DataSource> allSources = new HashMap<>();
@@ -175,9 +181,17 @@ public class TestExecutorTest {
   @Test
   public void shouldVerifyTopologySchemas() {
     // Given:
-    givenExpectedTopology("a-topology", ImmutableMap.of("matching",
-        new SchemaNode(LOGICAL_SCHEMA.toString(), ImmutableSet.of(), ImmutableSet.of())));
-    givenActualTopology("a-topology", ImmutableMap.of("matching", PHYSICAL_SCHEMA));
+    givenExpectedTopology("a-topology", ImmutableMap.of("matching", new SchemaNode(
+        LOGICAL_SCHEMA.toString(),
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    givenActualTopology("a-topology", ImmutableMap.of("matching", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
 
     // When:
     executor.buildAndExecuteQuery(testCase, listener);
@@ -208,11 +222,103 @@ public class TestExecutorTest {
   }
 
   @Test
+  public void shouldFailOnLoggerPrefixMismatch() {
+    // Given:
+    givenExpectedTopology("the-topology", ImmutableMap.of("expected", new SchemaNode(
+        LOGICAL_SCHEMA.toString(),
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    givenActualTopology("the-topology", ImmutableMap.of("actual", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schemas used by topology differ from those used by previous versions of KSQL "
+            + "- this is likely to mean there is a non-backwards compatible change.\n"
+            + "THIS IS BAD!\n"));
+  }
+
+  @Test
   public void shouldFailOnSchemasMismatch() {
     // Given:
-    givenExpectedTopology("the-topology", ImmutableMap.of("expected",
-        new SchemaNode("wrong schema", ImmutableSet.of(), ImmutableSet.of())));
-    givenActualTopology("the-topology", ImmutableMap.of("actual", PHYSICAL_SCHEMA));
+    givenExpectedTopology("the-topology", ImmutableMap.of("schema", new SchemaNode(
+        "wrong schema",
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    givenActualTopology("the-topology", ImmutableMap.of("schema", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schemas used by topology differ from those used by previous versions of KSQL "
+            + "- this is likely to mean there is a non-backwards compatible change.\n"
+            + "THIS IS BAD!\n"));
+  }
+
+  @Test
+  public void shouldFailOnMismatchKeyFormat() {
+    // Given:
+    givenExpectedTopology("the-topology", ImmutableMap.of("schema", new SchemaNode(
+        LOGICAL_SCHEMA.toString(),
+        Optional.empty(),
+        Optional.of(valueFormat)
+    )));
+
+    givenActualTopology("the-topology", ImmutableMap.of("schema", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schemas used by topology differ from those used by previous versions of KSQL "
+            + "- this is likely to mean there is a non-backwards compatible change.\n"
+            + "THIS IS BAD!\n"));
+  }
+
+  @Test
+  public void shouldFailOnMismatchValueFormat() {
+    // Given:
+    givenExpectedTopology("the-topology", ImmutableMap.of("schema", new SchemaNode(
+        LOGICAL_SCHEMA.toString(),
+        Optional.of(keyFormat),
+        Optional.empty()
+    )));
+
+    givenActualTopology("the-topology", ImmutableMap.of("schema", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
 
     // When:
     final AssertionError e = assertThrows(
@@ -376,7 +482,10 @@ public class TestExecutorTest {
     when(testCase.getGeneratedTopologies()).thenReturn(ImmutableList.of(topology));
   }
 
-  private void givenActualTopology(final String topology, final Map<String, PhysicalSchema> schemas) {
+  private void givenActualTopology(
+      final String topology,
+      final Map<String, QuerySchemas.SchemaInfo> schemas
+  ) {
     givenActualTopology(topology);
     when(testCase.getGeneratedSchemas()).thenReturn(schemas);
   }

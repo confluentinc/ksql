@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`L_KSQL_COL_0` INTEGER KEY, `L_V0` INTEGER, `L_V1` INTEGER, `L_ROWTIME` BIGINT, `L_ID` INTEGER, `L_KSQL_COL_0` INTEGER"
+      "schema" : "`L_KSQL_COL_0` INTEGER KEY, `L_V0` INTEGER, `L_V1` INTEGER, `L_ROWTIME` BIGINT, `L_ID` INTEGER, `L_KSQL_COL_0` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `L_ID` INTEGER, `R_ID` INTEGER, `L_V0` INTEGER, `R_V1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `V0` INTEGER, `V1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`L_KSQL_COL_0` INTEGER KEY, `L_V0` INTEGER, `L_V1` INTEGER, `L_ROWTIME` BIGINT, `L_ID` INTEGER, `L_KSQL_COL_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`R_KSQL_COL_0` INTEGER KEY, `R_V0` INTEGER, `R_V1` INTEGER, `R_ROWTIME` BIGINT, `R_ID` INTEGER, `R_KSQL_COL_0` INTEGER"
+      "schema" : "`R_KSQL_COL_0` INTEGER KEY, `R_V0` INTEGER, `R_V1` INTEGER, `R_ROWTIME` BIGINT, `R_ID` INTEGER, `R_KSQL_COL_0` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

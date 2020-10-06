@@ -4,16 +4,44 @@
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_COL_0` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 30.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

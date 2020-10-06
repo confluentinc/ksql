@@ -4,16 +4,44 @@
   "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
     "CTAS_RUSSELL_3K_HOURLY_0.RUSSELL_3K_HOURLY" : {
-      "schema" : "`TICKERID` STRING KEY, `TRADECOUNT` BIGINT, `TRADEVOLUMN` INTEGER, `MINBUYPRICE` INTEGER, `MAXBUYPRICE` INTEGER, `MINSELLPRICE` INTEGER, `MAXSELLPRICE` INTEGER"
+      "schema" : "`TICKERID` STRING KEY, `TRADECOUNT` BIGINT, `TRADEVOLUMN` INTEGER, `MINBUYPRICE` INTEGER, `MAXBUYPRICE` INTEGER, `MINSELLPRICE` INTEGER, `MAXSELLPRICE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 3600.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_RUSSELL_3K_HOURLY_0.Aggregate.GroupBy" : {
-      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_INTERNAL_COL_5` INTEGER, `KSQL_INTERNAL_COL_6` INTEGER"
+      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_INTERNAL_COL_5` INTEGER, `KSQL_INTERNAL_COL_6` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_RUSSELL_3K_HOURLY_0.KsqlTopic.Source" : {
-      "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN"
+      "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_RUSSELL_3K_HOURLY_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` INTEGER, `KSQL_AGG_VARIABLE_2` INTEGER, `KSQL_AGG_VARIABLE_3` INTEGER, `KSQL_AGG_VARIABLE_4` INTEGER, `KSQL_AGG_VARIABLE_5` INTEGER"
+      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` INTEGER, `KSQL_AGG_VARIABLE_2` INTEGER, `KSQL_AGG_VARIABLE_3` INTEGER, `KSQL_AGG_VARIABLE_4` INTEGER, `KSQL_AGG_VARIABLE_5` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

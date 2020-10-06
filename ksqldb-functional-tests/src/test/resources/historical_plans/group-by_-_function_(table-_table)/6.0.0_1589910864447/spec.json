@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `REGION` STRING, `ROWTIME` BIGINT"
+      "schema" : "`KSQL_COL_0` STRING KEY, `REGION` STRING, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `USER` INTEGER, `REGION` STRING"
+      "schema" : "`ID` INTEGER KEY, `USER` INTEGER, `REGION` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `REGION` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`KSQL_COL_0` STRING KEY, `REGION` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT"
+      "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

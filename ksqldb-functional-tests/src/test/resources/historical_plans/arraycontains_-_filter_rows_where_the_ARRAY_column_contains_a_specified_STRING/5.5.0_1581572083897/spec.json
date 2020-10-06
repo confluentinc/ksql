@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/arraycontains.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `COLORS` ARRAY<STRING>"
+      "schema" : "`ROWKEY` STRING KEY, `COLORS` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `COLORS` ARRAY<STRING>"
+      "schema" : "`ROWKEY` STRING KEY, `COLORS` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

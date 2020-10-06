@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `COL1` MAP<STRING, STRING>, `ROWTIME` BIGINT"
+      "schema" : "`KSQL_COL_0` STRING KEY, `COL1` MAP<STRING, STRING>, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `COL1` MAP<STRING, STRING>"
+      "schema" : "`ID` INTEGER KEY, `COL1` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `COL1` MAP<STRING, STRING>, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`KSQL_COL_0` STRING KEY, `COL1` MAP<STRING, STRING>, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`NEW_KEY` STRING KEY, `COUNT` BIGINT"
+      "schema" : "`NEW_KEY` STRING KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

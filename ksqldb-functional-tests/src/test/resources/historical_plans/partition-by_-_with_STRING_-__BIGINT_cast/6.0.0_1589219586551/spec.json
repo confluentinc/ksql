@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `V0` STRING"
+      "schema" : "`K` STRING KEY, `V0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`KSQL_COL_0` BIGINT KEY, `V0` STRING, `K` STRING"
+      "schema" : "`KSQL_COL_0` BIGINT KEY, `V0` STRING, `K` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

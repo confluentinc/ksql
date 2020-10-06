@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/none.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`FOO` INTEGER"
+      "schema" : "`FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "NONE"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`FOO` INTEGER"
+      "schema" : "`FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "NONE"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

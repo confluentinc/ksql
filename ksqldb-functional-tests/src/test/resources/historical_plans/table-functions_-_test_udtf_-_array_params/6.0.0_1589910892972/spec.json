@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `F0` ARRAY<INTEGER>, `F1` ARRAY<BIGINT>, `F2` ARRAY<DOUBLE>, `F3` ARRAY<BOOLEAN>, `F4` ARRAY<STRING>, `F5` ARRAY<DECIMAL(20, 10)>, `F6` ARRAY<STRUCT<`A` STRING>>"
+      "schema" : "`ID` STRING KEY, `F0` ARRAY<INTEGER>, `F1` ARRAY<BIGINT>, `F2` ARRAY<DOUBLE>, `F3` ARRAY<BOOLEAN>, `F4` ARRAY<STRING>, `F5` ARRAY<DECIMAL(20, 10)>, `F6` ARRAY<STRUCT<`A` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `KSQL_COL_0` STRING"
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

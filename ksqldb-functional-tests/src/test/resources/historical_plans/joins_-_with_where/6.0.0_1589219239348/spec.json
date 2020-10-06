@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`USER` STRING KEY, `URL` STRING"
+      "schema" : "`USER` STRING KEY, `URL` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`USER` STRING KEY, `I_IMPRESSION_ID` BIGINT, `I_URL` STRING, `I_ROWTIME` BIGINT, `I_USER` STRING"
+      "schema" : "`USER` STRING KEY, `I_IMPRESSION_ID` BIGINT, `I_URL` STRING, `I_ROWTIME` BIGINT, `I_USER` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING"
+      "schema" : "`I_USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING"
+      "schema" : "`USER` STRING KEY, `IMPRESSION_ID` BIGINT, `URL` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`USER` STRING KEY, `I_IMPRESSION_ID` BIGINT, `I_URL` STRING, `I_ROWTIME` BIGINT, `I_USER` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`USER` STRING KEY, `C_URL` STRING, `C_ROWTIME` BIGINT, `C_USER` STRING"
+      "schema" : "`USER` STRING KEY, `C_URL` STRING, `C_ROWTIME` BIGINT, `C_USER` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

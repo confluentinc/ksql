@@ -4,19 +4,65 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `V` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 2.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ID` INTEGER KEY, `S1_V` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `S1_V` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`S1_ID` INTEGER KEY, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_V` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_V` BIGINT, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT"
+      "schema" : "`S1_ID` INTEGER KEY, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_V` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_V` BIGINT, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 5.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `V` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 5.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`ID` INTEGER KEY, `S1_V` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 5.000000000
+        }
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ID` INTEGER KEY, `S2_V` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `S2_V` BIGINT, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

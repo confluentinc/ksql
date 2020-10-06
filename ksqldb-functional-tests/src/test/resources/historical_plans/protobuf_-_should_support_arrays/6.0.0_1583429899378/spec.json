@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` ARRAY<STRING>"
+      "schema" : "`ROWKEY` STRING KEY, `C1` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` ARRAY<STRING>"
+      "schema" : "`ROWKEY` STRING KEY, `C1` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {

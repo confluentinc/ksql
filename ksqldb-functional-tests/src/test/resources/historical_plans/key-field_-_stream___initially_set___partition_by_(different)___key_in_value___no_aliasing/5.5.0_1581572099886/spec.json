@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/key-field.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER"
+      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER"
+      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

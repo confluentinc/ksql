@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/collect-list.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_AGG_VARIABLE_0` ARRAY<BOOLEAN>"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_AGG_VARIABLE_0` ARRAY<BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<BOOLEAN>"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_INTERNAL_COL_2` BOOLEAN"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_INTERNAL_COL_2` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {

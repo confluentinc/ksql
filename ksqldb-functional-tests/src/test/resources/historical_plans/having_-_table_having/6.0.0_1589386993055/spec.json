@@ -4,16 +4,44 @@
   "path" : "query-validation-tests/having.json",
   "schemas" : {
     "CTAS_T1_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT"
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_T1_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_T1_0.T1" : {
-      "schema" : "`ID` BIGINT KEY, `SUM` BIGINT"
+      "schema" : "`ID` BIGINT KEY, `SUM` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 30.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_T1_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

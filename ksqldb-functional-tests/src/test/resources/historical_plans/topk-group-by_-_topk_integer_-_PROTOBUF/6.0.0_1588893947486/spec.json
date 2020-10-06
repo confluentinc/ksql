@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/topk-group-by.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` INTEGER"
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<INTEGER>"
+      "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {

@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/floating-point.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` DOUBLE KEY, `ID` INTEGER"
+      "schema" : "`ROWKEY` DOUBLE KEY, `ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` DOUBLE KEY, `ID` INTEGER"
+      "schema" : "`ROWKEY` DOUBLE KEY, `ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` STRING KEY, `KSQL_INTERNAL_COL_0` ARRAY<INTEGER>, `KSQL_INTERNAL_COL_1` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `KSQL_INTERNAL_COL_0` ARRAY<INTEGER>, `KSQL_INTERNAL_COL_1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `VALUE` ARRAY<INTEGER>"
+      "schema" : "`ROWKEY` STRING KEY, `VALUE` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` STRING KEY, `KSQL_INTERNAL_COL_0` ARRAY<INTEGER>, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `KSQL_INTERNAL_COL_0` ARRAY<INTEGER>, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `SUM_VAL` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `SUM_VAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

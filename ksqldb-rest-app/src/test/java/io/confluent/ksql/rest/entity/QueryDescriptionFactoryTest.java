@@ -37,6 +37,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -46,11 +47,9 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QuerySchemas;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -153,7 +152,7 @@ public class QueryDescriptionFactoryTest {
         APPLICATION_ID,
         topology,
         kafkaStreamsBuilder,
-        QuerySchemas.of(new LinkedHashMap<>()),
+        QuerySchemas.builder().build(),
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,

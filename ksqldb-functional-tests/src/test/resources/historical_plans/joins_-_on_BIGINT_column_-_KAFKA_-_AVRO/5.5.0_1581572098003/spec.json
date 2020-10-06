@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `R0` BIGINT, `R1` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `R0` BIGINT, `R1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `L_L0` BIGINT, `L_L1` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `L_L0` BIGINT, `L_L1` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER"
+      "schema" : "`ROWKEY` BIGINT KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `L0` BIGINT, `L1` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `L0` BIGINT, `L1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `L_L0` BIGINT, `L_L1` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `R_R0` BIGINT, `R_R1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `R_R0` BIGINT, `R_R1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING",
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

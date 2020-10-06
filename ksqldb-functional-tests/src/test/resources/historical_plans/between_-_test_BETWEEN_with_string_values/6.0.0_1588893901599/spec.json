@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/between.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `SOURCE` STRING"
+      "schema" : "`ID` STRING KEY, `SOURCE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `THING` STRING"
+      "schema" : "`ID` STRING KEY, `THING` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

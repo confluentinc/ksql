@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `A` STRUCT<`B` MAP<STRING, STRUCT<`C` ARRAY<STRUCT<`D` INTEGER>>>>>"
+      "schema" : "`ROWKEY` STRING KEY, `A` STRUCT<`B` MAP<STRING, STRUCT<`C` ARRAY<STRUCT<`D` INTEGER>>>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `A__B['key$Name[]']__C[1]__D` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `A__B['key$Name[]']__C[1]__D` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

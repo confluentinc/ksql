@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "INSERTQUERY_1.KafkaTopic_Right.Source" : {
-      "schema" : "`K` STRING KEY, `DATA` STRING"
+      "schema" : "`K` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "INSERTQUERY_1.Join.Right" : {
-      "schema" : "`K` STRING KEY, `S2_DATA` STRING, `S2_ROWTIME` BIGINT, `S2_K` STRING"
+      "schema" : "`K` STRING KEY, `S2_DATA` STRING, `S2_ROWTIME` BIGINT, `S2_K` STRING",
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "INSERTQUERY_1.Join" : {
+      "schema" : "`K` STRING KEY, `S1_DATA` STRING, `S1_ROWTIME` BIGINT, `S1_K` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "INSERTQUERY_1.OUTPUT" : {
-      "schema" : "`S1_K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING"
+      "schema" : "`S1_K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "INSERTQUERY_1.Join.Left" : {
-      "schema" : "`K` STRING KEY, `S1_DATA` STRING, `S1_ROWTIME` BIGINT, `S1_K` STRING"
+      "schema" : "`K` STRING KEY, `S1_DATA` STRING, `S1_ROWTIME` BIGINT, `S1_K` STRING",
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "INSERTQUERY_1.KafkaTopic_Left.Source" : {
-      "schema" : "`K` STRING KEY, `DATA` STRING"
+      "schema" : "`K` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

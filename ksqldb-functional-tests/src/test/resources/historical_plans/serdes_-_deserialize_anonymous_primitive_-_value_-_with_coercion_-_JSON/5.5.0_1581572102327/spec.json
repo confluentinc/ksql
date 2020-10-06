@@ -5,10 +5,22 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `FOO` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

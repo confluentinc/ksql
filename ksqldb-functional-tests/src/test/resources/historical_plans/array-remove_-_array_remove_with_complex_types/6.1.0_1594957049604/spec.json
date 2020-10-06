@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/array-remove.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `BAD_LIST` ARRAY<STRING>, `MAPS` ARRAY<MAP<STRING, INTEGER>>, `BAD_MAP` MAP<STRING, INTEGER>"
+      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `BAD_LIST` ARRAY<STRING>, `MAPS` ARRAY<MAP<STRING, INTEGER>>, `BAD_MAP` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>"
+      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

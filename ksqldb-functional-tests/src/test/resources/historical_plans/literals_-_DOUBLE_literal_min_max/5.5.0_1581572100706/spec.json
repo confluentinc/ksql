@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/literals.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MIN_VALUE` DOUBLE, `NEG_MIN_VALUE` DOUBLE, `MIN_NORMAL` DOUBLE, `NEG_MIN_NORMAL` DOUBLE, `MAX_VALUE` DOUBLE, `NEG_MAX_VALUE` DOUBLE"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MIN_VALUE` DOUBLE, `NEG_MIN_VALUE` DOUBLE, `MIN_NORMAL` DOUBLE, `NEG_MIN_NORMAL` DOUBLE, `MAX_VALUE` DOUBLE, `NEG_MAX_VALUE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

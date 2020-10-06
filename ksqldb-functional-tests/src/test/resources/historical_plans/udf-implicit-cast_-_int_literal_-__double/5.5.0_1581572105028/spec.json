@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/udf-implicit-cast.json",
   "schemas" : {
     "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

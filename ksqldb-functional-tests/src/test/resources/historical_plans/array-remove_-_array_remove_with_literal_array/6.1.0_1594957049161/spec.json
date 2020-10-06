@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/array-remove.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `DUMMY` INTEGER"
+      "schema" : "`ID` STRING KEY, `DUMMY` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `A1` ARRAY<STRING>"
+      "schema" : "`ID` STRING KEY, `A1` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

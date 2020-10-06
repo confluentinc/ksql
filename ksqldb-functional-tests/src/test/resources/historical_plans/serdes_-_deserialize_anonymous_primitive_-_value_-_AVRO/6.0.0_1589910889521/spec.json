@@ -5,10 +5,22 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`K` STRING KEY, `FOO` INTEGER",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `FOO` INTEGER"
+      "schema" : "`K` STRING KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

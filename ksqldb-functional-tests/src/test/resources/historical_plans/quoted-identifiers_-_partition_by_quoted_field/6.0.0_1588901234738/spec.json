@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `some.key` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `some.key` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`some.key` STRING KEY, `ROWKEY` STRING"
+      "schema" : "`some.key` STRING KEY, `ROWKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

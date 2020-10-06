@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/multiple-avro-maps.json",
   "schemas" : {
     "CSAS_SINK_0.SINK" : {
-      "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>"
+      "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_SINK_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>"
+      "schema" : "`ROWKEY` STRING KEY, `M1` MAP<STRING, INTEGER>, `M2` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

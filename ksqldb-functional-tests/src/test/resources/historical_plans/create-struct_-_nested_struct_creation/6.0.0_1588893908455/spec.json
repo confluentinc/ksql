@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
     "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `COL1` STRING"
+      "schema" : "`ID` STRING KEY, `COL1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_BIG_STRUCT_0.BIG_STRUCT" : {
-      "schema" : "`ID` STRING KEY, `S` STRUCT<`F1` STRUCT<`C1` STRING>>"
+      "schema" : "`ID` STRING KEY, `S` STRUCT<`F1` STRUCT<`C1` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/cube.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `COL1` STRING, `COL2` STRING, `COL3` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `COL1` STRING, `COL2` STRING, `COL3` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `VAL1` ARRAY<STRING>, `VAL2` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `VAL1` ARRAY<STRING>, `VAL2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

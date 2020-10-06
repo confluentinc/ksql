@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/binary-comparison.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`A` INTEGER KEY, `B` MAP<STRING, INTEGER>, `C` MAP<STRING, INTEGER>"
+      "schema" : "`A` INTEGER KEY, `B` MAP<STRING, INTEGER>, `C` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN"
+      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

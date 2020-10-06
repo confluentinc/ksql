@@ -4,10 +4,30 @@
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
     "CSAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `RKEY` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `RKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 30.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 30.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

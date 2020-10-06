@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<BIGINT>"
+      "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<BIGINT>"
+      "schema" : "`ROWKEY` STRING KEY, `FOO` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {

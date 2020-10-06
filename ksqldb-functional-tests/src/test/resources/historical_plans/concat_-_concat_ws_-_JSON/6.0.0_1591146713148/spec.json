@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/concat.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `S1` STRING, `C1` STRING, `C2` STRING, `C3` STRING"
+      "schema" : "`ID` BIGINT KEY, `S1` STRING, `C1` STRING, `C2` STRING, `C3` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` BIGINT KEY, `COMBINED` STRING"
+      "schema" : "`ID` BIGINT KEY, `COMBINED` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

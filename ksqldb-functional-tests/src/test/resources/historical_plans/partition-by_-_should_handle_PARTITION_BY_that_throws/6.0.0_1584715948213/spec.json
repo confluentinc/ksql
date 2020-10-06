@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_REPARTITIONED_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_REPARTITIONED_0.REPARTITIONED" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT"
+      "schema" : "`ROWKEY` INTEGER KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/test-custom-udaf.json",
   "schemas" : {
     "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : {
-      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT"
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_SUM_ID_BY_REGION_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_SUM_ID_BY_REGION_0.SUM_ID_BY_REGION" : {
-      "schema" : "`REGION` STRING KEY, `REGION` STRING, `KSQL_COL_0` BIGINT"
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `REGION` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

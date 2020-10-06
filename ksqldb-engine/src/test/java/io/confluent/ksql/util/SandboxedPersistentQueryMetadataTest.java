@@ -31,6 +31,7 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;

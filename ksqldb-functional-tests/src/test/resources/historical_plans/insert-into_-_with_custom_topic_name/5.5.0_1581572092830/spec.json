@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "InsertQuery_1.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "InsertQuery_1.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

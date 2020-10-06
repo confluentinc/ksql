@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/avro.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`EXPECTED` INTEGER"
+      "schema" : "`EXPECTED` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`EXPECTED` INTEGER"
+      "schema" : "`EXPECTED` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

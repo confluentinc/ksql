@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`START` STRING, `END` STRING>"
+      "schema" : "`ROWKEY` STRING KEY, `S` STRUCT<`START` STRING, `END` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_S1_0.S1" : {
-      "schema" : "`ROWKEY` STRING KEY, `S__END` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `S__END` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

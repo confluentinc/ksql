@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_INNER_JOIN_0.INNER_JOIN" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `NAME` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ROWKEY` BIGINT, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_INNER_JOIN_0.Join.Left" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `TT_ID` BIGINT, `TT_NAME` STRING, `TT_VALUE` BIGINT, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `TT_ID` BIGINT, `TT_NAME` STRING, `TT_VALUE` BIGINT, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT",
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_INNER_JOIN_0.Join" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `TT_ID` BIGINT, `TT_NAME` STRING, `TT_VALUE` BIGINT, `TT_ROWTIME` BIGINT, `TT_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_INNER_JOIN_0.Join.Right" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

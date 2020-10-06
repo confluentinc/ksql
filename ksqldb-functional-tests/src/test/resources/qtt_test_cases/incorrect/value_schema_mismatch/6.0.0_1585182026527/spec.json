@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : {
-      "schema": "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING"
+      "schema": "`ROWKEY` STRING KEY, `C1` BIGINT, `C2` INTEGER, `C3` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_S1_0.S1" : {
-      "schema": "`ROWKEY` STRING KEY, `DIFFERENT` BIGINT, `C2` INTEGER, `C3` STRING"
+      "schema": "`ROWKEY` STRING KEY, `DIFFERENT` BIGINT, `C2` INTEGER, `C3` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

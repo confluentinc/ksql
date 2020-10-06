@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 1), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 1)"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 1), `KSQL_AGG_VARIABLE_0` DECIMAL(4, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 1)"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `SUM` DECIMAL(4, 1)"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `SUM` DECIMAL(4, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 1)"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(4, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

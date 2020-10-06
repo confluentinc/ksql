@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/collect-set.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<STRING>"
+      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<STRING>"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

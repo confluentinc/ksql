@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
     "CTAS_TS_0.TS" : {
-      "schema" : "`ROWKEY` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_TS_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

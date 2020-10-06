@@ -18,15 +18,12 @@ package io.confluent.ksql.test.model;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Used to track the schema and serde features used for each topic in a plan.
@@ -34,45 +31,39 @@ import java.util.Set;
 public class SchemaNode {
 
   private final String logicalSchema;
-  private final ImmutableSet<SerdeFeature> keyFeatures;
-  private final ImmutableSet<SerdeFeature> valueFeatures;
+  private final Optional<KeyFormat> keyFormat;
+  private final Optional<ValueFormat> valueFormat;
 
   @SuppressWarnings("unused") // Invoked by Jackson via reflection
   @JsonCreator
   public static SchemaNode create(
       @JsonProperty(value = "schema", required = true) final String logicalSchema,
-      @JsonProperty("keyFeatures") final Optional<Set<SerdeFeature>> keyFeatures,
-      @JsonProperty("valueFeatures") final Optional<Set<SerdeFeature>> valueFeatures
+      @JsonProperty("keyFormat") final Optional<KeyFormat> keyFormat,
+      @JsonProperty("valueFormat") final Optional<ValueFormat> valueFormat
   ) {
-    return new SchemaNode(
-        logicalSchema,
-        keyFeatures.orElseGet(ImmutableSet::of),
-        valueFeatures.orElseGet(ImmutableSet::of)
-    );
+    return new SchemaNode(logicalSchema, keyFormat, valueFormat);
   }
 
   public SchemaNode(
       final String logicalSchema,
-      final Set<SerdeFeature> keyFeatures,
-      final Set<SerdeFeature> valueFeatures
+      final Optional<KeyFormat> keyFormat,
+      final Optional<ValueFormat> valueFormat
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
-    this.keyFeatures = ImmutableSet.copyOf(requireNonNull(keyFeatures, "keyFeatures"));
-    this.valueFeatures = ImmutableSet.copyOf(requireNonNull(valueFeatures, "valueFeatures"));
+    this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+    this.valueFormat = requireNonNull(valueFormat, "valueFormat");
   }
 
   public String getSchema() {
     return logicalSchema;
   }
 
-  @JsonInclude(Include.NON_EMPTY)
-  public Set<SerdeFeature> getKeyFeatures() {
-    return keyFeatures;
+  public Optional<KeyFormat> getKeyFormat() {
+    return keyFormat;
   }
 
-  @JsonInclude(Include.NON_EMPTY)
-  public Set<SerdeFeature> getValueFeatures() {
-    return valueFeatures;
+  public Optional<ValueFormat> getValueFormat() {
+    return valueFormat;
   }
 
   @Override
@@ -85,29 +76,29 @@ public class SchemaNode {
     }
     final SchemaNode that = (SchemaNode) o;
     return logicalSchema.equals(that.logicalSchema)
-        && keyFeatures.equals(that.keyFeatures)
-        && valueFeatures.equals(that.valueFeatures);
+        && keyFormat.equals(that.keyFormat)
+        && valueFormat.equals(that.valueFormat);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logicalSchema, keyFeatures, valueFeatures);
+    return Objects.hash(logicalSchema, keyFormat, valueFormat);
   }
 
   @Override
   public String toString() {
     return "SchemaNode{"
         + "logicalSchema='" + logicalSchema + '\''
-        + ", keyFeatures=" + keyFeatures
-        + ", valueFeatures=" + valueFeatures
+        + ", keyFormat=" + keyFormat
+        + ", valueFormat=" + valueFormat
         + '}';
   }
 
-  public static SchemaNode fromPhysicalSchema(final PhysicalSchema physicalSchema) {
+  public static SchemaNode fromSchemaInfo(final QuerySchemas.SchemaInfo schemaInfo) {
     return new SchemaNode(
-        physicalSchema.logicalSchema().toString(),
-        physicalSchema.keySchema().features().all(),
-        physicalSchema.valueSchema().features().all()
+        schemaInfo.schema().toString(),
+        schemaInfo.keyFormat(),
+        schemaInfo.valueFormat()
     );
   }
 }

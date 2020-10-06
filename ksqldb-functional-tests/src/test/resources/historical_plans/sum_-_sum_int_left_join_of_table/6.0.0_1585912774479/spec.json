@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER"
+      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOTAL` INTEGER"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOTAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOTAL` INTEGER"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOTAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER"
+      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`T1_ID` BIGINT KEY, `ID` BIGINT, `SUM` INTEGER"
+      "schema" : "`T1_ID` BIGINT KEY, `ID` BIGINT, `SUM` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

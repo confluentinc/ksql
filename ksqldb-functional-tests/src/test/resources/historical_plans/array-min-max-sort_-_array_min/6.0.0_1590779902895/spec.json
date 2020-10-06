@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/array-min-max-sort.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>"
+      "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `BOOL_MIN` BOOLEAN, `INT_MIN` INTEGER, `BIGINT_MIN` BIGINT, `DOUBLE_MIN` DOUBLE, `STRING_MIN` STRING, `DECIMAL_MIN` DECIMAL(2, 1)"
+      "schema" : "`ID` STRING KEY, `BOOL_MIN` BOOLEAN, `INT_MIN` INTEGER, `BIGINT_MIN` BIGINT, `DOUBLE_MIN` DOUBLE, `STRING_MIN` STRING, `DECIMAL_MIN` DECIMAL(2, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

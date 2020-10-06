@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `VAL` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `VAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `VAL` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `VAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `VAL` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>"
+      "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `VAL` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` INTEGER KEY, `BODY` STRUCT<`VALS` ARRAY<INTEGER>>"
+      "schema" : "`ID` INTEGER KEY, `BODY` STRUCT<`VALS` ARRAY<INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

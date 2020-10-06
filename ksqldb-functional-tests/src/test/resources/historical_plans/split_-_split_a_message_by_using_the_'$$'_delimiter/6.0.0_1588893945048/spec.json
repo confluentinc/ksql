@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/split.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `MESSAGE` STRING"
+      "schema" : "`K` STRING KEY, `MESSAGE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `SPLIT_MSG` ARRAY<STRING>"
+      "schema" : "`K` STRING KEY, `SPLIT_MSG` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

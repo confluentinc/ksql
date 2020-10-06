@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/replace.json",
   "schemas" : {
     "CSAS_JSONIFIED_0.JSONIFIED" : {
-      "schema" : "`KSQL_COL_0` STRING"
+      "schema" : "`KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_JSONIFIED_0.KsqlTopic.Source" : {
-      "schema" : "`MESSAGE` STRING"
+      "schema" : "`MESSAGE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
     }
   },
   "testCase" : {

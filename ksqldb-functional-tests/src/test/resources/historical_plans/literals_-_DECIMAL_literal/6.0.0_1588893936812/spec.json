@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/literals.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT"
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `KSQL_COL_0` DECIMAL(4, 3)"
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `KSQL_COL_0` DECIMAL(4, 3)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

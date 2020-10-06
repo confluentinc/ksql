@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `IGNORED` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `IGNORED` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` INTEGER KEY, `COUNT` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

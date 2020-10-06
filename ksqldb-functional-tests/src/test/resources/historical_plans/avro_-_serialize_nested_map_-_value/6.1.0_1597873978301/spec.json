@@ -4,11 +4,23 @@
   "path" : "query-validation-tests/avro.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`FOO` MAP<STRING, DOUBLE>"
+      "schema" : "`FOO` MAP<STRING, DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` MAP<STRING, DOUBLE>",
-      "valueFeatures" : [ "WRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "features" : [ "WRAP_SINGLES" ]
+      }
     }
   },
   "testCase" : {

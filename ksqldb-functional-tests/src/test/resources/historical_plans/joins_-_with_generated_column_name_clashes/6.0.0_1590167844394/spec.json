@@ -4,13 +4,31 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER"
+      "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER"
+      "schema" : "`ROWKEY_3` INTEGER KEY, `ROWKEY_4` INTEGER, `ROWKEY_5` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY_6` INTEGER KEY, `ROWKEY` INTEGER, `ROWKEY_3` INTEGER, `ROWKEY_1` INTEGER, `ROWKEY_5` INTEGER"
+      "schema" : "`ROWKEY_6` INTEGER KEY, `ROWKEY` INTEGER, `ROWKEY_3` INTEGER, `ROWKEY_1` INTEGER, `ROWKEY_5` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

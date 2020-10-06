@@ -35,6 +35,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -177,29 +178,37 @@ public final class TestExecutorUtil {
   ) {
     final String kafkaTopicName = sinkDataSource.getKafkaTopicName();
 
-    final Optional<ParsedSchema> schema = getSchema(sinkDataSource, schemaRegistryClient);
+    final KsqlTopic ksqlTopic = sinkDataSource.getKsqlTopic();
+    final Optional<ParsedSchema> keySchema = getSchema(
+        ksqlTopic.getKeyFormat().getFormat(),
+        ksqlTopic.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX,
+        schemaRegistryClient
+    );
+    final Optional<ParsedSchema> valueSchema = getSchema(
+        ksqlTopic.getValueFormat().getFormat(),
+        ksqlTopic.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+        schemaRegistryClient
+    );
 
-    final Topic sinkTopic = new Topic(kafkaTopicName, schema);
+    final Topic sinkTopic = new Topic(kafkaTopicName, keySchema, valueSchema);
 
     stubKafkaService.ensureTopic(sinkTopic);
     return sinkTopic;
   }
 
   private static Optional<ParsedSchema> getSchema(
-      final DataSource dataSource,
+      final String format,
+      final String subject,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     final Format valueFormat = FormatFactory
-        .fromName(dataSource.getKsqlTopic().getValueFormat().getFormat());
+        .fromName(format);
 
     if (!valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       return Optional.empty();
     }
 
     try {
-      final String subject =
-          dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-
       final SchemaMetadata metadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
       return Optional.of(
           schemaRegistryClient.getSchemaBySubjectAndId(subject, metadata.getId())
@@ -267,7 +276,7 @@ public final class TestExecutorUtil {
           topic.getNumPartitions(),
           topic.getReplicas());
 
-      topic.getSchema().ifPresent(schema -> {
+      topic.getValueSchema().ifPresent(schema -> {
         try {
           srClient.register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
         } catch (final Exception e) {

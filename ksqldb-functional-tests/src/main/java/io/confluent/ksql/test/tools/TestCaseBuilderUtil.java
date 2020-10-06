@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
@@ -130,7 +131,7 @@ public final class TestCaseBuilderUtil {
 
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
-        .map(record -> new Topic(record.getTopicName(), Optional.empty()))
+        .map(record -> new Topic(record.getTopicName(), Optional.empty(), Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics.values();
@@ -147,12 +148,27 @@ public final class TestCaseBuilderUtil {
       final CreateSource statement = (CreateSource) stmt.getStatement();
       final CreateSourceProperties props = statement.getProperties();
 
-      final FormatInfo valueFormatInfo = SourcePropertiesUtil.getValueFormat(props);
-      final Format valueFormat = FormatFactory.fromName(valueFormatInfo.getFormat());
+      final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
+
+      final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(props);
+      final Format keyFormat = FormatFactory.fromName(keyFormatInfo.getFormat());
+      final SerdeFeatures keySerdeFeats = buildKeyFeatures(
+          keyFormat, logicalSchema);
+
+      final Optional<ParsedSchema> keySchema =
+          keyFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+              ? buildSchema(sql, logicalSchema.key(), keyFormatInfo, keyFormat, keySerdeFeats)
+              : Optional.empty();
+
+      final FormatInfo valFormatInfo = SourcePropertiesUtil.getValueFormat(props);
+      final Format valFormat = FormatFactory.fromName(valFormatInfo.getFormat());
+      final SerdeFeatures valSerdeFeats = buildValueFeatures(
+          ksqlConfig, props, valFormat, logicalSchema);
 
       final Optional<ParsedSchema> valueSchema =
-          valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
-              ? buildValueSchema(sql, ksqlConfig, statement, props, valueFormatInfo, valueFormat)
+          valFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+              ? buildSchema(
+                  sql, logicalSchema.value(), valFormatInfo, valFormat, valSerdeFeats)
               : Optional.empty();
 
       final int partitions = props.getPartitions()
@@ -161,7 +177,7 @@ public final class TestCaseBuilderUtil {
       final short rf = props.getReplicas()
           .orElse(Topic.DEFAULT_RF);
 
-      return new Topic(props.getKafkaTopic(), partitions, rf, valueSchema);
+      return new Topic(props.getKafkaTopic(), partitions, rf, keySchema, valueSchema);
     };
 
     try {
@@ -196,28 +212,22 @@ public final class TestCaseBuilderUtil {
     }
   }
 
-  private static Optional<ParsedSchema> buildValueSchema(
+  private static Optional<ParsedSchema> buildSchema(
       final String sql,
-      final KsqlConfig ksqlConfig,
-      final CreateSource statement,
-      final CreateSourceProperties props,
-      final FormatInfo valueFormatInfo,
-      final Format valueFormat
+      final List<Column> schema,
+      final FormatInfo formatInfo,
+      final Format format,
+      final SerdeFeatures serdeFeatures
   ) {
-    final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
-    if (logicalSchema.value().isEmpty()) {
+    if (schema.isEmpty()) {
       return Optional.empty();
     }
 
-    final SerdeFeatures valFeatures =
-        buildValueFeatures(ksqlConfig, props, valueFormat, logicalSchema);
-
     try {
-      final SchemaTranslator translator = valueFormat
-          .getSchemaTranslator(valueFormatInfo.getProperties());
+      final SchemaTranslator translator = format
+          .getSchemaTranslator(formatInfo.getProperties());
 
-      return Optional.of(translator.toParsedSchema(
-          PersistenceSchema.from(logicalSchema.value(), valFeatures)
+      return Optional.of(translator.toParsedSchema(PersistenceSchema.from(schema, serdeFeatures)
       ));
     } catch (final Exception e) {
       // Statement won't parse: this will be detected/handled later.
@@ -225,6 +235,18 @@ public final class TestCaseBuilderUtil {
           .println("Error getting schema translator statement (which may be expected): " + sql);
       e.printStackTrace(System.out);
       return Optional.empty();
+    }
+  }
+
+  private static SerdeFeatures buildKeyFeatures(final Format format, final LogicalSchema schema) {
+    try {
+      return SerdeFeaturesFactory.buildKeyFeatures(
+          schema,
+          format
+      );
+    } catch (final Exception e) {
+      // Catch block allows negative tests to fail in the correct place, i.e. later.
+      return SerdeFeatures.of();
     }
   }
 

@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -43,6 +44,7 @@ import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 public class SchemaRegisterInjector implements Injector {
@@ -76,22 +78,28 @@ public class SchemaRegisterInjector implements Injector {
     // since this injector is chained after the TopicCreateInjector,
     // we can assume that the kafka topic is always present in the
     // statement properties
+    final CreateSource statement = cs.getStatement();
+    final LogicalSchema schema = statement.getElements().toLogicalSchema();
 
-    final LogicalSchema schema = cs.getStatement().getElements().toLogicalSchema();
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(statement.getProperties());
+    final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
+        schema,
+        FormatFactory.of(keyFormat)
+    );
 
-    final FormatInfo valueFormat = SourcePropertiesUtil
-        .getValueFormat(cs.getStatement().getProperties());
-
+    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(statement.getProperties());
     final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
         schema,
         FormatFactory.of(valueFormat),
-        cs.getStatement().getProperties().getValueSerdeFeatures(),
+        statement.getProperties().getValueSerdeFeatures(),
         cs.getSessionConfig().getConfig(false)
     );
 
-    registerSchema(
+    registerSchemas(
         schema,
-        cs.getStatement().getProperties().getKafkaTopic(),
+        statement.getProperties().getKafkaTopic(),
+        keyFormat,
+        keyFeatures,
         valueFormat,
         valFeatures,
         cs.getSessionConfig().getConfig(false),
@@ -114,9 +122,11 @@ public class SchemaRegisterInjector implements Injector {
             cas.getStatementText()
         ));
 
-    registerSchema(
+    registerSchemas(
         queryMetadata.getLogicalSchema(),
         queryMetadata.getResultTopic().getKafkaTopicName(),
+        queryMetadata.getResultTopic().getKeyFormat().getFormatInfo(),
+        queryMetadata.getPhysicalSchema().keySchema().features(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
         queryMetadata.getPhysicalSchema().valueSchema().features(),
         cas.getSessionConfig().getConfig(false),
@@ -125,14 +135,49 @@ public class SchemaRegisterInjector implements Injector {
     );
   }
 
-  private void registerSchema(
+  private void registerSchemas(
       final LogicalSchema schema,
-      final String topic,
-      final FormatInfo formatInfo,
-      final SerdeFeatures valFeatures,
+      final String kafkaTopic,
+      final FormatInfo keyFormat,
+      final SerdeFeatures keySerdeFeatures,
+      final FormatInfo valueFormat,
+      final SerdeFeatures valueSerdeFeatures,
       final KsqlConfig config,
       final String statementText,
       final boolean registerIfSchemaExists
+  ) {
+    registerSchema(
+        schema.key(),
+        kafkaTopic,
+        keyFormat,
+        keySerdeFeatures,
+        config,
+        statementText,
+        registerIfSchemaExists,
+        KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
+    );
+
+    registerSchema(
+        schema.value(),
+        kafkaTopic,
+        valueFormat,
+        valueSerdeFeatures,
+        config,
+        statementText,
+        registerIfSchemaExists,
+        KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+    );
+  }
+
+  private void registerSchema(
+      final List<? extends SimpleColumn> schema,
+      final String topic,
+      final FormatInfo formatInfo,
+      final SerdeFeatures serdeFeatures,
+      final KsqlConfig config,
+      final String statementText,
+      final boolean registerIfSchemaExists,
+      final String subjectSuffix
   ) {
     final Format format = FormatFactory.of(formatInfo);
     if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
@@ -149,16 +194,13 @@ public class SchemaRegisterInjector implements Injector {
 
     try {
       final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-      final String subject = topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+      final String subject = topic + subjectSuffix;
 
       if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
         final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());
 
         final ParsedSchema parsedSchema = translator.toParsedSchema(
-            PersistenceSchema.from(
-                schema.withoutPseudoAndKeyColsInValue().value(),
-                valFeatures
-            )
+            PersistenceSchema.from(schema, serdeFeatures)
         );
 
         srClient.register(subject, parsedSchema);

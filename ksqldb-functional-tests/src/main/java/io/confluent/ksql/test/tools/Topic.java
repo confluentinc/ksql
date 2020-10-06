@@ -29,23 +29,27 @@ public class Topic {
   private final String name;
   private final int numPartitions;
   private final short replicas;
-  private final Optional<ParsedSchema> schema;
+  private final Optional<ParsedSchema> keySchema;
+  private final Optional<ParsedSchema> valueSchema;
 
   public Topic(
       final String name,
-      final Optional<ParsedSchema> schema
+      final Optional<ParsedSchema> keySchema,
+      final Optional<ParsedSchema> valueSchema
   ) {
-    this(name, DEFAULT_PARTITIONS, DEFAULT_RF, schema);
+    this(name, DEFAULT_PARTITIONS, DEFAULT_RF, keySchema, valueSchema);
   }
 
   public Topic(
       final String name,
       final int numPartitions,
       final int replicas,
-      final Optional<ParsedSchema> schema
+      final Optional<ParsedSchema> keySchema,
+      final Optional<ParsedSchema> valueSchema
   ) {
     this.name = requireNonNull(name, "name");
-    this.schema = requireNonNull(schema, "schema");
+    this.keySchema = requireNonNull(keySchema, "keySchema");
+    this.valueSchema = requireNonNull(valueSchema, "valueSchema");
     this.numPartitions = numPartitions;
     this.replicas = (short) replicas;
   }
@@ -54,8 +58,12 @@ public class Topic {
     return name;
   }
 
-  public Optional<ParsedSchema> getSchema() {
-    return schema;
+  public Optional<ParsedSchema> getKeySchema() {
+    return keySchema;
+  }
+
+  public Optional<ParsedSchema> getValueSchema() {
+    return valueSchema;
   }
 
   public int getNumPartitions() {
@@ -79,11 +87,12 @@ public class Topic {
     return numPartitions == topic.numPartitions
         && replicas == topic.replicas
         && Objects.equals(name, topic.name)
-        && Objects.equals(schema, topic.schema);
+        && Objects.equals(keySchema, topic.keySchema)
+        && Objects.equals(valueSchema, topic.valueSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, numPartitions, replicas, schema);
+    return Objects.hash(name, numPartitions, replicas, keySchema, valueSchema);
   }
 }

@@ -70,7 +70,7 @@ public class TestExecutorUtilTest {
     ksqlConfig = new KsqlConfig(TestExecutor.baseConfig());
     stubKafkaService = StubKafkaService.create();
 
-    stubKafkaService.ensureTopic(new Topic("test_topic", Optional.empty()));
+    stubKafkaService.ensureTopic(new Topic("test_topic", Optional.empty(), Optional.empty()));
   }
 
   @After

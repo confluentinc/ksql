@@ -84,7 +84,8 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getTimestampColumnName(), is(Optional.empty()));
     assertThat(properties.getTimestampFormat(), is(Optional.empty()));
     assertThat(properties.getWindowType(), is(Optional.empty()));
-    assertThat(properties.getSchemaId(), is(Optional.empty()));
+    assertThat(properties.getKeySchemaId(), is(Optional.empty()));
+    assertThat(properties.getValueSchemaId(), is(Optional.empty()));
     assertThat(properties.getKeyFormat(), is(Optional.empty()));
     assertThat(properties.getValueFormat(), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
@@ -272,16 +273,18 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
-  public void shouldSetValidSchemaId() {
+  public void shouldSetValidSchemaIds() {
     // When:
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.SCHEMA_ID, new StringLiteral("1"))
+            .put(CreateConfigs.KEY_SCHEMA_ID, new StringLiteral("1"))
+            .put(CreateConfigs.VALUE_SCHEMA_ID, new StringLiteral("2"))
             .build());
 
     // Then:
-    assertThat(properties.getSchemaId(), is(Optional.of(1)));
+    assertThat(properties.getKeySchemaId(), is(Optional.of(1)));
+    assertThat(properties.getValueSchemaId(), is(Optional.of(2)));
   }
 
   @Test

@@ -333,7 +333,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().getSchemaId(), is(Optional.of(SCHEMA_ID)));
+    assertThat(result.getStatement().getProperties().getValueSchemaId(), is(Optional.of(SCHEMA_ID)));
 
     assertThat(result.getStatementText(), containsString("SCHEMA_ID=5"));
   }
@@ -347,7 +347,7 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatement().getProperties().getSchemaId(), is(Optional.of(42)));
+    assertThat(result.getStatement().getProperties().getValueSchemaId(), is(Optional.of(42)));
 
     assertThat(result.getStatementText(), containsString("SCHEMA_ID='42'"));
   }

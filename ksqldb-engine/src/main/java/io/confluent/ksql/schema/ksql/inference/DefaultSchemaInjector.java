@@ -112,7 +112,7 @@ public class DefaultSchemaInjector implements Injector {
     final FormatInfo expectedValueFormat = SourcePropertiesUtil.getValueFormat(props);
 
     final SchemaResult result = schemaSupplier
-        .getValueSchema(props.getKafkaTopic(), props.getSchemaId(), expectedValueFormat);
+        .getValueSchema(props.getKafkaTopic(), props.getValueSchemaId(), expectedValueFormat);
 
     if (result.failureReason.isPresent()) {
       final Exception cause = result.failureReason.get();
@@ -150,10 +150,10 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSource statement = preparedStatement.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
 
-    if (properties.getSchemaId().isPresent()) {
+    if (properties.getValueSchemaId().isPresent()) {
       return statement.copyWith(elements, properties);
     }
-    return statement.copyWith(elements, properties.withSchemaId(schema.id));
+    return statement.copyWith(elements, properties.withValueSchemaId(schema.id));
   }
 
   private static TableElements buildElements(

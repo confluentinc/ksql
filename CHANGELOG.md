@@ -75,7 +75,7 @@
 * ksqlDB now creates windowed tables with cleanup policy "compact,delete", rather than "compact". Also, topics that back streams are always created with cleanup policy "delete", rather than the broker default (by default, "delete").
 
 
-## [0.10.2](https://github.com/confluentinc/ksql/releases/tag/v0.10.2-ksqldb) (TBD)
+## [0.10.2](https://github.com/confluentinc/ksql/releases/tag/v0.10.2-ksqldb) (2020-10-05)
 
 ### Bug Fixes
 

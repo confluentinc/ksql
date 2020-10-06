@@ -5,21 +5,51 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ROWKEY` STRING KEY, `S1_ID` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `S1_ID` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`ROWKEY` STRING KEY, `S1_ID` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ROWKEY` STRING KEY, `S2_ID` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWKEY` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `S2_ID` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWKEY` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

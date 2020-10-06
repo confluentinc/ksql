@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/average.json",
   "schemas" : {
     "CTAS_AVG_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_AVG_0.AVG" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `AVG` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `AVG` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_AVG_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `KSQL_INTERNAL_COL_0` BIGINT, `KSQL_INTERNAL_COL_1` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_AVG_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

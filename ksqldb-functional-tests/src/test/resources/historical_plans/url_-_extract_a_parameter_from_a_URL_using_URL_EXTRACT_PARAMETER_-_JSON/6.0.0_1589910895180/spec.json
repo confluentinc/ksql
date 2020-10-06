@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/url.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `URL` STRING"
+      "schema" : "`K` STRING KEY, `URL` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `PARAM_A` STRING, `PARAM_B` STRING"
+      "schema" : "`K` STRING KEY, `PARAM_A` STRING, `PARAM_B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

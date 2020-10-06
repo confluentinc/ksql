@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_REPARTITIONED_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_REPARTITIONED_0.REPARTITIONED" : {
-      "schema" : "`NAME` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `K` STRING"
+      "schema" : "`NAME` STRING KEY, `ID` BIGINT, `VALUE` BIGINT, `K` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

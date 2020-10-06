@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `C1` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `C1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` INTEGER KEY, `C1` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `C1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
     }
   },
   "testCase" : {

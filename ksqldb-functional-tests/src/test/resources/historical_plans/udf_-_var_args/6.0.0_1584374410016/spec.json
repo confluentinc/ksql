@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/udf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `COL0` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `COL0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

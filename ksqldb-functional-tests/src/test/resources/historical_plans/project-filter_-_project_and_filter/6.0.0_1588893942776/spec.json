@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE"
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_S1_0.S1" : {
-      "schema" : "`K` STRING KEY, `NAME` STRING"
+      "schema" : "`K` STRING KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

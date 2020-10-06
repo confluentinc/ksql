@@ -4,10 +4,30 @@
   "path" : "query-validation-tests/hopping-windows.json",
   "schemas" : {
     "CSAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 30.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 30.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {
@@ -146,15 +166,6 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID BIGINT, VALUE BIGINT) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED', WINDOW_SIZE='30 seconds', WINDOW_TYPE='HoPping');", "CREATE STREAM S2 AS SELECT\n  *,\n  TEST.WINDOWSTART WSTART,\n  TEST.WINDOWEND WEND,\n  TEST.ROWKEY KEY\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA",
-          "windowType" : "HOPPING",
-          "windowSize" : 30000
-        }
-      }, {
         "name" : "S2",
         "type" : "STREAM",
         "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` BIGINT",
@@ -162,7 +173,22 @@
           "format" : "KAFKA",
           "windowType" : "HOPPING",
           "windowSize" : 30000
-        }
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 30000
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

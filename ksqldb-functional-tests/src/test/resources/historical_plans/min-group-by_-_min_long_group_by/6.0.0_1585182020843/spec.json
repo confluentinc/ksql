@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/min-group-by.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MIN` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `MIN` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

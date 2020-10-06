@@ -5,10 +5,22 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`V` BIGINT",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`V` BIGINT"
+      "schema" : "`V` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -45,20 +57,25 @@
     "statements" : [ "CREATE STREAM INPUT (V BIGINT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`V` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`V` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
         "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`V` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

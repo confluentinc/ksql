@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/string-lpad-rpad.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `SUBJECT` STRING, `LEN` INTEGER, `PADDING` STRING"
+      "schema" : "`ID` STRING KEY, `SUBJECT` STRING, `LEN` INTEGER, `PADDING` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `RESULT` STRING"
+      "schema" : "`ID` STRING KEY, `RESULT` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

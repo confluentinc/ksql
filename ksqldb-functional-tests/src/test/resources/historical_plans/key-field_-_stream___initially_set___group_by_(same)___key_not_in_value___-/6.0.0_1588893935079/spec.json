@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/key-field.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `ROWTIME` BIGINT"
+      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER"
+      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` INTEGER KEY, `KSQL_COL_0` BIGINT"
+      "schema" : "`K` INTEGER KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

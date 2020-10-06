@@ -4,10 +4,28 @@
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
     "CSAS_SESSION_STARTS_1.KsqlTopic.Source" : {
-      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT"
+      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "SESSION"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_SESSION_STARTS_1.SESSION_STARTS" : {
-      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT"
+      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "SESSION"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

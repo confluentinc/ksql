@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY_1` INTEGER KEY, `ROWKEY_3` INTEGER"
+      "schema" : "`ROWKEY_1` INTEGER KEY, `ROWKEY_3` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`T_ROWKEY` BIGINT KEY, `T_ROWKEY_2` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT"
+      "schema" : "`T_ROWKEY` BIGINT KEY, `T_ROWKEY_2` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ROWKEY_2` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ROWKEY_2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ROWKEY_2` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ROWKEY_2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`T_ROWKEY` BIGINT KEY, `T_ROWKEY_2` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`TT_KSQL_COL_0` BIGINT KEY, `TT_ROWKEY_3` INTEGER, `TT_ROWTIME` BIGINT, `TT_ROWKEY_1` INTEGER, `TT_KSQL_COL_0` BIGINT"
+      "schema" : "`TT_KSQL_COL_0` BIGINT KEY, `TT_ROWKEY_3` INTEGER, `TT_ROWTIME` BIGINT, `TT_ROWKEY_1` INTEGER, `TT_KSQL_COL_0` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

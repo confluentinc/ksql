@@ -4,11 +4,23 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`FOO` STRUCT<`F0` INTEGER>"
+      "schema" : "`FOO` STRUCT<`F0` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` STRUCT<`F0` INTEGER>",
-      "valueFeatures" : [ "WRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "features" : [ "WRAP_SINGLES" ]
+      }
     }
   },
   "testCase" : {

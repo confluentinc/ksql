@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `X` BIGINT, `Y` STRUCT<`Z` INTEGER>"
+      "schema" : "`ID` INTEGER KEY, `X` BIGINT, `Y` STRUCT<`Z` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`C` INTEGER KEY, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_C` INTEGER"
+      "schema" : "`C` INTEGER KEY, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_C` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`KSQL_COL_0` INTEGER KEY, `S1_ID` INTEGER, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S2_ID` INTEGER, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT"
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `S1_ID` INTEGER, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S2_ID` INTEGER, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S1_ROWTIME` BIGINT, `S2_ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `A` BIGINT, `B` STRUCT<`C` INTEGER>"
+      "schema" : "`ID` INTEGER KEY, `A` BIGINT, `B` STRUCT<`C` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`C` INTEGER KEY, `S1_A` BIGINT, `S1_B` STRUCT<`C` INTEGER>, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `S1_C` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`Z` INTEGER KEY, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_Z` INTEGER"
+      "schema" : "`Z` INTEGER KEY, `S2_X` BIGINT, `S2_Y` STRUCT<`Z` INTEGER>, `S2_ROWTIME` BIGINT, `S2_ID` INTEGER, `S2_Z` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

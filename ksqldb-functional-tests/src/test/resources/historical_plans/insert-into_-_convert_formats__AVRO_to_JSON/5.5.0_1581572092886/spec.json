@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "InsertQuery_0.SINK" : {
-      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "InsertQuery_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

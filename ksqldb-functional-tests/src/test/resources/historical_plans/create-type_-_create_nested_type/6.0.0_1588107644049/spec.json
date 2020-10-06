@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/create-type.json",
   "schemas" : {
     "CTAS_COPY_0.COPY" : {
-      "schema" : "`ROWKEY` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>"
+      "schema" : "`ROWKEY` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_COPY_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>"
+      "schema" : "`ROWKEY` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

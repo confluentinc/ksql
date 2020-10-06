@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/histogram.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` STRING, `KSQL_AGG_VARIABLE_0` MAP<STRING, BIGINT>"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` STRING, `KSQL_AGG_VARIABLE_0` MAP<STRING, BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `VALUE` STRING"
+      "schema" : "`ID` BIGINT KEY, `VALUE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` BIGINT KEY, `COUNTS` MAP<STRING, BIGINT>"
+      "schema" : "`ID` BIGINT KEY, `COUNTS` MAP<STRING, BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` STRING"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

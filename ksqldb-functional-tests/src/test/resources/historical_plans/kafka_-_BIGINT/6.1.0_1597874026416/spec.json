@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/kafka.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` BIGINT KEY, `FOO` BIGINT"
+      "schema" : "`K` BIGINT KEY, `FOO` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` BIGINT KEY, `FOO` BIGINT"
+      "schema" : "`K` BIGINT KEY, `FOO` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
     }
   },
   "testCase" : {

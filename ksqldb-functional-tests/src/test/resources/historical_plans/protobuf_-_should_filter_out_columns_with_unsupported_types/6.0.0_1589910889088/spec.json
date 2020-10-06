@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `EXPECTED` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `EXPECTED` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `EXPECTED` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `EXPECTED` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {

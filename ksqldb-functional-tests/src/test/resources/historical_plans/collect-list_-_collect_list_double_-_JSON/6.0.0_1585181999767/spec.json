@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/collect-list.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE, `KSQL_AGG_VARIABLE_0` ARRAY<DOUBLE>"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE, `KSQL_AGG_VARIABLE_0` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<DOUBLE>"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `COLLECTED` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

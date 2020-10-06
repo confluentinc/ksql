@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/replace.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `INPUT_STRING` STRING, `PATTERN` STRING"
+      "schema" : "`K` STRING KEY, `INPUT_STRING` STRING, `PATTERN` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `EXTRACTED` STRING"
+      "schema" : "`K` STRING KEY, `EXTRACTED` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

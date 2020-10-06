@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/count.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `ROWTIME` BIGINT"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT"
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT"
+      "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

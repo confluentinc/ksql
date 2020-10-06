@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` DOUBLE KEY, `X` BIGINT"
+      "schema" : "`ID` DOUBLE KEY, `X` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT, `L_ROWTIME` BIGINT, `L_ID` INTEGER"
+      "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT, `L_ROWTIME` BIGINT, `L_ID` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT"
+      "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `X` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `X` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`L_ID` INTEGER KEY, `L_X` BIGINT, `L_ROWTIME` BIGINT, `L_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`R_KSQL_COL_0` INTEGER KEY, `R_X` BIGINT, `R_ROWTIME` BIGINT, `R_ID` DOUBLE, `R_KSQL_COL_0` INTEGER"
+      "schema" : "`R_KSQL_COL_0` INTEGER KEY, `R_X` BIGINT, `R_ROWTIME` BIGINT, `R_ID` DOUBLE, `R_KSQL_COL_0` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

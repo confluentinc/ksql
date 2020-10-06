@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/key-field.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER"
+      "schema" : "`K` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` INTEGER KEY, `BAR` INTEGER"
+      "schema" : "`K` INTEGER KEY, `BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

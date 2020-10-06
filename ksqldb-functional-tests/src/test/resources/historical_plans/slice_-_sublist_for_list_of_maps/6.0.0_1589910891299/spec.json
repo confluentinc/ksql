@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/slice.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `L` ARRAY<MAP<STRING, STRING>>"
+      "schema" : "`K` STRING KEY, `L` ARRAY<MAP<STRING, STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `SUB` ARRAY<MAP<STRING, STRING>>"
+      "schema" : "`K` STRING KEY, `SUB` ARRAY<MAP<STRING, STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

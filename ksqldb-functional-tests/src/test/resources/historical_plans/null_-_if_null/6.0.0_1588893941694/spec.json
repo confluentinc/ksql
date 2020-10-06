@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/null.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`COL0` INTEGER KEY, `COL1` STRING, `COL2` ARRAY<INTEGER>"
+      "schema" : "`COL0` INTEGER KEY, `COL1` STRING, `COL2` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`COL0` INTEGER KEY, `A` INTEGER, `B` STRING, `C` ARRAY<INTEGER>"
+      "schema" : "`COL0` INTEGER KEY, `A` INTEGER, `B` STRING, `C` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

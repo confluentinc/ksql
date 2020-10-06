@@ -4,16 +4,43 @@
   "path" : "query-validation-tests/quoted-identifiers.json",
   "schemas" : {
     "CSAS_JOINED_0.KafkaTopic_Left.Source" : {
-      "schema" : "`K` STRING KEY, `SELECT` STRING, `field!` STRING"
+      "schema" : "`K` STRING KEY, `SELECT` STRING, `field!` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_JOINED_0.JOINED" : {
-      "schema" : "`L_SELECT` STRING KEY, `field!` STRING"
+      "schema" : "`L_SELECT` STRING KEY, `field!` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_JOINED_0.KafkaTopic_Right.Source" : {
-      "schema" : "`K` STRING KEY, `with.dot` STRING"
+      "schema" : "`K` STRING KEY, `with.dot` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_JOINED_0.Join" : {
+      "schema" : "`SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_K` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_JOINED_0.Join.Left" : {
-      "schema" : "`SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_K` STRING"
+      "schema" : "`SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_K` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

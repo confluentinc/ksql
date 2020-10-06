@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "INSERTQUERY_0.KsqlTopic.Source" : {
-      "schema" : "`IGNORED` STRING"
+      "schema" : "`IGNORED` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "INSERTQUERY_0.TARGET" : {
-      "schema" : "`C1` DECIMAL(3, 2), `C2` DECIMAL(3, 2)"
+      "schema" : "`C1` DECIMAL(3, 2), `C2` DECIMAL(3, 2)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

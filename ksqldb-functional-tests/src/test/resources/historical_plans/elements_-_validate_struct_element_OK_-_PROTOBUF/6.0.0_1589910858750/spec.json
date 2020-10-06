@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>"
+      "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>"
+      "schema" : "`ROWKEY` STRING KEY, `V0` STRUCT<`F0` STRING, `F1` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {

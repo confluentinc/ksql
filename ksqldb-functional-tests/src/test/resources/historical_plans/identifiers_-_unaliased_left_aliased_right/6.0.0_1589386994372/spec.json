@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/identifiers.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER"
+      "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`FOO` INTEGER KEY, `INPUT_1_BAR` INTEGER, `INPUT_1_ROWTIME` BIGINT, `INPUT_1_FOO` INTEGER"
+      "schema" : "`FOO` INTEGER KEY, `INPUT_1_BAR` INTEGER, `INPUT_1_ROWTIME` BIGINT, `INPUT_1_FOO` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`INPUT_1_FOO` INTEGER KEY, `INPUT_1_BAR` INTEGER, `I2_BAR` INTEGER"
+      "schema" : "`INPUT_1_FOO` INTEGER KEY, `INPUT_1_BAR` INTEGER, `I2_BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER"
+      "schema" : "`FOO` INTEGER KEY, `BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`FOO` INTEGER KEY, `INPUT_1_BAR` INTEGER, `INPUT_1_ROWTIME` BIGINT, `INPUT_1_FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`FOO` INTEGER KEY, `I2_BAR` INTEGER, `I2_ROWTIME` BIGINT, `I2_FOO` INTEGER"
+      "schema" : "`FOO` INTEGER KEY, `I2_BAR` INTEGER, `I2_ROWTIME` BIGINT, `I2_FOO` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

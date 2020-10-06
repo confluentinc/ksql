@@ -4,22 +4,64 @@
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.L_Join.Left" : {
-      "schema" : "`S_ID` INTEGER KEY, `S_V0` BIGINT, `S_ROWTIME` BIGINT, `S_ID` INTEGER"
+      "schema" : "`S_ID` INTEGER KEY, `S_V0` BIGINT, `S_ROWTIME` BIGINT, `S_ID` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`S_ID` INTEGER KEY, `S_V0` BIGINT, `S_ROWTIME` BIGINT, `S_ID` INTEGER, `T_V0` BIGINT, `T_ROWTIME` BIGINT, `T_ID` INTEGER"
+      "schema" : "`S_ID` INTEGER KEY, `S_V0` BIGINT, `S_ROWTIME` BIGINT, `S_ID` INTEGER, `T_V0` BIGINT, `T_ROWTIME` BIGINT, `T_ID` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.L_Join" : {
+      "schema" : "`S_ID` INTEGER KEY, `S_V0` BIGINT, `S_ROWTIME` BIGINT, `S_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`S_ID` INTEGER KEY, `S_V0` BIGINT, `T_V0` BIGINT, `TT_V0` BIGINT"
+      "schema" : "`S_ID` INTEGER KEY, `S_V0` BIGINT, `T_V0` BIGINT, `TT_V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`S_ID` INTEGER KEY, `S_V0` BIGINT, `S_ROWTIME` BIGINT, `S_ID` INTEGER, `T_V0` BIGINT, `T_ROWTIME` BIGINT, `T_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

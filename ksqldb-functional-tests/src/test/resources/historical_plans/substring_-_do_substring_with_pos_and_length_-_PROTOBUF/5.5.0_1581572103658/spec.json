@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/substring.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `SOURCE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `SUBSTRING` STRING, `NULL_STR` STRING, `NULL_POS` STRING, `NULL_LEN` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `SUBSTRING` STRING, `NULL_STR` STRING, `NULL_POS` STRING, `NULL_LEN` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

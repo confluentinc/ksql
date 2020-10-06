@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_S_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER"
+      "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_S_0.S" : {
-      "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER"
+      "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

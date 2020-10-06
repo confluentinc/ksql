@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `VALUE` INTEGER"
+      "schema" : "`ID` BIGINT KEY, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` BIGINT KEY, `SUM` INTEGER"
+      "schema" : "`ID` BIGINT KEY, `SUM` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

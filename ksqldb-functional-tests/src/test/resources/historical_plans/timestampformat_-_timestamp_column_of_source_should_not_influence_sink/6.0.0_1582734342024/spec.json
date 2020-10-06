@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/timestampformat.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `EVENT_TS` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `EVENT_TS` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `EVENT_TS` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

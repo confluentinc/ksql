@@ -4,13 +4,31 @@
   "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
     "CTAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING, `RTS` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_S1_JOIN_S2_0.S1_JOIN_S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

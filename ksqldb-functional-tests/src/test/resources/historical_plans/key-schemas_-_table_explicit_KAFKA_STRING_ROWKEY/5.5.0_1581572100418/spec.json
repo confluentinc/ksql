@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `KEY` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `KEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

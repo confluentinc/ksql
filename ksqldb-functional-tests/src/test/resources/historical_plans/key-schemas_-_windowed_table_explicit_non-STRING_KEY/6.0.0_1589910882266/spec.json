@@ -4,16 +4,44 @@
   "path" : "query-validation-tests/key-schemas.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`K` BIGINT KEY, `K` BIGINT, `VALUE` BIGINT"
+      "schema" : "`K` BIGINT KEY, `K` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` BIGINT KEY, `VALUE` BIGINT"
+      "schema" : "`K` BIGINT KEY, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`K` BIGINT KEY, `K` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`K` BIGINT KEY, `K` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` BIGINT KEY, `MAX` BIGINT"
+      "schema" : "`ID` BIGINT KEY, `MAX` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 30.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

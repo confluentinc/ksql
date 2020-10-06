@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)"
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)"
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

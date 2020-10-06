@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ID` INTEGER KEY, `V0` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` INTEGER KEY, `T1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT"
+      "schema" : "`ID` INTEGER KEY, `T1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

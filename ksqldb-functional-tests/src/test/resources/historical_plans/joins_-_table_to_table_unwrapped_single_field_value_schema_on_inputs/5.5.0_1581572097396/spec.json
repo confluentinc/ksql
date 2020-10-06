@@ -5,14 +5,32 @@
   "schemas" : {
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID1` BIGINT, `ID2` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `ID1` BIGINT, `ID2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

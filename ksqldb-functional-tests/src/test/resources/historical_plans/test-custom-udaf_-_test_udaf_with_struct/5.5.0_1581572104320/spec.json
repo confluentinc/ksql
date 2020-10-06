@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/test-custom-udaf.json",
   "schemas" : {
     "CTAS_RESULT_0.RESULT" : {
-      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `ID` STRING, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>"
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `ID` STRING, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_RESULT_0.Aggregate.GroupBy" : {
-      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRUCT<`A` INTEGER, `B` INTEGER>"
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_RESULT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRUCT<`A` INTEGER, `B` INTEGER>, `KSQL_AGG_VARIABLE_0` STRUCT<`A` INTEGER, `B` INTEGER>"
+      "schema" : "`KSQL_INTERNAL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` STRING, `KSQL_INTERNAL_COL_1` STRUCT<`A` INTEGER, `B` INTEGER>, `KSQL_AGG_VARIABLE_0` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_RESULT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

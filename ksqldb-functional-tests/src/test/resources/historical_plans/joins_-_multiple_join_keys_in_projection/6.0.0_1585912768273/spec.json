@@ -4,16 +4,43 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_INNER_JOIN_0.INNER_JOIN" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID1` BIGINT, `ID2` BIGINT, `ID3` BIGINT, `ID4` BIGINT, `ID5` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID1` BIGINT, `ID2` BIGINT, `ID3` BIGINT, `ID4` BIGINT, `ID5` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_INNER_JOIN_0.Join.Left" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_INNER_JOIN_0.Join" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

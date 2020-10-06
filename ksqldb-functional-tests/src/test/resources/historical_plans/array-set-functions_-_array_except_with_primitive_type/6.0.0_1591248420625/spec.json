@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/array-set-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `INTS` ARRAY<INTEGER>, `INT_EXCEPTIONS` ARRAY<INTEGER>"
+      "schema" : "`ID` STRING KEY, `INTS` ARRAY<INTEGER>, `INT_EXCEPTIONS` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `RESULT` ARRAY<INTEGER>"
+      "schema" : "`ID` STRING KEY, `RESULT` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

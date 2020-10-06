@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN"
+      "schema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_0` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

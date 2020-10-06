@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`D1` STRING KEY, `ROWTIME` BIGINT, `D1` STRING"
+      "schema" : "`D1` STRING KEY, `ROWTIME` BIGINT, `D1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `D1` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `D1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`D1` STRING KEY, `ROWTIME` BIGINT, `D1` STRING, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`D1` STRING KEY, `ROWTIME` BIGINT, `D1` STRING, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`D1` STRING KEY, `KSQL_COL_0` STRING"
+      "schema" : "`D1` STRING KEY, `KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

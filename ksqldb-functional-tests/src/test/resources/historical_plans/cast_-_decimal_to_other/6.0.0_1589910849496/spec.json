@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
     "CSAS_OUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `VAL` DECIMAL(4, 2)"
+      "schema" : "`ID` STRING KEY, `VAL` DECIMAL(4, 2)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_OUT_0.OUT" : {
-      "schema" : "`ID` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `S` STRING"
+      "schema" : "`ID` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

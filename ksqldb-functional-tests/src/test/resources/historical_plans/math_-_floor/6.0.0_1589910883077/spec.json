@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/math.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)"
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)"
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` DECIMAL(2, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

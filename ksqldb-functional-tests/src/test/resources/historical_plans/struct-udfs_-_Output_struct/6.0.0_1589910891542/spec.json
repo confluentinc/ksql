@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/struct-udfs.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `VAL` STRING"
+      "schema" : "`K` STRING KEY, `VAL` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `VALUE` STRUCT<`A` STRING>"
+      "schema" : "`K` STRING KEY, `VALUE` STRUCT<`A` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

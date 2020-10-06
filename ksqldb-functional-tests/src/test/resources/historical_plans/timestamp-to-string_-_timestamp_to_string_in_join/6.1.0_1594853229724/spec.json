@@ -4,22 +4,61 @@
   "path" : "query-validation-tests/timestamp-to-string.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT"
+      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`P_KSQL_COL_0` STRING KEY, `P_WLAN_SA` ARRAY<STRING>, `P_ROWTIME` BIGINT, `P_K` STRING, `P_KSQL_COL_0` STRING"
+      "schema" : "`P_KSQL_COL_0` STRING KEY, `P_WLAN_SA` ARRAY<STRING>, `P_ROWTIME` BIGINT, `P_K` STRING, `P_KSQL_COL_0` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Join" : {
+      "schema" : "`P_KSQL_COL_0` STRING KEY, `P_WLAN_SA` ARRAY<STRING>, `P_ROWTIME` BIGINT, `P_K` STRING, `P_KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>"
+      "schema" : "`K` STRING KEY, `WLAN_SA` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING"
+      "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

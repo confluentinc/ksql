@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING, `ROWTIME` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING, `KSQL_COL_0` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

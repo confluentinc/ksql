@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>"
+      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>"
+      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {

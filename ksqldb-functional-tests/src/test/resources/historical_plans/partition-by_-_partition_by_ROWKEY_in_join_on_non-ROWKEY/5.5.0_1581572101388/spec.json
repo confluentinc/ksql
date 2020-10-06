@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `C` STRING, `D` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `C` STRING, `D` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ROWKEY` STRING KEY, `L_A` STRING, `L_B` STRING, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `L_A` STRING, `L_B` STRING, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `L_ROWKEY` STRING, `R_ROWKEY` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `L_ROWKEY` STRING, `R_ROWKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `A` STRING, `B` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `A` STRING, `B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`ROWKEY` STRING KEY, `L_A` STRING, `L_B` STRING, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ROWKEY` STRING KEY, `R_C` STRING, `R_D` STRING, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `R_C` STRING, `R_D` STRING, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

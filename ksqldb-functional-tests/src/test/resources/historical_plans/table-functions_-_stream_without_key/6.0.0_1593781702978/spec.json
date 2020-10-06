@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/table-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT, `MY_ARR` ARRAY<BIGINT>"
+      "schema" : "`ID` BIGINT, `MY_ARR` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` BIGINT, `VAL` BIGINT, `ID2` BIGINT"
+      "schema" : "`ID` BIGINT, `VAL` BIGINT, `ID2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

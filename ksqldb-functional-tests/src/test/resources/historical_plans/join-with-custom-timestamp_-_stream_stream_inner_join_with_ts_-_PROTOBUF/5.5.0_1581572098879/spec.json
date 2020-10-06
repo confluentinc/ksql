@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/join-with-custom-timestamp.json",
   "schemas" : {
     "CSAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_S1_JOIN_S2_0.Join.Right" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `S2_ID` BIGINT, `S2_F1` STRING, `S2_F2` STRING, `S2_ROWTIME` BIGINT, `S2_ROWKEY` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `S2_ID` BIGINT, `S2_F1` STRING, `S2_F2` STRING, `S2_ROWTIME` BIGINT, `S2_ROWKEY` BIGINT",
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_S1_JOIN_S2_0.Join.Left" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `S1_ID` BIGINT, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` BIGINT"
+      "schema" : "`ROWKEY` BIGINT KEY, `S1_ID` BIGINT, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` BIGINT",
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_S1_JOIN_S2_0.S1_JOIN_S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_S1_JOIN_S2_0.Join" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `S1_ID` BIGINT, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {

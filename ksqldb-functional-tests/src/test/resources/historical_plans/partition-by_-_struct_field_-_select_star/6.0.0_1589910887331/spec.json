@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`TOWN` STRING KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER, `ID` INTEGER"
+      "schema" : "`TOWN` STRING KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `AGE` INTEGER, `ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

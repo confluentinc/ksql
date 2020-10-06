@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/topk-distinct.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOPK` ARRAY<INTEGER>"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOPK` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER"
+      "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `VALUE` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

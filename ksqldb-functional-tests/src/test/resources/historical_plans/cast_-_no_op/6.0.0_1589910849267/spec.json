@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/cast.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `B` BOOLEAN, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `S` STRING"
+      "schema" : "`ID` STRING KEY, `B` BOOLEAN, `I` INTEGER, `BI` BIGINT, `D` DOUBLE, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` INTEGER, `KSQL_COL_2` BIGINT, `KSQL_COL_3` DOUBLE, `KSQL_COL_4` STRING"
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` INTEGER, `KSQL_COL_2` BIGINT, `KSQL_COL_3` DOUBLE, `KSQL_COL_4` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

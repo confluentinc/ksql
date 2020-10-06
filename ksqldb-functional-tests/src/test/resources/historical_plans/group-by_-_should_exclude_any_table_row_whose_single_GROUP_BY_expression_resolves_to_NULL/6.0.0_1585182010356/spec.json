@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `ROWTIME` BIGINT, `STR` STRING, `POS` INTEGER"
+      "schema" : "`KSQL_COL_0` STRING KEY, `ROWTIME` BIGINT, `STR` STRING, `POS` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `STR` STRING, `POS` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `STR` STRING, `POS` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `ROWTIME` BIGINT, `STR` STRING, `POS` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT"
+      "schema" : "`KSQL_COL_0` STRING KEY, `ROWTIME` BIGINT, `STR` STRING, `POS` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_0` BIGINT"
+      "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

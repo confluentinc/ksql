@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`F0` INTEGER KEY, `F0` INTEGER, `F1` INTEGER"
+      "schema" : "`F0` INTEGER KEY, `F0` INTEGER, `F1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` INTEGER KEY, `F0` INTEGER, `F1` INTEGER"
+      "schema" : "`ID` INTEGER KEY, `F0` INTEGER, `F1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`F0` INTEGER KEY, `F0` INTEGER, `F1` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER"
+      "schema" : "`F0` INTEGER KEY, `F0` INTEGER, `F1` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`F0` INTEGER KEY, `KSQL_COL_0` INTEGER"
+      "schema" : "`F0` INTEGER KEY, `KSQL_COL_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

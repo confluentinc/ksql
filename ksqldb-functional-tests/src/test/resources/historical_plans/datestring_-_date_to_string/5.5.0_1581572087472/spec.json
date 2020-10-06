@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/datestring.json",
   "schemas" : {
     "CSAS_DATE_STREAM_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `START_DATE` INTEGER, `DATE_FORMAT` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_DATE_STREAM_0.DATE_STREAM" : {
-      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CUSTOM_FORMATTED_START_DATE` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `CUSTOM_FORMATTED_START_DATE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

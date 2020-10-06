@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/delimited.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` DECIMAL(6, 4) KEY, `V` INTEGER"
+      "schema" : "`K` DECIMAL(6, 4) KEY, `V` INTEGER",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` DECIMAL(6, 4) KEY, `V` INTEGER"
+      "schema" : "`K` DECIMAL(6, 4) KEY, `V` INTEGER",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

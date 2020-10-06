@@ -5,10 +5,22 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`FOO` MAP<STRING, STRING>",
-      "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`FOO` MAP<STRING, STRING>"
+      "schema" : "`FOO` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

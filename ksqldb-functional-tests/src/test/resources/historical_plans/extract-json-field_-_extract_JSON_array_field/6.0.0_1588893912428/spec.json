@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/extract-json-field.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ARRAY_FIELD` ARRAY<STRING>"
+      "schema" : "`K` STRING KEY, `ARRAY_FIELD` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `COL1` STRING, `COL2` STRING"
+      "schema" : "`K` STRING KEY, `COL1` STRING, `COL2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

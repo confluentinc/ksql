@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/decimal.json",
   "schemas" : {
     "CSAS_TEST2_0.TEST2" : {
-      "schema" : "`ROWKEY` STRING KEY, `RESULT` DECIMAL(9, 4)"
+      "schema" : "`ROWKEY` STRING KEY, `RESULT` DECIMAL(9, 4)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_TEST2_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)"
+      "schema" : "`ROWKEY` STRING KEY, `A` DECIMAL(4, 2), `B` DECIMAL(4, 2)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {

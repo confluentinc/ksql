@@ -175,11 +175,7 @@
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Join-repartition",
           "keyFormat" : {
-            "format" : "KAFKA",
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 60.000000000
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -218,11 +214,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "format" : "KAFKA",
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 60.000000000
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

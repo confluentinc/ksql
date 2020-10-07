@@ -26,7 +26,7 @@ Issue: https://github.com/confluentinc/ksql/issues/6199
 * Allow variable substitution in SQL commands
 * Discuss the context and scope for variable substitution
 * Provide a configuration to enable/disable variable substitution
-* Support variable substitution in interactive and headless mode
+* Support variable substitution in the server-side
 
 ## What is not in scope
 
@@ -38,10 +38,6 @@ Issue: https://github.com/confluentinc/ksql/issues/6199
 * `Provide list of pre-defined variables`
 
    Some DBs provide a list of pre-defined variables users can use out-of-box. We don't have any variables we'd like to add at this time.
-
-* `Support variable substitution in the REST API`
-
-  More complex to do to achieve the same functionality. We want variable substitution in clients only.
 
 * `Support UDF when defining variables`
 
@@ -69,7 +65,7 @@ allowing users to easily test the behavior in different environments (CI/CD, QA 
 
 ### 1. Syntax
 
-#### New syntax decision
+#### Background
 
 ksqlDB has a syntax to SET server and CLI properties. The use is `SET` for server properties, and `SET CLI` for CLI settings.
 
@@ -107,7 +103,7 @@ SET;           # what to do? lists all server, cli, variables, etc?
 
 Also, the use of single-quotes in `SET` server settings is tedious to type. So after removing them, we'll have two different sets:
 * `SET 'server_property' = 'server_value'`
-* `SET VAR variable = `variable_value'
+* `SET VAR variable = variable_value`
 
 This looks confusing too. So we have to decide for a new syntax for substitution variables.
 
@@ -115,69 +111,177 @@ Other DBs use different syntax to create user variables (DECLARE, DEFINE, \set, 
 is what [Oracle SQL*plus uses](https://blogs.oracle.com/opal/sqlplus-101-substitution-variables). Any user coming from this DB will immediately understand the command.  
 This is opened to discussion, but will continue with this for now.
 
-#### Creating and printing substitution variables
-
-The command to interact with substitution variables is `DEFINE`.  
-`DEFINE` will allow us to define a new variable, print the variable value and list all current defined variables.
+#### Creating variables
 
 Syntax:
 ```
-DEFINE [name [= 'value']];
+DEFINE <name> = <value>;
 
 Where: 
-  name     is the variable name to define
-  value    is the variable value
+  <name>     is the variable name
+  <value>    is the variable value
 ```
 Valid variables names start with a letter or underscore (\_) followed by zero or more alphanumeric characters or underscores.
 
-All variable values need to be wrapped using single quotes. All variables are stored as string values in memory, and when
-replaced, the value without the quotes will be used. ksqlDB parsing will be in charge of determining the format at that
-time.
+There are no type definition for values.
+Single-quotes are optional when assigning values. But if using spaces, then you must wrap the value with single-quotes.
 
-The reason not to remove single-quotes from values is to allow spaces, and to leave the syntax open for using data types in the future if required.  
-Also, having decide the format at run-time (i.e. `define n = 3.34238`) is tricky as we could lose precision in case of decimals. Better stay with Strings for now.
+Example:
+```
+# Without single-quotes
+DEFINE replicas = 3;
+DEFINE format = JSON;
 
-Define a new variable:
-```
-ksql> DEFINE replicas = '3';
-ksql> DEFINE partitions = '5';
-```
-
-Print a defined variable value:
-```
-ksql> DEFINE replicas;
-DEFINE replicas   = '3'
+# With single-quotes
+DEFINE timestamp = 'tsColumn'; 
+DEFINE name = 'Tom Sawyer';
 ```
 
-List all defined variables:
+Single-quotes are removed during variable substitution. If you need to escape single-quotes, then wrap the value with triple-quotes.
+
+Example:
 ```
-ksql> DEFINE;
-DEFINE replicas   = '3'
-DEFINE partitions = '5'
+# becomes 'my_topic'
+DEFINE topicName = '''my_topic''';      
 ```
 
-#### Deleting substitution variables
-
-The `UNDEFINE` command deletes the variable.
+#### Deleting variables
 
 Syntax:
 ```
 UNDEFINE name;
 ```
 
+You can delete defined variables with the `UNDEFINE` syntax.
+
+#### Printing variables (only on CLI)
+
+Syntax:
+```
+DEFINE [<name>];
+```
+
+You can view a list of defined variable with the single `DEFINE` syntax.
+
+Example:
+```
+ksql> DEFINE replicas = 3;
+ksql> DEFINE topicName = '''my_topic''';
+ksql> DEFINE;
+DEFINE replicas = 3;
+DEFINE topicName = 'my_topic';
+```
+
+If you specify the variable name, then you can view the value for that variable.
+
+Example:
+```
+ksql> DEFINE replicas = 3;
+ksql> DEFINE topicName = '''my_topic''';
+ksql> DEFINE replicas;
+DEFINE replicas = 3;
+```
+
+#### Define variables during CLI execution
+
+A new parameter will be added to the CLI command to define variables:
+```
+$ ksql -d id=1 -d format=JSON
+or
+$ ksql --define id=1 --define format=JSON
+```
+
+These parameters with the combination of `-e` or `--file` will allow users to dynamically replace
+variables found in a script file (`--file`) or query string (`-e`).
+
+Example:
+```
+$ ksql -d id=1 -e 'select * from table where id = ${id}'
+or
+$ ksql -d id=1 --file test.sql
+```
+
 ### 2. Scope
 
-This variable has a session scope.
+Variable are temporary available during different scopes. They can be local during a HTTP request, or a session
+during the opening/closing of the CLI or another ksqlDB client plugin.
 
-Variables will live during the session of a ksqlDB connection, then destroyed when the connection is closed. Only the user
-in that session can interact with the defined substitution variables. No other users can interact with other users' variables.
+Only the user that opened the CLI or HTTP request can see the defined variables. No other users can interact
+with other users variables.
 
-In CLI, the session is opened when starting the CLI with the `ksql` command, and destroyed when typing `exit`.
+Context | Scope
+--- | ---
+HTTP requests | LOCAL
+CLI | SESSION
+Java API | SESSION
+Headless | SESSION
+RUN SCRIPT | LOCAL
+SOURCE | SESSION
+
+#### HTTP requests
+
+Scope: LOCAL
+
+Variables may be defined and substituted in the server-side. The scope for the variable is during the execution of a
+HTTP request.
+
+Example:
+```
+# This will successfully execute the below query
+Request 1:
+{
+  "statement" : "
+    DEFINE id = 5;
+    SELECT name FROM table WHERE id = ${id};   
+  "
+}
+
+# This will fail because ${id} is not defined
+Request 2:
+{
+  "statement" : "    
+    SELECT name FROM table WHERE id = ${id};   
+  "
+}
+```
+
+NOTE: This could change in the future, once we introduced session connections with the server. But for now, the scope is kept
+local to the request. The `SET` command behaves similar too.
+
+#### CLI
+
+Scope: SESSION
+
+In CLI, users begin interacting with the server when starting the CLI. In this situation, the session is opened when starting the CLI with the `ksql` command, and destroyed when typing `exit`.
+
+Currently, there is no concept of session between client/server connections. To keep true to a CLI session, the CLI will keep
+defined variables in memory, and then do variable substitution prior to send the HTTP request or include each DEFINE syntax in the
+request (this will be considered during implementation).
+
+Example:
+```
+ksql> DEFINE id = 5;
+ksql> SELECT name FROM table WHERE id = ${id};
++---------+
+|  name   |
++---------+
+|  Max    |
+^C
+Query terminated
+```
+
+#### Java API
+
+Scope: SESSION
 
 In Java API client, the session is opened when `Client.create()` is called, and closed when `Client.close()` is called. Variables
 may be defined using a client method instead of a new syntax. This is to ensure users know the scope starts after the `create()` call.
 
 TBD: Define a Java API method for variable substitution.
+
+Note: Users can use variables and replace variables in strings using Java language features too.
+
+#### Headless Mode
 
 In headless, the session is opened when starting the ksqlDB server with a SQL script. The variables stay alive until the server is
 killed.
@@ -186,13 +290,20 @@ Variables are not persisted anywhere. They are living in memory as long as the s
 
 #### RUN SCRIPT command
 
+Scope: LOCAL
+
 If a `RUN SCRIPT` command is executed in a CLI session, then any variable defined there will be local to the execution context of the
-script. The variables will override any variable previously defined in the session. When the script is completed, all local variables
-defined will be destroyed. This ensures users do not override their session variables by accident when running `RUN SCRIPT` commands.
+script. All statements from the script are sent as one single HTTP request. Variable definition and substitution happen in the server-side
+without using any variables defined in the CLI session.
+
+Note: Variables in the script file will not override session variables either. This keeps users safe to execute scripts without causing
+any disruption to the variables already defined.
 
 #### The SOURCE command
 
-To allow users load variables and keep their scope in the session, then the new `SOURCE` command will be added. This will override
+Scope: SESSION
+
+To allow users load variables and keep their scope in the session, then the new CLI `SOURCE` command will be added. This will override
 any previously defined variables, and will be destroyed until the user leaves the session.
 
 Syntax:
@@ -203,18 +314,19 @@ SOURCE '<script_file>';
 The `SOURCE` command will work like a `RUN SCRIPT`. If other SQL statements are in the file, then those statements will also be
 executed, thus to avoid limiting users from using DDL/DML commands while defining variables at the same time from one single script.
 
-`SOURCE` will be used only on the CLI and headless mode. REST API will not accept it because files may be out of the scope of the server filesystem.
+`SOURCE` will be used only on the CLI.  
+REST API will not accept it because files may be out of the scope of the server filesystem.
 
 ### 3. Referencing substitution variables
 
 Variables will be referenced by wrapping the variable between `${}` characters (i.e. `${replicas}`).
 
-Noe: We need to make changes in QTT tests to use `${}` references instead of `{}` for consistency.
+Note: We need to make changes in QTT tests to use `${}` references instead of `{}` for consistency.
 
 Example:
 ```
-ksql> DEFINE format = 'AVRO';
-ksql> DEFINE replicas = '3';
+ksql> DEFINE format = AVRO;
+ksql> DEFINE replicas = 3;
 ksql> CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1', value_format='${format}', replicas=${replicas});
 ```
 
@@ -230,7 +342,6 @@ column names and stream/table names. Variables cannot be used as reserved keywor
 
 For instance:
 
-Note: `{VAR}` is used a reference where variables are permitted.
 ```
 ksql> CREATE STREAM ${streamName} (${colName1} INT, ${colName2} STRING) \
       WITH (kafka_topic='${topicName}', format='${format}', replicas=${replicas}, ...);
@@ -251,7 +362,7 @@ ksql> DEFINE var2;
 DEFINE var2    = 'other_topic'
 ```
 
-Variables can also be assigned to set server or CLI settings:
+In CLI, variables can also be assigned to set server or CLI settings:
 ```
 ksql> DEFINE offset = 'earliest'
 ksql> SET 'auto.offset.reset' = '${offset}';
@@ -260,46 +371,72 @@ ksql> DEFINE wrap_toggle = 'ON'
 ksql> SET CLI WRAP ${WRAP_TOGGLE}
 ```
 
-Variables can also be used as nested variables:
-```
-ksql> DEFINE env = 'prod';
-
-ksql> DEFINE topic_prod = 'my_prod_topic';
-ksql> DEFINE topic_qa = 'my_qa_topic';
-
-ksql> CREATE STREAM ... WITH (kafka_topic='${topic_${env}}'); 
-```
-
 ### 5. Enable/disable substitution variables
 
-When using CLI, we'll use the `SET CLI VARIABLE-SUBSTITUTION (ON|OFF)` command to enable/disable subsitution. Default will be `ON`.
+The `ksql.variable.substitution.enable` config will be used to enable/disable this feature. The config can be enabled from
+the server-side configuration (ksql-server.properties), or it can be overriden by the users in the CLI or HTTP requests.
+
 ```
-ksql> SET CLI VARIABLE-SUBSTITUTION OFF;
+ksql> set 'ksql.variable.substitution.enable' = 'false';
 ksql> CREATE STREAM ... WITH (kafka_topic='${topic_${env}}');
 Error: Fail because ${topic_${env}} topic name is invalid. 
 ```
 The error message is just an example of what ksqlDB will display.
 
-When using SQL scripts in headless mode, we need to provide a server setting to enable/disable variable substitution. The setting will be
-`ksql.headless.variable.substitution.enable` as Boolean (default = true). The reason is that `SET CLI` is a CLI-specific command not available
-in headless execution. Also, CLI should not request the Server is variable substitution is enabled as that should be a user decision to substitute or not.
-
 ### 6. Implementation
 
-For CLI, variable substitution will happen in the CLI side before making a ksqlDB request to the server. This allows less changes in ksqlDB code as we have  
-the `SET CLI` to enable/disable, and variables will be living in the CLI server memory, so we have quickly access to them.
+Variable substitution will happen in the server-side. This will ensure that all supported ksqlDB clients benefit from this feature.
+Including the use of variables in headless mode.
 
-For headless, variable substitution will happen in the server side. Seems the `KsqlContext` is the right place for that.
+The server will substitute variables that are defined in the HTTP request only.
 
-Variable substitution will be done by using two pre-parsing steps. First, it will use the `KsqlParser.parse()` method to verify variable substitution rules.  
-These rules will be defined in the `SqlBase.g4` syntax file. Once this step passes, then we'll use the `StringSubstitutor` class from Apache libraries to  
-replace `{...}` variables. This library gives us easily variable replacement including nested variables, and others features we can use in the future, such as
-environment variable substitution.
+#### CLI
+
+To allow the CLI use all variables of the CLI session, then the CLI will include the DEFINE syntax for each variable required by the statement.
+
+Example:
+```
+ksql> DEFINE topic1 = '''my_topic''';
+ksql> DEFINE topic2 = '''my_topic''';
+ksql> CREATE STREAM s1 (...) WITH (kafka_topic=${topic1}, ...);
+... the following request will be sent
+{
+  "statements" : "
+     DEFINE topic1 = '''my_topic''';
+     CREATE STREAM s1 (...) WITH (kafka_topic=${topic1}, ...);
+  "
+}
+```
+
+The CLI will use one parsing to find variables, and include them in the request.
+
+There is still the consideration of doing variable substitution in the CLI side. But if sessions are supported in the future,
+then the above approach will disappear, and one request per DEFINE will be sent. Also, there is less code to repeat if we do
+all of it in the server-side.
+
+#### Server
+
+In the server side, variable substitution will be done by the `KsqlParser.prepare()`, which will walk through the statement tree,  
+and replace any variables references.
+
+The rules for where variable substitution is allowed will be defined in `SqlBase.g4`. The parser will throw an error if a variable  
+is used in an invalid place (i.e. attempting to replace SQL keywords).
+
+SQL injection will also be avoided due to the parser walking-tree process. When a variable reference is found in the tree node, the process will
+replace it with the right literal or identifier object, instead of appending the replacement as a SQL string. For instance:
+```
+# This way of replacement may cause SQL injection exploits if `id` expands the SQL string to include other SQL keywords.
+"select * from table where id = " + id
+```
+
+DEFINE statements found in the HTTP request will be temporary available during the request execution. These variables will be
+stored in a Map object and passed to the `KsqlParser` to provide the variables for substitution.
 
 ## Test plan
 
 * Unit tests to validate all new methods
 * Integration tests to verify different variable substitutions (negative and positive cases)
+* Include SQL injection tests that show this exploit is not possible
 
 ## LOEs and Delivery Milestones
 

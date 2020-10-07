@@ -124,13 +124,13 @@ public class KsqlQueryBuilderTest {
 
     queryContext = new QueryContext.Stacker().push("context").getQueryContext();
 
-    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any()))
+    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(keySerde);
 
-    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
+    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(windowedKeySerde);
 
-    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any()))
+    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(valueSerde);
 
     ksqlQueryBuilder = new KsqlQueryBuilder(
@@ -195,7 +195,8 @@ public class KsqlQueryBuilderTest {
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
-        processingLogContext
+        processingLogContext,
+        Optional.empty()
     );
   }
 
@@ -217,7 +218,8 @@ public class KsqlQueryBuilderTest {
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
-        processingLogContext
+        processingLogContext,
+        Optional.empty()
     );
   }
 
@@ -237,7 +239,8 @@ public class KsqlQueryBuilderTest {
         ksqlConfig,
         srClientFactory,
         QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
-        processingLogContext
+        processingLogContext,
+        Optional.empty()
     );
   }
 
@@ -251,7 +254,7 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getLoggerSchemaInfo();
     assertThat(schemas.entrySet(), hasSize(1));
     assertThat(schemas.get("fred.context"), is(new SchemaInfo(
         LOGICAL_SCHEMA,
@@ -272,7 +275,7 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getLoggerSchemaInfo();
     assertThat(schemas.entrySet(), hasSize(1));
     assertThat(schemas.get("fred.context"), is(new SchemaInfo(
         LOGICAL_SCHEMA,
@@ -299,7 +302,7 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getSchemas();
+    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getLoggerSchemaInfo();
     assertThat(schemas.entrySet(), hasSize(1));
     assertThat(schemas.get("fred.context"), is(new SchemaInfo(
         LOGICAL_SCHEMA,

@@ -332,7 +332,7 @@ public final class TestCasePlanLoader {
     }
 
     public Map<String, SchemaNode> getSchemas() {
-      return queryMetadata.getSchemas().entrySet().stream()
+      return queryMetadata.getQuerySchemas().getLoggerSchemaInfo().entrySet().stream()
           .collect(Collectors.toMap(
               Entry::getKey,
               e -> SchemaNode.fromSchemaInfo(e.getValue())));

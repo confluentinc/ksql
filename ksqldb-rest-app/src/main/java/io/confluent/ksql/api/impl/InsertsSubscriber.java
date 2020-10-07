@@ -39,6 +39,7 @@ import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -97,7 +98,8 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     );
 
     final ValueSerdeFactory valueSerdeFactory = new GenericRowSerDe();
@@ -107,7 +109,8 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     );
 
     final BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(context);

@@ -178,10 +178,10 @@ public class InsertValuesExecutorTest {
 
     givenSourceStreamWithSchema(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any()))
+    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(valueSerde);
 
-    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any()))
+    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(keySerDe);
 
     when(clock.getAsLong()).thenReturn(1L);
@@ -856,7 +856,8 @@ public class InsertValuesExecutorTest {
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     );
 
     verify(valueSerdeFactory).create(
@@ -865,7 +866,8 @@ public class InsertValuesExecutorTest {
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     );
   }
 

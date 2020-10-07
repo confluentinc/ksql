@@ -50,8 +50,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.streams.TopologyDescription;
-import org.apache.kafka.streams.TopologyDescription.Processor;
 import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 
 /**
@@ -61,71 +59,33 @@ import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
  * io.confluent.ksql.metastore.model.DataSource} with a matching source topic name in the {@link
  * io.confluent.ksql.metastore.MetaStore}.
  *
- * <p>Info for internal topics is obtained from the {@link PersistentQueryMetadata#getSchemas()}.
- * This is a map of {@code loggerNamePrefix} to {@link SchemaInfo}. This map is populated as a query
- * is built, so presents the <i>actual</i> schema and formats used. This class uses pattern matching
- * against the topic name to determine the correct {@code loggerNamePrefix} to look up and any
- * additional logic needded.
+ * <p>Info for internal topics is obtained from the {@link
+ * PersistentQueryMetadata#getQuerySchemas()}. This is a map of {@code loggerNamePrefix} to {@link
+ * SchemaInfo}. This map is populated as a query is built, so presents the <i>actual</i> schema and
+ * formats used. This class uses pattern matching against the topic name to determine the correct
+ * {@code loggerNamePrefix} to look up and any additional logic needded.
  */
 public class TopicInfoCache {
 
   private static final String TOPIC_PATTERN_PREFIX = "_confluent.*query_(?<queryId>.*_\\d+)-";
 
   private static final List<InternalTopicPattern> INTERNAL_TOPIC_PATTERNS = ImmutableList.of(
-      // GROUP BY repartition topics:
-      new TopicPattern(
-          Pattern.compile(TOPIC_PATTERN_PREFIX + "(?<name>Aggregate-.*)-repartition"),
-          matcher -> matcher.group("queryId") + "." + matcher.group("name").replace("-", ".")
-      ),
       // GROUP BY change-logs and repartition topics:
-      new GroupByChangeLogPattern(
-          Pattern.compile(TOPIC_PATTERN_PREFIX + "(?<name>Aggregate-.*)-changelog"),
-          matcher -> matcher.group("queryId") + "." + matcher.group("name").replace("-", ".")
-      ),
-      // Suppress change-logs:
-      new TopicPattern(
-          Pattern.compile(TOPIC_PATTERN_PREFIX + "Suppress-store-changelog"),
-          matcher -> matcher.group("queryId") + ".Suppress.Suppress"
-      ),
-      // Table changelog:
-      new TopicPattern(
-          Pattern.compile(TOPIC_PATTERN_PREFIX + "KsqlTopic-Reduce-changelog"),
-          matcher -> matcher.group("queryId") + ".KsqlTopic.Source"
-      ),
-      new TopicPattern(
-          Pattern.compile(TOPIC_PATTERN_PREFIX + "KafkaTopic_(?<name>.*)-Reduce-changelog"),
-          matcher -> matcher.group("queryId") + ".KafkaTopic_" + matcher.group("name") + ".Source"
-      ),
-      // Pre-join repartition:
-      new TopicPattern(
-          Pattern.compile(TOPIC_PATTERN_PREFIX + "(?<side1>.*Join)-(?<side2>.*)-repartition"),
-          matcher -> matcher.group("queryId") + "." + matcher.group("side1"),
-          matcher -> matcher.group("queryId") + "." + matcher.group("side1") + "."
-              + capitalizeFirst(matcher.group("side2"))
-      ),
-      new TopicPattern(
-          Pattern.compile(TOPIC_PATTERN_PREFIX + "(?<side>.*)-repartition"),
-          matcher -> matcher.group("queryId") + "." + matcher.group("side"),
-          matcher -> matcher.group("queryId") + "." + matcher.group("side") + ".Left"
+      new InternalTopicPattern(
+          Pattern.compile(TOPIC_PATTERN_PREFIX + "Aggregate-.*-changelog"),
+          GroupByChangeLogPattern::new
       ),
       // Stream-stream join state store change-logs:
-      new StreamStreamJoinChangeLogPattern(
-          Pattern.compile(TOPIC_PATTERN_PREFIX + "(?<storeName>KSTREAM-\\w+-\\d+-store)-changelog")
+      new InternalTopicPattern(
+          Pattern.compile(TOPIC_PATTERN_PREFIX + "KSTREAM-\\w+-\\d+-store-changelog"),
+          StreamStreamJoinChangeLogPattern::new
       ),
       // Catch all
-      new TopicPattern(
+      new InternalTopicPattern(
           Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-(changelog|repartition)"),
-          matcher -> {
-            throw new TestFrameworkException("Unknown internal topic pattern: " + matcher.group(0));
-          }
+          InternalTopic::new
       )
   );
-
-  private static final Pattern WINDOWED_JOIN_PATTERN = Pattern
-      .compile(
-          ".*\\bSELECT\\b.*\\bJOIN\\b.*\\bWITHIN\\b\\s*(?<duration>\\d+\\s+\\w+)\\s*\\bON\\b.*",
-          Pattern.CASE_INSENSITIVE | Pattern.DOTALL
-      );
 
   private final KsqlExecutionContext ksqlEngine;
   private final SchemaRegistryClient srClient;
@@ -156,34 +116,30 @@ public class TopicInfoCache {
   private TopicInfo load(final String topicName) {
     try {
       final Optional<InternalTopic> internalTopic = INTERNAL_TOPIC_PATTERNS.stream()
-          .map(p -> p.match(topicName))
+          .map(e -> e.match(topicName))
           .filter(Optional::isPresent)
           .map(Optional::get)
           .findFirst();
 
       if (internalTopic.isPresent()) {
         // Internal topic:
+        final QueryId queryId = internalTopic.get().queryId();
+
         final PersistentQueryMetadata query = ksqlEngine
-            .getPersistentQuery(internalTopic.get().queryId())
-            .orElseThrow(() -> new TestFrameworkException("Unknown queryId for internal topic: "
-                + internalTopic.get().queryId())
-            );
+            .getPersistentQuery(queryId)
+            .orElseThrow(() ->
+                new TestFrameworkException("Unknown queryId for internal topic: " + queryId));
 
-        final java.util.regex.Matcher windowedJoinMatcher = WINDOWED_JOIN_PATTERN
-            .matcher(query.getStatementString());
+        final SchemaInfo schemaInfo = query.getQuerySchemas().getTopicInfo(topicName);
 
-        final OptionalLong changeLogWindowSize = topicName.endsWith("-changelog")
-            && windowedJoinMatcher.matches()
-            ? OptionalLong
-            .of(DurationParser.parse(windowedJoinMatcher.group("duration")).toMillis())
-            : OptionalLong.empty();
+        final KeyFormat keyFormat = schemaInfo.keyFormat().orElseThrow(IllegalStateException::new);
 
         return new TopicInfo(
             topicName,
             query.getLogicalSchema(),
-            internalTopic.get().keyFormat(query),
-            internalTopic.get().valueFormat(query),
-            changeLogWindowSize
+            internalTopic.get().keyFormat(keyFormat, query),
+            schemaInfo.valueFormat().orElseThrow(IllegalStateException::new),
+            internalTopic.get().changeLogWindowSize(query)
         );
       }
 
@@ -212,134 +168,55 @@ public class TopicInfoCache {
     }
   }
 
-  private static String capitalizeFirst(final String text) {
-    return text.substring(0, 1).toUpperCase() + text.substring(1);
-  }
-
-  private static Processor findFirstProcessorWithStore(
-      final PersistentQueryMetadata query,
-      final String storeName
-  ) {
-    final TopologyDescription description = query.getTopology().describe();
-    return description.subtopologies().stream()
-        .flatMap(subtopology -> subtopology.nodes().stream())
-        .filter(node -> node instanceof TopologyDescription.Processor)
-        .map(TopologyDescription.Processor.class::cast)
-        .filter(node -> node.stores().contains(storeName))
-        .findFirst()
-        .orElseThrow(() -> new TestFrameworkException(
-            "Processor node with store not found. store: " + storeName));
-  }
-
-  private interface InternalTopic {
-
-    QueryId queryId();
-
-    KeyFormat keyFormat(PersistentQueryMetadata query);
-
-    ValueFormat valueFormat(PersistentQueryMetadata query);
-  }
-
-  /**
-   * Impl that gets the topic info from the {@link io.confluent.ksql.schema.query.QuerySchemas}.
-   */
-  private static class QuerySchemasInternalTopic implements InternalTopic {
+  private static class InternalTopic {
 
     private final QueryId queryId;
-    private final Function<PersistentQueryMetadata, String> keyLoggerNameSupplier;
-    private final Function<PersistentQueryMetadata, String> valueLoggerNameSupplier;
 
-    QuerySchemasInternalTopic(
-        final QueryId queryId,
-        final Function<PersistentQueryMetadata, String> keyLoggerNameSupplier,
-        final Function<PersistentQueryMetadata, String> valueLoggerNameSupplier
-    ) {
-      this.queryId = requireNonNull(queryId, "queryId");
-      this.keyLoggerNameSupplier = requireNonNull(keyLoggerNameSupplier, "loggerNamePrefix");
-      this.valueLoggerNameSupplier = requireNonNull(valueLoggerNameSupplier,
-          "valueLoggerNamePrefix");
+    InternalTopic(final Matcher matcher) {
+      this.queryId = new QueryId(matcher.group("queryId"));
     }
 
-    @Override
-    public QueryId queryId() {
+    QueryId queryId() {
       return queryId;
     }
 
-    @Override
-    public KeyFormat keyFormat(final PersistentQueryMetadata query) {
-      final String loggerNamePrefix = keyLoggerNameSupplier.apply(query);
-
-      return getSchemaInfo(query, loggerNamePrefix)
-          .keyFormat()
-          .orElseThrow(() -> new TestFrameworkException(
-              "No key schema registered for schema name: " + loggerNamePrefix));
+    /**
+     * Gives the pattern a chance to adjust the key format
+     */
+    KeyFormat keyFormat(final KeyFormat baseFormat, final PersistentQueryMetadata query) {
+      return baseFormat;
     }
 
-    @Override
-    public ValueFormat valueFormat(final PersistentQueryMetadata query) {
-      final String loggerNamePrefix = valueLoggerNameSupplier.apply(query);
-
-      return getSchemaInfo(query, loggerNamePrefix)
-          .valueFormat()
-          .orElseThrow(() -> new TestFrameworkException(
-              "No value schema registered for schema name: " + loggerNamePrefix));
-    }
-
-    private static SchemaInfo getSchemaInfo(
-        final PersistentQueryMetadata query,
-        final String loggerNamePrefix
-    ) {
-      final SchemaInfo schemaInfo = query.getSchemas().get(loggerNamePrefix);
-      if (schemaInfo == null) {
-        throw new TestFrameworkException(
-            "Unknown schema name for internal topic: " + loggerNamePrefix);
-      }
-
-      return schemaInfo;
+    /**
+     * Used by stream-stream join changelogs of windowed stream, where the statestore key is
+     * double-wrapped in {@link org.apache.kafka.streams.kstream.Windowed}. This can be represented
+     * using {@link KeyFormat} alone.
+     */
+    OptionalLong changeLogWindowSize(final PersistentQueryMetadata query) {
+      return OptionalLong.empty();
     }
   }
 
-  private interface InternalTopicPattern {
-
-    Optional<InternalTopic> match(String topicName);
-  }
-
-  private static class TopicPattern implements InternalTopicPattern {
+  private static class InternalTopicPattern {
 
     private final Pattern pattern;
-    private final Function<Matcher, String> keyMapper;
-    private final Function<Matcher, String> valueMapper;
+    private final Function<Matcher, InternalTopic> topicFactory;
 
-    TopicPattern(final Pattern pattern, final Function<Matcher, String> mapper) {
-      this(pattern, mapper, mapper);
-    }
-
-    TopicPattern(
+    InternalTopicPattern(
         final Pattern pattern,
-        final Function<Matcher, String> keyMapper,
-        final Function<Matcher, String> valueMapper
+        final Function<Matcher, InternalTopic> topicFactory
     ) {
       this.pattern = requireNonNull(pattern, "pattern");
-      this.keyMapper = requireNonNull(keyMapper, "keyMapper");
-      this.valueMapper = requireNonNull(valueMapper, "valueMapper");
+      this.topicFactory = requireNonNull(topicFactory, "topicFactory");
     }
 
-    @Override
-    public Optional<InternalTopic> match(final String topicName) {
+    Optional<InternalTopic> match(final String topicName) {
       final Matcher matcher = pattern.matcher(topicName);
       if (!matcher.matches()) {
         return Optional.empty();
       }
 
-      final QueryId queryId = new QueryId(matcher.group("queryId"));
-
-      final String keyName = keyMapper.apply(matcher);
-      final String valueName = valueMapper.apply(matcher);
-      return Optional.of(new QuerySchemasInternalTopic(
-          queryId,
-          query -> keyName,
-          query -> valueName
-      ));
+      return Optional.of(topicFactory.apply(matcher));
     }
   }
 
@@ -362,9 +239,8 @@ public class TopicInfoCache {
    * windowed serde. Kafka Streams handles that part. This class ensures the windowed part is
    * added.
    */
-  private static class GroupByChangeLogPattern implements InternalTopicPattern {
+  private static class GroupByChangeLogPattern extends InternalTopic {
 
-    // WINDOW TUMBLING (SIZE 1 MINUTE) GROUP BY
     private static final Pattern WINDOWED_GROUP_BY_PATTERN = Pattern
         .compile(
             ".*\\b+WINDOW\\s+(?<windowType>\\w+)\\s+"
@@ -372,127 +248,68 @@ public class TopicInfoCache {
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
         );
 
-    private final TopicPattern topicPattern;
-
-    GroupByChangeLogPattern(
-        final Pattern pattern,
-        final Function<Matcher, String> mapper
-    ) {
-      topicPattern = new TopicPattern(pattern, mapper);
+    GroupByChangeLogPattern(final Matcher matcher) {
+      super(matcher);
     }
 
     @Override
-    public Optional<InternalTopic> match(final String topicName) {
-      return topicPattern.match(topicName)
-          .map(GroupByChangeLongInternalTopic::new);
-    }
-
-    private static class GroupByChangeLongInternalTopic implements InternalTopic {
-
-      private final InternalTopic basicInfo;
-
-      GroupByChangeLongInternalTopic(final InternalTopic basicInfo) {
-        this.basicInfo = requireNonNull(basicInfo, "basicInfo");
+    public KeyFormat keyFormat(final KeyFormat keyFormat, final PersistentQueryMetadata query) {
+      final Matcher matcher = WINDOWED_GROUP_BY_PATTERN.matcher(query.getStatementString());
+      if (!matcher.matches()) {
+        return keyFormat;
       }
 
-      @Override
-      public QueryId queryId() {
-        return basicInfo.queryId();
-      }
+      final WindowType windowType = WindowType.of(matcher.group("windowType"));
+      final Optional<Duration> duration = windowType.requiresWindowSize()
+          ? Optional.of(DurationParser.parse(matcher.group("duration")))
+          : Optional.empty();
 
-      @Override
-      public KeyFormat keyFormat(final PersistentQueryMetadata query) {
-        final KeyFormat keyFormat = basicInfo.keyFormat(query);
-
-        final Matcher matcher = WINDOWED_GROUP_BY_PATTERN.matcher(query.getStatementString());
-        if (!matcher.matches()) {
-          return keyFormat;
-        }
-
-        final WindowType windowType = WindowType.of(matcher.group("windowType"));
-        final Optional<Duration> duration = windowType.requiresWindowSize()
-            ? Optional.of(DurationParser.parse(matcher.group("duration")))
-            : Optional.empty();
-
-        return KeyFormat.windowed(
-            keyFormat.getFormatInfo(),
-            keyFormat.getFeatures(),
-            WindowInfo.of(windowType, duration)
-        );
-      }
-
-      @Override
-      public ValueFormat valueFormat(final PersistentQueryMetadata query) {
-        return basicInfo.valueFormat(query);
-      }
+      return KeyFormat.windowed(
+          keyFormat.getFormatInfo(),
+          keyFormat.getFeatures(),
+          WindowInfo.of(windowType, duration)
+      );
     }
   }
 
   /**
    * Pattern for change logs backing the state stores used in stream-stream joins.
    *
-   * <p>Determining the format requires inspecting at the name of the processor.
+   * <p>Stream-stream joins between windowed sources have a windowed key format, and the state
+   * stores and changelogs used during the join wrap throws windowed keys in another layer of
+   * windowing. This can't be expressed in {@link KeyFormat}. Instead, this class extracts the
+   * changelog window size from the statement, and this is used later to double wrap the raw key
+   * serde.
    */
-  private static class StreamStreamJoinChangeLogPattern implements InternalTopicPattern {
+  private static class StreamStreamJoinChangeLogPattern extends InternalTopic {
 
-    private static final Pattern NODE_NAME_PATTERN = Pattern
-        .compile("(?<side1>.*)-(?<side2>this|other).*");
+    private static final Pattern WINDOWED_JOIN_PATTERN = Pattern.compile(
+        ".*\\bSELECT\\b.*\\bJOIN\\b.*\\bWITHIN\\b\\s*(?<duration>\\d+\\s+\\w+)\\s*\\bON\\b.*",
+        Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
 
-    private final Pattern pattern;
+    private final String topicName;
 
-    StreamStreamJoinChangeLogPattern(
-        final Pattern pattern
-    ) {
-      this.pattern = requireNonNull(pattern, "pattern");
+    StreamStreamJoinChangeLogPattern(final Matcher matcher) {
+      super(matcher);
+      this.topicName = matcher.group(0);
     }
 
     @Override
-    public Optional<InternalTopic> match(final String topicName) {
-      final Matcher matcher = pattern.matcher(topicName);
-      if (!matcher.matches()) {
-        return Optional.empty();
+    OptionalLong changeLogWindowSize(final PersistentQueryMetadata query) {
+      if (!topicName.endsWith("-changelog")) {
+        return OptionalLong.empty();
       }
 
-      final QueryId queryId = new QueryId(matcher.group("queryId"));
-      final String storeName = matcher.group("storeName");
+      final Matcher windowedJoinMatcher = WINDOWED_JOIN_PATTERN
+          .matcher(query.getStatementString());
 
-      return Optional.of(new QuerySchemasInternalTopic(
-          queryId,
-          query -> getKeyLoggerName(queryId, storeName, query),
-          query -> getValueLoggerName(queryId, storeName, query)
-      ));
-    }
-
-    private static String getKeyLoggerName(
-        final QueryId queryId,
-        final String storeName,
-        final PersistentQueryMetadata query
-    ) {
-      final String nodeName = findFirstProcessorWithStore(query, storeName).name();
-      final Matcher matcher = NODE_NAME_PATTERN.matcher(nodeName);
-      if (!matcher.matches()) {
-        throw new TestFrameworkException("node name did not match pattern. "
-            + "name: " + nodeName + ", pattern: " + NODE_NAME_PATTERN);
+      if (!windowedJoinMatcher.matches()) {
+        return OptionalLong.empty();
       }
 
-      return queryId + "." + matcher.group("side1");
-    }
-
-    private static String getValueLoggerName(
-        final QueryId queryId,
-        final String storeName,
-        final PersistentQueryMetadata query
-    ) {
-      final String nodeName = findFirstProcessorWithStore(query, storeName).name();
-      final Matcher matcher = NODE_NAME_PATTERN.matcher(nodeName);
-      if (!matcher.matches()) {
-        throw new TestFrameworkException("node name did not match pattern. "
-            + "name: " + nodeName + ", pattern: " + NODE_NAME_PATTERN);
-      }
-
-      final String side1 = matcher.group("side1");
-      final String side2 = matcher.group("side2");
-      return queryId + "." + side1 + "." + (side2.equals("this") ? "Left" : "Right");
+      return OptionalLong
+          .of(DurationParser.parse(windowedJoinMatcher.group("duration")).toMillis());
     }
   }
 

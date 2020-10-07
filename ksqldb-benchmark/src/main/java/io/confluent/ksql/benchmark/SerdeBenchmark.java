@@ -227,7 +227,8 @@ public class SerdeBenchmark {
           new KsqlConfig(Collections.emptyMap()),
           () -> srClient,
           "benchmark",
-          ProcessingLogContext.create()
+          ProcessingLogContext.create(),
+          Optional.empty()
       );
     }
 

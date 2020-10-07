@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +37,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -84,6 +86,10 @@ public class GenericKeySerDeTest {
   private Deserializer<List<?>> innerDeserializer;
   @Mock
   private Serde<Object> loggingSerde;
+  @Mock
+  private Serde<Object> trackingSerde;
+  @Mock
+  private TrackedCallback callback;
 
   private GenericKeySerDe factory;
 
@@ -93,6 +99,7 @@ public class GenericKeySerDeTest {
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
 
     when(innerSerde.serializer()).thenReturn(innerSerializer);
     when(innerSerde.deserializer()).thenReturn(innerDeserializer);
@@ -101,7 +108,8 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldCreateInnerSerdeNonWindowed() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory);
@@ -111,7 +119,8 @@ public class GenericKeySerDeTest {
   public void shouldCreateInnerSerdeWindowed() {
     // When:
     factory
-        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
 
     // Then:
     verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory);
@@ -120,7 +129,8 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldWrapInLoggingSerdeNonWindowed() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
@@ -130,7 +140,8 @@ public class GenericKeySerDeTest {
   public void shouldWrapInLoggingSerdeWindowed() {
     // When:
     factory
-        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
 
     // Then:
     verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
@@ -139,7 +150,8 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldConfigureLoggingSerdeNonWindowed() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(loggingSerde).configure(ImmutableMap.of(), true);
@@ -149,7 +161,8 @@ public class GenericKeySerDeTest {
   public void shouldConfigureLoggingSerdeWindowed() {
     // When:
     factory
-        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
 
     // Then:
     verify(loggingSerde).configure(ImmutableMap.of(), true);
@@ -159,17 +172,49 @@ public class GenericKeySerDeTest {
   public void shouldReturnLoggingSerdeNonWindowed() {
     // When:
     final Serde<Struct> result = factory
-        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
 
     // Then:
     assertThat(result, is(sameInstance(loggingSerde)));
   }
 
   @Test
+  public void shouldReturnTrackingSerdeNonWindowed() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.of(callback));
+
+    // Then:
+    verify(innerFactory).wrapInTrackingSerde(loggingSerde, callback);
+  }
+
+  @Test
+  public void shouldReturnTrackingSerdeWindowed() {
+    // When:
+    factory.create(format, SESSION_WND, schema, config, srClientFactory, LOGGER_PREFIX,
+        processingLogCxt, Optional.of(callback));
+
+    // Then:
+    verify(innerFactory).wrapInTrackingSerde(loggingSerde, callback);
+  }
+
+  @Test
+  public void shouldNotWrapInTrackingSerdeIfNoCallbackProvided() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
+
+    // Then:
+    verify(innerFactory, never()).wrapInTrackingSerde(any(), any());
+  }
+
+  @Test
   public void shouldReturnedTimeWindowedSerdeForNonSessionWindowed() {
     // When:
     final Serde<Windowed<Struct>> result = factory
-        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
 
     // Then:
     assertThat(result, is(instanceOf(TimeWindowedSerde.class)));
@@ -179,7 +224,9 @@ public class GenericKeySerDeTest {
   public void shouldReturnedSessionWindowedSerdeForSessionWindowed() {
     // When:
     final Serde<Windowed<Struct>> result = factory
-        .create(format, SESSION_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, SESSION_WND, schema, config, srClientFactory, LOGGER_PREFIX,
+            processingLogCxt,
+            Optional.empty());
 
     // Then:
     assertThat(result, is(instanceOf(SessionWindowedSerde.class)));
@@ -192,7 +239,8 @@ public class GenericKeySerDeTest {
 
     // When:
     factory
-        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
 
     // Then (did not throw):
   }
@@ -209,7 +257,8 @@ public class GenericKeySerDeTest {
     final Exception e = assertThrows(
         KsqlException.class,
         () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt)
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
     );
 
     // Then:
@@ -228,7 +277,8 @@ public class GenericKeySerDeTest {
     final Exception e = assertThrows(
         KsqlException.class,
         () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt)
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
     );
 
     // Then:
@@ -247,7 +297,8 @@ public class GenericKeySerDeTest {
     final Exception e = assertThrows(
         KsqlException.class,
         () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt)
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
     );
 
     // Then:
@@ -266,7 +317,8 @@ public class GenericKeySerDeTest {
     final Exception e = assertThrows(
         KsqlException.class,
         () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt)
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
     );
 
     // Then:

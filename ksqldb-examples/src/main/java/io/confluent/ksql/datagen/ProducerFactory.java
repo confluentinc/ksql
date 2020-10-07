@@ -93,7 +93,8 @@ final class ProducerFactory {
             ksqlConfig,
             srClient::get,
             "",
-            NoopProcessingLogContext.INSTANCE
+            NoopProcessingLogContext.INSTANCE,
+            Optional.empty()
         ).serializer();
       }
     };
@@ -119,7 +120,8 @@ final class ProducerFactory {
             ksqlConfig,
             srClient::get,
             "",
-            NoopProcessingLogContext.INSTANCE
+            NoopProcessingLogContext.INSTANCE,
+            Optional.empty()
         ).serializer();
       }
     };

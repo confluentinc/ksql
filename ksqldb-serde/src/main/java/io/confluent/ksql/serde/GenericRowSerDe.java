@@ -23,11 +23,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -80,8 +82,8 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
         ksqlConfig,
         schemaRegistryClientFactory,
         loggerNamePrefix,
-        processingLogContext
-    );
+        processingLogContext,
+        Optional.empty());
   }
 
   @Override
@@ -91,7 +93,8 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<TrackedCallback> tracker
   ) {
     final Serde<List<?>> formatSerde =
         innerFactory.createFormatSerde("Value", format, schema, ksqlConfig, srClientFactory);
@@ -101,9 +104,13 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
     final Serde<GenericRow> loggingSerde = innerFactory
         .wrapInLoggingSerde(genericRowSerde, loggerNamePrefix, processingLogContext);
 
-    loggingSerde.configure(Collections.emptyMap(), false);
+    final Serde<GenericRow> serde = tracker
+        .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))
+        .orElse(loggingSerde);
 
-    return loggingSerde;
+    serde.configure(Collections.emptyMap(), false);
+
+    return serde;
   }
 
   private static Serde<GenericRow> toGenericRowSerde(

@@ -133,7 +133,7 @@ public final class TestExecutorUtil {
           serviceContext.getSchemaRegistryClient());
       testCase.setGeneratedTopologies(
           ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
-      testCase.setGeneratedSchemas(persistentQueryMetadata.getSchemas());
+      testCase.setGeneratedSchemas(persistentQueryMetadata.getQuerySchemas().getLoggerSchemaInfo());
       topologyTestDrivers.add(TopologyTestDriverContainer.of(
           topologyTestDriver,
           sourceTopics,

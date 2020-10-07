@@ -52,6 +52,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SchemaNode;
+import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
@@ -61,6 +62,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
 import org.junit.Test;
@@ -336,7 +339,7 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnTooLittleOutput() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", null, Optional.of(1L), null);
@@ -359,8 +362,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnTooMuchOutput() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
-    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", null, Optional.of(1L), null);
@@ -383,8 +386,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnUnexpectedOutput() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
-    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", TextNode.valueOf("v1"),
@@ -407,8 +410,8 @@ public class TestExecutorTest {
   @Test
   public void shouldPassOnExpectedOutput() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
-    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", TextNode.valueOf("v1"),
@@ -426,8 +429,8 @@ public class TestExecutorTest {
   @Test
   public void shouldHandleNonStringKeys() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, 1, "v1");
-    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, 1, "v2");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, 1, "v1");
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, 1, "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, 1, "v1", TextNode.valueOf("v1"),
@@ -510,18 +513,42 @@ public class TestExecutorTest {
     allSources.put(sourceName, dataSource);
   }
 
-  private static ProducerRecord<?, ?> producerRecord(
+  private static ProducerRecord<byte[], byte[]> producerRecord(
       final Topic topic,
       final long rowTime,
-      final Object key,
+      final String key,
       final String value
   ) {
-    return new ProducerRecord<>(
+    return producerRecord(topic, rowTime, key, value, Serdes.String().serializer());
+  }
+
+  private static ProducerRecord<byte[], byte[]> producerRecord(
+      final Topic topic,
+      final long rowTime,
+      final int key,
+      final String value
+  ) {
+    return producerRecord(topic, rowTime, key, value, Serdes.Integer().serializer());
+  }
+
+  private static <K> ProducerRecord<byte[], byte[]> producerRecord(
+      final Topic topic,
+      final long rowTime,
+      final K key,
+      final String value,
+      final Serializer<K> keySerializer
+  ) {
+    final byte[] serializedKey = keySerializer.serialize("", key);
+    final byte[] serializeValue = new ValueSpecJsonSerdeSupplier(false)
+        .getSerializer(null)
+        .serialize("", value);
+
+    return new ProducerRecord<byte[], byte[]>(
         topic.getName(),
         1,
         rowTime,
-        key,
-        value
+        serializedKey,
+        serializeValue
     );
   }
 }

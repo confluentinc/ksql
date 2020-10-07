@@ -71,6 +71,8 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.hamcrest.Matcher;
@@ -231,16 +233,101 @@ public class TestExecutor implements Closeable {
     final Map<String, List<Record>> expectedByTopic = testCase.getOutputRecords().stream()
         .collect(Collectors.groupingBy(Record::getTopicName));
 
-    final Map<String, List<ProducerRecord<?, ?>>> actualByTopic = expectedByTopic.keySet().stream()
+    final Map<String, List<ProducerRecord<byte[], byte[]>>> actualByTopic = expectedByTopic.keySet()
+        .stream()
         .collect(Collectors.toMap(Function.identity(), kafka::readRecords));
 
-    expectedByTopic.forEach((kafkaTopic, expectedRecords) ->
-        validateTopicData(
-            kafkaTopic,
-            expectedRecords,
-            actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()),
-            ranWithInsertStatements
-        ));
+    expectedByTopic.forEach((kafkaTopic, expectedRecords) -> {
+      final TopicInfo topicInfo = topicInfoCache.get(kafkaTopic);
+
+      final List<ProducerRecord<?, ?>> actualRecords = actualByTopic
+          .getOrDefault(kafkaTopic, ImmutableList.of())
+          .stream()
+          .map(rec -> deserialize(rec, topicInfo))
+          .collect(Collectors.toList());
+
+      validateTopicData(
+          kafkaTopic,
+          expectedRecords,
+          actualRecords,
+          ranWithInsertStatements
+      );
+    });
+  }
+
+  private ProducerRecord<?, ?> deserialize(
+      final ProducerRecord<byte[], byte[]> rec,
+      final TopicInfo topicInfo
+  ) {
+    final Object key;
+    final Object value;
+
+    try {
+      key = topicInfo.getKeyDeserializer().deserialize(rec.topic(), rec.key());
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to deserialize key: " + e.getMessage()
+          + System.lineSeparator()
+          + "rec: " + rec,
+          e
+      );
+    }
+
+    try {
+      value = topicInfo.getValueDeserializer().deserialize(rec.topic(), rec.value());
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to deserialize value: " + e.getMessage()
+          + System.lineSeparator()
+          + "rec: " + rec,
+          e
+      );
+    }
+
+    return new ProducerRecord<>(
+        rec.topic(),
+        rec.partition(),
+        rec.timestamp(),
+        key,
+        value,
+        rec.headers()
+    );
+  }
+
+  private ProducerRecord<byte[], byte[]> serialize(
+      final ProducerRecord<?, ?> rec
+  ) {
+    final TopicInfo topicInfo = topicInfoCache.get(rec.topic());
+
+    final byte[] key;
+    final byte[] value;
+
+    try {
+      key = topicInfo.getKeySerializer().serialize(rec.topic(), rec.key());
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to serialize value: " + e.getMessage()
+          + System.lineSeparator()
+          + "rec: " + rec,
+          e
+      );
+    }
+
+    try {
+      value = topicInfo.getValueSerializer().serialize(rec.topic(), rec.value());
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to serialize value: " + e.getMessage()
+          + System.lineSeparator()
+          + "rec: " + rec,
+          e
+      );
+    }
+
+    return new ProducerRecord<>(
+        rec.topic(),
+        rec.partition(),
+        rec.timestamp(),
+        key,
+        value,
+        rec.headers()
+    );
   }
 
   private static void validateTopicData(
@@ -327,7 +414,7 @@ public class TestExecutor implements Closeable {
     for (final Record record : testCase.getInputRecords()) {
       if (testDriver.getSourceTopicNames().contains(record.getTopicName())) {
         processSingleRecord(
-            record.asProducerRecord(),
+            serialize(record.asProducerRecord()),
             testDriver,
             ImmutableSet.copyOf(kafka.getAllTopics())
         );
@@ -348,17 +435,16 @@ public class TestExecutor implements Closeable {
   }
 
   private void processSingleRecord(
-      final ProducerRecord<?, ?> producedRecord,
+      final ProducerRecord<byte[], byte[]> producedRecord,
       final TopologyTestDriverContainer testDriver,
       final Set<Topic> possibleSinkTopics
   ) {
     final String topicName = producedRecord.topic();
-    final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
     final ConsumerRecord<byte[], byte[]> consumerRecord =
         new org.apache.kafka.streams.test.ConsumerRecordFactory<>(
-            topicInfo.getKeySerializer(),
-            topicInfo.getValueSerializer()
+            new ByteArraySerializer(),
+            new ByteArraySerializer()
         ).create(
             topicName,
             producedRecord.key(),
@@ -390,36 +476,18 @@ public class TestExecutor implements Closeable {
       final TopologyTestDriver topologyTestDriver,
       final Topic sinkTopic
   ) {
-    int idx = 0;
     while (true) {
-      final ProducerRecord<?, ?> producerRecord = readOutput(topologyTestDriver, sinkTopic, idx++);
+      final ProducerRecord<byte[], byte[]> producerRecord = topologyTestDriver.readOutput(
+          sinkTopic.getName(),
+          new ByteArrayDeserializer(),
+          new ByteArrayDeserializer()
+      );
+
       if (producerRecord == null) {
         break;
       }
 
       kafka.writeRecord(producerRecord);
-    }
-  }
-
-  private ProducerRecord<?, ?> readOutput(
-      final TopologyTestDriver topologyTestDriver,
-      final Topic sinkTopic,
-      final int idx
-  ) {
-    try {
-      final TopicInfo topicInfo = topicInfoCache.get(sinkTopic.getName());
-
-      return topologyTestDriver.readOutput(
-          sinkTopic.getName(),
-          topicInfo.getKeyDeserializer(),
-          topicInfo.getValueDeserializer()
-      );
-    } catch (final Exception e) {
-      throw new AssertionError("Topic " + sinkTopic.getName()
-          + ": Failed to read record " + idx
-          + ". " + e.getMessage(),
-          e
-      );
     }
   }
 
@@ -476,12 +544,13 @@ public class TestExecutor implements Closeable {
         .build();
   }
 
-  private static void writeInputIntoTopics(
+  private void writeInputIntoTopics(
       final List<Record> inputRecords,
       final StubKafkaService kafka
   ) {
     inputRecords.stream()
         .map(Record::asProducerRecord)
+        .map(this::serialize)
         .forEach(kafka::writeRecord);
   }
 

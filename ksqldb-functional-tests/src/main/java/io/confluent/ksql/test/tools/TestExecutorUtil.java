@@ -320,7 +320,7 @@ public final class TestExecutorUtil {
               buildUrl(),
               false);
 
-          StubInsertValuesExecutor.of(stubKafkaService, engine).execute(
+          StubInsertValuesExecutor.of(stubKafkaService).execute(
               insertValues,
               sessionProperties,
               engine,

@@ -30,6 +30,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class StubKafkaServiceTest {
 
@@ -38,7 +39,7 @@ public class StubKafkaServiceTest {
   @Mock
   private ParsedSchema avroSchema;
   @Mock
-  private ProducerRecord<String, String> producerRecord;
+  private ProducerRecord<byte[], byte[]> producerRecord;
 
   private StubKafkaService kafka;
   private Topic topic;

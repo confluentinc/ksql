@@ -52,7 +52,7 @@
         "CREATE STREAM OUTPUT WITH (wrap_single_value=false) AS SELECT * FROM INPUT;"
       ],
       "topics": [
-        {"name": "OUTPUT", "schema": {"name": "KsqlRecord", "type": "record", "fields": [{"name": "FOO", "type": "string"}]}}
+        {"name": "OUTPUT", "valueSchema": {"name": "KsqlRecord", "type": "record", "fields": [{"name": "FOO", "type": "string"}]}}
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",

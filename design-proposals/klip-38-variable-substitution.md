@@ -2,8 +2,8 @@
 
 **Author**: Sergio Peña (@spena) |
 **Release Target**: 0.14 |
-**Status**: _In Discussion_ |
-**Discussion**: TBD
+**Status**: _In development_ |
+**Discussion**: https://github.com/confluentinc/ksql/pull/6259
 
 **tl;dr:** _Allow users to use variable substitution in SQL statements. Variable substitution enable users to write SQL scripts with customized output based on their environment needs._
 
@@ -216,7 +216,6 @@ CLI | SESSION
 Java API | SESSION
 Headless | SESSION
 RUN SCRIPT | LOCAL
-SOURCE | SESSION
 
 #### HTTP requests
 
@@ -298,24 +297,6 @@ without using any variables defined in the CLI session.
 
 Note: Variables in the script file will not override session variables either. This keeps users safe to execute scripts without causing
 any disruption to the variables already defined.
-
-#### The SOURCE command
-
-Scope: SESSION
-
-To allow users load variables and keep their scope in the session, then the new CLI `SOURCE` command will be added. This will override
-any previously defined variables, and will be destroyed until the user leaves the session.
-
-Syntax:
-```
-SOURCE '<script_file>';
-```
-
-The `SOURCE` command will work like a `RUN SCRIPT`. If other SQL statements are in the file, then those statements will also be
-executed, thus to avoid limiting users from using DDL/DML commands while defining variables at the same time from one single script.
-
-`SOURCE` will be used only on the CLI.  
-REST API will not accept it because files may be out of the scope of the server filesystem.
 
 ### 3. Referencing substitution variables
 

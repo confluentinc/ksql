@@ -189,8 +189,8 @@ public class TopicInfoCache {
 
     /**
      * Used by stream-stream join changelogs of windowed stream, where the statestore key is
-     * double-wrapped in {@link org.apache.kafka.streams.kstream.Windowed}. This can't be represented
-     * using {@link KeyFormat} alone.
+     * double-wrapped in {@link org.apache.kafka.streams.kstream.Windowed}. This can't be
+     * represented using {@link KeyFormat} alone.
      */
     OptionalLong changeLogWindowSize(final PersistentQueryMetadata query) {
       return OptionalLong.empty();

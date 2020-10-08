@@ -231,11 +231,17 @@ public final class PullQueryExecutor {
 
       List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
       List<List<?>> tableRows = new ArrayList<>();
-      for (Object keyBound : whereInfo.keysBound) {
-        final Struct key = asKeyStruct(keyBound, query.getPhysicalSchema());
+      List<List<Struct>> keysByLocation = mat.locator().splitByLocation(
+          whereInfo.keysBound.stream()
+              .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
+              .collect(Collectors.toList())
+      );
+      for (List<Struct> keys : keysByLocation) {
+//
+//        final Struct key = asKeyStruct(keyBound, query.getPhysicalSchema());
 
         final PullQueryContext pullQueryContext = new PullQueryContext(
-            key,
+            keys,
             mat,
             analysis,
             whereInfo,
@@ -285,8 +291,9 @@ public final class PullQueryExecutor {
   ) {
     // Get active and standby nodes for this key
     final Locator locator = pullQueryContext.mat.locator();
+    final Struct key = Iterables.getLast(pullQueryContext.keys);
     final List<KsqlNode> filteredAndOrderedNodes = locator.locate(
-        pullQueryContext.key,
+        key,
         routingOptions,
         routingFilterFactory
     );
@@ -351,17 +358,23 @@ public final class PullQueryExecutor {
     if (pullQueryContext.whereInfo.windowBounds.isPresent()) {
       final WindowBounds windowBounds = pullQueryContext.whereInfo.windowBounds.get();
 
-      final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
-          .get(pullQueryContext.key, windowBounds.start, windowBounds.end);
-
-      result = new Result(pullQueryContext.mat.schema(), rows);
+      ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
+      for (Struct key : pullQueryContext.keys) {
+        final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
+            .get(key, windowBounds.start, windowBounds.end);
+        allRows.addAll(rows);
+      }
+      result = new Result(pullQueryContext.mat.schema(), allRows.build());
     } else {
-      final List<? extends TableRow> rows = pullQueryContext.mat.nonWindowed()
-          .get(pullQueryContext.key)
-          .map(ImmutableList::of)
-          .orElse(ImmutableList.of());
-
-      result = new Result(pullQueryContext.mat.schema(), rows);
+      ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
+      for (Struct key : pullQueryContext.keys) {
+        final List<? extends TableRow> rows = pullQueryContext.mat.nonWindowed()
+            .get(key)
+            .map(ImmutableList::of)
+            .orElse(ImmutableList.of());
+        allRows.addAll(rows);
+      }
+      result = new Result(pullQueryContext.mat.schema(), allRows.build());
     }
 
     final LogicalSchema outputSchema;
@@ -470,7 +483,7 @@ public final class PullQueryExecutor {
 
   private static final class PullQueryContext {
 
-    private final Struct key;
+    private final List<Struct> keys;
     private final Materialization mat;
     private final ImmutableAnalysis analysis;
     private final WhereInfo whereInfo;
@@ -479,7 +492,7 @@ public final class PullQueryExecutor {
     private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
     private PullQueryContext(
-        final Struct key,
+        final List<Struct> keys,
         final Materialization mat,
         final ImmutableAnalysis analysis,
         final WhereInfo whereInfo,
@@ -488,7 +501,7 @@ public final class PullQueryExecutor {
         final Optional<PullQueryExecutorMetrics> pullQueryMetrics
 
     ) {
-      this.key = Objects.requireNonNull(key, "key");
+      this.keys = Objects.requireNonNull(keys, "keys");
       this.mat = Objects.requireNonNull(mat, "materialization");
       this.analysis = Objects.requireNonNull(analysis, "analysis");
       this.whereInfo = Objects.requireNonNull(whereInfo, "whereInfo");

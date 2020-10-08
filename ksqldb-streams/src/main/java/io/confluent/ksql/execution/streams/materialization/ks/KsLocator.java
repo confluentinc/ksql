@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -28,7 +29,10 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -116,6 +120,18 @@ final class KsLocator implements Locator {
 
     LOG.debug("Filtered and ordered hosts: {}", filteredHosts);
     return filteredHosts;
+  }
+
+  @Override
+  public List<List<Struct>> splitByLocation(List<Struct> keys) {
+    Map<String, List<Struct>> split = new HashMap<>();
+    for (Struct key : keys) {
+      final KeyQueryMetadata metadata = kafkaStreams
+          .queryMetadataForKey(stateStoreName, key, keySerializer);
+      split.computeIfAbsent(metadata.activeHost().toString(), active -> new ArrayList<>());
+      split.get(metadata.activeHost().toString()).add(key);
+    }
+    return ImmutableList.copyOf(split.values());
   }
 
   @VisibleForTesting

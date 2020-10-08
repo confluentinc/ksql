@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
@@ -44,6 +45,8 @@ public interface Locator {
       RoutingOptions routingOptions,
       RoutingFilterFactory routingFilterFactory
   );
+
+  List<List<Struct>> splitByLocation(List<Struct> keys);
 
   interface KsqlNode {
 

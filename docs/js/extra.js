@@ -28,7 +28,7 @@
   }
 
   function versionSelector(config) {
-    var nav = document.querySelector('nav');
+    var repo = document.querySelector('nav .md-header-nav__source');
     var select = document.createElement('select');
 
     var segs = window.location.pathname.split('/');
@@ -62,7 +62,7 @@
       selectVersion(e.target.value);
     });
 
-    nav.append(select);
+    repo.insertAdjacentElement('afterend', select);
     select.classList.add('version');
   }
 

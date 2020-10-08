@@ -95,6 +95,8 @@ Lambda functions should require a specific **invocation function**, which tells 
 
 * `reduce_map(map, s, (k, v, s) => s)` - Reduces the input `Map` down to a single value. `s` is the initial state and is passed into the scope of the lambda function. Each invocation returns a new value for `s`, which the next invocation will receive. `reduce_map` will return the final value of `s`.
 
+These invocation functions should be implemented using our own UDF interface, which will require extending the interface to support lambda functions as arguments. This will allow users to implement their own UDFs that take advantage of lambda functions, while also making it easier for us to introduce more invocation functions in the future.
+
 ## Documentation updates
 
 We must document and provide examples for the two core aspects of lambda functions:
@@ -110,16 +112,3 @@ Lambda functions would be additive to ksqlDB's grammar and should therefore not 
 
 Since lambda functions would only allow SQL expressions that can already be used within queries, no new security implications should be introduced.
 
-## Open questions
-
-~~**1. Would it be possible to allow aggregates in lambdas within the context of a particular invocation function? For example,**~~
-
-~~- `agg_array(arr, x => sum(x))`~~
-
-~~If this is feasible then it would likely be worth doing. Without support for aggregates, users will not be able to easily perform any aggregation over a collection using `reduce_*`.~~
-
-**2. Would allowing lambda functions to be applied to types other than `Array` or `Map` provide any value?**
-
-**3. Will the lambda function implementation require backward-incompatible changes to ksqlDB's internals?**
-
-~~**4. Should we extend ksqlDB's UDF interface to allow users to write their own lambda invocation functions?**~~

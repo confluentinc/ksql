@@ -31,6 +31,7 @@ import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -135,6 +136,8 @@ public class TestExecutor implements Closeable {
     final KsqlConfig ksqlConfig = testCase.applyPersistedProperties(new KsqlConfig(config));
 
     try {
+      System.setProperty(KsqlQueryBuilder.KSQL_TEST_TRACK_SERDE_TOPICS, "true");
+
       final List<TopologyTestDriverContainer> topologyTestDrivers = topologyBuilder
           .buildStreamsTopologyTestDrivers(
               testCase,
@@ -219,6 +222,8 @@ public class TestExecutor implements Closeable {
       }
 
       assertThat(e, isThrowable(expectedExceptionMatcher.get()));
+    } finally {
+      System.clearProperty(KsqlQueryBuilder.KSQL_TEST_TRACK_SERDE_TOPICS);
     }
   }
 

@@ -158,8 +158,10 @@ public class CreateSourceFactoryTest {
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
-    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(keySerde);
-    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(valueSerde);
+    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(keySerde);
+    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(valueSerde);
     when(keyOptionsSupplier.build(any(), any(), any(), any()))
         .thenReturn(SerdeFeatures.of());
     when(valOptionsSupplier.build(any(), any(), any(), any()))
@@ -623,7 +625,8 @@ public class CreateSourceFactoryTest {
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     )).thenThrow(new RuntimeException("Boom!"));
 
     // When:
@@ -649,7 +652,8 @@ public class CreateSourceFactoryTest {
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     )).thenThrow(new RuntimeException("Boom!"));
 
     // When:

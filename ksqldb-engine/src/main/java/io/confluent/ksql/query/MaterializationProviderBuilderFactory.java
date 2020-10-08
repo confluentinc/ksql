@@ -91,7 +91,8 @@ public final class MaterializationProviderBuilderFactory {
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     ).serializer();
 
     final Optional<KsMaterialization> ksMaterialization = ksMaterializationFactory

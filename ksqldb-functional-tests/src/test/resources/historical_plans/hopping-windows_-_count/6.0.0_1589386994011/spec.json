@@ -241,11 +241,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "format" : "KAFKA",
-            "windowInfo" : {
-              "type" : "HOPPING",
-              "size" : 5.000000000
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

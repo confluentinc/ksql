@@ -35,14 +35,22 @@ import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public final class KsqlQueryBuilder {
+
+  /**
+   * System property to turn on tracking of serde operations. Must never be turned on in production
+   * code as it will kill performance. Required by QueryTranslationTest.
+   */
+  public static final String KSQL_TEST_TRACK_SERDE_TOPICS = "ksql.test.track.serde.topics";
 
   private final StreamsBuilder streamsBuilder;
   private final KsqlConfig ksqlConfig;
@@ -52,7 +60,7 @@ public final class KsqlQueryBuilder {
   private final KeySerdeFactory keySerdeFactory;
   private final ValueSerdeFactory valueSerdeFactory;
   private final QueryId queryId;
-  private final QuerySchemas.Builder schemas = QuerySchemas.builder();
+  private final QuerySchemas schemas = new QuerySchemas();
 
   public static KsqlQueryBuilder of(
       final StreamsBuilder streamsBuilder,
@@ -118,7 +126,7 @@ public final class KsqlQueryBuilder {
   }
 
   public QuerySchemas getSchemas() {
-    return schemas.build();
+    return schemas;
   }
 
   public QueryId getQueryId() {
@@ -147,7 +155,7 @@ public final class KsqlQueryBuilder {
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
-    schemas.track(
+    schemas.trackKeySerdeCreation(
         loggerNamePrefix,
         schema.logicalSchema(),
         KeyFormat.nonWindowed(format, schema.keySchema().features())
@@ -159,7 +167,8 @@ public final class KsqlQueryBuilder {
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         loggerNamePrefix,
-        processingLogContext
+        processingLogContext,
+        getSerdeTracker(loggerNamePrefix)
     );
   }
 
@@ -171,7 +180,7 @@ public final class KsqlQueryBuilder {
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
-    schemas.track(
+    schemas.trackKeySerdeCreation(
         loggerNamePrefix,
         schema.logicalSchema(),
         KeyFormat.windowed(format, schema.keySchema().features(), window)
@@ -184,7 +193,8 @@ public final class KsqlQueryBuilder {
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         loggerNamePrefix,
-        processingLogContext
+        processingLogContext,
+        getSerdeTracker(loggerNamePrefix)
     );
   }
 
@@ -195,7 +205,7 @@ public final class KsqlQueryBuilder {
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
-    schemas.track(
+    schemas.trackValueSerdeCreation(
         loggerNamePrefix,
         schema.logicalSchema(),
         ValueFormat.of(format, schema.valueSchema().features())
@@ -207,7 +217,18 @@ public final class KsqlQueryBuilder {
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         loggerNamePrefix,
-        processingLogContext
+        processingLogContext,
+        getSerdeTracker(loggerNamePrefix)
+    );
+  }
+
+  private Optional<TrackedCallback> getSerdeTracker(final String loggerNamePrefix) {
+    if (System.getProperty(KSQL_TEST_TRACK_SERDE_TOPICS) == null) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        (topicName, key) -> schemas.trackSerdeOp(topicName, key, loggerNamePrefix)
     );
   }
 }

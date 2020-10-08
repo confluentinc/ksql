@@ -135,7 +135,8 @@
             "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
           }
         }, {
           "name" : "S",

@@ -25,6 +25,8 @@ import io.confluent.ksql.logging.processing.LoggingSerializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
+import io.confluent.ksql.serde.tracked.TrackedSerde;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Objects;
@@ -89,5 +91,13 @@ final class GenericSerdeFactory {
         new LoggingSerializer<>(formatSerde.serializer(), serializerProcessingLogger),
         new LoggingDeserializer<>(formatSerde.deserializer(), deserializerProcessingLogger)
     );
+  }
+
+  @SuppressWarnings("MethodMayBeStatic") // Part of injected API
+  <T> Serde<T> wrapInTrackingSerde(
+      final Serde<T> serde,
+      final TrackedCallback callback
+  ) {
+    return TrackedSerde.from(serde, callback);
   }
 }

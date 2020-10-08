@@ -152,7 +152,7 @@ public class QueryDescriptionFactoryTest {
         APPLICATION_ID,
         topology,
         kafkaStreamsBuilder,
-        QuerySchemas.builder().build(),
+        new QuerySchemas(),
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,

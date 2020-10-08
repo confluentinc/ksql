@@ -32,8 +32,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  Something c1 = 1;\n\n  message Something {\n    int32 f1 = 1;\n  }\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  Something c1 = 1;\n\n  message Something {\n    int32 f1 = 1;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 1
     }, {

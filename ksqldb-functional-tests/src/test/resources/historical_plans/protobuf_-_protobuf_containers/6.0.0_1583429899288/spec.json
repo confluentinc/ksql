@@ -34,8 +34,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated string ASTR = 1;\n  repeated ConnectDefault2Entry MSTR = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    string value = 2;\n  }\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated string ASTR = 1;\n  repeated ConnectDefault2Entry MSTR = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    string value = 2;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     }, {

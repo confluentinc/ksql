@@ -45,8 +45,8 @@
     } ],
     "topics" : [ {
       "name" : "OUTPUT",
-      "schema" : "boolean",
-      "format" : "AVRO",
+      "valueSchema" : "boolean",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 1
     }, {

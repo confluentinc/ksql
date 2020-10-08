@@ -45,20 +45,25 @@
     "statements" : [ "CREATE STREAM INPUT (V ARRAY<DOUBLE>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`V` ARRAY<DOUBLE>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        }
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`V` ARRAY<DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
         "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`V` ARRAY<DOUBLE>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {

@@ -40,7 +40,7 @@
     } ],
     "topics" : [ {
       "name" : "test",
-      "schema" : {
+      "valueSchema" : {
         "type" : "object",
         "properties" : {
           "DEC" : {
@@ -60,7 +60,7 @@
           }
         }
       },
-      "format" : "JSON",
+      "valueFormat" : "JSON",
       "replicas" : 1,
       "numPartitions" : 4
     }, {

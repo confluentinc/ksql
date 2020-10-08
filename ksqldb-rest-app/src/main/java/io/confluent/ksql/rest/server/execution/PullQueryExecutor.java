@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil.QueryType;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -102,6 +103,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -227,26 +229,35 @@ public final class PullQueryExecutor {
           .getMaterialization(queryId, contextStacker)
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
-      final Struct key = asKeyStruct(whereInfo.keyBound, query.getPhysicalSchema());
+      List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
+      List<List<?>> tableRows = new ArrayList<>();
+      for (Object keyBound : whereInfo.keysBound) {
+        final Struct key = asKeyStruct(keyBound, query.getPhysicalSchema());
 
-      final PullQueryContext pullQueryContext = new PullQueryContext(
-          key,
-          mat,
-          analysis,
-          whereInfo,
-          queryId,
-          contextStacker,
-          pullQueryMetrics);
+        final PullQueryContext pullQueryContext = new PullQueryContext(
+            key,
+            mat,
+            analysis,
+            whereInfo,
+            queryId,
+            contextStacker,
+            pullQueryMetrics);
 
-      final PullQueryResult result = handlePullQuery(
-          statement,
-          executionContext,
-          serviceContext,
-          pullQueryContext,
-          routingOptions
-      );
+        final PullQueryResult result = handlePullQuery(
+            statement,
+            executionContext,
+            serviceContext,
+            pullQueryContext,
+            routingOptions
+        );
 
-      return result;
+        sourceNodes.add(result.getSourceNode());
+        tableRows.addAll(result.getTableRows().getRows());
+      }
+      return new PullQueryResult(
+          new TableRows(statement.getStatementText(), queryId, query.getLogicalSchema(), tableRows),
+          Iterables.getFirst(sourceNodes, Optional.empty()));
+
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
@@ -503,14 +514,14 @@ public final class PullQueryExecutor {
 
   private static final class WhereInfo {
 
-    private final Object keyBound;
+    private final List<Object> keysBound;
     private final Optional<WindowBounds> windowBounds;
 
     private WhereInfo(
-        final Object keyBound,
+        final List<Object> keysBound,
         final Optional<WindowBounds> windowBounds
     ) {
-      this.keyBound = keyBound;
+      this.keysBound = keysBound;
       this.windowBounds = Objects.requireNonNull(windowBounds);
     }
   }
@@ -540,30 +551,56 @@ public final class PullQueryExecutor {
 
     final Map<ComparisonTarget, List<ComparisonExpression>> comparisons =
         extractComparisons(where, query);
-
-    final List<ComparisonExpression> keyComparison = comparisons.get(ComparisonTarget.KEYCOL);
-    if (keyComparison == null) {
-      throw invalidWhereClauseException("WHERE clause missing key column", windowed);
-    }
-
-    final Object key = extractKeyWhereClause(
-        keyComparison,
-        windowed,
-        query.getLogicalSchema()
-    );
-
-    if (!windowed) {
-      if (comparisons.size() > 1) {
-        throw invalidWhereClauseException("Unsupported WHERE clause", false);
+    if (comparisons.size() > 0) {
+      final List<ComparisonExpression> keyComparison = comparisons.get(ComparisonTarget.KEYCOL);
+      if (keyComparison == null) {
+        throw invalidWhereClauseException("WHERE clause missing key column", windowed);
       }
 
-      return new WhereInfo(key, Optional.empty());
+      final Object key = extractKeyWhereClause(
+          keyComparison,
+          windowed,
+          query.getLogicalSchema()
+      );
+
+      if (!windowed) {
+        if (comparisons.size() > 1) {
+          throw invalidWhereClauseException("Unsupported WHERE clause", false);
+        }
+
+        return new WhereInfo(ImmutableList.of(key), Optional.empty());
+      }
+
+      final WindowBounds windowBounds =
+          extractWhereClauseWindowBounds(comparisons);
+
+      return new WhereInfo(ImmutableList.of(key), Optional.of(windowBounds));
     }
+    Optional<InPredicate> inPredicate = extractInPredicate(where, query);
+    if (inPredicate.isPresent()) {
+      List<Object> keyValues = extractKeysFromInPredicate(inPredicate.get(), windowed,
+          query.getLogicalSchema());
 
-    final WindowBounds windowBounds =
-        extractWhereClauseWindowBounds(comparisons);
+      return new WhereInfo(keyValues, Optional.empty());
+    }
+    throw invalidWhereClauseException("Unsupported expression: " + where, false);
+  }
 
-    return new WhereInfo(key, Optional.of(windowBounds));
+  private static List<Object> extractKeysFromInPredicate(
+      final InPredicate inPredicate,
+      final boolean windowed,
+      final LogicalSchema schema
+  ) {
+    List<Object> result = new ArrayList<>();
+    for (Expression expression : inPredicate.getValueList().getValues()) {
+      if (!(expression instanceof Literal)) {
+        throw new KsqlException("Ony comparison to literals is currently supported: "
+            + inPredicate);
+      }
+      final Object value = ((Literal) expression).getValue();
+      result.add(coerceKey(schema, value, windowed));
+    }
+    return result;
   }
 
   private static Object extractKeyWhereClause(
@@ -763,6 +800,53 @@ public final class PullQueryExecutor {
     );
   }
 
+  private static Optional<InPredicate> extractInPredicate(
+      final Expression exp,
+      final PersistentQueryMetadata query
+  ) {
+    if (exp instanceof InPredicate) {
+      final InPredicate inPredicate = (InPredicate) exp;
+      extractWhereClauseTarget(inPredicate, query);
+      return Optional.of(inPredicate);
+    }
+
+    if (exp instanceof LogicalBinaryExpression) {
+      final LogicalBinaryExpression binary = (LogicalBinaryExpression) exp;
+      if (binary.getType() != LogicalBinaryExpression.Type.AND) {
+        throw invalidWhereClauseException("Only AND expressions are supported: " + exp, false);
+      }
+
+      final Optional<InPredicate> left =
+          extractInPredicate(binary.getLeft(), query);
+
+      final Optional<InPredicate> right =
+          extractInPredicate(binary.getRight(), query);
+
+      if (left.isPresent() && right.isPresent()) {
+        throw invalidWhereClauseException("Only one IN expression allowed:" + exp, false);
+      }
+      return left.isPresent() ? left : right;
+    }
+
+    return Optional.empty();
+  }
+
+  private static void extractWhereClauseTarget(
+      final InPredicate inPredicate,
+      final PersistentQueryMetadata query
+  ) {
+    UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
+    final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
+    if (column.getColumnName().equals(keyColumn)) {
+      return;
+    }
+
+    throw invalidWhereClauseException(
+        "WHERE clause on unsupported column: " + column.getColumnName().text(),
+        false
+    );
+  }
+
   private enum ComparisonTarget {
     KEYCOL,
     WINDOWSTART,
@@ -798,7 +882,8 @@ public final class PullQueryExecutor {
           ));
     }
 
-    throw invalidWhereClauseException("Unsupported expression: " + exp, false);
+    return ImmutableMap.of();
+    //throw invalidWhereClauseException("Unsupported expression: " + exp, false);
   }
 
   private static ComparisonTarget extractWhereClauseTarget(

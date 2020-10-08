@@ -21,18 +21,17 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class ConfigResponse {
-  private final ImmutableMap<String, Object> configs;
+  private final Map<String, Object> configs;
 
   @JsonCreator
   public ConfigResponse(@JsonProperty("configs") final Map<String, Object> configs) {
-    this.configs = ImmutableMap.copyOf(requireNonNull(configs, "configs"));
+    this.configs = requireNonNull(configs, "configs");
   }
 
   public Map<String, Object> getConfigs() {

@@ -23,14 +23,14 @@ import java.util.List;
 import java.util.Map;
 
 public class ConfigResource {
-  private final Map<String, Object> allowedConfigs = new HashMap<>();
+  private final Map<String, Object> visibleConfigs = new HashMap<>();
 
   public ConfigResource(final KsqlConfig ksqlConfig) {
-    setAllowedConfigs(ksqlConfig);
+    setVisibleConfigs(ksqlConfig);
   }
 
-  private void setAllowedConfigs(final KsqlConfig ksqlConfig) {
-    allowedConfigs.put(
+  private void setVisibleConfigs(final KsqlConfig ksqlConfig) {
+    visibleConfigs.put(
         KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
         ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
     );
@@ -39,14 +39,14 @@ public class ConfigResource {
   public EndpointResponse getConfigs(final List<String> requestedConfigs) {
     final Map<String, Object> configs = new HashMap<>();
     for (String config : requestedConfigs) {
-      if (allowedConfigs.containsKey(config)) {
-        configs.put(config, allowedConfigs.get(config));
+      if (visibleConfigs.containsKey(config)) {
+        configs.put(config, visibleConfigs.get(config));
       }
     }
     return EndpointResponse.ok(new ConfigResponse(configs));
   }
 
   public EndpointResponse getAllConfigs() {
-    return EndpointResponse.ok(new ConfigResponse(allowedConfigs));
+    return EndpointResponse.ok(new ConfigResponse(visibleConfigs));
   }
 }

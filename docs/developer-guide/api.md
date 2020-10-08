@@ -1,22 +1,23 @@
 ---
 layout: page
-title: ksqlDB REST API Reference
-tagline: Run queries over REST
+title: ksqlDB HTTP API Reference
+tagline: Run queries over HTTP
 description: Learn how to communicate with ksqlDB by using HTTP
 ---
 
-- [Get the Status of a ksqlDB Server (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
-- [Run a ksqlDB Statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)
-- [Run A Query And Stream Back The Output (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
-- [Get the Status of a CREATE, DROP, or TERMINATE statement (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
-- [Terminate a Cluster (/ksql/terminate endpoint)](ksqldb-rest-api/terminate-endpoint.md)
+- [Introspect query status (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
+- [Introspect server status (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
+- [Execute a statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)
+- [Run a query (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
+- [Run push and pull queries (/query-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)
+- [Terminate a cluster (/ksql/terminate endpoint)](ksqldb-rest-api/terminate-endpoint.md)
 
 REST Endpoint
 -------------
 
-The default REST API endpoint is `http://0.0.0.0:8088/`.
+The default HTTP API endpoint is `http://0.0.0.0:8088/`.
 
-Change the server configuration that controls the REST API endpoint by
+Change the server configuration that controls the HTTP API endpoint by
 setting the `listeners` parameter in the ksqlDB server config file. For
 more info, see [listeners](../operate-and-deploy/installation/server-config/config-reference.md#listeners).
 To configure the endpoint to use HTTPS, see
@@ -25,11 +26,11 @@ To configure the endpoint to use HTTPS, see
 Content Types
 -------------
 
-The ksqlDB REST API uses content types for requests and responses to
+The ksqlDB HTTP API uses content types for requests and responses to
 indicate the serialization format of the data and the API version.
-Currently, the only serialization format supported is JSON. The only
-version supported is v1. Your request should specify this serialization
-format and version in the `Accept` header as:
+
+Your request should specify this serialization
+format and version in the `Accept` header, for example:
 
 ```
 Accept: application/vnd.ksql.v1+json
@@ -54,7 +55,7 @@ Here's an example request that returns the results from the
 
 ```bash
 curl -X "POST" "http://localhost:8088/ksql" \
-     -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
+     -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
   "ksql": "LIST STREAMS;",
   "streamsProperties": {}
@@ -66,9 +67,22 @@ Here's an example request that retrieves streaming data from
 
 ```bash
 curl -X "POST" "http://localhost:8088/query" \
-     -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
+     -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
-  "ksql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
+  "sql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
+  "streamsProperties": {}
+}'
+```
+
+Provide the `--basic` and `--user` options if basic HTTPS authentication is
+enabled on the cluster, as shown in the following command.
+
+```bash hl_lines="3"
+curl -X "POST" "https://localhost:8088/ksql" \
+     -H "Accept: application/vnd.ksql.v1+json" \
+     --basic --user "<API key>:<secret>" \
+     -d $'{
+  "ksql": "LIST STREAMS;",
   "streamsProperties": {}
 }'
 ```

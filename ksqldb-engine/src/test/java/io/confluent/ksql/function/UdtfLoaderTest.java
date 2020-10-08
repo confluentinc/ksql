@@ -75,13 +75,13 @@ public class UdtfLoaderTest {
 
     // Given:
     final List<SqlType> args = ImmutableList.of(
-        SqlTypes.INTEGER,
-        SqlTypes.BIGINT,
-        SqlTypes.DOUBLE,
-        SqlTypes.BOOLEAN,
-        SqlTypes.STRING,
-        DECIMAL_SCHEMA,
-        STRUCT_SCHEMA
+        SqlTypes.array(SqlTypes.INTEGER),
+        SqlTypes.array(SqlTypes.BIGINT),
+        SqlTypes.array(SqlTypes.DOUBLE),
+        SqlTypes.array(SqlTypes.BOOLEAN),
+        SqlTypes.array(SqlTypes.STRING),
+        SqlTypes.array(DECIMAL_SCHEMA),
+        SqlTypes.array(STRUCT_SCHEMA)
     );
 
     // When:
@@ -97,13 +97,13 @@ public class UdtfLoaderTest {
 
     // Given:
     final List<SqlType> args = ImmutableList.of(
-        SqlTypes.map(SqlTypes.INTEGER),
-        SqlTypes.map(SqlTypes.BIGINT),
-        SqlTypes.map(SqlTypes.DOUBLE),
-        SqlTypes.map(SqlTypes.BOOLEAN),
-        SqlTypes.map(SqlTypes.STRING),
-        SqlTypes.map(DECIMAL_SCHEMA),
-        SqlTypes.map(STRUCT_SCHEMA)
+        SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BOOLEAN),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING),
+        SqlTypes.map(SqlTypes.STRING, DECIMAL_SCHEMA),
+        SqlTypes.map(SqlTypes.STRING, STRUCT_SCHEMA)
     );
 
     // When:

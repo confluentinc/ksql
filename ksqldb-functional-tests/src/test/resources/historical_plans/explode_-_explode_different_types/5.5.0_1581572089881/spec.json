@@ -3,8 +3,24 @@
   "timestamp" : 1581572089881,
   "path" : "query-validation-tests/explode.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<F0 ARRAY<INT>, F1 ARRAY<BIGINT>, F2 ARRAY<DOUBLE>, F3 ARRAY<BOOLEAN>, F4 ARRAY<VARCHAR>, F5 ARRAY<DECIMAL(20, 10)>> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 VARCHAR, KSQL_COL_5 DECIMAL(20, 10)> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `F0` ARRAY<INTEGER>, `F1` ARRAY<BIGINT>, `F2` ARRAY<DOUBLE>, `F3` ARRAY<BOOLEAN>, `F4` ARRAY<STRING>, `F5` ARRAY<DECIMAL(20, 10)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT, `KSQL_COL_2` DOUBLE, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` STRING, `KSQL_COL_5` DECIMAL(20, 10)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
   },
   "testCase" : {
     "name" : "explode different types",
@@ -29,7 +45,7 @@
         "KSQL_COL_2" : 3.1,
         "KSQL_COL_3" : true,
         "KSQL_COL_4" : "foo",
-        "KSQL_COL_5" : 123.456
+        "KSQL_COL_5" : 123.4560000000
       }
     }, {
       "topic" : "OUTPUT",
@@ -40,7 +56,7 @@
         "KSQL_COL_2" : 4.1,
         "KSQL_COL_3" : false,
         "KSQL_COL_4" : "bar",
-        "KSQL_COL_5" : 456.123
+        "KSQL_COL_5" : 456.1230000000
       }
     } ],
     "topics" : [ {
@@ -54,24 +70,41 @@
     } ],
     "statements" : [ "CREATE STREAM TEST (F0 ARRAY<INTEGER>, F1 ARRAY<BIGINT>, F2 ARRAY<DOUBLE>, F3 ARRAY<BOOLEAN>, F4 ARRAY<STRING>, F5 ARRAY<DECIMAL(20, 10)>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM OUTPUT AS SELECT\n  EXPLODE(TEST.F0) KSQL_COL_0,\n  EXPLODE(TEST.F1) KSQL_COL_1,\n  EXPLODE(TEST.F2) KSQL_COL_2,\n  EXPLODE(TEST.F3) KSQL_COL_3,\n  EXPLODE(TEST.F4) KSQL_COL_4,\n  EXPLODE(TEST.F5) KSQL_COL_5\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT, `KSQL_COL_2` DOUBLE, `KSQL_COL_3` BOOLEAN, `KSQL_COL_4` STRING, `KSQL_COL_5` DECIMAL(20, 10)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `F0` ARRAY<INTEGER>, `F1` ARRAY<BIGINT>, `F2` ARRAY<DOUBLE>, `F3` ARRAY<BOOLEAN>, `F4` ARRAY<STRING>, `F5` ARRAY<DECIMAL(20, 10)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -54,11 +54,10 @@ Your output should resemble:
 
 ```
  Field   | Type
--------------------------------------
- ROWKEY  | VARCHAR(STRING)  (key)
- IP      | VARCHAR(STRING)  (key)
+-----------------------------------------
+ IP      | VARCHAR(STRING)  (primary key)
  KBYTES  | BIGINT
--------------------------------------
+-----------------------------------------
 For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>
 ```
 
@@ -73,18 +72,16 @@ Your output should resemble:
 
 ```
 Type                 : TABLE
-Key field            : CLICKSTREAM.IP
 Timestamp field      : Not set - using <ROWTIME>
-Key format           : STRING
+Key format           : KAFKA
 Value format         : JSON
 Kafka output topic   : IP_SUM (partitions: 4, replication: 1)
 
  Field   | Type
--------------------------------------
- ROWKEY  | VARCHAR(STRING)  (key)
- IP      | VARCHAR(STRING)  (key)
+-----------------------------------------
+ IP      | VARCHAR(STRING)  (primary key)
  KBYTES  | BIGINT
--------------------------------------
+-----------------------------------------
 
 Queries that write into this TABLE
 -----------------------------------

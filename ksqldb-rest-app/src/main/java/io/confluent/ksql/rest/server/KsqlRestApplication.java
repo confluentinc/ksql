@@ -34,7 +34,9 @@ import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.MonitoredEndpoints;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryMonitor;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
@@ -48,19 +50,24 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
@@ -72,6 +79,7 @@ import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
+import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -85,6 +93,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -101,6 +110,7 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
 import java.io.Console;
@@ -112,6 +122,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -123,13 +134,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
@@ -164,7 +176,6 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<HeartbeatAgent> heartbeatAgent;
   private final Optional<LagReportingAgent> lagReportingAgent;
   private final PullQueryExecutor pullQueryExecutor;
-  private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
   private final ServerInfoResource serverInfoResource;
   private final Optional<HeartbeatResource> heartbeatResource;
   private final Optional<ClusterStatusResource> clusterStatusResource;
@@ -177,10 +188,13 @@ public final class KsqlRestApplication implements Executable {
   private final Vertx vertx;
   private Server apiServer = null;
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
+  private final QueryMonitor queryMonitor;
+  private final DenyListPropertyValidator denyListPropertyValidator;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
-  private volatile Thread startAsyncThread;
+  private AtomicReference<Thread> startAsyncThreadRef = new AtomicReference<>(null);
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -210,7 +224,11 @@ public final class KsqlRestApplication implements Executable {
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
       final PullQueryExecutor pullQueryExecutor,
       final Optional<HeartbeatAgent> heartbeatAgent,
-      final Optional<LagReportingAgent> lagReportingAgent
+      final Optional<LagReportingAgent> lagReportingAgent,
+      final Vertx vertx,
+      final QueryMonitor ksqlQueryMonitor,
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -236,14 +254,12 @@ public final class KsqlRestApplication implements Executable {
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
-    this.vertx = Vertx.vertx(
-        new VertxOptions()
-            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
-            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
-            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
-    this.vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+    this.vertx = requireNonNull(vertx, "vertx");
+    this.denyListPropertyValidator =
+        requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
 
-    this.serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfigNoPort);
+    this.serverInfoResource =
+        new ServerInfoResource(serviceContext, ksqlConfigNoPort, commandRunner);
     if (heartbeatAgent.isPresent()) {
       this.heartbeatResource = Optional.of(new HeartbeatResource(heartbeatAgent.get()));
       this.clusterStatusResource = Optional.of(new ClusterStatusResource(
@@ -261,8 +277,11 @@ public final class KsqlRestApplication implements Executable {
         ksqlResource,
         serviceContext,
         this.restConfig,
-        this.ksqlConfigNoPort);
+        this.ksqlConfigNoPort,
+        this.commandRunner);
+    this.queryMonitor = requireNonNull(ksqlQueryMonitor, "ksqlQueryMonitor");
     MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
+    this.pullQueryMetrics = requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     log.debug("ksqlDB API server instance created");
   }
 
@@ -301,10 +320,12 @@ public final class KsqlRestApplication implements Executable {
             KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator,
+        pullQueryMetrics
     );
 
-    startAsyncThread = Thread.currentThread();
+    startAsyncThreadRef.set(Thread.currentThread());
     try {
       final Endpoints endpoints = new KsqlServerEndpoints(
           ksqlEngine,
@@ -320,10 +341,11 @@ public final class KsqlRestApplication implements Executable {
           lagReportingResource,
           healthCheckResource,
           serverMetadataResource,
-          wsQueryEndpoint
+          wsQueryEndpoint,
+          pullQueryMetrics
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
-          authenticationPlugin, serverState);
+          authenticationPlugin, serverState, pullQueryMetrics);
       apiServer.start();
 
       final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
@@ -339,7 +361,7 @@ public final class KsqlRestApplication implements Executable {
     } catch (AbortApplicationStartException e) {
       log.error("Aborting application start", e);
     } finally {
-      startAsyncThread = null;
+      startAsyncThreadRef.set(null);
     }
   }
 
@@ -391,14 +413,14 @@ public final class KsqlRestApplication implements Executable {
           1000,
           30000,
           this::checkPreconditions,
-          shuttingDown::get,
+          terminatedFuture::isDone,
           predicates
       );
     } catch (KsqlFailedPrecondition e) {
       log.error("Failed to meet preconditions. Exiting...", e);
     }
 
-    if (shuttingDown.get()) {
+    if (terminatedFuture.isDone()) {
       throw new AbortApplicationStartException(
           "Shutting down application during waitForPreconditions");
     }
@@ -426,6 +448,8 @@ public final class KsqlRestApplication implements Executable {
         serviceContext
     );
 
+    queryMonitor.start();
+
     if (heartbeatAgent.isPresent()) {
       heartbeatAgent.get().setLocalAddress((String)configWithApplicationServer
           .getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG));
@@ -440,19 +464,21 @@ public final class KsqlRestApplication implements Executable {
     serverState.setReady();
   }
 
-  @SuppressWarnings("checkstyle:NPathComplexity")
   @Override
-  public void triggerShutdown() {
-    log.debug("ksqlDB triggerShutdown called");
-    // First, make sure the server wasn't stuck in startup.  Set the shutdown flag and interrupt the
-    // startup thread if it's been hanging.
-    shuttingDown.set(true);
+  public void notifyTerminated() {
+    terminatedFuture.complete(null);
+    final Thread startAsyncThread = startAsyncThreadRef.get();
     if (startAsyncThread != null) {
       startAsyncThread.interrupt();
     }
+  }
 
+  @SuppressWarnings("checkstyle:NPathComplexity")
+  @Override
+  public void shutdown() {
+    log.info("ksqlDB shutdown called");
     try {
-      streamedQueryResource.closeMetrics();
+      pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
     } catch (final Exception e) {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
@@ -466,6 +492,12 @@ public final class KsqlRestApplication implements Executable {
       commandRunner.close();
     } catch (final Exception e) {
       log.error("Exception while waiting for CommandRunner thread to complete", e);
+    }
+
+    try {
+      queryMonitor.close();
+    } catch (final Exception e) {
+      log.error("Exception while waiting for QueryMonitor thread to complete", e);
     }
 
     try {
@@ -495,9 +527,7 @@ public final class KsqlRestApplication implements Executable {
 
     shutdownAdditionalAgents();
 
-    log.debug("ksqlDB triggerShutdown complete");
-
-    terminatedFuture.complete(null);
+    log.info("ksqlDB shutdown complete");
   }
 
   @Override
@@ -549,20 +579,47 @@ public final class KsqlRestApplication implements Executable {
   }
 
   public static KsqlRestApplication buildApplication(final KsqlRestConfig restConfig) {
+    final Map<String, Object> updatedRestProps = restConfig.getOriginals();
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final Vertx vertx = Vertx.vertx(
+        new VertxOptions()
+            .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)
+            .setMaxWorkerExecuteTime(Long.MAX_VALUE)
+            .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
+    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
+    final KsqlClient sharedClient = InternalKsqlClientFactory.createInternalClient(
+        toClientProps(ksqlConfig.originals()),
+        SocketAddress::inetSocketAddress,
+        vertx
+    );
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
-    final ServiceContext serviceContext = new LazyServiceContext(() ->
+
+    final ServiceContext tempServiceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
-            schemaRegistryClientFactory));
+            schemaRegistryClientFactory, sharedClient));
+    final String kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(tempServiceContext);
+    final String ksqlServerId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    updatedRestProps.putAll(
+        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));
+    final KsqlRestConfig updatedRestConfig = new KsqlRestConfig(updatedRestProps);
+
+    final ServiceContext serviceContext = new LazyServiceContext(() ->
+        RestServiceContextFactory.create(
+            new KsqlConfig(updatedRestConfig.getKsqlConfigProperties()),
+            Optional.empty(),
+            schemaRegistryClientFactory,
+            sharedClient));
 
     return buildApplication(
         "",
-        restConfig,
+        updatedRestConfig,
         KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE,
         serviceContext,
-        schemaRegistryClientFactory
+        schemaRegistryClientFactory,
+        vertx,
+        sharedClient
     );
   }
 
@@ -573,7 +630,9 @@ public final class KsqlRestApplication implements Executable {
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final Vertx vertx,
+      final KsqlClient sharedClient) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -605,17 +664,14 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
-    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final CommandStore commandStore = CommandStore.Factory.create(
+        ksqlConfig,
         commandTopicName,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandConsumerProperties(),
-            serviceId),
+            restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandProducerProperties(),
-            serviceId)
+            restConfig.getCommandProducerProperties())
     );
 
     final InteractiveStatementExecutor statementExecutor =
@@ -633,7 +689,8 @@ public final class KsqlRestApplication implements Executable {
         new DefaultKsqlSecurityContextProvider(
             securityExtension,
             RestServiceContextFactory::create,
-            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory);
+            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory,
+            sharedClient);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
         restConfig);
@@ -654,7 +711,18 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, routingFilterFactory, ksqlConfig);
+        ksqlEngine, routingFilterFactory, ksqlConfig, ksqlEngine.getServiceId());
+
+    final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
+        ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
+
+    final Optional<PullQueryExecutorMetrics> pullQueryMetrics = ksqlConfig.getBoolean(
+        KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED)
+        ? Optional.of(new PullQueryExecutorMetrics(
+        ksqlEngine.getServiceId(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),
+        Time.SYSTEM))
+        : Optional.empty();
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
@@ -665,16 +733,9 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor
-    );
-
-    final KsqlResource ksqlResource = new KsqlResource(
-        ksqlEngine,
-        commandStore,
-        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime,
-        authorizationValidator,
-        errorHandler
+        pullQueryExecutor,
+        denyListPropertyValidator,
+        pullQueryMetrics
     );
 
     final List<String> managedTopics = new LinkedList<>();
@@ -692,8 +753,24 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         Duration.ofMillis(restConfig.getLong(
             KsqlRestConfig.KSQL_COMMAND_RUNNER_BLOCKED_THRESHHOLD_ERROR_MS)),
-        metricsPrefix
+        metricsPrefix,
+        InternalTopicSerdes.deserializer(Command.class),
+        errorHandler,
+        serviceContext.getTopicClient(),
+        commandTopicName
     );
+  
+    final KsqlResource ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandRunner,
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        versionChecker::updateLastRequestTime,
+        authorizationValidator,
+        errorHandler,
+        denyListPropertyValidator
+    );
+
+    final QueryMonitor queryMonitor = new QueryMonitor(ksqlConfig, ksqlEngine);
 
     final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
         KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
@@ -730,7 +807,11 @@ public final class KsqlRestApplication implements Executable {
         rocksDBConfigSetterHandler,
         pullQueryExecutor,
         heartbeatAgent,
-        lagReportingAgent
+        lagReportingAgent,
+        vertx,
+        queryMonitor,
+        denyListPropertyValidator,
+        pullQueryMetrics
     );
   }
 
@@ -820,13 +901,16 @@ public final class KsqlRestApplication implements Executable {
 
     final String createCmd = "CREATE STREAM " + COMMANDS_STREAM_NAME
         + " (STATEMENT STRING)"
-        + " WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
+        + " WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
 
     final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
     ksqlEngine.execute(
         serviceContext,
-        ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfigNoPort)
+        ConfiguredStatement.of(
+            prepared,
+            SessionConfig.of(ksqlConfigNoPort, ImmutableMap.of())
+        )
     );
   }
 
@@ -997,6 +1081,15 @@ public final class KsqlRestApplication implements Executable {
         Joiner.on(",").join(authenticationSkipPaths));
 
     return new KsqlRestConfig(restConfigs);
+  }
+
+  @VisibleForTesting
+  static Map<String, String> toClientProps(final Map<String, Object> config) {
+    final Map<String, String> clientProps = new HashMap<>();
+    for (Map.Entry<String, Object> entry : config.entrySet()) {
+      clientProps.put(entry.getKey(), entry.getValue().toString());
+    }
+    return clientProps;
   }
 
 }

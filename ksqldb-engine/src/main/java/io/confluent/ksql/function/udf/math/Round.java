@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.math;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -61,8 +62,10 @@ There isn't any BigDecimal rounding mode which captures the java.lang.Math behav
 we need to use different rounding modes on BigDecimal depending on whether the value
 is +ve or -ve to get consistent behaviour.
 */
+@SuppressWarnings("MethodMayBeStatic")
 @UdfDescription(
     name = "Round",
+    category = FunctionCategory.MATHEMATICAL,
     description = Round.DESCRIPTION,
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
@@ -98,7 +101,10 @@ public class Round {
 
   @Udf(schemaProvider = "provideDecimalSchema")
   public BigDecimal round(@UdfParameter final BigDecimal val) {
-    return round(val, 0);
+    if (val == null) {
+      return null;
+    }
+    return roundBigDecimal(val, 0);
   }
 
   @Udf(schemaProvider = "provideDecimalSchemaWithDecimalPlaces")
@@ -106,11 +112,17 @@ public class Round {
       @UdfParameter final BigDecimal val,
       @UdfParameter final Integer decimalPlaces
   ) {
-    return val == null ? null : roundBigDecimal(val, decimalPlaces);
+    if (val == null) {
+      return null;
+    }
+    return roundBigDecimal(val, decimalPlaces)
+        // Must maintain source scale for now. See https://github.com/confluentinc/ksql/issues/6235.
+        .setScale(val.scale(), RoundingMode.UNNECESSARY);
   }
 
+  @SuppressWarnings("unused") // Invoked via reflection
   @UdfSchemaProvider
-  public SqlType provideDecimalSchemaWithDecimalPlaces(final List<SqlType> params) {
+  public static SqlType provideDecimalSchemaWithDecimalPlaces(final List<SqlType> params) {
     final SqlType s0 = params.get(0);
     if (s0.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for round expects a BigDecimal parameter"
@@ -121,11 +133,15 @@ public class Round {
       throw new KsqlException("The schema provider method for round expects an Integer parameter"
           + "type as second parameter.");
     }
+
+    // While the user requested a certain number of decimal places, this can't be used to change
+    // the scale of the return type. See https://github.com/confluentinc/ksql/issues/6235.
     return s0;
   }
 
+  @SuppressWarnings("unused") // Invoked via reflection
   @UdfSchemaProvider
-  public SqlType provideDecimalSchema(final List<SqlType> params) {
+  public static SqlType provideDecimalSchema(final List<SqlType> params) {
     final SqlType s0 = params.get(0);
     if (s0.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for round expects a BigDecimal parameter"
@@ -135,7 +151,10 @@ public class Round {
     return SqlDecimal.of(param.getPrecision() - param.getScale(), 0);
   }
 
-  private BigDecimal roundBigDecimal(final BigDecimal val, final int decimalPlaces) {
+  private static BigDecimal roundBigDecimal(
+      final BigDecimal val,
+      final int decimalPlaces
+  ) {
     final RoundingMode roundingMode = val.compareTo(BigDecimal.ZERO) > 0
         ? RoundingMode.HALF_UP : RoundingMode.HALF_DOWN;
     return val.setScale(decimalPlaces, roundingMode);

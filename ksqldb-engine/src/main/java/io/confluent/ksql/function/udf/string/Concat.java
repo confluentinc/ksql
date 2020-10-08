@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @UdfDescription(
     name = "concat",
+    category = FunctionCategory.STRING,
     description = "Concatenate an arbitrary number of string fields together")
 public class Concat {
 

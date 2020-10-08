@@ -62,11 +62,10 @@ Host Query Status    : {192.168.1.6:8088=RUNNING, 192.168.1.6:8089=RUNNING}
 
  Field   | Type                                                                                                                                                                                                                                                                                                                                    
 -------------------------------------------------------------------------------------
- ROWKEY  | VARCHAR(STRING)  (key)
  LOGGER  | VARCHAR(STRING)                                                                                                                                                                                                                                                                                                                         
  LEVEL   | VARCHAR(STRING)                                                                                                                                                                                                                                                                                                                         
  TIME    | BIGINT                                                                                                                                                                                                                                                                                                                                  
- MESSAGE | STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE VARCHAR(STRING), RECORDB64 VARCHAR(STRING), CAUSE ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE VARCHAR(STRING), RECORD VARCHAR(STRING), CAUSE ARRAY<VARCHAR(STRING)>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE VARCHAR(STRING)>> 
+ MESSAGE | STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE VARCHAR(STRING), RECORDB64 VARCHAR(STRING), CAUSE ARRAY<VARCHAR(STRING)>, topic VARCHAR(STRING)>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE VARCHAR(STRING), RECORD VARCHAR(STRING), CAUSE ARRAY<VARCHAR(STRING)>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE VARCHAR(STRING)>, KAFKASTREAMSTHREADERROR STRUCT<THREADNAME VARCHAR(STRING), ERRORMESSAGE VARCHAR(STRING), CAUSE ARRAY<VARCHAR(STRING)>>>
 -------------------------------------------------------------------------------------
 
 Sources that this query reads from: 
@@ -83,9 +82,9 @@ For sink description please run: DESCRIBE [EXTENDED] <SinkId>
 
 Execution plan      
 --------------      
- > [ SINK ] | Schema: ROWKEY STRING KEY, LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>> | Logger: CSAS_TEST_0.TEST
-                 > [ PROJECT ] | Schema: ROWKEY STRING KEY, LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>> | Logger: CSAS_TEST_0.Project
-                                 > [ SOURCE ] | Schema: ROWKEY STRING KEY, LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>>, ROWTIME BIGINT, ROWKEY STRING | Logger: CSAS_TEST_0.KsqlTopic.Source
+ > [ SINK ] | Schema: LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>> | Logger: CSAS_TEST_0.TEST
+                 > [ PROJECT ] | Schema: LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>> | Logger: CSAS_TEST_0.Project
+                                 > [ SOURCE ] | Schema: LOGGER STRING, LEVEL STRING, TIME BIGINT, MESSAGE STRUCT<TYPE INTEGER, DESERIALIZATIONERROR STRUCT<ERRORMESSAGE STRING, RECORDB64 STRING, CAUSE ARRAY<STRING>, `topic` STRING>, RECORDPROCESSINGERROR STRUCT<ERRORMESSAGE STRING, RECORD STRING, CAUSE ARRAY<STRING>>, PRODUCTIONERROR STRUCT<ERRORMESSAGE STRING>>, ROWTIME BIGINT| Logger: CSAS_TEST_0.KsqlTopic.Source
 
 
 Processing topology 

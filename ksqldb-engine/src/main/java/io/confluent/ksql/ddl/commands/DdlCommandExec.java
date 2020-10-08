@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -70,12 +71,11 @@ public class DdlCommandExec {
           sql,
           createStream.getSourceName(),
           createStream.getSchema(),
-          createStream.getFormats().getOptions(),
           createStream.getTimestampColumn(),
           withQuery,
           getKsqlTopic(createStream)
       );
-      metaStore.putSource(ksqlStream);
+      metaStore.putSource(ksqlStream, createStream.isOrReplace());
       return new DdlCommandResult(true, "Stream created");
     }
 
@@ -85,12 +85,11 @@ public class DdlCommandExec {
           sql,
           createTable.getSourceName(),
           createTable.getSchema(),
-          createTable.getFormats().getOptions(),
           createTable.getTimestampColumn(),
           withQuery,
           getKsqlTopic(createTable)
       );
-      metaStore.putSource(ksqlTable);
+      metaStore.putSource(ksqlTable, createTable.isOrReplace());
       return new DdlCommandResult(true, "Table created");
     }
 
@@ -110,11 +109,14 @@ public class DdlCommandExec {
     public DdlCommandResult executeRegisterType(final RegisterTypeCommand registerType) {
       final String name = registerType.getTypeName();
       final SqlType type = registerType.getType();
-      metaStore.registerType(name, type);
-      return new DdlCommandResult(
-          true,
-          "Registered custom type with name '" + name + "' and SQL type " + type
-      );
+      final boolean wasRegistered = metaStore.registerType(name, type);
+      return wasRegistered
+          ? new DdlCommandResult(
+              true,
+              "Registered custom type with name '" + name + "' and SQL type " + type)
+          : new DdlCommandResult(
+              true,
+              name + " is already registered with type " + metaStore.resolveType(name).get());
     }
 
     @Override
@@ -127,11 +129,13 @@ public class DdlCommandExec {
     }
   }
 
-  private static KsqlTopic getKsqlTopic(final CreateSourceCommand createSource) {
+  private static KsqlTopic getKsqlTopic(final CreateSourceCommand cs) {
+    final Formats formats = cs.getFormats();
+
     return new KsqlTopic(
-        createSource.getTopicName(),
-        KeyFormat.of(createSource.getFormats().getKeyFormat(), createSource.getWindowInfo()),
-        ValueFormat.of(createSource.getFormats().getValueFormat())
+        cs.getTopicName(),
+        KeyFormat.of(formats.getKeyFormat(), formats.getKeyFeatures(), cs.getWindowInfo()),
+        ValueFormat.of(formats.getValueFormat(), formats.getValueFeatures())
     );
   }
 }

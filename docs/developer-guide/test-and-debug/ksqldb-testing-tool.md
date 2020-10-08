@@ -56,13 +56,13 @@ are the supported statements in the testing tool:
 -   CREATE TABLE
 -   CREATE STREAM AS SELECT
 -   CREATE TABLE AS SELECT
--   INSERT INTO SELECT
+-   INSERT INTO
 
 Here is a sample statements file for the testing tool:
 
 ```sql
-CREATE STREAM orders (ROWKEY INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
-CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
+CREATE STREAM orders (ORDERID INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
+CREATE STREAM S1 AS SELECT ORDERID, ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
 ```
 
 ### Input File
@@ -77,14 +77,31 @@ the previous test:
 ```json
 {
   "inputs": [
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 2.0}, "key": 0},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 4.0}, "key": 100},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 6.0 }, "key": 101},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 3.0}, "key": 101},
-          {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 1.0}, "key": 101}
-        ]
+    {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"ORDERUNITS": 2.0}},
+    {"topic": "test_topic", "timestamp": 0, "key": 100, "value": {"ORDERUNITS": 4.0}},
+    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 6.0 }},
+    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 3.0}},
+    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 1.0}}
+  ]
 }
 ```
+
+#### Generating input files automagically from existing topic data
+
+You can use [`kafkacat`](https://github.com/edenhill/kafkacat) and 
+[`jq`](https://stedolan.github.io/jq/) in combination to create an input file 
+based on data already in a Kafka topic: 
+
+```bash
+kafkacat -b broker:29092 -t my_topic -C -e -J | \
+  jq --slurp '{inputs:[.[]|{topic:.topic,timestamp: .ts, key: .key, value: .payload|fromjson}]}' \
+  > input.json
+```
+
+Replace `broker:29092` with your broker host and port, and `my_topic` with the 
+name of your topic. You can limit how many messages are written to the file by 
+adding a `-c` flag to the `kafkacat` statement—for example, `-c42` would write 
+the first 42 messages from the topic. 
 
 ### Output File
 
@@ -99,12 +116,12 @@ expected output file for the previous test:
 ```json
 {
   "outputs": [
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESULT": "medium"}, "key": 0},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 4.0, "CASE_RESULT": "large"}, "key": 100},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 6.0, "CASE_RESULT": "large"}, "key": 101},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 3.0, "CASE_RESULT": "medium"}, "key": 101},
-          {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 1.0, "CASE_RESULT": "small"},"key": 101}
-        ]
+    {"topic": "S1", "timestamp": 0, "key": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESULT": "medium"}},
+    {"topic": "S1", "timestamp": 0, "key": 100, "value": {"ORDERUNITS": 4.0, "CASE_RESULT": "large"}},
+    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 6.0, "CASE_RESULT": "large"}},
+    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 3.0, "CASE_RESULT": "medium"}},
+    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 1.0, "CASE_RESULT": "small"}}
+  ]
 }
 ```
 
@@ -124,16 +141,27 @@ a window field:
 ```json
 {
    "outputs": [
-     {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-     {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-     {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-     {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+     {"topic": "S2", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 30000, "type": "time"}, "value": "0,0"},
+     {"topic": "S2", "timestamp": 10000, "key": 0, "window": {"start": 0, "end": 30000, "type": "time"}, "value": "0,5"},
+     {"topic": "S2", "timestamp": 30000, "key": 100, "window": {"start": 30000, "end": 60000, "type": "time"}, "value": "100,100"},
+     {"topic": "S2", "timestamp": 45000, "key": 100, "window": {"start": 30000, "end": 60000, "type": "time"}, "value": "100,100"}
    ]
 }
 ```
 
 Currently, in the input files you can have only records with session
 window types.
+
+#### Generating output files automagically from existing topic data
+
+You can use a similar approach to that shown above for generating input files, 
+but be aware that it won't handle time windows in cases where these are 
+required. In the case of aggregates it will often only have the final value, 
+and not every intermediate value that is generated by the testing tool due to 
+buffering (see discussion in "Input Consumption" below). 
+
+Running the testing tool
+------------------------
 
 The testing tool indicates the success or failure of a test by
 printing the corresponding message. The following is the result of a
@@ -146,20 +174,17 @@ ksql-test-runner -s statements.sql -i input.json -o output.json
 Your output should resemble:
 
 ```
-Test passed!
+>>> Test passed!
 ```
+
+Note that the tool may also write verbose log output to the terminal too, in 
+which case you may need to page through it to locate the test status message.
 
 If a test fails, the testing tool will indicate the failure along with
 the cause. Here is an example of the output for a failing test:
 
-```bash
-ksql-test-runner -s statements_bad.sql -i input_bad.json -o output_bad.json
 ```
-
-Your output should resemble:
-
-```
-  Test failed: Expected <900, {T_ID=90, NAME=ninety}> with timestamp=17000 but was <90, {T_ID=90, NAME=ninety}> with timestamp=17000
+  >>>>> Test failed: Topic 'S1', message 4: Expected <101, {"ORDERUNITS":18.0,"CASE_RESULT":"small"}> with timestamp=0 but was <101, {ORDERUNITS=1.0, CASE_RESULT=small}> with timestamp=0
 ```
 
 Query Execution in the ksqlDB Testing Tool

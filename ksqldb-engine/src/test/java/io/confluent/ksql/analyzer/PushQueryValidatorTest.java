@@ -27,7 +27,6 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -59,24 +58,8 @@ public class PushQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnContinuousQueryThatIsFinal() {
-    // Given:
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
-
-    // When:
-    final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> validator.validate(analysis)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Push queries don't support `EMIT FINAL`."));
-  }
-
-  @Test
   public void shouldThrowOnPersistentPushQueryOnWindowedTable() {
     // Given:
-    givenPushQuery();
     givenPersistentQuery();
     givenSourceTable();
     givenWindowedSource();
@@ -94,7 +77,6 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldNotThrowOnTransientPushQueryOnWindowedTable() {
     // Given:
-    givenPushQuery();
     givenTransientQuery();
     givenSourceTable();
     givenWindowedSource();
@@ -106,7 +88,6 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldNotThrowOnPersistentPushQueryOnWindowedStream() {
     // Given:
-    givenPushQuery();
     givenPersistentQuery();
     givenSourceStream();
     givenWindowedSource();
@@ -118,17 +99,12 @@ public class PushQueryValidatorTest {
   @Test
   public void shouldNotThrowOnPersistentPushQueryOnUnwindowedTable() {
     // Given:
-    givenPushQuery();
     givenPersistentQuery();
     givenSourceTable();
     givenUnwindowedSource();
 
     // When/Then(don't throw):
     validator.validate(analysis);
-  }
-
-  private void givenPushQuery() {
-    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
   }
 
   private void givenPersistentQuery() {

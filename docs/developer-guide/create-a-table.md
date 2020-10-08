@@ -17,6 +17,17 @@ query results from other tables or streams.
 !!! note
       Creating streams is similar to creating tables. For more information,
       see [Create a ksqlDB Stream](create-a-stream.md).
+      
+ksqlDB can't infer the data format of the topic key or value, so you must provide the
+format of the keys and values that are stored in the topic, either explicitly in the WITH clause
+or by configuring defaults using the [ksql.persistence.default.format.key](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatkey)
+and [ksql.persistence.default.format.value](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatvalue)
+configurations. In this example, the
+value format is `JSON` and the key format is `KAFKA`. For all supported formats, see
+[Serialization Formats](serialization.md#serialization-formats).
+
+If the data in your {{ site.ak }} topics doesn't have a suitable key format, 
+see [Key Requirements](syntax-reference.md#key-requirements).
 
 Create a Table from an existing Kafka Topic
 -------------------------------------------
@@ -30,33 +41,28 @@ named `users`.
 ### Create a Table with Selected Columns
 
 The following example creates a table that has four columns from the
-`users` topic: `registertime`, `userid`, `gender`, and `regionid`. Also,
-the `userid` field is assigned as the table's KEY property.
-
-!!! note
-      The KEY field is optional. For more information, see
-      [Key Requirements](syntax-reference.md#key-requirements).
-
-ksqlDB can't infer the topic value's data format, so you must provide the
-format of the values that are stored in the topic. In this example, the
-data format is `JSON`. Other options are `Avro`, `DELIMITED`, `JSON_SR`, `PROTOBUF`, and `KAFKA`. For
-more information, see
-[Serialization Formats](serialization.md#serialization-formats).
-
-ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
-serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
+`users` topic: `registertime`, `userid`, `gender`, and `regionid`. 
+The `userid` column is the primary key of the table. This means that it's loaded from the {{ site.ak }} message
+key. Primary key columns can't be `NULL`.
 
 In the ksqlDB CLI, paste the following CREATE TABLE statement:
 
 ```sql
-CREATE TABLE users
-  (userid VARCHAR PRIMARY KEY,
-   registertime BIGINT,
-   gender VARCHAR,
-   regionid VARCHAR)
-  WITH (KAFKA_TOPIC = 'users',
-        VALUE_FORMAT='JSON');
+CREATE TABLE users (
+    userid VARCHAR PRIMARY KEY,
+    registertime BIGINT,
+    gender VARCHAR,
+    regionid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='users',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='JSON'
+);
 ```
+
+!!! tip
+      If the key and value formats for the table are identical, the `FORMAT` property
+      may be used in place of specifying the `KEY_FORMAT` and `VALUE_FORMAT` separately.
 
 Your output should resemble:
 
@@ -76,10 +82,10 @@ SHOW TABLES;
 Your output should resemble:
 
 ```
- Table Name | Kafka Topic | Format | Windowed
-----------------------------------------------
- USERS      | users       | JSON   | false
-----------------------------------------------
+ Table Name | Kafka Topic | Key Format | Value Format | Windowed
+----------------------------------------------------------------
+ USERS      | users       | KAFKA      | JSON          | false
+----------------------------------------------------------------
 ```
 
 Get the schema for the table:
@@ -127,6 +133,28 @@ Press Ctrl+C to stop printing the query results.
 The table values update continuously with the most recent records,
 because the underlying `users` topic receives new messages continuously.
 
+### Creating a Table using Schema Inference
+
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+spare you from defining columns manually in your `CREATE TABLE` statements.
+
+The following example creates a table over an existing topic, loading the
+value column definitions from {{ site.sr }}.
+
+```sql
+CREATE TABLE users (
+    userid VARCHAR PRIMARY KEY
+  ) WITH (
+    KAFKA_TOPIC='users',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='AVRO'
+);
+```
+
+For more information, see [Schema Inference](../concepts/schemas.md#schema-inference).
+
 Create a Table backed by a new Kafka Topic
 ------------------------------------------
 
@@ -139,24 +167,26 @@ Kafka topic does not already exist, you can create the table by pasting
 the following CREATE TABLE statement into the CLI:
 
 ```sql
-CREATE TABLE users
-  (userid VARCHAR PRIMARY KEY,
-   registertime BIGINT,
-   gender VARCHAR,
-   regionid VARCHAR)
-  WITH (KAFKA_TOPIC = 'users',
-        VALUE_FORMAT='JSON',
-        PARTITIONS=4,
-        REPLICAS=3);
+CREATE TABLE users (
+    userid VARCHAR PRIMARY KEY,
+    registertime BIGINT,
+    gender VARCHAR,
+    regionid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='users',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='JSON',
+    PARTITIONS=4,
+    REPLICAS=3
+  );
 ```
 
 This will create the users topics for you with the supplied partition and replica count.
 
-
 Create a ksqlDB Table with Streaming Query Results
 --------------------------------------------------
 
-Use the CREATE TABLE AS SELECT statement to create a ksqlDB table that
+Use the CREATE TABLE AS SELECT statement to create a ksqlDB table view that
 contains the results of a SELECT query from another table or stream.
 
 CREATE TABLE AS SELECT creates a new ksqlDB table with a corresponding
@@ -170,7 +200,8 @@ set to `FEMALE`:
 
 ```sql
 CREATE TABLE users_female AS
-  SELECT userid, gender, regionid FROM users
+  SELECT userid, gender, regionid 
+  FROM users
   WHERE gender='FEMALE'
   EMIT CHANGES;
 ```
@@ -193,11 +224,11 @@ SHOW TABLES;
 Your output should resemble:
 
 ```
- Table Name   | Kafka Topic  | Format | Windowed
--------------------------------------------------
- USERS        | users        | JSON   | false
- USERS_FEMALE | USERS_FEMALE | JSON   | false
--------------------------------------------------
+ Table Name   | Kafka Topic  | Key Format | Value Format | Windowed
+-------------------------------------------------------------------
+ USERS        | users        | KAFKA      | JSON         | false
+ USERS_FEMALE | USERS_FEMALE | KAFKA      | JSON         | false
+-------------------------------------------------------------------
 ```
 
 Print some rows in the table:
@@ -244,7 +275,7 @@ statement has the string `CTAS` in its ID, for example,
 `CTAS_USERS_FEMALE_0`.
 
 Create a ksqlDB Table from a ksqlDB Stream
---------------------------------------
+------------------------------------------
 
 Use the CREATE TABLE AS SELECT statement to create a table from a
 stream. Creating a table from a stream requires aggregation, so you need
@@ -354,4 +385,3 @@ Next Steps
 ----------
 
 -   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
-

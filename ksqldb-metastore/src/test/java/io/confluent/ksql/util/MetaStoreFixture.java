@@ -29,7 +29,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
 
@@ -39,7 +39,10 @@ public final class MetaStoreFixture {
   }
 
   public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
-    return getNewMetaStore(functionRegistry, ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())));
+    return getNewMetaStore(
+        functionRegistry,
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
+    );
   }
 
   public static MutableMetaStore getNewMetaStore(
@@ -48,7 +51,8 @@ public final class MetaStoreFixture {
   ) {
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
+    final KeyFormat keyFormat = KeyFormat
+        .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
@@ -56,7 +60,7 @@ public final class MetaStoreFixture {
         .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
         .valueColumn(ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
-        .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
         .build();
 
     final KsqlTopic ksqlTopic0 = new KsqlTopic(
@@ -69,13 +73,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("TEST0"),
         test1Schema,
-        SerdeOption.none(),
         Optional.empty(),
         false, 
         ksqlTopic0
     );
 
-    metaStore.putSource(ksqlStream0);
+    metaStore.putSource(ksqlStream0, false);
 
     final KsqlTopic ksqlTopic1 = new KsqlTopic(
         "test1",
@@ -87,13 +90,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("TEST1"),
         test1Schema,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopic1
     );
 
-    metaStore.putSource(ksqlStream1);
+    metaStore.putSource(ksqlStream1, false);
 
     final LogicalSchema test2Schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
@@ -112,13 +114,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("TEST2"),
         test2Schema,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopic2
     );
 
-    metaStore.putSource(ksqlTable);
+    metaStore.putSource(ksqlTable, false);
 
     final SqlType addressSchema = SqlTypes.struct()
         .field("NUMBER", SqlTypes.BIGINT)
@@ -146,7 +147,7 @@ public final class MetaStoreFixture {
         .valueColumn(ColumnName.of("ITEMINFO"), itemInfoSchema)
         .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
-        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
         .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
         .build();
 
@@ -160,13 +161,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("ORDERS"),
         ordersSchema,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicOrders
     );
 
-    metaStore.putSource(ksqlStreamOrders);
+    metaStore.putSource(ksqlStreamOrders, false);
 
     final LogicalSchema testTable3 = LogicalSchema.builder()
         .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
@@ -185,13 +185,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("TEST3"),
         testTable3,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopic3
     );
 
-    metaStore.putSource(ksqlTable3);
+    metaStore.putSource(ksqlTable3, false);
 
     final SqlType nestedOrdersSchema = SqlTypes.struct()
         .field("ORDERTIME", SqlTypes.BIGINT)
@@ -200,14 +199,14 @@ public final class MetaStoreFixture {
         .field("ITEMINFO", itemInfoSchema)
         .field("ORDERUNITS", SqlTypes.INTEGER)
         .field("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
-        .field("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+        .field("MAPCOL", SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
         .field("ADDRESS", addressSchema)
         .build();
 
     final LogicalSchema nestedArrayStructMapSchema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("K"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(itemInfoSchema))
-        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(itemInfoSchema))
+        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, itemInfoSchema))
         .valueColumn(ColumnName.of("NESTED_ORDER_COL"), nestedOrdersSchema)
         .valueColumn(ColumnName.of("ITEM"), itemInfoSchema)
         .build();
@@ -222,13 +221,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("NESTED_STREAM"),
         nestedArrayStructMapSchema,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         nestedArrayStructMapTopic
     );
 
-    metaStore.putSource(nestedArrayStructMapOrders);
+    metaStore.putSource(nestedArrayStructMapOrders, false);
 
     final KsqlTopic ksqlTopic4 = new KsqlTopic(
         "test4",
@@ -240,13 +238,12 @@ public final class MetaStoreFixture {
         "sqlexpression4",
         SourceName.of("TEST4"),
         test1Schema,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopic4
     );
 
-    metaStore.putSource(ksqlStream4);
+    metaStore.putSource(ksqlStream4, false);
 
     final LogicalSchema sensorReadingsSchema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
@@ -265,13 +262,12 @@ public final class MetaStoreFixture {
         "sqlexpression",
         SourceName.of("SENSOR_READINGS"),
         sensorReadingsSchema,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicSensorReadings
     );
 
-    metaStore.putSource(ksqlStreamSensorReadings);
+    metaStore.putSource(ksqlStreamSensorReadings, false);
 
     return metaStore;
   }

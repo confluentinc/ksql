@@ -38,7 +38,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -160,21 +160,20 @@ public class SourceTopicsExtractorTest {
   ) {
     final KsqlTopic sourceTopic = new KsqlTopic(
         topicDescription.name(),
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     final KsqlStream<?> streamSource = new KsqlStream<>(
         "",
         SourceName.of(streamName.toUpperCase()),
         SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         sourceTopic
     );
 
-    metaStore.putSource(streamSource);
+    metaStore.putSource(streamSource, false);
   }
 
   private static void givenTopic(final String topicName, final TopicDescription topicDescription) {

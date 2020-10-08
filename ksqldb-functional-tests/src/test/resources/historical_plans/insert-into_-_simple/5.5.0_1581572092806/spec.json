@@ -3,8 +3,24 @@
   "timestamp" : 1581572092806,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
-    "InsertQuery_1.KsqlTopic.Source" : "STRUCT<DATA VARCHAR> NOT NULL",
-    "InsertQuery_1.OUTPUT" : "STRUCT<DATA VARCHAR> NOT NULL"
+    "InsertQuery_1.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "InsertQuery_1.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
   },
   "testCase" : {
     "name" : "simple",
@@ -33,13 +49,51 @@
     } ],
     "statements" : [ "CREATE STREAM SOURCE1 (DATA STRING) WITH (KAFKA_TOPIC='stream-source', VALUE_FORMAT='DELIMITED');", "CREATE STREAM SOURCE2 (DATA STRING) WITH (KAFKA_TOPIC='insert-source', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT *\nFROM SOURCE1 SOURCE1\nEMIT CHANGES;", "INSERT INTO OUTPUT SELECT *\nFROM SOURCE2 SOURCE2\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "SOURCE1",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "SOURCE2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
+          "name" : "stream-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -48,20 +102,7 @@
         }, {
           "name" : "insert-source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "DELIMITED"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "stream-source",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

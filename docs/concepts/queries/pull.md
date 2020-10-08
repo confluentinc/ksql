@@ -36,8 +36,9 @@ Pull query features and limitations
   with a GROUP BY clause.
 - For non-windowed aggregations, pull queries only support looking up events
   by key.
-- WHERE clauses can only have `ROWKEY=x`-style bounds for non-windowed tables.
-- Windowed tables support bounds on WINDOWSTART using operators
+- WHERE clauses can only have constraints on the key column for non-windowed tables.
+
+- In addition, windowed tables support bounds on `WINDOWSTART` and `WINDOWEND` using operators
   `<=`, `<`, `=`, `>`, `>=`.
 - JOIN, PARTITION BY, GROUP BY and WINDOW clauses aren't supported.
 - SELECT statements can contain column arithmetic and function calls.
@@ -47,14 +48,12 @@ Example pull query
 ------------------
 
 The following pull query gets all events for the specified user that have a
-timestamp within the specified time window. The WHERE clause must contain a
-single value of `ROWKEY` to retrieve and may optionally include bounds on
-WINDOWSTART if the materialized table is windowed.
+timestamp within the specified time window. 
 
 ```sql
 SELECT * FROM user_location
-  WHERE ROWKEY = 'user19r7t33'
-    AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWSTART <= '2019-10-03T21:31:16';
+  WHERE userId = 'user19r7t33'
+    AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWEND <= '2019-10-03T21:31:16';
 ```
 
 API Reference

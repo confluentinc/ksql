@@ -20,9 +20,3 @@ Description
 -----------
 
 List the available scalar and aggregate functions available.
-
-Example
--------
-
-TODO: example
-

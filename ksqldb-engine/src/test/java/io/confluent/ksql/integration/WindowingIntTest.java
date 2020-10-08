@@ -17,6 +17,7 @@ package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
 import static io.confluent.ksql.test.util.MapMatchers.mapHasItems;
@@ -115,8 +116,8 @@ public class WindowingIntTest {
     TEST_HARNESS.ensureTopics(sourceTopicName, ORDERS_STREAM.toUpperCase());
 
     final OrderDataProvider dataProvider = new OrderDataProvider();
-    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> batch0SentMs);
-    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> batch0SentMs + batch1Delay);
+    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, KAFKA, JSON, () -> batch0SentMs);
+    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, KAFKA, JSON, () -> batch0SentMs + batch1Delay);
 
     createOrdersStream();
 
@@ -138,7 +139,7 @@ public class WindowingIntTest {
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
     assertTableCanBeUsedAsSource(expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT, 4, resultStream0, resultStream1);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT, 5, resultStream0, resultStream1);
   }
 
   @Test
@@ -156,7 +157,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 3, resultStream0);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT_DELETE, 3, resultStream0);
   }
 
   @Test
@@ -179,7 +180,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, is(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 3, resultStream0);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT_DELETE, 3, resultStream0);
   }
 
   @Test
@@ -210,7 +211,7 @@ public class WindowingIntTest {
 
     // Then:
     assertOutputOf(resultStream0, expected, mapHasItems(expected));
-    assertTopicsCleanedUp(TopicCleanupPolicy.DELETE, 2, resultStream0);
+    assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT_DELETE, 2, resultStream0);
   }
 
   private void givenTable(final String sql) {
@@ -218,7 +219,8 @@ public class WindowingIntTest {
     final DataSource source = ksqlContext.getMetaStore().getSource(SourceName.of(resultStream0));
     resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
   }
 
@@ -246,7 +248,8 @@ public class WindowingIntTest {
 
     resultSchema = PhysicalSchema.from(
         source.getSchema(),
-        source.getSerdeOptions()
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     assertOutputOf(resultStream1, expected, tableRowMatcher);

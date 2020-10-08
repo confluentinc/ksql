@@ -1,6 +1,76 @@
 {
   "tests": [
     {
+      "name": "serialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": true}},
+        {"topic": "OUTPUT", "value": {"FOO": false}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "OUTPUT", "value": {"FOO": []}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "OUTPUT", "value": {"FOO": {}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 0}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
       "name": "protobuf primitives",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');",
@@ -113,6 +183,16 @@
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"}
         ]
+      }
+    },
+    {
+      "name": "WRAP_SINGLE_VALUE=false",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='PROTOBUF');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Format 'PROTOBUF' does not support 'WRAP_SINGLE_VALUE' set to 'false'."
       }
     },
     {
@@ -232,6 +312,29 @@
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT"}
         ]
+      }
+    },
+    {
+      "name": "map with non-string keys - C*",
+      "comment": ["This is current limitation. PB supports INT/BIGINT keys. See https://github.com/confluentinc/ksql/issues/6177"],
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "PROTOBUF format only supports MAP types with STRING keys"
+      }
+    },
+    {
+      "name": "map with non-string keys - C*AS",
+      "comment": ["This is current limitation. PB supports INT/BIGINT keys. See https://github.com/confluentinc/ksql/issues/6177"],
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "PROTOBUF format only supports MAP types with STRING keys"
       }
     }
   ]

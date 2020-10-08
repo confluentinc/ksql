@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.integration;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.sendClusterStatusRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
+import static io.confluent.ksql.rest.server.utils.TestUtils.findFreeLocalPort;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.JAAS_KAFKA_PROPS_NAME;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
@@ -75,6 +76,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(Enclosed.class)
 public class SystemAuthenticationFunctionalTest {
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
   private static final TemporaryFolder TMP = new TemporaryFolder();
 
   static {
@@ -88,10 +90,6 @@ public class SystemAuthenticationFunctionalTest {
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
-  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("node-1.example.com",
-      8188);
-  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("node-2.example.com",
-      8189);
   private static final BiFunction<Integer, String, SocketAddress> LOCALHOST_FACTORY =
       (port, host) -> SocketAddress.inetSocketAddress(port, "localhost");
 
@@ -108,13 +106,13 @@ public class SystemAuthenticationFunctionalTest {
 
   private static final Map<String, Object> COMMON_CONFIG = ImmutableMap.<String, Object>builder()
       .put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 200)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 1000)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 1000)
+      .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 1000)
+      .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 3000)
+      .put(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 3000)
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-      .putAll(ServerKeyStore.keyStoreProps())
+      .putAll(SERVER_KEY_STORE.keyStoreProps())
       .build();
 
   private static Map<String, String> internalKeyStoreProps(boolean node1) {
@@ -140,7 +138,7 @@ public class SystemAuthenticationFunctionalTest {
   private static void commonClassSetup(final IntegrationTestHarness TEST_HARNESS,
       final TestKsqlRestApp REST_APP_0) {
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER, Optional.of(USER1));
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
@@ -151,14 +149,20 @@ public class SystemAuthenticationFunctionalTest {
 
   @RunWith(MockitoJUnitRunner.class)
   public static class MutualAuth {
+    private static int INT_PORT_0 = findFreeLocalPort();
+    private static int INT_PORT_1 = findFreeLocalPort();
+    private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("node-1.example.com",
+        INT_PORT_0);
+    private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("node-2.example.com",
+        INT_PORT_1);
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withEnabledKsqlClient(LOCALHOST_FACTORY)
         .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:0")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://node-1.example.com:8188")
-        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8188")
+            "https://node-1.example.com:" + INT_PORT_0)
+        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:" + INT_PORT_0)
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
         .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-1.example.com")
@@ -172,8 +176,8 @@ public class SystemAuthenticationFunctionalTest {
         .withEnabledKsqlClient(LOCALHOST_FACTORY)
         .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:0")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://node-2.example.com:8189")
-        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8189")
+            "https://node-2.example.com:" + INT_PORT_1)
+        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:" + INT_PORT_1)
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
         .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-2.example.com")
@@ -214,7 +218,7 @@ public class SystemAuthenticationFunctionalTest {
       waitForClusterToBeDiscovered(REST_APP_0, 2, Optional.of(USER1));
 
       // This ensures that we can't hit the initial optimistic alive status
-      Thread.sleep(2000);
+      Thread.sleep(6000);
 
       // When:
       waitForRemoteServerToChangeStatus(
@@ -234,14 +238,20 @@ public class SystemAuthenticationFunctionalTest {
 
   @RunWith(MockitoJUnitRunner.class)
   public static class HttpsNoMutualAuth {
+    private static int INT_PORT_0 = findFreeLocalPort();
+    private static int INT_PORT_1 = findFreeLocalPort();
+    private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("node-1.example.com",
+        INT_PORT_0);
+    private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("node-2.example.com",
+        INT_PORT_1);
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withEnabledKsqlClient(LOCALHOST_FACTORY)
         .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:0")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://node-1.example.com:8188")
-        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8188")
+            "https://node-1.example.com:" + INT_PORT_0)
+        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:" + INT_PORT_0)
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
         .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-1.example.com")
@@ -254,8 +264,8 @@ public class SystemAuthenticationFunctionalTest {
         .withEnabledKsqlClient(LOCALHOST_FACTORY)
         .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:0")
         .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://node-2.example.com:8189")
-        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:8189")
+            "https://node-2.example.com:" + INT_PORT_1)
+        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:" + INT_PORT_1)
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
         .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-2.example.com")
@@ -284,7 +294,7 @@ public class SystemAuthenticationFunctionalTest {
       waitForClusterToBeDiscovered(REST_APP_0, 2);
 
       // This ensures that we can't hit the initial optimistic alive status
-      Thread.sleep(2000);
+      Thread.sleep(6000);
 
       // When:
       waitForRemoteServerToChangeStatus(

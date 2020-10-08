@@ -30,13 +30,16 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class StubKafkaServiceTest {
 
   @Mock
+  private ParsedSchema avroKeySchema;
+  @Mock
   private ParsedSchema avroSchema;
   @Mock
-  private ProducerRecord<String, String> producerRecord;
+  private ProducerRecord<byte[], byte[]> producerRecord;
 
   private StubKafkaService kafka;
   private Topic topic;
@@ -47,7 +50,7 @@ public class StubKafkaServiceTest {
 
     kafka = StubKafkaService.create();
 
-    topic = new Topic(producerRecord.topic(), Optional.of(avroSchema));
+    topic = new Topic(producerRecord.topic(), Optional.of(avroKeySchema), Optional.of(avroSchema));
   }
 
   @Test
@@ -67,7 +70,8 @@ public class StubKafkaServiceTest {
         topic.getName(),
         topic.getNumPartitions() + 1,
         topic.getReplicas() + 1,
-        topic.getSchema()
+        topic.getKeySchema(),
+        topic.getValueSchema()
     );
 
     // When:

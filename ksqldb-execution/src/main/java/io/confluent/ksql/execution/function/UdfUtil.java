@@ -22,7 +22,6 @@ import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
-import io.confluent.ksql.function.types.StringType;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
@@ -106,29 +105,13 @@ public final class UdfUtil {
     return schema;
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static ParamType handleParameterizedType(final Type type) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
-        final ParamType keyType = getSchemaFromType(parameterizedType.getActualTypeArguments()[0]);
-        if (!(keyType instanceof StringType)) {
-          throw new KsqlException("Maps only support STRING keys, got: " + keyType);
-        }
-        final Type valueType = ((ParameterizedType) type).getActualTypeArguments()[1];
-        if (valueType instanceof TypeVariable) {
-          return MapType.of(GenericType.of(((TypeVariable) valueType).getName()));
-        }
-
-        return MapType.of(getSchemaFromType(valueType));
+        return handleMapType(parameterizedType);
       } else if (parameterizedType.getRawType() == List.class) {
-        final Type valueType = ((ParameterizedType) type).getActualTypeArguments()[0];
-        if (valueType instanceof TypeVariable) {
-          return ArrayType.of(GenericType.of(((TypeVariable) valueType).getName()));
-        }
-
-        return ArrayType.of(getSchemaFromType(valueType));
+        return handleListType((ParameterizedType) type);
       }
     } else if (type instanceof Class<?> && ((Class<?>) type).isArray()) {
       // handle var args
@@ -145,5 +128,28 @@ public final class UdfUtil {
     }
 
     throw new KsqlException("Type inference is not supported for: " + type);
+  }
+
+  private static ParamType handleMapType(final ParameterizedType type) {
+    final Type keyType = type.getActualTypeArguments()[0];
+    final ParamType keyParamType = keyType instanceof TypeVariable
+        ? GenericType.of(((TypeVariable<?>) keyType).getName())
+        : getSchemaFromType(keyType);
+
+    final Type valueType = type.getActualTypeArguments()[1];
+    final ParamType valueParamType = valueType instanceof TypeVariable
+        ? GenericType.of(((TypeVariable<?>) valueType).getName())
+        : getSchemaFromType(valueType);
+
+    return MapType.of(keyParamType, valueParamType);
+  }
+
+  private static ParamType handleListType(final ParameterizedType type) {
+    final Type elementType = type.getActualTypeArguments()[0];
+    final ParamType elementParamType = elementType instanceof TypeVariable
+        ? GenericType.of(((TypeVariable<?>) elementType).getName())
+        : getSchemaFromType(elementType);
+
+    return ArrayType.of(elementParamType);
   }
 }

@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -48,12 +49,13 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -101,37 +103,35 @@ public class TopicCreateInjectorTest {
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     final KsqlStream<?> source = new KsqlStream<>(
         "",
         SourceName.of("SOURCE"),
         SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         sourceTopic
     );
-    metaStore.putSource(source);
+    metaStore.putSource(source, false);
 
     final KsqlTopic joinTopic = new KsqlTopic(
         "jSource",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     final KsqlStream<?> joinSource = new KsqlStream<>(
         "",
         SourceName.of("J_SOURCE"),
         SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         joinTopic
     );
-    metaStore.putSource(joinSource);
+    metaStore.putSource(joinSource, false);
 
     when(topicClient.describeTopic("source")).thenReturn(sourceDescription);
     when(topicClient.isTopicExists("source")).thenReturn(true);
@@ -345,7 +345,7 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of());
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE));
   }
 
   @Test
@@ -362,7 +362,7 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of());
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE));
   }
 
   @Test
@@ -401,7 +401,7 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
-  public void shouldCreateMissingTopicWithDefaultCleanupPolicyForWindowedTables() {
+  public void shouldCreateMissingTopicWithCompactAndDeleteCleanupPolicyForWindowedTables() {
     // Given:
     givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
         + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS);");
@@ -415,7 +415,31 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of());
+        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG,
+            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE));
+  }
+
+  @Test
+  public void shouldCreateMissingTopicWithSpecifiedRetentionForWindowedTables() {
+    // Given:
+    givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
+        + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 4 DAYS);");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(topicClient).createTopic(
+        "expectedName",
+        10,
+        (short) 10,
+        ImmutableMap.of(
+            TopicConfig.CLEANUP_POLICY_CONFIG,
+            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE,
+            TopicConfig.RETENTION_MS_CONFIG,
+            Duration.ofDays(4).toMillis()
+        ));
   }
 
   @Test
@@ -444,8 +468,8 @@ public class TopicCreateInjectorTest {
     final ConfiguredStatement<?> configuredStatement =
         ConfiguredStatement.of(
             preparedStatement,
-            overrides,
-            config);
+            SessionConfig.of(config, overrides)
+        );
     statement = configuredStatement;
     return configuredStatement;
   }

@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-SHOW TYPES;
+SHOW | LIST TYPES;
 ```
 
 Description

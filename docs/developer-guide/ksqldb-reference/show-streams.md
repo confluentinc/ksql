@@ -14,7 +14,7 @@ Synopsis
 --------
 
 ```sql
-SHOW | LIST STREAMS;
+SHOW | LIST STREAMS [EXTENDED];
 ```
 
 Description
@@ -25,5 +25,11 @@ List the defined streams.
 Example
 -------
 
-TODO: example
+```sql
+-- See the list of streams currently registered:
+SHOW STREAMS;
+
+-- See extended information about currently registered streams:
+LIST STREAMS EXTENDED; 
+```
 

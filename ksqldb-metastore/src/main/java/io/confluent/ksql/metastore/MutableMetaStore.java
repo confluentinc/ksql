@@ -21,7 +21,7 @@ import java.util.Set;
 
 public interface MutableMetaStore extends MetaStore {
 
-  void putSource(DataSource dataSource);
+  void putSource(DataSource dataSource, boolean allowReplace);
 
   void deleteSource(SourceName sourceName);
 

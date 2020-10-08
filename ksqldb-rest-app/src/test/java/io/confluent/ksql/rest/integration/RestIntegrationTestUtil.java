@@ -80,7 +80,6 @@ public final class RestIntegrationTestUtil {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
-
       throwOnError(res);
 
       return awaitResults(restClient, res.getResponse());
@@ -161,19 +160,20 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<BasicCredentials> userCreds
   ) {
-    return makeQueryRequest(restApp, sql, userCreds, null);
+    return makeQueryRequest(restApp, sql, userCreds, null, Collections.emptyMap());
   }
 
   static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
       final Optional<BasicCredentials> userCreds,
-      final Map<String, ?> properties
+      final Map<String, ?> properties,
+      final Map<String, ?> requestProperties
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<List<StreamedRow>> res =
-          restClient.makeQueryRequest(sql, null, properties);
+          restClient.makeQueryRequest(sql, null, properties, requestProperties);
 
       throwOnError(res);
 
@@ -190,7 +190,7 @@ public final class RestIntegrationTestUtil {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<List<StreamedRow>> res =
-          restClient.makeQueryRequest(sql, null, properties);
+          restClient.makeQueryRequest(sql, null, properties, Collections.emptyMap());
 
       throwOnNoError(res);
 
@@ -272,13 +272,13 @@ public final class RestIntegrationTestUtil {
   }
 
   public static void createStream(final TestKsqlRestApp restApp,
-      final TestDataProvider<?> dataProvider) {
+      final TestDataProvider dataProvider) {
     createStream(restApp, dataProvider, Optional.empty());
   }
 
   public static void createStream(
       final TestKsqlRestApp restApp,
-      final TestDataProvider<?> dataProvider,
+      final TestDataProvider dataProvider,
       final Optional<BasicCredentials> userCreds
   ) {
     makeKsqlRequest(
@@ -306,12 +306,12 @@ public final class RestIntegrationTestUtil {
     if (!(e instanceof CommandStatusEntity)) {
       return e;
     }
-
     CommandStatusEntity cse = (CommandStatusEntity) e;
     final String commandId = cse.getCommandId().toString();
 
     while (cse.getCommandStatus().getStatus() != Status.ERROR
-        && cse.getCommandStatus().getStatus() != Status.SUCCESS) {
+        && cse.getCommandStatus().getStatus() != Status.SUCCESS
+        && cse.getCommandStatus().getStatus() != Status.QUEUED) {
 
       final RestResponse<CommandStatus> res = ksqlRestClient.makeStatusRequest(commandId);
 

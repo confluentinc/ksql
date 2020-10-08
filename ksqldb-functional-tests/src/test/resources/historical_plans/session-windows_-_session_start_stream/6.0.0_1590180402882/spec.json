@@ -3,8 +3,30 @@
   "timestamp" : 1590180402882,
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
-    "CSAS_SESSION_STARTS_1.KsqlTopic.Source" : "STRUCT<COUNT BIGINT> NOT NULL",
-    "CSAS_SESSION_STARTS_1.SESSION_STARTS" : "STRUCT<COUNT BIGINT> NOT NULL"
+    "CSAS_SESSION_STARTS_1.KsqlTopic.Source" : {
+      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "SESSION"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_SESSION_STARTS_1.SESSION_STARTS" : {
+      "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "SESSION"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
   },
   "testCase" : {
     "name" : "session start stream",
@@ -146,45 +168,54 @@
     "statements" : [ "CREATE STREAM DATA (USER_ID INT) WITH (kafka_topic='data', value_format='JSON');", "CREATE TABLE SESSIONS as SELECT USER_ID, COUNT(USER_ID) AS COUNT FROM DATA WINDOW SESSION (5 SECONDS) group by USER_ID;", "CREATE STREAM SESSION_STREAM (USER_ID INT KEY, COUNT BIGINT) WITH (kafka_topic='SESSIONS', value_format='JSON', window_type='Session');", "CREATE STREAM SESSION_STARTS AS SELECT * FROM SESSION_STREAM WHERE WINDOWSTART = WINDOWEND;" ],
     "post" : {
       "sources" : [ {
+        "name" : "DATA",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `USER_ID` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "SESSIONS",
+        "type" : "TABLE",
+        "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
         "name" : "SESSION_STARTS",
-        "type" : "stream",
-        "schema" : "USER_ID INT KEY, COUNT BIGINT"
+        "type" : "STREAM",
+        "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "SESSION_STREAM",
+        "type" : "STREAM",
+        "schema" : "`USER_ID` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "SESSION"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "SESSIONS",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "SESSION"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
-          "name" : "SESSION_STARTS",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "SESSION"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SESSIONS_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -193,14 +224,33 @@
             "format" : "JSON"
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SESSIONS_0-Aggregate-GroupBy-repartition",
+          "name" : "SESSION_STARTS",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "SESSIONS",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "SESSION"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SESSIONS_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -208,9 +258,7 @@
         }, {
           "name" : "data",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

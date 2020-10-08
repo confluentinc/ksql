@@ -91,7 +91,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
@@ -139,7 +139,7 @@ public class KsqlParserTest {
       .valueColumn(ColumnName.of("ITEMINFO"), itemInfoSchema)
       .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
       .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
       .build();
 
@@ -149,39 +149,37 @@ public class KsqlParserTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicOrders
     );
 
-    metaStore.putSource(ksqlStreamOrders);
+    metaStore.putSource(ksqlStreamOrders, false);
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicItems
     );
 
-    metaStore.putSource(ksqlTableOrders);
+    metaStore.putSource(ksqlTableOrders, false);
   }
 
   @Test
@@ -547,7 +545,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("ORDERTIME")));
     assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(FormatFactory.AVRO));
+    assertThat(result.getProperties().getValueFormat().map(FormatInfo::getFormat), equalTo(Optional.of("AVRO")));
   }
 
   @Test
@@ -562,7 +560,7 @@ public class KsqlParserTest {
     assertThat(Iterables.size(result.getElements()), equalTo(4));
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
-    assertThat(result.getProperties().getValueFormat(), equalTo(FormatFactory.JSON));
+    assertThat(result.getProperties().getValueFormat().map(FormatInfo::getFormat), equalTo(Optional.of("JSON")));
   }
 
   @Test
@@ -1126,6 +1124,50 @@ public class KsqlParserTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("line 1:12: extraneous input 'C' expecting"));
+  }
+
+  @Test
+  public void testReservedKeywordSyntaxError() {
+    // Given:
+    final String simpleQuery = "CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)\n" +
+            "  WITH (kafka_topic='ords', value_format='json');";
+
+    // When:
+    final Exception e = assertThrows(
+            ParseFailedException.class,
+            () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
+  }
+
+  @Test
+  public void testReservedKeywordSyntaxErrorCaseInsensitive() {
+    // Given:
+    final String simpleQuery = "CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)\n" +
+            "  WITH (kafka_topic='ords', value_format='json');";
+
+    // When:
+    final Exception e = assertThrows(
+            ParseFailedException.class,
+            () -> KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("\"Load\" is a reserved keyword and it can't be used as an identifier"));
+  }
+
+  @Test
+  public void testNonReservedKeywordShouldNotThrowException() {
+    // 'sink' is a keyword but is non-reserved. should not throw an exception
+    final CreateStream result = (CreateStream) KsqlParserTestUtil.buildSingleAst("CREATE STREAM ORDERS" +
+            " (place VARCHAR, Sink INTEGER)\n" +
+            " WITH (kafka_topic='orders_topic', value_format='json');", metaStore).getStatement();
+
+    // Then:
+    assertThat(result.getName(), equalTo(SourceName.of("ORDERS")));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
   }
 
   @Test

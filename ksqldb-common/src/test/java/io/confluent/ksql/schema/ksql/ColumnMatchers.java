@@ -29,18 +29,21 @@ public final class ColumnMatchers {
   private ColumnMatchers() {
   }
 
-  public static Matcher<Column> column(final ColumnName name) {
+  public static <T extends SimpleColumn> Matcher<T> column(final ColumnName name) {
     return hasName(name);
   }
 
-  public static Matcher<Column> column(final ColumnName name, final SqlType type) {
+  public static <T extends SimpleColumn> Matcher<T> column(
+      final ColumnName name,
+      final SqlType type
+  ) {
     return allOf(
         hasName(name),
         hasType(type)
     );
   }
 
-  public static Matcher<Column> keyColumn(
+  public static <T extends Column> Matcher<T> keyColumn(
       final ColumnName name,
       final SqlType type
   ) {
@@ -51,7 +54,7 @@ public final class ColumnMatchers {
     );
   }
 
-  public static Matcher<Column> valueColumn(
+  public static <T extends Column> Matcher<T> valueColumn(
       final ColumnName name,
       final SqlType type
   ) {
@@ -62,34 +65,34 @@ public final class ColumnMatchers {
     );
   }
 
-  public static Matcher<Column> hasName(final ColumnName name) {
-    return new FeatureMatcher<Column, ColumnName>(
+  public static <T extends SimpleColumn> Matcher<T> hasName(final ColumnName name) {
+    return new FeatureMatcher<T, ColumnName>(
         is(name),
         "column with name",
         "name"
     ) {
       @Override
-      protected ColumnName featureValueOf(final Column actual) {
+      protected ColumnName featureValueOf(final SimpleColumn actual) {
         return actual.name();
       }
     };
   }
 
-  public static Matcher<Column> hasType(final SqlType type) {
-    return new FeatureMatcher<Column, SqlType>(
+  public static <T extends SimpleColumn> Matcher<T> hasType(final SqlType type) {
+    return new FeatureMatcher<T, SqlType>(
         is(type),
         "column with type",
         "type"
     ) {
       @Override
-      protected SqlType featureValueOf(final Column actual) {
+      protected SqlType featureValueOf(final SimpleColumn actual) {
         return actual.type();
       }
     };
   }
 
-  private static Matcher<Column> hasNamespace(final Namespace ns) {
-    return new FeatureMatcher<Column, Namespace>(
+  private static <T extends Column> Matcher<T> hasNamespace(final Namespace ns) {
+    return new FeatureMatcher<T, Namespace>(
         is(ns),
         "column with type",
         "type"

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
@@ -55,7 +56,7 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -82,13 +83,14 @@ public class CommandFactoriesTest {
       ELEMENT1
   );
   private static final String TOPIC_NAME = "some topic";
-  private static final Map<String, Literal> MINIMIM_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> MINIMUM_PROPS = ImmutableMap.of(
+      CommonCreateConfigs.KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"),
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
   private static final String SOME_TYPE_NAME = "newtype";
   private static final Map<String, Object> OVERRIDES = ImmutableMap.of(
-      KsqlConfig.KSQL_WRAP_SINGLE_VALUES, !defaultConfigValue(KsqlConfig.KSQL_WRAP_SINGLE_VALUES)
+      KsqlConfig.KSQL_WRAP_SINGLE_VALUES, false
   );
 
   @Mock
@@ -119,10 +121,9 @@ public class CommandFactoriesTest {
   private CommandFactories commandFactories;
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private final CreateSourceProperties withProperties =
-      CreateSourceProperties.from(MINIMIM_PROPS);
+      CreateSourceProperties.from(MINIMUM_PROPS);
 
   @Before
-  @SuppressWarnings("unchecked")
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
@@ -157,11 +158,11 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForCreateStream() {
     // Given:
-    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, statement, ksqlConfig, emptyMap());
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     assertThat(result, is(createStreamCommand));
     verify(createSourceFactory).createStreamCommand(statement, ksqlConfig);
@@ -170,10 +171,10 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForStreamWithOverriddenProperties() {
     // Given:
-    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
 
     // When:
-    commandFactories.create(sqlExpression, statement, ksqlConfig, OVERRIDES);
+    commandFactories.create(sqlExpression, statement, SessionConfig.of(ksqlConfig, OVERRIDES));
 
     verify(createSourceFactory).createStreamCommand(
         statement,
@@ -187,11 +188,11 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        true, withProperties);
+        false, true, withProperties);
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, statement, ksqlConfig, emptyMap());
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(createTableCommand));
@@ -205,10 +206,10 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        true, withProperties);
+        false, true, withProperties);
 
     // When:
-    commandFactories.create(sqlExpression, statement, ksqlConfig, OVERRIDES);
+    commandFactories.create(sqlExpression, statement, SessionConfig.of(ksqlConfig, OVERRIDES));
 
     // Then:
     verify(createSourceFactory).createTableCommand(
@@ -224,7 +225,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+        .create(sqlExpression, ddlStatement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(dropSourceCommand));
@@ -238,7 +239,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+        .create(sqlExpression, ddlStatement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(dropSourceCommand));
@@ -251,12 +252,13 @@ public class CommandFactoriesTest {
     final RegisterType ddlStatement = new RegisterType(
         Optional.empty(),
         "alias",
-        new Type(SqlStruct.builder().field("foo", SqlPrimitiveType.of(SqlBaseType.STRING)).build())
+        new Type(SqlStruct.builder().field("foo", SqlPrimitiveType.of(SqlBaseType.STRING)).build()),
+        true
     );
 
     // When:
     final DdlCommand result = commandFactories.create(
-        sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+        sqlExpression, ddlStatement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(registerTypeCommand));
@@ -266,14 +268,13 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateDropType() {
     // Given:
-    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME);
+    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME, false);
 
     // When:
     final DropTypeCommand cmd = (DropTypeCommand) commandFactories.create(
         "sqlExpression",
         dropType,
-        ksqlConfig,
-        emptyMap()
+        SessionConfig.of(ksqlConfig, emptyMap())
     );
 
     // Then:
@@ -288,7 +289,7 @@ public class CommandFactoriesTest {
     };
 
     // Then:
-    commandFactories.create(sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+    commandFactories.create(sqlExpression, ddlStatement, SessionConfig.of(ksqlConfig, emptyMap()));
   }
 
   @Test
@@ -304,16 +305,16 @@ public class CommandFactoriesTest {
     );
 
     final DdlStatement statement =
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
 
     // When:
     final DdlCommand cmd = commandFactories
-        .create(sqlExpression, statement, ksqlConfig, overrides);
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, overrides));
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
-    assertThat(((CreateStreamCommand) cmd).getFormats().getOptions(),
-        contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(((CreateStreamCommand) cmd).getFormats().getValueFeatures().all(),
+        contains(SerdeFeature.UNWRAP_SINGLES));
   }
 
   @Test
@@ -329,16 +330,16 @@ public class CommandFactoriesTest {
     );
 
     final DdlStatement statement =
-        new CreateTable(SOME_NAME, ELEMENTS_WITH_PK, true, withProperties);
+        new CreateTable(SOME_NAME, ELEMENTS_WITH_PK, false, true, withProperties);
 
     // When:
     final DdlCommand cmd = commandFactories
-        .create(sqlExpression, statement, ksqlConfig, overrides);
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, overrides));
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
-    assertThat(((CreateTableCommand) cmd).getFormats().getOptions(),
-        contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(((CreateTableCommand) cmd).getFormats().getValueFeatures().all(),
+        contains(SerdeFeature.UNWRAP_SINGLES));
   }
 
   private static TableElement tableElement(
@@ -351,9 +352,5 @@ public class CommandFactoriesTest {
     when(te.getType()).thenReturn(type);
     when(te.getNamespace()).thenReturn(namespace);
     return te;
-  }
-
-  private static boolean defaultConfigValue(final String config) {
-    return new KsqlConfig(emptyMap()).getBoolean(config);
   }
 }

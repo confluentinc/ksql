@@ -75,7 +75,7 @@ public final class EntityUtil {
       return new SchemaInfo(SqlBaseType.ARRAY, null, element);
     }
 
-    public SchemaInfo visitMap(final SqlMap type, final SchemaInfo value) {
+    public SchemaInfo visitMap(final SqlMap type, final SchemaInfo key, final SchemaInfo value) {
       return new SchemaInfo(SqlBaseType.MAP, null, value);
     }
 

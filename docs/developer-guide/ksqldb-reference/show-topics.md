@@ -19,7 +19,7 @@ SHOW | LIST [ALL] TOPICS [EXTENDED];
 Description
 -----------
 
-SHOW TOPICS lists the available topics in the Kafka cluster that ksqlDB is
+SHOW TOPICS lists the available topics in the {{ site.ak }} cluster that ksqlDB is
 configured to connect to (default setting for `bootstrap.servers`:
 `localhost:9092`). SHOW TOPICS EXTENDED also displays consumer groups
 and their active consumer counts.
@@ -36,25 +36,25 @@ Example
 ```sql
 ksql> SHOW TOPICS;
 
- Kafka Topic                                                                           | Partitions | Partition Replicas
---------------------------------------------------------------------------------------------------------
+ Kafka Topic                                                                           | Partitions | Replicas
+---------------------------------------------------------------------------------------------------------------
  default_ksql_processing_log                                                           | 1          | 1
  pageviews                                                                             | 1          | 1
  users                                                                                 | 1          | 1
---------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 ```
 
 
 ```sql
 ksql> SHOW ALL TOPICS;
 
- Kafka Topic                                                                           | Partitions | Partition Replicas
---------------------------------------------------------------------------------------------------------
+ Kafka Topic                                                                           | Partitions | Replicas
+--------------------------------------------------------------------------------------------------------------
  _confluent-ksql-default__command_topic                                                | 1          | 1
  _confluent-ksql-default_query_CTAS_USERS_0-Aggregate-Aggregate-Materialize-changelog  | 1          | 1
  _confluent-ksql-default_query_CTAS_USERS_0-Aggregate-GroupBy-repartition              | 1          | 1
  default_ksql_processing_log                                                           | 1          | 1
  pageviews                                                                             | 1          | 1
  users                                                                                 | 1          | 1
---------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
 ```

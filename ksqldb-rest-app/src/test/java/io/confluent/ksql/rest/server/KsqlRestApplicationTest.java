@@ -34,12 +34,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryMonitor;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -59,16 +61,14 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.vertx.core.Vertx;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -134,9 +134,16 @@ public class KsqlRestApplicationTest {
   private LagReportingAgent lagReportingAgent;
   @Mock
   private EndpointResponse response;
+  @Mock
+  private QueryMonitor queryMonitor;
+  @Mock
+  private DenyListPropertyValidator denyListPropertyValidator;
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+
+  @Mock
+  private Vertx vertx;
 
   private String logCreateStatement;
   private KsqlRestApplication app;
@@ -201,7 +208,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCloseServiceContextOnClose() {
     // When:
-    app.triggerShutdown();
+    app.shutdown();
 
     // Then:
     verify(serviceContext).close();
@@ -210,10 +217,19 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCloseSecurityExtensionOnClose() {
     // When:
-    app.triggerShutdown();
+    app.shutdown();
 
     // Then:
     verify(securityExtension).close();
+  }
+
+  @Test
+  public void shouldCloseQueryMonitorOnClose() {
+    // When:
+    app.shutdown();
+
+    // then:
+    verify(queryMonitor).close();
   }
 
   @Test
@@ -266,7 +282,7 @@ public class KsqlRestApplicationTest {
     final StreamsList streamsList =
         new StreamsList(
             LIST_STREAMS_SQL,
-            Collections.singletonList(new SourceInfo.Stream(LOG_STREAM_NAME, "", "")));
+            Collections.singletonList(new SourceInfo.Stream(LOG_STREAM_NAME, "", "", "", false)));
     when(response.getEntity()).thenReturn(new KsqlEntityList(Collections.singletonList(streamsList)));
     
     when(ksqlResource.handleKsqlStatements(
@@ -300,6 +316,15 @@ public class KsqlRestApplicationTest {
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
+  }
+
+  @Test
+  public void shouldStartQueryMonitor() {
+    // When:
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    verify(queryMonitor).start();
   }
 
   @Test
@@ -471,7 +496,11 @@ public class KsqlRestApplicationTest {
         rocksDBConfigSetterHandler,
         pullQueryExecutor,
         Optional.of(heartbeatAgent),
-        Optional.of(lagReportingAgent)
+        Optional.of(lagReportingAgent),
+        vertx,
+        queryMonitor,
+        denyListPropertyValidator,
+        Optional.empty()
     );
   }
 

@@ -70,14 +70,27 @@ public class MultiExecutableTest {
   }
 
   @Test
+  public void shouldNotifyAllToShutdown() throws Exception {
+    // When:
+    multiExecutable.notifyTerminated();
+
+    // Then:
+    // Then:
+    final InOrder inOrder = Mockito.inOrder(executable1, executable2);
+    inOrder.verify(executable1).notifyTerminated();
+    inOrder.verify(executable2).notifyTerminated();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
   public void shouldStopAll() throws Exception {
     // When:
-    multiExecutable.triggerShutdown();
+    multiExecutable.shutdown();
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(executable1, executable2);
-    inOrder.verify(executable1).triggerShutdown();
-    inOrder.verify(executable2).triggerShutdown();
+    inOrder.verify(executable1).shutdown();
+    inOrder.verify(executable2).shutdown();
     inOrder.verifyNoMoreInteractions();
   }
 

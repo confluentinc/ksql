@@ -17,13 +17,19 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.KeyFormatUtils;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +38,7 @@ public class KsqlServerMain {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
 
+  private final Executor shutdownHandler;
   private final Executable executable;
 
   public static void main(final String[] args) {
@@ -48,39 +55,95 @@ public class KsqlServerMain {
 
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-      final String streamsStateDirPath = ksqlConfig.getKsqlStreamConfigProps().getOrDefault(
-          StreamsConfig.STATE_DIR_CONFIG,
-          StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG)).toString();
-      enforceStreamStateDirAvailability(new File(streamsStateDirPath));
+      validateConfig(ksqlConfig);
+
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final Executable executable = createExecutable(
           properties, queriesFile, installDir, ksqlConfig);
-      new KsqlServerMain(executable).tryStartApp();
+      new KsqlServerMain(
+          executable,
+          r -> Runtime.getRuntime().addShutdownHook(new Thread(r))
+      ).tryStartApp();
     } catch (final Exception e) {
       log.error("Failed to start KSQL", e);
       System.exit(-1);
     }
   }
 
-  KsqlServerMain(final Executable executable) {
+  KsqlServerMain(final Executable executable, final Executor shutdownHandler) {
     this.executable = Objects.requireNonNull(executable, "executable");
+    this.shutdownHandler = Objects.requireNonNull(shutdownHandler, "shutdownHandler");
   }
 
   void tryStartApp() throws Exception {
+    final CountDownLatch latch = new CountDownLatch(1);
+    shutdownHandler.execute(() -> {
+      executable.notifyTerminated();
+      try {
+        latch.await();
+      } catch (final InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    });
     try {
-      log.info("Starting server");
-      executable.startAsync();
-      log.info("Server up and running");
-      executable.awaitTerminated();
-    } catch (Throwable t) {
-      log.error("Unhandled exception in server startup", t);
-      throw t;
+      try {
+        log.info("Starting server");
+        executable.startAsync();
+        log.info("Server up and running");
+        executable.awaitTerminated();
+      } catch (Throwable t) {
+        log.error("Unhandled exception in server startup", t);
+        throw t;
+      } finally {
+        log.info("Server shutting down");
+        executable.shutdown();
+      }
     } finally {
-      log.info("Server shutting down");
-      executable.triggerShutdown();
+      latch.countDown();
     }
   }
 
+  private static void validateConfig(final KsqlConfig config) {
+    validateStateDir(config);
+    validateDefaultTopicFormats(config);
+  }
+
+  private static void validateStateDir(final KsqlConfig config) {
+    final String streamsStateDirPath = config.getKsqlStreamConfigProps().getOrDefault(
+        StreamsConfig.STATE_DIR_CONFIG,
+        StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG)).toString();
+    enforceStreamStateDirAvailability(new File(streamsStateDirPath));
+  }
+
+  @VisibleForTesting
+  static void validateDefaultTopicFormats(final KsqlConfig config) {
+    validateTopicFormat(config, KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "key");
+    validateTopicFormat(config, KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "value");
+  }
+
+  private static void validateTopicFormat(
+      final KsqlConfig config,
+      final String configName,
+      final String type
+  ) {
+    final String formatName = config.getString(configName);
+    if (formatName == null) {
+      return;
+    }
+
+    final Format format;
+    try {
+      format = FormatFactory.fromName(formatName);
+    } catch (KsqlException e) {
+      throw new KsqlException("Invalid value for config '" + configName + "': " + formatName, e);
+    }
+
+    if (type.equals("key") && !KeyFormatUtils.isSupportedKeyFormat(config, format)) {
+      throw new KsqlException("Invalid value for config '" + configName + "': "
+          + "The supplied format is not currently supported as a key format. "
+          + "Format: '" + formatName + "'.");
+    }
+  }
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Executable createExecutable(
@@ -115,7 +178,7 @@ public class KsqlServerMain {
         throw new KsqlServerException("Could not create the kafka streams state directory: "
             + streamsStateDir.getPath()
             + "\n Make sure the directory exists and is writable for KSQL server "
-            + "\n or its parend directory is writbale by KSQL server"
+            + "\n or its parent directory is writable by KSQL server"
             + "\n or change it to a writable directory by setting '"
             + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
             + "' config in the properties file."
@@ -126,7 +189,7 @@ public class KsqlServerMain {
       throw new KsqlServerException(streamsStateDir.getPath()
           + " is not a directory."
           + "\n Make sure the directory exists and is writable for KSQL server "
-          + "\n or its parend directory is writbale by KSQL server"
+          + "\n or its parent directory is writable by KSQL server"
           + "\n or change it to a writable directory by setting '"
           + KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG
           + "' config in the properties file."

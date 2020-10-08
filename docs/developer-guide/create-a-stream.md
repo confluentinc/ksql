@@ -17,6 +17,12 @@ query results from other streams.
 !!! note
       Creating tables is similar to creating streams. For more information,
       see [Create a ksqlDB Table](create-a-table.md).
+      
+ksqlDB can't infer the topic value's data format, so you must provide the
+format of the values that are stored in the topic, either explicitly via the use of `VALUE_FORMAT`
+in the WITH clause, or by configuring a default value format by setting the [ksql.persistence.default.format.value](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatvalue)
+configuration. In this example, the data format is `DELIMITED`. 
+For all supported formats, see [Serialization Formats](serialization.md#serialization-formats).
 
 Create a Stream from an existing Kafka topic
 --------------------------------------------
@@ -30,26 +36,21 @@ named `pageviews`.
 ### Create a Stream with Selected Columns
 
 The following example creates a stream that has three columns from the
-`pageviews` topic: `viewtime`, `userid`, and `pageid`.
-
-ksqlDB can't infer the topic value's data format, so you must provide the
-format of the values that are stored in the topic. In this example, the
-data format is `DELIMITED`. Other options are `Avro`, `JSON`, `JSON_SR`, `PROTOBUF`, and `KAFKA`.
-See [Serialization Formats](serialization.md#serialization-formats) for more
-details.
-
-ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
-serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
+`pageviews` topic: `viewtime`, `userid`, and `pageid`. All of these columns are loaded from the 
+{{ site.ak }} topic message value. To access data in your message key, see 
+[Create a Stream with a Specified Key](#create-a-stream-with-a-specified-key), below.
 
 In the ksqlDB CLI, paste the following CREATE STREAM statement:
 
 ```sql
-CREATE STREAM pageviews
-  (viewtime BIGINT,
-   userid VARCHAR,
-   pageid VARCHAR)
-  WITH (KAFKA_TOPIC='pageviews',
-        VALUE_FORMAT='DELIMITED')
+CREATE STREAM pageviews (
+    viewtime BIGINT,
+    userid VARCHAR,
+    pageid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='pageviews',
+    VALUE_FORMAT='DELIMITED'
+  );
 ```
 
 Your output should resemble:
@@ -70,10 +71,10 @@ SHOW STREAMS;
 Your output should resemble:
 
 ```
- Stream Name | Kafka Topic | Format
----------------------------------------
- PAGEVIEWS   | pageviews   | DELIMITED
----------------------------------------
+ Stream Name | Kafka Topic | Key Format | Value Format | Windowed
+-----------------------------------------------------------------
+ PAGEVIEWS   | pageviews   | KAFKA      | DELIMITED    | false   
+-----------------------------------------------------------------
 ```
 
 Get the schema for the stream:
@@ -99,23 +100,38 @@ For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 
 The previous SQL statement doesn't define a column to represent the data in the
 {{ site.ak }} message key in the underlying {{ site.ak }} topic. If the {{ site.ak }} message key 
-is serialized in a key format that ksqlDB supports (currently `KAFKA`),
-you can specify the key in the column list of the CREATE STREAM statement.
+is serialized in a key format that ksqlDB supports, you can specify the key in the column list of 
+the CREATE STREAM statement. For support key formats, see [Serialization Formats](./serialization.md#serialization-formats).
 
-For example, the {{ site.ak }}  message key of the `pageviews` topic is a `BIGINT` containing the 
+ksqlDB can't infer the topic key's data format, so you must provide the
+format of the keys that are stored in the topic, either explicitly via the use of `KEY_FORMAT`
+in the WITH clause, or by configuring a default value format by setting the [ksql.persistence.default.format.key](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatkey)
+configuration. In this example, the key format is `KAFKA`. 
+
+If the data in your {{ site.ak }} topics doesn't have a suitable key format, 
+see [Key Requirements](syntax-reference.md#key-requirements).
+
+For example, the {{ site.ak }} message key of the `pageviews` topic is a `BIGINT` containing the 
 `viewtime`, so you can write the CREATE STREAM statement like this:
 
 ```sql
-CREATE STREAM pageviews_withkey
-  (viewtime BIGINT KEY,
-   userid VARCHAR,
-   pageid VARCHAR)
- WITH (KAFKA_TOPIC='pageviews',
-       VALUE_FORMAT='DELIMITED');
+CREATE STREAM pageviews_withkey (
+    viewtime BIGINT KEY,
+    userid VARCHAR,
+    pageid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='pageviews',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='DELIMITED'
+  );
 ```
 
+!!! tip
+      If the key and value formats for the stream are identical, the `FORMAT` property
+      may be used in place of specifying the `KEY_FORMAT` and `VALUE_FORMAT` separately.
+
 Confirm that the KEY column in the new stream is `pageid` by using the
-DESCRIBE EXTENDED statement:
+`DESCRIBE EXTENDED` statement:
 
 ```sql
 DESCRIBE EXTENDED pageviews_withkey;
@@ -153,13 +169,15 @@ the message timestamp, you can rewrite the previous CREATE STREAM statement
 like this:
 
 ```sql
-CREATE STREAM pageviews_timestamped
-  (viewtime BIGINT KEY,
-   userid VARCHAR
-   pageid VARCHAR)
-  WITH (KAFKA_TOPIC='pageviews',
-        VALUE_FORMAT='DELIMITED',
-        TIMESTAMP='viewtime')
+CREATE STREAM pageviews_timestamped (
+    viewtime BIGINT KEY,
+    userid VARCHAR
+    pageid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='pageviews',
+    VALUE_FORMAT='DELIMITED',
+    TIMESTAMP='viewtime'
+  );
 ```
 
 Confirm that the TIMESTAMP field is `viewtime` by using the DESCRIBE
@@ -181,6 +199,25 @@ Kafka topic          : pageviews (partitions: 1, replication: 1)
 [...]
 ```
 
+### Creating a Stream using Schema Inference
+
+For supported [serialization formats](../developer-guide/serialization.md),
+ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+ksqlDB can use [Schema Inference](../concepts/schemas.md#schema-inference) to
+spare you from defining columns manually in your `CREATE STREAM` statements.
+
+The following example creates a stream over an existing topic, loading the
+value column definitions from {{ site.sr }}.
+
+```sql
+CREATE STREAM pageviews WITH (
+    KAFKA_TOPIC='pageviews',
+    VALUE_FORMAT='PROTOBUF'
+  );
+```
+
+For more information, see [Schema Inference](../concepts/schemas.md#schema-inference).
+
 Create a Stream backed by a new Kafka Topic
 -------------------------------------------
 
@@ -193,17 +230,22 @@ Kafka topic does not already exist, you can create the stream by pasting
 the following CREATE STREAM statement into the CLI:
 
 ```sql
-CREATE STREAM pageviews
-  (viewtime BIGINT KEY,
-   userid VARCHAR,
-   pageid VARCHAR)
-  WITH (KAFKA_TOPIC='pageviews',
-        PARTITIONS=4,
-        REPLICAS=3
-        VALUE_FORMAT='DELIMITED')
+CREATE STREAM pageviews(
+    viewtime BIGINT KEY,
+    userid VARCHAR,
+    pageid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='pageviews',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='DELIMITED',
+    PARTITIONS=4,
+    REPLICAS=3
+  );
 ```
 
-This will create the pageviews topics for you with the supplied partition and replica count.
+This statement creates the `pageviews` topic for you with the supplied partition and replica count. The 
+value of `viewTime` is stored in the {{ site.ak }} topic message key. To store
+the column in the message value, simply remove `KEY` from the column definition.
 
 Create a Persistent Streaming Query from a Stream
 -------------------------------------------------
@@ -218,11 +260,11 @@ persistent, continuous, streaming query, which means that it runs until
 you stop it explicitly.
 
 !!! note
-      A SELECT statement by itself is a *non-persistent* continuous query. The
+      A SELECT statement by itself is a *transient* query. The
       result of a SELECT statement isn't persisted in a Kafka topic and is
-      only printed in the ksqlDB console. Don't confuse persistent queries
-      created by CREATE STREAM AS SELECT with the streaming query result from
-      a SELECT statement.
+      only printed in the ksqlDB console or streaming to your client. 
+      Don't confuse persistent queries created by CREATE STREAM AS SELECT 
+      with the streaming query result from a SELECT statement.
 
 Use the SHOW QUERIES statement to list the persistent queries that are
 running currently.
@@ -271,12 +313,12 @@ Your output should resemble:
 ```
 Key format: KAFKA_BIGINT or KAFKA_DOUBLE
 Value format: KAFKA_STRING
-rowtime: 10/30/18 10:15:51 PM GMT, key: 1540937751186, value: 1540937751186,User_8,Page_12
-rowtime: 10/30/18 10:15:55 PM GMT, key: 1540937755255, value: 1540937755255,User_1,Page_15
-rowtime: 10/30/18 10:15:57 PM GMT, key: 1540937757265, value: 1540937757265,User_8,Page_10
-rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759330, value: 1540937759330,User_4,Page_15
-rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759699, value: 1540937759699,User_1,Page_12
-rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759990, value: 1540937759990,User_6,Page_15
+rowtime: 10/30/18 10:15:51 PM GMT, key: 1540937751186, value: User_8,Page_12
+rowtime: 10/30/18 10:15:55 PM GMT, key: 1540937755255, value: User_1,Page_15
+rowtime: 10/30/18 10:15:57 PM GMT, key: 1540937757265, value: User_8,Page_10
+rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759330, value: User_4,Page_15
+rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759699, value: User_1,Page_12
+rowtime: 10/30/18 10:15:59 PM GMT, key: 1540937759990, value: User_6,Page_15
 ^CTopic printing ceased
 ```
 

@@ -37,7 +37,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.UserDataProvider;
@@ -87,6 +87,7 @@ public class PullQueryFunctionalTest {
   private static final String USER_WITH_ACCESS_PWD = "changeme";
 
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
+  private static final Format KEY_FORMAT = FormatFactory.KAFKA;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final int HEADER = 1;
 
@@ -105,7 +106,8 @@ public class PullQueryFunctionalTest {
           .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
-      SerdeOption.none()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
 
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
@@ -155,6 +157,7 @@ public class PullQueryFunctionalTest {
     TEST_HARNESS.produceRows(
         USER_TOPIC,
         USER_PROVIDER,
+        KEY_FORMAT,
         VALUE_FORMAT,
         timestampSupplier::getAndIncrement
     );
@@ -183,7 +186,7 @@ public class PullQueryFunctionalTest {
   @Test
   public void shouldGetSingleKeyFromBothNodes() {
     // Given:
-    final String key = Iterables.get(USER_PROVIDER.data().keySet(), 0);
+    final String key = USER_PROVIDER.getStringKey(0);
 
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
@@ -210,7 +213,7 @@ public class PullQueryFunctionalTest {
   @Test
   public void shouldGetSingleWindowedKeyFromBothNodes() {
     // Given:
-    final String key = Iterables.get(USER_PROVIDER.data().keySet(), 0);
+    final String key = USER_PROVIDER.getStringKey(0);
 
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
@@ -256,6 +259,7 @@ public class PullQueryFunctionalTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_PROVIDER.data().size(),
+        KEY_FORMAT,
         VALUE_FORMAT,
         AGGREGATE_SCHEMA
     );

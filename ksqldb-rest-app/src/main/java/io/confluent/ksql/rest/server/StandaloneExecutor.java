@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
@@ -129,12 +130,17 @@ public class StandaloneExecutor implements Executable {
       versionChecker.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
-      triggerShutdown();
       throw e;
     }
   }
 
-  public void triggerShutdown() {
+  @Override
+  public void notifyTerminated() {
+    shutdownLatch.countDown();
+  }
+
+  @Override
+  public void shutdown() {
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -145,7 +151,6 @@ public class StandaloneExecutor implements Executable {
     } catch (final Exception e) {
       log.warn("Failed to cleanly shutdown services", e);
     }
-    shutdownLatch.countDown();
   }
 
   @Override
@@ -313,8 +318,8 @@ public class StandaloneExecutor implements Executable {
         final ParsedStatement statement
     ) {
       final PreparedStatement<?> prepared = executionContext.prepare(statement);
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, configOverrides, ksqlConfig);
+      final ConfiguredStatement<?> configured = ConfiguredStatement
+          .of(prepared, SessionConfig.of(ksqlConfig, configOverrides));
 
       return injector.inject(configured);
     }

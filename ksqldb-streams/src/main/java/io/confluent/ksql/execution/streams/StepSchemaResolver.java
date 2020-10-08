@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
@@ -83,6 +84,7 @@ public final class StepSchemaResolver {
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
       .put(TableGroupBy.class, StepSchemaResolver::handleTableGroupBy)
       .put(TableSelect.class, StepSchemaResolver::handleTableSelect)
+      .put(TableSuppress.class, StepSchemaResolver::sameSchema)
       .put(TableSink.class, StepSchemaResolver::sameSchema)
       .put(TableSource.class, StepSchemaResolver::handleSource)
       .put(WindowedTableSource.class, StepSchemaResolver::handleWindowedSource)

@@ -41,12 +41,12 @@ The expected topologies are stored alongside the query plans described above.
 `QueryTranslationTest` supports running a subset of test files, for example following example:
 
 ```
-mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json
+mvn test -pl ksqldb-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json
 ```
 
 or
 ```
-mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json,substring.json
+mvn test -pl ksqldb-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json,substring.json
 ```
 
 The above commands can execute only a single test (sum.json) or multiple tests (sum.json and substring.json).
@@ -65,8 +65,8 @@ The following is a template test file:
       "name": "my first positive test",
       "description": "an example positive test where the output is verified",
       "statements": [
-        "CREATE STREAM input (ID bigint KEY, NAME STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE STREAM output AS SELECT ** FROM input WHERE id < 10;"
+        "CREATE STREAM input (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT * FROM input WHERE id < 10;"
       ],
       "inputs": [
         {"topic": "input_topic", "key": 8, "value": {"name": "bob"}, "timestamp": 0},
@@ -80,7 +80,7 @@ The following is a template test file:
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ID BIGINT KEY, NAME STRING"}
         ]
       }
     },
@@ -92,14 +92,14 @@ The following is a template test file:
         "max": "5.4.1"
       },
       "statements": [
-        "CREATE STREAM test (ID name) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "INSERT INTO test (name, number) VALUES ('foo', 45)",
-        "INSERT INTO test (name, number) VALUES ('bar', 646)",
-        "CREATE STREAM output AS SELECT value FROM test;"
+        "CREATE STREAM test (name VARCHAR KEY, number INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "INSERT INTO test (name, number) VALUES ('foo', 45);",
+        "INSERT INTO test (name, number) VALUES ('bar', 646);",
+        "CREATE STREAM output AS SELECT name, number FROM test;"
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "foo", "value": {"number": 45}},
-        {"topic": "OUTPUT", "key": 0, "value": {"number": 646}}
+        {"topic": "OUTPUT", "key": "foo", "value": {"NUMBER": 45}},
+        {"topic": "OUTPUT", "key": "bar", "value": {"NUMBER": 646}}
       ]
     },
     {
@@ -282,7 +282,7 @@ A test can define a set of post conditions that must be met for the test to pass
       "topics": [
         {
           "name" : "OUTPUT",
-          "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+          "keyFormat" : {"format" : "KAFKA"},
           "valueFormat" : {"format" : "DELIMITED"},
           "partitions" : 4
         }
@@ -306,17 +306,25 @@ A post condition can define the list of sources that must exist in the metastore
 {
   "name": "S1",
   "type": "table",
-  "schema": "ID BIGINT KEY, FOO STRING, KSQL_COL_1 BIGINT"
+  "schema": "ID BIGINT KEY, FOO STRING",
+  "keyFormat": {"format": "KAFKA"},
+  "valueFormat": "JSON",
+  "keyFeatures": ["UNWRAP_SINGLES"],
+  "valueFeatures": ["WRAP_SINGLES"]
 }
 ```
 
 Each source can define the following attributes:
 
-| Attribute   | Description |
-|-------------|:------------|
-| name        | (Required) The name of the source. |
-| type        | (Required) Specifies if the source is a STREAM or TABLE. |
-| schema      | (Optional) Specifies the SQL schema for the source. |
+| Attribute    | Description |
+|--------------|:------------|
+| name         | (Required) The name of the source. |
+| type         | (Required) Specifies if the source is a STREAM or TABLE. |
+| schema       | (Optional) Specifies the SQL schema for the source. |
+| keyFormat    | (Optional) Key serialization format for the source. |
+| valueFormat  | (Optional) Value serialization format for the source. |
+| keyFeatures  | (Optional) List of expected key serde features for the source. |
+| valueFeatures| (Optional) List of expected value serde features for the source. |
 
 #### Topics
 
@@ -328,8 +336,8 @@ A post condition can define a check against the set of topics the case creates
   "topics": [
     {
       "name" : "OUTPUT",
-      "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
-      "valueFormat" : {"format" : "DELIMITED"},
+      "keyFormat" : {"format" : "KAFKA", "features": ["UNWRAP_SINGLES"]},
+      "valueFormat" : {"format" : "DELIMITED", "features": ["WRAP_SINGLES"]},
       "partitions" : 4
     }
   ]
@@ -348,8 +356,8 @@ The topics object can define the following attributes:
 ```json
 {
   "name" : "OUTPUT",
-  "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
-  "valueFormat" : {"format" : "DELIMITED"},
+  "keyFormat" : {"format" : "KAFKA", "features": ["UNWRAP_SINGLES"]},
+  "valueFormat" : {"format" : "DELIMITED", "features": ["WRAP_SINGLES"]},
   "partitions" : 4
 }
 ```

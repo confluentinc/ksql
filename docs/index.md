@@ -1,20 +1,18 @@
 ---
 layout: page
-title: ksqlDB
+title: ksqlDB Overview
 tagline: What is ksqlDB?
 description: Learn about ksqlDB, the event streaming database for creating stream processing applications with Apache Kafka®.
 keywords: ksqldb
 ---
 
-What is ksqlDB?
----------------
+## What is ksqlDB?
 
 ksqlDB is an event streaming database purpose-built to help developers create
 stream processing applications on top of {{ site.aktm }}.
 
 
-Why use ksqlDB to build stream processing applications?
--------------------------------------------------------
+## Why use ksqlDB to build stream processing applications?
 
 In today’s world, applications that leverage stream processing need a
 heavyweight architecture that requires integrating several distributed
@@ -42,8 +40,7 @@ streaming platform.
 
 ![Diagram of ksqlDB architecure](img/ksqldb-architecture.png)
 
-What are the components of ksqlDB?
-----------------------------------
+## What are the components of ksqlDB?
 
 These are the core categories that are foundational to building an app:
 collections, materialized views, and queries.
@@ -92,70 +89,70 @@ can query materialized views with *pull queries* and *push queries*.
   your event streaming applications can react to new information in real-time.
   They’re a good fit for asynchronous application flows.
 
-### What Can I Do With ksqlDB?
+## What Can I Do With ksqlDB?
 
-Streaming ETL
-:   Apache Kafka is a popular choice for powering data pipelines. ksqlDB
-    makes it simple to transform data within the pipeline, readying
-    messages to cleanly land in another system.
+### Streaming ETL
+    
+Apache Kafka is a popular choice for powering data pipelines. ksqlDB
+makes it simple to transform data within the pipeline, readying
+messages to cleanly land in another system.
 
-Real-time Monitoring and Analytics
+### Real-time Monitoring and Analytics
 
-:   Track, understand, and manage infrastructure, applications, and data
-    feeds by quickly building real-time dashboards, generating metrics,
-    and creating custom alerts and messages.
+Track, understand, and manage infrastructure, applications, and data
+feeds by quickly building real-time dashboards, generating metrics,
+and creating custom alerts and messages.
 
-Data exploration and discovery
+### Data exploration and discovery
 
-:   Navigate and browse through your data in {{ site.ak }}.
+Navigate and browse through your data in {{ site.ak }}.
 
-Anomaly detection
+### Anomaly detection
 
-:   Identify patterns and spot anomalies in real-time data with
-    millisecond latency, enabling you to properly surface out-of-the-ordinary
-    events and to handle fraudulent activities separately.
+Identify patterns and spot anomalies in real-time data with
+millisecond latency, enabling you to properly surface out-of-the-ordinary
+events and to handle fraudulent activities separately.
 
-Personalization
+### Personalization
 
-:   Create data driven real-time experiences and insight for users.
+Create data driven real-time experiences and insight for users.
 
-Sensor data and IoT
+### Sensor data and IoT
 
-:   Understand and deliver sensor data how and where it needs to be.
+Understand and deliver sensor data how and where it needs to be.
 
-Customer 360-view
+### Customer 360-view
 
-:   Achieve a comprehensive understanding of your customers across every
-    interaction through a variety of channels, where new information is
-    continuously incorporated in real-time.
+Achieve a comprehensive understanding of your customers across every
+interaction through a variety of channels, where new information is
+continuously incorporated in real-time.
 
-# How does it fit in my architecture?
+## How does it fit in my architecture?
 
 ![](img/ksqldb-architecture-and-components.png)
 
-ksqlDB Server
-
-:   The ksqlDB server runs the engine that executes SQL queries. This
-    includes processing, reading, and writing data to and from the
-    target {{ site.ak }} cluster.
-
-    ksqlDB servers form ksqlDB clusters and can run in containers, virtual
-    machines, and bare-metal machines. You can add and remove servers
-    to/from the same ksqlDB cluster during live operations to scale ksqlDB's
-    processing capacity as desired. You can deploy different ksqlDB clusters
-    to achieve workload isolation.
-
-ksqlDB CLI
-
-:   You can write SQL queries interactively by using the ksqlDB command
-    line interface (CLI). The ksqlDB CLI acts as a client to ksqlDB
-    Server.
-
 ksqlDB servers, clients, queries, and applications run outside of {{ site.ak }}
-brokers, in separate JVM instances, or in separate clusters entirely.
+brokers, in separate JVM instances, or in completely separate clusters.
 
-Supported Versions and Interoperability
----------------------------------------
+### ksqlDB Server
+
+The ksqlDB server runs the engine that executes SQL queries. This
+includes processing, reading, and writing data to and from the
+target {{ site.ak }} cluster.
+
+ksqlDB servers form ksqlDB clusters and can run in containers, virtual
+machines, and bare-metal machines. You can add and remove servers
+to/from the same ksqlDB cluster during live operations to scale ksqlDB's
+processing capacity as desired. You can deploy different ksqlDB clusters
+to achieve workload isolation.
+
+### ksqlDB CLI
+
+You can write SQL queries interactively by using the ksqlDB command
+line interface (CLI). The ksqlDB CLI acts as a client to ksqlDB
+Server.
+
+## Supported Versions and Interoperability
 
 You can use {{ site.ak }} with compatible {{ site.cp }} and {{ site.aktm }}
 versions.
@@ -163,4 +160,18 @@ versions.
 |    ksqlDB version     | {{ site.ksqldbversion }} |
 | --------------------- | ------------------------ |
 | Apache Kafka version  | 0.11.0 and later         |
+
+## ksqlDB in {{ site.cp }}
+
+ksqlDB is available with {{ site.cp }} on-premises deployments and as a
+fully managed service in {{ site.ccloud }}. For more information, see the
+following topics in the {{ site.cp }} documentation.
+
+- [Install ksqlDB as part of the {{ site.cp }} bundle](https://docs.confluent.io/current/ksqldb/installing.html)
+- [Install](https://docs.confluent.io/current/ksqldb/installing.html), [Operate](https://docs.confluent.io/current/ksqldb/operations.html), and [Upgrade](https://docs.confluent.io/current/ksqldb/upgrading.html) ksqlDB
+- [Run ksqlDB in {{ site.ccloud }}](https://docs.confluent.io/current/cloud/quickstart/ksql.html)
+- [Connect ksqlDB to {{ site.ccloud }}](https://docs.confluent.io/current/cloud/cp-component/ksql-cloud-config.html)
+- [Run ksqlDB in {{ site.c3 }}](https://docs.confluent.io/current/control-center/ksql.html)
+- [Connect ksqlDB to  {{ site.c3 }}](https://docs.confluent.io/current/ksqldb/integrate-ksql-with-confluent-control-center.html)
+- [ksqlDB and role-based access control (RBAC)](https://docs.confluent.io/current/security/rbac/ksql-rbac.html)
 

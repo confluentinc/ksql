@@ -19,15 +19,14 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import io.confluent.ksql.benchmark.SerdeBenchmark.SchemaAndGenericRowState;
 import io.confluent.ksql.benchmark.SerdeBenchmark.SerdeState;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.openjdk.jmh.annotations.Param;
 
 @RunWith(Parameterized.class)
 public class SerdeBenchmarkTest {
@@ -36,38 +35,34 @@ public class SerdeBenchmarkTest {
   private static final List<String> FORMATS = ImmutableList.of("JSON", "Avro");
   private static final String TOPIC_NAME = "serde_benchmark";
 
-  private final String schemaName;
-  private final String serializationFormat;
+  private final SerdeState serdeState = new SerdeState();
 
-  private SerdeState serdeState;
-
-  public SerdeBenchmarkTest(final String schemaName, final String serializationFormat) {
-    this.schemaName = schemaName;
-    this.serializationFormat = serializationFormat;
+  public SerdeBenchmarkTest(final String params) {
+    this.serdeState.params = Objects.requireNonNull(params, "params");
   }
 
-  @Parameterized.Parameters(name = "{0} - {1}")
-  public static Iterable<Object[]> data() {
-    return Lists.cartesianProduct(SCHEMAS, FORMATS)
-        .stream()
-        .map(List::toArray)
-        .collect(Collectors.toList());
+  @Parameterized.Parameters(name = "{0}")
+  public static String[] data() throws Exception {
+    final Param paramAnnotation = SerdeState.class.getDeclaredField("params")
+        .getAnnotation(Param.class);
+
+    if (paramAnnotation == null) {
+      throw new AssertionError("Invalid test: " + SerdeState.class.getSimpleName()
+          + ".params missing @Param annotation");
+    }
+
+    return paramAnnotation.value();
   }
 
   @Before
   public void setUp() throws Exception {
-    final SchemaAndGenericRowState schemaState = new SchemaAndGenericRowState();
-    schemaState.schemaName = schemaName;
-    schemaState.setUp();
-
-    serdeState = new SerdeState();
-    serdeState.serializationFormat = serializationFormat;
-    serdeState.setUp(schemaState);
+    serdeState.setUp();
   }
 
   @Test
   public void shouldSerializeDeserialize() {
-    assertThat(serdeState.serializer.serialize(TOPIC_NAME, serdeState.row), is(serdeState.bytes));
-    assertThat(serdeState.deserializer.deserialize(TOPIC_NAME, serdeState.bytes), is(serdeState.row));
+    assertThat(serdeState.serializer.serialize(TOPIC_NAME, serdeState.data), is(serdeState.bytes));
+    assertThat(serdeState.deserializer.deserialize(TOPIC_NAME, serdeState.bytes),
+        is(serdeState.data));
   }
 }

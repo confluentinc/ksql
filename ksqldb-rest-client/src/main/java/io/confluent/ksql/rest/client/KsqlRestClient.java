@@ -179,17 +179,20 @@ public final class KsqlRestClient implements Closeable {
 
   public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
       final Long commandSeqNum) {
-    return makeQueryRequest(ksql, commandSeqNum, null);
+    return makeQueryRequest(ksql, commandSeqNum, null, Collections.emptyMap());
   }
 
-  public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
-      final Long commandSeqNum, final Map<String, ?> properties) {
+  public RestResponse<List<StreamedRow>> makeQueryRequest(
+      final String ksql,
+      final Long commandSeqNum,
+      final Map<String, ?> properties,
+      final Map<String, ?> requestProperties) {
     KsqlTarget target = target();
     if (properties != null) {
       target = target.properties(properties);
     }
     return target.postQueryRequest(
-        ksql, Collections.emptyMap(), Optional.ofNullable(commandSeqNum));
+        ksql, requestProperties, Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<StreamPublisher<String>> makePrintTopicRequest(

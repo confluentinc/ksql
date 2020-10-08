@@ -156,6 +156,11 @@
       <artifactId>protobuf-java-util</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -166,7 +171,7 @@
         <configuration>
           <compilerArgs>
             <arg>-Xlint:all,-serial</arg>
-            <arg>-Werror</arg>
+            <arg>${compile.warnings-flag}</arg>
           </compilerArgs>
         </configuration>
       </plugin>

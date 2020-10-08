@@ -28,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Optional;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,6 +45,10 @@ public class KsqlTestingToolTest {
 
   private final static String CORRECT_TESTS_FOLDER = "src/test/resources/test-runner/correct/";
   private final static String INCORRECT_TESTS_FOLDER = "src/test/resources/test-runner/incorrect";
+
+  private final static String UDF_TESTS_FOLDER = "src/test/resources/test-runner/udf/";
+  private final static String UDF_EXTENSION_DIR
+      = "../ksqldb-engine/src/test/resources/udf-example-2.jar";
 
   @Before
   public void setUpStreams() throws UnsupportedEncodingException {
@@ -72,7 +77,8 @@ public class KsqlTestingToolTest {
       errContent.reset();
       runTestCaseAndAssertPassed(correctTestFolder.getPath() + "/statements.sql",
           correctTestFolder.getPath() + "/input.json",
-          correctTestFolder.getPath() + "/output.json"
+          correctTestFolder.getPath() + "/output.json",
+          Optional.empty()
       );
     }
   }
@@ -113,7 +119,8 @@ public class KsqlTestingToolTest {
     KsqlTestingTool.runWithTripleFiles(
         INCORRECT_TESTS_FOLDER + "/expected_mismatch/statements.sql",
         INCORRECT_TESTS_FOLDER + "/expected_mismatch/input.json",
-        INCORRECT_TESTS_FOLDER + "/expected_mismatch/output.json");
+        INCORRECT_TESTS_FOLDER + "/expected_mismatch/output.json",
+        Optional.empty());
 
     // Then:
     assertThat(errContent.toString(UTF_8),
@@ -121,14 +128,15 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectInputFormat() throws Exception {
+  public void shouldFailWithIncorrectInputFormat() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
         () -> KsqlTestingTool.runWithTripleFiles(
             INCORRECT_TESTS_FOLDER + "/incorrect_input_format/statements.sql",
             INCORRECT_TESTS_FOLDER + "/incorrect_input_format/input.json",
-            INCORRECT_TESTS_FOLDER + "/incorrect_input_format/output.json")
+            INCORRECT_TESTS_FOLDER + "/incorrect_input_format/output.json",
+            Optional.empty())
     );
 
     // Then:
@@ -138,14 +146,15 @@ public class KsqlTestingToolTest {
 
 
   @Test
-  public void shouldFailWithOutputFileMissingField() throws Exception {
+  public void shouldFailWithOutputFileMissingField() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
         () -> KsqlTestingTool.runWithTripleFiles(
             INCORRECT_TESTS_FOLDER + "/missing_field_in_output/statements.sql",
             INCORRECT_TESTS_FOLDER + "/missing_field_in_output/input.json",
-            INCORRECT_TESTS_FOLDER + "/missing_field_in_output/output.json")
+            INCORRECT_TESTS_FOLDER + "/missing_field_in_output/output.json",
+            Optional.empty())
     );
 
     // Then:
@@ -154,14 +163,15 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithEmptyInput() throws Exception {
+  public void shouldFailWithEmptyInput() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
         () -> KsqlTestingTool.runWithTripleFiles(
             INCORRECT_TESTS_FOLDER + "/empty_input/statements.sql",
             INCORRECT_TESTS_FOLDER + "/empty_input/input.json",
-            INCORRECT_TESTS_FOLDER + "/empty_input/output.json")
+            INCORRECT_TESTS_FOLDER + "/empty_input/output.json",
+            Optional.empty())
     );
 
     // Then:
@@ -170,14 +180,15 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldFailWithEmptyOutput() throws Exception {
+  public void shouldFailWithEmptyOutput() {
     // When:
     final Exception e = assertThrows(
         Exception.class,
         () -> KsqlTestingTool.runWithTripleFiles(
             INCORRECT_TESTS_FOLDER + "/empty_output/statements.sql",
             INCORRECT_TESTS_FOLDER + "/empty_output/input.json",
-            INCORRECT_TESTS_FOLDER + "/empty_output/output.json")
+            INCORRECT_TESTS_FOLDER + "/empty_output/output.json",
+            Optional.empty())
     );
 
     // Then:
@@ -189,22 +200,41 @@ public class KsqlTestingToolTest {
   public void shouldPropagateInsertValuesExecutorError() throws Exception {
     // When:
     KsqlTestingTool.runWithTripleFiles(
-        "src/test/resources/test-runner/incorrect-test6/statements.sql",
+        "src/test/resources/test-runner/incorrect/insert_values/statements.sql",
         null,
-        "src/test/resources/test-runner/incorrect-test6/output.json");
+        "src/test/resources/test-runner/incorrect/insert_values/output.json",
+        Optional.empty());
 
     // Then:
     assertThat(errContent.toString(UTF_8),
         containsString("Test failed: Failed to insert values into 'TEST'."));
   }
 
+  @Test
+  public void shouldRunProvidedExtensionDirTest() throws Exception {
+
+    final File testFolder = new File(CORRECT_TESTS_FOLDER);
+    final File[] testSubFolders = testFolder.listFiles(File::isDirectory);
+    if (testSubFolders == null) {
+      Assert.fail("Invalid test folder path!");
+    }
+
+    runTestCaseAndAssertPassed(UDF_TESTS_FOLDER + "/statements.sql",
+        UDF_TESTS_FOLDER + "/input.json",
+        UDF_TESTS_FOLDER + "/output.json",
+        Optional.of(UDF_EXTENSION_DIR)
+    );
+  }
+
   private void runTestCaseAndAssertPassed(
       final String statementsFilePath,
       final String inputFilePath,
-      final String outputFilePath
+      final String outputFilePath,
+      final Optional<String> extensionDir
   ) throws Exception {
     // When:
-    KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath);
+    KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath,
+        extensionDir);
 
     // Then:
     final String reason = "TestFile: " + statementsFilePath
@@ -219,7 +249,8 @@ public class KsqlTestingToolTest {
       final String outputFilePath
   ) throws Exception {
     // When:
-    KsqlTestingTool.runWithTripleFiles(statementsFilePath, null, outputFilePath);
+    KsqlTestingTool.runWithTripleFiles(statementsFilePath, null, outputFilePath,
+        Optional.empty());
 
     // Then:
     final String reason = "TestFile: " + statementsFilePath

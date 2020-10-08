@@ -20,7 +20,7 @@ SELECT select_expr [, ...]
   [ WHERE condition ]
   [ GROUP BY grouping_expression ]
   [ HAVING having_expression ]
-  EMIT CHANGES
+  EMIT [ output_refinement ]
   [ LIMIT count ];
 ```
 
@@ -56,7 +56,7 @@ In the previous statements, `from_item` is one of the following:
 -   `from_item LEFT JOIN from_item ON join_condition`
 
 The WHERE clause can refer to any column defined for a stream or table,
-including the `ROWKEY` system column and the `ROWTIME` pseudo column.
+including the `ROWTIME` pseudo column.
 
 Example
 -------
@@ -116,8 +116,7 @@ SET 'auto.offset.reset' = 'earliest';
 #### WINDOW
 
 !!! note
-  You can use the WINDOW clause only if the `from_item` is a stream.
-
+    You can use the WINDOW clause only if the `from_item` is a stream.
 
 The WINDOW clause lets you control how to group input records *that have
 the same key* into so-called *windows* for operations like aggregations
@@ -126,9 +125,11 @@ or joins. Windows are tracked per record key.
 Windowing adds two additional system columns to the data, which provide
 the window bounds: `WINDOWSTART` and `WINDOWEND`.
 
-ksqlDB supports the following WINDOW types:
+ksqlDB supports the following WINDOW types.
 
-**TUMBLING**: Tumbling windows group input records into fixed-sized,
+#### TUMBLING window
+
+Tumbling windows group input records into fixed-sized,
 non-overlapping windows based on the records' timestamps. You must
 specify the *window size* for tumbling windows. Tumbling windows are a
 special case of hopping windows, where the window size is equal to the
@@ -145,7 +146,9 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
-**HOPPING**: Hopping windows group input records into fixed-sized,
+#### HOPPING window
+
+Hopping windows group input records into fixed-sized,
 (possibly) overlapping windows based on the records' timestamps. You
 must specify the *window size* and the *advance interval* for
 hopping windows.
@@ -161,7 +164,9 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
-**SESSION**: Session windows group input records into so-called
+#### SESSION window
+
+Session windows group input records into so-called
 sessions. You must specify the *session inactivity gap* parameter
 for session windows. For example, imagine you set the inactivity gap
 to 5 minutes. If, for a given record key such as "alice", no new
@@ -180,102 +185,20 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
-#### CAST
+#### EMIT
 
-**Synopsis**
+The EMIT clause lets you control the output refinement of your push query. The output refinement is
+how you would like to *emit* your results. 
 
-```sql
-CAST (expression AS data_type);
-```
+ksqlDB supports the following output refinement types.
 
-You can cast an expression's type to a new type using CAST.
+#### CHANGES
 
-The following query converts a numerical count, which is a BIGINT, into a
-suffixed string, which is a VARCHAR. For example, the integer `5` becomes
-`5_HELLO`.
+This is the standard output refinement for push queries, for when we would like to see all changes 
+happening.
 
-```sql
-SELECT page_id, CONCAT(CAST(COUNT(*) AS VARCHAR), '_HELLO')
-  FROM pageviews_enriched
-  WINDOW TUMBLING (SIZE 20 SECONDS)
-  GROUP BY page_id;
-```
+#### FINAL
 
-#### CASE
-
-**Synopsis**
-
-```sql
-CASE
-   WHEN condition THEN result
-   [ WHEN ... THEN ... ]
-   …
-   [ WHEN … THEN … ]
-   [ ELSE result ]
-END
-```
-
-ksqlDB supports a `searched` form of CASE expression. In this form, CASE
-evaluates each boolean `condition` in WHEN clauses, from left to right.
-If a condition is true, CASE returns the corresponding result. If none of
-the conditions is true, CASE returns the result from the ELSE clause. If
-none of the conditions is true and there is no ELSE clause, CASE returns null.
-
-The schema for all results must be the same, otherwise ksqlDB rejects the
-statement.
-
-The following push query uses a a CASE expression.
-
-```sql
-SELECT
- CASE
-   WHEN orderunits < 2.0 THEN 'small'
-   WHEN orderunits < 4.0 THEN 'medium'
-   ELSE 'large'
- END AS case_result
-FROM orders
-EMIT CHANGES;
-```
-
-#### LIKE
-
-**Synopsis**
-
-```sql
-column_name LIKE pattern;
-```
-
-The LIKE operator is used for prefix or suffix matching. ksqlDB supports
-the `%` wildcard, which represents zero or more characters.
-
-The following push query uses the `%` wildcard to match any `user_id` that
-starts with "santa".
-
-```sql
-SELECT user_id
-  FROM users
-  WHERE user_id LIKE 'santa%'
-  EMIT CHANGES;
-```
-
-#### BETWEEN
-
-**Synopsis**
-
-```sql
-WHERE expression [NOT] BETWEEN start_expression AND end_expression;
-```
-
-The BETWEEN operator is used to indicate that a certain value must lie
-within a specified range, inclusive of boundaries. ksqlDB supports any
-expression that resolves to a numeric or string value for comparison.
-
-The following push query uses the between clause to select only records
-that have an `event_id` between 10 and 20.
-
-```sql
-SELECT event
-  FROM events
-  WHERE event_id BETWEEN 10 AND 20
-  EMIT CHANGES;
-```
+This is for when we want to emit only the final result of a windowed aggregation, and suppress the 
+intermediate results until the window closes. Note that this output refinement is supported only 
+for windowed aggregations.

@@ -19,13 +19,15 @@ coincide with the column that the sources are partitioned by.
 Keys
 ----
 
-A *key*, when present, defines the partitioning column. Tables are
-always partitioned by their primary key, and ksqlDB doesn't allow repartitioning
-of tables, so you can only use a table's primary key as a join column.
+Tables are always partitioned by their `PRIMARY KEY`, and ksqlDB doesn't allow repartitioning
+of tables, meaning you can only use a table's primary key as a join column.
 
-Streams, on the other hand, may not have a defined key or may have a key that
-differs from the join column. In these cases, ksqlDB internally repartitions
-the stream, which implicitly defines the correct key for it.
+Streams don't have primary keys, but they do have an optional `KEY` 
+column. A `KEY` column, when present, defines the partitioning column.
+
+Streams allow joins on expressions other than their key column. When the join criteria differ 
+from the `KEY` column, ksqlDB internally repartitions the stream, which implicitly defines the 
+correct key and partitioning.
 
 !!! important
     {{ site.ak }} guarantees the relative order of any two messages from
@@ -35,61 +37,48 @@ the stream, which implicitly defines the correct key for it.
 
 ksqlDB requires keys to use the `KAFKA` format. For more information, see
 [Serialization Formats](../serialization.md#serialization-formats). If internally
-repartitioning, ksqlDB uses the correct format.
+repartitioning, ksqlDB uses the correct format. If the data in your {{ site.ak }} topics 
+does not have a suitable key format, see [Key Requirements](../syntax-reference.md#key-requirements).
 
-Because you can only use the primary key of a table as a joining column, it's
-important to understand how keys are defined.
-
-When you create a table by using a CREATE TABLE statement you define the key in the schema and
-it must be the same as that of the records in the underlying {{ site.ak }} topic. As the
-KAFKA format does not support named fields that key has no implicit name, so the key can be
-given any name in the schema definition.
-
-When you create a table by using a CREATE TABLE AS SELECT statement, the key of
-the resulting table is determined as follows:
-
-- If the statement contains neither a JOIN nor GROUP BY clause, the key type of the resulting
-  table matches the key type of the source table, and the name matches the source unless the
-  projection defines an alias for the column.
-- If the statement contains a JOIN and no GROUP BY clause, the key type of the resulting table
-  matches the type of the join columns. The key name is defined by these conditions:
-    - FULL OUTER joins and joins on expressions other than column references have a
-      system-generated name in the form `KSQL_COL_n`, where `n` is a positive integer,
-      unless the projection defines an alias for the column.
-    - For other joins that contain at least one column reference in their join criteria,
-      the name matches the leftmost column reference in the join criteria.
-- If the statement contains a GROUP BY clause, the grouping columns determine the key
-  of the resulting table.
-    - When grouping by a single column or STRUCT field, the name of the key column in the
-      resulting table matches the name of the column or field, unless the projection includes
-      an alias for the column or field. The type of the key column matches the column or field.
-    - When grouping by a single expression that is not a column or STRUCT field, the resulting table
-      has a system-generated key column name in the form `KSQL_COL_n`, where `n` is a positive
-      integer, unless the projection contains an alias for the expression. The type of the
-      column matches the result of the expression.
-    - When grouping by multiple expressions, the resulting table has a system-generated key
-      name in the form `KSQL_COL_n`, where `n` is a positive integer. The type of the column is
-      a [SQL `STRING`](../../concepts/schemas), containing the grouping expressions concatenated
-      together.
+The KAFKA format doesn't support serializing the column name within the data, so the key column name is 
+not important for joins. The key column type is important: for the join to be valid,
+both sides must have a key with the same SQL type.
 
 The following example shows a `users` table joined with a `clicks` stream
-on the `userId` column. The `users` table has the correct primary key
-`userId` that coincides with the joining column. But the `clicks` stream
-doesn't have a defined key, so ksqlDB repartitions it on the joining
-column (`userId`) to assign the key before performing the join.
+on the click's `userId` column. The `users` table has a correct primary key,
+`id`, of the same SQL type. The `clicks` stream doesn't have a defined key, 
+so ksqlDB internally repartitions it on the joining column (`userId`) 
+to assign the key before performing the join.
 
 ```sql
-    -- clicks stream, with an unknown key.
-    -- the schema of stream clicks is: ROWKEY STRING KEY | USERID BIGINT | URL STRING
-    CREATE STREAM clicks (userId BIGINT, url STRING) WITH(kafka_topic='clickstream', value_format='json');
+-- clicks stream, with no or unknown key.
+-- the schema of stream clicks is: USERID BIGINT | URL STRING
+CREATE STREAM clicks (
+    userId BIGINT, 
+    url STRING
+  ) WITH (
+    kafka_topic='clickstream', 
+    value_format='json'
+  );
 
-    -- the primary key of table users is a BIGINT. 
-    -- the schema of table users is: USERID BIGINT KEY | FULLNAME STRING
-    CREATE TABLE  users (userId BIGINT PRIMARY KEY, fullName STRING) WITH(kafka_topic='users', value_format='json');
+-- users table, with userId primary key. 
+-- the schema of table users is: USERID BIGINT PRIMARY KEY | FULLNAME STRING
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY, 
+    fullName STRING
+  ) WITH (
+    kafka_topic='users', 
+    value_format='json'
+  );
 
-    -- join of users table with clicks stream, joining on the table's primary key and the stream's userId column:
-    -- join will automatically repartition clicks stream:
-    SELECT clicks.url, users.fullName FROM clicks JOIN users ON clicks.userId = users.userId;
+-- join of users table with clicks stream, joining on the table's primary key and the stream's userId column:
+-- join will automatically repartition clicks stream:
+SELECT 
+  c.userId,
+  c.url, 
+  u.fullName 
+FROM clicks c
+  JOIN users u ON c.userId = u.id;
 ```
 
 Co-partitioning Requirements
@@ -125,14 +114,30 @@ had a `INT` userId column, and the other a `LONG`, then you may choose to cast
 the `INT` side to a `LONG`:
 
 ```sql
-    -- stream with INT userId
-    CREATE STREAM clicks (userId INT KEY, url STRING) WITH(kafka_topic='clickstream', value_format='json');
+-- stream with INT userId
+CREATE STREAM clicks (
+    userId INT KEY, 
+    url STRING
+  ) WITH (
+    kafka_topic='clickstream', 
+    value_format='json'
+  );
 
-    -- table with BIGINT id stored in the key:
-    CREATE TABLE  users (id BIGINT PRIMARY KEY, fullName STRING) WITH(kafka_topic='users', value_format='json');
-    
-   -- Join utilising a CAST to convert the left sides join column to match the rights type.
-   SELECT clicks.url, users.fullName FROM clicks JOIN users ON CAST(clicks.userId AS BIGINT) = users.id;
+-- table with BIGINT id stored in the key:
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY, 
+    fullName STRING
+  ) WITH (
+    kafka_topic='users', 
+    value_format='json'
+  );
+
+-- Join utilising a CAST to convert the left sides join column to match the rights type.
+SELECT 
+  clicks.url, 
+  users.fullName 
+FROM clicks 
+  JOIN users ON CAST(clicks.userId AS BIGINT) = users.id;
 ```
 
 Tables created on top of existing Kafka topics, for example those created with
@@ -164,7 +169,7 @@ if these ordering guarantees are acceptable.
 
 !!! important
       If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
-      random partition. You many want to use [COALESCE](../syntax-reference#coalesce) to wrap
+      random partition. You many want to use [COALESCE](../ksqldb-reference/scalar-functions.md#coalesce) to wrap
       the expression and convert any NULL values to a default value, for example,
       `PARTITION BY COALESCE(MY_UDF_THAT_MAY_FAIL(Col0), 0)`.
 
@@ -173,7 +178,11 @@ field, and keys need to be distributed over 6 partitions to make a join work,
 use the following SQL statement:
 
 ```sql
-CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY product_id;
+CREATE STREAM products_rekeyed 
+  WITH (PARTITIONS=6) AS 
+  SELECT * 
+   FROM products PARTITION 
+   BY product_id;
 ```
 
 For more information, see
@@ -200,7 +209,9 @@ The following example creates a repartitioned stream, maintaining the existing
 key, with the specified number of partitions.
 
 ```sql
-CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY ROWKEY;
+CREATE STREAM products_rekeyed 
+  WITH (PARTITIONS=6) AS 
+  SELECT * FROM products;
 ```
 
 ### Records Have the Same Partitioning Strategy
@@ -245,3 +256,7 @@ and are assigned in the producer configuration property,
 For example implementations of a custom partitioner, see
 [Built for realtime: Big data messaging with Apache Kafka, Part2](https://www.javaworld.com/article/3066873/big-data/big-data-messaging-with-kafka-part-2.html)
 and [Apache Kafka Foundation Course - Custom Partitioner](https://www.learningjournal.guru/courses/kafka/kafka-foundation-training/custom-partitioner/).
+
+## Suggested Reading
+
+- Blog post: [I’ve Got the Key, I’ve Got the Secret. Here’s How Keys Work in ksqlDB 0.10](https://www.confluent.io/blog/ksqldb-0-10-updates-key-columns/)

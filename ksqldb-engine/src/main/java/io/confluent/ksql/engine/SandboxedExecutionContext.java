@@ -103,8 +103,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
-        statement.getConfig(),
-        statement.getConfigOverrides()
+        statement.getSessionConfig()
     ).plan(statement);
   }
 
@@ -116,8 +115,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
-        ksqlPlan.getConfig(),
-        ksqlPlan.getOverrides()
+        ksqlPlan.getConfig()
     ).execute(ksqlPlan.getPlan());
   }
 
@@ -128,11 +126,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   ) {
     return execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(
-            plan(serviceContext, statement),
-            statement.getConfigOverrides(),
-            statement.getConfig()
-        )
+        ConfiguredKsqlPlan.of(plan(serviceContext, statement), statement.getSessionConfig())
     );
   }
 
@@ -144,8 +138,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
-        statement.getConfig(),
-        statement.getConfigOverrides()
+        statement.getSessionConfig()
     ).executeQuery(statement);
   }
 }

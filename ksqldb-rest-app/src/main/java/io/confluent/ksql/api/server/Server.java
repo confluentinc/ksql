@@ -23,11 +23,13 @@ import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.KeystoreUtil;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ClientAuth;
@@ -77,14 +79,17 @@ public class Server {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final List<URI> listeners = new ArrayList<>();
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private URI internalListener;
   private WorkerExecutor workerExecutor;
   private FileWatcher fileWatcher;
 
-  public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
+  public Server(
+      final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
       final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
-      final ServerState serverState) {
+      final ServerState serverState,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
@@ -92,6 +97,11 @@ public class Server {
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
     this.maxPushQueryCount = config.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
+    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    if (!OpenSsl.isAvailable()) {
+      log.warn("OpenSSL does not appear to be installed. ksqlDB will fall back to using the JDK "
+          + "TLS implementation. OpenSSL is recommended for better performance.");
+    }
   }
 
   public synchronized void start() {
@@ -121,7 +131,7 @@ public class Server {
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false)),
-            this, isInternalListener);
+            this, isInternalListener, pullQueryMetrics);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
@@ -282,7 +292,7 @@ public class Server {
         .setPort(port)
         .setReuseAddress(true)
         .setReusePort(true)
-        .setIdleTimeout(60).setIdleTimeoutUnit(TimeUnit.SECONDS)
+        .setIdleTimeout(10 * 60).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
         .setPerFrameWebSocketCompressionSupported(true);
 

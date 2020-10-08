@@ -31,6 +31,7 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -78,8 +79,8 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
-import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
+import io.confluent.ksql.rest.entity.TableRows;
+import io.confluent.ksql.rest.entity.TableRowsFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -89,11 +90,11 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlServerException;
@@ -110,6 +111,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
@@ -130,8 +132,11 @@ public final class PullQueryExecutor {
       Type.LESS_THAN_OR_EQUAL
   );
 
+  private static final String VALID_WINDOW_BOUNDS_COLUMNS =
+      GrammaticalJoiner.and().join(SystemColumns.windowBoundsColumnNames());
+
   private static final String VALID_WINDOW_BOUNDS_TYPES_STRING =
-      VALID_WINDOW_BOUNDS_TYPES.toString();
+      GrammaticalJoiner.and().join(VALID_WINDOW_BOUNDS_TYPES);
 
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
@@ -140,13 +145,15 @@ public final class PullQueryExecutor {
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
       final RoutingFilterFactory routingFilterFactory,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final String serviceId
   ) {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
+
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -159,28 +166,36 @@ public final class PullQueryExecutor {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
-  public TableRowsEntity execute(
+  public PullQueryResult execute(
       final ConfiguredStatement<Query> statement,
+      final Map<String, Object> requestProperties,
       final ServiceContext serviceContext,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
 
-    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
-      throw new KsqlException(
-          "Pull queries are disabled. "
-              + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+    final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    if (!sessionConfig.getConfig(false)
+        .getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
+      throw new KsqlStatementException(
+          "Pull queries are disabled."
+              + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
               + System.lineSeparator()
               + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
-              + "this feature.");
+              + "this feature.",
+          statement.getStatementText());
     }
 
     try {
       final RoutingOptions routingOptions = new ConfigRoutingOptions(
-          statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
+          sessionConfig.getConfig(true),
+          requestProperties
+      );
+
       // If internal listeners are in use, we require the request to come from that listener to
       // treat it as having been forwarded.
       final boolean isAlreadyForwarded = routingOptions.skipForwardRequest()
@@ -220,13 +235,15 @@ public final class PullQueryExecutor {
           contextStacker,
           pullQueryMetrics);
 
-      return handlePullQuery(
+      final PullQueryResult result = handlePullQuery(
           statement,
           executionContext,
           serviceContext,
           pullQueryContext,
           routingOptions
       );
+
+      return result;
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
@@ -245,7 +262,7 @@ public final class PullQueryExecutor {
     }
   }
 
-  private TableRowsEntity handlePullQuery(
+  private PullQueryResult handlePullQuery(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
@@ -272,7 +289,11 @@ public final class PullQueryExecutor {
     // increasing order of lag.
     for (KsqlNode node : filteredAndOrderedNodes) {
       try {
-        return routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
+        final Optional<KsqlNode> debugNode = Optional.ofNullable(
+            routingOptions.isDebugRequest() ? node : null);
+        return new PullQueryResult(
+            routeQuery(node, statement, executionContext, serviceContext, pullQueryContext),
+            debugNode);
       } catch (Exception t) {
         LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
                   statement.getStatementText(), node, System.currentTimeMillis(), t);
@@ -282,7 +303,7 @@ public final class PullQueryExecutor {
         "Unable to execute pull query: %s", statement.getStatementText()));
   }
 
-  private static TableRowsEntity routeQuery(
+  private static TableRows routeQuery(
       final KsqlNode node,
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
@@ -307,17 +328,17 @@ public final class PullQueryExecutor {
     }
   }
 
-  private static TableRowsEntity queryRowsLocally(
+  private static TableRows queryRowsLocally(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final PullQueryContext pullQueryContext
   ) {
     final Result result;
-    if (pullQueryContext.whereInfo.windowStartBounds.isPresent()) {
-      final Range<Instant> windowStart = pullQueryContext.whereInfo.windowStartBounds.get();
+    if (pullQueryContext.whereInfo.windowBounds.isPresent()) {
+      final WindowBounds windowBounds = pullQueryContext.whereInfo.windowBounds.get();
 
       final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
-          .get(pullQueryContext.key, windowStart);
+          .get(pullQueryContext.key, windowBounds.start, windowBounds.end);
 
       result = new Result(pullQueryContext.mat.schema(), rows);
     } else {
@@ -332,9 +353,9 @@ public final class PullQueryExecutor {
     final LogicalSchema outputSchema;
     final List<List<?>> rows;
     if (isSelectStar(statement.getStatement().getSelect())) {
-      outputSchema = TableRowsEntityFactory.buildSchema(
+      outputSchema = TableRowsFactory.buildSchema(
           result.schema, pullQueryContext.mat.windowType().isPresent());
-      rows = TableRowsEntityFactory.createRows(result.rows);
+      rows = TableRowsFactory.createRows(result.rows);
     } else {
       final List<SelectExpression> projection = pullQueryContext.analysis.getSelectItems().stream()
           .map(SingleColumn.class::cast)
@@ -357,7 +378,7 @@ public final class PullQueryExecutor {
           pullQueryContext.contextStacker
       );
     }
-    return new TableRowsEntity(
+    return new TableRows(
         statement.getStatementText(),
         pullQueryContext.queryId,
         outputSchema,
@@ -365,7 +386,7 @@ public final class PullQueryExecutor {
     );
   }
 
-  private static TableRowsEntity forwardTo(
+  private static TableRows forwardTo(
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext
@@ -379,7 +400,7 @@ public final class PullQueryExecutor {
         .makeQueryRequest(
             owner.location(),
             statement.getStatementText(),
-            statement.getConfigOverrides(),
+            statement.getSessionConfig().getOverrides(),
             requestProperties
         );
 
@@ -392,8 +413,6 @@ public final class PullQueryExecutor {
       throw new KsqlServerException("Invalid empty response from forwarding call");
     }
 
-    // Temporary code to convert from QueryStream to TableRowsEntity
-    // Tracked by: https://github.com/confluentinc/ksql/issues/3865
     final Header header = streamedRows.get(0).getHeader()
         .orElseThrow(() -> new KsqlServerException("Expected header in first row"));
 
@@ -414,7 +433,7 @@ public final class PullQueryExecutor {
       rows.add(row.getRow().get().values());
     }
 
-    return new TableRowsEntity(
+    return new TableRows(
         statement.getStatementText(),
         header.getQueryId(),
         header.getSchema(),
@@ -430,11 +449,7 @@ public final class PullQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext
   ) {
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-        executionContext.getMetaStore(),
-        "",
-        SerdeOption.none()
-    );
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(executionContext.getMetaStore(), "");
 
     return queryAnalyzer.analyze(statement.getStatement(), Optional.empty());
   }
@@ -465,46 +480,35 @@ public final class PullQueryExecutor {
       this.whereInfo = Objects.requireNonNull(whereInfo, "whereInfo");
       this.queryId = Objects.requireNonNull(queryId, "queryId");
       this.contextStacker = Objects.requireNonNull(contextStacker, "contextStacker");
-      this.pullQueryMetrics = Objects.requireNonNull(
-          pullQueryMetrics, "pullQueryExecutorMetrics");
+      this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     }
+  }
 
-    public Struct getKey() {
-      return key;
-    }
+  private static final class WindowBounds {
 
-    public Materialization getMat() {
-      return mat;
-    }
+    private final Range<Instant> start;
+    private final Range<Instant> end;
 
-    public ImmutableAnalysis getAnalysis() {
-      return analysis;
-    }
-
-    public WhereInfo getWhereInfo() {
-      return whereInfo;
-    }
-
-    public QueryId getQueryId() {
-      return queryId;
-    }
-
-    public QueryContext.Stacker getContextStacker() {
-      return contextStacker;
+    private WindowBounds(
+        final Range<Instant> start,
+        final Range<Instant> end
+    ) {
+      this.start = Objects.requireNonNull(start, "startBounds");
+      this.end = Objects.requireNonNull(end, "endBounds");
     }
   }
 
   private static final class WhereInfo {
 
     private final Object keyBound;
-    private final Optional<Range<Instant>> windowStartBounds;
+    private final Optional<WindowBounds> windowBounds;
 
     private WhereInfo(
         final Object keyBound,
-        final Optional<Range<Instant>> windowStartBounds
+        final Optional<WindowBounds> windowBounds
     ) {
       this.keyBound = keyBound;
-      this.windowStartBounds = windowStartBounds;
+      this.windowBounds = Objects.requireNonNull(windowBounds);
     }
   }
 
@@ -553,12 +557,10 @@ public final class PullQueryExecutor {
       return new WhereInfo(key, Optional.empty());
     }
 
-    final Optional<List<ComparisonExpression>> windowBoundsComparison =
-        Optional.ofNullable(comparisons.get(ComparisonTarget.WINDOWSTART));
+    final WindowBounds windowBounds =
+        extractWhereClauseWindowBounds(comparisons);
 
-    final Range<Instant> windowStart = extractWhereClauseWindowBounds(windowBoundsComparison);
-
-    return new WhereInfo(key, Optional.of(windowStart));
+    return new WhereInfo(key, Optional.of(windowBounds));
   }
 
   private static Object extractKeyWhereClause(
@@ -607,14 +609,26 @@ public final class PullQueryExecutor {
         .orElse(null);
   }
 
-  private static Range<Instant> extractWhereClauseWindowBounds(
-      final Optional<List<ComparisonExpression>> maybeComparisons
+  private static WindowBounds extractWhereClauseWindowBounds(
+      final Map<ComparisonTarget, List<ComparisonExpression>> allComparisons
   ) {
-    if (!maybeComparisons.isPresent()) {
+    return new WindowBounds(
+        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWSTART, allComparisons),
+        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWEND, allComparisons)
+    );
+  }
+
+  private static Range<Instant> extractWhereClauseWindowBounds(
+      final ComparisonTarget windowType,
+      final Map<ComparisonTarget, List<ComparisonExpression>> allComparisons
+  ) {
+    final List<ComparisonExpression> comparisons =
+        Optional.ofNullable(allComparisons.get(windowType))
+            .orElseGet(ImmutableList::of);
+
+    if (comparisons.isEmpty()) {
       return Range.all();
     }
-
-    final List<ComparisonExpression> comparisons = maybeComparisons.get();
 
     final Map<Type, List<ComparisonExpression>> byType = comparisons.stream()
         .collect(Collectors.groupingBy(PullQueryExecutor::getSimplifiedBoundType));
@@ -622,9 +636,7 @@ public final class PullQueryExecutor {
     final SetView<Type> unsupported = Sets.difference(byType.keySet(), VALID_WINDOW_BOUNDS_TYPES);
     if (!unsupported.isEmpty()) {
       throw invalidWhereClauseException(
-          "Unsupported " + ComparisonTarget.WINDOWSTART + " bounds: " + unsupported,
-          true
-      );
+          "Unsupported " + windowType + " bounds: " + unsupported, true);
     }
 
     final String duplicates = byType.entrySet().stream()
@@ -634,9 +646,7 @@ public final class PullQueryExecutor {
 
     if (!duplicates.isEmpty()) {
       throw invalidWhereClauseException(
-          "Duplicate bounds on " + ComparisonTarget.WINDOWSTART + ": " + duplicates,
-          true
-      );
+          "Duplicate " + windowType + " bounds on: " + duplicates, true);
     }
 
     final Map<Type, ComparisonExpression> singles = byType.entrySet().stream()
@@ -646,8 +656,7 @@ public final class PullQueryExecutor {
     if (equals != null) {
       if (byType.size() > 1) {
         throw invalidWhereClauseException(
-            "`" + equals + "` cannot be combined with other bounds on "
-                + ComparisonTarget.WINDOWSTART,
+            "`" + equals + "` cannot be combined with other " + windowType + " bounds",
             true
         );
       }
@@ -746,14 +755,15 @@ public final class PullQueryExecutor {
     }
 
     throw invalidWhereClauseException(
-        ComparisonTarget.WINDOWSTART + " bounds must be BIGINT",
+        "Window bounds must be an INT, BIGINT or STRING containing a datetime.",
         true
     );
   }
 
   private enum ComparisonTarget {
     KEYCOL,
-    WINDOWSTART
+    WINDOWSTART,
+    WINDOWEND
   }
 
   private static Map<ComparisonTarget, List<ComparisonExpression>> extractComparisons(
@@ -804,6 +814,10 @@ public final class PullQueryExecutor {
     final ColumnName columnName = column.getColumnName();
     if (columnName.equals(SystemColumns.WINDOWSTART_NAME)) {
       return ComparisonTarget.WINDOWSTART;
+    }
+
+    if (columnName.equals(SystemColumns.WINDOWEND_NAME)) {
+      return ComparisonTarget.WINDOWEND;
     }
 
     final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
@@ -884,8 +898,7 @@ public final class PullQueryExecutor {
       };
     }
 
-    final KsqlConfig ksqlConfig = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
+    final KsqlConfig ksqlConfig = statement.getSessionConfig().getConfig(true);
 
     final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         projection,
@@ -1002,15 +1015,9 @@ public final class PullQueryExecutor {
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
-    return new KsqlException("'"
-        + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized. "
-        + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
-        + System.lineSeparator()
-        + " KSQL currently only supports pull queries on materialized aggregate tables."
-        + " i.e. those created by a 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
-        + "FROM <sources> GROUP BY <key>' style statement."
-        + System.lineSeparator()
-        + PullQueryValidator.NEW_QUERY_SYNTAX_ADDITIONAL_HELP
+    return new KsqlException(
+        "Can't pull from " + sourceTable + " as it's not a materialized table."
+        + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
     );
   }
 
@@ -1021,33 +1028,29 @@ public final class PullQueryExecutor {
     final String additional = !windowed
         ? ""
         : System.lineSeparator()
-            + " - limits the time bounds of the windowed table. This can be: "
+            + " - (optionally) limits the time bounds of the windowed table."
             + System.lineSeparator()
-            + "    + a single window lower bound, e.g. `WHERE WINDOWSTART = z`, or"
+            + "\t Bounds on " + VALID_WINDOW_BOUNDS_COLUMNS + " are supported"
             + System.lineSeparator()
-            + "    + a range, e.g. `WHERE a <= WINDOWSTART AND WINDOWSTART < b"
-            + System.lineSeparator()
-            + "WINDOWSTART currently supports operators: " + VALID_WINDOW_BOUNDS_TYPES_STRING
-            + System.lineSeparator()
-            + "WINDOWSTART currently comparison with epoch milliseconds "
-            + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN
-            + " with an optional numeric 4-digit timezone, e.g. '+0100'";
+            + "\t Supported operators are " + VALID_WINDOW_BOUNDS_TYPES_STRING;
 
     return new KsqlException(msg + ". "
-        + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+        + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
         + System.lineSeparator()
         + "Pull queries require a WHERE clause that:"
         + System.lineSeparator()
-        + " - limits the query to a single key, e.g. `SELECT * FROM X WHERE <key-column>>=Y;`."
+        + " - limits the query to a single key, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
         + additional
     );
   }
 
   private static Struct asKeyStruct(final Object keyValue, final PhysicalSchema physicalSchema) {
-    final Field keyField = Iterables
-        .getOnlyElement(physicalSchema.keySchema().ksqlSchema().fields());
+    final ConnectSchema keySchema = ConnectSchemas
+        .columnsToConnectSchema(physicalSchema.keySchema().columns());
 
-    final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
+    final Field keyField = Iterables.getOnlyElement(keySchema.fields());
+
+    final Struct key = new Struct(keySchema);
     key.put(keyField, keyValue);
     return key;
   }
@@ -1071,24 +1074,14 @@ public final class PullQueryExecutor {
   private static final class ConfigRoutingOptions implements RoutingOptions {
 
     private final KsqlConfig ksqlConfig;
-    private final Map<String, ?> configOverrides;
     private final Map<String, ?> requestProperties;
 
     ConfigRoutingOptions(
         final KsqlConfig ksqlConfig,
-        final Map<String, ?> configOverrides,
         final Map<String, ?> requestProperties
     ) {
-      this.ksqlConfig = ksqlConfig;
-      this.configOverrides = configOverrides;
-      this.requestProperties = requestProperties;
-    }
-
-    private long getLong(final String key) {
-      if (configOverrides.containsKey(key)) {
-        return (Long) configOverrides.get(key);
-      }
-      return ksqlConfig.getLong(key);
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
     }
 
     private boolean getForwardedFlag(final String key) {
@@ -1098,9 +1091,16 @@ public final class PullQueryExecutor {
       return KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DEFAULT;
     }
 
+    public boolean isDebugRequest() {
+      if (requestProperties.containsKey(KsqlRequestConfig.KSQL_DEBUG_REQUEST)) {
+        return (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST);
+      }
+      return KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT;
+    }
+
     @Override
     public long getOffsetLagAllowed() {
-      return getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
+      return ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
     }
 
     @Override

@@ -10,13 +10,39 @@ keywords: ksqlDB, function, scalar
 
 ### `ABS`
 
+Since: -
+
 ```sql
 ABS(col1)
 ```
 
 The absolute value of a value.
 
+### `AS_VALUE`
+
+Since: 0.9.0
+
+```sql
+AS_VALUE(keyCol)
+```
+
+Creates a copy of a key column in the value.
+
+For example:
+
+```sql
+CREATE TABLE AGG AS
+   SELECT 
+     ID,                  -- this is the grouping column and will be stored in the message key.
+     AS_VALUE(ID) AS ID2  -- this creates a copy of ID, called ID2, stored in the message value.
+     COUNT(*) AS COUNT
+   FROM S
+   GROUP BY ID;
+```
+
 ### `CEIL`
+
+Since: -
 
 ```sql
 CEIL(col1)
@@ -25,6 +51,8 @@ CEIL(col1)
 The ceiling of a value.
 
 ### `ENTRIES`
+
+Since: 0.6.0
 
 ```sql
 ENTRIES(map MAP, sorted BOOLEAN)
@@ -38,6 +66,8 @@ If `sorted` is true, the entries are sorted by key.
 
 ### `EXP`
 
+Since: 0.6.0
+
 ```sql
 EXP(col1)
 ```
@@ -46,6 +76,8 @@ The exponential of a value.
 
 ### `FLOOR`
 
+Since: -
+
 ```sql
 FLOOR(col1)
 ```
@@ -53,6 +85,8 @@ FLOOR(col1)
 The floor of a value.
 
 ### `GENERATE_SERIES`
+
+Since: 0.6.0
 
 ```sql
 GENERATE_SERIES(start, end)
@@ -71,6 +105,8 @@ If not supplied, `step` defaults to `1`. Parameter `step` must be an `INT`.
 
 ### `GEO_DISTANCE`
 
+Since: 0.6.0
+
 ```sql
 GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)
 ```
@@ -81,6 +117,8 @@ in decimal degrees. An optional final parameter specifies `KM`
 
 ### `LN`
 
+Since: 0.6.0
+
 ```sql
 LN(col1)
 ```
@@ -89,6 +127,8 @@ The natural logarithm of a value.
 
 ### `RANDOM`
 
+Since: -
+
 ```sql
 RANDOM()
 ```
@@ -96,6 +136,8 @@ RANDOM()
 Return a random DOUBLE value between 0.0 and 1.0.
 
 ### `ROUND`
+
+Since: 0.6.0
 
 ```sql
 ROUND(col1)
@@ -117,6 +159,8 @@ it defaults to zero.
 
 ### `SIGN`
 
+Since: 0.6.0
+
 ```sql
 SIGN(col1)
 ```
@@ -130,6 +174,8 @@ The sign of a numeric value as an INTEGER:
 
 ### `SQRT`
 
+Since: 0.6.0
+
 ```sql
 SQRT(col1)
 ```
@@ -140,23 +186,29 @@ The square root of a value.
 
 ### `ARRAY`
 
+Since: 0.7.0
+
 ```sql
 ARRAY[col1, col2, ...]
 ```
 
 Construct an array from a variable number of inputs.
 
-### ``ARRAY_CONTAINS``
+### `ARRAY_CONTAINS`
+
+Since: 0.6.0
 
 ```sql
-ARRAY_CONTAINS([1, 2, 3], 3)
+ARRAY_CONTAINS(ARRAY[1, 2, 3], 3)
 ```
 
 Given an array, checks if a search value is contained in the array.
 
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
-### ``ARRAY_DISTINCT``
+### `ARRAY_DISTINCT`
+
+Since: 0.10.0
 
 ```sql
 ARRAY_DISTINCT([1, 2, 3])
@@ -173,7 +225,9 @@ ARRAY_DISTINCT(ARRAY[1, 1, 2, 3, 1, 2])  => [1, 2, 3]
 ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'cherry']
 ```
 
-### ``ARRAY_EXCEPT``
+### `ARRAY_EXCEPT`
+
+Since: 0.10.0
 
 ```sql
 ARRAY_EXCEPT(array1, array2)
@@ -189,7 +243,9 @@ ARRAY_EXCEPT(ARRAY[1, 2, 3, 1, 2], [2, 3])  => [1]
 ARRAY_EXCEPT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL]
 ```
 
-### ``ARRAY_INTERSECT``
+### `ARRAY_INTERSECT`
+
+Since: 0.10.0
 
 ```sql
 ARRAY_INTERSECT(array1, array2)
@@ -205,7 +261,22 @@ ARRAY_INTERSECT(ARRAY[1, 2, 3, 1, 2], [2, 1])  => [1, 2]
 ARRAY_INTERSECT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['apple'])  => ['apple']
 ```
 
+### `ARRAY_JOIN`
+
+Since: 0.10.0
+
+```sql
+ARRAY_JOIN(col1, delimiter)
+```
+
+Creates a flat string representation of all the elements contained in the given array.
+The elements in the resulting string are separated by the chosen `delimiter`, 
+which is an optional parameter that falls back to a comma `,`. The current implementation only
+allows for array elements of primitive ksqlDB types.
+
 ### `ARRAY_LENGTH`
+
+Since: 0.8.0
 
 ```sql
 ARRAY_LENGTH(ARRAY[1, 2, 3])
@@ -215,7 +286,9 @@ Given an array, return the number of elements in the array.
 
 If the supplied parameter is NULL the method returns NULL.
 
-### ``ARRAY_MAX``
+### `ARRAY_MAX`
+
+Since: 0.10.0
 
 ```sql
 ARRAY_MAX(['foo', 'bar', 'baz'])
@@ -230,7 +303,9 @@ Array entries are compared according to their natural sort order, which sorts th
 
 If the array field is NULL, or contains only NULLs, then NULL is returned.
 
-### ``ARRAY_MIN``
+### `ARRAY_MIN`
+
+Since: 0.10.0
 
 ```sql
 ARRAY_MIN(['foo', 'bar', 'baz'])
@@ -245,7 +320,27 @@ Array entries are compared according to their natural sort order, which sorts th
 
 If the array field is NULL, or contains only NULLs, then NULL is returned.
 
-### ``ARRAY_SORT``
+### `ARRAY_REMOVE`
+
+Since: 0.11.0
+
+```sql
+ARRAY_REMOVE(array, element)
+```
+
+Removes all elements from the input array equal to `element`.
+
+Examples:
+```sql
+- array_remove([1, 2, 3, 2, 1], 2) -> [1, 3, 1]
+- array_remove([false, NULL, true, true], false) -> [NULL, true, true]
+- array_remove(['Foo', 'Bar', NULL, 'baz'], null) -> ['Foo', 'Bar', 'baz']
+```
+If the array field is NULL then NULL is returned.
+
+### `ARRAY_SORT`
+
+Since: 0.10.0
 
 ```sql
 ARRAY_SORT(['foo', 'bar', 'baz'], 'ASC|DESC')
@@ -262,7 +357,9 @@ If the array field is NULL then NULL is returned.
 
 An optional second parameter can be used to specify whether to sort the elements in 'ASC'ending or 'DESC'ending order. If neither is specified then the default is ascending order. 
 
-### ``ARRAY_UNION``
+### `ARRAY_UNION`
+
+Since: 0.10.0
 
 ```sql
 ARRAY_UNION(array1, array2)
@@ -280,6 +377,8 @@ ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['appl
 
 ### `AS_MAP`
 
+Since: 0.6.0
+
 ```sql
 AS_MAP(keys, vals)
 ```
@@ -287,6 +386,8 @@ AS_MAP(keys, vals)
 Construct a map from a list of keys and a list of values.
 
 ### `ELT`
+
+Since: 0.6.0
 
 ```sql
 ELT(n INTEGER, args VARCHAR[])
@@ -298,6 +399,8 @@ the complement to FIELD.
 
 ### `FIELD`
 
+Since: 0.6.0
+
 ```sql
 FIELD(str VARCHAR, args VARCHAR[])
 ```
@@ -307,6 +410,8 @@ If `str` is NULL, the return value is 0, because NULL is not considered
 to be equal to any value. FIELD is the complement to ELT.
 
 ### `JSON_ARRAY_CONTAINS`
+
+Since: 0.6.0
 
 ```sql
 JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)
@@ -318,6 +423,8 @@ Returns `false` if the first parameter does not contain a JSON array.
 
 ### `MAP`
 
+Since: 0.7.0
+
 ```sql
 MAP(key VARCHAR := value, ...)
 ```
@@ -325,6 +432,8 @@ MAP(key VARCHAR := value, ...)
 Construct a map from specific key-value tuples.
 
 ### `MAP_KEYS`
+
+Since: 0.10.0
 
 ```sql
 MAP_KEYS(a_map)
@@ -341,6 +450,8 @@ map_keys( map('apple' := 10, 'banana' := 20) )  => ['apple', 'banana']
 
 ### `MAP_VALUES`
 
+Since: 0.10.0
+
 ```sql
 MAP_VALUES(a_map)
 ```
@@ -355,6 +466,8 @@ map_values( map('apple' := 10, 'banana' := 20) )  => [10, 20]
 ```
 
 ### `MAP_UNION`
+
+Since: 0.10.0
 
 ```sql
 MAP_UNION(map1, map2)
@@ -373,6 +486,8 @@ map_union( map('apple' := 10, 'banana' := 20), map('apple' := 50) )  => ['apple'
 
 ### `SLICE`
 
+Since: 0.6.0
+
 ```sql
 SLICE(col1, from, to)
 ```
@@ -380,20 +495,11 @@ SLICE(col1, from, to)
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
 
-### `ARRAY_JOIN`
-
-```sql
-ARRAY_JOIN(col1, delimiter)
-```
-
-Creates a flat string representation of all the elements contained in the given array.
-The elements in the resulting string are separated by the chosen `delimiter`, 
-which is an optional parameter that falls back to a comma `,`. The current implementation only
-allows for array elements of primitive ksqlDB types.
-
 ## Strings
 
 ### `CHR`
+
+Since: 0.10.0
 
 ```sql
 CHR(decimal_code | utf_string)
@@ -415,6 +521,8 @@ CHR('\u597d')  => '好'
 
 ### `CONCAT`
 
+Since: -
+
 ```sql
 CONCAT(col1, col2, 'hello', ..., col-n)
 ```
@@ -422,6 +530,8 @@ CONCAT(col1, col2, 'hello', ..., col-n)
 Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
 
 ### `CONCAT_WS`
+
+Since: 0.10.0
 
 ```sql
 CONCAT_WS(separator, expr1, expr2, ...)
@@ -439,6 +549,8 @@ CONCAT_WS(', ', 'apple', 'banana', NULL, 'date')  ->  'apple, banana, date'
 
 ### `ENCODE`
 
+Since: 0.10.0
+
 ```sql
 ENCODE(col1, input_encoding, output_encoding)
 ```
@@ -449,6 +561,8 @@ Given a STRING that is encoded as `input_encoding`, encode it using the `output_
 For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', 'utf8')`.
 
 ### `EXTRACTJSONFIELD`
+
+Since: -
 
 ```sql
 EXTRACTJSONFIELD(message, '$.log.cloud')
@@ -490,6 +604,8 @@ instance number from the above JSON object as a INT.
 
 ### `INITCAP`
 
+Since: 0.6.0
+
 ```sql
 INITCAP(col1)
 ```
@@ -498,6 +614,8 @@ Capitalize the first letter in each word and convert all other letters
 to lowercase. Words are delimited by whitespace.
 
 ### `INSTR`
+
+Since: 0.10.0
 
 ```sql
 INSTR(string, substring, [position], [occurrence])
@@ -525,6 +643,8 @@ INSTR('CORPORATE FLOOR', 'MISSING') -> 0
 
 ### `LCASE`
 
+Since: -
+
 ```sql
 LCASE(col1)
 ```
@@ -533,6 +653,8 @@ Convert a string to lowercase.
 
 ### `LEN`
 
+Since: -
+
 ```sql
 LEN(col1)
 ```
@@ -540,6 +662,8 @@ LEN(col1)
 The length of a string.
 
 ### `LPAD`
+
+Since: 0.10.0
 
 ```sql
 LPAD(input, length, padding)
@@ -560,6 +684,8 @@ LPAD('123', 5, '0')  => '00123'
 
 ### `MASK`
 
+Since: 0.6.0
+
 ```sql
 MASK(col1, 'X', 'x', 'n', '-')
 ```
@@ -579,6 +705,8 @@ all default masks. `MASK("My Test $123", '*', NULL, '1', NULL)` will yield
 
 ### `MASK_KEEP_LEFT`
 
+Since: 0.6.0
+
 ```sql
 MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')
 ```
@@ -590,6 +718,8 @@ For example: `MASK_KEEP_LEFT("My Test $123", 4)`
 will return `My Txxx--nnn`.
 
 ### `MASK_KEEP_RIGHT`
+
+Since: 0.6.0
 
 ```sql
 MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
@@ -603,6 +733,8 @@ will return `Xx-Xxxx-$123`.
 
 ### `MASK_LEFT`
 
+Since: 0.6.0
+
 ```sql
 MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')
 ```
@@ -614,6 +746,8 @@ For example, `MASK_LEFT("My Test $123", 4)`
 will return `Xx-Xest $123`.
 
 ### `MASK_RIGHT`
+
+Since: 0.6.0
 
 ```sql
 MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
@@ -627,6 +761,8 @@ will return `My Test -nnn`.
 
 ### `REPLACE`
 
+Since: 0.6.0
+
 ```sql
 REPLACE(col1, 'foo', 'bar')
 ```
@@ -634,6 +770,8 @@ REPLACE(col1, 'foo', 'bar')
 Replace all instances of a substring in a string with a new string.
 
 ### `REGEXP_EXTRACT`
+
+Since: 0.8.0
 
 ```sql
 REGEXP_EXTRACT('.*', col1)
@@ -653,6 +791,8 @@ returns "there".
 
 ### `REGEXP_EXTRACT_ALL`
 
+Since: 0.10.0
+
 ```sql
 REGEXP_EXTRACT_ALL('.*', col1)
 ```
@@ -671,6 +811,8 @@ returns `['there', 'day']`.
 
 ### `REGEXP_REPLACE`
 
+Since: 0.10.0
+
 ```sql
 REGEXP_REPLACE(col1, 'a.b+', 'bar')
 ```
@@ -680,6 +822,8 @@ If either the input string, regular expression, or new string is null,
 the result is null.
 
 ### `REGEXP_SPLIT_TO_ARRAY`
+
+Since: 0.10.0
 
 ```sql
 REGEXP_SPLIT_TO_ARRAY(col1, 'a.b+')
@@ -699,6 +843,8 @@ then an empty element is added to the array.
 
 ### `RPAD`
 
+Since: 0.10.0
+
 ```sql
 RPAD(input, length, padding)
 ```
@@ -715,6 +861,8 @@ RPAD('', 2, 'Bar')  =>  'Ba'
 ```
 
 ### `SPLIT`
+
+Since: 0.6.0
 
 ```sql
 SPLIT(col1, delimiter)
@@ -734,6 +882,8 @@ then an empty space is added to the array.
 
 ### `SPLIT_TO_MAP`
 
+Since: 0.10.0
+
 ```sql
 SPLIT_TO_MAP(input, entryDelimiter, kvDelimiter)
 ```
@@ -750,6 +900,8 @@ SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green',
 ```
 
 ### `SUBSTRING`
+
+Since: -
 
 ```sql
 SUBSTRING(col1, 2, 5)
@@ -769,6 +921,8 @@ returns "stre".
 
 ### `TRIM`
 
+Since: -
+
 ```sql
 TRIM(col1)
 ```
@@ -777,6 +931,8 @@ Trim the spaces from the beginning and end of a string.
 
 ### `UCASE`
 
+Since: -
+
 ```sql
 UCASE(col1)
 ```
@@ -784,6 +940,8 @@ UCASE(col1)
 Convert a string to uppercase.
 
 ### `UUID`
+
+Since: 0.10.0
 
 ```sql
 UUID()
@@ -797,6 +955,8 @@ as a string of five hexadecimal numbers _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_.
 
 ### `COALESCE`
 
+Since: 0.9.0
+
 ```sql
 COALESCE(a, b, c, d)
 ```
@@ -807,6 +967,8 @@ Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the
 complex type are not inspected. The behaviour is the same: the first NOT NULL element is returned.
 
 ### `IFNULL`
+
+Since: -
 
 ```sql
 IFNULL(expression, altValue)
@@ -821,6 +983,8 @@ complex type are not inspected.
 
 ### `UNIX_DATE`
 
+Since: 0.6.0
+
 ```sql
 UNIX_DATE()
 ```
@@ -830,6 +994,8 @@ may differ depending on the local time of different ksqlDB Server instances.
 
 ### `UNIX_TIMESTAMP`
 
+Since: 0.6.0
+
 ```sql
 UNIX_TIMESTAMP()
 ```
@@ -838,6 +1004,8 @@ Gets the Unix timestamp in milliseconds, represented as a BIGINT. The returned
 timestamp may differ depending on the local time of different ksqlDB Server instances.
 
 ### `DATETOSTRING`
+
+Since: -
 
 ```sql
 DATETOSTRING(START_DATE, 'yyyy-MM-dd')
@@ -851,6 +1019,8 @@ The integer represents days since epoch matching the encoding used by
 
 ### `STRINGTODATE`
 
+Since: -
+
 ```sql
 STRINGTODATE(col1, 'yyyy-MM-dd')
 ```
@@ -862,6 +1032,8 @@ format can be escaped with two successive single
 quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 ### `STRINGTOTIMESTAMP`
+
+Since: -
 
 ```sql
 STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -881,6 +1053,8 @@ more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).    
 
 ### `TIMESTAMPTOSTRING`
+
+Since: -
 
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -913,6 +1087,8 @@ more information on timestamp formats, see
 URL_DECODE_PARAM(col1)
 ```
 
+Since: 0.6.0
+
 Unescapes the `URL-param-encoded`_ value in `col1`. This is the inverse of
 `URL_ENCODE_PARAM`.
 
@@ -924,6 +1100,8 @@ Unescapes the `URL-param-encoded`_ value in `col1`. This is the inverse of
 ```sql
 URL_ENCODE_PARAM(col1)
 ```
+
+Since: 0.6.0
 
 Escapes the value of `col1` such that it can
 safely be used in URL query parameters. Note that
@@ -938,6 +1116,8 @@ in the path portion of a URL.
 ```sql
 URL_EXTRACT_FRAGMENT(url)
 ```
+
+Since: 0.6.0
 
 Extract the fragment portion of the specified
 value. Returns NULL if `url` is not a valid URL
@@ -956,6 +1136,8 @@ value will be decoded.
 URL_EXTRACT_HOST(url)
 ```
 
+Since: 0.6.0
+
 Extract the host-name portion of the specified
 value. Returns NULL if the `url` is not a valid  
 URI according to RFC-2396.                       
@@ -964,6 +1146,8 @@ URI according to RFC-2396.
 - Output: `test.com`                               
 
 ### `URL_EXTRACT_PARAMETER`
+
+Since: 0.6.0
 
 ```sql
 URL_EXTRACT_PARAMETER(url, parameter_name)
@@ -991,6 +1175,8 @@ URL as a single string, see `URL_EXTRACT_QUERY.`
 URL_EXTRACT_PATH(url)
 ```
 
+Since: 0.6.0
+
 Extracts the path from `url`.
 Returns NULL if `url` is not a valid URI but  
 returns an empty string if the path is empty. 
@@ -1003,6 +1189,8 @@ returns an empty string if the path is empty.
 ```sql
 URL_EXTRACT_PORT(url)
 ```
+
+Since: 0.6.0
 
 Extract the port number from `url`.
 Returns NULL if `url` is not a valid URI or does
@@ -1017,6 +1205,8 @@ not contain an explicit port number.
 URL_EXTRACT_PROTOCOL(url)
 ```
 
+Since: 0.6.0
+
 Extract the protocol from `url`. Returns NULL if
 `url` is an invalid URI or has no protocol.
                                            
@@ -1024,6 +1214,8 @@ Extract the protocol from `url`. Returns NULL if
 - Output: `http`                             
 
 ### `URL_EXTRACT_QUERY`
+
+Since: 0.6.0
 
 ```sql
 URL_EXTRACT_QUERY(url)

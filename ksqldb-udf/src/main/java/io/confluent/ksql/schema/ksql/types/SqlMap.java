@@ -27,17 +27,21 @@ import java.util.Objects;
 @Immutable
 public final class SqlMap extends SqlType {
 
-  private static final SqlType KEY_TYPE = SqlTypes.STRING;
-
+  private final SqlType keyType;
   private final SqlType valueType;
 
-  public static SqlMap of(final SqlType valueType) {
-    return new SqlMap(valueType);
+  public static SqlMap of(final SqlType keyType, final SqlType valueType) {
+    return new SqlMap(keyType, valueType);
   }
 
-  private SqlMap(final SqlType valueType) {
+  private SqlMap(final SqlType keyType, final SqlType valueType) {
     super(SqlBaseType.MAP);
+    this.keyType = requireNonNull(keyType, "keyType");
     this.valueType = requireNonNull(valueType, "valueType");
+  }
+
+  public SqlType getKeyType() {
+    return keyType;
   }
 
   public SqlType getValueType() {
@@ -61,7 +65,7 @@ public final class SqlMap extends SqlType {
 
     map.forEach((k, v) -> {
       try {
-        KEY_TYPE.validateValue(k);
+        keyType.validateValue(k);
       } catch (final DataException e) {
         throw new DataException("MAP key: " + e.getMessage(), e);
       }
@@ -83,12 +87,13 @@ public final class SqlMap extends SqlType {
       return false;
     }
     final SqlMap map = (SqlMap) o;
-    return Objects.equals(valueType, map.valueType);
+    return Objects.equals(keyType, map.keyType)
+        && Objects.equals(valueType, map.valueType);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(valueType);
+    return Objects.hash(keyType, valueType);
   }
 
   @Override
@@ -98,6 +103,9 @@ public final class SqlMap extends SqlType {
 
   @Override
   public String toString(final FormatOptions formatOptions) {
-    return "MAP<" + SqlTypes.STRING + ", " + valueType.toString(formatOptions) + '>';
+    return "MAP<"
+        + keyType.toString(formatOptions) + ", "
+        + valueType.toString(formatOptions)
+        + '>';
   }
 }

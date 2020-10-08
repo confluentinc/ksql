@@ -22,6 +22,7 @@ import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
@@ -39,6 +40,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -71,6 +73,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
   private static final int MAX_RETRIES = 10;
+
+  private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
   private static final ClassHandlerMap2<StatementContext, Cli, String> STATEMENT_HANDLERS =
       HandlerMaps
@@ -178,19 +182,40 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     throw new KsqlRestClientException("Failed to execute request " + ksql);
   }
 
+  public void runCommand(final String command) {
+    RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
+    try {
+      // Handles the RUN SCRIPT command if found
+      if (!terminal.maybeHandleCliSpecificCommands(command)) {
+        handleLine(command);
+      }
+    } catch (final EndOfFileException exception) {
+      // Ignore - only used by runInteractively() to exit the CLI
+    } catch (final Exception exception) {
+      LOGGER.error("An error occurred while running a command. Error = "
+          + exception.getMessage(), exception);
+
+      terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
+          exception.toString());
+    }
+
+    terminal.flush();
+  }
+
   public void runInteractively() {
     displayWelcomeMessage();
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     boolean eof = false;
     while (!eof) {
       try {
-        handleLine(readLine());
+        handleLine(nextNonCliCommand());
       } catch (final EndOfFileException exception) {
         // EOF is fine, just terminate the REPL
         terminal.writer().println("Exiting ksqlDB.");
         eof = true;
       } catch (final Exception exception) {
-        LOGGER.error("", exception);
+        LOGGER.error("An error occurred while running a command. Error = "
+            + exception.getMessage(), exception);
         terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
             exception.toString());
       }
@@ -200,10 +225,15 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   private void displayWelcomeMessage() {
     String serverVersion;
+    String serverStatus;
     try {
-      serverVersion = restClient.getServerInfo().getResponse().getVersion();
+      final ServerInfo serverInfo = restClient.getServerInfo().getResponse();
+      serverVersion = serverInfo.getVersion();
+      serverStatus = serverInfo.getServerStatus() == null
+          ? "<unknown>" : serverInfo.getServerStatus();
     } catch (final Exception exception) {
       serverVersion = "<unknown>";
+      serverStatus = "<unknown>";
     }
     final String cliVersion = AppInfo.getVersion();
 
@@ -228,6 +258,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         serverVersion,
         restClient.getServerAddress()
     );
+    writer.println("Server Status: " + serverStatus);
     writer.println();
     writer.println(helpReminderMessage);
     writer.println();
@@ -255,18 +286,19 @@ public class Cli implements KsqlRequestExecutor, Closeable {
    * @return The parsed, logical line.
    * @throws EndOfFileException If there is no more input available from the user.
    */
-  private String readLine() {
+  private String nextNonCliCommand() {
     while (true) {
       try {
-        final String result = terminal.readLine();
+        final String line = terminal.nextNonCliCommand();
+        
         // A 'dumb' terminal (the kind used at runtime if a 'system' terminal isn't available) will
         // return null on EOF and user interrupt, instead of throwing the more fine-grained
         // exceptions. This null-check helps ensure that, upon encountering EOF, even a 'dumb'
         // terminal will be able to exit intelligently.
-        if (result == null) {
+        if (line == null) {
           throw new EndOfFileException();
         } else {
-          return result.trim();
+          return line.trim();
         }
       } catch (final UserInterruptException exception) {
         // User hit ctrl-C, just clear the current line and try again.
@@ -277,8 +309,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   }
 
   private void handleStatements(final String line) {
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(line);
+    final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
 
     final StringBuilder consecutiveStatements = new StringBuilder();
     for (final ParsedStatement parsed : statements) {

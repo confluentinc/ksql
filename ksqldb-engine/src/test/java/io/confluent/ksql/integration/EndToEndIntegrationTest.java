@@ -15,6 +15,8 @@
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,6 +28,7 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -58,7 +61,6 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
-import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -85,6 +87,7 @@ public class EndToEndIntegrationTest {
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
   private static final String USER_TABLE = "users_original";
 
+  private static final Format KEY_FORMAT = KAFKA;
   private static final Format VALUE_FORMAT = JSON;
   private static final UserDataProvider USER_DATA_PROVIDER = new UserDataProvider();
 
@@ -139,6 +142,7 @@ public class EndToEndIntegrationTest {
     TEST_HARNESS.produceRows(
         USERS_TOPIC,
         USER_DATA_PROVIDER,
+        KEY_FORMAT,
         VALUE_FORMAT,
         () -> System.currentTimeMillis() - 10000
     );
@@ -146,6 +150,7 @@ public class EndToEndIntegrationTest {
     TEST_HARNESS.produceRows(
         PAGE_VIEW_TOPIC,
         PAGE_VIEW_DATA_PROVIDER,
+        KEY_FORMAT,
         VALUE_FORMAT,
         System::currentTimeMillis
     );
@@ -168,7 +173,9 @@ public class EndToEndIntegrationTest {
   public void shouldSelectAllFromUsers() throws Exception {
     final TransientQueryMetadata queryMetadata = executeStatement("SELECT * from %s EMIT CHANGES;", USER_TABLE);
 
-    final Set<?> expectedUsers = USER_DATA_PROVIDER.data().keySet();
+    final Set<String> expectedUsers = USER_DATA_PROVIDER.data().keySet().stream()
+        .map(s -> s.getString(USER_DATA_PROVIDER.key()))
+        .collect(Collectors.toSet());
 
     final List<GenericRow> rows = verifyAvailableRows(queryMetadata, expectedUsers.size());
 
@@ -220,7 +227,7 @@ public class EndToEndIntegrationTest {
         PAGE_VIEW_STREAM));
 
     TEST_HARNESS.produceRows(
-        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
+        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, System::currentTimeMillis);
 
     TEST_HARNESS.waitForSubjectToBePresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 
@@ -229,6 +236,48 @@ public class EndToEndIntegrationTest {
     executeStatement("DROP STREAM avro_stream DELETE TOPIC;");
 
     TEST_HARNESS.waitForSubjectToBeAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+  }
+
+  @Test
+  public void shouldRegisterCorrectPrimitiveSchemaForCreateStatements() throws Exception {
+    // Given:
+    final String topicName = "create_stream_topic";
+    final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    // When:
+    executeStatement("create stream s ("
+        + "  VAL INT"
+        + ") with ("
+        + "  kafka_topic = '" + topicName + "',"
+        + "  partitions = 1,"
+        + "  value_format = 'avro',"
+        + "  wrap_single_value = false);"
+    );
+
+    // Then:
+    TEST_HARNESS.waitForSubjectToBePresent(subject);
+
+    assertThat(TEST_HARNESS.getSchema(subject), is(new AvroSchema("{\"type\":\"int\"}")));
+  }
+
+  @Test
+  public void shouldRegisterCorrectPrimitiveSchemaForCreateAsStatements() throws Exception {
+    // Given:
+    final String topicName = "create_as_stream_topic";
+    final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    executeStatement("create stream s with ("
+        + "  kafka_topic = '" + topicName + "',"
+        + "  value_format = 'avro',"
+        + "  wrap_single_value = false"
+        + ") as "
+        + "select pageid, viewtime from " + PAGE_VIEW_STREAM + ";"
+    );
+
+    // Then:
+    TEST_HARNESS.waitForSubjectToBePresent(subject);
+
+    assertThat(TEST_HARNESS.getSchema(subject), is(new AvroSchema("{\"type\":\"long\"}")));
   }
 
   @Test
@@ -283,10 +332,13 @@ public class EndToEndIntegrationTest {
   ) throws Exception {
     final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
-    TestUtils.waitForCondition(
+    assertThatEventually(
+        expectedRows + " rows were not available after 30 seconds",
         () -> rowQueue.size() >= expectedRows,
-        30_000,
-        expectedRows + " rows were not available after 30 seconds");
+        is(true),
+        30,
+        TimeUnit.SECONDS
+    );
 
     final List<GenericRow> rows = new ArrayList<>();
     rowQueue.drainTo(rows);

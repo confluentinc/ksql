@@ -15,14 +15,10 @@
 
 package io.confluent.ksql.test.model;
 
-import static org.hamcrest.Matchers.containsString;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.test.model.matchers.KsqlExceptionMatcher;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
-import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
 import org.hamcrest.Matcher;
 
@@ -43,20 +39,12 @@ public final class ExpectedExceptionNode {
     }
   }
 
-  public Matcher<Throwable> build(final String lastStatement) {
+  public Matcher<Throwable> build() {
     final KsqlExpectedException expectedException = KsqlExpectedException.none();
 
     type
         .map(ExpectedExceptionNode::parseThrowable)
-        .ifPresent(type -> {
-          expectedException.expect(type);
-
-          if (KsqlStatementException.class.isAssignableFrom(type)) {
-            // Ensure exception contains last statement, otherwise the test case is invalid:
-            expectedException.expect(
-                KsqlExceptionMatcher.statementText(containsString(lastStatement)));
-          }
-        });
+        .ifPresent(expectedException::expect);
 
     message.ifPresent(expectedException::expectMessage);
     return expectedException.build();

@@ -7,7 +7,7 @@ description: Learn how to use ksqlDB to merge streams of events in real time.
 
 You can use ksqlDB to merge streams of events in real time by using the JOIN
 statement, which has a SQL join syntax. A ksqlDB join and a relational
-database join are similar in that they both combine data from two sources
+database join are similar in that they both combine data from two or more sources
 based on common values. The result of a ksqlDB join is a new stream or table
 that's populated with the column values that you specify in a SELECT statement.
 
@@ -17,9 +17,9 @@ your streaming data.
 
 You can join streams and tables in these ways:
 
--   Join two streams to create a new stream.
--   Join two tables to create a new table.
--   Join a stream and a table to create a new stream.
+-   Join multiple streams to create a new stream.
+-   Join multiple tables to create a new table.
+-   Join multiple streams and tables to create a new stream.
 
 JOIN Clause
 -----------
@@ -30,25 +30,34 @@ combination of a `pageviews` stream and a `users` table:
 
 ```sql
 CREATE STREAM pageviews_enriched AS
-  SELECT users.userid AS userid, pageid, regionid, gender FROM pageviews
-  LEFT JOIN users ON pageviews.userid = users.userid
+  SELECT 
+     users.userid AS userid, 
+     pageid, 
+     regionid, 
+     gender 
+  FROM pageviews
+    LEFT JOIN users ON pageviews.userid = users.userid
   EMIT CHANGES;
 ```
 
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
-units, see [ksqlDB Time Units](../syntax-reference.md#ksqldb-time-units).
+units, see [Time Units](../syntax-reference.md#time-units).
 
-Here's an example stream-stream join that combines a `shipments` stream
-with an `orders` stream. The resulting ``shipped_orders`` stream contains all
-orders shipped within two hours of when the order was placed.
+Here's an example stream-stream-stream join that combines `orders`, `payments` and `shipments` 
+streams. The resulting ``shipped_orders`` stream contains all orders paid within 1 hour of when
+the order was placed, and shipped within 2 hours of the payment being received. 
 
 ```sql
    CREATE STREAM shipped_orders AS
-     SELECT o.orderid, o.itemid, s.shipmentid
+     SELECT 
+        o.id as orderId 
+        o.itemid as itemId,
+        s.id as shipmentId,
+        p.id as paymentId
      FROM orders o
-     INNER JOIN shipments s WITHIN 2 HOURS
-     ON s.orderid = o.orderid;
+        INNER JOIN payments p WITHIN 1 HOURS ON p.id = o.id
+        INNER JOIN shipments s WITHIN 2 HOURS ON s.id = o.id;
 ```
 
 Joins and Windows
@@ -85,18 +94,6 @@ delivered to the same stream task during processing. It's your
 responsibility to ensure data co-partitioning when joining. For more
 information, see [Partition Data to Enable Joins](partition-data.md).
 
-### KEY property
-
-If you set the KEY property when you create a table, ensure that
-both of the following conditions are true:
-
--   For every record, the contents of the message key of the {{
-    site.aktm }} message itself must be the same as the contents of
-    the column set in KEY.
--   The KEY property must be set to a value column with the same SQL data type as the key column.
-
-For more information, see [Key Requirements](../syntax-reference.md#key-requirements).
-
 Join Capabilities
 -----------------
 
@@ -131,6 +128,13 @@ matching records within a join window.
 Joins cause data re-partitioning of a stream only if the stream was
 marked for re-partitioning. If both streams are marked, both are
 re-partitioned.
+
+!!! important
+    {{ site.ak }} guarantees the relative order of any two messages from
+    one source partition only if they are also both in the same partition
+    *after* the repartition. Otherwise, {{ site.ak }} is likely to interleave
+    messages. The use case will determine if these ordering guarantees are
+    acceptable.
 
 LEFT OUTER joins will contain leftRecord-NULL records in the result
 stream, which means that the join contains NULL values for fields
@@ -183,9 +187,6 @@ events arriving on the stream side trigger downstream updates and
 produce join output. Updates on the table side don't produce updated
 join output.
 
-Out-of-order records aren't supported, which means that ksqlDB processes
-all records in offset order and doesn't check for out-of-order records.
-
 Stream-table joins cause data re-partitioning of the stream only if the
 stream was marked for re-partitioning.
 
@@ -202,9 +203,6 @@ record. The following assumptions apply:
 
 -   All records have the same key.
 -   All records are processed in timestamp order.
-
-Input records for the stream with a NULL key or a NULL value are ignored
-and don't trigger the join.
 
 Only input records for the left-side stream trigger the join. Input
 records for the right-side table update only the internal right-side
@@ -232,14 +230,19 @@ the key from the table. Tombstones don't trigger the join.
 | 14        |             | d                |            |           |
 | 15        | D           |                  | [D, d]     | [D, d]    |
 
-For stream-table joins, ksqlDB assumes that the joining stream and table
-follow the event-time ordering exactly. Follow these steps to ensure
-that joins are synchronized:
+Notice that the INNER JOIN doesn't result in any output if the table-side
+does not already contain a value for the key, even if the table-side is
+later populated. For the LEFT JOIN the same scenario results in an output 
+of leftRecord-NULL.  It is therefore important that the table data is 
+loaded _before_ the stream event is received. 
 
-1.  Start the query, which starts consumers.
-2.  Populate the table completely. This ensures that the table items
-    exist when the stream events come in to trigger the join.
-3.  Populate the stream completely.
+ksqlDB attempts to process both sides of a join in event-time order, 
+but it can't offer strong guarantees, especially in the presence of 
+out-of-order rows. 
+
+To maximise join predictability, ensure historic table data is available in the 
+source topic, the query is running, and ksqlDB has had enough time to process 
+the table data _before_ starting to produce to your stream.
 
 Table-Table Joins
 -----------------
@@ -249,9 +252,6 @@ Joins matching multiple records (one-to-many) aren't supported.
 
 Table-table joins are always non-windowed joins.
 
-Out-of-order records are not supported, which means that ksqlDB processes
-all records in offset order and does not check for out-of-order records.
-
 Table-table joins are eventually consistent.
 
 !!! important
@@ -259,7 +259,7 @@ Table-table joins are eventually consistent.
       are no guarantees, which can cause missing results or leftRecord-NULL
       results.
 
-Table-table joins can be joined only on the `KEY` field, and one-to-many
+Table-table joins can be joined only on their `PRIMARY KEY` field, and one-to-many
 (1:N) joins aren't supported.
 
 ### Semantics of Table-Table Joins
@@ -307,9 +307,11 @@ written.
 Consider the following query as an example, where `A` is a stream of events
 and `B` and `C` are both tables:
 ```sql
-CREATE STREAM joined AS SELECT * FROM A
-        JOIN B ON A.id = B.product_id
-        JOIN C ON A.id = C.purchased_id;
+CREATE STREAM joined AS 
+  SELECT * 
+  FROM A
+    JOIN B ON A.id = B.product_id
+    JOIN C ON A.id = C.purchased_id;
 ```
 
 The output of this query is a stream, and the intermediate join result
@@ -318,9 +320,11 @@ rewrite the join accordingly, by adding a `WITHIN` clause because joining `A ⋈
 with `C` is a stream-stream join:
 
 ```sql
-CREATE STREAM joined AS SELECT * FROM A
-        JOIN B ON A.id = B.product_id
-        JOIN C WITHIN 10 SECONDS ON A.id = C.purchased_id;
+CREATE STREAM joined AS 
+  SELECT * 
+  FROM A
+    JOIN B ON A.id = B.product_id
+    JOIN C WITHIN 10 SECONDS ON A.id = C.purchased_id;
 ```
 
 ### Limitations of N-Way Joins
@@ -328,12 +332,14 @@ CREATE STREAM joined AS SELECT * FROM A
 The limitations and restrictions described in the previous sections to each intermediate 
 step in N-way joins. For example, `FULL OUTER` joins between streams and tables are
 not supported. This means that if any stage in the N-way join resolves to a `FULL OUTER`
-join between a strem and a table the entire query fails:
+join between a stream and a table the entire query fails:
 
 ```sql
 --- This JOIN fails with the following exception:
 --- Join between invalid operands requested: left type: KTABLE, right type: KSTREAM
-CREATE STREAM joined AS SELECT * FROM A
-        JOIN B WITHIN 10 SECONDS ON A.id = B.product_id
-        FULL OUTER JOIN C ON A.id = C.purchased_id;
+CREATE STREAM joined AS 
+  SELECT * 
+  FROM A
+    JOIN B WITHIN 10 SECONDS ON A.id = B.product_id
+    FULL OUTER JOIN C ON A.id = C.purchased_id;
 ```

@@ -19,10 +19,13 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import java.io.EOFException;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.jetbrains.annotations.NotNull;
 
 /*
@@ -32,7 +35,11 @@ This is only used by legacy streaming endpoints from the old API which work with
  */
 public class ResponseOutputStream extends OutputStream {
 
+  private static final int WRITE_TIMEOUT_MS = 10 * 60000;
+  private static final int BLOCK_TIME_MS = 100;
+
   private final HttpServerResponse response;
+  private volatile boolean closed;
 
   public ResponseOutputStream(final HttpServerResponse response) {
     this.response = response;
@@ -45,7 +52,11 @@ public class ResponseOutputStream extends OutputStream {
   }
 
   @Override
-  public synchronized void write(final @NotNull byte[] bytes, final int offset, final int length) {
+  public synchronized void write(final @NotNull byte[] bytes, final int offset, final int length)
+      throws IOException {
+    if (closed) {
+      throw new EOFException("ResponseOutputStream is closed");
+    }
     Objects.requireNonNull(bytes);
     if ((offset < 0) || (offset > bytes.length)) {
       throw new IndexOutOfBoundsException();
@@ -65,21 +76,39 @@ public class ResponseOutputStream extends OutputStream {
 
   @Override
   public void close() {
+    if (closed) {
+      return;
+    }
+    closed = true;
     response.end();
   }
 
-  private void blockIfWriteQueueFull() {
+  private void blockIfWriteQueueFull() throws IOException {
     VertxUtils.checkIsWorker();
     if (response.writeQueueFull()) {
       final CompletableFuture<Void> cf = new CompletableFuture<>();
       response.drainHandler(v -> cf.complete(null));
+      blockOnWrite(cf);
+    }
+  }
+
+  private void blockOnWrite(final CompletableFuture<Void> cf) throws IOException {
+    final long start = System.currentTimeMillis();
+    do {
+      if (closed) {
+        throw new EOFException("ResponseOutputStream is closed");
+      }
       try {
-        cf.get(60, TimeUnit.SECONDS);
+        // We block for a small amount of time so we can check if the stream has been closed
+        cf.get(BLOCK_TIME_MS, TimeUnit.MILLISECONDS);
+        return;
+      } catch (TimeoutException e) {
+        // continue loop
       } catch (Exception e) {
-        // Very slow consumers will result in a timeout, this will cause the push query to be closed
         throw new KsqlException(e);
       }
-    }
+    } while (System.currentTimeMillis() - start < WRITE_TIMEOUT_MS);
+    throw new KsqlException("Timed out waiting to write to client");
   }
 
 }

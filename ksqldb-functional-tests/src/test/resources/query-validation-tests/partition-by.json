@@ -176,6 +176,23 @@
       }
     },
     {
+      "name": "null",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, NAME from INPUT partition by null;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"NAME": "bob"}}],
+      "outputs": [{"topic": "OUTPUT", "key": null, "value": {"NAME": "bob", "ID": 10}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT, NAME STRING"}
+        ]
+      }
+    },
+    {
       "name": "key in projection more than once",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
@@ -768,6 +785,18 @@
         {"topic": "REPARTITIONED", "key": null, "value": {"ID": 2}},
         {"topic": "REPARTITIONED", "key": 0, "value": {"ID": 3}}
       ]
+    },
+    {
+      "name": "non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL DOUBLE) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": 10.02}}],
+      "outputs": [{"topic": "OUTPUT", "key": 10.02, "value": {"ID": 10}}]
     }
   ]
 }

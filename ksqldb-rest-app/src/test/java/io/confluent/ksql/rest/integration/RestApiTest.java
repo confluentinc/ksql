@@ -40,6 +40,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -73,7 +74,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -171,7 +172,7 @@ public class RestApiTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
 
     RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
 
@@ -194,6 +195,9 @@ public class RestApiTest {
 
   @Test
   public void shouldExecutePushQueryOverWebSocketWithV1ContentType() {
+    // Given:
+    verifyNumPushQueries(0);
+
     // When:
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
@@ -209,10 +213,14 @@ public class RestApiTest {
         + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
         + "{\"name\":\"VIEWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
         + "]"));
+    verifyNumPushQueries(0);
   }
 
   @Test
   public void shouldExecutePushQueryOverWebSocketWithJsonContentType() {
+    // Given:
+    verifyNumPushQueries(0);
+
     // When:
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
@@ -228,6 +236,7 @@ public class RestApiTest {
         + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
         + "{\"name\":\"VIEWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
         + "]"));
+    verifyNumPushQueries(0);
   }
 
   @Test
@@ -294,6 +303,9 @@ public class RestApiTest {
 
   @Test
   public void shouldExecutePushQueryOverRest() {
+    // Given:
+    verifyNumPushQueries(0);
+
     // When:
     final String response = rawRestQueryRequest(
         "SELECT USERID, PAGEID, VIEWTIME from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT "
@@ -311,6 +323,8 @@ public class RestApiTest {
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},"));
     assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
+
+    verifyNumPushQueries(0);
   }
 
   @Test
@@ -397,7 +411,7 @@ public class RestApiTest {
 
   @Test
   public void shouldExecutePullQueryOverRest() {
-    // When:
+    // Given:
     final Supplier<List<String>> call = () -> {
       final String response = rawRestQueryRequest(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';"
@@ -405,10 +419,38 @@ public class RestApiTest {
       return Arrays.asList(response.split(System.lineSeparator()));
     };
 
-    // Then:
+    // When:
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
-    assertThat(messages, hasSize(HEADER + 1));
 
+    // Then:
+    assertThat(messages, hasSize(HEADER + 1));
+    assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+    assertThat(messages.get(0),
+        endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
+  }
+
+  @Test
+  public void shouldExecutePullQueryOverRestHttp2() {
+    // Given
+    final KsqlRequest request = new KsqlRequest(
+        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        ImmutableMap.of(),
+        Collections.emptyMap(),
+        null
+    );
+    final Supplier<List<String>> call = () -> {
+      final String response = rawRestRequest(
+          HttpVersion.HTTP_2, HttpMethod.POST, "/query", request
+      ).body().toString();
+      return Arrays.asList(response.split(System.lineSeparator()));
+    };
+
+    // When:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+
+    // Then:
+    assertThat(messages, hasSize(HEADER + 1));
     assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
     assertThat(messages.get(0),
         endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
@@ -456,10 +498,11 @@ public class RestApiTest {
 
   @Test
   public void shouldFailToExecuteQueryUsingRestWithHttp2() {
-
     // Given:
     KsqlRequest ksqlRequest = new KsqlRequest("SELECT * from " + AGG_TABLE + " EMIT CHANGES;",
         Collections.emptyMap(), Collections.emptyMap(), null);
+
+    verifyNumPushQueries(0);
 
     // When:
     HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
@@ -467,6 +510,8 @@ public class RestApiTest {
 
     // Then:
     assertThat(resp.statusCode(), is(405));
+
+    verifyNumPushQueries(0);
   }
 
   private boolean topicExists(final String topicName) {
@@ -500,6 +545,14 @@ public class RestApiTest {
     }
   }
 
+  private static HttpResponse<Buffer> rawRestRequest(
+      final HttpVersion httpVersion,
+      final HttpMethod method,
+      final String uri,
+      final Object requestBody) {
+    return RestIntegrationTestUtil.rawRestRequest(REST_APP, httpVersion, method, uri, requestBody);
+  }
+
   private static List<String> makeWebSocketRequest(
       final String sql,
       final String mediaType,
@@ -522,6 +575,10 @@ public class RestApiTest {
         throw new AssertionError("Invalid JSON message received: " + msg, e);
       }
     }
+  }
+
+  private static void verifyNumPushQueries(final int numPushQueries) {
+    assertThatEventually(REST_APP::getTransientQueries, hasSize(numPushQueries));
   }
 
 }

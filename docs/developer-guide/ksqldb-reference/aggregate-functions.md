@@ -8,6 +8,8 @@ keywords: ksqlDB, function, aggregate
 
 ## `AVG`
 
+Since: 0.6.0
+
 ```sql
 AVG(col1)
 ```
@@ -17,6 +19,8 @@ Stream, Table
 Return the average value for a given column.
 
 ## `COLLECT_LIST`
+
+Since: -
 
 ```sql
 COLLECT_LIST(col1)
@@ -37,8 +41,9 @@ first considering all the records from the first window, then the
 late-arriving record, then the records from the second window in
 the order they were originally processed.
 
-
 ## `COLLECT_SET`
+
+Since: -
 
 ```sql
 COLLECT_SET(col1)
@@ -59,8 +64,9 @@ first considering all the records from the first window, then the
 late-arriving record, then the records from the second window in
 the order they were originally processed.
 
-
 ## `COUNT`
+
+Since: -
 
 ```sql
 COUNT(col1)
@@ -79,6 +85,8 @@ number of rows.
 
 ## `COUNT_DISTINCT`
 
+Since: 0.7.0
+
 ```sql
 COUNT_DISTINCT(col1)
 ```
@@ -91,17 +99,46 @@ to estimate cardinalities of 10^9 with a typical standard error of 2%.
 
 ## `EARLIEST_BY_OFFSET`
 
+Since: 0.10.0
+
 ```sql
-EARLIEST_BY_OFFSET(col1)
+EARLIEST_BY_OFFSET(col1, [ignoreNulls])
 ```
 
 Stream
 
-Return the earliest value for a given column. Earliest here is defined as the value in the partition
-with the lowest offset. Rows that have `col1` set to null are ignored.
+Return the earliest value for the specified column. The earliest value in the partition
+
+has the lowest offset. 
+
+
+The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
+
+is to ignore null values.
+
+
+
+Since: 0.13.0
+
+```sql
+EARLIEST_BY_OFFSET(col1, earliestN, [ignoreNulls])
+```
+
+Stream
+
+Return the earliest _N_ values for the specified column as an `ARRAY`. The earliest values
+
+in the partition have the lowest offsets.
+
+
+The optional `ignoreNulls` parameter controls whether nulls are ignored. The default
+
+is to ignore null values.
 
 
 ## `HISTOGRAM`
+
+Since: -
 
 ```sql
 HISTOGRAM(col1)
@@ -123,16 +160,44 @@ the order they were originally processed.
 
 ## `LATEST_BY_OFFSET`
 
+Since: 0.8.0
+
 ```sql
-LATEST_BY_OFFSET(col1)
+LATEST_BY_OFFSET(col1, [ignoreNulls])
 ```
 
 Stream
 
-Return the latest value for a given column. Latest here is defined as the value in the partition
-with the greatest offset. Rows that have `col1` set to null are ignored.
+Return the latest value for the specified column. The latest value in the partition
+
+has the largest offset. 
+
+
+The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
+
+is to ignore null values.
+
+
+Since: 0.13.0
+
+```sql
+LATEST_BY_OFFSET(col1, latestN, [ignoreNulls])
+```
+
+Stream
+
+Returns the latest _N_ values for the specified column as an `ARRAY`. The latest values have
+
+the largest offset.
+
+
+The optional `ignoreNulls` parameter controls whether nulls are ignored. The default is to ignore
+
+null values. 
 
 ## `MAX`
+
+Since: -
 
 ```sql
 MAX(col1)
@@ -145,6 +210,8 @@ Rows that have `col1` set to null are ignored.
 
 ## `MIN`
 
+Since: -
+
 ```sql
 MIN(col1)
 ```
@@ -155,6 +222,8 @@ Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
 ## `SUM`
+
+Since: -
 
 ```sql
 SUM(col1)
@@ -167,6 +236,8 @@ Rows that have `col1` set to null are ignored.
 
 ## `TOPK`
 
+Since: -
+
 ```sql
 TOPK(col1, k)
 ```
@@ -177,6 +248,8 @@ Return the Top *K* values for the given column and window
 Rows that have `col1` set to null are ignored.
 
 ## `TOPKDISTINCT`
+
+Since: -
 
 ```sql
 TOPKDISTINCT(col1, k)

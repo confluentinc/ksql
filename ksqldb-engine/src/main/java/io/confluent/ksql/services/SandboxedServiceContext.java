@@ -34,6 +34,7 @@ public final class SandboxedServiceContext implements ServiceContext {
   private final SchemaRegistryClient srClient;
   private final KafkaClientSupplier kafkaClientSupplier;
   private final ConnectClient connectClient;
+  private final KafkaConsumerGroupClient consumerGroupClient;
 
   public static SandboxedServiceContext create(final ServiceContext serviceContext) {
     if (serviceContext instanceof SandboxedServiceContext) {
@@ -46,24 +47,29 @@ public final class SandboxedServiceContext implements ServiceContext {
     final SchemaRegistryClient schemaRegistryClient =
         SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
     final ConnectClient connectClient = SandboxConnectClient.createProxy();
+    final KafkaConsumerGroupClient kafkaConsumerGroupClient = SandboxedKafkaConsumerGroupClient
+        .createProxy(serviceContext.getConsumerGroupClient());
 
     return new SandboxedServiceContext(
         kafkaClientSupplier,
         kafkaTopicClient,
         schemaRegistryClient,
-        connectClient);
+        connectClient,
+        kafkaConsumerGroupClient);
   }
 
   private SandboxedServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient srClient,
-      final ConnectClient connectClient
+      final ConnectClient connectClient,
+      final KafkaConsumerGroupClient consumerGroupClient
   ) {
     this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.srClient = Objects.requireNonNull(srClient, "srClient");
     this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
+    this.consumerGroupClient = Objects.requireNonNull(consumerGroupClient, "consumerGroupClient");
   }
 
   @Override
@@ -99,6 +105,11 @@ public final class SandboxedServiceContext implements ServiceContext {
   @Override
   public SimpleKsqlClient getKsqlClient() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public KafkaConsumerGroupClient getConsumerGroupClient() {
+    return consumerGroupClient;
   }
 
   @Override

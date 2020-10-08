@@ -21,8 +21,3 @@ Description
 
 List the [configuration settings](../../operate-and-deploy/installation/server-config/config-reference.md)
 that are currently in effect.
-
-Example
--------
-
-TODO: example

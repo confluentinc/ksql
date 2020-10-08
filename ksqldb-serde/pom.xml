@@ -89,6 +89,14 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -99,7 +107,7 @@
                 <configuration>
                     <compilerArgs>
                         <arg>-Xlint:all,-serial</arg>
-                        <arg>-Werror</arg>
+                        <arg>${compile.warnings-flag}</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

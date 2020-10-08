@@ -120,7 +120,12 @@ WorkerId             : 10.200.7.69:8083
 Import this topic as a table to ksqlDB by using the following command.
 
 ```sql
-CREATE TABLE JDBC_USERS WITH(value_format='AVRO', kafka_topic='jdbc-users');
+CREATE TABLE JDBC_USERS (
+    key STRING PRIMARY KEY
+  ) WITH(
+    kafka_topic='jdbc-users',
+    value_format='AVRO'
+  );
 ```
 
 Select everything from the topic to see how it gets auto populated:
@@ -133,7 +138,7 @@ You output should resemble:
 
 ```
 +------------------+------------------+------------------+------------------+
-|ROWTIME           |ROWKEY            |USERNAME          |POPULARITY        |
+|ROWTIME           |KEY               |USERNAME          |POPULARITY        |
 +------------------+------------------+------------------+------------------+
 |1566336783102     |user1             |user1             |100               |
 |1566336783102     |user2             |user2             |5                 |

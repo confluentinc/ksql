@@ -20,6 +20,8 @@ import static io.confluent.ksql.model.WindowType.SESSION;
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.DELIMITED;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
+import static io.confluent.ksql.serde.SerdeFeature.WRAP_SINGLES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -33,6 +35,7 @@ import java.time.Duration;
 import java.util.Optional;
 import org.junit.Test;
 
+@SuppressWarnings("UnstableApiUsage")
 public class KeyFormatTest {
 
   @Test
@@ -40,6 +43,7 @@ public class KeyFormatTest {
     new NullPointerTester()
         .setDefault(FormatInfo.class, mock(FormatInfo.class))
         .setDefault(WindowInfo.class, mock(WindowInfo.class))
+        .setDefault(SerdeFeatures.class, mock(SerdeFeatures.class))
         .testAllPublicStaticMethods(KeyFormat.class);
   }
 
@@ -54,21 +58,27 @@ public class KeyFormatTest {
 
     new EqualsTester()
         .addEqualityGroup(
-            KeyFormat.nonWindowed(format1),
-            KeyFormat.nonWindowed(format1)
+            KeyFormat.nonWindowed(format1, SerdeFeatures.of()),
+            KeyFormat.nonWindowed(format1, SerdeFeatures.of())
         )
         .addEqualityGroup(
-            KeyFormat.nonWindowed(format2)
+            KeyFormat.nonWindowed(format2, SerdeFeatures.of())
         )
         .addEqualityGroup(
-            KeyFormat.windowed(format1, window1),
-            KeyFormat.windowed(format1, window1)
+            KeyFormat.nonWindowed(format1, SerdeFeatures.of(UNWRAP_SINGLES))
         )
         .addEqualityGroup(
-            KeyFormat.windowed(format2, window1)
+            KeyFormat.windowed(format1, SerdeFeatures.of(), window1),
+            KeyFormat.windowed(format1, SerdeFeatures.of(), window1)
         )
         .addEqualityGroup(
-            KeyFormat.windowed(format1, window2)
+            KeyFormat.windowed(format2, SerdeFeatures.of(), window1)
+        )
+        .addEqualityGroup(
+            KeyFormat.windowed(format2, SerdeFeatures.of(WRAP_SINGLES), window1)
+        )
+        .addEqualityGroup(
+            KeyFormat.windowed(format1, SerdeFeatures.of(), window2)
         )
         .testEquals();
   }
@@ -79,34 +89,35 @@ public class KeyFormatTest {
     final FormatInfo formatInfo = FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"));
     final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10101)));
 
-    final KeyFormat keyFormat = KeyFormat.windowed(formatInfo, windowInfo);
+    final KeyFormat keyFormat = KeyFormat.windowed(formatInfo, SerdeFeatures.of(WRAP_SINGLES), windowInfo);
 
     // When:
     final String result = keyFormat.toString();
 
     // Then:
     assertThat(result, containsString(formatInfo.toString()));
+    assertThat(result, containsString(WRAP_SINGLES.toString()));
     assertThat(result, containsString(windowInfo.toString()));
   }
 
   @Test
-  public void shouldGetFormat() {
+  public void shouldGetFormatName() {
     // Given:
     final FormatInfo format = FormatInfo.of(DELIMITED.name());
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(format);
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(format, SerdeFeatures.of());
 
     // When:
-    final Format result = keyFormat.getFormat();
+    final String result = keyFormat.getFormat();
 
     // Then:
-    assertThat(result, is(FormatFactory.of(format)));
+    assertThat(result, is(DELIMITED.name()));
   }
 
   @Test
   public void shouldGetFormatInfo() {
     // Given:
     final FormatInfo format = FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"));
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(format);
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(format, SerdeFeatures.of());
 
     // When:
     final FormatInfo result = keyFormat.getFormatInfo();
@@ -116,9 +127,22 @@ public class KeyFormatTest {
   }
 
   @Test
-  public void shouldHandleNoneWindowedFunctionsForNonWindowed() {
+  public void shouldGetSereFeatures() {
     // Given:
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(JSON.name()));
+    final FormatInfo format = FormatInfo.of(DELIMITED.name());
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(format, SerdeFeatures.of(UNWRAP_SINGLES));
+
+    // When:
+    final SerdeFeatures result = keyFormat.getFeatures();
+
+    // Then:
+    assertThat(result, is(SerdeFeatures.of(UNWRAP_SINGLES)));
+  }
+
+  @Test
+  public void shouldHandleNonWindowedFunctionsForNonWindowed() {
+    // Given:
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(JSON.name()), SerdeFeatures.of());
 
     // Then:
     assertThat(keyFormat.isWindowed(), is(false));
@@ -131,6 +155,7 @@ public class KeyFormatTest {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
         FormatInfo.of(JSON.name()),
+        SerdeFeatures.of(),
         WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
@@ -145,6 +170,7 @@ public class KeyFormatTest {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
         FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something")),
+        SerdeFeatures.of(),
         WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
@@ -157,6 +183,7 @@ public class KeyFormatTest {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
         FormatInfo.of(DELIMITED.name()),
+        SerdeFeatures.of(),
         WindowInfo.of(SESSION, Optional.empty())
     );
 

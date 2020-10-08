@@ -305,7 +305,7 @@ With the proposed syntax the `ID AS V2` would be treated an aliased key column, 
 schema 'V2 INT KEY, V0 INT, V1 INT'. So, how does the user create an copy of the key in the value,
 if that's what they need to do?
 
-We propose introducing a `AS_VALUE` function that can be used to
+We propose introducing an `AS_VALUE` function that can be used to
 indicate the key column should be copied as a value column. For example,
 
 ```sql
@@ -358,7 +358,7 @@ If anyone has any suggestions on how we can support this in a compatible manner,
 - Removal of non-standard GROUP BY, PARTITION BY and JOIN aliasing syntax,
   in favour of standard aliasing of the key column in the projection.
 - removal of duplicate left join column on 'select *' joins.
-- Addition of a `AV_VALUE` function to allow users to copy key column into value columns.
+- Addition of an `AS_VALUE` function to allow users to copy key column into value columns.
 - Exposure of synthetic key columns in some joins, and ability to define an alias for it.
 
 ## What is not in scope

@@ -1,0 +1,67 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package io.confluent.ksql.serde;
+
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
+
+/**
+ * Util class for creating internal formats.
+ */
+public final class InternalFormats {
+
+  private InternalFormats() {
+  }
+
+  /**
+   * Build formats for internal topics.
+   *
+   * <p>Internal topics don't normally need any serde features set, as they use the format
+   * defaults.  However, until ksqlDB supports wrapped single keys, any internal topic with a key
+   * format that supports both wrapping and unwrapping needs to have an explicit {@link
+   * SerdeFeature#UNWRAP_SINGLES} set to ensure backwards compatibility is easily achievable once
+   * wrapped keys are supported.
+   * 
+   * <p>Note: The unwrap feature should only be set when there is only a single key column. As
+   * ksql does not yet support multiple key columns, the only time there is no a single key column
+   * is when there is no key column, i.e. key-less streams. Internal topics, i.e. changelog and 
+   * repartition topics, are never key-less. Hence this method can safely set the unwrap feature
+   * without checking the schema.
+   *
+   * <p>The code that sets the option can be removed once wrapped keys are supported. Issue 6296
+   * tracks the removal.
+   *
+   * @param keyFormat key format.
+   * @param valueFormat value format.
+   * @return Formats instance.
+   * @see <a href=https://github.com/confluentinc/ksql/issues/6296>Issue 6296</a>
+   * @see SerdeFeaturesFactory#buildInternal
+   */
+  public static Formats of(final KeyFormat keyFormat, final ValueFormat valueFormat) {
+    // Do not use NONE format for internal topics:
+    final FormatInfo formatInfo = keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)
+        ? FormatInfo.of(JsonFormat.NAME)
+        : keyFormat.getFormatInfo();
+
+    return Formats.of(
+        formatInfo,
+        valueFormat.getFormatInfo(),
+        SerdeFeaturesFactory.buildInternal(FormatFactory.of(formatInfo)),
+        SerdeFeatures.of()
+    );
+  }
+}

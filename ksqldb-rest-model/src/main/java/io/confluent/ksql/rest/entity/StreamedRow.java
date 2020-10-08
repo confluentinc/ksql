@@ -46,10 +46,12 @@ public final class StreamedRow {
   private final Optional<GenericRow> row;
   private final Optional<KsqlErrorMessage> errorMessage;
   private final Optional<String> finalMessage;
+  private final Optional<KsqlHostInfoEntity> sourceHost;
 
   public static StreamedRow header(final QueryId queryId, final LogicalSchema schema) {
     return new StreamedRow(
         Optional.of(Header.of(queryId, schema)),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty()
@@ -61,7 +63,19 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.of(row),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty()
+    );
+  }
+
+  public static StreamedRow row(final GenericRow row,
+      final Optional<KsqlHostInfoEntity> sourceHost) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.of(row),
+        Optional.empty(),
+        Optional.empty(),
+        sourceHost
     );
   }
 
@@ -70,6 +84,7 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.of(new KsqlErrorMessage(errorCode, exception)),
+        Optional.empty(),
         Optional.empty()
     );
   }
@@ -79,7 +94,8 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(finalMessage)
+        Optional.of(finalMessage),
+        Optional.empty()
     );
   }
 
@@ -88,12 +104,14 @@ public final class StreamedRow {
       @JsonProperty("header") final Optional<Header> header,
       @JsonProperty("row") final Optional<GenericRow> row,
       @JsonProperty("errorMessage") final Optional<KsqlErrorMessage> errorMessage,
-      @JsonProperty("finalMessage") final Optional<String> finalMessage
+      @JsonProperty("finalMessage") final Optional<String> finalMessage,
+      @JsonProperty("sourceHost") final Optional<KsqlHostInfoEntity> sourceHost
   ) {
     this.header = requireNonNull(header, "header");
     this.row = requireNonNull(row, "row");
     this.errorMessage = requireNonNull(errorMessage, "errorMessage");
     this.finalMessage = requireNonNull(finalMessage, "finalMessage");
+    this.sourceHost = requireNonNull(sourceHost, "sourceHost");
 
     checkUnion(header, row, errorMessage, finalMessage);
   }
@@ -112,6 +130,10 @@ public final class StreamedRow {
 
   public Optional<String> getFinalMessage() {
     return finalMessage;
+  }
+
+  public Optional<KsqlHostInfoEntity> getSourceHost() {
+    return sourceHost;
   }
 
   @JsonIgnore

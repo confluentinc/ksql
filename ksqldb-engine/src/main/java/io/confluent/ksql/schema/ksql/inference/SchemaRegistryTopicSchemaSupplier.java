@@ -23,13 +23,15 @@ import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 
 /**
  * A {@link TopicSchemaSupplier} that retrieves schemas from the Schema Registry.
@@ -37,30 +39,34 @@ import org.apache.http.HttpStatus;
 public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
   private final SchemaRegistryClient srClient;
-  private final Function<String, Format> formatFactory;
+  private final Function<FormatInfo, Format> formatFactory;
 
   public SchemaRegistryTopicSchemaSupplier(final SchemaRegistryClient srClient) {
     this(
         srClient,
-        FormatFactory::fromName
+        FormatFactory::of
     );
   }
 
   @VisibleForTesting
   SchemaRegistryTopicSchemaSupplier(
       final SchemaRegistryClient srClient,
-      final Function<String, Format> formatFactory
+      final Function<FormatInfo, Format> formatFactory
   ) {
     this.srClient = Objects.requireNonNull(srClient, "srClient");
     this.formatFactory = Objects.requireNonNull(formatFactory, "formatFactory");
   }
 
   @Override
-  public SchemaResult getValueSchema(final String topicName, final Optional<Integer> schemaId) {
+  public SchemaResult getValueSchema(
+      final String topicName,
+      final Optional<Integer> schemaId,
+      final FormatInfo expectedFormat
+  ) {
     try {
       final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-      final int id;
 
+      final int id;
       if (schemaId.isPresent()) {
         id = schemaId.get();
       } else {
@@ -68,7 +74,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       }
 
       final ParsedSchema schema = srClient.getSchemaBySubjectAndId(subject, id);
-      return fromParsedSchema(topicName, id, schema);
+      return fromParsedSchema(topicName, id, schema, expectedFormat);
     } catch (final RestClientException e) {
       switch (e.getStatus()) {
         case HttpStatus.SC_NOT_FOUND:
@@ -85,18 +91,42 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
     }
   }
 
-  public SchemaResult fromParsedSchema(
+  private SchemaResult fromParsedSchema(
       final String topic,
       final int id,
-      final ParsedSchema parsedSchema
+      final ParsedSchema parsedSchema,
+      final FormatInfo expectedFormat
   ) {
+    final Format format = formatFactory.apply(expectedFormat);
+    final SchemaTranslator translator = format.getSchemaTranslator(expectedFormat.getProperties());
+
+    if (!parsedSchema.schemaType().equals(translator.name())) {
+      return incorrectFormat(topic, translator.name(), parsedSchema.schemaType());
+    }
+
     try {
-      final Format format = formatFactory.apply(parsedSchema.schemaType());
-      final List<SimpleColumn> columns = format.toColumns(parsedSchema);
+      final List<SimpleColumn> columns = translator.toColumns(parsedSchema);
       return SchemaResult.success(SchemaAndId.schemaAndId(columns, id));
     } catch (final Exception e) {
       return notCompatible(topic, parsedSchema.canonicalString(), e);
     }
+  }
+
+  private static SchemaResult incorrectFormat(
+      final String topic,
+      final String expectedFormat,
+      final String actualFormat
+  ) {
+    return SchemaResult.failure(new KsqlException(
+        "Value schema is not in the expected format. "
+            + "You may want to set VALUE_FORMAT to '" + actualFormat + "'."
+            + System.lineSeparator()
+            + "topic: " + topic
+            + System.lineSeparator()
+            + "expected format: " + expectedFormat
+            + System.lineSeparator()
+            + "actual format: " + actualFormat
+    ));
   }
 
   private static SchemaResult notFound(final String topicName) {

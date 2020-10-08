@@ -50,16 +50,19 @@ The following statement generates a new stream, named
 
 ```sql
 CREATE STREAM pageviews_transformed
-  WITH (TIMESTAMP='viewtime',
-        PARTITIONS=5,
-        VALUE_FORMAT='JSON') AS
-  SELECT viewtime,
-         userid,
-         pageid,
-         TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
-  FROM pageviews
-  PARTITION BY userid
-  EMIT CHANGES;
+  WITH (
+   TIMESTAMP='viewtime',
+   PARTITIONS=5,
+   VALUE_FORMAT='JSON'
+  ) AS
+    SELECT
+      userid, 
+      viewtime,
+      pageid,
+      TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
+    FROM pageviews
+    PARTITION BY userid
+    EMIT CHANGES;
 ```
 
 Content-based Routing
@@ -79,9 +82,10 @@ with different users selected into the output.
 
 ```sql
 CREATE STREAM pageviews_for_first_two_users AS
-  SELECT viewtime,
-         userid,
-         pageid
+  SELECT 
+    userid,
+    viewtime,
+    pageid
   FROM pageviews
   WHERE userid='User_1' OR userid='User_2'
   PARTITION BY userid
@@ -90,9 +94,10 @@ CREATE STREAM pageviews_for_first_two_users AS
 
 ```sql
 CREATE STREAM pageviews_for_other_users AS
-  SELECT viewtime,
-         userid,
-         pageid
+  SELECT 
+    userid,
+    viewtime,
+    pageid
   FROM pageviews
   WHERE userid<>'User_1' AND userid<>'User_2'
   PARTITION BY userid

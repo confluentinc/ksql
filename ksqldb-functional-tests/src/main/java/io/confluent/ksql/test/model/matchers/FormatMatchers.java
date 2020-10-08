@@ -17,6 +17,7 @@ package io.confluent.ksql.test.model.matchers;
 
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KeyFormat;
 import java.time.Duration;
 import java.util.Optional;
@@ -43,7 +44,7 @@ public final class FormatMatchers {
       ) {
         @Override
         protected Format featureValueOf(final KeyFormat actual) {
-          return actual.getFormat();
+          return FormatFactory.of(actual.getFormatInfo());
         }
       };
     }

@@ -64,7 +64,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -125,7 +125,7 @@ public class SqlFormatterTest {
       .valueColumn(ColumnName.of("ITEMINFO"), ITEM_INFO_STRUCT)
       .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
       .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
       .valueColumn(ColumnName.of("SIZE"), SqlTypes.INTEGER) // Reserved word
       .build();
@@ -172,50 +172,47 @@ public class SqlFormatterTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicOrders
     );
 
-    metaStore.putSource(ksqlStreamOrders);
+    metaStore.putSource(ksqlStreamOrders, false);
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicItems
     );
 
-    metaStore.putSource(ksqlTableOrders);
+    metaStore.putSource(ksqlTableOrders, false);
 
     final KsqlTable<String> ksqlTableTable = new KsqlTable<>(
         "sqlexpression",
         SourceName.of("TABLE"),
         TABLE_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicItems
     );
 
-    metaStore.putSource(ksqlTableTable);
+    metaStore.putSource(ksqlTableTable, false);
   }
 
   @Test
@@ -224,6 +221,7 @@ public class SqlFormatterTest {
     final CreateStream createStream = new CreateStream(
         TEST,
         ELEMENTS_WITH_KEY,
+        false,
         false,
         SOME_WITH_PROPS);
 
@@ -242,6 +240,7 @@ public class SqlFormatterTest {
         TEST,
         ELEMENTS_WITHOUT_KEY,
         false,
+        false,
         SOME_WITH_PROPS);
 
     // When:
@@ -249,6 +248,52 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(sql, is("CREATE STREAM TEST (`Foo` STRING, `Bar` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateOrReplaceStreamStatement() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties.from(
+        new ImmutableMap.Builder<String, Literal>()
+            .putAll(SOME_WITH_PROPS.copyOfOriginalLiterals())
+            .build()
+    );
+    final CreateStream createTable = new CreateStream(
+        TEST,
+        ELEMENTS_WITHOUT_KEY,
+        true,
+        false,
+        props);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createTable);
+
+    // Then:
+    assertThat(sql, is("CREATE OR REPLACE STREAM TEST (`Foo` STRING, `Bar` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateOrReplaceTableStatement() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties.from(
+        new ImmutableMap.Builder<String, Literal>()
+            .putAll(SOME_WITH_PROPS.copyOfOriginalLiterals())
+            .build()
+    );
+    final CreateTable createTable = new CreateTable(
+        TEST,
+        ELEMENTS_WITH_PRIMARY_KEY,
+        true,
+        false,
+        props);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createTable);
+
+    // Then:
+    assertThat(sql, is("CREATE OR REPLACE TABLE TEST (`k3` STRING PRIMARY KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
@@ -265,6 +310,7 @@ public class SqlFormatterTest {
     final CreateTable createTable = new CreateTable(
         TEST,
         ELEMENTS_WITH_PRIMARY_KEY,
+        false,
         false,
         props);
 
@@ -284,6 +330,7 @@ public class SqlFormatterTest {
         TEST,
         ELEMENTS_WITH_PRIMARY_KEY,
         false,
+        false,
         SOME_WITH_PROPS);
 
     // When:
@@ -300,6 +347,7 @@ public class SqlFormatterTest {
     final CreateTable createTable = new CreateTable(
         TEST,
         ELEMENTS_WITHOUT_KEY,
+        false,
         false,
         SOME_WITH_PROPS);
 
@@ -322,6 +370,7 @@ public class SqlFormatterTest {
     final CreateStream createStream = new CreateStream(
         TEST,
         tableElements,
+        false,
         false,
         SOME_WITH_PROPS);
 
@@ -470,6 +519,15 @@ public class SqlFormatterTest {
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
     final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT A.ADDRESS->CITY\n"
+        + "FROM ADDRESS A\nEMIT CHANGES"));
+  }
+
+  @Test
+  public void shouldFormatReplaceSelectQueryCorrectly() {
+    final String statementString =
+        "CREATE OR REPLACE STREAM S AS SELECT a.address->city FROM address a;";
+    final Statement statement = parseSingle(statementString);
+    assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE OR REPLACE STREAM S AS SELECT A.ADDRESS->CITY\n"
         + "FROM ADDRESS A\nEMIT CHANGES"));
   }
 
@@ -974,6 +1032,23 @@ public class SqlFormatterTest {
     assertThat(result, is("CREATE STREAM X AS SELECT ITEMID\n"
         + "FROM ORDERS ORDERS\n"
         + "EMIT CHANGES"));
+  }
+
+  @Test
+  public void shouldFormatSuppression() {
+    // Given:
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW TUMBLING (SIZE 7 DAYS, GRACE PERIOD 1 DAY) GROUP BY ITEMID EMIT FINAL;";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("CREATE STREAM S AS SELECT\n"
+        + "  ITEMID,\n"
+        + "  COUNT(*)\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WINDOW TUMBLING ( SIZE 7 DAYS , GRACE PERIOD 1 DAYS ) \n"
+        + "GROUP BY ITEMID\n"
+        + "EMIT FINAL"));
   }
 
   private Statement parseSingle(final String statementString) {

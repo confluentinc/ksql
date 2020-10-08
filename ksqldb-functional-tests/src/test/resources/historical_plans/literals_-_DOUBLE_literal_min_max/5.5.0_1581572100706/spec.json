@@ -3,8 +3,24 @@
   "timestamp" : 1581572100706,
   "path" : "query-validation-tests/literals.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<ID BIGINT> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<ID BIGINT, MIN_VALUE DOUBLE, NEG_MIN_VALUE DOUBLE, MIN_NORMAL DOUBLE, NEG_MIN_NORMAL DOUBLE, MAX_VALUE DOUBLE, NEG_MAX_VALUE DOUBLE> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MIN_VALUE` DOUBLE, `NEG_MIN_VALUE` DOUBLE, `MIN_NORMAL` DOUBLE, `NEG_MIN_NORMAL` DOUBLE, `MAX_VALUE` DOUBLE, `NEG_MAX_VALUE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
   },
   "testCase" : {
     "name" : "DOUBLE literal min/max",
@@ -29,24 +45,41 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT\n  INPUT.ID ID,\n  4.9E-324 MIN_VALUE,\n  -4.9E-324 NEG_MIN_VALUE,\n  2.2250738585072014E-308 MIN_NORMAL,\n  -2.2250738585072014E-308 NEG_MIN_NORMAL,\n  1.7976931348623157E308 MAX_VALUE,\n  -1.7976931348623157E308 NEG_MAX_VALUE\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `MIN_VALUE` DOUBLE, `NEG_MIN_VALUE` DOUBLE, `MIN_NORMAL` DOUBLE, `NEG_MIN_NORMAL` DOUBLE, `MAX_VALUE` DOUBLE, `NEG_MAX_VALUE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
           },
           "partitions" : 4
         }, {
-          "name" : "input",
+          "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

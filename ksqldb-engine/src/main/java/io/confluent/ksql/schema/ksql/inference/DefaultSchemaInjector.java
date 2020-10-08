@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -27,6 +28,9 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -87,8 +91,7 @@ public class DefaultSchemaInjector implements Injector {
   private Optional<ConfiguredStatement<CreateSource>> forCreateStatement(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    if (hasValueElements(statement)
-        || !statement.getStatement().getProperties().getValueFormat().supportsSchemaInference()) {
+    if (hasValueElements(statement) || !valueFormatSupportsSchemaInference(statement)) {
       return Optional.empty();
     }
 
@@ -96,7 +99,7 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSource withSchema = addSchemaFields(statement, valueSchema);
     final PreparedStatement<CreateSource> prepared = buildPreparedStatement(withSchema);
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement
-        .of(prepared, statement.getConfigOverrides(), statement.getConfig());
+        .of(prepared, statement.getSessionConfig());
 
     return Optional.of(configured);
   }
@@ -104,11 +107,12 @@ public class DefaultSchemaInjector implements Injector {
   private SchemaAndId getValueSchema(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    final String topicName = statement.getStatement().getProperties().getKafkaTopic();
+    final CreateSourceProperties props = statement.getStatement().getProperties();
 
-    final SchemaResult result = statement.getStatement().getProperties().getSchemaId()
-        .map(id -> schemaSupplier.getValueSchema(topicName, Optional.of(id)))
-        .orElseGet(() -> schemaSupplier.getValueSchema(topicName, Optional.empty()));
+    final FormatInfo expectedValueFormat = SourcePropertiesUtil.getValueFormat(props);
+
+    final SchemaResult result = schemaSupplier
+        .getValueSchema(props.getKafkaTopic(), props.getSchemaId(), expectedValueFormat);
 
     if (result.failureReason.isPresent()) {
       final Exception cause = result.failureReason.get();
@@ -126,6 +130,15 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     return statement.getStatement().getElements().stream()
         .anyMatch(e -> e.getNamespace().equals(Namespace.VALUE));
+  }
+
+  private static boolean valueFormatSupportsSchemaInference(
+      final ConfiguredStatement<CreateSource> statement
+  ) {
+    final FormatInfo valueFormat = SourcePropertiesUtil
+        .getValueFormat(statement.getStatement().getProperties());
+
+    return FormatFactory.of(valueFormat).supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
   }
 
   private static CreateSource addSchemaFields(

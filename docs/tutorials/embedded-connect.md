@@ -22,7 +22,7 @@ When to use embedded Connect
 
 ksqlDB natively integrates with {{ site.kconnect }} by either communicating
 with an external {{ site.kconnect }} cluster or by running {{ site.kconnect }}
-embedded within the KSQL server process. Each of these modes is best suited
+embedded within the ksqlDB server process. Each of these modes is best suited
 for the following environments:
 
 * **Embedded** - Suitable for development, testing, and simpler production
@@ -266,11 +266,11 @@ latest value for the corresponding row in the table.
 
 !!! note
     When the data is ingested from the database, it's being written
-to the {{ site.ak }} topic using JSON serialization. Since JSON itself doesn't
-declare a schema, you need to declare it again when you run `CREATE TABLE`. 
-In practice, you would normally use Avro or Protobuf, since this supports the retention
-of schemas, ensuring compatibility between producers and consumers. This means
-that you don't have to enter it each time you want to use the data in ksqlDB.
+    to the {{ site.ak }} topic using JSON serialization. Since JSON itself doesn't
+    declare a schema, you need to declare it again when you run `CREATE TABLE`. 
+    In practice, you would normally use Avro or Protobuf, since this supports the retention
+    of schemas, ensuring compatibility between producers and consumers. This means
+    that you don't have to enter it each time you want to use the data in ksqlDB.
 
 10. Create streams for driver locations and rider locations
 -----------------------------------------------------

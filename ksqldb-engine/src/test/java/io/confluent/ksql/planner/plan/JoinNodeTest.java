@@ -16,10 +16,13 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import static io.confluent.ksql.model.WindowType.HOPPING;
+import static io.confluent.ksql.model.WindowType.SESSION;
+import static io.confluent.ksql.model.WindowType.TUMBLING;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.INNER;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.LEFT;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.OUTER;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE_FORCE_CHANGELOG;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static java.util.Optional.empty;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -35,6 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -57,7 +61,11 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -66,6 +74,7 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -128,8 +137,12 @@ public class JoinNodeTest {
       RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
-  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.DELIMITED.name()));
+  private static final KeyFormat KEY_FORMAT = KeyFormat
+      .nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+  private static final ValueFormat VALUE_FORMAT = ValueFormat
+      .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+  private static final ValueFormat OTHER_FORMAT = ValueFormat
+      .of(FormatInfo.of(FormatFactory.DELIMITED.name()), SerdeFeatures.of());
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder;
   private JoinNode joinNode;
@@ -200,6 +213,9 @@ public class JoinNodeTest {
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
 
+    when(left.getAlias()).thenReturn(LEFT_ALIAS);
+    when(right.getAlias()).thenReturn(RIGHT_ALIAS);
+
     when(left.getSourceName()).thenReturn(Optional.of(LEFT_ALIAS));
     when(right.getSourceName()).thenReturn(Optional.of(RIGHT_ALIAS));
 
@@ -207,8 +223,9 @@ public class JoinNodeTest {
 
     when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);
 
-    setUpSource(left, VALUE_FORMAT, leftSource);
-    setUpSource(right, OTHER_FORMAT, rightSource);
+    setUpSource(left, KEY_FORMAT, VALUE_FORMAT, leftSource);
+    setUpSource(right, KEY_FORMAT, OTHER_FORMAT, rightSource);
+    setUpSource(right2, KEY_FORMAT, OTHER_FORMAT, rightSource);
   }
 
   @Test
@@ -216,11 +233,11 @@ public class JoinNodeTest {
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
-        builder.build(), SOURCE_NODE);
+        builder.build(), SOURCE_NODE_FORCE_CHANGELOG);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name)
         .collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KTABLE-SOURCE-0000000001")));
+    assertThat(successors, equalTo(Collections.singletonList("KTABLE-SOURCE-0000000002")));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test2")));
   }
 
@@ -571,23 +588,6 @@ public class JoinNodeTest {
   }
 
   @Test
-  public void shouldNotUseSourceSerdeOptionsForInternalTopics() {
-    // Given:
-    setupStream(left, leftSchemaKStream);
-    setupStream(right, rightSchemaKStream);
-
-    final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, left, right, WITHIN_EXPRESSION);
-
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(leftSource, never()).getSerdeOptions();
-    verify(rightSource, never()).getSerdeOptions();
-  }
-
-  @Test
   public void shouldReturnCorrectSchema() {
     // When:
     final JoinNode joinNode =
@@ -770,6 +770,144 @@ public class JoinNodeTest {
         + "in its projection."));
   }
 
+  @Test
+  public void shouldThrowOnKeyFormatMismatch() {
+    // When:
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(
+        FormatInfo.of("AVRO"), SerdeFeatures.of()
+    );
+    setUpSource(left, keyFormat, VALUE_FORMAT, leftSource);
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Incompatible key formats. `left` has AVRO while `right` has JSON"));
+  }
+
+  @Test
+  public void shouldThrowOnKeyFormatPropsMismatch() {
+    // When:
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(
+        FormatInfo.of("JSON", ImmutableMap.of("diff", "prop")), SerdeFeatures.of()
+    );
+    setUpSource(left, keyFormat, VALUE_FORMAT, leftSource);
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Incompatible key properties. `left` has {diff=prop} while `right` has {}"));
+  }
+
+  @Test
+  public void shouldThrowOnKeyFormatFeaturesMismatch() {
+    // When:
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(
+        FormatInfo.of("JSON"), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+    );
+    setUpSource(left, keyFormat, VALUE_FORMAT, leftSource);
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Incompatible key features. `left` has [UNWRAP_SINGLES] while `right` has []"));
+  }
+
+  @Test
+  public void shouldThrowOnKeyFormatWindowedNotWindowedMismatch() {
+    // When:
+    final KeyFormat keyFormat = KeyFormat.windowed(
+        FormatInfo.of("JSON"), SerdeFeatures.of(), WindowInfo.of(SESSION, Optional.empty())
+    );
+    setUpSource(left, keyFormat, VALUE_FORMAT, leftSource);
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Incompatible key widowing. `left` has session windowing while `right` has no windowing"));
+  }
+
+  @Test
+  public void shouldThrowOnKeyFormatWindowingMismatch() {
+    // When:
+    final KeyFormat leftFmt = KeyFormat.windowed(
+        FormatInfo.of("JSON"), SerdeFeatures.of(), WindowInfo.of(SESSION, Optional.empty())
+    );
+    setUpSource(left, leftFmt, VALUE_FORMAT, leftSource);
+
+    final KeyFormat rightFmt = KeyFormat.windowed(
+        FormatInfo.of("JSON"), SerdeFeatures.of(), WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(10)))
+    );
+    setUpSource(right, rightFmt, VALUE_FORMAT, rightSource);
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Incompatible key widowing. `left` has session windowing while `right` has non session windowing"));
+  }
+
+  @Test
+  public void shouldNotThrowOnKeyFormatHoppingVsTumblingMisMatch() {
+    // When:
+    final KeyFormat leftFmt = KeyFormat.windowed(
+        FormatInfo.of("JSON"), SerdeFeatures.of(), WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10)))
+    );
+    setUpSource(left, leftFmt, VALUE_FORMAT, leftSource);
+
+    final KeyFormat rightFmt = KeyFormat.windowed(
+        FormatInfo.of("JSON"), SerdeFeatures.of(), WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(10)))
+    );
+    setUpSource(right, rightFmt, VALUE_FORMAT, rightSource);
+
+    // When:
+    new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
+
+    // Then: did not throw
+  }
+
+  @Test
+  public void shouldNotThrowOnKeyFormatWindowDurationMismatch() {
+    // When:
+    final KeyFormat leftFmt = KeyFormat.windowed(
+        FormatInfo.of("JSON"), SerdeFeatures.of(), WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(10)))
+    );
+    setUpSource(left, leftFmt, VALUE_FORMAT, leftSource);
+
+    final KeyFormat rightFmt = KeyFormat.windowed(
+        FormatInfo.of("JSON"), SerdeFeatures.of(), WindowInfo.of(TUMBLING, Optional.of(Duration.ofMillis(100)))
+    );
+    setUpSource(right, rightFmt, VALUE_FORMAT, rightSource);
+
+    // When:
+    new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty());
+
+    // Then: did not throw
+  }
+
   @SuppressWarnings({"unchecked", "rawtypes"})
   private void setupTable(
       final DataSourceNode node,
@@ -785,7 +923,6 @@ public class JoinNodeTest {
       final SchemaKStream stream
   ) {
     when(node.buildStream(ksqlStreamBuilder)).thenReturn(stream);
-    when(node.getLeftmostSourceNode()).thenReturn(node);
     when(node.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
   }
 
@@ -843,13 +980,18 @@ public class JoinNodeTest {
 
   private static void setUpSource(
       final DataSourceNode node,
+      final KeyFormat keyFormat,
       final ValueFormat valueFormat,
       final DataSource dataSource
   ) {
+    when(node.getLeftmostSourceNode()).thenReturn(node);
     when(node.getDataSource()).thenReturn(dataSource);
+    when(node.getSourceNodes()).thenAnswer(inv -> Stream.of(node));
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
+    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
+
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
   }
 

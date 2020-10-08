@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -191,8 +192,7 @@ public class KsqlContext implements AutoCloseable {
 
     final ConfiguredStatement<?> configured = injector.inject(ConfiguredStatement.of(
         prepared,
-        mutableSessionPropertyOverrides,
-        ksqlConfig
+        SessionConfig.of(ksqlConfig, mutableSessionPropertyOverrides)
     ));
 
     final CustomExecutor executor =

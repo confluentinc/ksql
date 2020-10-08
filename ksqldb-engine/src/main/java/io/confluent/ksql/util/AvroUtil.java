@@ -15,17 +15,19 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.avro.AvroFormat;
-import io.confluent.ksql.serde.avro.AvroSchemas;
 import java.io.IOException;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 
 public final class AvroUtil {
 
@@ -37,32 +39,32 @@ public final class AvroUtil {
       final CreateSourceCommand ddl,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    final io.confluent.ksql.execution.plan.Formats formats = ddl.getFormats();
+    final Formats formats = ddl.getFormats();
     final FormatInfo format = formats.getValueFormat();
     if (FormatFactory.of(format) != FormatFactory.AVRO) {
       return;
     }
 
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(
-        ddl.getSchema(),
-        formats.getOptions()
-    );
-    final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
-        physicalSchema.valueSchema(),
-        format.getProperties()
-            .getOrDefault(AvroFormat.FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+    final SchemaTranslator translator = new AvroFormat()
+        .getSchemaTranslator(format.getProperties());
+
+    final AvroSchema parsedSchema = (AvroSchema) translator.toParsedSchema(
+        PersistenceSchema.from(
+            ddl.getSchema().value(),
+            formats.getValueFeatures()
+        )
     );
 
     final String topicName = ddl.getTopicName();
 
-    if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
+    if (!isValidAvroSchemaForTopic(topicName, parsedSchema, schemaRegistryClient)) {
       throw new KsqlStatementException(String.format(
           "Cannot register avro schema for %s as the schema is incompatible with the current "
               + "schema version registered for the topic.%n"
               + "KSQL schema: %s%n"
               + "Registered schema: %s",
           topicName,
-          avroSchema,
+          parsedSchema,
           getRegisteredSchema(topicName, schemaRegistryClient)
       ), statementText);
     }
@@ -82,12 +84,12 @@ public final class AvroUtil {
 
   private static boolean isValidAvroSchemaForTopic(
       final String topicName,
-      final org.apache.avro.Schema avroSchema,
+      final ParsedSchema schema,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     try {
       return schemaRegistryClient.testCompatibility(
-          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(avroSchema));
+          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
     } catch (final IOException e) {
       throw new KsqlException(String.format(
           "Could not check Schema compatibility: %s", e.getMessage()

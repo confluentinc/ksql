@@ -15,85 +15,66 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
+import static io.confluent.ksql.serde.SerdeFeature.WRAP_SINGLES;
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
-import io.confluent.ksql.testing.EffectivelyImmutable;
+import io.confluent.ksql.serde.SerdeFeatures;
+import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 /**
  * Type-safe schema used purely for persistence.
  *
- * <p>There are a lot of different schema types in KSQL. This is a wrapper around the connect
- * schema type used to indicate the schema is for use only for persistence, i.e. it is a
- * schema that represents how parts of a row should be serialized, or are serialized, e.g. the
- * Kafka message's value or key.
- *
- * <p>Having a specific type allows code to be more type-safe when it comes to dealing with
- * different schema types.
+ * <p>There are a lot of different schema types in KSQL. A {@code PersistenceSchema} is a
+ * combination of a list of columns representing either the columns in either the key or value of a
+ * {@link LogicalSchema}, and a set of enabled {@link io.confluent.ksql.serde.SerdeFeature
+ * SerdeFeatures} that control how the columns should be serialized, i.e. it is a schema that
+ * represents how parts of a row should be serialized, or are serialized, e.g. the Kafka message's
+ * value or key.
  */
 @Immutable
 public final class PersistenceSchema {
 
-  @EffectivelyImmutable
-  private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(word -> false, Option.APPEND_NOT_NULL);
-
-  private final boolean unwrapped;
-  private final ConnectSchema ksqlSchema;
-  private final ConnectSchema serializedSchema;
+  private final ImmutableList<SimpleColumn> columns;
+  private final SerdeFeatures features;
 
   /**
    * Build a persistence schema from the logical key or value schema.
    *
-   * @param ksqlSchema the schema ksql uses internally, i.e. STRUCT schema.
-   * @param unwrapSingle flag indicating if the serialized form is unwrapped.
+   * @param columns the list of columns to be serialized.
+   * @param features the serder features used for persistence.
    * @return the persistence schema.
    */
-  public static PersistenceSchema from(final ConnectSchema ksqlSchema, final boolean unwrapSingle) {
-    return new PersistenceSchema(ksqlSchema, unwrapSingle);
+  public static PersistenceSchema from(
+      final List<? extends SimpleColumn> columns,
+      final SerdeFeatures features
+  ) {
+    return new PersistenceSchema(columns, features);
   }
 
-  private PersistenceSchema(final ConnectSchema ksqlSchema, final boolean unwrapSingle) {
-    this.unwrapped = unwrapSingle;
-    this.ksqlSchema = Objects.requireNonNull(ksqlSchema, "ksqlSchema");
+  private PersistenceSchema(
+      final List<? extends SimpleColumn> columns,
+      final SerdeFeatures features
+  ) {
+    this.features = requireNonNull(features, "features");
+    this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns"));
 
-    if (ksqlSchema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("Expected STRUCT schema type");
+    if (features.enabled(WRAP_SINGLES) || features.enabled(UNWRAP_SINGLES)) {
+      if (columns.size() != 1) {
+        throw new IllegalArgumentException("Unwrapping only valid for single field");
+      }
     }
-
-    final boolean singleField = ksqlSchema.fields().size() == 1;
-    if (unwrapSingle && !singleField) {
-      throw new IllegalArgumentException("Unwrapping only valid for single field");
-    }
-
-    this.serializedSchema = unwrapSingle
-        ? (ConnectSchema) ksqlSchema.fields().get(0).schema()
-        : ksqlSchema;
   }
 
-  public boolean isUnwrapped() {
-    return unwrapped;
+  public SerdeFeatures features() {
+    return features;
   }
 
-  /**
-   * The schema used internally by KSQL.
-   *
-   * <p>This schema will _always_ be a struct.
-   *
-   * @return logical schema.
-   */
-  public ConnectSchema ksqlSchema() {
-    return ksqlSchema;
-  }
-
-  /**
-   * @return schema of serialized form
-   */
-  public ConnectSchema serializedSchema() {
-    return serializedSchema;
+  public List<SimpleColumn> columns() {
+    return columns;
   }
 
   @Override
@@ -105,20 +86,22 @@ public final class PersistenceSchema {
       return false;
     }
     final PersistenceSchema that = (PersistenceSchema) o;
-    return unwrapped == that.unwrapped
-        && Objects.equals(serializedSchema, that.serializedSchema);
+    return Objects.equals(features, that.features)
+        && Objects.equals(columns, that.columns);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(unwrapped, serializedSchema);
+    return Objects.hash(features, columns);
   }
 
   @Override
   public String toString() {
     return "Persistence{"
-        + "schema=" + FORMATTER.format(serializedSchema)
-        + ", unwrapped=" + unwrapped
+        + "columns=" + columns
+        + ", features=" + features
         + '}';
   }
+
+
 }

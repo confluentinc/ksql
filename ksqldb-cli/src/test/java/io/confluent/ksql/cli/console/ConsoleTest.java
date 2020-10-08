@@ -47,6 +47,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -63,7 +64,9 @@ import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
@@ -86,6 +89,9 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -140,8 +146,8 @@ public class ConsoleTest {
       "kadka-topic",
       2,
       1,
-      "statement"
-  );
+      "statement",
+      Collections.emptyList());
 
   @Mock
   private QueryStatusCount queryStatusCount;
@@ -232,7 +238,11 @@ public class ConsoleTest {
         new CommandStatusEntity(
             "e",
             CommandId.fromString("topic/1/create"),
-            new CommandStatus(CommandStatus.Status.SUCCESS, "Success Message"),
+            new CommandStatus(
+                CommandStatus.Status.SUCCESS,
+                "Success Message",
+                Optional.of(new QueryId("CSAS_0"))
+            ),
             0L)
     ));
 
@@ -248,7 +258,8 @@ public class ConsoleTest {
           + "  \"commandId\" : \"topic/1/create\"," + NEWLINE
           + "  \"commandStatus\" : {" + NEWLINE
           + "    \"status\" : \"SUCCESS\"," + NEWLINE
-          + "    \"message\" : \"Success Message\"" + NEWLINE
+          + "    \"message\" : \"Success Message\"," + NEWLINE
+          + "    \"queryId\" : \"CSAS_0\"" + NEWLINE
           + "  }," + NEWLINE
           + "  \"commandSequenceNumber\" : 0," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -357,6 +368,8 @@ public class ConsoleTest {
 
   @Test
   public void shouldPrintExplainQueryWithError() {
+    final long timestamp = 1596644936314L;
+
     // Given:
     final QueryDescriptionEntity queryEntity = new QueryDescriptionEntity(
         "statement",
@@ -373,10 +386,10 @@ public class ConsoleTest {
             ImmutableSet.of("sink"),
             "topology",
             "executionPlan",
-            ImmutableMap.of(),
+            ImmutableMap.of("overridden.prop", 42),
             ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
             KsqlQueryType.PERSISTENT,
-            ImmutableList.of(new QueryError("error", Type.SYSTEM))
+            ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM))
         )
     );
 
@@ -407,12 +420,15 @@ public class ConsoleTest {
           "    \"sinks\" : [ \"sink\" ],\n" +
           "    \"topology\" : \"topology\",\n" +
           "    \"executionPlan\" : \"executionPlan\",\n" +
-          "    \"overriddenProperties\" : { },\n" +
+          "    \"overriddenProperties\" : {\n" +
+          "      \"overridden.prop\" : 42\n" +
+          "    },\n" +
           "    \"ksqlHostQueryStatus\" : {\n" +
           "      \"foo:123\" : \"ERROR\"\n" +
           "    },\n" +
           "    \"queryType\" : \"PERSISTENT\",\n" +
           "    \"queryErrors\" : [ {\n" +
+          "      \"timestamp\" : 1596644936314,\n" +
           "      \"errorMessage\" : \"error\",\n" +
           "      \"type\" : \"SYSTEM\"\n" +
           "    } ],\n" +
@@ -421,6 +437,10 @@ public class ConsoleTest {
           "  \"warnings\" : [ ]\n" +
           "} ]\n"));
     } else {
+      final DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss,SSS (z)");
+      final String localTime = Instant.ofEpochMilli(timestamp)
+          .atZone(ZoneId.systemDefault()).format(format);
+
       assertThat(output, is("\n" +
           "ID                   : id\n" +
           "Query Type           : PERSISTENT\n" +
@@ -452,8 +472,17 @@ public class ConsoleTest {
           "------------------- \n" +
           "topology\n" +
           "\n" +
+          "Overridden Properties\n" +
+          "---------------------\n" +
+          " Property        | Value \n" +
+          "-------------------------\n" +
+          " overridden.prop | 42    \n" +
+          "-------------------------\n" +
+          "\n" +
+          "Error Date           : " + localTime + "\n" +
           "Error Details        : error\n" +
-          "Error Type           : SYSTEM\n"));
+          "Error Type           : SYSTEM\n"
+      ));
     }
   }
 
@@ -467,7 +496,7 @@ public class ConsoleTest {
         SqlTypes.DOUBLE,
         SqlTypes.STRING,
         SqlTypes.array(SqlTypes.STRING),
-        SqlTypes.map(SqlTypes.BIGINT),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT),
         SqlTypes.struct()
             .field("a", SqlTypes.DOUBLE)
             .build()
@@ -499,8 +528,8 @@ public class ConsoleTest {
                 "kadka-topic",
                 1,
                 1,
-                "sql statement"
-            ),
+                "sql statement",
+                Collections.emptyList()),
             Collections.emptyList()
         )
     ));
@@ -631,7 +660,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"sql statement\"" + NEWLINE
+          + "    \"statement\" : \"sql statement\"," + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -769,7 +799,8 @@ public class ConsoleTest {
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"statement\"" + NEWLINE
+          + "    \"statement\" : \"statement\"," + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -801,50 +832,13 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintStreamsList() {
+  public void shouldPrintStreamsList() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-        new StreamsList("e",
-            ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO")))
-    ));
-
-    // When:
-    console.printKsqlEntityList(entityList);
-
-    // Then:
-    final String output = terminal.getOutputString();
-    if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {" + NEWLINE
-          + "  \"@type\" : \"streams\"," + NEWLINE
-          + "  \"statementText\" : \"e\"," + NEWLINE
-          + "  \"streams\" : [ {" + NEWLINE
-          + "    \"type\" : \"STREAM\"," + NEWLINE
-          + "    \"name\" : \"TestStream\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
-          + "  } ]," + NEWLINE
-          + "  \"warnings\" : [ ]" + NEWLINE
-          + "} ]" + NEWLINE));
-    } else {
-      assertThat(output, is("" + NEWLINE
-          + " Stream Name | Kafka Topic | Format " + NEWLINE
-          + "------------------------------------" + NEWLINE
-          + " TestStream  | TestTopic   | AVRO   " + NEWLINE
-          + "------------------------------------" + NEWLINE));
-    }
-  }
-
-  @Test
-  public void testSortedPrintStreamsList() {
-    // Given:
-    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-            new StreamsList("e",
-                    ImmutableList.of(
-                            new SourceInfo.Stream("B", "TestTopic", "AVRO"),
-                            new SourceInfo.Stream("A", "TestTopic", "AVRO"),
-                            new SourceInfo.Stream("Z", "TestTopic", "AVRO"),
-                            new SourceInfo.Stream("C", "TestTopic", "AVRO")
-                    ))
+        new StreamsList("e", ImmutableList.of(
+            new SourceInfo.Stream("B", "t2", "KAFKA", "AVRO", false),
+            new SourceInfo.Stream("A", "t1", "JSON", "JSON", true)
+        ))
     ));
 
     // When:
@@ -859,85 +853,38 @@ public class ConsoleTest {
           + "  \"streams\" : [ {" + NEWLINE
           + "    \"type\" : \"STREAM\"," + NEWLINE
           + "    \"name\" : \"B\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "    \"topic\" : \"t2\"," + NEWLINE
+          + "    \"keyFormat\" : \"KAFKA\"," + NEWLINE
+          + "    \"valueFormat\" : \"AVRO\"," + NEWLINE
+          + "    \"isWindowed\" : false" + NEWLINE
           + "  }, {" + NEWLINE
           + "    \"type\" : \"STREAM\"," + NEWLINE
           + "    \"name\" : \"A\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
-          + "  }, {" + NEWLINE
-          + "    \"type\" : \"STREAM\"," + NEWLINE
-          + "    \"name\" : \"Z\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
-          + "  }, {" + NEWLINE
-          + "    \"type\" : \"STREAM\"," + NEWLINE
-          + "    \"name\" : \"C\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "    \"topic\" : \"t1\"," + NEWLINE
+          + "    \"keyFormat\" : \"JSON\"," + NEWLINE
+          + "    \"valueFormat\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : true" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
     } else {
       assertThat(output, is("" + NEWLINE
-          + " Stream Name | Kafka Topic | Format " + NEWLINE
-          + "------------------------------------" + NEWLINE
-          + " A           | TestTopic   | AVRO   " + NEWLINE
-          + " B           | TestTopic   | AVRO   " + NEWLINE
-          + " C           | TestTopic   | AVRO   " + NEWLINE
-          + " Z           | TestTopic   | AVRO   " + NEWLINE
-          + "------------------------------------" + NEWLINE));
+          + " Stream Name | Kafka Topic | Key Format | Value Format | Windowed " + NEWLINE
+          + "------------------------------------------------------------------" + NEWLINE
+          + " A           | t1          | JSON       | JSON         | true     " + NEWLINE
+          + " B           | t2          | KAFKA      | AVRO         | false    " + NEWLINE
+          + "------------------------------------------------------------------" + NEWLINE));
     }
   }
 
   @Test
-  public void testPrintTablesList() {
+  public void shouldPrintTablesList() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-        new TablesList("e",
-            ImmutableList.of(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false)))
-    ));
-
-    // When:
-    console.printKsqlEntityList(entityList);
-
-    // Then:
-    final String output = terminal.getOutputString();
-    if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {" + NEWLINE
-          + "  \"@type\" : \"tables\"," + NEWLINE
-          + "  \"statementText\" : \"e\"," + NEWLINE
-          + "  \"tables\" : [ {" + NEWLINE
-          + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"name\" : \"TestTable\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
-          + "    \"isWindowed\" : false" + NEWLINE
-          + "  } ]," + NEWLINE
-          + "  \"warnings\" : [ ]" + NEWLINE
-          + "} ]" + NEWLINE));
-    } else {
-      assertThat(output, is("" + NEWLINE
-          + " Table Name | Kafka Topic | Format | Windowed " + NEWLINE
-          + "----------------------------------------------" + NEWLINE
-          + " TestTable  | TestTopic   | JSON   | false    " + NEWLINE
-          + "----------------------------------------------" + NEWLINE));
-    }
-  }
-
-  @Test
-  public void testSortedPrintTablesList() {
-    // Given:
-    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-            new TablesList("e",
-                    ImmutableList.of(
-                            new SourceInfo.Table("B", "TestTopic", "JSON", false),
-                            new SourceInfo.Table("A", "TestTopic", "JSON", false),
-                            new SourceInfo.Table("Z", "TestTopic", "JSON", false),
-                            new SourceInfo.Table("C", "TestTopic", "JSON", false)
-                    )
-            )
+        new TablesList("e", ImmutableList.of(
+            new SourceInfo.Table("B", "t2", "JSON", "JSON", true),
+            new SourceInfo.Table("A", "t1", "KAFKA", "AVRO", false)
+        ))
     ));
 
     // When:
@@ -952,39 +899,27 @@ public class ConsoleTest {
           + "  \"tables\" : [ {" + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"name\" : \"B\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
-          + "    \"isWindowed\" : false" + NEWLINE
+          + "    \"topic\" : \"t2\"," + NEWLINE
+          + "    \"keyFormat\" : \"JSON\"," + NEWLINE
+          + "    \"valueFormat\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : true" + NEWLINE
           + "  }, {" + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"name\" : \"A\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
-          + "    \"isWindowed\" : false" + NEWLINE
-          + "  }, {" + NEWLINE
-          + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"name\" : \"Z\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
-          + "    \"isWindowed\" : false" + NEWLINE
-          + "  }, {" + NEWLINE
-          + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"name\" : \"C\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
+          + "    \"topic\" : \"t1\"," + NEWLINE
+          + "    \"keyFormat\" : \"KAFKA\"," + NEWLINE
+          + "    \"valueFormat\" : \"AVRO\"," + NEWLINE
           + "    \"isWindowed\" : false" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
     } else {
       assertThat(output, is("" + NEWLINE
-          + " Table Name | Kafka Topic | Format | Windowed " + NEWLINE
-          + "----------------------------------------------" + NEWLINE
-          + " A          | TestTopic   | JSON   | false    " + NEWLINE
-          + " B          | TestTopic   | JSON   | false    " + NEWLINE
-          + " C          | TestTopic   | JSON   | false    " + NEWLINE
-          + " Z          | TestTopic   | JSON   | false    " + NEWLINE
-          + "----------------------------------------------" + NEWLINE));
+          + " Table Name | Kafka Topic | Key Format | Value Format | Windowed " + NEWLINE
+          + "-----------------------------------------------------------------" + NEWLINE
+          + " A          | t1          | KAFKA      | AVRO         | false    " + NEWLINE
+          + " B          | t2          | JSON       | JSON         | true     " + NEWLINE
+          + "-----------------------------------------------------------------" + NEWLINE));
     }
   }
 
@@ -1144,12 +1079,32 @@ public class ConsoleTest {
                 "stats",
                 "errors",
                 true,
-                "kafka",
+                "json",
                 "avro",
                 "kadka-topic",
                 2, 1,
-                "sql statement text"
-            ),
+                "sql statement text",
+                ImmutableList.of(
+                    new QueryOffsetSummary(
+                        "consumer1",
+                        ImmutableList.of(
+                            new QueryTopicOffsetSummary(
+                                "kadka-topic",
+                                ImmutableList.of(
+                                    new ConsumerPartitionOffsets(0, 100, 900, 800),
+                                    new ConsumerPartitionOffsets(1, 50, 900, 900)
+                                )),
+                            new QueryTopicOffsetSummary(
+                                "kadka-topic-2",
+                                ImmutableList.of(
+                                    new ConsumerPartitionOffsets(0, 0, 90, 80),
+                                    new ConsumerPartitionOffsets(1, 10, 90, 90)
+                                ))
+                        )),
+                    new QueryOffsetSummary(
+                        "consumer2",
+                        ImmutableList.of())
+                )),
             Collections.emptyList()
         ))
     );
@@ -1211,12 +1166,45 @@ public class ConsoleTest {
           + "    \"statistics\" : \"stats\"," + NEWLINE
           + "    \"errorStats\" : \"errors\"," + NEWLINE
           + "    \"extended\" : true," + NEWLINE
-          + "    \"keyFormat\" : \"kafka\"," + NEWLINE
+          + "    \"keyFormat\" : \"json\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
-          + "    \"statement\" : \"sql statement text\"" + NEWLINE
+          + "    \"statement\" : \"sql statement text\"," + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ {" + NEWLINE
+          + "      \"groupId\" : \"consumer1\"," + NEWLINE
+          + "      \"topicSummaries\" : [ {" + NEWLINE
+          + "        \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
+          + "        \"offsets\" : [ {" + NEWLINE
+          + "          \"partition\" : 0," + NEWLINE
+          + "          \"logStartOffset\" : 100," + NEWLINE
+          + "          \"logEndOffset\" : 900," + NEWLINE
+          + "          \"consumerOffset\" : 800" + NEWLINE
+          + "        }, {" + NEWLINE
+          + "          \"partition\" : 1," + NEWLINE
+          + "          \"logStartOffset\" : 50," + NEWLINE
+          + "          \"logEndOffset\" : 900," + NEWLINE
+          + "          \"consumerOffset\" : 900" + NEWLINE
+          + "        } ]" + NEWLINE
+          + "      }, {" + NEWLINE
+          + "        \"kafkaTopic\" : \"kadka-topic-2\"," + NEWLINE
+          + "        \"offsets\" : [ {" + NEWLINE
+          + "          \"partition\" : 0," + NEWLINE
+          + "          \"logStartOffset\" : 0," + NEWLINE
+          + "          \"logEndOffset\" : 90," + NEWLINE
+          + "          \"consumerOffset\" : 80" + NEWLINE
+          + "        }, {" + NEWLINE
+          + "          \"partition\" : 1," + NEWLINE
+          + "          \"logStartOffset\" : 10," + NEWLINE
+          + "          \"logEndOffset\" : 90," + NEWLINE
+          + "          \"consumerOffset\" : 90" + NEWLINE
+          + "        } ]" + NEWLINE
+          + "      } ]" + NEWLINE
+          + "    }, {" + NEWLINE
+          + "      \"groupId\" : \"consumer2\"," + NEWLINE
+          + "      \"topicSummaries\" : [ ]" + NEWLINE
+          + "    } ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -1225,7 +1213,7 @@ public class ConsoleTest {
           + "Name                 : TestSource" + NEWLINE
           + "Type                 : TABLE" + NEWLINE
           + "Timestamp field      : 2000-01-01" + NEWLINE
-          + "Key format           : kafka" + NEWLINE
+          + "Key format           : json" + NEWLINE
           + "Value format         : avro" + NEWLINE
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
           + "Statement            : sql statement text" + NEWLINE
@@ -1253,7 +1241,33 @@ public class ConsoleTest {
           + "stats" + NEWLINE
           + "errors" + NEWLINE
           + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)"
-          + NEWLINE));
+          + NEWLINE
+          + NEWLINE
+          + "Consumer Groups summary:" + NEWLINE
+          + NEWLINE
+          + "Consumer Group       : consumer1" + NEWLINE
+          + NEWLINE
+          + "Kafka topic          : kadka-topic" + NEWLINE
+          + "Max lag              : 100" + NEWLINE
+          + NEWLINE
+          + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + " 0         | 100          | 900        | 800    | 100 " + NEWLINE
+          + " 1         | 50           | 900        | 900    | 0   " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + NEWLINE
+          + "Kafka topic          : kadka-topic-2" + NEWLINE
+          + "Max lag              : 10" + NEWLINE
+          + NEWLINE
+          + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + " 0         | 0            | 90         | 80     | 10  " + NEWLINE
+          + " 1         | 10           | 90         | 90     | 0   " + NEWLINE
+          + "------------------------------------------------------" + NEWLINE
+          + NEWLINE
+          + "Consumer Group       : consumer2" + NEWLINE
+          + "<no offsets committed by this group yet>" + NEWLINE
+      ));
     }
   }
 
@@ -1456,7 +1470,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of()), any());
@@ -1470,7 +1484,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg1")), any());
@@ -1484,7 +1498,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1498,7 +1512,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1512,7 +1526,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1526,7 +1540,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1540,7 +1554,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1554,7 +1568,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand, never()).execute(any(), any());
@@ -1568,7 +1582,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    final String result = console.readLine();
+    final String result = console.nextNonCliCommand();
 
     // Then:
     assertThat(result, is("not a CLI command;"));
@@ -1582,7 +1596,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    final String result = console.readLine();
+    final String result = console.nextNonCliCommand();
 
     // Then:
     assertThat(result, is("not a CLI command;"));

@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.Pair;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -32,6 +33,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
@@ -52,25 +54,35 @@ public class RowGenerator {
   private final SessionManager sessionManager = new SessionManager();
   private final ConnectSchema keySchema;
   private final ConnectSchema valueSchema;
+  private final LogicalSchema schema;
   private final int keyFieldIndex;
+  private final Optional<Integer> timestampFieldIndex;
 
-  public RowGenerator(final Generator generator, final String keyFieldName) {
+  public RowGenerator(
+      final Generator generator,
+      final String keyFieldName,
+      final Optional<String> timestampFieldName) {
     this.generator = Objects.requireNonNull(generator, "generator");
     this.avroData = new AvroData(1);
-    final LogicalSchema ksqlSchema = buildLogicalSchema(generator, avroData, keyFieldName);
-    this.keySchema = ksqlSchema.keyConnectSchema();
-    this.valueSchema = ksqlSchema.valueConnectSchema();
-    this.keyFieldIndex = ksqlSchema.findValueColumn(ColumnName.of(keyFieldName))
+    this.schema = buildLogicalSchema(generator, avroData, keyFieldName);
+    this.keySchema = ConnectSchemas.columnsToConnectSchema(schema.key());
+    this.valueSchema = ConnectSchemas.columnsToConnectSchema(schema.value());
+    this.keyFieldIndex = schema.findValueColumn(ColumnName.of(keyFieldName))
         .map(Column::index)
         .orElseThrow(IllegalStateException::new);
+    this.timestampFieldIndex = timestampFieldName.isPresent()
+        ? schema.findValueColumn(ColumnName.of(timestampFieldName.get()))
+        .map(column -> Optional.of(column.index()))
+        .orElseThrow(IllegalStateException::new)
+        : Optional.empty();
   }
 
-  public ConnectSchema keySchema() {
-    return keySchema;
+  public LogicalSchema schema() {
+    return schema;
   }
 
-  public ConnectSchema valueSchema() {
-    return valueSchema;
+  public Optional<Integer> getTimestampFieldIndex() {
+    return timestampFieldIndex;
   }
 
   public Pair<Struct, GenericRow> generateRow() {

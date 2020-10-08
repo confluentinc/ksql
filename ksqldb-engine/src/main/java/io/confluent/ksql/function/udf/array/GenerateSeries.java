@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.array;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -28,6 +29,7 @@ import java.util.List;
  */
 @UdfDescription(
     name = "GENERATE_SERIES",
+    category = FunctionCategory.ARRAY,
     description = "Construct an array of a range of values",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

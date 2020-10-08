@@ -3,8 +3,24 @@
   "timestamp" : 1581572100956,
   "path" : "query-validation-tests/math.json",
   "schemas" : {
-    "CSAS_OUTPUT_0.KsqlTopic.Source" : "STRUCT<V DECIMAL(33, 16)> NOT NULL",
-    "CSAS_OUTPUT_0.OUTPUT" : "STRUCT<R0 DECIMAL(17, 0), R00 DECIMAL(33, 16), R1 DECIMAL(33, 16), R2 DECIMAL(33, 16), R10 DECIMAL(33, 16), 1R DECIMAL(33, 16), 2R DECIMAL(33, 16)> NOT NULL"
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `V` DECIMAL(33, 16)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `R0` DECIMAL(17, 0), `R00` DECIMAL(33, 16), `R1` DECIMAL(33, 16), `R2` DECIMAL(33, 16), `R10` DECIMAL(33, 16), `1R` DECIMAL(33, 16), `2R` DECIMAL(33, 16)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
   },
   "testCase" : {
     "name" : "round with large DECIMAL values",
@@ -16,7 +32,7 @@
     "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : "",
-      "value" : "\"12,345,678,987,654,321\",\"12,345,678,987,654,321.0000000000000000\",\"12,345,678,987,654,321.2000000000000000\",\"12,345,678,987,654,321.2300000000000000\",\"12,345,678,987,654,321.2345678988000000\",\"12,345,678,987,654,320.0000000000000000\",\"12,345,678,987,654,300.0000000000000000\""
+      "value" : "12345678987654321,12345678987654321.0000000000000000,12345678987654321.2000000000000000,12345678987654321.2300000000000000,12345678987654321.2345678988000000,12345678987654320.0000000000000000,12345678987654300.0000000000000000"
     } ],
     "topics" : [ {
       "name" : "OUTPUT",
@@ -31,27 +47,39 @@
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
-        "type" : "stream",
-        "schema" : "ROWKEY STRING KEY, R0 DECIMAL(17,0), R00 DECIMAL(33,16), R1 DECIMAL(33,16), R2 DECIMAL(33,16), R10 DECIMAL(33,16), 1R DECIMAL(33,16), 2R DECIMAL(33,16)"
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `R0` DECIMAL(17, 0), `R00` DECIMAL(33, 16), `R1` DECIMAL(33, 16), `R2` DECIMAL(33, 16), `R10` DECIMAL(33, 16), `1R` DECIMAL(33, 16), `2R` DECIMAL(33, 16)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `V` DECIMAL(33, 16)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "OUTPUT",
+          "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

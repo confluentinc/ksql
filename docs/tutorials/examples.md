@@ -28,37 +28,37 @@ ksqlDB can't infer the topic values's data format, so you must provide the forma
 of the values that are stored in the topic. In this example, the values
 format is `DELIMITED`.
 
-ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
-serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
-
 ```sql
-CREATE STREAM pageviews
-  (viewtime BIGINT,
-   userid VARCHAR,
-   pageid VARCHAR)
-  WITH (KAFKA_TOPIC='pageviews',
-        VALUE_FORMAT='DELIMITED');
+CREATE STREAM pageviews (
+    viewtime BIGINT,
+    userid VARCHAR,
+    pageid VARCHAR
+  ) WITH (
+     KAFKA_TOPIC='pageviews',
+     VALUE_FORMAT='DELIMITED'
+  );
 ```
 
 ### Define Kafka message key
 
 The previous SQL statement doesn't define a column to represent the data in the
-{{ site.ak }} message key in the underlying {{ site.ak }} topic, so the system added a
-`ROWKEY` column with type `STRING`. If your data doesn't contain a {{ site.ak }} serialized
-`STRING` in the {{ site.ak }} message key, don't use `ROWKEY` in your SQL statements,
-or undefined behavior will result.
+{{ site.ak }} message key in the underlying {{ site.ak }} topic. 
 
 Where the {{ site.ak }} message key is serialized in a key format ksqlDB supports,
-(currently only `KAFKA`), you can specify the key in the column list of the
-CREATE STREAM statement.
+you can specify the key in the column list of the CREATE STREAM statement.
+
+ksqlDB requires keys to have been serialized using {{ site.ak }}'s own serializers or compatible
+serializers. ksqlDB supports `INT`, `BIGINT`, `DOUBLE`, and `STRING` key types.
 
 ```sql
-CREATE STREAM pageviews
-  (pageid VARCHAR KEY,
-   viewtime BIGINT,
-   userid VARCHAR)
- WITH (KAFKA_TOPIC='pageviews',
-       VALUE_FORMAT='DELIMITED');
+CREATE STREAM pageviews (
+    viewtime BIGINT KEY,
+    pageid VARCHAR,
+    userid VARCHAR
+ ) WITH (
+    KAFKA_TOPIC='pageviews',
+    VALUE_FORMAT='DELIMITED'
+);
 ```
 
 ### Associate {{ site.aktm }} message timestamps
@@ -71,13 +71,15 @@ ksqlDB. For example, if you want to use the value of the `viewtime` column as
 the message timestamp, you can rewrite the above statement like this:
 
 ```sql
-CREATE STREAM pageviews
-  (pageid VARCHAR KEY,
-   viewtime BIGINT,
-   userid VARCHAR)
-  WITH (KAFKA_TOPIC='pageviews',
-        VALUE_FORMAT='DELIMITED',
-        TIMESTAMP='viewtime');
+CREATE STREAM pageviews (
+    viewtime BIGINT KEY,
+    pageid VARCHAR,
+    userid VARCHAR
+  ) WITH (
+    KAFKA_TOPIC='pageviews',
+    VALUE_FORMAT='DELIMITED',
+    TIMESTAMP='viewtime'
+  );
 ```
 
 Create tables
@@ -93,15 +95,17 @@ columns with primitive data types, a column of `array` type, and a
 column of `map` type:
 
 ```sql
-CREATE TABLE users
-  (userid VARCHAR PRIMARY KEY,
-   registertime BIGINT,
-   gender VARCHAR,
-   regionid VARCHAR,
-   interests array<VARCHAR>,
-   contactinfo map<VARCHAR, VARCHAR>)
-  WITH (KAFKA_TOPIC='users',
-        VALUE_FORMAT='JSON');
+CREATE TABLE users (
+    userid VARCHAR PRIMARY KEY,
+    registertime BIGINT,
+    gender VARCHAR,
+    regionid VARCHAR,
+    interests array<VARCHAR>,
+    contactinfo map<VARCHAR, VARCHAR>
+  ) WITH (
+    KAFKA_TOPIC='users',
+    VALUE_FORMAT='JSON'
+  );
 ```
 
 Note that specifying the table's PRIMARY KEY is required in table declaration, see
@@ -341,7 +345,7 @@ zipcode for each user:
 
 ```sql
 CREATE STREAM pageviews_interest_contact AS
-  SELECT interests[0] AS first_interest,
+  SELECT interests[1] AS first_interest,
          contactinfo['zipcode'] AS zipcode,
          contactinfo['city'] AS city,
          viewtime,

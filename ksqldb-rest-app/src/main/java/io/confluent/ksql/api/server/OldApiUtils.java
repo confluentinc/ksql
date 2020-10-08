@@ -17,13 +17,14 @@ package io.confluent.ksql.api.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
-import static org.apache.http.HttpHeaders.TRANSFER_ENCODING;
+import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
@@ -33,11 +34,13 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
+import org.apache.kafka.common.utils.Time;
 
 public final class OldApiUtils {
 
@@ -48,12 +51,13 @@ public final class OldApiUtils {
   private static final String JSON_CONTENT_TYPE = "application/json";
   private static final String CHUNKED_ENCODING = "chunked";
 
-  static <T> void handleOldApiRequest(final Server server,
+  static <T> void handleOldApiRequest(
+      final Server server,
       final RoutingContext routingContext,
       final Class<T> requestClass,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
-    final HttpServerResponse response = routingContext.response();
-
+    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     final T requestObject;
     if (requestClass != null) {
       final Optional<T> optRequestObject = ServerUtils
@@ -65,23 +69,31 @@ public final class OldApiUtils {
     } else {
       requestObject = null;
     }
-
+    pullQueryMetrics
+        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordRequestSize(
+            routingContext.request().bytesRead()));
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {
-      handleOldApiResponse(server, routingContext, response, endpointResponse);
+      handleOldApiResponse(
+          server, routingContext, endpointResponse, pullQueryMetrics, startTimeNanos);
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
-      handleOldApiResponse(server, routingContext, response, mapException(t));
+      handleOldApiResponse(
+          server, routingContext, mapException(t), pullQueryMetrics, startTimeNanos);
       return null;
     });
   }
 
-  static void handleOldApiResponse(final Server server, final RoutingContext routingContext,
-      final HttpServerResponse response,
-      final EndpointResponse endpointResponse) {
+  static void handleOldApiResponse(
+      final Server server, final RoutingContext routingContext,
+      final EndpointResponse endpointResponse,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final long startTimeNanos
+  ) {
+    final HttpServerResponse response = routingContext.response();
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
     response.setStatusCode(endpointResponse.getStatus());
@@ -90,14 +102,16 @@ public final class OldApiUtils {
     // a plain String, other times it's an object that needs to be JSON encoded, other times
     // it represents a stream.
     if (endpointResponse.getEntity() instanceof StreamingOutput) {
+      final StreamingOutput streamingOutput = (StreamingOutput) endpointResponse.getEntity();
       if (routingContext.request().version() == HttpVersion.HTTP_2) {
         // The old /query endpoint uses chunked encoding which is not supported in HTTP2
         routingContext.response().setStatusCode(METHOD_NOT_ALLOWED.code())
             .setStatusMessage("The /query endpoint is not available using HTTP2").end();
+        streamingOutput.close();
         return;
       }
       response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
-      streamEndpointResponse(server, response, (StreamingOutput) endpointResponse.getEntity());
+      streamEndpointResponse(server, routingContext, streamingOutput);
     } else {
       if (endpointResponse.getEntity() == null) {
         response.end();
@@ -111,17 +125,40 @@ public final class OldApiUtils {
         response.end(responseBody);
       }
     }
+    pullQueryMetrics
+        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordResponseSize(
+            routingContext.response().bytesWritten()));
+    pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
+        .recordLatency(startTimeNanos));
+
   }
 
-  private static void streamEndpointResponse(final Server server, final HttpServerResponse response,
+  private static void streamEndpointResponse(final Server server,
+      final RoutingContext routingContext,
       final StreamingOutput streamingOutput) {
     final WorkerExecutor workerExecutor = server.getWorkerExecutor();
     final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(promise -> {
-      try (OutputStream os = new BufferedOutputStream(new ResponseOutputStream(response))) {
-        streamingOutput.write(os);
+      final OutputStream ros = new ResponseOutputStream(routingContext.response());
+      routingContext.request().connection().closeHandler(v -> {
+        // Close the OutputStream on close of the HTTP connection
+        try {
+          ros.close();
+        } catch (IOException e) {
+          promise.fail(e);
+        }
+      });
+      try {
+        streamingOutput.write(new BufferedOutputStream(ros));
+        promise.complete();
       } catch (Exception e) {
         promise.fail(e);
+      } finally {
+        try {
+          ros.close();
+        } catch (IOException ignore) {
+          // Ignore - it might already be closed
+        }
       }
     }, vcf);
   }

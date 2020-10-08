@@ -173,6 +173,15 @@ public class SqlSchemaFormatterTest {
   }
 
   @Test
+  public void shouldFormatEmptyStruct() {
+    // Given:
+    final Schema struct = SchemaBuilder.struct().optional().build();
+
+    // Then:
+    assertThat(DEFAULT.format(struct), is("STRUCT< >"));
+  }
+
+  @Test
   public void shouldFormatStruct() {
     // Given:
     final Schema structSchema = SchemaBuilder.struct()

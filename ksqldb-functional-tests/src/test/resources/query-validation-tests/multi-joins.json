@@ -351,7 +351,6 @@
         {"topic": "left", "key": 0, "value": {"k": 1, "V0": 1}, "timestamp": 12}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-repartition", "key": 1, "value": {"S1_K": 1, "S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 0}, "timestamp": 12},
         {"topic": "OUTPUT", "key": 1, "value": {"S1_V0": 1, "T2_V0": 2, "T3_V0": 3}, "timestamp": 12}
       ],
       "post": {
@@ -558,7 +557,6 @@
         {"topic": "left", "key": 0, "value": {"k": 1, "V0": 1}, "timestamp": 12}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-repartition", "key": 1, "value": {"S1_K": 1, "S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 0}, "timestamp": 12},
         {"topic": "OUTPUT", "key": 1, "value": {"S1_V0": 1, "T2_V0": 2, "T3_V0": 3}, "timestamp": 12}
       ],
       "post": {
@@ -663,11 +661,6 @@
         {"topic": "right", "key": 2, "value": {"k": 0, "V0": 6}, "timestamp": 100001}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-right-repartition", "key": 0, "value": {"S2_K": 0, "S2_V0": 2, "S2_ROWTIME": 11, "S2_ID": 2}, "timestamp": 11},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-right-repartition", "key": 0, "value": {"S2_K": 0, "S2_V0": 4, "S2_ROWTIME": 13, "S2_ID": 2}, "timestamp": 13},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-right-repartition", "key": 0, "value": {"S2_K": 0, "S2_V0": 6, "S2_ROWTIME": 100001, "S2_ID": 2}, "timestamp": 100001},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-left-repartition", "key": 0, "value": {"S1_K": 0, "S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 1}, "timestamp": 12},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-left-repartition", "key": 0, "value": {"S1_K": 0, "S1_V0": 5, "S1_ROWTIME": 100000, "S1_ID": 1}, "timestamp": 100000},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "T3_V0": 3}, "timestamp": 12},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 4, "T3_V0": 3}, "timestamp": 13},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_V0": 6, "T3_V0": 3}, "timestamp": 100001}
@@ -751,11 +744,6 @@
         {"topic": "right", "key": 0, "value": {"V0": 6}, "timestamp": 100001}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": null, "value": {"S1_V0": null, "S1_ROWTIME": null, "S1_ID": null, "S2_V0": 2, "S2_ROWTIME": 11, "S2_ID": 0, "KSQL_COL_0": null}, "timestamp": 11},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 0, "S2_V0": 2, "S2_ROWTIME": 11, "S2_ID": 0, "KSQL_COL_0": null}, "timestamp": 12},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 0, "S2_V0": 4, "S2_ROWTIME": 13, "S2_ID": 0, "KSQL_COL_0": null}, "timestamp": 13},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 5, "S1_ROWTIME": 100000, "S1_ID": 0, "S2_V0": null, "S2_ROWTIME": null, "S2_ID": null, "KSQL_COL_0": null}, "timestamp": 100000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 5, "S1_ROWTIME": 100000, "S1_ID": 0, "S2_V0": 6, "S2_ROWTIME": 100001, "S2_ID": 0, "KSQL_COL_0": null}, "timestamp": 100001},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "T3_V0": 3}, "timestamp": 12},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 4, "T3_V0": 3}, "timestamp": 13},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_V0": null, "T3_V0": 3}, "timestamp": 100000},
@@ -784,11 +772,6 @@
         {"topic": "right", "key": 0, "value": {"V0": 6}, "timestamp": 100001}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": null, "value": {"S1_V0": null, "S1_ROWTIME": null, "S1_ID": null, "S2_V0": 2, "S2_ROWTIME": 11, "S2_ID": 0, "KSQL_COL_0": null}, "timestamp": 11},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 0, "S2_V0": 2, "S2_ROWTIME": 11, "S2_ID": 0, "KSQL_COL_0": null}, "timestamp": 12},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 1, "S1_ROWTIME": 12, "S1_ID": 0, "S2_V0": 4, "S2_ROWTIME": 13, "S2_ID": 0, "KSQL_COL_0": null}, "timestamp": 13},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 5, "S1_ROWTIME": 100000, "S1_ID": 0, "S2_V0": null, "S2_ROWTIME": null, "S2_ID": null, "KSQL_COL_0": null}, "timestamp": 100000},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition", "key": 0, "value": {"S1_V0": 5, "S1_ROWTIME": 100000, "S1_ID": 0, "S2_V0": 6, "S2_ROWTIME": 100001, "S2_ID": 0, "KSQL_COL_0": null}, "timestamp": 100001},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_ID": 0, "S2_V0": 2, "T3_ID": 0, "T3_V0": 3}, "timestamp": 12},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_ID": 0, "S2_V0": 4, "T3_ID": 0, "T3_V0": 3}, "timestamp": 13},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_ID": null, "S2_V0": null, "T3_ID": 0, "T3_V0": 3}, "timestamp": 100000},
@@ -1029,6 +1012,24 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Can't join `S1` with `T3` since the number of partitions don't match. `S1` partitions = 1; `T3` partitions = 2. Please repartition either one so that the number of partitions match."
       }
+    },
+    {
+      "name": "scoped include all columns",
+      "statements": [
+        "CREATE STREAM S1 (A INT KEY, B INT) WITH (kafka_topic='S1', value_format='JSON');",
+        "CREATE STREAM S2 (A INT KEY, B INT) WITH (kafka_topic='S2', value_format='JSON');",
+        "CREATE STREAM S3 (A INT KEY, B INT) WITH (kafka_topic='S3', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT s1.*, s2.*, s3.* FROM S1 INNER JOIN S2 WITHIN 10 SECONDS ON S1.A = S2.A INNER JOIN S3 WITHIN 10 SECONDS ON S1.A = S3.A WHERE S1.B < 5;"
+      ],
+      "inputs": [
+        {"topic": "S1", "key": 0, "value": {"B": 1}, "timestamp": 10},
+        {"topic": "S2", "key": 0, "value": {"B": -1}, "timestamp": 11},
+        {"topic": "S3", "key": 0, "value": {"B": 9}, "timestamp": 12},
+        {"topic": "S1", "key": 0, "value": {"B": 9}, "timestamp": 13}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_B": 1, "S2_A": 0, "S2_B": -1, "S3_A": 0, "S3_B": 9}, "timestamp":  12}
+      ]
     }
   ]
 }

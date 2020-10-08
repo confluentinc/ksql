@@ -44,7 +44,7 @@ public class StandaloneExecutorFactoryTest {
   private static final String QUERIES_FILE = "queries";
   private static final String INSTALL_DIR = "install";
 
-  private final Map<String, String> properties = Collections.emptyMap();
+  private final Map<String, Object> properties = Collections.emptyMap();
   private final KsqlConfig baseConfig = new KsqlConfig(properties);
   private final KsqlConfig mergedConfig = new KsqlConfig(Collections.emptyMap());
   private final String configTopicName = ReservedInternalTopics.configsTopic(baseConfig);

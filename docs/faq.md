@@ -68,6 +68,9 @@ you can also choose between the
 As with many technologies, each has its sweet-spot based on technical
 requirements, mission-criticality, and user skillset.
 
+For more information, see
+[Kafka Streams and ksqlDB Compared – How to Choose](https://www.confluent.io/blog/kafka-streams-vs-ksqldb-compared/).
+
 Does ksqlDB work with vanilla Kafka clusters, or does it require the Kafka version included in Confluent Platform?
 ------------------------------------------------------------------------------------------------------------------
 
@@ -304,11 +307,6 @@ the container by running `docker logs <ksql-server-container-id>`.
 
 Check runtime stats for the ksqlDB server that you're connected to.
 
-- Run `ksql-print-metrics` on a server host. The tool connects to
-a ksqlDB Server that's running on `localhost` and collects JMX
-metrics from the server process. Metrics include the number of
-messages, the total throughput, the throughput distribution, and
-the error rate.
 - Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE EXTENDED <stream|table>`.
 - Run SHOW QUERIES, then run `EXPLAIN <query>`.
 

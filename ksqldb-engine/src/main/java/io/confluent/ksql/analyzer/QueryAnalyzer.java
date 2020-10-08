@@ -23,10 +23,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import java.util.Set;
 
 public class QueryAnalyzer {
 
@@ -36,13 +34,12 @@ public class QueryAnalyzer {
 
   public QueryAnalyzer(
       final MetaStore metaStore,
-      final String outputTopicPrefix,
-      final Set<SerdeOption> defaultSerdeOptions
+      final String outputTopicPrefix
   ) {
     this(
-        new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions),
-        new PushQueryValidator(),
-        new PullQueryValidator()
+        new Analyzer(metaStore, outputTopicPrefix),
+        new PullQueryValidator(),
+        new PushQueryValidator()
     );
   }
 
@@ -64,9 +61,9 @@ public class QueryAnalyzer {
     final Analysis analysis = analyzer.analyze(query, sink);
 
     if (query.isPullQuery()) {
-      pushQueryValidator.validate(analysis);
-    } else {
       pullQueryValidator.validate(analysis);
+    } else {
+      pushQueryValidator.validate(analysis);
     }
 
     if (!analysis.getTableFunctions().isEmpty()) {

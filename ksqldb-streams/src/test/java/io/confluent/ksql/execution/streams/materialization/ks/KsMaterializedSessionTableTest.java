@@ -68,7 +68,13 @@ public class KsMaterializedSessionTableTest {
 
   private static final Instant LOWER_INSTANT = Instant.now();
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);
+
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
+      LOWER_INSTANT,
+      UPPER_INSTANT
+  );
+
+  private static final Range<Instant> WINDOW_END_BOUNDS = Range.closed(
       LOWER_INSTANT,
       UPPER_INSTANT
   );
@@ -115,7 +121,7 @@ public class KsMaterializedSessionTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, WINDOW_START_BOUNDS)
+        () -> table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -132,7 +138,7 @@ public class KsMaterializedSessionTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, WINDOW_START_BOUNDS)
+        () -> table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -145,7 +151,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(stateStore).store(any(SessionStoreType.class));
@@ -154,7 +160,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldFetchWithCorrectParams() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(sessionStore).fetch(A_KEY);
@@ -163,7 +169,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(fetchIterator).close();
@@ -172,7 +178,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -184,7 +190,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.minusMillis(1));
 
     // When:
-    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -196,14 +202,14 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
   }
 
   @Test
-  public void shouldReturnValueIfSessionStartsAtLowerBoundIfLowerBoundClosed() {
+  public void shouldReturnValueIfSessionStartsAtLowerBoundIfLowerStartBoundClosed() {
     // Given:
     final Range<Instant> startBounds = Range.closed(
         LOWER_INSTANT,
@@ -214,7 +220,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT, wend);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, startBounds);
+    final List<WindowedRow> result = table.get(A_KEY, startBounds, Range.all());
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -236,7 +242,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT, LOWER_INSTANT.plusMillis(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, startBounds);
+    final List<WindowedRow> result = table.get(A_KEY, startBounds, Range.all());
 
     // Then:
     assertThat(result, is(empty()));
@@ -254,7 +260,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, wend);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, startBounds);
+    final List<WindowedRow> result = table.get(A_KEY, startBounds, Range.all());
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -276,7 +282,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, startBounds);
+    final List<WindowedRow> result = table.get(A_KEY, startBounds, Range.all());
 
     // Then:
     assertThat(result, is(empty()));
@@ -289,12 +295,111 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.plusMillis(1), wend);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS, Range.all());
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
         SCHEMA,
         sessionKey(LOWER_INSTANT.plusMillis(1), wend),
+        A_VALUE,
+        wend.toEpochMilli()
+    )));
+  }
+
+  @Test
+  public void shouldReturnValueIfSessionEndsAtLowerBoundIfLowerStartBoundClosed() {
+    // Given:
+    final Range<Instant> endBounds = Range.closed(
+        LOWER_INSTANT,
+        UPPER_INSTANT
+    );
+
+    final Instant wstart = LOWER_INSTANT.minusMillis(1);
+    givenSingleSession(wstart, LOWER_INSTANT);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, Range.all(), endBounds);
+
+    // Then:
+    assertThat(result, contains(WindowedRow.of(
+        SCHEMA,
+        sessionKey(wstart, LOWER_INSTANT),
+        A_VALUE,
+        LOWER_INSTANT.toEpochMilli()
+    )));
+  }
+
+  @Test
+  public void shouldIgnoreSessionsThatEndAtLowerBoundIfLowerBoundOpen() {
+    // Given:
+    final Range<Instant> endBounds = Range.openClosed(
+        LOWER_INSTANT,
+        UPPER_INSTANT
+    );
+
+    givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, Range.all(), endBounds);
+
+    // Then:
+    assertThat(result, is(empty()));
+  }
+
+  @Test
+  public void shouldReturnValueIfSessionEndsAtUpperBoundIfUpperBoundClosed() {
+    // Given:
+    final Range<Instant> endBounds = Range.closed(
+        LOWER_INSTANT,
+        UPPER_INSTANT
+    );
+
+    final Instant wstart = UPPER_INSTANT.minusMillis(1);
+    givenSingleSession(wstart, UPPER_INSTANT);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, Range.all(), endBounds);
+
+    // Then:
+    assertThat(result, contains(WindowedRow.of(
+        SCHEMA,
+        sessionKey(wstart, UPPER_INSTANT),
+        A_VALUE,
+        UPPER_INSTANT.toEpochMilli()
+    )));
+  }
+
+  @Test
+  public void shouldIgnoreSessionsThatEndAtUpperBoundIfUpperBoundOpen() {
+    // Given:
+    final Range<Instant> endBounds = Range.closedOpen(
+        LOWER_INSTANT,
+        UPPER_INSTANT
+    );
+
+    givenSingleSession(UPPER_INSTANT.minusMillis(1), UPPER_INSTANT);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, Range.all(), endBounds);
+
+    // Then:
+    assertThat(result, is(empty()));
+  }
+
+  @Test
+  public void shouldReturnValueIfSessionEndsBetweenBounds() {
+    // Given:
+    final Instant wstart = LOWER_INSTANT.minusMillis(5);
+    final Instant wend = UPPER_INSTANT.minusMillis(1);
+    givenSingleSession(wstart, wend);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, Range.all(), WINDOW_END_BOUNDS);
+
+    // Then:
+    assertThat(result, contains(WindowedRow.of(
+        SCHEMA,
+        sessionKey(wstart, wend),
         A_VALUE,
         wend.toEpochMilli()
     )));
@@ -311,7 +416,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusSeconds(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, contains(
@@ -331,13 +436,13 @@ public class KsMaterializedSessionTableTest {
   }
 
   @Test
-  public void shouldReturnAllSessionsForRangeall() {
+  public void shouldReturnAllSessionsForRangeAll() {
     // Given:
     givenSingleSession(Instant.now().minusSeconds(1000), Instant.now().plusSeconds(1000));
     givenSingleSession(Instant.now().minusSeconds(1000), Instant.now().plusSeconds(1000));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, Range.all(), Range.all());
 
     // Then:
     assertThat(result, hasSize(2));

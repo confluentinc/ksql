@@ -28,7 +28,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 public final class StubKafkaService {
 
   private final Map<String, Topic> topicMap;
-  private final Map<String, List<ProducerRecord<?, ?>>> producedRecords;
+  private final Map<String, List<ProducerRecord<byte[], byte[]>>> producedRecords;
 
   public static StubKafkaService create() {
     return new StubKafkaService();
@@ -44,12 +44,12 @@ public final class StubKafkaService {
     producedRecords.putIfAbsent(topic.getName(), new ArrayList<>());
   }
 
-  public void writeRecord(final ProducerRecord<?, ?> record) {
+  public void writeRecord(final ProducerRecord<byte[], byte[]> record) {
     requireTopicExists(record.topic());
     producedRecords.get(record.topic()).add(record);
   }
 
-  public List<ProducerRecord<?, ?>> readRecords(final String topicName) {
+  public List<ProducerRecord<byte[], byte[]>> readRecords(final String topicName) {
     requireTopicExists(topicName);
     return ImmutableList.copyOf(producedRecords.get(topicName));
   }

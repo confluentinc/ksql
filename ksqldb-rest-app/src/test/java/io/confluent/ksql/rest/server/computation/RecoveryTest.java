@@ -649,6 +649,19 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverTerminateAll() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "INSERT INTO B SELECT * FROM A;",
+        "TERMINATE ALL;",
+        "DROP STREAM B;",
+        "CREATE STREAM B AS SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
   public void shouldRecoverDrop() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",

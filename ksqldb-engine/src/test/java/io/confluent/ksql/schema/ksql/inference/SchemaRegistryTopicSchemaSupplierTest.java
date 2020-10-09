@@ -90,7 +90,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
     when(format.getSchemaTranslator(any())).thenReturn(schemaTranslator);
-    when(schemaTranslator.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1, column2));
+    when(schemaTranslator.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1));
     when(schemaTranslator.name()).thenReturn("AVRO");
 
     when(expectedFormat.getProperties()).thenReturn(formatProperties);
@@ -437,7 +437,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason.get().getMessage(), containsString(
-        "Unable to verify if the value schema for topic some-topic is compatible with KSQL."));
+        "Unable to verify if the value schema for topic some-topic is compatible with ksqlDB."));
     assertThat(result.failureReason.get().getMessage(), containsString(
         "it went boom"));
     assertThat(result.failureReason.get().getMessage(), containsString(AVRO_SCHEMA));
@@ -456,9 +456,26 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason.get().getMessage(), containsString(
-        "Unable to verify if the key schema for topic some-topic is compatible with KSQL."));
+        "Unable to verify if the key schema for topic some-topic is compatible with ksqlDB."));
     assertThat(result.failureReason.get().getMessage(), containsString(
         "it went boom"));
+    assertThat(result.failureReason.get().getMessage(), containsString(AVRO_SCHEMA));
+  }
+
+  @Test
+  public void shouldReturnErrorFromGetKeySchemaOnMultipleColumns() {
+    // Given:
+    when(schemaTranslator.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1, column2));
+
+    // When:
+    final SchemaResult result = supplier
+        .getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+
+    // Then:
+    assertThat(result.schemaAndId, is(Optional.empty()));
+    assertThat(result.failureReason.get().getMessage(), containsString(
+        "The key schema for topic some-topic contains multiple columns, "
+            + "which is not supported by ksqlDB at this time."));
     assertThat(result.failureReason.get().getMessage(), containsString(AVRO_SCHEMA));
   }
 
@@ -517,7 +534,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(not(Optional.empty())));
     assertThat(result.schemaAndId.get().id, is(SCHEMA_ID));
-    assertThat(result.schemaAndId.get().columns, is(ImmutableList.of(column1, column2)));
+    assertThat(result.schemaAndId.get().columns, is(ImmutableList.of(column1)));
   }
 
   @Test
@@ -529,7 +546,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(not(Optional.empty())));
     assertThat(result.schemaAndId.get().id, is(SCHEMA_ID));
-    assertThat(result.schemaAndId.get().columns, is(ImmutableList.of(column1, column2)));
+    assertThat(result.schemaAndId.get().columns, is(ImmutableList.of(column1)));
   }
 
   private static Throwable notFoundException() {

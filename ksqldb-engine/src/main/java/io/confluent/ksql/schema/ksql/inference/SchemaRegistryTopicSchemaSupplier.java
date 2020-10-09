@@ -124,12 +124,18 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       return incorrectFormat(topic, translator.name(), parsedSchema.schemaType(), isKey);
     }
 
+    final List<SimpleColumn> columns;
     try {
-      final List<SimpleColumn> columns = translator.toColumns(parsedSchema);
-      return SchemaResult.success(SchemaAndId.schemaAndId(columns, id));
+      columns = translator.toColumns(parsedSchema);
     } catch (final Exception e) {
       return notCompatible(topic, parsedSchema.canonicalString(), e, isKey);
     }
+
+    if (isKey && columns.size() > 1) {
+      return multiColumnKeysNotSupported(topic, parsedSchema.canonicalString());
+    }
+
+    return SchemaResult.success(SchemaAndId.schemaAndId(columns, id));
   }
 
   private static SchemaResult incorrectFormat(
@@ -188,7 +194,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   ) {
     return SchemaResult.failure(new KsqlException(
         "Unable to verify if the " + (isKey ? "key" : "value") + " schema for topic "
-            + topicName + " is compatible with KSQL."
+            + topicName + " is compatible with ksqlDB."
             + System.lineSeparator()
             + "Reason: " + cause.getMessage()
             + System.lineSeparator()
@@ -196,10 +202,21 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + "Please see https://github.com/confluentinc/ksql/issues/ to see if this particular "
             + "reason is already known."
             + System.lineSeparator()
-            + "If not, please log a new issue, including the this full error message."
+            + "If not, please log a new issue, including this full error message."
             + System.lineSeparator()
             + "Schema:" + schema,
         cause));
+  }
+
+  private static SchemaResult multiColumnKeysNotSupported(
+      final String topicName,
+      final String schema
+  ) {
+    return SchemaResult.failure(new KsqlException(
+        "The key schema for topic " + topicName
+            + " contains multiple columns, which is not supported by ksqlDB at this time."
+            + System.lineSeparator()
+            + "Schema:" + schema));
   }
 
   private static String getSubject(final String topicName, final boolean isKey) {

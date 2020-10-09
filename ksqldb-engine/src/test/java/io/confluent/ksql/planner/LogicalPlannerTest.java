@@ -38,9 +38,10 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.planner.plan.SuppressNode;
+import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -104,11 +105,11 @@ public class LogicalPlannerTest {
     final PlanNode leftSource =
         logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0);
     assertThat(leftSource, instanceOf(ProjectNode.class));
-    assertThat(leftSource.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(leftSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
     final PlanNode rightSource =
         logicalPlan.getSources().get(0).getSources().get(0).getSources().get(1);
     assertThat(rightSource, instanceOf(ProjectNode.class));
-    assertThat(rightSource.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(rightSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
 
     assertThat(logicalPlan.getSchema().value().size(), equalTo(4));
   }
@@ -134,10 +135,10 @@ public class LogicalPlannerTest {
     final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
     final PlanNode leftSource = joinNode.getSources().get(0);
     assertThat(leftSource, instanceOf(ProjectNode.class));
-    assertThat(leftSource.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(leftSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
     final PlanNode rightSource = joinNode.getSources().get(0);
     assertThat(rightSource, instanceOf(ProjectNode.class));
-    assertThat(rightSource.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(rightSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
   }
 
   @Test
@@ -233,7 +234,9 @@ public class LogicalPlannerTest {
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     // Then:
-    final RepartitionNode repart = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+    final UserRepartitionNode repart = (UserRepartitionNode) logicalPlan
+        .getSources().get(0).getSources().get(0);
+
     assertThat(
         repart.getPartitionBy(),
         equalTo(new UnqualifiedColumnReferenceExp(ColumnName.of("T1_COL1")))

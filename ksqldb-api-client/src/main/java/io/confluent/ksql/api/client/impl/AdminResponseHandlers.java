@@ -170,7 +170,10 @@ final class AdminResponseHandlers {
           .map(o -> new StreamInfoImpl(
               o.getString("name"),
               o.getString("topic"),
-              o.getString("format")))
+              o.getString("keyFormat", "KAFKA"),
+              o.getString("valueFormat", o.getString("format", "UNKNOWN")),
+              o.getBoolean("isWindowed", false)
+          ))
           .collect(Collectors.toList())
       );
     } catch (Exception e) {
@@ -194,7 +197,8 @@ final class AdminResponseHandlers {
           .map(o -> new TableInfoImpl(
               o.getString("name"),
               o.getString("topic"),
-              o.getString("format"),
+              o.getString("keyFormat", "KAFKA"),
+              o.getString("valueFormat", o.getString("format", "UNKNOWN")),
               o.getBoolean("isWindowed")))
           .collect(Collectors.toList())
       );

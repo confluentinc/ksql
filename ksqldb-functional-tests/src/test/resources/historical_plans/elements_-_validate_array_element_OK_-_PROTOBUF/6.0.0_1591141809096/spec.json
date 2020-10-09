@@ -5,11 +5,21 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`V0` ARRAY<INTEGER>",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`V0` ARRAY<INTEGER>",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {
@@ -30,8 +40,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated int32 V0 = 1;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated int32 V0 = 1;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
@@ -48,7 +58,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -56,15 +68,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -73,9 +85,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

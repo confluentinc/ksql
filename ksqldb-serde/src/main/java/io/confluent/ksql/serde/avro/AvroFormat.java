@@ -15,38 +15,29 @@
 
 package io.confluent.ksql.serde.avro;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.connect.avro.AvroData;
-import io.confluent.connect.avro.AvroDataConfig;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
+import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.apache.avro.SchemaParseException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
 
 public final class AvroFormat extends ConnectFormat {
 
   private static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.SCHEMA_INFERENCE,
       SerdeFeature.WRAP_SINGLES,
       SerdeFeature.UNWRAP_SINGLES
   );
 
-  public static final String FULL_SCHEMA_NAME = "fullSchemaName";
+  public static final String FULL_SCHEMA_NAME = AvroProperties.FULL_SCHEMA_NAME;
 
-  public static final String NAME = AvroSchema.TYPE;
-  private final AvroData avroData = new AvroData(new AvroDataConfig(ImmutableMap.of()));
+  public static final String NAME = "AVRO";
 
   @Override
   public String name() {
@@ -60,12 +51,19 @@ public final class AvroFormat extends ConnectFormat {
 
   @Override
   public Set<String> getSupportedProperties() {
-    return ImmutableSet.of(FULL_SCHEMA_NAME);
+    return AvroProperties.SUPPORTED_PROPERTIES;
   }
 
   @Override
   public Set<String> getInheritableProperties() {
     return ImmutableSet.of();
+  }
+
+  @Override
+  protected ConnectSchemaTranslator getConnectSchemaTranslator(
+      final Map<String, String> formatProps
+  ) {
+    return new AvroSchemaTranslator(new AvroProperties(formatProps));
   }
 
   @Override
@@ -77,38 +75,11 @@ public final class AvroFormat extends ConnectFormat {
       final Class<T> targetType
   ) {
     // Ensure schema is compatible by converting to Avro schema:
-    fromConnectSchema(connectSchema, FormatInfo.of(AvroFormat.NAME, formatProps));
+    getConnectSchemaTranslator(formatProps).fromConnectSchema(connectSchema);
 
-    final String schemaFullName = getSchemaName(formatProps);
+    final String schemaFullName = new AvroProperties(formatProps).getFullSchemaName();
 
     return new KsqlAvroSerdeFactory(schemaFullName)
         .createSerde(connectSchema, config, srFactory, targetType);
-  }
-
-  @Override
-  protected Schema toConnectSchema(final ParsedSchema schema) {
-    return avroData.toConnectSchema(((AvroSchema) schema).rawSchema());
-  }
-
-  @Override
-  protected ParsedSchema fromConnectSchema(
-      final Schema schema,
-      final FormatInfo formatInfo
-  ) {
-    final String schemaFullName = getSchemaName(formatInfo.getProperties());
-
-    final Schema avroCompatibleSchema = AvroSchemas
-        .getAvroCompatibleConnectSchema(schema, schemaFullName);
-
-    try {
-      return new AvroSchema(avroData.fromConnectSchema(avroCompatibleSchema));
-    } catch (final SchemaParseException e) {
-      throw new KsqlException("Schema is not compatible with Avro: " + e.getMessage(), e);
-    }
-  }
-
-  private static String getSchemaName(final Map<String, String> properties) {
-    return properties
-        .getOrDefault(FULL_SCHEMA_NAME, KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
   }
 }

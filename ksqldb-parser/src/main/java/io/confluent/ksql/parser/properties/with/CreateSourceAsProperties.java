@@ -25,11 +25,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.util.KsqlException;
@@ -66,11 +63,8 @@ public final class CreateSourceAsProperties {
   private CreateSourceAsProperties(final Map<String, Literal> originals) {
     this.props = new PropertiesConfig(CreateAsConfigs.CONFIG_METADATA, originals);
 
+    CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
-  }
-
-  public Optional<Format> getValueFormat() {
-    return getFormatInfo().map(FormatFactory::of);
   }
 
   public Optional<String> getKafkaTopic() {
@@ -94,23 +88,36 @@ public final class CreateSourceAsProperties {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
   }
 
-  public SerdeOptions getSerdeOptions() {
-    final ImmutableSet.Builder<SerdeOption> builder = ImmutableSet.builder();
+  public SerdeFeatures getValueSerdeFeatures() {
+    final ImmutableSet.Builder<SerdeFeature> builder = ImmutableSet.builder();
 
     final Boolean wrapping = props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE);
     if (wrapping != null) {
-      builder.add(wrapping ? SerdeOption.WRAP_SINGLE_VALUES : SerdeOption.UNWRAP_SINGLE_VALUES);
+      builder.add(wrapping ? SerdeFeature.WRAP_SINGLES : SerdeFeature.UNWRAP_SINGLES);
     }
 
-    return SerdeOptions.of(builder.build());
+    return SerdeFeatures.from(builder.build());
   }
 
-  public Optional<FormatInfo> getFormatInfo() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
-        .map(format -> FormatInfo.of(format, getFormatProperties()));
+  public Optional<String> getKeyFormat() {
+    final String keyFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
+    return Optional.ofNullable(keyFormat);
   }
 
-  public Map<String, String> getFormatProperties() {
+  public Optional<String> getValueFormat() {
+    final String valueFormat = getFormatName()
+        .orElse(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY));
+    return Optional.ofNullable(valueFormat);
+  }
+
+  @SuppressWarnings("MethodMayBeStatic")
+  public Map<String, String> getKeyFormatProperties() {
+    // Current none.... coming soon.
+    return ImmutableMap.of();
+  }
+
+  public Map<String, String> getValueFormatProperties() {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
     final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
@@ -159,5 +166,9 @@ public final class CreateSourceAsProperties {
   @Override
   public int hashCode() {
     return Objects.hash(props);
+  }
+
+  private Optional<String> getFormatName() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.FORMAT_PROPERTY));
   }
 }

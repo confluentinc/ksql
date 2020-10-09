@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -36,20 +37,19 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QuerySchemas;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -106,6 +106,8 @@ public class QueryDescriptionFactoryTest {
   private ExecutionStep<?> physicalPlan;
   @Mock
   private DataSource sinkDataSource;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -117,7 +119,8 @@ public class QueryDescriptionFactoryTest {
     when(topology.describe()).thenReturn(topologyDescription);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(queryStreams);
 
-    when(sinkTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())));
+    when(sinkTopic.getKeyFormat()).thenReturn(
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
     when(sinkDataSource.getKsqlTopic()).thenReturn(sinkTopic);
     when(sinkDataSource.getName()).thenReturn(SourceName.of("sink name"));
 
@@ -140,7 +143,7 @@ public class QueryDescriptionFactoryTest {
 
     persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
-        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeOptions.of()),
+        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
         sinkDataSource,
         "execution plan",
@@ -149,14 +152,15 @@ public class QueryDescriptionFactoryTest {
         APPLICATION_ID,
         topology,
         kafkaStreamsBuilder,
-        QuerySchemas.of(new LinkedHashMap<>()),
+        new QuerySchemas(),
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback,
         closeTimeout,
         QueryErrorClassifier.DEFAULT_CLASSIFIER,
         physicalPlan,
-        10
+        10,
+        processingLogger
     );
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);

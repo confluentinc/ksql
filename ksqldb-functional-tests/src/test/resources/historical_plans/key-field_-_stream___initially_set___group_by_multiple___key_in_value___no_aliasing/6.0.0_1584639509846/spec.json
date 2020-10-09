@@ -5,19 +5,39 @@
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER, `KSQL_INTERNAL_COL_2` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER, `BAR` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_INTERNAL_COL_0` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER, `KSQL_INTERNAL_COL_2` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`KSQL_COL_0` STRING KEY, `FOO` INTEGER, `BAR` INTEGER, `KSQL_COL_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -57,7 +77,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
@@ -65,15 +87,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -82,9 +104,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -92,9 +112,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -102,9 +120,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

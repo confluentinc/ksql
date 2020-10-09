@@ -5,19 +5,39 @@
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`K` STRING KEY, `DATA` STRING, `ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`K` STRING KEY, `DATA` STRING",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`K` STRING KEY, `DATA` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`K` STRING KEY, `KSQL_COL_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {
@@ -145,8 +165,8 @@
       "numPartitions" : 4
     }, {
       "name" : "test_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string DATA = 1;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string DATA = 1;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
@@ -163,7 +183,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
@@ -171,15 +193,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -188,9 +210,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -199,9 +219,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

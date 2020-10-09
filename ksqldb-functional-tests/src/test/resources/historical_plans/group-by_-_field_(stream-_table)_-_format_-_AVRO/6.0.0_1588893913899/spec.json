@@ -5,19 +5,39 @@
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`K` STRING KEY, `DATA` STRING, `ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`K` STRING KEY, `DATA` STRING",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`K` STRING KEY, `DATA` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`K` STRING KEY, `KSQL_COL_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {
@@ -145,7 +165,7 @@
       "numPartitions" : 4
     }, {
       "name" : "test_topic",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -156,7 +176,7 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
@@ -173,7 +193,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
@@ -181,15 +203,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -198,9 +220,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -209,9 +229,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

@@ -68,7 +68,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
@@ -91,6 +91,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -139,8 +140,8 @@ public class CliTest {
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
       .build();
 
-  @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  @Rule
+  public final TemporaryFolder TMP = new TemporaryFolder();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -188,9 +189,9 @@ public class CliTest {
         DELIMITED_TOPIC
     );
 
-    TEST_HARNESS.produceRows(JSON_TOPIC, ORDER_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(JSON_TOPIC, ORDER_DATA_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
     TEST_HARNESS.produceRecord(DELIMITED_TOPIC, null, null);
-    TEST_HARNESS.produceRows(DELIMITED_TOPIC, new ItemDataProvider(), FormatFactory.DELIMITED);
+    TEST_HARNESS.produceRows(DELIMITED_TOPIC, new ItemDataProvider(), FormatFactory.KAFKA, FormatFactory.DELIMITED);
 
     try (Cli cli = Cli.build(1L, 1000L, OutputFormat.JSON, restClient)) {
       createKStream(ORDER_DATA_PROVIDER, cli);
@@ -241,7 +242,7 @@ public class CliTest {
     }
   }
 
-  private static void createKStream(final TestDataProvider<?> dataProvider, final Cli cli) {
+  private static void createKStream(final TestDataProvider dataProvider, final Cli cli) {
     run("CREATE STREAM " + dataProvider.kstreamName()
             + " (" + dataProvider.ksqlSchemaString(false) + ")"
             + " WITH (value_format = 'json', kafka_topic = '" + dataProvider.topicName() + "');",
@@ -265,7 +266,7 @@ public class CliTest {
   private void testCreateStreamAsSelect(
       final String selectQuery,
       final PhysicalSchema resultSchema,
-      final Map<String, GenericRow> expectedResults
+      final Map<Struct, GenericRow> expectedResults
   ) {
     final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
@@ -280,6 +281,7 @@ public class CliTest {
       TEST_HARNESS.verifyAvailableUniqueRows(
           streamName,
           is(expectedResults),
+          FormatFactory.KAFKA,
           FormatFactory.JSON,
           resultSchema
       );
@@ -387,7 +389,7 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(ORDER_DATA_PROVIDER.kstreamName(), ORDER_DATA_PROVIDER.topicName(), "JSON")
+        isRow(ORDER_DATA_PROVIDER.kstreamName(), ORDER_DATA_PROVIDER.topicName(), "KAFKA", "JSON", "false")
     );
 
     assertRunListCommand("tables", is(EMPTY_RESULT));
@@ -508,29 +510,29 @@ public class CliTest {
 
   @Test
   public void testSelectProject() {
-    final Map<String, GenericRow> expectedResults = ImmutableMap
-        .<String, GenericRow>builder()
-        .put("ORDER_1", genericRow(
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap
+        .<Struct, GenericRow>builder()
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_1"), genericRow(
             "ITEM_1",
             10.0,
             ImmutableList.of(100.0, 110.99, 90.0)))
-        .put("ORDER_2", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_2"), genericRow(
             "ITEM_2",
             20.0,
             ImmutableList.of(10.0, 10.99, 9.0)))
-        .put("ORDER_3", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_3"), genericRow(
             "ITEM_3",
             30.0,
             ImmutableList.of(10.0, 10.99, 91.0)))
-        .put("ORDER_4", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_4"), genericRow(
             "ITEM_4",
             40.0,
             ImmutableList.of(10.0, 140.99, 94.0)))
-        .put("ORDER_5", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_5"), genericRow(
             "ITEM_5",
             50.0,
             ImmutableList.of(160.0, 160.99, 98.0)))
-        .put("ORDER_6", genericRow(
+        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_6"), genericRow(
             "ITEM_8",
             80.0,
             ImmutableList.of(1100.0, 1110.99, 970.0)))
@@ -543,7 +545,8 @@ public class CliTest {
             .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
             .build(),
-        SerdeOptions.of()
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
     );
 
     testCreateStreamAsSelect(
@@ -556,8 +559,8 @@ public class CliTest {
 
   @Test
   public void testSelectFilter() {
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ORDER_6",
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
+        ORDER_DATA_PROVIDER.keyFrom("ORDER_6"),
         genericRow(
             8L,
             "ITEM_8",
@@ -578,10 +581,10 @@ public class CliTest {
 
   @Test
   public void testTransientSelect() {
-    final Multimap<String, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get("ORDER_1"), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get("ORDER_2"), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get("ORDER_3"), genericRow()).values();
+    final Multimap<Struct, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
         "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
@@ -641,10 +644,10 @@ public class CliTest {
 
   @Test
   public void testTransientContinuousSelectStar() {
-    final Multimap<String, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get("ORDER_1"), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get("ORDER_2"), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get("ORDER_3"), genericRow()).values();
+    final Multimap<Struct, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
         "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
@@ -694,11 +697,12 @@ public class CliTest {
             .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
             .build(),
-        SerdeOptions.of()
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
     );
 
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ORDER_6",
+    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
+        ORDER_DATA_PROVIDER.keyFrom("ORDER_6"),
         genericRow("ITEM_8", 800.0, 1110.0, 12.0, true)
     );
 
@@ -731,7 +735,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldPrintErrorIfCantConnectToRestServer() throws Exception {
+  public void shouldPrintErrorIfCantConnectToRestServerOnRunInteractively() throws Exception {
     givenRunInteractivelyWillExit();
 
     final KsqlRestClient mockRestClient = givenMockRestClient();
@@ -743,6 +747,21 @@ public class CliTest {
 
     assertThat(terminal.getOutputString(),
                containsString("Please ensure that the URL provided is for an active KSQL server."));
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantConnectToRestServerOnRunCommand() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getServerInfo())
+        .thenThrow(new KsqlRestClientException("Boom", new IOException("")));
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runCommand("this is a command");
+
+    assertThat(terminal.getOutputString(),
+        containsString("Please ensure that the URL provided is for an active KSQL server."));
   }
 
   @Test
@@ -946,7 +965,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldRunScript() throws Exception {
+  public void shouldRunScriptOnRunInteractively() throws Exception {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
@@ -959,6 +978,22 @@ public class CliTest {
 
     // When:
     localCli.runInteractively();
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
+  }
+
+  @Test
+  public void shouldRunScriptOnRunCommand() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";"
+        + "").getBytes(StandardCharsets.UTF_8));
+
+    // When:
+    localCli.runCommand("run script '" + scriptFile.getAbsolutePath() + "'");
 
     // Then:
     assertThat(terminal.getOutputString(),
@@ -1101,7 +1136,7 @@ public class CliTest {
 
   private void runCliSpecificCommand(final String command) {
     when(lineSupplier.get()).thenReturn(command).thenReturn("");
-    console.readLine();
+    console.nextNonCliCommand();
   }
 
   private void givenRunInteractivelyWillExit() {

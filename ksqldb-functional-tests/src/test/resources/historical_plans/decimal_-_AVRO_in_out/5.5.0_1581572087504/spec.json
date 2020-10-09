@@ -5,11 +5,21 @@
   "schemas" : {
     "CSAS_TEST2_0.TEST2" : {
       "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_TEST2_0.KsqlTopic.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {
@@ -34,7 +44,7 @@
       "numPartitions" : 4
     }, {
       "name" : "test",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -56,36 +66,38 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM TEST (DEC DECIMAL(21, 19)) WITH (KAFKA_TOPIC='test', VALUE_FORMAT='AVRO');", "CREATE STREAM TEST2 AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -94,9 +106,7 @@
         }, {
           "name" : "TEST2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

@@ -18,23 +18,22 @@ package io.confluent.ksql.rest.server;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Ticker;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,9 +47,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CommandTopicBackupImplTest {
   private static final String COMMAND_TOPIC_NAME = "command_topic";
 
-  private Pair<CommandId, Command> command1 = newStreamRecord("stream1");
-  private Pair<CommandId, Command> command2 = newStreamRecord("stream2");
-  private Pair<CommandId, Command> command3 = newStreamRecord("stream3");
+  private ConsumerRecord<byte[], byte[]> command1 = newStreamRecord("stream1");
+  private ConsumerRecord<byte[], byte[]> command2 = newStreamRecord("stream2");
+  private ConsumerRecord<byte[], byte[]> command3 = newStreamRecord("stream3");
 
   @Mock
   private Ticker ticker;
@@ -66,15 +65,27 @@ public class CommandTopicBackupImplTest {
         backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker);
   }
 
-  private Pair<CommandId, Command> newStreamRecord(final String streamName) {
-    final CommandId commandId = new CommandId(
-        CommandId.Type.STREAM, streamName, CommandId.Action.CREATE);
-    final Command command = new Command(
-        String.format("CREATE STREAM %s (id INT) WITH (kafka_topic='%s", streamName, streamName),
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()
-    );
+  private ConsumerRecord<byte[], byte[]> newStreamRecord(final String streamName) {
+    return newStreamRecord(buildKey(streamName), buildValue(streamName));
+  }
 
-    return new Pair<>(commandId, command);
+  @SuppressWarnings("unchecked")
+  private ConsumerRecord<byte[], byte[]> newStreamRecord(final String key, final String value) {
+    final ConsumerRecord<byte[], byte[]> consumerRecord = mock(ConsumerRecord.class);
+
+    when(consumerRecord.key()).thenReturn(key.getBytes(StandardCharsets.UTF_8));
+    when(consumerRecord.value()).thenReturn(value.getBytes(StandardCharsets.UTF_8));
+
+    return consumerRecord;
+  }
+
+  private String buildKey(final String streamName) {
+    return String.format("\"stream/%s/create\"", streamName);
+  }
+
+  private String buildValue(final String streamName) {
+    return String.format("{\"statement\":\"CREATE STREAM %s (id INT) WITH (kafka_topic='%s')\"}",
+        streamName, streamName);
   }
 
   @Test
@@ -148,111 +159,146 @@ public class CommandTopicBackupImplTest {
   }
 
   @Test
+  public void shouldThrowWhenRecordIsNotValidCommandId() {
+    // Given
+    commandTopicBackup.initialize();
+
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> commandTopicBackup.writeRecord(new ConsumerRecord<>(
+        "topic1", 0, 0,
+            "stream/a/create/invalid".getBytes(StandardCharsets.UTF_8), command1.value())));
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "Failed to backup record because it cannot deserialize key: stream/a/create/invalid"));
+  }
+
+  @Test
+  public void shouldThrowWhenRecordIsNotValidCommand() {
+    // Given
+    commandTopicBackup.initialize();
+
+    // When
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> commandTopicBackup.writeRecord(new ConsumerRecord<>(
+            "topic1", 0, 0, command1.key(),
+            "my command".getBytes(StandardCharsets.UTF_8))));
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "Failed to backup record because it cannot deserialize value: my command"));
+  }
+
+  @Test
   public void shouldWriteCommandToBackupToReplayFile() throws IOException {
     // Given
     commandTopicBackup.initialize();
 
     // When
-    final ConsumerRecord<CommandId, Command> record = newConsumerRecord(command1);
-    commandTopicBackup.writeCommandToBackup(record);
+    commandTopicBackup.writeRecord(command1);
 
     // Then
-    final List<Pair<CommandId, Command>> commands =
-        commandTopicBackup.getReplayFile().readRecords();
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
     assertThat(commands.size(), is(1));
-    assertThat(commands.get(0).left, is(command1.left));
-    assertThat(commands.get(0).right, is(command1.right));
+    assertThat(commands.get(0).left, is(command1.key()));
+    assertThat(commands.get(0).right, is(command1.value()));
   }
 
   @Test
   public void shouldIgnoreRecordPreviouslyReplayed() throws IOException {
     // Given
-    final ConsumerRecord<CommandId, Command> record = newConsumerRecord(command1);
     commandTopicBackup.initialize();
-    commandTopicBackup.writeCommandToBackup(record);
+    commandTopicBackup.writeRecord(command1);
     final BackupReplayFile previousReplayFile = commandTopicBackup.getReplayFile();
 
     // When
     // A 2nd initialize call will open the latest backup and read the previous replayed commands
     commandTopicBackup.initialize();
-    commandTopicBackup.writeCommandToBackup(record);
+    commandTopicBackup.writeRecord(command1);
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then
-    final List<Pair<CommandId, Command>> commands = currentReplayFile.readRecords();
+    final List<Pair<byte[], byte[]>> commands = currentReplayFile.readRecords();
     assertThat(commands.size(), is(1));
-    assertThat(commands.get(0).left, is(command1.left));
-    assertThat(commands.get(0).right, is(command1.right));
+    assertThat(commands.get(0).left, is(command1.key()));
+    assertThat(commands.get(0).right, is(command1.value()));
     assertThat(currentReplayFile.getPath(), is(previousReplayFile.getPath()));
   }
 
   @Test
-  public void shouldCreateNewReplayFileIfNewRecordsDoNotMatchPreviousBackups() throws IOException {
+  public void shouldNotCreateNewReplayFileIfNewRecordsDoNotMatchPreviousBackups() {
     // Given
-    final ConsumerRecord<CommandId, Command> record1 = newConsumerRecord(command1);
+    commandTopicBackup = new CommandTopicBackupImpl(
+        backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker);
     commandTopicBackup.initialize();
-    commandTopicBackup.writeCommandToBackup(record1);
+    commandTopicBackup.writeRecord(command1);
     final BackupReplayFile previousReplayFile = commandTopicBackup.getReplayFile();
 
     // When
     // A 2nd initialize call will open the latest backup and read the previous replayed commands
     commandTopicBackup.initialize();
-    final ConsumerRecord<CommandId, Command> record2 = newConsumerRecord(command2);
-    // Need to increase the ticker so the new file has a new timestamp
-    when(ticker.read()).thenReturn(2L);
-    // The write command will create a new replay file with the new command
-    commandTopicBackup.writeCommandToBackup(record2);
+    // The write command will conflicts with what's already in the backup file
+    try {
+      commandTopicBackup.writeRecord(command2);
+      assertThat(true, is(false));
+    } catch (final KsqlServerException e) {
+      // This is expected so we do nothing
+    }
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then
-    List<Pair<CommandId, Command>> commands = previousReplayFile.readRecords();
-    assertThat(commands.size(), is(1));
-    assertThat(commands.get(0).left, is(command1.left));
-    assertThat(commands.get(0).right, is(command1.right));
-    commands = currentReplayFile.readRecords();
-    assertThat(commands.size(), is(1));
-    assertThat(commands.get(0).left, is(command2.left));
-    assertThat(commands.get(0).right, is(command2.right));
-    assertThat(currentReplayFile.getPath(), not(previousReplayFile.getPath()));
+    assertThat(currentReplayFile.getPath(), is(previousReplayFile.getPath()));
+    assertThat(commandTopicBackup.commandTopicCorruption(), is(true));
+    try {
+      commandTopicBackup.writeRecord(command2);
+      assertThat(true, is(false));
+    } catch (final KsqlServerException e) {
+      // This is expected so we do nothing
+    }
   }
 
   @Test
   public void shouldWritePreviousReplayedRecordsAlreadyChecked() throws IOException {
     // Given
-    final ConsumerRecord<CommandId, Command> record1 = newConsumerRecord(command1);
-    final ConsumerRecord<CommandId, Command> record2 = newConsumerRecord(command2);
     commandTopicBackup.initialize();
-    commandTopicBackup.writeCommandToBackup(record1);
-    commandTopicBackup.writeCommandToBackup(record2);
+    commandTopicBackup.writeRecord(command1);
+    commandTopicBackup.writeRecord(command2);
     final BackupReplayFile previousReplayFile = commandTopicBackup.getReplayFile();
 
     // When
     // A 2nd initialize call will open the latest backup and read the previous replayed commands
     commandTopicBackup.initialize();
-    // Need to increase the ticker so the new file has a new timestamp
-    when(ticker.read()).thenReturn(2L);
     // command1 is ignored because it was previously replayed
-    commandTopicBackup.writeCommandToBackup(record1);
-    // The write command will create a new replay file with the new command, and command1 will
-    // be written to have a complete backup
-    final ConsumerRecord<CommandId, Command> record3 = newConsumerRecord(command3);
-    commandTopicBackup.writeCommandToBackup(record3);
+    commandTopicBackup.writeRecord(command1);
+    // The write command will conflicts with what's already in the backup file
+    try {
+      commandTopicBackup.writeRecord(command3);
+      assertThat(true, is(false));
+    } catch (final KsqlServerException e) {
+      // This is expected so we do nothing
+    }
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
 
     // Then
-    List<Pair<CommandId, Command>> commands = previousReplayFile.readRecords();
+    List<Pair<byte[], byte[]>> commands = previousReplayFile.readRecords();
     assertThat(commands.size(), is(2));
-    assertThat(commands.get(0).left, is(command1.left));
-    assertThat(commands.get(0).right, is(command1.right));
-    assertThat(commands.get(1).left, is(command2.left));
-    assertThat(commands.get(1).right, is(command2.right));
+    assertThat(commands.get(0).left, is(command1.key()));
+    assertThat(commands.get(0).right, is(command1.value()));
+    assertThat(commands.get(1).left, is(command2.key()));
+    assertThat(commands.get(1).right, is(command2.value()));
+
+    // the backup file should be the same and the contents shouldn't have been modified
     commands = currentReplayFile.readRecords();
     assertThat(commands.size(), is(2));
-    assertThat(commands.get(0).left, is(command1.left));
-    assertThat(commands.get(0).right, is(command1.right));
-    assertThat(commands.get(1).left, is(command3.left));
-    assertThat(commands.get(1).right, is(command3.right));
-    assertThat(currentReplayFile.getPath(), not(previousReplayFile.getPath()));
+    assertThat(commands.get(0).left, is(command1.key()));
+    assertThat(commands.get(0).right, is(command1.value()));
+    assertThat(commands.get(1).left, is(command2.key()));
+    assertThat(commands.get(1).right, is(command2.value()));
+    assertThat(currentReplayFile.getPath(), is(previousReplayFile.getPath()));
+    assertThat(commandTopicBackup.commandTopicCorruption(), is(true));
   }
 
   @Test
@@ -326,11 +372,5 @@ public class CommandTopicBackupImplTest {
     assertThat(replayFile.getPath(), is(String.format(
         "%s/backup_command_topic_111", backupLocation.getRoot().getAbsolutePath()
     )));
-  }
-
-  private ConsumerRecord<CommandId, Command> newConsumerRecord(
-      final Pair<CommandId, Command> record
-  ) {
-    return new ConsumerRecord<>("topic", 0, 0, record.left, record.right);
   }
 }

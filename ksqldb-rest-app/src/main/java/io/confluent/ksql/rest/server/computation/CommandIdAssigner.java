@@ -113,7 +113,7 @@ public class CommandIdAssigner {
   private static CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {
     return new CommandId(
         CommandId.Type.TERMINATE,
-        terminateQuery.getQueryId().map(QueryId::toString).orElse("ALL"),
+        terminateQuery.getQueryId().map(QueryId::toString).orElse(TerminateQuery.ALL_QUERIES),
         CommandId.Action.EXECUTE
     );
   }

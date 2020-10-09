@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
@@ -317,8 +318,8 @@ public class StandaloneExecutor implements Executable {
         final ParsedStatement statement
     ) {
       final PreparedStatement<?> prepared = executionContext.prepare(statement);
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, configOverrides, ksqlConfig);
+      final ConfiguredStatement<?> configured = ConfiguredStatement
+          .of(prepared, SessionConfig.of(ksqlConfig, configOverrides));
 
       return injector.inject(configured);
     }

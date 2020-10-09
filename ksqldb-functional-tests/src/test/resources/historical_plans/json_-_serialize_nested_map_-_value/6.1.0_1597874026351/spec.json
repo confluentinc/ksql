@@ -5,11 +5,22 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`FOO` MAP<STRING, DOUBLE>",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` MAP<STRING, DOUBLE>",
-      "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON",
+        "features" : [ "WRAP_SINGLES" ]
+      }
     }
   },
   "testCase" : {
@@ -88,29 +99,31 @@
     "statements" : [ "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`FOO` MAP<STRING, DOUBLE>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` MAP<STRING, DOUBLE>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "WRAP_SINGLES" ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -119,12 +132,11 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "JSON",
+            "features" : [ "WRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

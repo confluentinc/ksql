@@ -23,7 +23,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -111,19 +110,6 @@ public final class DecimalUtil {
     } catch (final NumberFormatException e) {
       throw new KsqlException("Invalid precision parameter found in Decimal schema: ", e);
     }
-  }
-
-  /**
-   * Formats the decimal string, adding trailing zeros if necessary.
-   *
-   * @param value the value
-   * @return the formatted string
-   */
-  public static String format(final int precision, final int scale, final BigDecimal value) {
-    final DecimalFormat format = new DecimalFormat();
-    format.setMinimumFractionDigits(scale);
-
-    return format.format(value);
   }
 
   /**

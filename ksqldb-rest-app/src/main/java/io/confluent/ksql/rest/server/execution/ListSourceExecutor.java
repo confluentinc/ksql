@@ -85,7 +85,7 @@ public final class ListSourceExecutor {
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
             s -> describeSource(
-                statement.getConfig(),
+                statement.getSessionConfig().getConfig(false),
                 executionContext,
                 serviceContext,
                 s.getName(),
@@ -161,7 +161,7 @@ public final class ListSourceExecutor {
   ) {
     final ShowColumns showColumns = statement.getStatement();
     final SourceDescriptionWithWarnings descriptionWithWarnings = describeSource(
-        statement.getConfig(),
+        statement.getSessionConfig().getConfig(false),
         executionContext,
         serviceContext,
         showColumns.getTable(),
@@ -342,7 +342,9 @@ public final class ListSourceExecutor {
     return new Stream(
         dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
-        dataSource.getKsqlTopic().getValueFormat().getFormat().name()
+        dataSource.getKsqlTopic().getKeyFormat().getFormat(),
+        dataSource.getKsqlTopic().getValueFormat().getFormat(),
+        dataSource.getKsqlTopic().getKeyFormat().isWindowed()
     );
   }
 
@@ -350,7 +352,8 @@ public final class ListSourceExecutor {
     return new Table(
         dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
-        dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
+        dataSource.getKsqlTopic().getKeyFormat().getFormat(),
+        dataSource.getKsqlTopic().getValueFormat().getFormat(),
         dataSource.getKsqlTopic().getKeyFormat().isWindowed()
     );
   }

@@ -5,23 +5,48 @@
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
       "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOTAL` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
       "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `TOTAL` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`T1_ID` BIGINT KEY, `ID` BIGINT, `SUM` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {
@@ -143,7 +168,7 @@
       "numPartitions" : 4
     }, {
       "name" : "T1",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -158,12 +183,12 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
       "name" : "T2",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -178,7 +203,7 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     } ],
@@ -191,7 +216,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "T1",
         "type" : "TABLE",
@@ -199,7 +226,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "T2",
         "type" : "TABLE",
@@ -207,15 +236,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "T1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -224,9 +253,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -234,9 +261,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -244,9 +269,7 @@
         }, {
           "name" : "T2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -255,9 +278,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

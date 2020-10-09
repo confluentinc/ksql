@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,21 +35,17 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.GenericRowSerDe.GenericRowDeserializer;
 import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.DataException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,11 +61,6 @@ public class GenericRowSerDeTest {
   private static final Map<String, ?> SOME_CONFIG = ImmutableMap.of("some", "thing");
   private static final byte[] SERIALIZED = "serialized".getBytes(StandardCharsets.UTF_8);
 
-  private static final ConnectSchema CONNECT_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
-      .field("vic", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("bob", Schema.OPTIONAL_INT32_SCHEMA)
-      .build();
-
   @Mock
   private GenericSerdeFactory innerFactory;
   @Mock
@@ -82,45 +74,44 @@ public class GenericRowSerDeTest {
   @Mock
   private ProcessingLogContext processingLogCxt;
   @Mock
-  private Serde<Struct> innerSerde;
+  private Serde<List<?>> innerSerde;
   @Mock
-  private Serializer<Struct> innerSerializer;
+  private Serializer<List<?>> innerSerializer;
   @Mock
-  private Deserializer<Struct> innerDeserializer;
-  @Mock
-  private Struct deserialized;
-  @Mock
-  private Schema deserializedSchema;
+  private Deserializer<List<?>> innerDeserializer;
   @Mock
   private Serde<Object> loggingSerde;
+  @Mock
+  private Serde<Object> trackingSerde;
+  @Mock
+  private TrackedCallback callback;
   @Captor
   private ArgumentCaptor<Serde<GenericRow>> rowSerdeCaptor;
 
   private ValueSerdeFactory factory;
   private GenericRowSerializer serializer;
   private GenericRowDeserializer deserializer;
-  private final Struct struct = new Struct(CONNECT_SCHEMA);
 
   @Before
   public void setUp() {
     factory = new GenericRowSerDe(innerFactory);
 
-    serializer = new GenericRowSerializer(innerSerializer, CONNECT_SCHEMA);
-    deserializer = new GenericRowDeserializer(innerDeserializer, CONNECT_SCHEMA);
+    serializer = new GenericRowSerializer(innerSerializer, 2);
+    deserializer = new GenericRowDeserializer(innerDeserializer, 2);
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
     when(innerSerde.serializer()).thenReturn(innerSerializer);
     when(innerSerde.deserializer()).thenReturn(innerDeserializer);
     when(innerSerializer.serialize(any(), any())).thenReturn(SERIALIZED);
-    when(innerDeserializer.deserialize(any(), any())).thenReturn(deserialized);
-    when(deserialized.schema()).thenReturn(deserializedSchema);
   }
 
   @Test
   public void shouldCreateInnerSerde() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(innerFactory).createFormatSerde("Value", format, schema, config, srClientFactory);
@@ -129,7 +120,8 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldWrapInLoggingSerde() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
@@ -138,16 +130,38 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldConfigureLoggingSerde() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(loggingSerde).configure(ImmutableMap.of(), false);
   }
 
   @Test
+  public void shouldReturnTrackingSerde() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.of(callback));
+
+    // Then:
+    verify(innerFactory).wrapInTrackingSerde(loggingSerde, callback);
+  }
+
+  @Test
+  public void shouldNotWrapInTrackingSerdeIfNoCallbackProvided() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
+
+    // Then:
+    verify(innerFactory, never()).wrapInTrackingSerde(any(), any());
+  }
+
+  @Test
   public void shouldWrapInGenericSerde() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(innerFactory).wrapInLoggingSerde(rowSerdeCaptor.capture(), any(), any());
@@ -161,7 +175,8 @@ public class GenericRowSerDeTest {
   public void shouldReturnLoggingSerde() {
     // When:
     final Serde<GenericRow> result = factory
-        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
 
     // Then:
     assertThat(result, is(sameInstance(loggingSerde)));
@@ -238,7 +253,7 @@ public class GenericRowSerDeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Field count mismatch on serialization."
+    assertThat(e.getMessage(), is("Column count mismatch on serialization."
         + " topic: topicName"
         + ", expected: 2"
         + ", got: 3"
@@ -248,11 +263,7 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldThrowOnDeserializeOnColumnCountMismatch() {
     // Given:
-    when(deserializedSchema.fields()).thenReturn(ImmutableList.of(
-        new Field("too", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("many", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("columns", 0, Schema.OPTIONAL_INT64_SCHEMA)
-    ));
+    givenInnerDeserializerReturns(ImmutableList.of("too", "many", "columns"));
 
     // When:
     final Exception e = assertThrows(
@@ -261,7 +272,7 @@ public class GenericRowSerDeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Field count mismatch on deserialization."
+    assertThat(e.getMessage(), is("Column count mismatch on deserialization."
         + " topic: topicName"
         + ", expected: 2"
         + ", got: 3"
@@ -269,7 +280,7 @@ public class GenericRowSerDeTest {
   }
 
   @Test
-  public void shouldConvertRowToStructWhenSerializing() {
+  public void shouldConvertRowToListWhenSerializing() {
     // Given:
     final GenericRow row = GenericRow.genericRow("hello", 10);
 
@@ -277,20 +288,13 @@ public class GenericRowSerDeTest {
     serializer.serialize("topicName", row);
 
     // Then:
-    verify(innerSerializer).serialize("topicName", struct
-        .put("vic", "hello")
-        .put("bob", 10)
-    );
+    verify(innerSerializer).serialize("topicName", row.values());
   }
 
   @Test
-  public void shouldConvertStructToRowWhenDeserializing() {
+  public void shouldConvertListToRowWhenDeserializing() {
     // Given:
-    struct
-        .put("vic", "world")
-        .put("bob", -10);
-
-    when(innerDeserializer.deserialize(any(), any())).thenReturn(struct);
+    givenInnerDeserializerReturns(ImmutableList.of("world", -10));
 
     // When:
     final GenericRow row = deserializer.deserialize("topicName", SERIALIZED);
@@ -299,36 +303,8 @@ public class GenericRowSerDeTest {
     assertThat(row, is(GenericRow.genericRow("world", -10)));
   }
 
-  @Test
-  public void shouldThrowOnSerializationIfColumnValueDoesNotMatchSchema() {
-    // Given:
-    final GenericRow row = GenericRow.genericRow("hello", "Not a number");
-
-    // When:
-    assertThrows(
-        DataException.class,
-        () -> serializer.serialize("topicName", row)
-    );
-  }
-
-  @Test
-  public void shouldThrowOnSerializationIfStructColumnValueDoesNotMatchSchema() {
-    // Given:
-    final GenericRow row = GenericRow.genericRow(struct, 10);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> serializer.serialize("topicName", row)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), is(
-        "Failed to prepare Struct value field 'vic' for serialization. "
-            + "This could happen if the value was produced by a user-defined function "
-            + "where the schema has non-optional return types. ksqlDB requires all "
-            + "schemas to be optional at all levels of the Struct: the Struct itself, "
-            + "schemas for all fields within the Struct, and so on."
-    ));
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private void givenInnerDeserializerReturns(final List<?> values) {
+    when(innerDeserializer.deserialize(any(), any())).thenReturn((List)values);
   }
 }

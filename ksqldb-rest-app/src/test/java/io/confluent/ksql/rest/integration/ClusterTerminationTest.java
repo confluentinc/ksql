@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -88,7 +89,7 @@ public class ClusterTerminationTest {
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(SINK_TOPIC);
 
     // Produce to stream so that schema is registered by AvroConverter
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, JSON, System::currentTimeMillis);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
 
     TEST_HARNESS.waitForSubjectToBePresent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 

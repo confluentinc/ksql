@@ -17,12 +17,12 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.ColumnName;
@@ -82,10 +82,11 @@ public class PullQueryPublisherTest {
         serviceContext,
         statement,
         pullQueryExecutor,
+        Optional.empty(),
         TIME_NANOS);
 
     PullQueryResult result = new PullQueryResult(entity, Optional.empty());
-    when(pullQueryExecutor.execute(any(), any(), any(), eq(TIME_NANOS))).thenReturn(result);
+    when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenReturn(result);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -109,7 +110,7 @@ public class PullQueryPublisherTest {
     subscription.request(1);
 
     // Then:
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.of(false), TIME_NANOS);
+    verify(pullQueryExecutor).execute(statement, ImmutableMap.of(), serviceContext, Optional.of(false), Optional.empty());
   }
 
   @Test
@@ -122,7 +123,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(any());
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.of(false), TIME_NANOS);
+    verify(pullQueryExecutor).execute(statement, ImmutableMap.of(), serviceContext, Optional.of(false), Optional.empty());
   }
 
   @Test
@@ -157,7 +158,7 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
     final Throwable e = new RuntimeException("Boom!");
-    when(pullQueryExecutor.execute(any(), any(), any(), eq(TIME_NANOS))).thenThrow(e);
+    when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenThrow(e);
 
     // When:
     subscription.request(1);

@@ -401,7 +401,7 @@ public final class SqlFormatter {
     @Override
     protected Void visitTerminateQuery(final TerminateQuery node, final Integer context) {
       builder.append("TERMINATE ");
-      builder.append(node.getQueryId().map(QueryId::toString).orElse("ALL"));
+      builder.append(node.getQueryId().map(QueryId::toString).orElse(TerminateQuery.ALL_QUERIES));
       return null;
     }
 

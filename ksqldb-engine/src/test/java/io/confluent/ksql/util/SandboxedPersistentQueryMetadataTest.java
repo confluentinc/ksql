@@ -15,8 +15,15 @@
 
 package io.confluent.ksql.util;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
@@ -24,6 +31,11 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.query.QuerySchemas;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
@@ -31,19 +43,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Consumer;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SandboxedPersistentQueryMetadataTest {
@@ -80,6 +79,8 @@ public class SandboxedPersistentQueryMetadataTest {
   private QueryErrorClassifier queryErrorClassifier;
   @Mock
   private ExecutionStep<?> physicalPlan;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   private PersistentQueryMetadata query;
   private SandboxedPersistentQueryMetadata sandbox;
@@ -109,7 +110,8 @@ public class SandboxedPersistentQueryMetadataTest {
         CLOSE_TIMEOUT,
         queryErrorClassifier,
         physicalPlan,
-        10
+        10,
+        processingLogger
     );
 
     sandbox = SandboxedPersistentQueryMetadata.of(query, closeCallback);

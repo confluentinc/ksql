@@ -5,23 +5,48 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
       "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
       "schema" : "`T_ID` BIGINT KEY, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ID` BIGINT",
-      "serdeOptions" : [ ]
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
       "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`T_ID` BIGINT KEY, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
       "schema" : "`TT_ID` BIGINT KEY, `TT_F1` STRING, `TT_F2` BIGINT, `TT_ROWTIME` BIGINT, `TT_ID` BIGINT",
-      "serdeOptions" : [ ]
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {
@@ -284,8 +309,8 @@
     } ],
     "topics" : [ {
       "name" : "right_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
@@ -302,8 +327,8 @@
       "numPartitions" : 4
     }, {
       "name" : "left_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     } ],
@@ -316,7 +341,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
@@ -324,7 +351,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST_STREAM",
         "type" : "STREAM",
@@ -332,15 +361,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -349,9 +378,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -360,9 +387,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -371,9 +396,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -382,9 +405,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000009-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"

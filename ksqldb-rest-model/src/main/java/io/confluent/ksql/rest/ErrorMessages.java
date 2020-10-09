@@ -23,5 +23,7 @@ public interface ErrorMessages {
   
   String schemaRegistryUnconfiguredErrorMessage(Exception e);
 
-  String commandRunnerDegradedErrorMessage();
+  String commandRunnerDegradedIncompatibleCommandsErrorMessage();
+
+  String commandRunnerDegradedCorruptedErrorMessage();
 }

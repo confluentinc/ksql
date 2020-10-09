@@ -5,19 +5,42 @@
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_INTERNAL_COL_2` BOOLEAN",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`ID` BIGINT KEY, `F0` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_AGG_VARIABLE_0` STRUCT<`SEQ` BIGINT, `VAL` INTEGER>",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ID` BIGINT KEY, `L0` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "SESSION"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -113,6 +136,16 @@
     "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, true) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;" ],
     "post" : {
       "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
         "name" : "OUTPUT",
         "type" : "TABLE",
         "schema" : "`ID` BIGINT KEY, `L0` INTEGER",
@@ -120,23 +153,15 @@
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
-        "serdeOptions" : [ ]
-      }, {
-        "name" : "INPUT",
-        "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `F0` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -145,9 +170,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -158,9 +181,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }

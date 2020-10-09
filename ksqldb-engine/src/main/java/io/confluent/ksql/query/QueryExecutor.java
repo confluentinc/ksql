@@ -17,11 +17,15 @@ package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -68,9 +72,11 @@ import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class QueryExecutor {
+  private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
+      = "ksql.logger.thread.exception.uncaught";
+
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-  private final KsqlConfig ksqlConfig;
-  private final Map<String, Object> overrides;
+  private final SessionConfig config;
   private final ProcessingLogContext processingLogContext;
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
@@ -80,15 +86,13 @@ public final class QueryExecutor {
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
 
   public QueryExecutor(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overrides,
+      final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
       final Consumer<QueryMetadata> queryCloseCallback) {
     this(
-        ksqlConfig,
-        overrides,
+        config,
         processingLogContext,
         serviceContext,
         functionRegistry,
@@ -97,17 +101,16 @@ public final class QueryExecutor {
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
         new StreamsBuilder(),
         new MaterializationProviderBuilderFactory(
-            ksqlConfig,
+            config.getConfig(true),
             serviceContext,
             new KsMaterializationFactory(),
             new KsqlMaterializationFactory(processingLogContext)
-        )
-    );
+        ));
   }
 
+  @VisibleForTesting
   QueryExecutor(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overrides,
+      final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
@@ -116,8 +119,7 @@ public final class QueryExecutor {
       final StreamsBuilder streamsBuilder,
       final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
   ) {
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.overrides = Objects.requireNonNull(overrides, "overrides");
+    this.config = Objects.requireNonNull(config, "config");
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext,
         "processingLogContext"
@@ -147,6 +149,8 @@ public final class QueryExecutor {
   ) {
     final BlockingRowQueue queue = buildTransientQueryQueue(queryId, physicalPlan, limit);
 
+    final KsqlConfig ksqlConfig = config.getConfig(true);
+
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
@@ -162,7 +166,7 @@ public final class QueryExecutor {
         topology,
         kafkaStreamsBuilder,
         streamsProperties,
-        overrides,
+        config.getOverrides(),
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
@@ -187,13 +191,17 @@ public final class QueryExecutor {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     final Object result = physicalPlan.build(planBuilder);
+
+    final KsqlConfig ksqlConfig = config.getConfig(true);
+
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final PhysicalSchema querySchema = PhysicalSchema.from(
         sinkDataSource.getSchema(),
-        sinkDataSource.getSerdeOptions()
+        sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+        sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
@@ -224,19 +232,29 @@ public final class QueryExecutor {
         kafkaStreamsBuilder,
         ksqlQueryBuilder.getSchemas(),
         streamsProperties,
-        overrides,
+        config.getOverrides(),
         queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         classifier,
         physicalPlan,
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+        getUncaughtExceptionProcessingLogger(queryId)
     );
+  }
+
+  private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
+    final QueryContext.Stacker stacker = new QueryContext.Stacker()
+        .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
+
+    return processingLogContext.getLoggerFactory().getLogger(
+            QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
   }
 
   private TransientQueryQueue buildTransientQueryQueue(
       final QueryId queryId,
       final ExecutionStep<?> physicalPlan,
-      final OptionalInt limit) {
+      final OptionalInt limit
+  ) {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     final Object buildResult = physicalPlan.build(planBuilder);
@@ -257,7 +275,7 @@ public final class QueryExecutor {
   private KsqlQueryBuilder queryBuilder(final QueryId queryId) {
     return KsqlQueryBuilder.of(
         streamsBuilder,
-        ksqlConfig,
+        config.getConfig(true),
         serviceContext,
         processingLogContext,
         functionRegistry,
@@ -270,7 +288,7 @@ public final class QueryExecutor {
       final QueryId queryId
   ) {
     final Map<String, Object> newStreamsProperties
-        = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps(applicationId));
+        = new HashMap<>(config.getConfig(true).getKsqlStreamConfigProps(applicationId));
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     final ProcessingLogger logger
         = processingLogContext.getLoggerFactory().getLogger(queryId.toString());

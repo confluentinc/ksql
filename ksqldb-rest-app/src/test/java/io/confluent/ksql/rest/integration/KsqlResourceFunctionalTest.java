@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
@@ -40,8 +42,8 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -50,6 +52,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -161,17 +164,18 @@ public class KsqlResourceFunctionalTest {
             .keyColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)
             .build(),
-        SerdeOptions.of()
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
     );
+    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(schema.logicalSchema());
 
-    final ParsedSchema parsedSchema = new AvroFormat().toParsedSchema(
+    final SchemaTranslator translator = new AvroFormat()
+        .getSchemaTranslator(ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value"));
+
+    final ParsedSchema parsedSchema = translator.toParsedSchema(
         PersistenceSchema.from(
             schema.logicalSchema().value(),
-            schema.serdeOptions().valueFeatures()
-        ),
-        FormatInfo.of(
-            AvroFormat.NAME,
-            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value")
+            schema.valueSchema().features()
         )
     );
 
@@ -194,28 +198,29 @@ public class KsqlResourceFunctionalTest {
     TEST_HARNESS.verifyAvailableRows(
         "books",
         contains(matches(
-            "Metamorphosis",
+            keyBuilder.build("Metamorphosis"),
             genericRow("Franz Kafka"),
             0,
             0L,
             123L)),
+        FormatFactory.KAFKA,
         FormatFactory.AVRO,
         schema
     );
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static Matcher<ConsumerRecord<String, GenericRow>> matches(
-      final String key,
+  private static Matcher<ConsumerRecord<Struct, GenericRow>> matches(
+      final Struct key,
       final GenericRow value,
       final int partition,
       final long offset,
       final long timestamp
   ) {
-    return new TypeSafeMatcher<ConsumerRecord<String, GenericRow>>() {
+    return new TypeSafeMatcher<ConsumerRecord<Struct, GenericRow>>() {
       @Override
-      protected boolean matchesSafely(final ConsumerRecord<String, GenericRow> item) {
-        return item.key().equalsIgnoreCase(key)
+      protected boolean matchesSafely(final ConsumerRecord<Struct, GenericRow> item) {
+        return item.key().equals(key)
             && item.value().equals(value)
             && item.offset() == offset
             && item.partition() == partition

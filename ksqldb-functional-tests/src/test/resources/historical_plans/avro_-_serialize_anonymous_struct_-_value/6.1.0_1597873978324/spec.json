@@ -5,11 +5,22 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`FOO` STRUCT<`F0` INTEGER>",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` STRUCT<`F0` INTEGER>",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     }
   },
   "testCase" : {
@@ -64,7 +75,7 @@
     } ],
     "topics" : [ {
       "name" : "OUTPUT",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "ignored",
         "fields" : [ {
@@ -72,12 +83,12 @@
           "type" : [ "null", "int" ]
         } ]
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 1
     }, {
       "name" : "input_topic",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -97,36 +108,38 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`FOO` STRUCT<`F0` INTEGER>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`FOO` STRUCT<`F0` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` STRUCT<`F0` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -135,12 +148,11 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "AVRO",
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

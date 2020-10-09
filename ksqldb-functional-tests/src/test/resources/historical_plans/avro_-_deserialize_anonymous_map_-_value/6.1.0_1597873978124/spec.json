@@ -5,11 +5,22 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`FOO` MAP<STRING, INTEGER>",
-      "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` MAP<STRING, INTEGER>",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {
@@ -62,7 +73,7 @@
     } ],
     "topics" : [ {
       "name" : "OUTPUT",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "ignored",
         "fields" : [ {
@@ -85,56 +96,57 @@
           } ]
         } ]
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 1
     }, {
       "name" : "input_topic",
-      "schema" : {
+      "valueSchema" : {
         "type" : "map",
         "values" : [ "null", "int" ]
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 1
     } ],
     "statements" : [ "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`FOO` MAP<STRING, INTEGER>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`FOO` MAP<STRING, INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ "UNWRAP_SINGLE_VALUES" ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "AVRO",
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "partitions" : 1
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

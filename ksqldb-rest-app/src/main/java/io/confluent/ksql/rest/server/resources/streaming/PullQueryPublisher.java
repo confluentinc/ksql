@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.tree.Query;
@@ -26,6 +27,7 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.services.ServiceContext;
@@ -41,6 +43,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
   private final PullQueryExecutor pullQueryExecutor;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final long startTimeNanos;
 
   @VisibleForTesting
@@ -48,11 +51,13 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> query,
       final PullQueryExecutor pullQueryExecutor,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.query = requireNonNull(query, "query");
     this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
+    this.pullQueryMetrics = pullQueryMetrics;
     this.startTimeNanos = startTimeNanos;
   }
 
@@ -60,7 +65,14 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
-        () -> pullQueryExecutor.execute(query, serviceContext, Optional.of(false), startTimeNanos)
+        () -> {
+          final PullQueryResult result = pullQueryExecutor.execute(
+              query, ImmutableMap.of(), serviceContext, Optional.of(false), pullQueryMetrics);
+          //Record latency at microsecond scale
+          pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
+              .recordLatency(startTimeNanos));
+          return result;
+        }
     );
 
     subscriber.onSubscribe(subscription);

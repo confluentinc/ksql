@@ -16,6 +16,7 @@
 package io.confluent.ksql.materialization.ks;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.RetryOnException;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -47,7 +48,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -97,6 +98,7 @@ public class KsMaterializationFunctionalTest {
   private static final String PAGE_VIEWS_TOPIC = "page_views_topic";
   private static final String PAGE_VIEWS_STREAM = "page_views_stream";
 
+  private static final Format KEY_FORMAT = KAFKA;
   private static final Format VALUE_FORMAT = JSON;
   private static final UserDataProvider USER_DATA_PROVIDER = new UserDataProvider();
   private static final PageViewDataProvider PAGE_VIEW_DATA_PROVIDER = new PageViewDataProvider();
@@ -147,6 +149,7 @@ public class KsMaterializationFunctionalTest {
     TEST_HARNESS.produceRows(
         USERS_TOPIC,
         USER_DATA_PROVIDER,
+        KEY_FORMAT,
         VALUE_FORMAT
     );
 
@@ -154,6 +157,7 @@ public class KsMaterializationFunctionalTest {
       TEST_HARNESS.produceRows(
           PAGE_VIEWS_TOPIC,
           PAGE_VIEW_DATA_PROVIDER,
+          KEY_FORMAT,
           VALUE_FORMAT,
           windowTime::toEpochMilli
       );
@@ -678,7 +682,7 @@ public class KsMaterializationFunctionalTest {
         output.toUpperCase(),
         USER_DATA_PROVIDER.data().size(),
         VALUE_FORMAT,
-        PhysicalSchema.from(aggregateSchema, SerdeOptions.of()),
+        PhysicalSchema.from(aggregateSchema, SerdeFeatures.of(), SerdeFeatures.of()),
         keyDeserializer
     );
   }

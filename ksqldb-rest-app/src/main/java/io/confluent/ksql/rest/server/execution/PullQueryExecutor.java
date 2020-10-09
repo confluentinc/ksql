@@ -31,6 +31,7 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -110,7 +111,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
@@ -141,24 +141,19 @@ public final class PullQueryExecutor {
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
-  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
       final RoutingFilterFactory routingFilterFactory,
       final KsqlConfig ksqlConfig,
-      final String serviceId,
-      final Time time
+      final String serviceId
   ) {
     this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
-    this.pullQueryMetrics = ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED)
-        ? Optional.of(new PullQueryExecutorMetrics(serviceId,
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS), time))
-        : Optional.empty();
+
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -173,15 +168,19 @@ public final class PullQueryExecutor {
 
   public PullQueryResult execute(
       final ConfiguredStatement<Query> statement,
+      final Map<String, Object> requestProperties,
       final ServiceContext serviceContext,
       final Optional<Boolean> isInternalRequest,
-      final long startTimeNanos
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
 
-    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
+    final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    if (!sessionConfig.getConfig(false)
+        .getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
       throw new KsqlStatementException(
           "Pull queries are disabled."
               + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
@@ -193,7 +192,10 @@ public final class PullQueryExecutor {
 
     try {
       final RoutingOptions routingOptions = new ConfigRoutingOptions(
-          statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
+          sessionConfig.getConfig(true),
+          requestProperties
+      );
+
       // If internal listeners are in use, we require the request to come from that listener to
       // treat it as having been forwarded.
       final boolean isAlreadyForwarded = routingOptions.skipForwardRequest()
@@ -241,8 +243,6 @@ public final class PullQueryExecutor {
           routingOptions
       );
 
-      pullQueryMetrics.ifPresent(metrics ->
-          metrics.recordLatency(startTimeNanos));
       return result;
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
@@ -260,10 +260,6 @@ public final class PullQueryExecutor {
       throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
           + rateLimiter.getRate() + " qps.");
     }
-  }
-
-  public void closeMetrics() {
-    pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
   }
 
   private PullQueryResult handlePullQuery(
@@ -404,7 +400,7 @@ public final class PullQueryExecutor {
         .makeQueryRequest(
             owner.location(),
             statement.getStatementText(),
-            statement.getConfigOverrides(),
+            statement.getSessionConfig().getOverrides(),
             requestProperties
         );
 
@@ -902,8 +898,7 @@ public final class PullQueryExecutor {
       };
     }
 
-    final KsqlConfig ksqlConfig = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
+    final KsqlConfig ksqlConfig = statement.getSessionConfig().getConfig(true);
 
     final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         projection,
@@ -1079,24 +1074,14 @@ public final class PullQueryExecutor {
   private static final class ConfigRoutingOptions implements RoutingOptions {
 
     private final KsqlConfig ksqlConfig;
-    private final Map<String, ?> configOverrides;
     private final Map<String, ?> requestProperties;
 
     ConfigRoutingOptions(
         final KsqlConfig ksqlConfig,
-        final Map<String, ?> configOverrides,
         final Map<String, ?> requestProperties
     ) {
-      this.ksqlConfig = ksqlConfig;
-      this.configOverrides = configOverrides;
-      this.requestProperties = requestProperties;
-    }
-
-    private long getLong(final String key) {
-      if (configOverrides.containsKey(key)) {
-        return (Long) configOverrides.get(key);
-      }
-      return ksqlConfig.getLong(key);
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
     }
 
     private boolean getForwardedFlag(final String key) {
@@ -1115,7 +1100,7 @@ public final class PullQueryExecutor {
 
     @Override
     public long getOffsetLagAllowed() {
-      return getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
+      return ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
     }
 
     @Override

@@ -306,7 +306,7 @@ public class Console implements Closeable {
     return cliSpecificCommands;
   }
 
-  public String readLine() {
+  public String nextNonCliCommand() {
     String line;
 
     do {
@@ -905,7 +905,7 @@ public class Console implements Closeable {
     }
   }
 
-  private boolean maybeHandleCliSpecificCommands(final String line) {
+  public boolean maybeHandleCliSpecificCommands(final String line) {
     if (line == null) {
       return false;
     }

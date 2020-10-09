@@ -22,12 +22,22 @@ public class StreamInfoImpl implements StreamInfo {
 
   private final String name;
   private final String topicName;
-  private final String format;
+  private final String keyFormat;
+  private final String valueFormat;
+  private final boolean windowed;
 
-  StreamInfoImpl(final String name, final String topicName, final String format) {
+  StreamInfoImpl(
+      final String name,
+      final String topicName,
+      final String keyFormat,
+      final String valueFormat,
+      final boolean windowed
+  ) {
     this.name = Objects.requireNonNull(name);
     this.topicName = Objects.requireNonNull(topicName);
-    this.format = Objects.requireNonNull(format);
+    this.keyFormat = Objects.requireNonNull(keyFormat);
+    this.valueFormat = Objects.requireNonNull(valueFormat);
+    this.windowed = windowed;
   }
 
   @Override
@@ -41,8 +51,18 @@ public class StreamInfoImpl implements StreamInfo {
   }
 
   @Override
-  public String getFormat() {
-    return format;
+  public String getKeyFormat() {
+    return keyFormat;
+  }
+
+  @Override
+  public String getValueFormat() {
+    return valueFormat;
+  }
+
+  @Override
+  public boolean isWindowed() {
+    return windowed;
   }
 
   @Override
@@ -54,14 +74,16 @@ public class StreamInfoImpl implements StreamInfo {
       return false;
     }
     final StreamInfoImpl that = (StreamInfoImpl) o;
-    return name.equals(that.name)
+    return windowed == that.windowed
+        && name.equals(that.name)
         && topicName.equals(that.topicName)
-        && format.equals(that.format);
+        && keyFormat.equals(that.keyFormat)
+        && valueFormat.equals(that.valueFormat);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, topicName, format);
+    return Objects.hash(name, topicName, keyFormat, valueFormat, windowed);
   }
 
   @Override
@@ -69,7 +91,9 @@ public class StreamInfoImpl implements StreamInfo {
     return "StreamInfo{"
         + "name='" + name + '\''
         + ", topicName='" + topicName + '\''
-        + ", format='" + format + '\''
+        + ", keyFormat='" + keyFormat + '\''
+        + ", valueFormat='" + valueFormat + '\''
+        + ", windowed='" + windowed + '\''
         + '}';
   }
 }

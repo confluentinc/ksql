@@ -20,7 +20,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "serdeOptions": ["UNWRAP_SINGLE_VALUES"]}
+          {"name": "INPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "valueFeatures": ["UNWRAP_SINGLES"]}
         ]
       }
     },
@@ -41,7 +41,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "serdeOptions": ["UNWRAP_SINGLE_VALUES"]}
+          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "valueFeatures": ["UNWRAP_SINGLES"]}
         ]
       }
     },
@@ -52,7 +52,7 @@
         "CREATE STREAM OUTPUT WITH (wrap_single_value=false) AS SELECT * FROM INPUT;"
       ],
       "topics": [
-        {"name": "OUTPUT", "schema": {"name": "KsqlRecord", "type": "record", "fields": [{"name": "FOO", "type": "string"}]}}
+        {"name": "OUTPUT", "valueSchema": {"name": "KsqlRecord", "type": "record", "fields": [{"name": "FOO", "type": "string"}]}}
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -96,7 +96,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "serdeOptions": ["UNWRAP_SINGLE_VALUES"]}
+          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, FOO STRING", "valueFeatures": ["UNWRAP_SINGLES"]}
         ]
       }
     },

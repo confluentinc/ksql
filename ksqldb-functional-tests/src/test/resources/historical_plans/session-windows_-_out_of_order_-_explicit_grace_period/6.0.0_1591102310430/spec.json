@@ -5,19 +5,42 @@
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
       "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_S2_0.S2" : {
       "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "SESSION"
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
       "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {
@@ -136,14 +159,6 @@
     "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE S2 as SELECT ID, max(value) FROM test WINDOW SESSION (30 SECONDS, GRACE PERIOD 1 MINUTE) group by id;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
@@ -151,15 +166,25 @@
           "format" : "KAFKA",
           "windowType" : "SESSION"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }
@@ -170,9 +195,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -181,9 +204,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "SESSION"
             }

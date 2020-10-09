@@ -5,11 +5,21 @@
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRING, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_S1_0.S1" : {
       "schema" : "`ROWKEY` STRING KEY, `ITEMID` STRING, `KSQL_COL_1` STRING",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -224,7 +234,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "S1",
         "type" : "STREAM",
@@ -232,15 +244,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "S1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -249,9 +261,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

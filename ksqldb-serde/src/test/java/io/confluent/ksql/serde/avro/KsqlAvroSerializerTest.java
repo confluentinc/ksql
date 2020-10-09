@@ -649,7 +649,7 @@ public class KsqlAvroSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
             .createSerde(
                 schema,
                 ksqlConfig,
@@ -676,7 +676,7 @@ public class KsqlAvroSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
             .createSerde(
                 schema,
                 ksqlConfig,
@@ -898,7 +898,7 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeMapFieldWithName() {
     final org.apache.avro.Schema avroSchema =
         AvroTestUtil.connectOptionalKeyMapSchema(
-            connectMapEntrySchema(KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0"));
+            connectMapEntrySchema(AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0"));
 
     shouldSerializeMap(avroSchema);
   }
@@ -907,10 +907,10 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeMultipleMapFields() {
     final org.apache.avro.Schema avroInnerSchema0
         = connectMapEntrySchema(
-        KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner0");
+        AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner0");
     final org.apache.avro.Schema avroInnerSchema1 =
         AvroTestUtil.connectOptionalKeyMapEntrySchema(
-            KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner1",
+            AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner1",
             org.apache.avro.Schema.create(Type.STRING));
     final org.apache.avro.Schema avroSchema =
         org.apache.avro.SchemaBuilder.record("KsqlDataSourceSchema_field0")
@@ -954,8 +954,8 @@ public class KsqlAvroSerializerTest {
   @Test
   public void shouldSerializeStructField() {
     final org.apache.avro.Schema avroSchema
-        = org.apache.avro.SchemaBuilder.record(KsqlConstants.AVRO_SCHEMA_NAME + "_field0")
-        .namespace(KsqlConstants.AVRO_SCHEMA_NAMESPACE)
+        = org.apache.avro.SchemaBuilder.record(AvroProperties.AVRO_SCHEMA_NAME + "_field0")
+        .namespace(AvroProperties.AVRO_SCHEMA_NAMESPACE)
         .fields()
         .name("field1")
         .type().unionOf().nullType().and().intType().endUnion()
@@ -1123,8 +1123,8 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     final GenericRecord avroRecord = deserialize(bytes);
-    assertThat(avroRecord.getSchema().getNamespace(), equalTo(KsqlConstants.AVRO_SCHEMA_NAMESPACE));
-    assertThat(avroRecord.getSchema().getName(), equalTo(KsqlConstants.AVRO_SCHEMA_NAME));
+    assertThat(avroRecord.getSchema().getNamespace(), equalTo(AvroProperties.AVRO_SCHEMA_NAMESPACE));
+    assertThat(avroRecord.getSchema().getName(), equalTo(AvroProperties.AVRO_SCHEMA_NAME));
     assertThat(avroRecord.getSchema().getFields().size(), equalTo(1));
     final org.apache.avro.Schema.Field field = avroRecord.getSchema().getFields().get(0);
     assertThat(field.schema().getType(), equalTo(org.apache.avro.Schema.Type.UNION));
@@ -1140,7 +1140,7 @@ public class KsqlAvroSerializerTest {
       final Schema schema,
       final Class<T> targetType
   ) {
-    return new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+    return new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
         .createSerde(
             (ConnectSchema) schema,
             ksqlConfig,

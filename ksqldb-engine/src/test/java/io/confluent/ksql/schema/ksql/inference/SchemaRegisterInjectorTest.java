@@ -35,6 +35,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -46,15 +47,14 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -65,9 +65,9 @@ import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Optional;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Type;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -79,9 +79,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SchemaRegisterInjectorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+      .keyColumn(ColumnName.of("ID"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
+
+  private static final AvroSchema AVRO_UNWRAPPED_KEY_SCHEMA = new AvroSchema(Schema.create(Type.STRING));
+  private static final AvroSchema AVRO_UNWRAPPED_VALUE_SCHEMA = AVRO_UNWRAPPED_KEY_SCHEMA;
 
   private static final AvroSchema AVRO_SCHEMA = new AvroSchema(
       "{\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\","
@@ -106,7 +109,13 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private PhysicalSchema physicalSchema;
   @Mock
-  private SerdeOptions serdeOptions;
+  private SerdeFeatures keyFeatures;
+  @Mock
+  private PersistenceSchema keySchema;
+  @Mock
+  private SerdeFeatures valFeatures;
+  @Mock
+  private PersistenceSchema valSchema;
 
   private final KsqlParser parser = new DefaultKsqlParser();
 
@@ -129,29 +138,30 @@ public class SchemaRegisterInjectorTest {
 
     when(executionContext.createSandbox(any())).thenReturn(executionSandbox);
 
+    when(keyFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
+
     when(queryMetadata.getLogicalSchema()).thenReturn(SCHEMA);
     when(queryMetadata.getResultTopic()).thenReturn(new KsqlTopic(
         "SINK",
-        KeyFormat.of(FormatInfo.of(FormatFactory.KAFKA.name()), Optional.empty()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
+        KeyFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), keyFeatures, Optional.empty()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), valFeatures)
     ));
     when(queryMetadata.getPhysicalSchema()).thenReturn(physicalSchema);
 
-    when(physicalSchema.serdeOptions()).thenReturn(serdeOptions);
-
-    when(serdeOptions.valueFeatures())
-        .thenReturn(EnabledSerdeFeatures.of());
+    when(physicalSchema.keySchema()).thenReturn(keySchema);
+    when(keySchema.features()).thenReturn(keyFeatures);
+    when(physicalSchema.valueSchema()).thenReturn(valSchema);
+    when(valSchema.features()).thenReturn(valFeatures);
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), valFeatures)
     );
     final KsqlStream<?> source = new KsqlStream<>(
         "",
         SourceName.of("SOURCE"),
         SCHEMA,
-        SerdeOptions.of(),
         Optional.empty(),
         false,
         sourceTopic
@@ -163,7 +173,7 @@ public class SchemaRegisterInjectorTest {
   public void shouldNotRegisterSchemaIfSchemaRegistryIsDisabled() {
     // Given:
     config = new KsqlConfig(ImmutableMap.of());
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', key_format='AVRO', value_format='AVRO', partitions=1);");
 
     // When:
     final KsqlSchemaRegistryNotConfiguredException e = assertThrows(KsqlSchemaRegistryNotConfiguredException.class, () -> injector.inject(statement));
@@ -175,7 +185,7 @@ public class SchemaRegisterInjectorTest {
   @Test
   public void shouldNotRegisterSchemaForSchemaRegistryDisabledFormatCreateSource() {
     // Given:
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', value_format='DELIMITED', partitions=1);");
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH(kafka_topic='expectedName', key_format='KAFKA', value_format='DELIMITED', partitions=1);");
 
     // When:
     injector.inject(statement);
@@ -185,10 +195,23 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateSourceIfSubjectDoesntExist()
+  public void shouldRegisterKeySchemaForSchemaRegistryEnabledFormatCreateSourceIfSubjectDoesntExist()
       throws Exception {
     // Given:
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
+    givenStatement("CREATE STREAM sink (id VARCHAR KEY, f1 VARCHAR) WITH (kafka_topic='expectedName', key_format='AVRO', value_format='DELIMITED', partitions=1);");
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).register("expectedName-key", AVRO_UNWRAPPED_KEY_SCHEMA);
+  }
+
+  @Test
+  public void shouldRegisterValueSchemaForSchemaRegistryEnabledFormatCreateSourceIfSubjectDoesntExist()
+      throws Exception {
+    // Given:
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', key_format='KAFKA', value_format='AVRO', partitions=1);");
 
     // When:
     injector.inject(statement);
@@ -202,8 +225,8 @@ public class SchemaRegisterInjectorTest {
   public void shouldNotReplaceExistingSchemaForSchemaRegistryEnabledFormatCreateSource()
       throws Exception {
     // Given:
-    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
+    givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', key_format='AVRO', value_format='AVRO', partitions=1);");
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value", "expectedName-key"));
 
     // When:
     injector.inject(statement);
@@ -229,12 +252,13 @@ public class SchemaRegisterInjectorTest {
   @Test
   public void shouldRegisterSchemaForSchemaRegistryEnabledFormatCreateAsSelect() throws Exception {
     // Given:
-    givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
+    givenStatement("CREATE STREAM sink WITH(key_format='AVRO', value_format='AVRO') AS SELECT * FROM SOURCE;");
 
     // When:
     injector.inject(statement);
 
     // Then:
+    verify(schemaRegistryClient).register("SINK-key", AVRO_UNWRAPPED_KEY_SCHEMA);
     verify(schemaRegistryClient).register("SINK-value", AVRO_SCHEMA);
   }
 
@@ -293,6 +317,7 @@ public class SchemaRegisterInjectorTest {
     givenStatement("CREATE STREAM source (f1 VARCHAR) "
         + "WITH ("
         + "  kafka_topic='expectedName', "
+        + "  key_format='KAFKA', "
         + "  value_format='AVRO', "
         + "  partitions=1, "
         + "  wrap_single_value='false'"
@@ -302,8 +327,7 @@ public class SchemaRegisterInjectorTest {
     injector.inject(statement);
 
     // Then:
-    verify(schemaRegistryClient)
-        .register("expectedName-value", new AvroSchema("{\"type\":\"string\"}"));
+    verify(schemaRegistryClient).register("expectedName-value", AVRO_UNWRAPPED_VALUE_SCHEMA);
   }
 
   @Test
@@ -313,15 +337,13 @@ public class SchemaRegisterInjectorTest {
         + "WITH(value_format='AVRO', wrap_single_value='false') AS "
         + "SELECT * FROM SOURCE;");
 
-    when(serdeOptions.valueFeatures())
-        .thenReturn(EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+    when(valFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
 
     // When:
     injector.inject(statement);
 
     // Then:
-    verify(schemaRegistryClient)
-        .register("SINK-value", new AvroSchema("{\"type\":\"string\"}"));
+    verify(schemaRegistryClient).register("SINK-value", AVRO_UNWRAPPED_VALUE_SCHEMA);
   }
 
   private void givenStatement(final String sql) {
@@ -329,8 +351,8 @@ public class SchemaRegisterInjectorTest {
         parser.prepare(parser.parse(sql).get(0), metaStore);
     statement = ConfiguredStatement.of(
         preparedStatement,
-        new HashMap<>(),
-        config);
+        SessionConfig.of(config, ImmutableMap.of())
+    );
     when(executionSandbox.execute(any(), eq(statement)))
         .thenReturn(ExecuteResult.of(queryMetadata));
   }

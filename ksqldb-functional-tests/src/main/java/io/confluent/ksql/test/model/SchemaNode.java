@@ -15,37 +15,55 @@
 
 package io.confluent.ksql.test.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import static java.util.Objects.requireNonNull;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
+/**
+ * Used to track the schema and serde features used for each topic in a plan.
+ */
 public class SchemaNode {
 
   private final String logicalSchema;
-  private final ImmutableSet<SerdeOption> serdeOptions;
+  private final Optional<KeyFormat> keyFormat;
+  private final Optional<ValueFormat> valueFormat;
+
+  @SuppressWarnings("unused") // Invoked by Jackson via reflection
+  @JsonCreator
+  public static SchemaNode create(
+      @JsonProperty(value = "schema", required = true) final String logicalSchema,
+      @JsonProperty("keyFormat") final Optional<KeyFormat> keyFormat,
+      @JsonProperty("valueFormat") final Optional<ValueFormat> valueFormat
+  ) {
+    return new SchemaNode(logicalSchema, keyFormat, valueFormat);
+  }
 
   public SchemaNode(
-      @JsonProperty(value = "schema", required = true) final String logicalSchema,
-      @JsonProperty("serdeOptions") final Optional<Set<SerdeOption>> serdeOptions
+      final String logicalSchema,
+      final Optional<KeyFormat> keyFormat,
+      final Optional<ValueFormat> valueFormat
   ) {
-    this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
-    this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions")
-        .map(ImmutableSet::copyOf)
-        .orElseGet(ImmutableSet::of);
+    this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
+    this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+    this.valueFormat = requireNonNull(valueFormat, "valueFormat");
   }
 
   public String getSchema() {
     return logicalSchema;
   }
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  public Set<SerdeOption> getSerdeOptions() {
-    return serdeOptions;
+  public Optional<KeyFormat> getKeyFormat() {
+    return keyFormat;
+  }
+
+  public Optional<ValueFormat> getValueFormat() {
+    return valueFormat;
   }
 
   @Override
@@ -58,26 +76,29 @@ public class SchemaNode {
     }
     final SchemaNode that = (SchemaNode) o;
     return logicalSchema.equals(that.logicalSchema)
-        && serdeOptions.equals(that.serdeOptions);
+        && keyFormat.equals(that.keyFormat)
+        && valueFormat.equals(that.valueFormat);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logicalSchema, serdeOptions);
+    return Objects.hash(logicalSchema, keyFormat, valueFormat);
   }
 
   @Override
   public String toString() {
     return "SchemaNode{"
-            + "logicalSchema='" + logicalSchema + '\''
-            + ", serdeOptions=" + serdeOptions
-            + '}';
+        + "logicalSchema='" + logicalSchema + '\''
+        + ", keyFormat=" + keyFormat
+        + ", valueFormat=" + valueFormat
+        + '}';
   }
 
-  public static SchemaNode fromPhysicalSchema(final PhysicalSchema physicalSchema) {
+  public static SchemaNode fromSchemaInfo(final QuerySchemas.SchemaInfo schemaInfo) {
     return new SchemaNode(
-        physicalSchema.logicalSchema().toString(),
-        Optional.of(physicalSchema.serdeOptions().all())
+        schemaInfo.schema().toString(),
+        schemaInfo.keyFormat(),
+        schemaInfo.valueFormat()
     );
   }
 }

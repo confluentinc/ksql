@@ -5,11 +5,21 @@
   "schemas" : {
     "CTAS_T1_0.KsqlTopic.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_T1_0.T1" : {
       "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {
@@ -60,29 +70,31 @@
     "statements" : [ "CREATE TABLE TEST (ID BIGINT, NAME STRING, VALUE INTEGER) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='DELIMITED');", "CREATE TABLE T1 AS SELECT\n  TEST.NAME NAME,\n  TEST.VALUE VALUE\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "T1",
         "type" : "TABLE",
         "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "T1",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -91,9 +103,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

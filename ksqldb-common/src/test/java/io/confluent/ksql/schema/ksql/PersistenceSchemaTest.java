@@ -24,8 +24,8 @@ import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.List;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
@@ -58,7 +58,7 @@ public class PersistenceSchemaTest {
   @Test
   public void shouldNPE() {
     new NullPointerTester()
-        .setDefault(EnabledSerdeFeatures.class, EnabledSerdeFeatures.of())
+        .setDefault(SerdeFeatures.class, SerdeFeatures.of())
         .setDefault(ConnectSchema.class, SINGLE_FIELD_SCHEMA)
         .testAllPublicStaticMethods(PersistenceSchema.class);
   }
@@ -68,15 +68,15 @@ public class PersistenceSchemaTest {
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            PersistenceSchema.from(SINGLE_COLUMN, EnabledSerdeFeatures.of()),
-            PersistenceSchema.from(SINGLE_COLUMN, EnabledSerdeFeatures.of())
+            PersistenceSchema.from(SINGLE_COLUMN, SerdeFeatures.of()),
+            PersistenceSchema.from(SINGLE_COLUMN, SerdeFeatures.of())
         )
         .addEqualityGroup(
-            PersistenceSchema.from(MULTI_COLUMN, EnabledSerdeFeatures.of())
+            PersistenceSchema.from(MULTI_COLUMN, SerdeFeatures.of())
         )
         .addEqualityGroup(
             PersistenceSchema
-                .from(SINGLE_COLUMN, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES))
+                .from(SINGLE_COLUMN, SerdeFeatures.of(SerdeFeature.WRAP_SINGLES))
         )
         .testEquals();
   }
@@ -85,7 +85,7 @@ public class PersistenceSchemaTest {
   public void shouldReturnColumns() {
     // Given:
     final PersistenceSchema schema = PersistenceSchema
-        .from(SINGLE_COLUMN, EnabledSerdeFeatures.of());
+        .from(SINGLE_COLUMN, SerdeFeatures.of());
 
     // Then:
     assertThat(schema.columns(), is(SINGLE_COLUMN));
@@ -95,7 +95,7 @@ public class PersistenceSchemaTest {
   public void shouldHaveSensibleToString() {
     // Given:
     final PersistenceSchema schema = PersistenceSchema
-        .from(SINGLE_COLUMN, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+        .from(SINGLE_COLUMN, SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
 
     // Then:
     assertThat(schema.toString(),
@@ -104,12 +104,12 @@ public class PersistenceSchemaTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnWrapIfMultipleFields() {
-    PersistenceSchema.from(MULTI_COLUMN, EnabledSerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+    PersistenceSchema.from(MULTI_COLUMN, SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnUnwrapIfMultipleFields() {
     PersistenceSchema
-        .from(MULTI_COLUMN, EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+        .from(MULTI_COLUMN, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
   }
 }

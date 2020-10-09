@@ -16,6 +16,7 @@
 package io.confluent.ksql.benchmark;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -24,12 +25,12 @@ import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.EnabledSerdeFeatures;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
@@ -183,6 +184,7 @@ public class SerdeBenchmark {
       return new RowGenerator(generator, keyField, Optional.empty());
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private static Generator getGenerator(final String schemaName) throws IOException {
       final Path schemaPath = SCHEMA_DIR.resolve(schemaName + SCHEMA_FILE_SUFFIX);
 
@@ -217,7 +219,7 @@ public class SerdeBenchmark {
       final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
 
       final PersistenceSchema persistenceSchema = PersistenceSchema
-          .from(schema.key(), EnabledSerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+          .from(schema.key(), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
       return new GenericKeySerDe().create(
           formatInfo,
@@ -225,7 +227,8 @@ public class SerdeBenchmark {
           new KsqlConfig(Collections.emptyMap()),
           () -> srClient,
           "benchmark",
-          ProcessingLogContext.create()
+          ProcessingLogContext.create(),
+          Optional.empty()
       );
     }
 
@@ -239,7 +242,7 @@ public class SerdeBenchmark {
 
       return GenericRowSerDe.from(
           format,
-          PersistenceSchema.from(schema.value(), EnabledSerdeFeatures.of()),
+          PersistenceSchema.from(schema.value(), SerdeFeatures.of()),
           new KsqlConfig(Collections.emptyMap()),
           () -> srClient,
           "benchmark",

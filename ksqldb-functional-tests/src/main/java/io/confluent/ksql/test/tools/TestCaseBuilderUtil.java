@@ -19,7 +19,8 @@ import static com.google.common.io.Files.getNameWithoutExtension;
 
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -29,18 +30,26 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.SerdeOptionsFactory;
-import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.topic.TopicFactory;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +131,7 @@ public final class TestCaseBuilderUtil {
 
     // Get topics from inputs and outputs fields:
     Streams.concat(inputs.stream(), outputs.stream())
-        .map(record -> new Topic(record.getTopicName(), Optional.empty()))
+        .map(record -> new Topic(record.getTopicName(), Optional.empty(), Optional.empty()))
         .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
 
     return allTopics.values();
@@ -135,49 +144,40 @@ public final class TestCaseBuilderUtil {
   ) {
     final KsqlParser parser = new DefaultKsqlParser();
 
-    final Function<PreparedStatement<?>, Topic> extractTopic = (PreparedStatement<?> stmt) -> {
+    final Function<ConfiguredStatement<?>, Topic> extractTopic = (ConfiguredStatement<?> stmt) -> {
       final CreateSource statement = (CreateSource) stmt.getStatement();
+      final CreateSourceProperties props = statement.getProperties();
 
-      final KsqlTopic ksqlTopic = TopicFactory.create(statement.getProperties());
+      final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
 
-      final ValueFormat valueFormat = ksqlTopic.getValueFormat();
-      final Optional<ParsedSchema> valueSchema;
-      if (valueFormat.getFormat().supportsSchemaInference()) {
-        final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
+      final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(props);
+      final Format keyFormat = FormatFactory.fromName(keyFormatInfo.getFormat());
+      final SerdeFeatures keySerdeFeats = buildKeyFeatures(
+          keyFormat, logicalSchema);
 
-        SerdeOptions serdeOptions;
-        try {
-          serdeOptions = SerdeOptionsFactory.buildForCreateStatement(
-              logicalSchema,
-              statement.getProperties().getValueFormat(),
-              statement.getProperties().getSerdeOptions(),
-              ksqlConfig
-          );
-        } catch (final Exception e) {
-          // Catch block allows negative tests to fail in the correct place, later.
-          serdeOptions = SerdeOptions.of();
-        }
+      final Optional<ParsedSchema> keySchema =
+          keyFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+              ? buildSchema(sql, logicalSchema.key(), keyFormatInfo, keyFormat, keySerdeFeats)
+              : Optional.empty();
 
-        valueSchema = logicalSchema.value().isEmpty()
-            ? Optional.empty()
-            : Optional.of(valueFormat.getFormat().toParsedSchema(
-                PersistenceSchema.from(
-                    logicalSchema.value(),
-                    serdeOptions.valueFeatures()
-                ),
-                valueFormat.getFormatInfo()
-            ));
-      } else {
-        valueSchema = Optional.empty();
-      }
+      final FormatInfo valFormatInfo = SourcePropertiesUtil.getValueFormat(props);
+      final Format valFormat = FormatFactory.fromName(valFormatInfo.getFormat());
+      final SerdeFeatures valSerdeFeats = buildValueFeatures(
+          ksqlConfig, props, valFormat, logicalSchema);
 
-      final int partitions = statement.getProperties().getPartitions()
+      final Optional<ParsedSchema> valueSchema =
+          valFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+              ? buildSchema(
+                  sql, logicalSchema.value(), valFormatInfo, valFormat, valSerdeFeats)
+              : Optional.empty();
+
+      final int partitions = props.getPartitions()
           .orElse(Topic.DEFAULT_PARTITIONS);
 
-      final short rf = statement.getProperties().getReplicas()
+      final short rf = props.getReplicas()
           .orElse(Topic.DEFAULT_RF);
 
-      return new Topic(ksqlTopic.getKafkaTopicName(), partitions, rf, valueSchema);
+      return new Topic(props.getKafkaTopic(), partitions, rf, keySchema, valueSchema);
     };
 
     try {
@@ -196,7 +196,10 @@ public final class TestCaseBuilderUtil {
 
         if (isCsOrCT(stmt)) {
           final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
-          topics.add(extractTopic.apply(prepare));
+          final ConfiguredStatement<?> configured =
+              ConfiguredStatement.of(prepare, SessionConfig.of(ksqlConfig, Collections.emptyMap()));
+          final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
+          topics.add(extractTopic.apply(withFormats));
         }
       }
 
@@ -206,6 +209,63 @@ public final class TestCaseBuilderUtil {
       System.out.println("Error parsing statement (which may be expected): " + sql);
       e.printStackTrace(System.out);
       return null;
+    }
+  }
+
+  private static Optional<ParsedSchema> buildSchema(
+      final String sql,
+      final List<Column> schema,
+      final FormatInfo formatInfo,
+      final Format format,
+      final SerdeFeatures serdeFeatures
+  ) {
+    if (schema.isEmpty()) {
+      return Optional.empty();
+    }
+
+    try {
+      final SchemaTranslator translator = format
+          .getSchemaTranslator(formatInfo.getProperties());
+
+      return Optional.of(translator.toParsedSchema(PersistenceSchema.from(schema, serdeFeatures)
+      ));
+    } catch (final Exception e) {
+      // Statement won't parse: this will be detected/handled later.
+      System.out
+          .println("Error getting schema translator statement (which may be expected): " + sql);
+      e.printStackTrace(System.out);
+      return Optional.empty();
+    }
+  }
+
+  private static SerdeFeatures buildKeyFeatures(final Format format, final LogicalSchema schema) {
+    try {
+      return SerdeFeaturesFactory.buildKeyFeatures(
+          schema,
+          format
+      );
+    } catch (final Exception e) {
+      // Catch block allows negative tests to fail in the correct place, i.e. later.
+      return SerdeFeatures.of();
+    }
+  }
+
+  private static SerdeFeatures buildValueFeatures(
+      final KsqlConfig ksqlConfig,
+      final CreateSourceProperties props,
+      final Format valueFormat,
+      final LogicalSchema logicalSchema
+  ) {
+    try {
+      return SerdeFeaturesFactory.buildValueFeatures(
+          logicalSchema,
+          valueFormat,
+          props.getValueSerdeFeatures(),
+          ksqlConfig
+      );
+    } catch (final Exception e) {
+      // Catch block allows negative tests to fail in the correct place, i.e. later.
+      return SerdeFeatures.of();
     }
   }
 

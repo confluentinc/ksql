@@ -18,10 +18,6 @@ package io.confluent.ksql.engine;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.test.tools.TopicInfoCache;
-import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
-import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
@@ -30,16 +26,8 @@ public final class StubInsertValuesExecutor {
   private StubInsertValuesExecutor() {
   }
 
-  public static InsertValuesExecutor of(
-      final StubKafkaService stubKafkaService,
-      final KsqlExecutionContext executionContext
-  ) {
-    final TopicInfoCache topicInfoCache = new TopicInfoCache(
-        executionContext,
-        executionContext.getServiceContext().getSchemaRegistryClient()
-    );
-
-    final StubProducer stubProducer = new StubProducer(stubKafkaService, topicInfoCache);
+  public static InsertValuesExecutor of(final StubKafkaService stubKafkaService) {
+    final StubProducer stubProducer = new StubProducer(stubKafkaService);
 
     return new InsertValuesExecutor(
         false,
@@ -51,51 +39,13 @@ public final class StubInsertValuesExecutor {
   static class StubProducer {
 
     private final StubKafkaService stubKafkaService;
-    private final TopicInfoCache topicInfoCache;
 
-    StubProducer(
-        final StubKafkaService stubKafkaService,
-        final TopicInfoCache topicInfoCache
-    ) {
+    StubProducer(final StubKafkaService stubKafkaService) {
       this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");
-      this.topicInfoCache = requireNonNull(topicInfoCache, "topicInfoCache");
     }
 
     void sendRecord(final ProducerRecord<byte[], byte[]> record) {
-      final Object key = deserializeKey(record);
-
-      final Object value = deserializeValue(record);
-
-      final ProducerRecord<?, ?> deserialzied = new ProducerRecord<>(
-          record.topic(),
-          record.partition(),
-          record.timestamp(),
-          key,
-          value,
-          record.headers()
-      );
-
-      this.stubKafkaService.writeRecord(deserialzied);
-    }
-
-    private Object deserializeKey(final ProducerRecord<byte[], byte[]> record) {
-      try {
-        final TopicInfo topicInfo = topicInfoCache.get(record.topic());
-        return topicInfo.getKeyDeserializer()
-            .deserialize(record.topic(), record.key());
-      } catch (final Exception e) {
-        throw new InvalidFieldException("key", "failed to parse", e);
-      }
-    }
-
-    private Object deserializeValue(final ProducerRecord<byte[], byte[]> record) {
-      try {
-        final TopicInfo topicInfo = topicInfoCache.get(record.topic());
-        return topicInfo.getValueDeserializer()
-            .deserialize(record.topic(), record.value());
-      } catch (final Exception e) {
-        throw new InvalidFieldException("value", "failed to parse", e);
-      }
+      this.stubKafkaService.writeRecord(record);
     }
   }
 }

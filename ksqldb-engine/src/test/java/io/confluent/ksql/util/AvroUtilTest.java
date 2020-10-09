@@ -44,12 +44,11 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
-import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
+import io.confluent.ksql.serde.connect.ConnectSchemaUtil;
 import java.io.IOException;
 import java.util.Collections;
 import org.junit.Before;
@@ -104,10 +103,13 @@ public class AvroUtilTest {
 
   private static final Formats FORMATS = Formats
       .of(
-          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-          ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name(), ImmutableMap
-              .of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME))),
-          SerdeOptions.of()
+          FormatInfo.of(FormatFactory.KAFKA.name()),
+          FormatInfo.of(
+              FormatFactory.AVRO.name(),
+              ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME)
+          ),
+          SerdeFeatures.of(),
+          SerdeFeatures.of()
       );
 
   @Mock
@@ -137,7 +139,8 @@ public class AvroUtilTest {
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSchema() throws Exception {
     // Given:
-    final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOptions.of());
+    final PhysicalSchema schema = PhysicalSchema
+        .from(MUTLI_FIELD_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     final AvroSchema expectedAvroSchema = avroSchema(schema);
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
@@ -154,7 +157,7 @@ public class AvroUtilTest {
     // Given:
     when(ddlCommand.getSchema()).thenReturn(SCHEMA_WITH_MAPS);
     final PhysicalSchema schema = PhysicalSchema
-        .from(SCHEMA_WITH_MAPS, SerdeOptions.of());
+        .from(SCHEMA_WITH_MAPS, SerdeFeatures.of(), SerdeFeatures.of());
 
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
@@ -172,7 +175,7 @@ public class AvroUtilTest {
     // Given:
     when(ddlCommand.getSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
     final PhysicalSchema schema = PhysicalSchema
-        .from(SINGLE_FIELD_SCHEMA, SerdeOptions.of());
+        .from(SINGLE_FIELD_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
@@ -191,12 +194,14 @@ public class AvroUtilTest {
     when(ddlCommand.getSchema()).thenReturn(SINGLE_FIELD_SCHEMA);
     when(ddlCommand.getFormats())
         .thenReturn(Formats.of(
-            KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-            ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name())),
-            SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES)
+            FormatInfo.of(FormatFactory.KAFKA.name()),
+            FormatInfo.of(FormatFactory.AVRO.name()),
+            SerdeFeatures.of(),
+            SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
         ));
     final PhysicalSchema schema = PhysicalSchema
-        .from(SINGLE_FIELD_SCHEMA, SerdeOptions.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+        .from(SINGLE_FIELD_SCHEMA, SerdeFeatures.of(),
+            SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     when(srClient.testCompatibility(anyString(), any(AvroSchema.class))).thenReturn(true);
 
@@ -307,7 +312,7 @@ public class AvroUtilTest {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
     final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-    final org.apache.kafka.connect.data.Schema connectSchema = new ConnectSchemaTranslator()
+    final org.apache.kafka.connect.data.Schema connectSchema = ConnectSchemaUtil
         .toKsqlSchema(avroData.toConnectSchema(avroSchema));
 
     final ConnectToSqlTypeConverter converter = SchemaConverters
@@ -324,14 +329,13 @@ public class AvroUtilTest {
   }
 
   private static AvroSchema avroSchema(final PhysicalSchema schema) {
-    return (AvroSchema) new AvroFormat().toParsedSchema(
+    final SchemaTranslator translator = new AvroFormat()
+        .getSchemaTranslator(ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME));
+
+    return (AvroSchema) translator.toParsedSchema(
         PersistenceSchema.from(
             schema.logicalSchema().value(),
-            schema.serdeOptions().valueFeatures()
-        ),
-        FormatInfo.of(
-            AvroFormat.NAME,
-            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, SCHEMA_NAME)
+            schema.valueSchema().features()
         )
     );
   }

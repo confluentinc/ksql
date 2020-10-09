@@ -5,19 +5,43 @@
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
       "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.S2" : {
       "schema" : "`ROWKEY` INTEGER KEY, `KSQL_COL_0` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
       "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -87,14 +111,6 @@
     "statements" : [ "CREATE STREAM TEST (ROWKEY INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE S2 as SELECT ROWKEY, count(1) * windowend FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ROWKEY;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "S2",
         "type" : "TABLE",
         "schema" : "`ROWKEY` INTEGER KEY, `KSQL_COL_0` BIGINT",
@@ -103,15 +119,25 @@
           "windowType" : "TUMBLING",
           "windowSize" : 1000
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `IGNORED` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 1.000000000
@@ -123,9 +149,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -134,9 +158,7 @@
         }, {
           "name" : "S2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 1.000000000

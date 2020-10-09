@@ -29,7 +29,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
@@ -59,10 +59,9 @@ public class DdlCommandExecTest {
       .valueColumn(ColumnName.of("F3"), SqlTypes.STRING)
       .build();
   private static final ValueFormat VALUE_FORMAT = ValueFormat
-      .of(FormatInfo.of(FormatFactory.JSON.name()));
+      .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
   private static final KeyFormat KEY_FORMAT = KeyFormat
-      .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
-  private static final SerdeOptions SERDE_OPTIONS = SerdeOptions.of();
+      .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
   private static final SourceName EXISTING_STREAM = SourceName.of("TEST0");
   private static final SourceName EXISTING_TABLE = SourceName.of("TEST2");
 
@@ -395,7 +394,12 @@ public class DdlCommandExecTest {
         schema,
         Optional.of(timestampColumn),
         "topic",
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SERDE_OPTIONS),
+        Formats.of(
+            KEY_FORMAT.getFormatInfo(),
+            VALUE_FORMAT.getFormatInfo(),
+            SerdeFeatures.of(),
+            SerdeFeatures.of()
+        ),
         Optional.empty(),
         Optional.of(allowReplace)
     );
@@ -407,7 +411,12 @@ public class DdlCommandExecTest {
         SCHEMA,
         Optional.of(timestampColumn),
         "topic",
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SERDE_OPTIONS),
+        Formats.of(
+            KEY_FORMAT.getFormatInfo(),
+            VALUE_FORMAT.getFormatInfo(),
+            SerdeFeatures.of(),
+            SerdeFeatures.of()
+        ),
         Optional.of(windowInfo),
         Optional.of(false)
     );
@@ -419,7 +428,12 @@ public class DdlCommandExecTest {
         SCHEMA,
         Optional.of(timestampColumn),
         TOPIC_NAME,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SERDE_OPTIONS),
+        Formats.of(
+            KEY_FORMAT.getFormatInfo(),
+            VALUE_FORMAT.getFormatInfo(),
+            SerdeFeatures.of(),
+            SerdeFeatures.of()
+        ),
         Optional.of(windowInfo),
         Optional.of(false)
     );
@@ -431,7 +445,12 @@ public class DdlCommandExecTest {
         SCHEMA,
         Optional.of(timestampColumn),
         TOPIC_NAME,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SERDE_OPTIONS),
+        Formats.of(
+            KEY_FORMAT.getFormatInfo(),
+            VALUE_FORMAT.getFormatInfo(),
+            SerdeFeatures.of(),
+            SerdeFeatures.of()
+        ),
         Optional.empty(),
         Optional.of(false)
     );

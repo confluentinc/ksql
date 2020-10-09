@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
@@ -59,7 +60,7 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -88,7 +89,8 @@ public class CommandFactoriesTest {
       ELEMENT1
   );
   private static final String TOPIC_NAME = "some topic";
-  private static final Map<String, Literal> MINIMIM_PROPS = ImmutableMap.of(
+  private static final Map<String, Literal> MINIMUM_PROPS = ImmutableMap.of(
+      CommonCreateConfigs.KEY_FORMAT_PROPERTY, new StringLiteral("KAFKA"),
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
@@ -129,10 +131,9 @@ public class CommandFactoriesTest {
   private CommandFactories commandFactories;
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private final CreateSourceProperties withProperties =
-      CreateSourceProperties.from(MINIMIM_PROPS);
+      CreateSourceProperties.from(MINIMUM_PROPS);
 
   @Before
-  @SuppressWarnings("unchecked")
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
@@ -173,7 +174,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, statement, ksqlConfig, emptyMap());
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     assertThat(result, is(createStreamCommand));
     verify(createSourceFactory).createStreamCommand(statement, ksqlConfig);
@@ -185,7 +186,7 @@ public class CommandFactoriesTest {
     final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
 
     // When:
-    commandFactories.create(sqlExpression, statement, ksqlConfig, OVERRIDES);
+    commandFactories.create(sqlExpression, statement, SessionConfig.of(ksqlConfig, OVERRIDES));
 
     verify(createSourceFactory).createStreamCommand(
         statement,
@@ -203,7 +204,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, statement, ksqlConfig, emptyMap());
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(createTableCommand));
@@ -220,7 +221,7 @@ public class CommandFactoriesTest {
         false, true, withProperties);
 
     // When:
-    commandFactories.create(sqlExpression, statement, ksqlConfig, OVERRIDES);
+    commandFactories.create(sqlExpression, statement, SessionConfig.of(ksqlConfig, OVERRIDES));
 
     // Then:
     verify(createSourceFactory).createTableCommand(
@@ -236,7 +237,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+        .create(sqlExpression, ddlStatement,  SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(alterSourceCommand));
@@ -250,7 +251,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+        .create(sqlExpression, ddlStatement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(dropSourceCommand));
@@ -264,7 +265,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand result = commandFactories
-        .create(sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+        .create(sqlExpression, ddlStatement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(dropSourceCommand));
@@ -283,7 +284,7 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand result = commandFactories.create(
-        sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+        sqlExpression, ddlStatement, SessionConfig.of(ksqlConfig, emptyMap()));
 
     // Then:
     assertThat(result, is(registerTypeCommand));
@@ -299,8 +300,7 @@ public class CommandFactoriesTest {
     final DropTypeCommand cmd = (DropTypeCommand) commandFactories.create(
         "sqlExpression",
         dropType,
-        ksqlConfig,
-        emptyMap()
+        SessionConfig.of(ksqlConfig, emptyMap())
     );
 
     // Then:
@@ -315,7 +315,7 @@ public class CommandFactoriesTest {
     };
 
     // Then:
-    commandFactories.create(sqlExpression, ddlStatement, ksqlConfig, emptyMap());
+    commandFactories.create(sqlExpression, ddlStatement, SessionConfig.of(ksqlConfig, emptyMap()));
   }
 
   @Test
@@ -335,12 +335,12 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand cmd = commandFactories
-        .create(sqlExpression, statement, ksqlConfig, overrides);
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, overrides));
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
-    assertThat(((CreateStreamCommand) cmd).getFormats().getOptions().all(),
-        contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(((CreateStreamCommand) cmd).getFormats().getValueFeatures().all(),
+        contains(SerdeFeature.UNWRAP_SINGLES));
   }
 
   @Test
@@ -360,12 +360,12 @@ public class CommandFactoriesTest {
 
     // When:
     final DdlCommand cmd = commandFactories
-        .create(sqlExpression, statement, ksqlConfig, overrides);
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, overrides));
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
-    assertThat(((CreateTableCommand) cmd).getFormats().getOptions().all(),
-        contains(SerdeOption.UNWRAP_SINGLE_VALUES));
+    assertThat(((CreateTableCommand) cmd).getFormats().getValueFeatures().all(),
+        contains(SerdeFeature.UNWRAP_SINGLES));
   }
 
   private static TableElement tableElement(

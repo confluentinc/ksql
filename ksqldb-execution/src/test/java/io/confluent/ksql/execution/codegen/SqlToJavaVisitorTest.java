@@ -891,7 +891,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(cast);
 
     // Then:
-    assertThat(java, is("DecimalUtil.format(2, 1, COL8)"));
+    assertThat(java, is("COL8.toPlainString()"));
   }
 
   @Test

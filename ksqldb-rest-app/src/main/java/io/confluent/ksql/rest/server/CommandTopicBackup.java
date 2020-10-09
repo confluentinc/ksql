@@ -22,5 +22,7 @@ public interface CommandTopicBackup {
 
   void writeRecord(ConsumerRecord<byte[], byte[]> record);
 
+  boolean commandTopicCorruption();
+
   void close();
 }

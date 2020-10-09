@@ -49,7 +49,7 @@ public class SchemaTranslationTest {
   private static final String DDL_STATEMENT = "CREATE STREAM " + TOPIC_NAME
       + " (ROWKEY STRING KEY) WITH (KAFKA_TOPIC='" + TOPIC_NAME + "', VALUE_FORMAT='AVRO');";
 
-  private static final Topic OUTPUT_TOPIC = new Topic(OUTPUT_TOPIC_NAME, Optional.empty());
+  private static final Topic OUTPUT_TOPIC = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), Optional.empty());
 
   private final TestCase testCase;
 
@@ -167,7 +167,7 @@ public class SchemaTranslationTest {
       final String testName = buildTestName(originalFileName, name, "");
 
       try {
-        final Topic srcTopic = new Topic(TOPIC_NAME, Optional.of(schema));
+        final Topic srcTopic = new Topic(TOPIC_NAME, Optional.empty(), Optional.of(schema));
 
         final List<Record> inputRecords = generateInputRecords(schema.rawSchema());
         final List<Record> outputRecords = getOutputRecords(inputRecords);

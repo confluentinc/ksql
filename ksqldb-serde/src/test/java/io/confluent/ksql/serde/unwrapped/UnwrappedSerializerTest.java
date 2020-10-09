@@ -8,16 +8,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,10 +25,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class UnwrappedSerializerTest {
-
-  private static final ConnectSchema SCHEMA = (ConnectSchema) SchemaBuilder.struct()
-      .field("bob", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build();
 
   private static final String TOPIC = "some-topic";
   private static final Headers HEADERS = new RecordHeaders();
@@ -42,49 +37,47 @@ public class UnwrappedSerializerTest {
 
   @Before
   public void setUp() {
-    serializer = new UnwrappedSerializer<>(SCHEMA, inner, String.class);
+    serializer = new UnwrappedSerializer<>(inner, String.class);
 
     when(inner.serialize(any(), any())).thenReturn(SERIALIZED);
     when(inner.serialize(any(), any(), any())).thenReturn(SERIALIZED);
   }
 
   @Test
-  public void shouldThrowIfNotSingleField() {
-    // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
-        .field("bob", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("vic", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .build();
-
+  public void shouldThrowIfLessThanOneValue() {
     // When:
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> new UnwrappedSerializer<>(schema, inner, String.class)
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize("t", ImmutableList.of())
     );
+
+    // Then:
+    assertThat(e.getMessage(), is("Column count mismatch on serialization. topic: t, expected: 1, got: 0"));
   }
 
   @Test
-  public void shouldThrowIfNotStruct() {
-    // Given:
-    final ConnectSchema wrongSchema = (ConnectSchema) SchemaBuilder.OPTIONAL_STRING_SCHEMA;
+  public void shouldThrowIfMoreThanOneValue() {
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize("t", ImmutableList.of("too", "many"))
+    );
 
     // Then:
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> new UnwrappedSerializer<>(wrongSchema, inner, String.class)
-    );
+    assertThat(e.getMessage(), is("Column count mismatch on serialization. topic: t, expected: 1, got: 2"));
   }
 
   @Test
-  public void shouldThrowIfSchemaDoesNotMatchTargetType() {
-    // Given:
-    final Serializer<Long> inner = new LongSerializer();
+  public void shouldThrowIfWrongType() {
+    // Then:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize("t", ImmutableList.of(12))
+    );
 
     // Then:
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> new UnwrappedSerializer<>(SCHEMA, inner, Long.class)
-    );
+    assertThat(e.getMessage(), is("value does not match expected type. "
+        + "expected: String, but got: Integer"));
   }
 
   @Test
@@ -129,10 +122,10 @@ public class UnwrappedSerializerTest {
   @Test
   public void shouldSerializeOldStyle() {
     // Given:
-    final Struct struct = new Struct(SCHEMA).put("bob", DATA);
+    final List<?> values = ImmutableList.of(DATA);
 
     // When:
-    final byte[] result = serializer.serialize(TOPIC, struct);
+    final byte[] result = serializer.serialize(TOPIC, values);
 
     // Then:
     verify(inner).serialize(TOPIC, DATA);
@@ -142,10 +135,10 @@ public class UnwrappedSerializerTest {
   @Test
   public void shouldSerializeNewStyle() {
     // Given:
-    final Struct struct = new Struct(SCHEMA).put("bob", DATA);
+    final List<?> values = ImmutableList.of(DATA);
 
     // When:
-    final byte[] result = serializer.serialize(TOPIC, HEADERS, struct);
+    final byte[] result = serializer.serialize(TOPIC, HEADERS, values);
 
     // Then:
     verify(inner).serialize(TOPIC, HEADERS, DATA);

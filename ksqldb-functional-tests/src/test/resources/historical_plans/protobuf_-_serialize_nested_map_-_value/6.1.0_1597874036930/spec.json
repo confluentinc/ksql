@@ -5,11 +5,22 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`FOO` MAP<STRING, DOUBLE>",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` MAP<STRING, DOUBLE>",
-      "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "features" : [ "WRAP_SINGLES" ]
+      }
     }
   },
   "testCase" : {
@@ -62,37 +73,39 @@
       "numPartitions" : 4
     }, {
       "name" : "input_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated ConnectDefault2Entry FOO = 1;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    double value = 2;\n  }\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated ConnectDefault2Entry FOO = 1;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    double value = 2;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;" ],
     "post" : {
       "sources" : [ {
-        "name" : "OUTPUT",
-        "type" : "STREAM",
-        "schema" : "`FOO` MAP<STRING, DOUBLE>",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ "WRAP_SINGLE_VALUES" ]
-      }, {
         "name" : "INPUT",
         "type" : "STREAM",
         "schema" : "`FOO` MAP<STRING, DOUBLE>",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` MAP<STRING, DOUBLE>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "WRAP_SINGLES" ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "input_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
@@ -101,12 +114,11 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "PROTOBUF"
+            "format" : "PROTOBUF",
+            "features" : [ "WRAP_SINGLES" ]
           },
           "partitions" : 4
         } ]

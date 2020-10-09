@@ -16,6 +16,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
@@ -35,9 +36,7 @@ import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Map;
 import java.util.Objects;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -95,8 +94,7 @@ public class CommandFactories implements DdlCommandFactory {
   public DdlCommand create(
       final String sqlExpression,
       final DdlStatement ddlStatement,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> properties
+      final SessionConfig config
   ) {
     return FACTORIES
         .getOrDefault(ddlStatement.getClass(), (statement, cf, ci) -> {
@@ -109,7 +107,7 @@ public class CommandFactories implements DdlCommandFactory {
         })
         .handle(
             this,
-            new CallInfo(sqlExpression, ksqlConfig, properties),
+            new CallInfo(sqlExpression, config),
             ddlStatement);
   }
 
@@ -119,7 +117,7 @@ public class CommandFactories implements DdlCommandFactory {
   ) {
     return createSourceFactory.createStreamCommand(
         statement,
-        callInfo.ksqlConfig
+        callInfo.config.getConfig(true)
     );
   }
 
@@ -129,7 +127,7 @@ public class CommandFactories implements DdlCommandFactory {
   ) {
     return createSourceFactory.createTableCommand(
         statement,
-        callInfo.ksqlConfig
+        callInfo.config.getConfig(true)
     );
   }
 
@@ -141,12 +139,10 @@ public class CommandFactories implements DdlCommandFactory {
     return dropSourceFactory.create(statement);
   }
 
-  @SuppressWarnings("MethodMayBeStatic")
   private RegisterTypeCommand handleRegisterType(final RegisterType statement) {
     return registerTypeFactory.create(statement);
   }
 
-  @SuppressWarnings("MethodMayBeStatic")
   private DropTypeCommand handleDropType(final DropType statement) {
     return dropTypeFactory.create(statement);
   }
@@ -158,18 +154,14 @@ public class CommandFactories implements DdlCommandFactory {
   private static final class CallInfo {
 
     final String sqlExpression;
-    final KsqlConfig ksqlConfig;
-    final Map<String, Object> properties;
+    final SessionConfig config;
 
     private CallInfo(
         final String sqlExpression,
-        final KsqlConfig ksqlConfig,
-        final Map<String, Object> properties
+        final SessionConfig config
     ) {
       this.sqlExpression = Objects.requireNonNull(sqlExpression, "sqlExpression");
-      this.properties = Objects.requireNonNull(properties, "properties");
-      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig")
-          .cloneWithPropertyOverwrite(properties);
+      this.config = Objects.requireNonNull(config, "config");
     }
   }
 }

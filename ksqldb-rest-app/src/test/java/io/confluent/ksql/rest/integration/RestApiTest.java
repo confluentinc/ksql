@@ -305,7 +305,7 @@ public class RestApiTest {
     // When:
     final ConfigResponse response = RestIntegrationTestUtil.makeConfigRequest(
         REST_APP,
-        Arrays.asList(new String[] {"foo", KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG})
+        Arrays.asList(new String[] {"foo", KsqlConfig.CONNECT_URL_PROPERTY, KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG})
     );
 
     // Then:

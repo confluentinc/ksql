@@ -39,8 +39,9 @@ public class ConfigResource {
   public EndpointResponse getConfigs(final List<String> requestedConfigs) {
     final Map<String, Object> configs = new HashMap<>();
     for (String config : requestedConfigs) {
-      if (visibleConfigs.containsKey(config)) {
-        configs.put(config, visibleConfigs.get(config));
+      final Object value = visibleConfigs.get(config);
+      if (value != null) {
+        configs.put(config, value);
       }
     }
     return EndpointResponse.ok(new ConfigResponse(configs));

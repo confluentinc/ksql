@@ -110,6 +110,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -143,6 +146,7 @@ public final class PullQueryExecutor {
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final ExecutorService executorService;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
@@ -155,7 +159,7 @@ public final class PullQueryExecutor {
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
-
+    this.executorService = Executors.newFixedThreadPool(5);
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -234,12 +238,9 @@ public final class PullQueryExecutor {
       List<List<Struct>> keysByLocation = mat.locator().splitByLocation(
           whereInfo.keysBound.stream()
               .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
-              .collect(Collectors.toList())
-      );
+              .collect(Collectors.toList()));
+      List<Future<PullQueryResult>> futures = new ArrayList<>();
       for (List<Struct> keys : keysByLocation) {
-//
-//        final Struct key = asKeyStruct(keyBound, query.getPhysicalSchema());
-
         final PullQueryContext pullQueryContext = new PullQueryContext(
             keys,
             mat,
@@ -249,17 +250,22 @@ public final class PullQueryExecutor {
             contextStacker,
             pullQueryMetrics);
 
-        final PullQueryResult result = handlePullQuery(
+        futures.add(executorService.submit(() -> handlePullQuery(
             statement,
             executionContext,
             serviceContext,
             pullQueryContext,
             routingOptions
-        );
+        )));
+
+      }
+      for (Future<PullQueryResult> future : futures) {
+        final PullQueryResult result = future.get();
 
         sourceNodes.add(result.getSourceNode());
         tableRows.addAll(result.getTableRows().getRows());
       }
+
       return new PullQueryResult(
           new TableRows(statement.getStatementText(), queryId, query.getLogicalSchema(), tableRows),
           Iterables.getFirst(sourceNodes, Optional.empty()));
@@ -596,7 +602,7 @@ public final class PullQueryExecutor {
 
       return new WhereInfo(keyValues, Optional.empty());
     }
-    throw invalidWhereClauseException("Unsupported expression: " + where, false);
+    throw invalidWhereClauseException("Unsupported expression: " + where, windowed);
   }
 
   private static List<Object> extractKeysFromInPredicate(
@@ -824,24 +830,11 @@ public final class PullQueryExecutor {
     }
 
     if (exp instanceof LogicalBinaryExpression) {
-      final LogicalBinaryExpression binary = (LogicalBinaryExpression) exp;
-      if (binary.getType() != LogicalBinaryExpression.Type.AND) {
-        throw invalidWhereClauseException("Only AND expressions are supported: " + exp, false);
-      }
-
-      final Optional<InPredicate> left =
-          extractInPredicate(binary.getLeft(), query);
-
-      final Optional<InPredicate> right =
-          extractInPredicate(binary.getRight(), query);
-
-      if (left.isPresent() && right.isPresent()) {
-        throw invalidWhereClauseException("Only one IN expression allowed:" + exp, false);
-      }
-      return left.isPresent() ? left : right;
+      throw invalidWhereClauseException(
+          "IN only allowed alone without other expressions. ", false);
     }
 
-    return Optional.empty();
+    throw invalidWhereClauseException("Unsupported expression: " + exp, false);
   }
 
   private static void extractWhereClauseTarget(
@@ -855,7 +848,7 @@ public final class PullQueryExecutor {
     }
 
     throw invalidWhereClauseException(
-        "WHERE clause on unsupported column: " + column.getColumnName().text(),
+        "IN expression on unsupported column: " + column.getColumnName().text(),
         false
     );
   }
@@ -895,8 +888,11 @@ public final class PullQueryExecutor {
           ));
     }
 
-    return ImmutableMap.of();
-    //throw invalidWhereClauseException("Unsupported expression: " + exp, false);
+    if (exp instanceof InPredicate) {
+      return ImmutableMap.of();
+    }
+
+    throw invalidWhereClauseException("Unsupported expression: " + exp, false);
   }
 
   private static ComparisonTarget extractWhereClauseTarget(

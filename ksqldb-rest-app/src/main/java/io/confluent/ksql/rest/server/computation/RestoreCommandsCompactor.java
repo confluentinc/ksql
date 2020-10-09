@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import java.util.HashMap;
@@ -85,7 +86,11 @@ public final class RestoreCommandsCompactor {
       final Optional<KsqlPlan> plan = command.getPlan();
       if (queued.getAndDeserializeCommandId().getType() == Type.TERMINATE) {
         final QueryId queryId = new QueryId(queued.getAndDeserializeCommandId().getEntity());
-        markShouldSkip(queryId, latestNodeWithId);
+        if (queryId.toString().equals(TerminateQuery.ALL_QUERIES)) {
+          latestNodeWithId.values().forEach(node -> node.shouldSkip = true);
+        } else {
+          markShouldSkip(queryId, latestNodeWithId);
+        }
 
         // terminate commands don't get added to the list of commands to execute
         // because we "execute" them in this class by removing query plans from

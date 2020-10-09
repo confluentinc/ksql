@@ -81,7 +81,6 @@ public class SuppressNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldThrowOnSuppressOnStream() {
 
     // Given:
@@ -111,7 +110,7 @@ public class SuppressNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then
-    verify(schemaKTable).suppress(refinementInfo, valueFormat, stacker);
+    verify(schemaKTable).suppress(refinementInfo, valueFormat.getFormatInfo(), stacker);
   }
 }
 

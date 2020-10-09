@@ -61,6 +61,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
     return getSource().buildStream(builder)
         .selectKey(
             partitionBy,
+            Optional.empty(),
             builder.buildNodeContext(getId().toString())
         );
   }

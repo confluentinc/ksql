@@ -427,7 +427,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupByExpressions,
         childContextStacker
     );
@@ -448,7 +448,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupByExpressions,
         childContextStacker
     );
@@ -483,7 +483,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupByExpressions,
         childContextStacker
     );
@@ -517,7 +517,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupByExpressions,
         childContextStacker
     );
@@ -550,7 +550,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKGroupedTable result =
-        schemaKTable.groupBy(valueFormat, groupByExpressions, childContextStacker);
+        schemaKTable.groupBy(valueFormat.getFormatInfo(), groupByExpressions, childContextStacker);
 
     // Then:
     result.getSourceTableStep().build(planBuilder);

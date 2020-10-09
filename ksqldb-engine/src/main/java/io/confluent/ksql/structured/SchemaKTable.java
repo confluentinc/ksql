@@ -38,11 +38,11 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
@@ -144,6 +144,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<Struct> selectKey(
       final Expression keyExpression,
+      final Optional<FormatInfo> forceInternalKeyFormat,
       final Stacker contextStacker
   ) {
     if (repartitionNotNeeded(ImmutableList.of(keyExpression))) {
@@ -167,7 +168,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKGroupedTable groupBy(
-      final ValueFormat valueFormat,
+      final FormatInfo valueFormat,
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
@@ -177,7 +178,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,
         sourceTableStep,
-        InternalFormats.of(groupedKeyFormat, valueFormat),
+        InternalFormats.of(groupedKeyFormat.getFormatInfo(), valueFormat),
         groupByExpressions
     );
 
@@ -194,6 +195,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.INNER,
@@ -201,6 +204,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -215,6 +219,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.LEFT,
@@ -222,6 +228,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -236,6 +243,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final QueryContext.Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.OUTER,
@@ -243,6 +252,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -254,14 +264,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> suppress(
       final RefinementInfo refinementInfo,
-      final ValueFormat valueFormat,
+      final FormatInfo valueFormat,
       final Stacker contextStacker
   ) {
     final TableSuppress<K> step = ExecutionStepFactory.tableSuppress(
         contextStacker,
         sourceTableStep,
         refinementInfo,
-        InternalFormats.of(keyFormat, valueFormat)
+        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat)
     );
 
     return new SchemaKTable<>(

@@ -85,7 +85,7 @@ public class JoinIntTest {
     orderStreamTopicJson = TopicTestUtil.uniqueTopicName("OrderTopicJson");
     orderStreamTopicAvro = TopicTestUtil.uniqueTopicName("OrderTopicAvro");
 
-    TEST_HARNESS.ensureTopics(itemTableTopicJson, itemTableTopicAvro,
+    TEST_HARNESS.ensureTopics(4, itemTableTopicJson, itemTableTopicAvro,
         orderStreamTopicJson, orderStreamTopicAvro);
 
     // we want the table events to always be present (less than the ts in the stream
@@ -262,13 +262,13 @@ public class JoinIntTest {
         "CREATE STREAM %s (ORDERID varchar KEY, ORDERTIME bigint, "
             + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, "
             + "KEYVALUEMAP map<varchar, double>) "
-            + "WITH (kafka_topic='%s', value_format='JSON');",
+            + "WITH (kafka_topic='%s', key_format='KAFKA', value_format='JSON');",
         ORDER_STREAM_NAME_JSON,
         orderStreamTopicJson));
 
     ksqlContext.sql(String.format(
         "CREATE TABLE %s (ID varchar PRIMARY KEY, DESCRIPTION varchar) "
-            + "WITH (kafka_topic='%s', value_format='JSON');",
+            + "WITH (kafka_topic='%s', key_format='KAFKA', value_format='JSON');",
         ITEM_TABLE_NAME_JSON,
         itemTableTopicJson));
 
@@ -276,13 +276,13 @@ public class JoinIntTest {
         "CREATE STREAM %s (ORDERID varchar KEY, ORDERTIME bigint, ITEMID varchar, "
             + "ORDERUNITS double, PRICEARRAY array<double>, "
             + "KEYVALUEMAP map<varchar, double>) "
-        + "WITH (kafka_topic='%s', value_format='AVRO', timestamp='ORDERTIME');",
+        + "WITH (kafka_topic='%s', key_format='KAFKA', value_format='AVRO', timestamp='ORDERTIME');",
         ORDER_STREAM_NAME_AVRO,
         orderStreamTopicAvro));
 
     ksqlContext.sql(String.format(
         "CREATE TABLE %s (ID varchar PRIMARY KEY, DESCRIPTION varchar)"
-            + " WITH (kafka_topic='%s', value_format='AVRO');",
+            + " WITH (kafka_topic='%s', key_format='DELIMITED', value_format='AVRO');",
         ITEM_TABLE_NAME_AVRO,
         itemTableTopicAvro));
   }

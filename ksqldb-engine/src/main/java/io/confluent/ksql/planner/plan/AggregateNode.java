@@ -211,7 +211,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         requiredColumnNames,
         functions,
         windowExpression,
-        valueFormat,
+        valueFormat.getFormatInfo(),
         aggregationContext
     );
   }
@@ -247,7 +247,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final SchemaKStream<?> preSelected
   ) {
     return preSelected.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupBy.getGroupingExpressions(),
         contextStacker.push(GROUP_BY_OP_NAME)
     );

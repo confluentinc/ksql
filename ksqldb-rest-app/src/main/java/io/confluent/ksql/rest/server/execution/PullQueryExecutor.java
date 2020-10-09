@@ -235,6 +235,7 @@ public final class PullQueryExecutor {
 
       List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
       List<List<?>> tableRows = new ArrayList<>();
+      List<LogicalSchema> schemas = new ArrayList<>();
       List<List<Struct>> keysByLocation = mat.locator().splitByLocation(
           whereInfo.keysBound.stream()
               .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
@@ -263,11 +264,12 @@ public final class PullQueryExecutor {
         final PullQueryResult result = future.get();
 
         sourceNodes.add(result.getSourceNode());
+        schemas.add(result.getTableRows().getSchema());
         tableRows.addAll(result.getTableRows().getRows());
       }
 
       return new PullQueryResult(
-          new TableRows(statement.getStatementText(), queryId, query.getLogicalSchema(), tableRows),
+          new TableRows(statement.getStatementText(), queryId, Iterables.getLast(schemas), tableRows),
           Iterables.getFirst(sourceNodes, Optional.empty()));
 
     } catch (final Exception e) {
@@ -568,48 +570,52 @@ public final class PullQueryExecutor {
     final Expression where = analysis.getWhereExpression()
         .orElseThrow(() -> invalidWhereClauseException("Missing WHERE clause", windowed));
 
-    final Map<ComparisonTarget, List<ComparisonExpression>> comparisons =
-        extractComparisons(where, query);
-    if (comparisons.size() > 0) {
-      final List<ComparisonExpression> keyComparison = comparisons.get(ComparisonTarget.KEYCOL);
-      if (keyComparison == null) {
-        throw invalidWhereClauseException("WHERE clause missing key column", windowed);
+    final KeyAndWindowBounds keyAndWindowBounds = extractComparisons(where, query);
+    final List<ComparisonExpression> keyComparison = keyAndWindowBounds.getKeyColExpression();
+    final List<InPredicate> inPredicate = keyAndWindowBounds.getInPredicate();
+    if (keyComparison.size() == 0 && inPredicate.size() == 0) {
+      throw invalidWhereClauseException("WHERE clause missing key column", windowed);
+    } else if ((keyComparison.size() + inPredicate.size()) > 1) {
+      throw invalidWhereClauseException("Multiple bounds on key column", windowed);
+    }
+
+    final List<Object> keys;
+    if (keyComparison.size() > 0) {
+      keys = ImmutableList.of(
+          extractKeyWhereClause(keyComparison, windowed, query.getLogicalSchema()));
+    } else {
+      keys = extractKeysFromInPredicate(inPredicate, windowed, query.getLogicalSchema());
+    }
+
+    if (!windowed) {
+      if (keyAndWindowBounds.getWindowStartExpression().size() > 0
+          || keyAndWindowBounds.getWindowEndExpression().size() > 0) {
+        throw invalidWhereClauseException("Unsupported WHERE clause", false);
       }
 
-      final Object key = extractKeyWhereClause(
-          keyComparison,
-          windowed,
-          query.getLogicalSchema()
-      );
-
-      if (!windowed) {
-        if (comparisons.size() > 1) {
-          throw invalidWhereClauseException("Unsupported WHERE clause", false);
-        }
-
-        return new WhereInfo(ImmutableList.of(key), Optional.empty());
-      }
-
-      final WindowBounds windowBounds =
-          extractWhereClauseWindowBounds(comparisons);
-
-      return new WhereInfo(ImmutableList.of(key), Optional.of(windowBounds));
+      return new WhereInfo(keys, Optional.empty());
     }
-    Optional<InPredicate> inPredicate = extractInPredicate(where, query);
-    if (inPredicate.isPresent()) {
-      List<Object> keyValues = extractKeysFromInPredicate(inPredicate.get(), windowed,
-          query.getLogicalSchema());
 
-      return new WhereInfo(keyValues, Optional.empty());
-    }
-    throw invalidWhereClauseException("Unsupported expression: " + where, windowed);
+    final WindowBounds windowBounds =
+        extractWhereClauseWindowBounds(keyAndWindowBounds);
+
+    return new WhereInfo(keys, Optional.of(windowBounds));
+//    Optional<InPredicate> inPredicate = extractInPredicate(where, query);
+//    if (inPredicate.isPresent()) {
+//      List<Object> keyValues = extractKeysFromInPredicate(inPredicate.get(), windowed,
+//          query.getLogicalSchema());
+//
+//      return new WhereInfo(keyValues, Optional.empty());
+//    }
+//    throw invalidWhereClauseException("Unsupported expression: " + where, windowed);
   }
 
   private static List<Object> extractKeysFromInPredicate(
-      final InPredicate inPredicate,
+      final List<InPredicate> inPredicates,
       final boolean windowed,
       final LogicalSchema schema
   ) {
+    InPredicate inPredicate = Iterables.getLast(inPredicates);
     List<Object> result = new ArrayList<>();
     for (Expression expression : inPredicate.getValueList().getValues()) {
       if (!(expression instanceof Literal)) {
@@ -627,11 +633,7 @@ public final class PullQueryExecutor {
       final boolean windowed,
       final LogicalSchema schema
   ) {
-    if (comparisons.size() != 1) {
-      throw invalidWhereClauseException("Multiple bounds on key column", windowed);
-    }
-
-    final ComparisonExpression comparison = comparisons.get(0);
+    final ComparisonExpression comparison = Iterables.getLast(comparisons);
     if (comparison.getType() != Type.EQUAL) {
       final ColumnName keyColumn = Iterables.getOnlyElement(schema.key()).name();
       throw invalidWhereClauseException("Bound on '" + keyColumn.text()
@@ -669,22 +671,20 @@ public final class PullQueryExecutor {
   }
 
   private static WindowBounds extractWhereClauseWindowBounds(
-      final Map<ComparisonTarget, List<ComparisonExpression>> allComparisons
+      final KeyAndWindowBounds keyAndWindowBounds
   ) {
     return new WindowBounds(
-        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWSTART, allComparisons),
-        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWEND, allComparisons)
+        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWSTART,
+            keyAndWindowBounds.getWindowStartExpression()),
+        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWEND,
+            keyAndWindowBounds.getWindowEndExpression())
     );
   }
 
   private static Range<Instant> extractWhereClauseWindowBounds(
       final ComparisonTarget windowType,
-      final Map<ComparisonTarget, List<ComparisonExpression>> allComparisons
+      final List<ComparisonExpression> comparisons
   ) {
-    final List<ComparisonExpression> comparisons =
-        Optional.ofNullable(allComparisons.get(windowType))
-            .orElseGet(ImmutableList::of);
-
     if (comparisons.isEmpty()) {
       return Range.all();
     }
@@ -819,32 +819,31 @@ public final class PullQueryExecutor {
     );
   }
 
-  private static Optional<InPredicate> extractInPredicate(
-      final Expression exp,
-      final PersistentQueryMetadata query
-  ) {
-    if (exp instanceof InPredicate) {
-      final InPredicate inPredicate = (InPredicate) exp;
-      extractWhereClauseTarget(inPredicate, query);
-      return Optional.of(inPredicate);
-    }
+//  private static KeyAndWindowBounds extractInPredicate(
+//      final Expression exp,
+//      final PersistentQueryMetadata query
+//  ) {
+//    if (exp instanceof InPredicate) {
+//      final InPredicate inPredicate = (InPredicate) exp;
+//      return extractWhereClauseTarget(inPredicate, query);
+//    }
+//
+//    if (exp instanceof LogicalBinaryExpression) {
+//      throw invalidWhereClauseException(
+//          "IN only allowed alone without other expressions. ", false);
+//    }
+//
+//    throw invalidWhereClauseException("Unsupported expression: " + exp, false);
+//  }
 
-    if (exp instanceof LogicalBinaryExpression) {
-      throw invalidWhereClauseException(
-          "IN only allowed alone without other expressions. ", false);
-    }
-
-    throw invalidWhereClauseException("Unsupported expression: " + exp, false);
-  }
-
-  private static void extractWhereClauseTarget(
+  private static KeyAndWindowBounds extractWhereClauseTarget(
       final InPredicate inPredicate,
       final PersistentQueryMetadata query
   ) {
     UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
     final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
     if (column.getColumnName().equals(keyColumn)) {
-      return;
+      return new KeyAndWindowBounds().addInPredicate(inPredicate);
     }
 
     throw invalidWhereClauseException(
@@ -859,14 +858,72 @@ public final class PullQueryExecutor {
     WINDOWEND
   }
 
-  private static Map<ComparisonTarget, List<ComparisonExpression>> extractComparisons(
+  private static class KeyAndWindowBounds {
+    private List<ComparisonExpression> keyColExpression = new ArrayList<>();
+    private List<ComparisonExpression> windowStartExpression = new ArrayList<>();
+    private List<ComparisonExpression> windowEndExpression = new ArrayList<>();
+    private List<InPredicate> inPredicate = new ArrayList<>();
+
+    public KeyAndWindowBounds() {
+    }
+
+    public KeyAndWindowBounds addKeyColExpression(ComparisonExpression keyColExpression) {
+      this.keyColExpression.add(keyColExpression);
+      return this;
+    }
+
+    public KeyAndWindowBounds addWindowStartExpression(ComparisonExpression windowStartExpression) {
+      this.windowStartExpression.add(windowStartExpression);
+      return this;
+    }
+
+    public KeyAndWindowBounds addWindowEndExpression(ComparisonExpression windowEndExpression) {
+      this.windowEndExpression.add(windowEndExpression);
+      return this;
+    }
+
+    public KeyAndWindowBounds addInPredicate(InPredicate inPredicate) {
+      this.inPredicate.add(inPredicate);
+      return this;
+    }
+
+    public KeyAndWindowBounds merge(KeyAndWindowBounds other) {
+      keyColExpression.addAll(other.keyColExpression);
+      windowStartExpression.addAll(other.windowStartExpression);
+      windowEndExpression.addAll(other.windowEndExpression);
+      inPredicate.addAll(other.inPredicate);
+      return this;
+    }
+
+    public List<ComparisonExpression> getKeyColExpression() {
+      return keyColExpression;
+    }
+
+    public List<ComparisonExpression> getWindowStartExpression() {
+      return windowStartExpression;
+    }
+
+    public List<ComparisonExpression> getWindowEndExpression() {
+      return windowEndExpression;
+    }
+
+    public List<InPredicate> getInPredicate() {
+      return inPredicate;
+    }
+  }
+
+  private static KeyAndWindowBounds extractComparisons(
       final Expression exp,
       final PersistentQueryMetadata query
   ) {
     if (exp instanceof ComparisonExpression) {
       final ComparisonExpression comparison = (ComparisonExpression) exp;
-      final ComparisonTarget target = extractWhereClauseTarget(comparison, query);
-      return ImmutableMap.of(target, ImmutableList.of(comparison));
+      return extractWhereClauseTarget(comparison, query);
+    }
+
+    if (exp instanceof InPredicate) {
+      final InPredicate inPredicate = (InPredicate) exp;
+      return extractWhereClauseTarget(inPredicate, query);
     }
 
     if (exp instanceof LogicalBinaryExpression) {
@@ -875,27 +932,15 @@ public final class PullQueryExecutor {
         throw invalidWhereClauseException("Only AND expressions are supported: " + exp, false);
       }
 
-      final Map<ComparisonTarget, List<ComparisonExpression>> left =
-          extractComparisons(binary.getLeft(), query);
-
-      final Map<ComparisonTarget, List<ComparisonExpression>> right =
-          extractComparisons(binary.getRight(), query);
-
-      return Stream
-          .concat(left.entrySet().stream(), right.entrySet().stream())
-          .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (l, r) ->
-              ImmutableList.<ComparisonExpression>builder().addAll(l).addAll(r).build()
-          ));
-    }
-
-    if (exp instanceof InPredicate) {
-      return ImmutableMap.of();
+      final KeyAndWindowBounds left = extractComparisons(binary.getLeft(), query);
+      final KeyAndWindowBounds right = extractComparisons(binary.getRight(), query);
+      return left.merge(right);
     }
 
     throw invalidWhereClauseException("Unsupported expression: " + exp, false);
   }
 
-  private static ComparisonTarget extractWhereClauseTarget(
+  private static KeyAndWindowBounds extractWhereClauseTarget(
       final ComparisonExpression comparison,
       final PersistentQueryMetadata query
   ) {
@@ -910,16 +955,16 @@ public final class PullQueryExecutor {
 
     final ColumnName columnName = column.getColumnName();
     if (columnName.equals(SystemColumns.WINDOWSTART_NAME)) {
-      return ComparisonTarget.WINDOWSTART;
+      return new KeyAndWindowBounds().addWindowStartExpression(comparison);
     }
 
     if (columnName.equals(SystemColumns.WINDOWEND_NAME)) {
-      return ComparisonTarget.WINDOWEND;
+      return new KeyAndWindowBounds().addWindowEndExpression(comparison);
     }
 
     final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
     if (columnName.equals(keyColumn)) {
-      return ComparisonTarget.KEYCOL;
+      return new KeyAndWindowBounds().addKeyColExpression(comparison);
     }
 
     throw invalidWhereClauseException(

@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.engine.KsqlEngineTestUtil.execute;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasFullName;
+import static io.confluent.ksql.statement.ConfiguredStatement.of;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static java.util.Collections.emptyMap;
@@ -41,7 +42,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -50,7 +50,6 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -228,8 +227,8 @@ public class KsqlEngineTest {
     final ExecuteResult result = sandbox
         .execute(sandboxServiceContext, ConfiguredStatement.of(
             sandbox.prepare(statements.get(1)),
-            SessionConfig.of(KSQL_CONFIG, Collections.emptyMap())
-        ));
+            Collections.emptyMap(),
+            KSQL_CONFIG));
 
     // Then:
     assertThat(result.getQuery(), is(not(Optional.empty())));
@@ -474,7 +473,7 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement.of(prepared, SessionConfig.of(KSQL_CONFIG, Collections.emptyMap()))
+            ConfiguredStatement.of(prepared, Collections.emptyMap(), KSQL_CONFIG)
         )
     );
 
@@ -535,7 +534,7 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement.of(statement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of()))
+            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
         )
     );
 
@@ -559,7 +558,7 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> ksqlEngine.execute(
             serviceContext,
-            ConfiguredStatement.of(statement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of()))
+            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
         )
     );
 
@@ -999,8 +998,7 @@ public class KsqlEngineTest {
           final PreparedStatement<?> prepared = ksqlEngine.prepare(stmt);
           final ExecuteResult result = ksqlEngine.execute(
               serviceContext,
-              ConfiguredStatement
-                  .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>())));
+              ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
           result.getQuery().ifPresent(queries::add);
           return prepared;
         })
@@ -1053,8 +1051,7 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> ksqlEngine.execute(
             serviceContext,
-            ConfiguredStatement
-                .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+            ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
         )
     );
 
@@ -1112,8 +1109,7 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> ksqlEngine.execute(
             serviceContext,
-            ConfiguredStatement
-                .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+            of(prepared, new HashMap<>(), KSQL_CONFIG)
         )
     );
 
@@ -1179,8 +1175,7 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> sandbox.execute(
             serviceContext,
-            ConfiguredStatement
-                .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
         )
     );
 
@@ -1203,8 +1198,7 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> sandbox.execute(
             serviceContext,
-            ConfiguredStatement
-                .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+            ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
         )
     );
 
@@ -1312,9 +1306,7 @@ public class KsqlEngineTest {
     statements
         .forEach(stmt -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement
-                .of(sandbox.prepare(stmt), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
-                )));
+            ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
     // Then:
     assertThat(metaStore.getSource(SourceName.of("TEST3")), is(notNullValue()));
@@ -1340,9 +1332,7 @@ public class KsqlEngineTest {
     statements.forEach(
         stmt -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement
-                .of(sandbox.prepare(stmt), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
-                ))
+            ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG))
     );
 
     // Then:
@@ -1359,8 +1349,7 @@ public class KsqlEngineTest {
     // When:
     sandbox.execute(
         sandboxServiceContext,
-        ConfiguredStatement
-            .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
     );
 
     // Then:
@@ -1384,8 +1373,7 @@ public class KsqlEngineTest {
     // When:
     sandbox.execute(
         sandboxServiceContext,
-        ConfiguredStatement
-            .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
     );
 
     // Then:
@@ -1423,8 +1411,7 @@ public class KsqlEngineTest {
     // When:
     final ExecuteResult result = sandbox.execute(
         sandboxServiceContext,
-        ConfiguredStatement
-            .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
     );
 
     // Then:
@@ -1489,8 +1476,7 @@ public class KsqlEngineTest {
     // When:
     final ExecuteResult result = sandbox.execute(
         sandboxServiceContext,
-        ConfiguredStatement
-            .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
     );
 
     // Then:
@@ -1622,18 +1608,15 @@ public class KsqlEngineTest {
   ) {
     ksqlEngine.execute(
         serviceContext,
-        ConfiguredStatement
-            .of(ksqlEngine.prepare(statement), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
-            ));
+        ConfiguredStatement.of(ksqlEngine.prepare(statement), new HashMap<>(), KSQL_CONFIG));
     sandbox = ksqlEngine.createSandbox(serviceContext);
   }
 
   private void givenSqlAlreadyExecuted(final String sql) {
-    parse(sql).forEach(stmt -> ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement
-            .of(ksqlEngine.prepare(stmt), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
-            )));
+    parse(sql).forEach(stmt ->
+        ksqlEngine.execute(
+            serviceContext,
+            ConfiguredStatement.of(ksqlEngine.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
     sandbox = ksqlEngine.createSandbox(serviceContext);
   }

@@ -92,7 +92,7 @@ public class SchemaRegisterInjector implements Injector {
         schema,
         FormatFactory.of(valueFormat),
         statement.getProperties().getValueSerdeFeatures(),
-        cs.getSessionConfig().getConfig(false)
+        cs.getConfig()
     );
 
     registerSchemas(
@@ -102,7 +102,7 @@ public class SchemaRegisterInjector implements Injector {
         keyFeatures,
         valueFormat,
         valFeatures,
-        cs.getSessionConfig().getConfig(false),
+        cs.getConfig(),
         cs.getStatementText(),
         false
     );
@@ -129,7 +129,7 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getPhysicalSchema().keySchema().features(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
         queryMetadata.getPhysicalSchema().valueSchema().features(),
-        cas.getSessionConfig().getConfig(false),
+        cas.getConfig(),
         cas.getStatementText(),
         true
     );

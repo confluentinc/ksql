@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -55,6 +54,7 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -168,8 +168,10 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   public ConfiguredStatement<?> configure(final String sql) {
-    return ConfiguredStatement.of(getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0)),
-        SessionConfig.of(ksqlConfig, ImmutableMap.of()));
+    return ConfiguredStatement.of(
+        getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0)),
+        new HashMap<>(),
+        ksqlConfig);
   }
 
   public KsqlConfig getKsqlConfig() {

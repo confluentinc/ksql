@@ -21,7 +21,6 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
@@ -201,8 +200,8 @@ public class KsqlTesterTest {
   @SuppressWarnings("unchecked")
   private void execute(final ParsedStatement parsedStatement) {
     final PreparedStatement<?> engineStatement = engine.prepare(parsedStatement);
-    final ConfiguredStatement<?> configured = ConfiguredStatement
-        .of(engineStatement, SessionConfig.of(config, overrides));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+        engineStatement, overrides, config);
 
     createTopics(engineStatement);
 

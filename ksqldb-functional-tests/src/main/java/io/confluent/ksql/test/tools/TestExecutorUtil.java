@@ -30,7 +30,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
@@ -164,7 +163,7 @@ public final class TestExecutorUtil {
     ) {
       return testCase.getExpectedTopology().get().getPlan().get()
           .stream()
-          .map(p -> ConfiguredKsqlPlan.of(p, SessionConfig.of(ksqlConfig, testCase.properties())))
+          .map(p -> ConfiguredKsqlPlan.of(p, testCase.properties(), ksqlConfig))
           .map(PlannedStatement::new)
           .iterator();
     }
@@ -458,9 +457,7 @@ public final class TestExecutorUtil {
     private PlannedStatement planStatement(final ParsedStatement stmt) {
       final PreparedStatement<?> prepared = executionContext.prepare(stmt);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared,
-          SessionConfig.of(ksqlConfig, overrides)
-      );
+          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
 
       if (prepared.getStatement() instanceof InsertValues) {
         return new PlannedStatement((ConfiguredStatement<InsertValues>) configured);
@@ -479,7 +476,9 @@ public final class TestExecutorUtil {
           .plan(executionContext.getServiceContext(), reformatted);
 
       return new PlannedStatement(
-          ConfiguredKsqlPlan.of(rewritePlan(plan), reformatted.getSessionConfig())
+          ConfiguredKsqlPlan.of(rewritePlan(plan),
+                                reformatted.getConfigOverrides(),
+                                reformatted.getConfig())
       );
     }
 

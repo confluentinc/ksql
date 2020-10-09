@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -75,9 +74,8 @@ public class RequestHandler {
     final KsqlEntityList entities = new KsqlEntityList();
     for (final ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
-          SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
-      );
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
 
       executeStatement(
           securityContext,

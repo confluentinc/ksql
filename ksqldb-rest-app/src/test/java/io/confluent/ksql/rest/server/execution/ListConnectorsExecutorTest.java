@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
@@ -107,10 +106,11 @@ public class ListConnectorsExecutorTest {
     // Given:
     when(connectClient.connectors())
         .thenReturn(ConnectResponse.success(ImmutableList.of("connector"), HttpStatus.SC_OK));
-    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement
-        .of(PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
-            SessionConfig.of(ksqlConfig, ImmutableMap.of()));
+    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
+        PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
@@ -136,10 +136,11 @@ public class ListConnectorsExecutorTest {
         .thenReturn(ConnectResponse.success(STATUS_WARNING, HttpStatus.SC_OK));
     when(connectClient.connectors())
         .thenReturn(ConnectResponse.success(ImmutableList.of("connector"), HttpStatus.SC_OK));
-    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement
-        .of(PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
-            SessionConfig.of(ksqlConfig, ImmutableMap.of()));
+    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
+        PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
@@ -164,10 +165,11 @@ public class ListConnectorsExecutorTest {
     when(connectClient.connectors())
         .thenReturn(ConnectResponse.success(ImmutableList.of("connector", "connector2"),
             HttpStatus.SC_OK));
-    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement
-        .of(PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.SINK)),
-            SessionConfig.of(new KsqlConfig(ImmutableMap.of()), ImmutableMap.of())
-        );
+    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
+        PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.SINK)),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
@@ -189,10 +191,11 @@ public class ListConnectorsExecutorTest {
     // Given:
     when(connectClient.connectors())
         .thenReturn(ConnectResponse.success(ImmutableList.of("connector2"), HttpStatus.SC_OK));
-    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement
-        .of(PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
-            SessionConfig.of(new KsqlConfig(ImmutableMap.of()), ImmutableMap.of())
-        );
+    final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
+        PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor

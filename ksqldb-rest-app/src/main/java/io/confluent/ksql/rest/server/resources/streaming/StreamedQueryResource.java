@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -260,11 +259,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<Boolean> isInternalRequest,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
-    final ConfiguredStatement<Query> configured = ConfiguredStatement
-        .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
-
-    final PullQueryResult result = pullQueryExecutor.execute(
-        configured, requestProperties, serviceContext, isInternalRequest, pullQueryMetrics);
+    final ConfiguredStatement<Query> configured =
+        ConfiguredStatement.of(statement, configOverrides, requestProperties, ksqlConfig);
+    final PullQueryResult result = pullQueryExecutor
+        .execute(configured, serviceContext, isInternalRequest, pullQueryMetrics);
     final TableRows tableRows = result.getTableRows();
     final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
         .map(KsqlNode::location)
@@ -292,8 +290,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> streamsProperties,
       final CompletableFuture<Void> connectionClosedFuture
   ) {
-    final ConfiguredStatement<Query> configured = ConfiguredStatement
-        .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
+    final ConfiguredStatement<Query> configured =
+        ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
 
     final TransientQueryMetadata query = ksqlEngine.executeQuery(serviceContext, configured);
 

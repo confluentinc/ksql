@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.rest.SessionProperties;
@@ -56,14 +55,19 @@ public class DropConnectorExecutorTest {
           new DropConnector(Optional.empty(), true, "foo");
 
   private static final ConfiguredStatement<DropConnector> DROP_CONNECTOR_CONFIGURED =
-      ConfiguredStatement.of(PreparedStatement.of(
-          "DROP CONNECTOR \"foo\"",
-          DROP_CONNECTOR), SessionConfig.of(CONFIG, ImmutableMap.of()));
+      ConfiguredStatement.of(
+          PreparedStatement.of(
+              "DROP CONNECTOR \"foo\"",
+              DROP_CONNECTOR),
+          ImmutableMap.of(),
+          CONFIG);
   private static final ConfiguredStatement<DropConnector> DROP_CONNECTOR_IF_EXISTS_CONFIGURED =
-      ConfiguredStatement.of(PreparedStatement.of(
-          "DROP CONNECTOR \"foo\"",
-          DROP_CONNECTOR_IF_EXISTS), SessionConfig.of(CONFIG, ImmutableMap.of())
-      );
+      ConfiguredStatement.of(
+           PreparedStatement.of(
+               "DROP CONNECTOR \"foo\"",
+               DROP_CONNECTOR_IF_EXISTS),
+           ImmutableMap.of(),
+           CONFIG);
 
   @Mock
   private ServiceContext serviceContext;

@@ -80,8 +80,8 @@
     } ],
     "topics" : [ {
       "name" : "right_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string R0 = 1;\n  int32 R1 = 2;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string R0 = 1;\n  int32 R1 = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
@@ -90,8 +90,8 @@
       "numPartitions" : 4
     }, {
       "name" : "left_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string L0 = 1;\n  int32 L1 = 2;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string L0 = 1;\n  int32 L1 = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     } ],

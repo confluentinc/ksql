@@ -43,8 +43,8 @@
       "numPartitions" : 4
     }, {
       "name" : "input_topic",
-      "schema" : "int",
-      "format" : "AVRO",
+      "valueSchema" : "int",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 1
     } ],

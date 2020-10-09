@@ -40,7 +40,7 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : {
+      "valueSchema" : {
         "type" : "object",
         "properties" : {
           "c1" : {
@@ -48,7 +48,7 @@
           }
         }
       },
-      "format" : "JSON",
+      "valueFormat" : "JSON",
       "replicas" : 1,
       "numPartitions" : 1
     }, {

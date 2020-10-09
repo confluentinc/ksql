@@ -48,8 +48,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n  uint64 c3 = 3;\n  sint32 c4 = 4;\n  sint64 c5 = 5;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n  uint64 c3 = 3;\n  sint32 c4 = 4;\n  sint64 c5 = 5;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 1
     }, {

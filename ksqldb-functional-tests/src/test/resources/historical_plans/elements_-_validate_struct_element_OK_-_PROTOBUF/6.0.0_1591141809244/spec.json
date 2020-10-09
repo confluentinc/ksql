@@ -46,8 +46,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 V0 = 1;\n\n  message ConnectDefault2 {\n    string F0 = 1;\n    int32 F1 = 2;\n  }\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 V0 = 1;\n\n  message ConnectDefault2 {\n    string F0 = 1;\n    int32 F1 = 2;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     }, {

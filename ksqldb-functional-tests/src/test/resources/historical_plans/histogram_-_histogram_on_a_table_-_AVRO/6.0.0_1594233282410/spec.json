@@ -151,7 +151,7 @@
     } ],
     "topics" : [ {
       "name" : "test_topic",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -170,7 +170,7 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     }, {

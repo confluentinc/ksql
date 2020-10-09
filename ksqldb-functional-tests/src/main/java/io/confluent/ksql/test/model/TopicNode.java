@@ -39,26 +39,26 @@ public final class TopicNode {
 
   private final String name;
   private final JsonNode keySchema;
-  private final JsonNode schema;
+  private final JsonNode valueSchema;
   private final int numPartitions;
   private final int replicas;
   private final String keyFormat;
-  private final String format;
+  private final String valueFormat;
 
   public TopicNode(
       @JsonProperty("name") final String name,
       @JsonProperty("keySchema") final JsonNode keySchema,
-      @JsonProperty("schema") final JsonNode schema,
+      @JsonProperty("valueSchema") final JsonNode valueSchema,
       @JsonProperty("keyFormat") final String keyFormat,
-      @JsonProperty("format") final String format,
+      @JsonProperty("valueFormat") final String valueFormat,
       @JsonProperty("partitions") final Integer numPartitions,
       @JsonProperty("replicas") final Integer replicas
   ) {
     this.name = name == null ? "" : name;
     this.keySchema = requireNonNull(keySchema, "keySchema");
-    this.schema = requireNonNull(schema, "schema");
+    this.valueSchema = requireNonNull(valueSchema, "valueSchema");
     this.keyFormat = keyFormat;
-    this.format = format;
+    this.valueFormat = valueFormat;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
     this.replicas = replicas == null ? 1 : replicas;
 
@@ -68,7 +68,7 @@ public final class TopicNode {
 
     // Fail early:
     SerdeUtil.buildSchema(keySchema, keyFormat);
-    SerdeUtil.buildSchema(schema, format);
+    SerdeUtil.buildSchema(valueSchema, valueFormat);
   }
 
   public String getName() {
@@ -79,16 +79,16 @@ public final class TopicNode {
     return keySchema instanceof NullNode ? null : keySchema;
   }
 
-  public JsonNode getSchema() {
-    return schema instanceof NullNode ? null : schema;
+  public JsonNode getValueSchema() {
+    return valueSchema instanceof NullNode ? null : valueSchema;
   }
 
   public String getKeyFormat() {
     return keyFormat;
   }
 
-  public String getFormat() {
-    return format;
+  public String getValueFormat() {
+    return valueFormat;
   }
 
   public int getNumPartitions() {
@@ -105,7 +105,7 @@ public final class TopicNode {
         numPartitions,
         replicas,
         SerdeUtil.buildSchema(keySchema, keyFormat),
-        SerdeUtil.buildSchema(schema, format)
+        SerdeUtil.buildSchema(valueSchema, valueFormat)
     );
   }
 
@@ -113,20 +113,20 @@ public final class TopicNode {
     final String keyFormat = topic.getKeySchema()
         .map(ParsedSchema::schemaType)
         .orElse(null);
-    final String format = topic.getValueSchema()
+    final String valueFormat = topic.getValueSchema()
         .map(ParsedSchema::schemaType)
         .orElse(null);
 
     return new TopicNode(
         topic.getName(),
         topic.getKeySchema()
-            .map(schema -> buildSchemaNode(schema, format))
+            .map(schema -> buildSchemaNode(schema, keyFormat))
             .orElseGet(NullNode::getInstance),
         topic.getValueSchema()
-            .map(schema -> buildSchemaNode(schema, format))
+            .map(schema -> buildSchemaNode(schema, valueFormat))
             .orElseGet(NullNode::getInstance),
         keyFormat,
-        format,
+        valueFormat,
         topic.getNumPartitions(),
         (int) topic.getReplicas()
     );

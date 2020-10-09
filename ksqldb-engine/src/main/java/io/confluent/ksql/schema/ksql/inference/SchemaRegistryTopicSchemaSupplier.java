@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -26,7 +28,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SchemaTranslator;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -83,7 +84,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       final boolean isKey
   ) {
     try {
-      final String subject = getSubject(topicName, isKey);
+      final String subject = getSRSubject(topicName, isKey);
 
       final int id;
       if (schemaId.isPresent()) {
@@ -160,7 +161,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   }
 
   private static SchemaResult notFound(final String topicName, final boolean isKey) {
-    final String subject = getSubject(topicName, isKey);
+    final String subject = getSRSubject(topicName, isKey);
     return SchemaResult.failure(new KsqlException(
         "Schema for message " + (isKey ? "keys" : "values") +  " on topic " + topicName
             + " does not exist in the Schema Registry."
@@ -217,12 +218,5 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + " contains multiple columns, which is not supported by ksqlDB at this time."
             + System.lineSeparator()
             + "Schema:" + schema));
-  }
-
-  private static String getSubject(final String topicName, final boolean isKey) {
-    final String suffix = isKey
-        ? KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
-        : KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-    return topicName + suffix;
   }
 }

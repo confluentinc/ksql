@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -181,12 +182,12 @@ public final class TestExecutorUtil {
     final KsqlTopic ksqlTopic = sinkDataSource.getKsqlTopic();
     final Optional<ParsedSchema> keySchema = getSchema(
         ksqlTopic.getKeyFormat().getFormat(),
-        ksqlTopic.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX,
+        getSRSubject(ksqlTopic.getKafkaTopicName(), true),
         schemaRegistryClient
     );
     final Optional<ParsedSchema> valueSchema = getSchema(
         ksqlTopic.getValueFormat().getFormat(),
-        ksqlTopic.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+        getSRSubject(ksqlTopic.getKafkaTopicName(), false),
         schemaRegistryClient
     );
 

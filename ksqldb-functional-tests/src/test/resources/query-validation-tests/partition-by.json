@@ -188,8 +188,19 @@
           "blacklist": ".*-repartition"
         },
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ID INT, NAME STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT, NAME STRING", "keyFormat": {"format": "NONE"}}
         ]
+      }
+    },
+    {
+      "name": "null - explicit key format",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) with (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH(key_format='DELIMITED') AS SELECT ID, NAME from INPUT partition by null;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Key format specified for stream without key columns."
       }
     },
     {

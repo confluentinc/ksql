@@ -1526,8 +1526,8 @@ public class KsqlAvroDeserializerTest {
         schema,
         KSQL_CONFIG,
         () -> schemaRegistryClient,
-        targetType
-    ).deserializer();
+        targetType,
+        false).deserializer();
 
     deserializer.configure(Collections.emptyMap(), false);
 

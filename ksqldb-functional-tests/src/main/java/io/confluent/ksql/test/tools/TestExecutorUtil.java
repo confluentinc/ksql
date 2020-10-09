@@ -277,6 +277,13 @@ public final class TestExecutorUtil {
           topic.getNumPartitions(),
           topic.getReplicas());
 
+      topic.getKeySchema().ifPresent(schema -> {
+        try {
+          srClient.register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX, schema);
+        } catch (final Exception e) {
+          throw new RuntimeException(e);
+        }
+      });
       topic.getValueSchema().ifPresent(schema -> {
         try {
           srClient.register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);

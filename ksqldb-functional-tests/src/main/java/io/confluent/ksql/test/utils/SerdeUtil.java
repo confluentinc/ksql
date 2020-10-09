@@ -127,8 +127,10 @@ public final class SerdeUtil {
     if (windowType == WindowType.SESSION) {
       return new SerdeSupplier<Windowed<T>>() {
         @Override
-        public Serializer<Windowed<T>> getSerializer(final SchemaRegistryClient srClient) {
-          final Serializer<T> serializer = inner.getSerializer(srClient);
+        public Serializer<Windowed<T>> getSerializer(
+            final SchemaRegistryClient srClient, final boolean isKey
+        ) {
+          final Serializer<T> serializer = inner.getSerializer(srClient, isKey);
           serializer.configure(ImmutableMap.of(
               AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
           ), true);
@@ -136,8 +138,11 @@ public final class SerdeUtil {
         }
 
         @Override
-        public Deserializer<Windowed<T>> getDeserializer(final SchemaRegistryClient srClient) {
-          final Deserializer<T> deserializer = inner.getDeserializer(srClient);
+        public Deserializer<Windowed<T>> getDeserializer(
+            final SchemaRegistryClient srClient,
+            final boolean isKey
+        ) {
+          final Deserializer<T> deserializer = inner.getDeserializer(srClient, isKey);
           deserializer.configure(ImmutableMap.of(), true);
           return new SessionWindowedDeserializer<>(deserializer);
         }
@@ -146,8 +151,11 @@ public final class SerdeUtil {
 
     return new SerdeSupplier<Windowed<T>>() {
       @Override
-      public Serializer<Windowed<T>> getSerializer(final SchemaRegistryClient srClient) {
-        final Serializer<T> serializer = inner.getSerializer(srClient);
+      public Serializer<Windowed<T>> getSerializer(
+          final SchemaRegistryClient srClient,
+          final boolean isKey
+      ) {
+        final Serializer<T> serializer = inner.getSerializer(srClient, isKey);
         serializer.configure(ImmutableMap.of(
             AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
         ), true);
@@ -156,8 +164,11 @@ public final class SerdeUtil {
 
       @SuppressWarnings("OptionalGetWithoutIsPresent")
       @Override
-      public Deserializer<Windowed<T>> getDeserializer(final SchemaRegistryClient srClient) {
-        final Deserializer<T> deserializer = inner.getDeserializer(srClient);
+      public Deserializer<Windowed<T>> getDeserializer(
+          final SchemaRegistryClient srClient,
+          final boolean isKey
+      ) {
+        final Deserializer<T> deserializer = inner.getDeserializer(srClient, isKey);
         deserializer.configure(ImmutableMap.of(), true);
         return new TimeWindowedDeserializer<>(
             deserializer,

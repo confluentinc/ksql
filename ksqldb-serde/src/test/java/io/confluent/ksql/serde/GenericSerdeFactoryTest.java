@@ -103,7 +103,7 @@ public class GenericSerdeFactoryTest {
   @Test
   public void shouldInvokeFormatFactoryWithCorrectParams() {
     // When:
-    serdeFactory.createFormatSerde("target", formatInfo, schema, config, srClientFactory);
+    serdeFactory.createFormatSerde("target", formatInfo, schema, config, srClientFactory, false);
 
     // Then:
     verify(formatFactory).apply(formatInfo);
@@ -120,7 +120,7 @@ public class GenericSerdeFactoryTest {
     final Exception actual = assertThrows(
         RuntimeException.class,
         () -> serdeFactory
-            .createFormatSerde("target", formatInfo, schema, config, srClientFactory)
+            .createFormatSerde("target", formatInfo, schema, config, srClientFactory, false)
     );
 
     // Then:
@@ -130,22 +130,22 @@ public class GenericSerdeFactoryTest {
   @Test
   public void shouldInvokeFormatWithCorrectParams() {
     // When:
-    serdeFactory.createFormatSerde("target", formatInfo, schema, config, srClientFactory);
+    serdeFactory.createFormatSerde("target", formatInfo, schema, config, srClientFactory, false);
 
     // Then:
-    verify(format).getSerde(schema, formatProperties, config, srClientFactory);
+    verify(format).getSerde(schema, formatProperties, config, srClientFactory, false);
   }
 
   @Test
   public void shouldThrowIfGetSerdeThrows() {
     // Given:
-    when(format.getSerde(any(), any(), any(), any())).thenThrow(new RuntimeException("boom"));
+    when(format.getSerde(any(), any(), any(), any(), false)).thenThrow(new RuntimeException("boom"));
 
     // When:
     final Exception actual = assertThrows(
         SchemaNotSupportedException.class,
         () -> serdeFactory
-            .createFormatSerde("Target-A", formatInfo, schema, config, srClientFactory)
+            .createFormatSerde("Target-A", formatInfo, schema, config, srClientFactory, false)
     );
 
     // Then:

@@ -97,7 +97,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       final Optional<TrackedCallback> tracker
   ) {
     final Serde<List<?>> formatSerde =
-        innerFactory.createFormatSerde("Value", format, schema, ksqlConfig, srClientFactory);
+        innerFactory.createFormatSerde("Value", format, schema, ksqlConfig, srClientFactory, false);
 
     final Serde<GenericRow> genericRowSerde = toGenericRowSerde(formatSerde, schema);
 

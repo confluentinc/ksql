@@ -99,7 +99,7 @@ public class GenericRowSerDeTest {
     serializer = new GenericRowSerializer(innerSerializer, 2);
     deserializer = new GenericRowDeserializer(innerDeserializer, 2);
 
-    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
+    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), any())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
     when(innerSerde.serializer()).thenReturn(innerSerializer);
@@ -114,7 +114,7 @@ public class GenericRowSerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).createFormatSerde("Value", format, schema, config, srClientFactory);
+    verify(innerFactory).createFormatSerde("Value", format, schema, config, srClientFactory, false);
   }
 
   @Test

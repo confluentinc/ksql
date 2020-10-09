@@ -641,6 +641,62 @@
       }
     },
     {
+      "name": "BOOLEAN - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "boolean"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": true, "value": {"FOO": 10}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "INT - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "int"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": 12, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
       "name": "map with non-string keys fails - C*",
       "statements": [
         "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='AVRO');"

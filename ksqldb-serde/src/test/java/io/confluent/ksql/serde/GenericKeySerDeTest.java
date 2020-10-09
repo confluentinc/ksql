@@ -97,7 +97,7 @@ public class GenericKeySerDeTest {
   public void setUp() {
     factory = new GenericKeySerDe(innerFactory);
 
-    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
+    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), any())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
 
@@ -112,7 +112,7 @@ public class GenericKeySerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory);
+    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory, true);
   }
 
   @Test
@@ -123,7 +123,7 @@ public class GenericKeySerDeTest {
             Optional.empty());
 
     // Then:
-    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory);
+    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory, true);
   }
 
   @Test

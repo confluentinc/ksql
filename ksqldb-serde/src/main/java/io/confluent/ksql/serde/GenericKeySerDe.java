@@ -123,7 +123,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     }
 
     final Serde<List<?>> formatSerde = innerFactory
-        .createFormatSerde("Key", format, schema, ksqlConfig, schemaRegistryClientFactory);
+        .createFormatSerde("Key", format, schema, ksqlConfig, schemaRegistryClientFactory, true);
 
     final Serde<Struct> structSerde = toStructSerde(formatSerde, schema);
 

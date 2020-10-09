@@ -62,7 +62,8 @@ public class JsonSchemaFormat extends ConnectFormat {
       final Map<String, String> formatProps,
       final KsqlConfig config,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     return new KsqlJsonSerdeFactory(true)
         .createSerde(connectSchema, config, srFactory, targetType);

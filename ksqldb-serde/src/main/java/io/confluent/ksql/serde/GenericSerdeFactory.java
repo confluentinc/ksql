@@ -56,13 +56,19 @@ final class GenericSerdeFactory {
       final FormatInfo formatInfo,
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final boolean isKey
   ) {
     final Format format = formatFactory.apply(formatInfo);
 
     try {
       return format
-          .getSerde(schema, formatInfo.getProperties(), ksqlConfig, schemaRegistryClientFactory);
+          .getSerde(schema,
+              formatInfo.getProperties(),
+              ksqlConfig,
+              schemaRegistryClientFactory,
+              isKey
+          );
     } catch (final Exception e) {
       throw new SchemaNotSupportedException(target + " format does not support schema."
           + System.lineSeparator()

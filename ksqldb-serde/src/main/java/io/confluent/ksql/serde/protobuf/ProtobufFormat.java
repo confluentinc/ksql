@@ -61,7 +61,8 @@ public class ProtobufFormat extends ConnectFormat {
       final Map<String, String> formatProps,
       final KsqlConfig config,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     return ProtobufSerdeFactory.createSerde(connectSchema, config, srFactory, targetType);
   }

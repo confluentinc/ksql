@@ -314,7 +314,7 @@ public final class TestExecutorUtil {
           final ConfiguredStatement<InsertValues> insertValues = planned.insertValues.get();
 
           final SessionProperties sessionProperties = new SessionProperties(
-              insertValues.getSessionConfig().getOverrides(),
+              insertValues.getConfigOverrides(),
               new KsqlHostInfo("host", 50),
               buildUrl(),
               false);
@@ -457,7 +457,7 @@ public final class TestExecutorUtil {
     private PlannedStatement planStatement(final ParsedStatement stmt) {
       final PreparedStatement<?> prepared = executionContext.prepare(stmt);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
+          prepared, overrides, ksqlConfig);
 
       if (prepared.getStatement() instanceof InsertValues) {
         return new PlannedStatement((ConfiguredStatement<InsertValues>) configured);

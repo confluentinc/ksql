@@ -24,7 +24,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.SourceName;
@@ -208,9 +207,12 @@ public class DefaultFormatInjectorTest {
       final Map<String, Object> props,
       final Map<String, ?> configOverrides
   ) {
+    final KsqlConfig config = new KsqlConfig(props).cloneWithPropertyOverwrite(configOverrides);
     csStatement = ConfiguredStatement.of(
         PreparedStatement.of("some sql", createSource),
-        SessionConfig.of(new KsqlConfig(props), configOverrides));
+        props,
+        configOverrides,
+        config);
   }
 
   private void givenSourceProps(

@@ -93,7 +93,8 @@ public class DefaultFormatInjector implements Injector {
       return Optional.empty();
     }
 
-    final KsqlConfig config = getConfig(original);
+    final KsqlConfig config = original.getConfig().cloneWithPropertyOverwrite(
+        original.getConfigOverrides());
 
     final CreateSourceProperties injectedProps = properties.withFormats(
         keyFormat.map(FormatInfo::getFormat)
@@ -108,14 +109,11 @@ public class DefaultFormatInjector implements Injector {
 
     final PreparedStatement<CreateSource> prepared = buildPreparedStatement(withFormats);
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement
-        .of(prepared, original.getSessionConfig());
+        .of(prepared, original.getConfigOverrides(), original.getConfig());
 
     return Optional.of(configured);
   }
 
-  private static KsqlConfig getConfig(final ConfiguredStatement<?> statement) {
-    return statement.getSessionConfig().getConfig(true);
-  }
 
   private static String getDefaultKeyFormat(final KsqlConfig config) {
     final String format = config.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG);

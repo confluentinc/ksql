@@ -1243,9 +1243,8 @@ public class KsqlEngineTest {
         KsqlStatementException.class,
         () -> sandbox.execute(
             sandboxServiceContext,
-            ConfiguredStatement.of(prepared, SessionConfig.of(KSQL_CONFIG, Collections.emptyMap()))
-        )
-    );
+            ConfiguredStatement.of(prepared, Collections.emptyMap(), KSQL_CONFIG))
+        );
 
     // Then:
     assertThat(e.getMessage(), containsString("The key format 'AVRO' is not currently supported."));

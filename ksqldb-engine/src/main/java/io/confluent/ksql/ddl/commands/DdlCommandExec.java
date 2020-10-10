@@ -177,7 +177,6 @@ public class DdlCommandExec {
           dataSource.getSqlExpression().concat(sql),
           dataSource.getName(),
           newSchema,
-          dataSource.getSerdeOptions(),
           dataSource.getTimestampColumn(),
           dataSource.isCasTarget(),
           dataSource.getKsqlTopic()
@@ -197,7 +196,6 @@ public class DdlCommandExec {
           dataSource.getSqlExpression().concat(sql),
           dataSource.getName(),
           newSchema,
-          dataSource.getSerdeOptions(),
           dataSource.getTimestampColumn(),
           dataSource.isCasTarget(),
           dataSource.getKsqlTopic()

@@ -333,7 +333,8 @@ final class EngineExecutor {
 
   private void throwOnUnsupportedKeyFormat(final String keyFormat) {
     final Format format = FormatFactory.fromName(keyFormat);
-    if (!KeyFormatUtils.isSupportedKeyFormat(ksqlConfig, format)) {
+    if (!KeyFormatUtils.isSupportedKeyFormat(
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties), format)) {
       throw new KsqlException("The key format '" + format.name() + "' is not currently supported.");
     }
   }

@@ -116,7 +116,7 @@ public final class CreateSourceFactory {
     final String topicName = ensureTopicExists(props, serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
     if (schema.key().isEmpty()) {
-      final boolean usingSchemaInference = props.getSchemaId().isPresent();
+      final boolean usingSchemaInference = props.getValueSchemaId().isPresent();
 
       final String additional = usingSchemaInference
           ? System.lineSeparator()

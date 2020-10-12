@@ -83,14 +83,6 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "The|+|man who|+|stole the world",
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "Smells|+|like|+|spring",
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
       "key" : "Smells|+|like|+|teen spirit",
       "value" : {
         "KSQL_COL_0" : 2

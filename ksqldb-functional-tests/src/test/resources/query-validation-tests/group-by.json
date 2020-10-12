@@ -40,13 +40,12 @@
         "CREATE TABLE OUTPUT AS SELECT NAME, LEN(NAME) AS LEN FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 2;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"NAME": "bob"}},
-        {"topic": "test_topic", "value": {"NAME": "bob"}},
-        {"topic": "test_topic", "value": {"NAME": "bob"}}
+        {"topic": "test_topic", "value": {"NAME": "bob"}, "timestamp": 1},
+        {"topic": "test_topic", "value": {"NAME": "bob"}, "timestamp": 2},
+        {"topic": "test_topic", "value": {"NAME": "bob"}, "timestamp": 3}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "bob", "value": null},
-        {"topic": "OUTPUT", "key": "bob", "value": {"LEN": 3}},
+        {"topic": "OUTPUT", "key": "bob", "value": {"LEN": 3}, "timestamp": 2},
         {"topic": "OUTPUT", "key": "bob", "value": null}
       ],
       "post": {
@@ -315,8 +314,7 @@
         {"topic": "test_topic", "key": 4, "value": {"col1": null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "lala", "value": {"COUNT": 1}},
-        {"topic": "OUTPUT", "key": "kaka", "value": null}
+        {"topic": "OUTPUT", "key": "lala", "value": {"COUNT": 1}}
       ]
     },
     {
@@ -411,8 +409,6 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "The|+|man who|+|stole the world", "value": null},
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|spring", "value": null},
         {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"KSQL_COL_0": 2}}
       ]
     },
@@ -668,7 +664,6 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 10}},
-        {"topic": "OUTPUT", "key": "1|+|20", "value": null},
         {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 20}}
       ],
       "post": {
@@ -1705,7 +1700,6 @@
         {"topic": "test_topic", "key": 3, "value": "3"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": null},
         {"topic": "OUTPUT", "key": 2, "value": "1"},
         {"topic": "OUTPUT", "key": 1, "value": "2"},
         {"topic": "OUTPUT", "key": 2, "value": "2"},
@@ -1719,19 +1713,19 @@
         "CREATE TABLE OUTPUT AS SELECT f1, SUM(f0) FROM TEST GROUP BY f1 HAVING COUNT(f1) > 0;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,0"},
-        {"topic": "test_topic", "key": "2", "value": "2,1"},
-        {"topic": "test_topic", "key": "3", "value": "3,0"},
-        {"topic": "test_topic", "key": "1", "value": null},
-        {"topic": "test_topic", "key": "2", "value": "2,0"}
+        {"topic": "test_topic", "key": "1", "value": "1,0", "timestamp": 1},
+        {"topic": "test_topic", "key": "2", "value": "2,1", "timestamp": 2},
+        {"topic": "test_topic", "key": "1", "value": null, "timestamp": 3},
+        {"topic": "test_topic", "key": "3", "value": "3,0", "timestamp": 4},
+        {"topic": "test_topic", "key": "2", "value": "2,0", "timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": "1"},
-        {"topic": "OUTPUT", "key": 1, "value": "2"},
-        {"topic": "OUTPUT", "key": 0, "value": "4"},
-        {"topic": "OUTPUT", "key": 0, "value": "3"},
-        {"topic": "OUTPUT", "key": 1, "value": null},
-        {"topic": "OUTPUT", "key": 0, "value": "5"}
+        {"topic": "OUTPUT", "key": 0, "value": "1", "timestamp": 1},
+        {"topic": "OUTPUT", "key": 1, "value": "2", "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 3},
+        {"topic": "OUTPUT", "key": 0, "value": "3", "timestamp": 4},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 5},
+        {"topic": "OUTPUT", "key": 0, "value": "5", "timestamp": 5}
       ]
     },
     {
@@ -1749,11 +1743,7 @@
         {"topic": "test_topic", "key": "0", "value": "1,test"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": null},
-        {"topic": "OUTPUT", "key": 2, "value": null},
         {"topic": "OUTPUT", "key": 1, "value": "2"},
-        {"topic": "OUTPUT", "key": 2, "value": null},
-        {"topic": "OUTPUT", "key": 2, "value": null},
         {"topic": "OUTPUT", "key": 1, "value": "3"}
       ]
     },
@@ -1772,8 +1762,6 @@
         {"topic": "test_topic", "key": "-", "value": "1,a"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": null},
-        {"topic": "OUTPUT", "key": "b", "value": null},
         {"topic": "OUTPUT", "key": "a", "value": "2"},
         {"topic": "OUTPUT", "key": "b", "value": "2"},
         {"topic": "OUTPUT", "key": "a", "value": null},
@@ -1794,10 +1782,7 @@
         {"topic": "test_topic", "key": "0", "value": "3,test"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": null},
-        {"topic": "OUTPUT", "key": "b", "value": null},
         {"topic": "OUTPUT", "key": "test", "value": "2"},
-        {"topic": "OUTPUT", "key": "b", "value": null},
         {"topic": "OUTPUT", "key": "test", "value": "5"}
       ]
     },
@@ -2204,8 +2189,6 @@
         {"topic": "b", "value": {"Id": "1"}}
       ],
       "outputs": [
-        {"topic": "TEST", "key": "1", "value": null, "window": {"start": 0, "end": 60000, "type": "time"}},
-        {"topic": "TEST", "key": "1", "value": null, "window": {"start": 0, "end": 60000, "type": "time"}},
         {"topic": "TEST", "key": "1", "value": {"COUNT": 3}, "window":  {"start": 0, "end": 60000, "type": "time"}}
       ]
     },

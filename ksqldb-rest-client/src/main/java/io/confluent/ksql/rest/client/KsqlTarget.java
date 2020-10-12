@@ -23,6 +23,7 @@ import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ConfigResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
@@ -52,6 +53,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +70,7 @@ public final class KsqlTarget {
   private static final String LAG_REPORT_PATH = "/lag";
   private static final String SERVER_METADATA_PATH = "/v1/metadata";
   private static final String SERVER_METADATA_ID_PATH = "/v1/metadata/id";
+  private static final String CONFIG_PATH = "/v1/configs";
 
   private final HttpClient httpClient;
   private final SocketAddress socketAddress;
@@ -130,6 +133,18 @@ public final class KsqlTarget {
 
   public RestResponse<ClusterStatusResponse> getClusterStatus() {
     return get(CLUSTERSTATUS_PATH, ClusterStatusResponse.class);
+  }
+
+  public RestResponse<ConfigResponse> getConfigRequest() {
+    return get(CONFIG_PATH, ConfigResponse.class);
+  }
+
+  public RestResponse<ConfigResponse> getConfigRequest(final List<String> requestedConfigs) {
+    return get(
+        CONFIG_PATH + requestedConfigs.stream()
+            .collect(Collectors.joining("&name=", "?name=", "")),
+        ConfigResponse.class
+    );
   }
 
   public CompletableFuture<RestResponse<LagReportingResponse>> postAsyncLagReportingRequest(

@@ -46,7 +46,7 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : {
+      "valueSchema" : {
         "type" : "object",
         "properties" : {
           "V0" : {
@@ -78,7 +78,7 @@
           }
         }
       },
-      "format" : "JSON",
+      "valueFormat" : "JSON",
       "replicas" : 1,
       "numPartitions" : 4
     }, {

@@ -40,8 +40,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  repeated string c1 = 1;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  repeated string c1 = 1;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 1
     }, {

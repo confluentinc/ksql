@@ -28,6 +28,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
@@ -104,6 +105,9 @@ public interface Endpoints {
 
   CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
       ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeConfig(
+      List<String> requestedConfigs, ApiSecurityContext apiSecurityContext);
 
   // This is the legacy websocket based query streaming API
   void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,

@@ -117,10 +117,6 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "1|+|20",
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
       "key" : "0|+|10",
       "value" : {
         "SUM" : 20

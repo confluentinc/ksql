@@ -209,7 +209,7 @@ class Analyzer {
           throw new KsqlException("Key format specified for stream without key columns.");
         }
 
-        FormatInfo.of(NoneFormat.NAME);
+        return FormatInfo.of(NoneFormat.NAME);
       }
 
       return buildFormatInfo(explicitFormat, formatProperties, sourceFormat);

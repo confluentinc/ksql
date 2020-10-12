@@ -83,7 +83,7 @@
     } ],
     "topics" : [ {
       "name" : "OUTPUT",
-      "schema" : {
+      "valueSchema" : {
         "type" : "array",
         "items" : {
           "type" : "record",
@@ -99,7 +99,7 @@
           } ]
         }
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 1
     }, {

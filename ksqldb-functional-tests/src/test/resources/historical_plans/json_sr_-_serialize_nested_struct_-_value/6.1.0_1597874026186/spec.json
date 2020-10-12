@@ -85,7 +85,7 @@
       "numPartitions" : 4
     }, {
       "name" : "input_topic",
-      "schema" : {
+      "valueSchema" : {
         "type" : "object",
         "properties" : {
           "FOO" : {
@@ -109,7 +109,7 @@
           }
         }
       },
-      "format" : "JSON",
+      "valueFormat" : "JSON",
       "replicas" : 1,
       "numPartitions" : 4
     } ],

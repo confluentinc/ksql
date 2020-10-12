@@ -53,7 +53,7 @@
       "numPartitions" : 4
     }, {
       "name" : "input_topic",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "ignored",
         "fields" : [ {
@@ -61,7 +61,7 @@
           "type" : "int"
         } ]
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 1
     } ],

@@ -65,7 +65,6 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
@@ -338,7 +337,7 @@ public class LogicalPlanner {
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 
-  private RepartitionNode buildUserRepartitionNode(
+  private UserRepartitionNode buildUserRepartitionNode(
       final PlanNode currentNode,
       final PartitionBy partitionBy
   ) {
@@ -357,7 +356,7 @@ public class LogicalPlanner {
     );
   }
 
-  private RepartitionNode buildInternalRepartitionNode(
+  private PreJoinRepartitionNode buildInternalRepartitionNode(
       final PlanNode source,
       final String side,
       final Expression joinExpression,

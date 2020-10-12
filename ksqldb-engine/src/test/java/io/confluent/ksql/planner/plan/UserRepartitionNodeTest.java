@@ -70,7 +70,7 @@ public class UserRepartitionNodeTest {
   @Mock
   private Projection projection;
 
-  private RepartitionNode repartitionNode;
+  private UserRepartitionNode repartitionNode;
 
   @Before
   public void setUp() {

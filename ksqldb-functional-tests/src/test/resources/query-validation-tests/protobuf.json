@@ -144,8 +144,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
         }
       ],
       "inputs": [
@@ -169,8 +169,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
         }
       ],
       "inputs": [
@@ -204,8 +204,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {enum Suit {SPADES = 0; HEARTS = 1; DIAMONDS = 2; CLUBS = 4;} Suit c1 = 1;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {enum Suit {SPADES = 0; HEARTS = 1; DIAMONDS = 2; CLUBS = 4;} Suit c1 = 1;}"
         }
       ],
       "inputs": [
@@ -231,8 +231,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {repeated string c1 = 1;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {repeated string c1 = 1;}"
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": ["a", "", "Bc"]}}],
@@ -252,8 +252,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {message Something {int32 f1 = 1;} Something c1 = 1;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {message Something {int32 f1 = 1;} Something c1 = 1;}"
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": {"f1": 1}}}],
@@ -277,8 +277,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {float c1 = 1; uint32 c2 = 2; uint64 c3 = 3; sint32 c4 = 4; sint64 c5 = 5;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {float c1 = 1; uint32 c2 = 2; uint64 c3 = 3; sint32 c4 = 4; sint64 c5 = 5;}"
         }
       ],
       "inputs": [
@@ -302,8 +302,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {int32 expected = 1; bytes c2 = 2;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {int32 expected = 1; bytes c2 = 2;}"
         }
       ],
       "inputs": [{"topic": "input", "value": {"expected": 1, "c4": null}}],

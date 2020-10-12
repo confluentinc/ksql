@@ -46,7 +46,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.RepartitionNode;
+import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -148,7 +148,7 @@ public class SchemaKStreamTest {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
         "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;");
-    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+    final UserRepartitionNode repartitionNode = (UserRepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
     final SchemaKStream<?> result = initialSchemaKStream
@@ -163,7 +163,7 @@ public class SchemaKStreamTest {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
         "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;");
-    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+    final UserRepartitionNode repartitionNode = (UserRepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
     final SchemaKStream<?> result = initialSchemaKStream
@@ -178,7 +178,7 @@ public class SchemaKStreamTest {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
         "SELECT col0, col2, col3 FROM test1 PARTITION BY not_here EMIT CHANGES;");
-    final RepartitionNode repartitionNode = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+    final UserRepartitionNode repartitionNode = (UserRepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
     initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(),

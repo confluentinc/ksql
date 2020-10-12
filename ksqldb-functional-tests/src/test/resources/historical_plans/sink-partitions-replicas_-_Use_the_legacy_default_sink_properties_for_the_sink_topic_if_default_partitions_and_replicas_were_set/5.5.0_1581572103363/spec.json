@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/sink-partitions-replicas.json",
   "schemas" : {
     "CSAS_S_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `C1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_S_0.S" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `C1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {
@@ -28,7 +40,7 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "blah",
         "fields" : [ {
@@ -36,7 +48,7 @@
           "type" : "int"
         } ]
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 3,
       "numPartitions" : 5
     }, {

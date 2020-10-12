@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/array-set-functions.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>"
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `BOOLS_DIST` ARRAY<BOOLEAN>, `INTS_DIST` ARRAY<INTEGER>, `BIGINTS_DIST` ARRAY<BIGINT>, `DOUBLES_DIST` ARRAY<DOUBLE>, `STRINGS_DIST` ARRAY<STRING>, `DECIMALS_DIST` ARRAY<DECIMAL(2, 1)>"
+      "schema" : "`ID` STRING KEY, `BOOLS_DIST` ARRAY<BOOLEAN>, `INTS_DIST` ARRAY<INTEGER>, `BIGINTS_DIST` ARRAY<BIGINT>, `DOUBLES_DIST` ARRAY<DOUBLE>, `STRINGS_DIST` ARRAY<STRING>, `DECIMALS_DIST` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<DOUBLE>"
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `VALUE` ARRAY<DOUBLE>"
+      "schema" : "`ID` STRING KEY, `VALUE` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<DOUBLE>, `KSQL_AGG_VARIABLE_0` DOUBLE"
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<DOUBLE>, `KSQL_AGG_VARIABLE_0` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `SUM_VAL` DOUBLE"
+      "schema" : "`ID` STRING KEY, `SUM_VAL` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

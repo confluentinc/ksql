@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/table.json",
   "schemas" : {
     "CTAS_T1_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER"
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CTAS_T1_0.T1" : {
-      "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` INTEGER"
+      "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

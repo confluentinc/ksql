@@ -4,10 +4,28 @@
   "path" : "query-validation-tests/timestamp-extractor.json",
   "schemas" : {
     "CSAS_TS_0.TS" : {
-      "schema" : "`K` BIGINT KEY, `ID` BIGINT"
+      "schema" : "`K` BIGINT KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "SESSION"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_TS_0.KsqlTopic.Source" : {
-      "schema" : "`K` BIGINT KEY, `ID` BIGINT"
+      "schema" : "`K` BIGINT KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "SESSION"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

@@ -4,19 +4,49 @@
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `R0` INTEGER, `R1` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `R0` INTEGER, `R1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `L_L0` INTEGER, `L_L1` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING"
+      "schema" : "`ROWKEY` INTEGER KEY, `L_L0` INTEGER, `L_L1` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER"
+      "schema" : "`ROWKEY` INTEGER KEY, `L_ROWKEY` STRING, `L1` INTEGER, `R1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `L0` INTEGER, `L1` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `L0` INTEGER, `L1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `L_L0` INTEGER, `L_L1` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `R_R0` INTEGER, `R_R1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING"
+      "schema" : "`ROWKEY` INTEGER KEY, `R_R0` INTEGER, `R_R1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING",
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {
@@ -50,8 +80,8 @@
     } ],
     "topics" : [ {
       "name" : "right_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 R0 = 1;\n  int32 R1 = 2;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 R0 = 1;\n  int32 R1 = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
@@ -60,8 +90,8 @@
       "numPartitions" : 4
     }, {
       "name" : "left_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 L0 = 1;\n  int32 L1 = 2;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 L0 = 1;\n  int32 L1 = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     } ],

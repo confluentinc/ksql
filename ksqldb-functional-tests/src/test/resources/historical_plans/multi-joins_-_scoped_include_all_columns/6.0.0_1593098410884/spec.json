@@ -4,28 +4,76 @@
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
     "CSAS_OUTPUT_0.L_Join.Left" : {
-      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S1_ROWTIME` BIGINT, `S1_A` INTEGER"
+      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S1_ROWTIME` BIGINT, `S1_A` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`A` INTEGER KEY, `B` INTEGER"
+      "schema" : "`A` INTEGER KEY, `B` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
-      "schema" : "`A` INTEGER KEY, `B` INTEGER"
+      "schema" : "`A` INTEGER KEY, `B` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.L_Join.Right" : {
-      "schema" : "`S2_A` INTEGER KEY, `S2_B` INTEGER, `S2_ROWTIME` BIGINT, `S2_A` INTEGER"
+      "schema" : "`S2_A` INTEGER KEY, `S2_B` INTEGER, `S2_ROWTIME` BIGINT, `S2_A` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S1_ROWTIME` BIGINT, `S1_A` INTEGER, `S2_B` INTEGER, `S2_ROWTIME` BIGINT, `S2_A` INTEGER"
+      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S1_ROWTIME` BIGINT, `S1_A` INTEGER, `S2_B` INTEGER, `S2_ROWTIME` BIGINT, `S2_A` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.L_Join" : {
+      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S1_ROWTIME` BIGINT, `S1_A` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S2_A` INTEGER, `S2_B` INTEGER, `S3_A` INTEGER, `S3_B` INTEGER"
+      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S2_A` INTEGER, `S2_B` INTEGER, `S3_A` INTEGER, `S3_B` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`S1_A` INTEGER KEY, `S1_B` INTEGER, `S1_ROWTIME` BIGINT, `S1_A` INTEGER, `S2_B` INTEGER, `S2_ROWTIME` BIGINT, `S2_A` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
-      "schema" : "`A` INTEGER KEY, `B` INTEGER"
+      "schema" : "`A` INTEGER KEY, `B` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`S3_A` INTEGER KEY, `S3_B` INTEGER, `S3_ROWTIME` BIGINT, `S3_A` INTEGER"
+      "schema" : "`S3_A` INTEGER KEY, `S3_B` INTEGER, `S3_ROWTIME` BIGINT, `S3_A` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

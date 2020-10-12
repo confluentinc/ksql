@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`IGNORED` STRING"
+      "schema" : "`IGNORED` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`KSQL_COL_0` ARRAY<STRUCT<`A` INTEGER>>"
+      "schema" : "`KSQL_COL_0` ARRAY<STRUCT<`A` INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

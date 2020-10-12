@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `C1` DOUBLE, `C2` BIGINT, `C3` BIGINT, `C4` INTEGER, `C5` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {
@@ -36,8 +48,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n  uint64 c3 = 3;\n  sint32 c4 = 4;\n  sint64 c5 = 5;\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n  uint64 c3 = 3;\n  sint32 c4 = 4;\n  sint64 c5 = 5;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 1
     }, {

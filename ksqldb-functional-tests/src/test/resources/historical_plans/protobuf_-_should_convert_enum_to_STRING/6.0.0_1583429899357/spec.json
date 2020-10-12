@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `C1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `C1` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `C1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {
@@ -40,8 +52,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  Suit c1 = 1;\n\n  enum Suit {\n    SPADES = 0;\n    HEARTS = 1;\n    DIAMONDS = 2;\n    CLUBS = 4;\n  }\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  Suit c1 = 1;\n\n  enum Suit {\n    SPADES = 0;\n    HEARTS = 1;\n    DIAMONDS = 2;\n    CLUBS = 4;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 1
     }, {

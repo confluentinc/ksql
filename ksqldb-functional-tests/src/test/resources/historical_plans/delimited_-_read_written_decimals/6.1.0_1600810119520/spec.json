@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/delimited.json",
   "schemas" : {
     "CSAS_OUTPUT_1.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)"
+      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_OUTPUT_1.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)"
+      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/regex.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `INPUT_STRING` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `INPUT_STRING` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `EXTRACTED` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `EXTRACTED` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

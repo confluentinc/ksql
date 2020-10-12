@@ -4,16 +4,40 @@
   "path" : "query-validation-tests/collect-list.json",
   "schemas" : {
     "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_AGG_VARIABLE_0` ARRAY<BOOLEAN>"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_AGG_VARIABLE_0` ARRAY<BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>"
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.S2" : {
-      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>"
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CTAS_S2_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_INTERNAL_COL_2` BOOLEAN"
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_INTERNAL_COL_2` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {
@@ -82,8 +106,8 @@
     } ],
     "topics" : [ {
       "name" : "test_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  repeated ConnectDefault2Entry VALUE = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    bool value = 2;\n  }\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  repeated ConnectDefault2Entry VALUE = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    bool value = 2;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     }, {

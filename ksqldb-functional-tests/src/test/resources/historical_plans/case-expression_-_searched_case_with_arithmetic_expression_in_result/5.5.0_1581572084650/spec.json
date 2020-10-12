@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/case-expression.json",
   "schemas" : {
     "CSAS_S1_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `ORDERID` BIGINT, `ORDERUNITS` DOUBLE"
+      "schema" : "`ROWKEY` STRING KEY, `ORDERID` BIGINT, `ORDERUNITS` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_S1_0.S1" : {
-      "schema" : "`ROWKEY` STRING KEY, `CASE_RESAULT` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `CASE_RESAULT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

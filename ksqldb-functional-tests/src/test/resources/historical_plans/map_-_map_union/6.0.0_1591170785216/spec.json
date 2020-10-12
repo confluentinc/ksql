@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/map.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>"
+      "schema" : "`ID` STRING KEY, `MAP_1` MAP<STRING, INTEGER>, `MAP_2` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>"
+      "schema" : "`ID` STRING KEY, `COMBINED` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

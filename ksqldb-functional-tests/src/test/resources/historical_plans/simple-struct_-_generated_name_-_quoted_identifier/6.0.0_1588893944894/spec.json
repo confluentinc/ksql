@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `mixedCase` STRUCT<`moreMixedCase` INTEGER>"
+      "schema" : "`ROWKEY` STRING KEY, `mixedCase` STRUCT<`moreMixedCase` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `moreMixedCase` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `moreMixedCase` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

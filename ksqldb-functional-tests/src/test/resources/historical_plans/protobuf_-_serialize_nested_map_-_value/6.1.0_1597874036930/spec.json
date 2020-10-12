@@ -4,11 +4,23 @@
   "path" : "query-validation-tests/protobuf.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`FOO` MAP<STRING, DOUBLE>"
+      "schema" : "`FOO` MAP<STRING, DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`FOO` MAP<STRING, DOUBLE>",
-      "valueFeatures" : [ "WRAP_SINGLES" ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "features" : [ "WRAP_SINGLES" ]
+      }
     }
   },
   "testCase" : {
@@ -61,8 +73,8 @@
       "numPartitions" : 4
     }, {
       "name" : "input_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated ConnectDefault2Entry FOO = 1;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    double value = 2;\n  }\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated ConnectDefault2Entry FOO = 1;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    double value = 2;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     } ],

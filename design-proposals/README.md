@@ -70,7 +70,7 @@ Next KLIP number: **40**
 | [KLIP-27: Enhanced UDF Configuration Options](klip-27-enhanced-udf-configuration-options.md)         | Proposal       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/5269) |
 | [KLIP-28: Introduce 'CREATE OR REPLACE' for Query Upgrades](klip-28-create-or-replace.md)            | Approved       |  0.12.0           |            | [Discussion](https://github.com/confluentinc/ksql/pull/5611)              |
 | [KLIP-29: Explicit Table Primary Keys and Key-less Streams]( klip-29-explicit-keys.md)               | Merged         | 0.10.0            | 6.0.0      | [Discussion](https://github.com/confluentinc/ksql/pull/5530) |
-| KLIP-30: Lambda Functions                                                                            | Proposal         |             |       | [Discussion](https://github.com/confluentinc/ksql/pull/5661) |
+| [KLIP-30: Lambda Functions](klip-30-lambda-functions.md)               | Proposal         |             |       | [Discussion](https://github.com/confluentinc/ksql/pull/5661) |
 | [KLIP-31: Metastore Backups](klip-31-metastore-backups.md)              | Merged |  0.11.0           |  6.0.0     | [Discussion](https://github.com/confluentinc/ksql/pull/5741)|
 | [KLIP-32: SQL-based testing tool](klip-32-sql-testing-tool.md)                                      | Proposal | | | |
 | [KLIP-33: Key format](klip-33-key-format.md)                                                         | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6017) |
@@ -80,4 +80,4 @@ Next KLIP number: **40**
 | KLIP-36: GRACE period for stream-stream joins                                                        | Proposal | | | |
 | KLIP-37: System Tables                                                                               | Proposal | | | |
 | KLIP-38: Variable Substitution                                                                       | Proposal | | | |
-| KLIP-39: Prepared Statements for Java Client                                                         | Proposal | | | |
+| KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |

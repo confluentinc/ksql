@@ -42,6 +42,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.schema.query.QuerySchemas.SchemaInfo;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -50,6 +52,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SchemaNode;
+import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
@@ -59,6 +62,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
 import org.junit.Test;
@@ -106,6 +111,10 @@ public class TestExecutorTest {
   private SchemaRegistryClient srClient;
   @Mock
   private TestExecutionListener listener;
+  @Mock
+  private KeyFormat keyFormat;
+  @Mock
+  private ValueFormat valueFormat;
 
   private TestExecutor executor;
   private final Map<SourceName, DataSource> allSources = new HashMap<>();
@@ -175,9 +184,17 @@ public class TestExecutorTest {
   @Test
   public void shouldVerifyTopologySchemas() {
     // Given:
-    givenExpectedTopology("a-topology", ImmutableMap.of("matching",
-        new SchemaNode(LOGICAL_SCHEMA.toString(), ImmutableSet.of(), ImmutableSet.of())));
-    givenActualTopology("a-topology", ImmutableMap.of("matching", PHYSICAL_SCHEMA));
+    givenExpectedTopology("a-topology", ImmutableMap.of("matching", new SchemaNode(
+        LOGICAL_SCHEMA.toString(),
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    givenActualTopology("a-topology", ImmutableMap.of("matching", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
 
     // When:
     executor.buildAndExecuteQuery(testCase, listener);
@@ -208,11 +225,103 @@ public class TestExecutorTest {
   }
 
   @Test
+  public void shouldFailOnLoggerPrefixMismatch() {
+    // Given:
+    givenExpectedTopology("the-topology", ImmutableMap.of("expected", new SchemaNode(
+        LOGICAL_SCHEMA.toString(),
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    givenActualTopology("the-topology", ImmutableMap.of("actual", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schemas used by topology differ from those used by previous versions of KSQL "
+            + "- this is likely to mean there is a non-backwards compatible change.\n"
+            + "THIS IS BAD!\n"));
+  }
+
+  @Test
   public void shouldFailOnSchemasMismatch() {
     // Given:
-    givenExpectedTopology("the-topology", ImmutableMap.of("expected",
-        new SchemaNode("wrong schema", ImmutableSet.of(), ImmutableSet.of())));
-    givenActualTopology("the-topology", ImmutableMap.of("actual", PHYSICAL_SCHEMA));
+    givenExpectedTopology("the-topology", ImmutableMap.of("schema", new SchemaNode(
+        "wrong schema",
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    givenActualTopology("the-topology", ImmutableMap.of("schema", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schemas used by topology differ from those used by previous versions of KSQL "
+            + "- this is likely to mean there is a non-backwards compatible change.\n"
+            + "THIS IS BAD!\n"));
+  }
+
+  @Test
+  public void shouldFailOnMismatchKeyFormat() {
+    // Given:
+    givenExpectedTopology("the-topology", ImmutableMap.of("schema", new SchemaNode(
+        LOGICAL_SCHEMA.toString(),
+        Optional.empty(),
+        Optional.of(valueFormat)
+    )));
+
+    givenActualTopology("the-topology", ImmutableMap.of("schema", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Schemas used by topology differ from those used by previous versions of KSQL "
+            + "- this is likely to mean there is a non-backwards compatible change.\n"
+            + "THIS IS BAD!\n"));
+  }
+
+  @Test
+  public void shouldFailOnMismatchValueFormat() {
+    // Given:
+    givenExpectedTopology("the-topology", ImmutableMap.of("schema", new SchemaNode(
+        LOGICAL_SCHEMA.toString(),
+        Optional.of(keyFormat),
+        Optional.empty()
+    )));
+
+    givenActualTopology("the-topology", ImmutableMap.of("schema", new SchemaInfo(
+        LOGICAL_SCHEMA,
+        Optional.of(keyFormat),
+        Optional.of(valueFormat)
+    )));
 
     // When:
     final AssertionError e = assertThrows(
@@ -230,7 +339,7 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnTooLittleOutput() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", null, Optional.of(1L), null);
@@ -253,8 +362,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnTooMuchOutput() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
-    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", null, Optional.of(1L), null);
@@ -277,8 +386,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnUnexpectedOutput() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
-    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", TextNode.valueOf("v1"),
@@ -301,8 +410,8 @@ public class TestExecutorTest {
   @Test
   public void shouldPassOnExpectedOutput() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
-    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", "v1", TextNode.valueOf("v1"),
@@ -320,8 +429,8 @@ public class TestExecutorTest {
   @Test
   public void shouldHandleNonStringKeys() {
     // Given:
-    final ProducerRecord<?, ?> rec0 = producerRecord(sinkTopic, 123456719L, 1, "v1");
-    final ProducerRecord<?, ?> rec1 = producerRecord(sinkTopic, 123456789L, 1, "v2");
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, 1, "v1");
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, 1, "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, 1, "v1", TextNode.valueOf("v1"),
@@ -376,7 +485,10 @@ public class TestExecutorTest {
     when(testCase.getGeneratedTopologies()).thenReturn(ImmutableList.of(topology));
   }
 
-  private void givenActualTopology(final String topology, final Map<String, PhysicalSchema> schemas) {
+  private void givenActualTopology(
+      final String topology,
+      final Map<String, QuerySchemas.SchemaInfo> schemas
+  ) {
     givenActualTopology(topology);
     when(testCase.getGeneratedSchemas()).thenReturn(schemas);
   }
@@ -401,18 +513,42 @@ public class TestExecutorTest {
     allSources.put(sourceName, dataSource);
   }
 
-  private static ProducerRecord<?, ?> producerRecord(
+  private static ProducerRecord<byte[], byte[]> producerRecord(
       final Topic topic,
       final long rowTime,
-      final Object key,
+      final String key,
       final String value
   ) {
-    return new ProducerRecord<>(
+    return producerRecord(topic, rowTime, key, value, Serdes.String().serializer());
+  }
+
+  private static ProducerRecord<byte[], byte[]> producerRecord(
+      final Topic topic,
+      final long rowTime,
+      final int key,
+      final String value
+  ) {
+    return producerRecord(topic, rowTime, key, value, Serdes.Integer().serializer());
+  }
+
+  private static <K> ProducerRecord<byte[], byte[]> producerRecord(
+      final Topic topic,
+      final long rowTime,
+      final K key,
+      final String value,
+      final Serializer<K> keySerializer
+  ) {
+    final byte[] serializedKey = keySerializer.serialize("", key);
+    final byte[] serializeValue = new ValueSpecJsonSerdeSupplier(false)
+        .getSerializer(null)
+        .serialize("", value);
+
+    return new ProducerRecord<byte[], byte[]>(
         topic.getName(),
         1,
         rowTime,
-        key,
-        value
+        serializedKey,
+        serializeValue
     );
   }
 }

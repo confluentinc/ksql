@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/explode.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<STRUCT<`F1` BIGINT>>"
+      "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<STRUCT<`F1` BIGINT>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `VAL` BIGINT"
+      "schema" : "`ID` STRING KEY, `VAL` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

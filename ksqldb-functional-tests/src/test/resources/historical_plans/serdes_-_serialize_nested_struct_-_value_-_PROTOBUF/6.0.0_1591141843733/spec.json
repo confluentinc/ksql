@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/serdes.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`FOO` STRUCT<`F0` INTEGER>"
+      "schema" : "`FOO` STRUCT<`F0` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`FOO` STRUCT<`F0` INTEGER>"
+      "schema" : "`FOO` STRUCT<`F0` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
     }
   },
   "testCase" : {
@@ -72,8 +84,8 @@
       "numPartitions" : 4
     }, {
       "name" : "input_topic",
-      "schema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 FOO = 1;\n\n  message ConnectDefault2 {\n    int32 F0 = 1;\n  }\n}\n",
-      "format" : "PROTOBUF",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 FOO = 1;\n\n  message ConnectDefault2 {\n    int32 F0 = 1;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     } ],

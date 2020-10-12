@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -66,7 +68,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<TrackedCallback> tracker
   ) {
     return createInner(
         format,
@@ -74,7 +77,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         ksqlConfig,
         schemaRegistryClientFactory,
         loggerNamePrefix,
-        processingLogContext
+        processingLogContext,
+        tracker
     );
   }
 
@@ -87,7 +91,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<TrackedCallback> tracker
   ) {
     final Serde<Struct> inner = createInner(
         format,
@@ -95,7 +100,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         ksqlConfig,
         schemaRegistryClientFactory,
         loggerNamePrefix,
-        processingLogContext
+        processingLogContext,
+        tracker
     );
 
     return window.getType().requiresWindowSize()
@@ -109,7 +115,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<TrackedCallback> tracker
   ) {
     if (unsupportedSchema(schema.columns())) {
       throw new KsqlException("Unsupported key schema: " + schema.columns());
@@ -120,8 +127,12 @@ public final class GenericKeySerDe implements KeySerdeFactory {
 
     final Serde<Struct> structSerde = toStructSerde(formatSerde, schema);
 
-    final Serde<Struct> serde = innerFactory
+    final Serde<Struct> loggingSerde = innerFactory
         .wrapInLoggingSerde(structSerde, loggerNamePrefix, processingLogContext);
+
+    final Serde<Struct> serde = tracker
+        .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))
+        .orElse(loggingSerde);
 
     serde.configure(Collections.emptyMap(), true);
 

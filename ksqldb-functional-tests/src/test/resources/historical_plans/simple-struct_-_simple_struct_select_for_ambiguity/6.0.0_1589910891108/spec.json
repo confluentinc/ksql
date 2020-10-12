@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
     "CSAS_S7_0.S7" : {
-      "schema" : "`K` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING"
+      "schema" : "`K` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_S7_0.KsqlTopic.Source" : {
-      "schema" : "`K` STRING KEY, `S` STRUCT<`S` STRING>"
+      "schema" : "`K` STRING KEY, `S` STRUCT<`S` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

@@ -4,19 +4,65 @@
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `F1` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `F1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.Join.Left" : {
-      "schema" : "`ROWKEY` STRING KEY, `L_F0` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING, `L_WINDOWSTART` BIGINT, `L_WINDOWEND` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `L_F0` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING, `L_WINDOWSTART` BIGINT, `L_WINDOWEND` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING, `F0` INTEGER, `F1` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `KEY` STRING, `F0` INTEGER, `F1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER"
+      "schema" : "`ROWKEY` STRING KEY, `F0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`ROWKEY` STRING KEY, `L_F0` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` STRING, `L_WINDOWSTART` BIGINT, `L_WINDOWEND` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      }
     },
     "CSAS_OUTPUT_0.Join.Right" : {
-      "schema" : "`ROWKEY` STRING KEY, `R_F1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING, `R_WINDOWSTART` BIGINT, `R_WINDOWEND` BIGINT"
+      "schema" : "`ROWKEY` STRING KEY, `R_F1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY` STRING, `R_WINDOWSTART` BIGINT, `R_WINDOWEND` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

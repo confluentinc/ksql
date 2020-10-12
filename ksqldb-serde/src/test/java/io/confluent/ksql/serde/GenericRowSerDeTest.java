@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,10 +35,12 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.GenericRowSerDe.GenericRowDeserializer;
 import io.confluent.ksql.serde.GenericRowSerDe.GenericRowSerializer;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -78,6 +81,10 @@ public class GenericRowSerDeTest {
   private Deserializer<List<?>> innerDeserializer;
   @Mock
   private Serde<Object> loggingSerde;
+  @Mock
+  private Serde<Object> trackingSerde;
+  @Mock
+  private TrackedCallback callback;
   @Captor
   private ArgumentCaptor<Serde<GenericRow>> rowSerdeCaptor;
 
@@ -94,6 +101,7 @@ public class GenericRowSerDeTest {
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
     when(innerSerde.serializer()).thenReturn(innerSerializer);
     when(innerSerde.deserializer()).thenReturn(innerDeserializer);
     when(innerSerializer.serialize(any(), any())).thenReturn(SERIALIZED);
@@ -102,7 +110,8 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldCreateInnerSerde() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(innerFactory).createFormatSerde("Value", format, schema, config, srClientFactory);
@@ -111,7 +120,8 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldWrapInLoggingSerde() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
@@ -120,16 +130,38 @@ public class GenericRowSerDeTest {
   @Test
   public void shouldConfigureLoggingSerde() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(loggingSerde).configure(ImmutableMap.of(), false);
   }
 
   @Test
+  public void shouldReturnTrackingSerde() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.of(callback));
+
+    // Then:
+    verify(innerFactory).wrapInTrackingSerde(loggingSerde, callback);
+  }
+
+  @Test
+  public void shouldNotWrapInTrackingSerdeIfNoCallbackProvided() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
+
+    // Then:
+    verify(innerFactory, never()).wrapInTrackingSerde(any(), any());
+  }
+
+  @Test
   public void shouldWrapInGenericSerde() {
     // When:
-    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
     // Then:
     verify(innerFactory).wrapInLoggingSerde(rowSerdeCaptor.capture(), any(), any());
@@ -143,7 +175,8 @@ public class GenericRowSerDeTest {
   public void shouldReturnLoggingSerde() {
     // When:
     final Serde<GenericRow> result = factory
-        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt);
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
 
     // Then:
     assertThat(result, is(sameInstance(loggingSerde)));

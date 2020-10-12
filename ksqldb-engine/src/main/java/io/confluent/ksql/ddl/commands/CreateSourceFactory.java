@@ -230,7 +230,8 @@ public final class CreateSourceFactory {
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     ).close();
 
     valueSerdeFactory.create(
@@ -239,7 +240,8 @@ public final class CreateSourceFactory {
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     ).close();
   }
 

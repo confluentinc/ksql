@@ -15,22 +15,32 @@
 
 package io.confluent.ksql.test.model;
 
-import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.ValueFormat;
+import java.util.Optional;
 import org.junit.Test;
 
 public class SchemaNodeTest {
 
   private static final SchemaNode INSTANCE = new SchemaNode(
     "Some Logical Schema",
-      ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES),
-      ImmutableSet.of(SerdeFeature.WRAP_SINGLES)
+      Optional.of(KeyFormat.nonWindowed(FormatInfo.of("Avro"), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES))),
+      Optional.of(ValueFormat.of(FormatInfo.of("Protobuf"), SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)))
   );
 
-  private static final SchemaNode NO_SERDE_FEATURES = new SchemaNode(
+  private static final SchemaNode NO_KEY_FORMAT = new SchemaNode(
       "Some Logical Schema",
-      ImmutableSet.of(),
-      ImmutableSet.of()
+      Optional.empty(),
+      Optional.of(ValueFormat.of(FormatInfo.of("Protobuf"), SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)))
+  );
+
+  private static final SchemaNode NO_VALUE_FORMAT = new SchemaNode(
+      "Some Logical Schema",
+      Optional.of(KeyFormat.nonWindowed(FormatInfo.of("Avro"), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES))),
+      Optional.empty()
   );
 
   @Test
@@ -39,7 +49,12 @@ public class SchemaNodeTest {
   }
 
   @Test
-  public void shouldRoundTripWithoutFeatures() {
-    ModelTester.assertRoundTrip(NO_SERDE_FEATURES);
+  public void shouldRoundTripNoKeyFormat() {
+    ModelTester.assertRoundTrip(NO_KEY_FORMAT);
+  }
+
+  @Test
+  public void shouldRoundTripNoValueFormat() {
+    ModelTester.assertRoundTrip(NO_VALUE_FORMAT);
   }
 }

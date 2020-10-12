@@ -4,10 +4,22 @@
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
     "InsertQuery_0.SINK" : {
-      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "InsertQuery_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING"
+      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -64,7 +76,7 @@
     } ],
     "topics" : [ {
       "name" : "sink",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -79,7 +91,7 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     }, {

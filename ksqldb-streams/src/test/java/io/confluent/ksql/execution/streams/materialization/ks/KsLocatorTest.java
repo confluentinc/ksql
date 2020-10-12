@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -43,6 +44,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
@@ -60,7 +62,10 @@ public class KsLocatorTest {
   private static final String APPLICATION_ID = "app_id";
   private static final String STORE_NAME = "someStoreName";
   private static final URL LOCAL_HOST_URL = localHost();
-  private static final Struct SOME_KEY = new Struct(SchemaBuilder.struct().build());
+  private static final Schema SCHEMA = SchemaBuilder.struct().field("a", SchemaBuilder.int32());
+  private static final Struct SOME_KEY = new Struct(SCHEMA).put("a", 1);
+  private static final Struct SOME_KEY1 = new Struct(SCHEMA).put("a", 2);
+  private static final Struct SOME_KEY2 = new Struct(SCHEMA).put("a", 3);
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -156,7 +161,7 @@ public class KsLocatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "KeyQueryMetadata not available for state store someStoreName and key Struct{}"));
+        "KeyQueryMetadata not available for state store someStoreName and key Struct{a=1}"));
   }
 
   @Test
@@ -334,6 +339,23 @@ public class KsLocatorTest {
     assertThat(result.stream().findFirst().get(), is(standByNode2));
   }
 
+  @Test
+  public void shouldGroupKeysByLocation() {
+    // Given:
+    getActiveMetadata(SOME_KEY, new HostInfo("host", 123));
+    getActiveMetadata(SOME_KEY1, new HostInfo("host2", 345));
+    getActiveMetadata(SOME_KEY2, new HostInfo("host", 123));
+
+    // When:
+    final List<List<Struct>> result = locator.groupByLocation(ImmutableList.of(
+        SOME_KEY, SOME_KEY1, SOME_KEY2));
+
+    // Then:
+    assertThat(result.size(), is(2));
+    assertThat(result.get(0), is(ImmutableList.of(SOME_KEY, SOME_KEY2)));
+    assertThat(result.get(1), is(ImmutableList.of(SOME_KEY1)));
+  }
+
   @SuppressWarnings("unchecked")
   private void getEmtpyMetadata() {
     when(kafkaStreams.queryMetadataForKey(any(), any(), any(Serializer.class)))
@@ -354,6 +376,14 @@ public class KsLocatorTest {
     when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);
     when(keyQueryMetadata.standbyHosts()).thenReturn(Collections.emptySet());
     when(kafkaStreams.queryMetadataForKey(any(), any(), any(Serializer.class)))
+        .thenReturn(keyQueryMetadata);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void getActiveMetadata(final Struct key, final HostInfo activeHostInfo) {
+    KeyQueryMetadata keyQueryMetadata = mock(KeyQueryMetadata.class);
+    when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);
+    when(kafkaStreams.queryMetadataForKey(any(), eq(key), any(Serializer.class)))
         .thenReturn(keyQueryMetadata);
   }
 

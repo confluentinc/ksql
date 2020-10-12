@@ -29,9 +29,11 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -122,15 +124,18 @@ final class KsLocator implements Locator {
   }
 
   @Override
-  public List<List<Struct>> groupByLocation(List<Struct> keys) {
-    Map<String, List<Struct>> groups = new HashMap<>();
+  public List<List<Struct>> groupByLocation(final List<Struct> keys) {
+    final Map<String, List<Struct>> groups = new HashMap<>();
     for (Struct key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
           .queryMetadataForKey(stateStoreName, key, keySerializer);
       groups.computeIfAbsent(metadata.activeHost().toString(), active -> new ArrayList<>());
       groups.get(metadata.activeHost().toString()).add(key);
     }
-    return ImmutableList.copyOf(groups.values());
+    return groups.entrySet().stream()
+        .sorted(Comparator.comparing(Entry::getKey))
+        .map(Entry::getValue)
+        .collect(Collectors.toList());
   }
 
   @VisibleForTesting

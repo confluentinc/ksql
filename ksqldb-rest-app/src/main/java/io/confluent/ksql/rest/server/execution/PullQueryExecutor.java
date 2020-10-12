@@ -233,11 +233,11 @@ public final class PullQueryExecutor {
           .getMaterialization(queryId, contextStacker)
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
-      List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
-      List<List<?>> tableRows = new ArrayList<>();
-      List<LogicalSchema> schemas = new ArrayList<>();
-      List<Future<PullQueryResult>> futures = new ArrayList<>();
-      List<List<Struct>> keysByLocation = mat.locator().groupByLocation(
+      final List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
+      final List<List<?>> tableRows = new ArrayList<>();
+      final List<LogicalSchema> schemas = new ArrayList<>();
+      final List<Future<PullQueryResult>> futures = new ArrayList<>();
+      final List<List<Struct>> keysByLocation = mat.locator().groupByLocation(
           whereInfo.keysBound.stream()
               .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
               .collect(Collectors.toList()));
@@ -286,7 +286,7 @@ public final class PullQueryExecutor {
   }
 
   static void validateSchemas(final List<LogicalSchema> schemas) {
-    LogicalSchema schema = Iterables.getLast(schemas);
+    final LogicalSchema schema = Iterables.getLast(schemas);
     for (LogicalSchema s : schemas) {
       if (!schema.equals(s)) {
         throw new KsqlException("Schemas from different hosts should be identical");
@@ -334,7 +334,7 @@ public final class PullQueryExecutor {
             = routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
         final Optional<KsqlNode> debugNode = Optional.ofNullable(
             routingOptions.isDebugRequest() ? node : null);
-        List<Optional<KsqlNode>> debugNodes = rows.getRows().stream()
+        final List<Optional<KsqlNode>> debugNodes = rows.getRows().stream()
             .map(r -> debugNode)
             .collect(Collectors.toList());
         return new PullQueryResult(rows, debugNodes);
@@ -381,7 +381,7 @@ public final class PullQueryExecutor {
     if (pullQueryContext.whereInfo.windowBounds.isPresent()) {
       final WindowBounds windowBounds = pullQueryContext.whereInfo.windowBounds.get();
 
-      ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
+      final ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
       for (Struct key : pullQueryContext.keys) {
         final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
             .get(key, windowBounds.start, windowBounds.end);
@@ -389,7 +389,7 @@ public final class PullQueryExecutor {
       }
       result = new Result(pullQueryContext.mat.schema(), allRows.build());
     } else {
-      ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
+      final ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
       for (Struct key : pullQueryContext.keys) {
         final List<? extends TableRow> rows = pullQueryContext.mat.nonWindowed()
             .get(key)
@@ -622,8 +622,8 @@ public final class PullQueryExecutor {
       final boolean windowed,
       final LogicalSchema schema
   ) {
-    InPredicate inPredicate = Iterables.getLast(inPredicates);
-    List<Object> result = new ArrayList<>();
+    final InPredicate inPredicate = Iterables.getLast(inPredicates);
+    final List<Object> result = new ArrayList<>();
     for (Expression expression : inPredicate.getValueList().getValues()) {
       if (!(expression instanceof Literal)) {
         throw new KsqlException("Ony comparison to literals is currently supported: "
@@ -826,22 +826,6 @@ public final class PullQueryExecutor {
     );
   }
 
-  private static KeyAndWindowBounds extractWhereClauseTarget(
-      final InPredicate inPredicate,
-      final PersistentQueryMetadata query
-  ) {
-    UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
-    final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
-    if (column.getColumnName().equals(keyColumn)) {
-      return new KeyAndWindowBounds().addInPredicate(inPredicate);
-    }
-
-    throw invalidWhereClauseException(
-        "IN expression on unsupported column: " + column.getColumnName().text(),
-        false
-    );
-  }
-
   private enum ComparisonTarget {
     WINDOWSTART,
     WINDOWEND
@@ -853,30 +837,32 @@ public final class PullQueryExecutor {
     private List<ComparisonExpression> windowEndExpression = new ArrayList<>();
     private List<InPredicate> inPredicate = new ArrayList<>();
 
-    public KeyAndWindowBounds() {
+    KeyAndWindowBounds() {
     }
 
-    public KeyAndWindowBounds addKeyColExpression(ComparisonExpression keyColExpression) {
+    public KeyAndWindowBounds addKeyColExpression(final ComparisonExpression keyColExpression) {
       this.keyColExpression.add(keyColExpression);
       return this;
     }
 
-    public KeyAndWindowBounds addWindowStartExpression(ComparisonExpression windowStartExpression) {
+    public KeyAndWindowBounds addWindowStartExpression(
+        final ComparisonExpression windowStartExpression) {
       this.windowStartExpression.add(windowStartExpression);
       return this;
     }
 
-    public KeyAndWindowBounds addWindowEndExpression(ComparisonExpression windowEndExpression) {
+    public KeyAndWindowBounds addWindowEndExpression(
+        final ComparisonExpression windowEndExpression) {
       this.windowEndExpression.add(windowEndExpression);
       return this;
     }
 
-    public KeyAndWindowBounds addInPredicate(InPredicate inPredicate) {
+    public KeyAndWindowBounds addInPredicate(final InPredicate inPredicate) {
       this.inPredicate.add(inPredicate);
       return this;
     }
 
-    public KeyAndWindowBounds merge(KeyAndWindowBounds other) {
+    public KeyAndWindowBounds merge(final KeyAndWindowBounds other) {
       keyColExpression.addAll(other.keyColExpression);
       windowStartExpression.addAll(other.windowStartExpression);
       windowEndExpression.addAll(other.windowEndExpression);
@@ -958,6 +944,23 @@ public final class PullQueryExecutor {
 
     throw invalidWhereClauseException(
         "WHERE clause on unsupported column: " + columnName.text(),
+        false
+    );
+  }
+
+  private static KeyAndWindowBounds extractWhereClauseTarget(
+      final InPredicate inPredicate,
+      final PersistentQueryMetadata query
+  ) {
+    final UnqualifiedColumnReferenceExp column
+        = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
+    final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
+    if (column.getColumnName().equals(keyColumn)) {
+      return new KeyAndWindowBounds().addInPredicate(inPredicate);
+    }
+
+    throw invalidWhereClauseException(
+        "IN expression on unsupported column: " + column.getColumnName().text(),
         false
     );
   }

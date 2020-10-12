@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.TypeRegistry.CustomType;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -67,8 +66,11 @@ public class ListTypesExecutorTest {
   public void shouldListTypes() {
     // When:
     final Optional<KsqlEntity> entity = ListTypesExecutor.execute(
-        ConfiguredStatement.of(PreparedStatement.of("statement", new ListTypes(Optional.empty())),
-            SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())),
+        ConfiguredStatement.of(
+            PreparedStatement.of("statement", new ListTypes(Optional.empty())),
+            ImmutableMap.of(),
+            KSQL_CONFIG
+        ),
         mock(SessionProperties.class),
         context,
         null);

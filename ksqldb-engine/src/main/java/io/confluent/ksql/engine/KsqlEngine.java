@@ -187,7 +187,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ConfiguredStatement<?> statement
   ) {
     return EngineExecutor
-        .create(primaryContext, serviceContext, statement.getSessionConfig())
+        .create(
+            primaryContext, serviceContext, statement.getConfig(), statement.getConfigOverrides())
         .plan(statement);
   }
 
@@ -195,7 +196,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan) {
     try {
       final ExecuteResult result = EngineExecutor
-          .create(primaryContext, serviceContext, plan.getConfig())
+          .create(primaryContext, serviceContext, plan.getConfig(), plan.getOverrides())
           .execute(plan.getPlan());
       result.getQuery().ifPresent(this::registerQuery);
       return result;
@@ -220,7 +221,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         serviceContext,
         ConfiguredKsqlPlan.of(
             plan(serviceContext, statement),
-            statement.getSessionConfig()
+            statement.getConfigOverrides(),
+            statement.getConfig()
         )
     );
   }
@@ -232,9 +234,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   ) {
     try {
       final TransientQueryMetadata query = EngineExecutor
-          .create(primaryContext, serviceContext, statement.getSessionConfig())
+          .create(
+              primaryContext,
+              serviceContext,
+              statement.getConfig(),
+              statement.getConfigOverrides())
           .executeQuery(statement);
-
       registerQuery(query);
       primaryContext.registerQuery(query);
       return query;

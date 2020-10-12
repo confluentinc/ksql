@@ -86,8 +86,7 @@ public final class ListTopicsExecutor {
       final KafkaTopicClient topicClient,
       final ConfiguredStatement<ListTopics> statement
   ) {
-    final ReservedInternalTopics internalTopics =
-        new ReservedInternalTopics(statement.getSessionConfig().getConfig(false));
+    final ReservedInternalTopics internalTopics = new ReservedInternalTopics(statement.getConfig());
 
     final Set<String> topics = statement.getStatement().getShowAll()
         ? topicClient.listTopicNames()

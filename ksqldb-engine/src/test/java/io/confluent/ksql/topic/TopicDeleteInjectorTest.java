@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -285,7 +284,10 @@ public class TopicDeleteInjectorTest {
       final String text,
       final T statement
   ) {
-    return ConfiguredStatement.of(PreparedStatement.of(text, statement), SessionConfig
-        .of(new KsqlConfig(ImmutableMap.of()), ImmutableMap.of()));
+    return ConfiguredStatement.of(
+        PreparedStatement.of(text, statement),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of())
+    );
   }
 }

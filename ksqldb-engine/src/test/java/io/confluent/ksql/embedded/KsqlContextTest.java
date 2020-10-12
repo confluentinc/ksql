@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -80,22 +79,22 @@ public class KsqlContextTest {
       .of("sql 1", mock(Statement.class));
 
   private final static ConfiguredStatement<?> CFG_STMT_0 = ConfiguredStatement.of(
-      PREPARED_STMT_0, SessionConfig.of(SOME_CONFIG, SOME_PROPERTIES));
+      PREPARED_STMT_0, SOME_PROPERTIES, SOME_CONFIG);
 
   private final static ConfiguredStatement<?> CFG_STMT_1 = ConfiguredStatement.of(
-      PREPARED_STMT_1, SessionConfig.of(SOME_CONFIG, SOME_PROPERTIES));
+      PREPARED_STMT_1, SOME_PROPERTIES, SOME_CONFIG);
 
   private final static ConfiguredStatement<?> STMT_0_WITH_SCHEMA = ConfiguredStatement.of(
-      PREPARED_STMT_0, SessionConfig.of(SOME_CONFIG, SOME_PROPERTIES));
+      PREPARED_STMT_0, SOME_PROPERTIES, SOME_CONFIG);
 
   private final static ConfiguredStatement<?> STMT_1_WITH_SCHEMA = ConfiguredStatement.of(
-      PREPARED_STMT_1, SessionConfig.of(SOME_CONFIG, SOME_PROPERTIES));
+      PREPARED_STMT_1, SOME_PROPERTIES, SOME_CONFIG);
 
   private final static ConfiguredStatement<?> STMT_0_WITH_TOPIC = ConfiguredStatement.of(
-      PREPARED_STMT_0, SessionConfig.of(SOME_CONFIG, SOME_PROPERTIES));
+      PREPARED_STMT_0, SOME_PROPERTIES, SOME_CONFIG);
 
   private final static ConfiguredStatement<?> STMT_1_WITH_TOPIC = ConfiguredStatement.of(
-      PREPARED_STMT_1, SessionConfig.of(SOME_CONFIG, SOME_PROPERTIES));
+      PREPARED_STMT_1, SOME_PROPERTIES, SOME_CONFIG);
 
   @Mock
   private ServiceContext serviceContext;
@@ -399,9 +398,12 @@ public class KsqlContextTest {
     // Then:
     verify(ksqlEngine).execute(
         serviceContext,
-        ConfiguredStatement.of(PREPARED_STMT_0, SessionConfig.of(SOME_CONFIG, ImmutableMap.of(
-            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
-        ))));
+        ConfiguredStatement.of(
+            PREPARED_STMT_0, ImmutableMap.of(
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
+            ),
+            SOME_CONFIG
+        ));
   }
 
   @SuppressWarnings("unchecked")
@@ -425,7 +427,8 @@ public class KsqlContextTest {
     // Then:
     verify(ksqlEngine).execute(
         serviceContext,
-        ConfiguredStatement.of(PREPARED_STMT_0, SessionConfig.of(SOME_CONFIG, ImmutableMap.of())
+        ConfiguredStatement.of(
+            PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
         ));
   }
 
@@ -452,7 +455,8 @@ public class KsqlContextTest {
     // Then:
     verify(ksqlEngine).execute(
         serviceContext,
-        ConfiguredStatement.of(PREPARED_STMT_0, SessionConfig.of(SOME_CONFIG, ImmutableMap.of())
+        ConfiguredStatement.of(
+            PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
         ));
   }
 }

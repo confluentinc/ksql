@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -470,8 +469,8 @@ public class TopicCreateInjectorTest {
     final ConfiguredStatement<?> configuredStatement =
         ConfiguredStatement.of(
             preparedStatement,
-            SessionConfig.of(config, overrides)
-        );
+            overrides,
+            config);
     statement = configuredStatement;
     return configuredStatement;
   }

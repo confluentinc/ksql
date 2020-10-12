@@ -88,7 +88,7 @@ public class SchemaRegisterInjector implements Injector {
         FormatFactory.of(keyFormat),
         FormatFactory.of(valueFormat),
         cs.getStatement().getProperties().getSerdeOptions(),
-        cs.getSessionConfig().getConfig(false)
+        cs.getConfig()
     );
 
     registerSchema(
@@ -96,7 +96,7 @@ public class SchemaRegisterInjector implements Injector {
         cs.getStatement().getProperties().getKafkaTopic(),
         valueFormat,
         serdeOptions,
-        cs.getSessionConfig().getConfig(false),
+        cs.getConfig(),
         cs.getStatementText(),
         false
     );
@@ -121,7 +121,7 @@ public class SchemaRegisterInjector implements Injector {
         queryMetadata.getResultTopic().getKafkaTopicName(),
         queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
         queryMetadata.getPhysicalSchema().serdeOptions(),
-        cas.getSessionConfig().getConfig(false),
+        cas.getConfig(),
         cas.getStatementText(),
         true
     );

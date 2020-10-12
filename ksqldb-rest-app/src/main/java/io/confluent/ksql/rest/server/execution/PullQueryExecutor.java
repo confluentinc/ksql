@@ -31,7 +31,6 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -174,7 +173,6 @@ public final class PullQueryExecutor {
 
   public PullQueryResult execute(
       final ConfiguredStatement<Query> statement,
-      final Map<String, Object> requestProperties,
       final ServiceContext serviceContext,
       final Optional<Boolean> isInternalRequest,
       final long startTimeNanos
@@ -183,10 +181,7 @@ public final class PullQueryExecutor {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
 
-    final SessionConfig sessionConfig = statement.getSessionConfig();
-
-    if (!sessionConfig.getConfig(false)
-        .getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
+    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
       throw new KsqlStatementException(
           "Pull queries are disabled."
               + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
@@ -198,10 +193,7 @@ public final class PullQueryExecutor {
 
     try {
       final RoutingOptions routingOptions = new ConfigRoutingOptions(
-          sessionConfig.getConfig(true),
-          requestProperties
-      );
-
+          statement.getConfig(), statement.getConfigOverrides(), statement.getRequestProperties());
       // If internal listeners are in use, we require the request to come from that listener to
       // treat it as having been forwarded.
       final boolean isAlreadyForwarded = routingOptions.skipForwardRequest()
@@ -412,7 +404,7 @@ public final class PullQueryExecutor {
         .makeQueryRequest(
             owner.location(),
             statement.getStatementText(),
-            statement.getSessionConfig().getOverrides(),
+            statement.getConfigOverrides(),
             requestProperties
         );
 
@@ -910,7 +902,8 @@ public final class PullQueryExecutor {
       };
     }
 
-    final KsqlConfig ksqlConfig = statement.getSessionConfig().getConfig(true);
+    final KsqlConfig ksqlConfig = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides());
 
     final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         projection,
@@ -1086,14 +1079,24 @@ public final class PullQueryExecutor {
   private static final class ConfigRoutingOptions implements RoutingOptions {
 
     private final KsqlConfig ksqlConfig;
+    private final Map<String, ?> configOverrides;
     private final Map<String, ?> requestProperties;
 
     ConfigRoutingOptions(
         final KsqlConfig ksqlConfig,
+        final Map<String, ?> configOverrides,
         final Map<String, ?> requestProperties
     ) {
-      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-      this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
+      this.ksqlConfig = ksqlConfig;
+      this.configOverrides = configOverrides;
+      this.requestProperties = requestProperties;
+    }
+
+    private long getLong(final String key) {
+      if (configOverrides.containsKey(key)) {
+        return (Long) configOverrides.get(key);
+      }
+      return ksqlConfig.getLong(key);
     }
 
     private boolean getForwardedFlag(final String key) {
@@ -1112,7 +1115,7 @@ public final class PullQueryExecutor {
 
     @Override
     public long getOffsetLagAllowed() {
-      return ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
+      return getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
     }
 
     @Override

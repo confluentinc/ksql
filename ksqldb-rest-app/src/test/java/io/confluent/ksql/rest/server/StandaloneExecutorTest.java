@@ -40,7 +40,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
@@ -185,11 +184,11 @@ public class StandaloneExecutorTest {
   private final static PreparedStatement<?> PREPARED_CSAS = PreparedStatement.
       of("CSAS", CREATE_STREAM_AS_SELECT);
 
-  private final static ConfiguredStatement<?> CFG_STMT_0 = ConfiguredStatement
-      .of(PREPARED_STMT_0, SessionConfig.of(ksqlConfig, emptyMap()));
+  private final static ConfiguredStatement<?> CFG_STMT_0 = ConfiguredStatement.of(
+      PREPARED_STMT_0, emptyMap(), ksqlConfig);
 
-  private final static ConfiguredStatement<?> CFG_STMT_1 = ConfiguredStatement
-      .of(PREPARED_STMT_1, SessionConfig.of(ksqlConfig, emptyMap()));
+  private final static ConfiguredStatement<?> CFG_STMT_1 = ConfiguredStatement.of(
+      PREPARED_STMT_1, emptyMap(), ksqlConfig);
 
   private final static PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement
       .of("sql 0", new CreateStream(
@@ -200,8 +199,8 @@ public class StandaloneExecutorTest {
           JSON_PROPS
       ));
 
-  private final static ConfiguredStatement<?> CFG_0_WITH_SCHEMA = ConfiguredStatement
-      .of(STMT_0_WITH_SCHEMA, SessionConfig.of(ksqlConfig, emptyMap()));
+  private final static ConfiguredStatement<?> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
+      STMT_0_WITH_SCHEMA, emptyMap(), ksqlConfig);
 
   private final static PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement
       .of("sql 1", new CreateStream(
@@ -212,16 +211,15 @@ public class StandaloneExecutorTest {
           JSON_PROPS
       ));
 
-  private final static ConfiguredStatement<?> CFG_1_WITH_SCHEMA = ConfiguredStatement
-      .of(STMT_1_WITH_SCHEMA, SessionConfig.of(ksqlConfig, emptyMap()));
+  private final static ConfiguredStatement<?> CFG_1_WITH_SCHEMA = ConfiguredStatement.of(
+      STMT_1_WITH_SCHEMA, emptyMap(), ksqlConfig);
 
 
   private final static PreparedStatement<CreateStreamAsSelect> CSAS_WITH_TOPIC = PreparedStatement
       .of("CSAS_TOPIC", CREATE_STREAM_AS_SELECT);
 
   private final static ConfiguredStatement<CreateStreamAsSelect> CSAS_CFG_WITH_TOPIC =
-      ConfiguredStatement
-          .of(CSAS_WITH_TOPIC, SessionConfig.of(ksqlConfig, emptyMap()));
+      ConfiguredStatement.of(CSAS_WITH_TOPIC, emptyMap(), ksqlConfig);
 
   @Mock
   private Query query;
@@ -519,8 +517,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.startAsync();
 
     // Then:
-    verify(ksqlEngine).execute(serviceContext,
-        ConfiguredStatement.of(cs, SessionConfig.of(ksqlConfig, emptyMap())));
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(cs, emptyMap(), ksqlConfig));
   }
 
   @Test
@@ -535,8 +532,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.startAsync();
 
     // Then:
-    verify(ksqlEngine).execute(serviceContext,
-        ConfiguredStatement.of(ct, SessionConfig.of(ksqlConfig, emptyMap())));
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(ct, emptyMap(), ksqlConfig));
   }
 
   @Test
@@ -556,9 +552,10 @@ public class StandaloneExecutorTest {
     // Then:
     verify(ksqlEngine).execute(
         serviceContext,
-        ConfiguredStatement.of(cs, SessionConfig
-                .of(ksqlConfig, ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"))
-        ));
+        ConfiguredStatement.of(
+            cs,
+            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+            ksqlConfig));
   }
 
   @Test
@@ -576,8 +573,11 @@ public class StandaloneExecutorTest {
     standaloneExecutor.startAsync();
 
     // Then:
-    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement
-        .of(cs, SessionConfig.of(ksqlConfig, ImmutableMap.of())));
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(
+        cs,
+        ImmutableMap.of(),
+        ksqlConfig
+    ));
   }
 
   @Test
@@ -592,8 +592,7 @@ public class StandaloneExecutorTest {
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
         new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
 
-    final ConfiguredStatement<?> configured = ConfiguredStatement
-        .of(cs, SessionConfig.of(ksqlConfig, emptyMap()));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(cs, emptyMap(), ksqlConfig);
 
     givenQueryFileParsesTo(setProp, unsetProp, cs);
 
@@ -609,8 +608,7 @@ public class StandaloneExecutorTest {
     // Given:
     final PreparedStatement<?> csas = PreparedStatement.of("CSAS1",
         new CreateStreamAsSelect(SOME_NAME, query, false, false, CreateSourceAsProperties.none()));
-    final ConfiguredStatement<?> configured = ConfiguredStatement
-        .of(csas, SessionConfig.of(ksqlConfig, emptyMap()));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
     when(sandBox.execute(sandBoxServiceContext, configured))
@@ -628,8 +626,7 @@ public class StandaloneExecutorTest {
     // Given:
     final PreparedStatement<?> ctas = PreparedStatement.of("CTAS",
         new CreateTableAsSelect(SOME_NAME, query, false, false, CreateSourceAsProperties.none()));
-    final ConfiguredStatement<?> configured = ConfiguredStatement
-        .of(ctas, SessionConfig.of(ksqlConfig, emptyMap()));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(ctas, emptyMap(), ksqlConfig);
 
     givenQueryFileParsesTo(ctas);
 
@@ -648,8 +645,7 @@ public class StandaloneExecutorTest {
     // Given:
     final PreparedStatement<?> insertInto = PreparedStatement.of("InsertInto",
         new InsertInto(SOME_NAME, query));
-    final ConfiguredStatement<?> configured = ConfiguredStatement
-        .of(insertInto, SessionConfig.of(ksqlConfig, emptyMap()));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(insertInto, emptyMap(), ksqlConfig);
 
     givenQueryFileParsesTo(insertInto);
 

@@ -132,12 +132,16 @@ public final class ValidatedCommandFactory {
       final KsqlExecutionContext context
   ) {
     final KsqlPlan plan = context.plan(serviceContext, statement);
+    context.execute(
+        serviceContext,
+        ConfiguredKsqlPlan.of(
+            plan,
+            statement.getConfigOverrides(),
+            statement.getConfig()
+        )
+    );
 
-    final ConfiguredKsqlPlan configuredPlan = ConfiguredKsqlPlan
-        .of(plan, statement.getSessionConfig());
-
-    context.execute(serviceContext, configuredPlan);
-
-    return Command.of(configuredPlan);
+    return Command.of(
+        ConfiguredKsqlPlan.of(plan, statement.getConfigOverrides(), statement.getConfig()));
   }
 }

@@ -629,6 +629,9 @@ public final class PullQueryExecutor {
         throw new KsqlException("Ony comparison to literals is currently supported: "
             + inPredicate);
       }
+      if (expression instanceof NullLiteral) {
+        throw new KsqlException("Primary key columns can not be NULL: " + inPredicate);
+      }
       final Object value = ((Literal) expression).getValue();
       result.add(coerceKey(schema, value, windowed));
     }

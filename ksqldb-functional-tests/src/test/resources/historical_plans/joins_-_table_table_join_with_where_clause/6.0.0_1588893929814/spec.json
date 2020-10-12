@@ -98,16 +98,6 @@
     "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : 0,
-      "value" : null,
-      "timestamp" : 10000
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 0,
-      "value" : null,
-      "timestamp" : 13000
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 0,
       "value" : {
         "NAME" : "foo",
         "F1" : "a",

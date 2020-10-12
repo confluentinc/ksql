@@ -1182,8 +1182,6 @@
         {"topic": "right_topic", "key": 90, "value": null, "timestamp": 19000}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 10000},
-        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 13000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "F1": "a", "F2": 10}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "F1": "b", "F2": 10}, "timestamp": 18000},

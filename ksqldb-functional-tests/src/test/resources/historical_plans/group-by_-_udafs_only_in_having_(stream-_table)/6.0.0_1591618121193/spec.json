@@ -64,10 +64,6 @@
     "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : "bob",
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "bob",
       "value" : {
         "LEN" : 3
       }

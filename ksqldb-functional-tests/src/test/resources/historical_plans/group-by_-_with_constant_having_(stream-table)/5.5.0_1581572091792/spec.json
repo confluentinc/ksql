@@ -65,20 +65,8 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "a",
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "b",
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
       "key" : "test",
       "value" : "test,2"
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "b",
-      "value" : null
     }, {
       "topic" : "OUTPUT",
       "key" : "test",

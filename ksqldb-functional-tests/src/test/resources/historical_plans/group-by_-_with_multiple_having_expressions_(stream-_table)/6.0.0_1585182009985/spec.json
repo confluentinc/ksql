@@ -67,26 +67,10 @@
       "key" : "0",
       "value" : "1,test"
     } ],
-    "outputs" : [ {
-      "topic" : "OUTPUT",
-      "key" : 1,
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 2,
-      "value" : null
-    }, {
+    "outputs" : [  {
       "topic" : "OUTPUT",
       "key" : 1,
       "value" : "1,2"
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 2,
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 2,
-      "value" : null
     }, {
       "topic" : "OUTPUT",
       "key" : 1,

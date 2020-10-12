@@ -96,24 +96,6 @@
     "outputs" : [ {
       "topic" : "TEST",
       "key" : "1",
-      "value" : null,
-      "window" : {
-        "start" : 0,
-        "end" : 60000,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "TEST",
-      "key" : "1",
-      "value" : null,
-      "window" : {
-        "start" : 0,
-        "end" : 60000,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "TEST",
-      "key" : "1",
       "value" : {
         "A_ID" : "1",
         "COUNT" : 3

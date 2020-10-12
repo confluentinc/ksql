@@ -32,6 +32,8 @@
     }
   },
   "testCase" : {
+    "enabled": "false",
+    "comment": "see https://github.com/confluentinc/ksql/issues/6406",
     "name" : "table table join with where clause",
     "inputs" : [ {
       "topic" : "left_topic",
@@ -96,16 +98,6 @@
       "timestamp" : 19000
     } ],
     "outputs" : [ {
-      "topic" : "OUTPUT",
-      "key" : 0,
-      "value" : null,
-      "timestamp" : 10000
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 0,
-      "value" : null,
-      "timestamp" : 13000
-    }, {
       "topic" : "OUTPUT",
       "key" : 0,
       "value" : {

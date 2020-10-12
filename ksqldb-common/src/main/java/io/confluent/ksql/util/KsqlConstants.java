@@ -27,7 +27,7 @@ public final class KsqlConstants {
   public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
   public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
-  public static final String SCHEMA_REGISTRY_KEY_SUFFIX = "-key";
+  private static final String SCHEMA_REGISTRY_KEY_SUFFIX = "-key";
   public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
 
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
@@ -54,6 +54,13 @@ public final class KsqlConstants {
 
   public static KsqlQueryStatus fromStreamsState(final KafkaStreams.State state) {
     return state == KafkaStreams.State.ERROR ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
+  }
+
+  public static String getSRSubject(final String topicName, final boolean isKey) {
+    final String suffix = isKey
+        ? KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
+        : KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+    return topicName + suffix;
   }
 
   /**

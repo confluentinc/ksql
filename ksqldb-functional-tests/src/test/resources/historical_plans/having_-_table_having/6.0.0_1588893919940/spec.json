@@ -61,24 +61,6 @@
     } ],
     "outputs" : [ {
       "topic" : "T1",
-      "key" : 0,
-      "value" : null,
-      "window" : {
-        "start" : 0,
-        "end" : 30000,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "T1",
-      "key" : 1,
-      "value" : null,
-      "window" : {
-        "start" : 0,
-        "end" : 30000,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "T1",
       "key" : 1,
       "value" : "105",
       "window" : {

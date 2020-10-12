@@ -70,23 +70,7 @@
     "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : 1,
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 2,
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 1,
       "value" : "2"
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 2,
-      "value" : null
-    }, {
-      "topic" : "OUTPUT",
-      "key" : 2,
-      "value" : null
     }, {
       "topic" : "OUTPUT",
       "key" : 1,

@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.ConfigResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -148,6 +149,31 @@ public final class RestIntegrationTestUtil {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
 
       final RestResponse<ServerClusterId> res = restClient.getServerMetadataId();
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static ConfigResponse makeConfigRequest(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<ConfigResponse> res = restClient.makeConfigRequest();
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  static ConfigResponse makeConfigRequest(
+      final TestKsqlRestApp restApp,
+      final List<String> requestedConfigs
+  ) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
+
+      final RestResponse<ConfigResponse> res = restClient.makeConfigRequest(requestedConfigs);
 
       throwOnError(res);
 

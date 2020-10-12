@@ -34,6 +34,7 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
+import io.confluent.ksql.rest.server.resources.ConfigResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -52,6 +53,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -78,6 +80,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final HealthCheckResource healthCheckResource;
   private final ServerMetadataResource serverMetadataResource;
   private final WSQueryEndpoint wsQueryEndpoint;
+  private final ConfigResource configResource;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
@@ -96,6 +99,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final HealthCheckResource healthCheckResource,
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
+      final ConfigResource configResource,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
 
@@ -115,6 +119,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.healthCheckResource = Objects.requireNonNull(healthCheckResource);
     this.serverMetadataResource = Objects.requireNonNull(serverMetadataResource);
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
+    this.configResource = Objects.requireNonNull(configResource);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
   }
 
@@ -251,6 +256,19 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
     return executeOldApiEndpoint(apiSecurityContext,
         ksqlSecurityContext -> serverMetadataResource.getServerClusterId());
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeConfig(
+      final List<String> requestedConfigs,
+      final ApiSecurityContext apiSecurityContext) {
+    if (requestedConfigs.size() == 0) {
+      return executeOldApiEndpoint(apiSecurityContext,
+          ksqlSecurityContext -> configResource.getAllConfigs());
+    } else {
+      return executeOldApiEndpoint(apiSecurityContext,
+          ksqlSecurityContext -> configResource.getConfigs(requestedConfigs));
+    }
   }
 
   @Override

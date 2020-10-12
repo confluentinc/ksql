@@ -49,6 +49,7 @@ public final class PlannedTestLoader {
 
   public Stream<TestCase> loadTests() {
     return planLoader.load(predicate)
+        .filter(t -> t.getSpecNode().getTestCase().isEnabled())
         .map(PlannedTestUtils::buildPlannedTestCase);
   }
 

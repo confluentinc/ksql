@@ -619,8 +619,9 @@ public class KsMaterializationFunctionalTest {
   }
 
   @Test
-  public void shouldIgnoreHavingClause() {
-    // Note: HAVING clause are handled centrally by KsqlMaterialization
+  public void shouldHandleHavingClause() {
+    // Note: HAVING clause are handled centrally by KsqlMaterialization. This logic will have been
+    // installed as part of building the below statement:
 
     // Given:
     final PersistentQueryMetadata query = executeQuery(
@@ -632,7 +633,11 @@ public class KsMaterializationFunctionalTest {
 
     final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
 
-    final Map<String, GenericRow> rows = waitForUniqueUserRows(STRING_DESERIALIZER, schema);
+    final int matches = (int) USER_DATA_PROVIDER.data().values().stream()
+        .filter(row -> ((Long) row.get(0)) > 2)
+        .count();
+
+    final Map<String, GenericRow> rows = waitForUniqueUserRows(matches, STRING_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
@@ -641,16 +646,22 @@ public class KsMaterializationFunctionalTest {
     final MaterializedTable table = materialization.nonWindowed();
 
     rows.forEach((rowKey, value) -> {
+      // Rows passing the HAVING clause:
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
 
-      final Optional<Row> expected = Optional.ofNullable(value)
-          .map(v -> Row.of(schema, key, v, -1L));
-
       final Optional<Row> row = withRetry(() -> table.get(key));
-      assertThat(row.map(Row::schema), is(expected.map(Row::schema)));
-      assertThat(row.map(Row::key), is(expected.map(Row::key)));
-      assertThat(row.map(Row::value), is(expected.map(Row::value)));
+      assertThat(row.map(Row::schema), is(Optional.of(schema)));
+      assertThat(row.map(Row::key), is(Optional.of(key)));
+      assertThat(row.map(Row::value), is(Optional.of(value)));
     });
+
+    USER_DATA_PROVIDER.data().entries().stream()
+        .filter(e -> !rows.containsKey(e.getKey().getString("USERID")))
+        .forEach(e -> {
+          // Rows filtered by the HAVING clause:
+          final Optional<Row> row = withRetry(() -> table.get(e.getKey()));
+          assertThat(row, is(Optional.empty()));
+        });
   }
 
   private static void verifyRetainedWindows(
@@ -678,9 +689,21 @@ public class KsMaterializationFunctionalTest {
       final Deserializer<T> keyDeserializer,
       final LogicalSchema aggregateSchema
   ) {
+    return waitForUniqueUserRows(
+        USER_DATA_PROVIDER.data().size(),
+        keyDeserializer,
+        aggregateSchema
+    );
+  }
+
+  private <T> Map<T, GenericRow> waitForUniqueUserRows(
+      final int count,
+      final Deserializer<T> keyDeserializer,
+      final LogicalSchema aggregateSchema
+  ) {
     return TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
-        USER_DATA_PROVIDER.data().size(),
+        count,
         VALUE_FORMAT,
         PhysicalSchema.from(aggregateSchema, SerdeFeatures.of(), SerdeFeatures.of()),
         keyDeserializer

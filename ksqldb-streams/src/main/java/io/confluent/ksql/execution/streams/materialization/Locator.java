@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
@@ -46,7 +45,13 @@ public interface Locator {
       RoutingFilterFactory routingFilterFactory
   );
 
-  List<List<Struct>> splitByLocation(List<Struct> keys);
+  /**
+   * Combines the given keys into groups which are co-located together and therefore can be queried
+   * for using the same call to locate.
+   * @param keys The keys to group
+   * @return A list of groups of keys
+   */
+  List<List<Struct>> groupByLocation(List<Struct> keys);
 
   interface KsqlNode {
 

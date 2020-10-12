@@ -16,19 +16,21 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRows;
+import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRowsAnyOrder;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -44,8 +46,10 @@ import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.streams.StreamsConfig;
@@ -242,6 +246,101 @@ public class PullQueryFunctionalTest {
         BASE_TIME + ONE_SECOND, // WINDOWEND
         1                       // COUNT
     )));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldGetMultipleKeysFromBothNodes() {
+    // Given:
+    final String key0 = USER_PROVIDER.getStringKey(0);
+    final String key1 = USER_PROVIDER.getStringKey(1);
+    final String key2 = USER_PROVIDER.getStringKey(2);
+
+    makeAdminRequest(
+        "CREATE TABLE " + output + " AS"
+            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    final String sql = "SELECT * FROM " + output + " WHERE USERID IN ('"
+        + key0 + "'," + "'" + key1 + "'," + "'" + key2 + "');";
+
+    // When:
+
+    final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+    final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 3));
+    assertThat(rows_1, is(matchersRowsAnyOrder(rows_0)));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
+        .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
+        .collect(Collectors.toSet());
+    assertThat(hosts, containsInAnyOrder("localhost:8188", "localhost:8189"));
+    List<List<Object>> rows = rows_0.subList(1, rows_0.size()).stream()
+        .map(sr -> sr.getRow().get().values())
+        .collect(Collectors.toList());
+    assertThat(rows, containsInAnyOrder(ImmutableList.of(key0, 1), ImmutableList.of(key1, 1),
+        ImmutableList.of(key2, 1)));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldGetMultipleWindowedKeysFromBothNodes() {
+    // Given:
+    final String key0 = USER_PROVIDER.getStringKey(0);
+    final String key1 = USER_PROVIDER.getStringKey(1);
+    final String key2 = USER_PROVIDER.getStringKey(2);
+
+    makeAdminRequest(
+        "CREATE TABLE " + output + " AS"
+            + " SELECT " +  USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " WINDOW TUMBLING (SIZE 1 SECOND)"
+            + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    final String sql = "SELECT * FROM " + output
+        + " WHERE USERID IN ('" + key0 + "'," + "'" + key1 + "'," + "'" + key2 + "') "
+        + " AND WINDOWSTART = " + BASE_TIME + ";";
+
+    // When:
+    final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+    final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 3));
+    assertThat(rows_1, is(matchersRows(rows_0)));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
+        .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
+        .collect(Collectors.toSet());
+    assertThat(hosts, containsInAnyOrder("localhost:8188", "localhost:8189"));
+    List<List<Object>> rows = rows_0.subList(1, rows_0.size()).stream()
+        .map(sr -> sr.getRow().get().values())
+        .collect(Collectors.toList());
+    assertThat(rows, containsInAnyOrder(ImmutableList.of(
+            key0,                    // USERID
+            BASE_TIME,              // WINDOWSTART
+            BASE_TIME + ONE_SECOND, // WINDOWEND
+            1                       // COUNT
+        ),
+        ImmutableList.of(
+            key1,                    // USERID
+            BASE_TIME,              // WINDOWSTART
+            BASE_TIME + ONE_SECOND, // WINDOWEND
+            1                       // COUNT
+        ),
+        ImmutableList.of(
+            key2,                    // USERID
+            BASE_TIME,              // WINDOWSTART
+            BASE_TIME + ONE_SECOND, // WINDOWEND
+            1                       // COUNT
+        )));
   }
 
   private static List<StreamedRow> makePullQueryRequest(

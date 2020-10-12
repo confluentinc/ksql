@@ -115,7 +115,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
@@ -159,7 +158,8 @@ public final class PullQueryExecutor {
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
-    this.executorService = Executors.newFixedThreadPool(5);
+    this.executorService = Executors.newFixedThreadPool(ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG));
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -236,11 +236,12 @@ public final class PullQueryExecutor {
       List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
       List<List<?>> tableRows = new ArrayList<>();
       List<LogicalSchema> schemas = new ArrayList<>();
-      List<List<Struct>> keysByLocation = mat.locator().splitByLocation(
+      List<Future<PullQueryResult>> futures = new ArrayList<>();
+      List<List<Struct>> keysByLocation = mat.locator().groupByLocation(
           whereInfo.keysBound.stream()
               .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
               .collect(Collectors.toList()));
-      List<Future<PullQueryResult>> futures = new ArrayList<>();
+
       for (List<Struct> keys : keysByLocation) {
         final PullQueryContext pullQueryContext = new PullQueryContext(
             keys,
@@ -263,14 +264,16 @@ public final class PullQueryExecutor {
       for (Future<PullQueryResult> future : futures) {
         final PullQueryResult result = future.get();
 
-        sourceNodes.add(result.getSourceNode());
+        sourceNodes.addAll(result.getSourceNodes());
         schemas.add(result.getTableRows().getSchema());
         tableRows.addAll(result.getTableRows().getRows());
       }
 
+      validateSchemas(schemas);
       return new PullQueryResult(
-          new TableRows(statement.getStatementText(), queryId, Iterables.getLast(schemas), tableRows),
-          Iterables.getFirst(sourceNodes, Optional.empty()));
+          new TableRows(statement.getStatementText(), queryId, Iterables.getLast(schemas),
+              tableRows),
+          sourceNodes);
 
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
@@ -279,6 +282,15 @@ public final class PullQueryExecutor {
           statement.getStatementText(),
           e
       );
+    }
+  }
+
+  static void validateSchemas(final List<LogicalSchema> schemas) {
+    LogicalSchema schema = Iterables.getLast(schemas);
+    for (LogicalSchema s : schemas) {
+      if (!schema.equals(s)) {
+        throw new KsqlException("Schemas from different hosts should be identical");
+      }
     }
   }
 
@@ -318,11 +330,14 @@ public final class PullQueryExecutor {
     // increasing order of lag.
     for (KsqlNode node : filteredAndOrderedNodes) {
       try {
+        final TableRows rows
+            = routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
         final Optional<KsqlNode> debugNode = Optional.ofNullable(
             routingOptions.isDebugRequest() ? node : null);
-        return new PullQueryResult(
-            routeQuery(node, statement, executionContext, serviceContext, pullQueryContext),
-            debugNode);
+        List<Optional<KsqlNode>> debugNodes = rows.getRows().stream()
+            .map(r -> debugNode)
+            .collect(Collectors.toList());
+        return new PullQueryResult(rows, debugNodes);
       } catch (Exception t) {
         LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
                   statement.getStatementText(), node, System.currentTimeMillis(), t);
@@ -600,14 +615,6 @@ public final class PullQueryExecutor {
         extractWhereClauseWindowBounds(keyAndWindowBounds);
 
     return new WhereInfo(keys, Optional.of(windowBounds));
-//    Optional<InPredicate> inPredicate = extractInPredicate(where, query);
-//    if (inPredicate.isPresent()) {
-//      List<Object> keyValues = extractKeysFromInPredicate(inPredicate.get(), windowed,
-//          query.getLogicalSchema());
-//
-//      return new WhereInfo(keyValues, Optional.empty());
-//    }
-//    throw invalidWhereClauseException("Unsupported expression: " + where, windowed);
   }
 
   private static List<Object> extractKeysFromInPredicate(
@@ -819,23 +826,6 @@ public final class PullQueryExecutor {
     );
   }
 
-//  private static KeyAndWindowBounds extractInPredicate(
-//      final Expression exp,
-//      final PersistentQueryMetadata query
-//  ) {
-//    if (exp instanceof InPredicate) {
-//      final InPredicate inPredicate = (InPredicate) exp;
-//      return extractWhereClauseTarget(inPredicate, query);
-//    }
-//
-//    if (exp instanceof LogicalBinaryExpression) {
-//      throw invalidWhereClauseException(
-//          "IN only allowed alone without other expressions. ", false);
-//    }
-//
-//    throw invalidWhereClauseException("Unsupported expression: " + exp, false);
-//  }
-
   private static KeyAndWindowBounds extractWhereClauseTarget(
       final InPredicate inPredicate,
       final PersistentQueryMetadata query
@@ -853,7 +843,6 @@ public final class PullQueryExecutor {
   }
 
   private enum ComparisonTarget {
-    KEYCOL,
     WINDOWSTART,
     WINDOWEND
   }

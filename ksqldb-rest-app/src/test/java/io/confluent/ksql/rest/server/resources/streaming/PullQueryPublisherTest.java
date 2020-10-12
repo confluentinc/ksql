@@ -85,7 +85,7 @@ public class PullQueryPublisherTest {
         Optional.empty(),
         TIME_NANOS);
 
-    PullQueryResult result = new PullQueryResult(entity, Optional.empty());
+    PullQueryResult result = new PullQueryResult(entity, ImmutableList.of(Optional.empty()));
     when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenReturn(result);
     when(entity.getSchema()).thenReturn(SCHEMA);
 

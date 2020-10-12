@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
@@ -186,7 +187,8 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<BasicCredentials> userCreds
   ) {
-    return makeQueryRequest(restApp, sql, userCreds, null, Collections.emptyMap());
+    return makeQueryRequest(restApp, sql, userCreds, null,
+        ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
   }
 
   static List<StreamedRow> makeQueryRequest(

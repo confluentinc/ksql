@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -123,15 +122,15 @@ final class KsLocator implements Locator {
   }
 
   @Override
-  public List<List<Struct>> splitByLocation(List<Struct> keys) {
-    Map<String, List<Struct>> split = new HashMap<>();
+  public List<List<Struct>> groupByLocation(List<Struct> keys) {
+    Map<String, List<Struct>> groups = new HashMap<>();
     for (Struct key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
           .queryMetadataForKey(stateStoreName, key, keySerializer);
-      split.computeIfAbsent(metadata.activeHost().toString(), active -> new ArrayList<>());
-      split.get(metadata.activeHost().toString()).add(key);
+      groups.computeIfAbsent(metadata.activeHost().toString(), active -> new ArrayList<>());
+      groups.get(metadata.activeHost().toString()).add(key);
     }
-    return ImmutableList.copyOf(split.values());
+    return ImmutableList.copyOf(groups.values());
   }
 
   @VisibleForTesting

@@ -32,8 +32,6 @@
     }
   },
   "testCase" : {
-    "enabled": "false",
-    "comment": "see https://github.com/confluentinc/ksql/issues/6406",
     "name" : "table table join with where clause",
     "inputs" : [ {
       "topic" : "left_topic",

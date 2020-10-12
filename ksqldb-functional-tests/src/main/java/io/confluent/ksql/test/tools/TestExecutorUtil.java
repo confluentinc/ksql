@@ -30,7 +30,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
@@ -160,7 +159,7 @@ public final class TestExecutorUtil {
     ) {
       return testCase.getExpectedTopology().get().getPlan().get()
           .stream()
-          .map(p -> ConfiguredKsqlPlan.of(p, SessionConfig.of(ksqlConfig, testCase.properties())))
+          .map(p -> ConfiguredKsqlPlan.of(p, testCase.properties(), ksqlConfig))
           .map(PlannedStatement::new)
           .iterator();
     }
@@ -297,7 +296,7 @@ public final class TestExecutorUtil {
           final ConfiguredStatement<InsertValues> insertValues = planned.insertValues.get();
 
           final SessionProperties sessionProperties = new SessionProperties(
-              insertValues.getSessionConfig().getOverrides(),
+              insertValues.getConfigOverrides(),
               new KsqlHostInfo("host", 50),
               buildUrl(),
               false);
@@ -441,7 +440,8 @@ public final class TestExecutorUtil {
       final PreparedStatement<?> prepared = executionContext.prepare(stmt);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
           prepared,
-          SessionConfig.of(ksqlConfig, overrides)
+          overrides,
+          ksqlConfig
       );
 
       if (prepared.getStatement() instanceof InsertValues) {
@@ -459,9 +459,11 @@ public final class TestExecutorUtil {
 
       final KsqlPlan plan = executionContext
           .plan(executionContext.getServiceContext(), reformatted);
-
       return new PlannedStatement(
-          ConfiguredKsqlPlan.of(rewritePlan(plan), reformatted.getSessionConfig())
+          ConfiguredKsqlPlan.of(
+              rewritePlan(plan),
+              reformatted.getConfigOverrides(),
+              reformatted.getConfig())
       );
     }
 

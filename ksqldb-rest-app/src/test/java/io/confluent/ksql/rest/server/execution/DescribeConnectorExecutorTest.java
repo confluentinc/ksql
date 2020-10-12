@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -147,10 +146,10 @@ public class DescribeConnectorExecutorTest {
     executor = new DescribeConnectorExecutor(connectorFactory);
 
     final DescribeConnector describeConnector = new DescribeConnector(Optional.empty(), "connector");
-    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    describeStatement = ConfiguredStatement
-        .of(PreparedStatement.of("statementText", describeConnector),
-            SessionConfig.of(ksqlConfig, ImmutableMap.of()));
+    describeStatement = ConfiguredStatement.of(
+        PreparedStatement.of("statementText", describeConnector),
+        ImmutableMap.of(),
+        new KsqlConfig(ImmutableMap.of()));
   }
 
   @After

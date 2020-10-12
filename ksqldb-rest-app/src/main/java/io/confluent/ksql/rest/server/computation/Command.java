@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
@@ -128,8 +127,8 @@ public class Command {
   public static Command of(final ConfiguredKsqlPlan configuredPlan) {
     return new Command(
         configuredPlan.getPlan().getStatementText(),
-        configuredPlan.getConfig().getOverrides(),
-        configuredPlan.getConfig().getConfig(false).getAllConfigPropsWithSecretsObfuscated(),
+        configuredPlan.getOverrides(),
+        configuredPlan.getConfig().getAllConfigPropsWithSecretsObfuscated(),
         Optional.of(configuredPlan.getPlan()),
         Optional.of(VERSION),
         VERSION
@@ -137,12 +136,10 @@ public class Command {
   }
 
   public static Command of(final ConfiguredStatement<?> configuredStatement) {
-    final SessionConfig sessionConfig = configuredStatement.getSessionConfig();
-
     return new Command(
         configuredStatement.getStatementText(),
-        sessionConfig.getOverrides(),
-        sessionConfig.getConfig(false).getAllConfigPropsWithSecretsObfuscated(),
+        configuredStatement.getConfigOverrides(),
+        configuredStatement.getConfig().getAllConfigPropsWithSecretsObfuscated(),
         Optional.empty(),
         Optional.of(VERSION),
         VERSION

@@ -46,7 +46,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.StreamingOutput;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -477,8 +476,7 @@ public class StreamedQueryResourceTest {
             10);
 
     when(mockKsqlEngine.executeQuery(serviceContext,
-        ConfiguredStatement
-            .of(query, SessionConfig.of(VALID_CONFIG, requestStreamsProperties))))
+        ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))
         .thenReturn(transientQueryMetadata);
 
     final EndpointResponse response =

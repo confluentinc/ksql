@@ -26,8 +26,7 @@ import java.util.Map;
 
 public final class PropertyOverrider {
 
-  private PropertyOverrider() {
-  }
+  private PropertyOverrider() { }
 
   public static void set(
       final ConfiguredStatement<SetProperty> statement,
@@ -53,13 +52,10 @@ public final class PropertyOverrider {
       final SetProperty setProperty,
       final ConfiguredStatement<SetProperty> statement) {
     try {
-      statement
-          .getSessionConfig()
-          .getConfig(false)
-          .cloneWithPropertyOverwrite(ImmutableMap.of(
-              setProperty.getPropertyName(),
-              setProperty.getPropertyValue()
-          ));
+      statement.getConfig().cloneWithPropertyOverwrite(ImmutableMap.of(
+          setProperty.getPropertyName(),
+          setProperty.getPropertyValue()
+      ));
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage(), statement.getStatementText(), e.getCause());

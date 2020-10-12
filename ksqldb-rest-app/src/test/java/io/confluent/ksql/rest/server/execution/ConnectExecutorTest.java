@@ -28,7 +28,6 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateConnector;
@@ -65,19 +64,24 @@ public class ConnectExecutorTest {
       false);
 
   private static final ConfiguredStatement<CreateConnector> CREATE_CONNECTOR_CONFIGURED =
-      ConfiguredStatement.of(PreparedStatement.of(
-          "CREATE SOURCE CONNECTOR foo WITH ('foo'='bar');",
-          CREATE_CONNECTOR), SessionConfig.of(CONFIG, ImmutableMap.of()));
+      ConfiguredStatement.of(
+          PreparedStatement.of(
+              "CREATE SOURCE CONNECTOR foo WITH ('foo'='bar');",
+              CREATE_CONNECTOR),
+          ImmutableMap.of(),
+          CONFIG);
 
   private static final CreateConnector CREATE_DUPLICATE_CONNECTOR = new CreateConnector(
       "foo", ImmutableMap.of("foo", new StringLiteral("bar")), Type.SOURCE,
       true);
 
   private static final ConfiguredStatement<CreateConnector> CREATE_DUPLICATE_CONNECTOR_CONFIGURED =
-      ConfiguredStatement.of(PreparedStatement.of(
-          "CREATE SOURCE CONNECTOR IF NOT EXISTS foo WITH ('foo'='bar');",
-          CREATE_DUPLICATE_CONNECTOR), SessionConfig.of(CONFIG, ImmutableMap.of())
-      );
+      ConfiguredStatement.of(
+          PreparedStatement.of(
+              "CREATE SOURCE CONNECTOR IF NOT EXISTS foo WITH ('foo'='bar');",
+              CREATE_DUPLICATE_CONNECTOR),
+          ImmutableMap.of(),
+          CONFIG);
 
   @Mock
   private ServiceContext serviceContext;

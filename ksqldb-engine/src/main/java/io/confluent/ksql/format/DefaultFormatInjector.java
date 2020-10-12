@@ -98,7 +98,8 @@ public class DefaultFormatInjector implements Injector {
       return Optional.empty();
     }
 
-    final KsqlConfig config = getConfig(original);
+    final KsqlConfig config = original.getConfig()
+        .cloneWithPropertyOverwrite(original.getConfigOverrides());
 
     final CreateSourceProperties injectedProps = properties.withFormats(
         keyFormat.map(FormatInfo::getFormat)
@@ -113,13 +114,9 @@ public class DefaultFormatInjector implements Injector {
 
     final PreparedStatement<CreateSource> prepared = buildPreparedStatement(withFormats);
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement
-        .of(prepared, original.getSessionConfig());
+        .of(prepared, original.getConfigOverrides(), original.getConfig());
 
     return Optional.of(configured);
-  }
-
-  private static KsqlConfig getConfig(final ConfiguredStatement<?> statement) {
-    return statement.getSessionConfig().getConfig(true);
   }
 
   private static String getDefaultKeyFormat(final KsqlConfig config) {
@@ -158,7 +155,9 @@ public class DefaultFormatInjector implements Injector {
   }
 
   private static boolean featureFlagNotEnabled(final ConfiguredStatement<?> statement) {
-    return !getConfig(statement).getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED);
+    return !statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides())
+        .getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED);
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

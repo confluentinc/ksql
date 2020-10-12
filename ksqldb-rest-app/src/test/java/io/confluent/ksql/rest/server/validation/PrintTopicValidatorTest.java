@@ -28,7 +28,6 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.SessionProperties;
@@ -55,9 +54,11 @@ public class PrintTopicValidatorTest {
   @Test
   public void shouldThrowExceptionOnPrintTopic() {
     // Given:
-    final ConfiguredStatement<PrintTopic> query = ConfiguredStatement
-        .of(PreparedStatement.of("PRINT 'topic';", mock(PrintTopic.class)),
-            SessionConfig.of(CONFIG, ImmutableMap.of()));
+    final ConfiguredStatement<PrintTopic> query = ConfiguredStatement.of(
+        PreparedStatement.of("PRINT 'topic';", mock(PrintTopic.class)),
+        ImmutableMap.of(),
+        CONFIG
+    );
 
     // When:
     final KsqlRestException e = assertThrows(

@@ -39,13 +39,12 @@ import java.util.Collections;
 import java.util.Optional;
 
 /**
- * Explains the execution of either an existing persistent query or a statement that has not yet
- * been issued.
+ * Explains the execution of either an existing persistent query or a statement
+ * that has not yet been issued.
  */
 public final class ExplainExecutor {
 
-  private ExplainExecutor() {
-  }
+  private ExplainExecutor() { }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<Explain> statement,
@@ -111,13 +110,15 @@ public final class ExplainExecutor {
     if (preparedStatement.getStatement() instanceof Query) {
       metadata = sandbox.executeQuery(
           serviceContext,
-          ConfiguredStatement.of(preparedStatement, explain.getSessionConfig()).cast()
+          ConfiguredStatement.of(
+              preparedStatement, explain.getConfigOverrides(), explain.getConfig()).cast()
       );
     } else {
       metadata = sandbox
           .execute(
               serviceContext,
-              ConfiguredStatement.of(preparedStatement, explain.getSessionConfig()))
+              ConfiguredStatement
+                  .of(preparedStatement, explain.getConfigOverrides(), explain.getConfig()))
           .getQuery()
           .orElseThrow(() ->
               new IllegalStateException("The provided statement did not run a ksql query"));

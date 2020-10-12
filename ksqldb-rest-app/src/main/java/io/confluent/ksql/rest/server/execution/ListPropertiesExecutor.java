@@ -38,8 +38,7 @@ import org.apache.kafka.common.utils.Utils;
 
 public final class ListPropertiesExecutor {
 
-  private ListPropertiesExecutor() {
-  }
+  private ListPropertiesExecutor() { }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListProperties> statement,
@@ -49,10 +48,8 @@ public final class ListPropertiesExecutor {
   ) {
     final KsqlConfigResolver resolver = new KsqlConfigResolver();
 
-    final Map<String, String> engineProperties = statement
-        .getSessionConfig()
-        .getConfig(false)
-        .getAllConfigPropsWithSecretsObfuscated();
+    final Map<String, String> engineProperties
+        = statement.getConfig().getAllConfigPropsWithSecretsObfuscated();
 
     final List<Property> mergedProperties = mergedProperties(statement);
 
@@ -78,7 +75,8 @@ public final class ListPropertiesExecutor {
       final ConfiguredStatement<ListProperties> statement) {
     final List<Property> mergedProperties = new ArrayList<>();
 
-    statement.getSessionConfig().getConfig(true)
+    statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getConfigOverrides())
         .getAllConfigPropsWithSecretsObfuscated()
         .forEach((key, value) -> mergedProperties.add(new Property(key, "KSQL", value)));
 
@@ -90,13 +88,9 @@ public final class ListPropertiesExecutor {
   }
 
   private static Map<String, String> embeddedConnectWorkerProperties(
-      final ConfiguredStatement<ListProperties> statement
-  ) {
-    final String configFile = statement
-        .getSessionConfig()
-        .getConfig(false)
+      final ConfiguredStatement<ListProperties> statement) {
+    final String configFile = statement.getConfig()
         .getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);
-
     return !configFile.isEmpty()
         ? Utils.propsToStringMap(getWorkerProps(configFile))
         : Collections.emptyMap();

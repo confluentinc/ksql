@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -168,8 +167,6 @@ public class QueryExecutorTest {
   private KTableHolder<Struct> tableHolder;
   @Mock
   private KStreamHolder<Struct> streamHolder;
-  @Mock
-  private SessionConfig config;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
   @Captor
@@ -202,10 +199,9 @@ public class QueryExecutorTest {
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
     when(streamsBuilder.build(any())).thenReturn(topology);
-    when(config.getConfig(true)).thenReturn(ksqlConfig);
-    when(config.getOverrides()).thenReturn(OVERRIDES);
     queryBuilder = new QueryExecutor(
-        config,
+        ksqlConfig,
+        OVERRIDES,
         processingLogContext,
         serviceContext,
         functionRegistry,
@@ -217,7 +213,8 @@ public class QueryExecutorTest {
             serviceContext,
             ksMaterializationFactory,
             ksqlMaterializationFactory
-        ));
+        )
+    );
   }
 
   @Test

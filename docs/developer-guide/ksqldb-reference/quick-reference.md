@@ -278,8 +278,9 @@ SELECT column_name(s)
 ```
 
 ## GROUP BY
-Group records in a window. Required by the WINDOW clause. For more information,
-see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries).
+Group records in a window. Required by the WINDOW clause. Windowing queries
+must group by the keys that are selected in the query. For more information,
+see [Time and Windows in ksqlDB](../../../concepts/time-and-windows-in-ksqldb-queries#windows-in-sql-queries).
 
 ```sql hl_lines="4"
 SELECT column_name, aggregate_function(column_name)

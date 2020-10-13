@@ -54,7 +54,7 @@ confluent-hub install --component-dir confluent-hub-components --no-prompt debez
 And finally, the Elasticsearch connector:
 
 ```
-confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-elasticsearch:{{ site.cprelease }}
+confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-elasticsearch:10.0.1
 ```
 
 ### Start the stack

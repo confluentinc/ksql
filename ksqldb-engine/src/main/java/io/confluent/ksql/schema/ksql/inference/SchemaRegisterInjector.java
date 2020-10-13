@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
+
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -39,7 +41,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -154,7 +155,7 @@ public class SchemaRegisterInjector implements Injector {
         config,
         statementText,
         registerIfSchemaExists,
-        KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
+        getSRSubject(kafkaTopic, true)
     );
 
     registerSchema(
@@ -165,7 +166,7 @@ public class SchemaRegisterInjector implements Injector {
         config,
         statementText,
         registerIfSchemaExists,
-        KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+        getSRSubject(kafkaTopic, false)
     );
   }
 
@@ -177,7 +178,7 @@ public class SchemaRegisterInjector implements Injector {
       final KsqlConfig config,
       final String statementText,
       final boolean registerIfSchemaExists,
-      final String subjectSuffix
+      final String subject
   ) {
     final Format format = FormatFactory.of(formatInfo);
     if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
@@ -194,7 +195,6 @@ public class SchemaRegisterInjector implements Injector {
 
     try {
       final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-      final String subject = topic + subjectSuffix;
 
       if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
         final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());

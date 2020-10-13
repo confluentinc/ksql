@@ -49,3 +49,26 @@ Your output should resemble:
 }
 ```
 
+To view non-sensitive server configurations, you can use the `/v1/configs` endpoint:
+
+```bash
+curl -sX GET "http://localhost:8088/v1/configs" | jq '.'
+```
+
+Your output should resemble:
+
+```json
+{
+  "configs": {
+    "ksql.query.persistent.active.limit": 20
+  }
+}
+```
+
+To view a specific endpoint, you can add a query:
+
+```bash
+curl -sX GET "http://localhost:8088/v1/configs?name=ksql.query.persistent.active.limit" | jq '.'
+```
+
+Currently, the only configuration that is visible is `ksql.query.persistent.active.limit`.

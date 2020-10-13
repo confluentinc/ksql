@@ -39,6 +39,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
@@ -243,6 +244,13 @@ public class InsertsStreamRunner extends BasePerfRunner {
 
     @Override
     public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeConfig(
+        List<String> requestedConfigs,
         ApiSecurityContext apiSecurityContext) {
       return null;
     }

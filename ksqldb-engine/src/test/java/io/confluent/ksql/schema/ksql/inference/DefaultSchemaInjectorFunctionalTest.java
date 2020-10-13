@@ -509,7 +509,7 @@ public class DefaultSchemaInjectorFunctionalTest {
     }
 
     final String stmtNoSchema =
-        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', VALUE_FORMAT='avro');";
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', KEY_FORMAT='kafka', VALUE_FORMAT='avro');";
 
     final PreparedStatement<Statement> prepared = KsqlParserTestUtil
         .buildSingleAst(stmtNoSchema, metaStore);

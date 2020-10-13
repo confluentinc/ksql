@@ -130,13 +130,15 @@ public interface Format {
    * @param formatProperties any format specific properties
    * @param ksqlConfig the session config
    * @param srClientFactory supplier of the SR client
+   * @param isKey whether or not we're retreiving a key serde
    * @return a serde pair capable of (de)serializing the data in this format.
    */
   Serde<List<?>> getSerde(
       PersistenceSchema schema,
       Map<String, String> formatProperties,
       KsqlConfig ksqlConfig,
-      Supplier<SchemaRegistryClient> srClientFactory
+      Supplier<SchemaRegistryClient> srClientFactory,
+      boolean isKey
   );
 
 }

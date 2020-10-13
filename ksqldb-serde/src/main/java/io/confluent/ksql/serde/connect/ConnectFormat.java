@@ -65,7 +65,8 @@ public abstract class ConnectFormat implements Format {
       final PersistenceSchema schema,
       final Map<String, String> formatProps,
       final KsqlConfig config,
-      final Supplier<SchemaRegistryClient> srFactory
+      final Supplier<SchemaRegistryClient> srFactory,
+      final boolean isKey
   ) {
     SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
 
@@ -77,8 +78,8 @@ public abstract class ConnectFormat implements Format {
         .toJavaType(innerSchema);
 
     return schema.features().enabled(SerdeFeature.UNWRAP_SINGLES)
-        ? handleUnwrapped(innerSchema, formatProps, config, srFactory, targetType)
-        : handleWrapped(innerSchema, formatProps, config, srFactory, targetType);
+        ? handleUnwrapped(innerSchema, formatProps, config, srFactory, targetType, isKey)
+        : handleWrapped(innerSchema, formatProps, config, srFactory, targetType, isKey);
   }
 
   private <T> Serde<List<?>> handleUnwrapped(
@@ -86,10 +87,11 @@ public abstract class ConnectFormat implements Format {
       final Map<String, String> formatProps,
       final KsqlConfig config,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     final Serde<T> innerSerde =
-        getConnectSerde(innerSchema, formatProps, config, srFactory, targetType);
+        getConnectSerde(innerSchema, formatProps, config, srFactory, targetType, isKey);
 
     return Serdes.serdeFrom(
         SerdeUtils.unwrappedSerializer(innerSerde.serializer(), targetType),
@@ -102,14 +104,15 @@ public abstract class ConnectFormat implements Format {
       final Map<String, String> formatProps,
       final KsqlConfig config,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<?> targetType
+      final Class<?> targetType,
+      final boolean isKey
   ) {
     if (!targetType.equals(Struct.class)) {
       throw new IllegalArgumentException("Expected STRUCT, got " + targetType);
     }
 
     final Serde<Struct> connectSerde =
-        getConnectSerde(innerSchema, formatProps, config, srFactory, Struct.class);
+        getConnectSerde(innerSchema, formatProps, config, srFactory, Struct.class, isKey);
 
     return Serdes.serdeFrom(
         new ListToStructSerializer(connectSerde.serializer(), innerSchema),
@@ -126,7 +129,8 @@ public abstract class ConnectFormat implements Format {
       Map<String, String> formatProps,
       KsqlConfig config,
       Supplier<SchemaRegistryClient> srFactory,
-      Class<T> targetType
+      Class<T> targetType,
+      boolean isKey
   );
 
   private static class ListToStructSerializer implements Serializer<List<?>> {

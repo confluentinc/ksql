@@ -63,8 +63,8 @@ public final class DelimitedFormat implements Format {
       final PersistenceSchema schema,
       final Map<String, String> formatProperties,
       final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> srClientFactory
-  ) {
+      final Supplier<SchemaRegistryClient> srClientFactory,
+      final boolean isKey) {
     FormatProperties.validateProperties(name(), formatProperties, getSupportedProperties());
     SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
 

@@ -123,8 +123,12 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
   }
 
-  public Optional<Integer> getSchemaId() {
-    return Optional.ofNullable(props.getInt(CreateConfigs.SCHEMA_ID));
+  public Optional<Integer> getKeySchemaId() {
+    return Optional.ofNullable(props.getInt(CreateConfigs.KEY_SCHEMA_ID));
+  }
+
+  public Optional<Integer> getValueSchemaId() {
+    return Optional.ofNullable(props.getInt(CreateConfigs.VALUE_SCHEMA_ID));
   }
 
   public Optional<FormatInfo> getKeyFormat() {
@@ -167,9 +171,15 @@ public final class CreateSourceProperties {
     return SerdeFeatures.from(builder.build());
   }
 
-  public CreateSourceProperties withSchemaId(final int id) {
+  public CreateSourceProperties withSchemaIds(
+      final Optional<Integer> keySchemaId,
+      final Optional<Integer> valueSchemaId
+  ) {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
-    originals.put(CreateConfigs.SCHEMA_ID, new IntegerLiteral(id));
+    keySchemaId.ifPresent(id ->
+        originals.put(CreateConfigs.KEY_SCHEMA_ID, new IntegerLiteral(id)));
+    valueSchemaId.ifPresent(id ->
+        originals.put(CreateConfigs.VALUE_SCHEMA_ID, new IntegerLiteral(id)));
 
     return new CreateSourceProperties(originals, durationParser);
   }

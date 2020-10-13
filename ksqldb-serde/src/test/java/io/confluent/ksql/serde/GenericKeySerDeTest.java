@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -97,7 +98,7 @@ public class GenericKeySerDeTest {
   public void setUp() {
     factory = new GenericKeySerDe(innerFactory);
 
-    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any())).thenReturn(innerSerde);
+    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
 
@@ -112,7 +113,7 @@ public class GenericKeySerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory);
+    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory, true);
   }
 
   @Test
@@ -123,7 +124,7 @@ public class GenericKeySerDeTest {
             Optional.empty());
 
     // Then:
-    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory);
+    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory, true);
   }
 
   @Test

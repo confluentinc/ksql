@@ -41,12 +41,18 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   }
 
   @Override
-  public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Serializer<Object> getSerializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return new RowSerializer();
   }
 
   @Override
-  public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Deserializer<Object> getDeserializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return new RowDeserializer();
   }
 

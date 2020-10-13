@@ -126,13 +126,13 @@ public class KafkaSerdeSupplierTest {
   }
 
   private static Serializer<Object> getSerializer(final SqlType colType) {
-    final Serializer<Object> serializer = getSerdeSupplier(colType).getSerializer(null);
+    final Serializer<Object> serializer = getSerdeSupplier(colType).getSerializer(null, false);
     serializer.configure(ImmutableMap.of(), false);
     return serializer;
   }
 
   private static Deserializer<?> getDeserializer(final SqlType colType) {
-    final Deserializer<Object> deserializer = getSerdeSupplier(colType).getDeserializer(null);
+    final Deserializer<Object> deserializer = getSerdeSupplier(colType).getDeserializer(null, false);
     deserializer.configure(ImmutableMap.of(), false);
     return deserializer;
   }

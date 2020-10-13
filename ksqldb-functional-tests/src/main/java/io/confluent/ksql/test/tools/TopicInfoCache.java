@@ -356,7 +356,7 @@ public class TopicInfoCache {
       final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
           .getKeySerdeSupplier(keyFormat, schema);
 
-      final Serializer<?> serializer = keySerdeSupplier.getSerializer(srClient);
+      final Serializer<?> serializer = keySerdeSupplier.getSerializer(srClient, true);
 
       serializer.configure(ImmutableMap.of(
           AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
@@ -370,7 +370,7 @@ public class TopicInfoCache {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
           .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
 
-      final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient);
+      final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient, false);
 
       serializer.configure(ImmutableMap.of(
           AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
@@ -383,7 +383,7 @@ public class TopicInfoCache {
       final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
           .getKeySerdeSupplier(keyFormat, schema);
 
-      final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(srClient);
+      final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(srClient, true);
 
       deserializer.configure(ImmutableMap.of(), true);
 
@@ -403,7 +403,7 @@ public class TopicInfoCache {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
           .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
 
-      final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient);
+      final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient, false);
 
       deserializer.configure(ImmutableMap.of(), false);
 

@@ -102,11 +102,11 @@ public class ConnectFormatTest {
     when(persistenceSchema.columns()).thenReturn(ImmutableList.of(singleColumn));
 
     // When:
-    format.getSerde(persistenceSchema, formatProps, config, srFactory);
+    format.getSerde(persistenceSchema, formatProps, config, srFactory, false);
 
     // Then:
     verify(format)
-        .getConnectSerde(SINGLE_FIELD_SCHEMA, formatProps, config, srFactory, Struct.class);
+        .getConnectSerde(SINGLE_FIELD_SCHEMA, formatProps, config, srFactory, Struct.class, false);
   }
 
   @Test
@@ -121,11 +121,11 @@ public class ConnectFormatTest {
 
     // When:
     final Serde<List<?>> result = format
-        .getSerde(persistenceSchema, formatProps, config, srFactory);
+        .getSerde(persistenceSchema, formatProps, config, srFactory, false);
 
     // Then:
     verify(format)
-        .getConnectSerde(fieldSchema, formatProps, config, srFactory, Integer.class);
+        .getConnectSerde(fieldSchema, formatProps, config, srFactory, Integer.class, false);
 
     assertThat(result.serializer(), instanceOf(UnwrappedSerializer.class));
     assertThat(result.deserializer(), instanceOf(UnwrappedDeserializer.class));
@@ -147,7 +147,7 @@ public class ConnectFormatTest {
         .build();
 
     final Serializer<List<?>> serializer = format
-        .getSerde(persistenceSchema, formatProps, config, srFactory)
+        .getSerde(persistenceSchema, formatProps, config, srFactory, false)
         .serializer();
 
     final List<?> values = ImmutableList.of(new Struct(connectSchema));
@@ -200,7 +200,8 @@ public class ConnectFormatTest {
         final Map<String, String> formatProps,
         final KsqlConfig config,
         final Supplier<SchemaRegistryClient> srFactory,
-        final Class<T> targetType
+        final Class<T> targetType,
+        final boolean isKey
     ) {
       return serde;
     }

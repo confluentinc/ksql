@@ -52,7 +52,7 @@ public class AvroFormatTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> format.getSerde(schema, formatProps, config, srFactory)
+        () -> format.getSerde(schema, formatProps, config, srFactory, false)
     );
 
     // Then:

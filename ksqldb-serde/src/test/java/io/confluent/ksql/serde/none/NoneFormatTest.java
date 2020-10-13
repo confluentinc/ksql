@@ -70,7 +70,7 @@ public class NoneFormatTest {
     when(schema.features()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // When:
-    format.getSerde(schema, formatProps, ksqlConfig, srClientFactory);
+    format.getSerde(schema, formatProps, ksqlConfig, srClientFactory, false);
   }
 
   @Test(expected = KsqlException.class)
@@ -79,7 +79,7 @@ public class NoneFormatTest {
     formatProps = ImmutableMap.of("some", "prop");
 
     // When:
-    format.getSerde(schema, formatProps, ksqlConfig, srClientFactory);
+    format.getSerde(schema, formatProps, ksqlConfig, srClientFactory, false);
   }
 
   @Test
@@ -90,7 +90,7 @@ public class NoneFormatTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> format.getSerde(schema, formatProps, ksqlConfig, srClientFactory)
+        () -> format.getSerde(schema, formatProps, ksqlConfig, srClientFactory, false)
     );
 
     // Then:
@@ -101,7 +101,7 @@ public class NoneFormatTest {
   @Test
   public void shouldReturnVoidSerde() {
     // When:
-    final Serde<List<?>> serde = format.getSerde(schema, formatProps, ksqlConfig, srClientFactory);
+    final Serde<List<?>> serde = format.getSerde(schema, formatProps, ksqlConfig, srClientFactory, false);
 
     // Then:
     assertThat(serde, instanceOf(KsqlVoidSerde.class));

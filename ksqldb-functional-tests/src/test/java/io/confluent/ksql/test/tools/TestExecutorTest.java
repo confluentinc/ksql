@@ -540,7 +540,7 @@ public class TestExecutorTest {
   ) {
     final byte[] serializedKey = keySerializer.serialize("", key);
     final byte[] serializeValue = new ValueSpecJsonSerdeSupplier(false)
-        .getSerializer(null)
+        .getSerializer(null, false)
         .serialize("", value);
 
     return new ProducerRecord<byte[], byte[]>(

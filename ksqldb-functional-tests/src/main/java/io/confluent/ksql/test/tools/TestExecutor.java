@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -48,6 +49,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.model.SourceNode;
+import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
@@ -76,6 +78,8 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.kstream.Window;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
@@ -570,7 +574,7 @@ public class TestExecutor implements Closeable {
     final Object actualValue = actualProducerRecord.value();
     final long actualTimestamp = actualProducerRecord.timestamp();
 
-    final Object expectedKey = expectedRecord.key();
+    final JsonNode expectedKey = expectedRecord.getJsonKey().orElse(NullNode.getInstance());
     final JsonNode expectedValue = expectedRecord.getJsonValue()
         .orElseThrow(() -> new KsqlServerException(
             "could not get expected value from test record: " + expectedRecord));
@@ -582,8 +586,16 @@ public class TestExecutor implements Closeable {
             + "with timestamp=" + expectedTimestamp
             + " but was " + getProducerRecordInString(actualProducerRecord));
 
-    if (!Objects.equals(actualKey, expectedKey)) {
-      throw error;
+    if (expectedRecord.getWindow() != null) {
+      final Windowed<?> windowed = (Windowed<?>) actualKey;
+      if (!new WindowData(windowed).equals(expectedRecord.getWindow()) ||
+          !ExpectedRecordComparator.matches(((Windowed<?>) actualKey).key(), expectedKey)) {
+        throw error;
+      }
+    } else {
+      if (!ExpectedRecordComparator.matches(actualKey, expectedKey)) {
+        throw error;
+      }
     }
 
     if (!ExpectedRecordComparator.matches(actualValue, expectedValue)) {

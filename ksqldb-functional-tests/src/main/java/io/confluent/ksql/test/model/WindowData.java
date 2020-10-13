@@ -19,6 +19,7 @@ package io.confluent.ksql.test.model;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Objects;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 
@@ -52,5 +53,24 @@ public final class WindowData {
 
   public long size() {
     return end - start;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final WindowData that = (WindowData) o;
+    return start == that.start
+        && end == that.end
+        && type == that.type;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(start, end, type);
   }
 }

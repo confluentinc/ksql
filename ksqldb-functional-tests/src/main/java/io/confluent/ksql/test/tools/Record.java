@@ -34,10 +34,12 @@ public class Record {
   private final Optional<Long> timestamp;
   private final WindowData window;
   private final Optional<JsonNode> jsonValue;
+  private final Optional<JsonNode> jsonKey;
 
   public Record(
       final String topicName,
       final Object key,
+      final JsonNode jsonKey,
       final Object value,
       final JsonNode jsonValue,
       final Optional<Long> timestamp,
@@ -45,6 +47,7 @@ public class Record {
   ) {
     this.topicName = requireNonNull(topicName, "topicName");
     this.key = key;
+    this.jsonKey = Optional.ofNullable(jsonKey);
     this.value = value;
     this.jsonValue = Optional.ofNullable(jsonValue);
     this.timestamp = requireNonNull(timestamp, "timestamp");
@@ -94,6 +97,10 @@ public class Record {
     return window;
   }
 
+  public Optional<JsonNode> getJsonKey() {
+    return jsonKey;
+  }
+
   public Optional<JsonNode> getJsonValue() {
     return jsonValue;
   }
@@ -102,6 +109,7 @@ public class Record {
     return new Record(
         topicName,
         key,
+        jsonKey.orElse(null),
         value,
         jsonValue.orElse(null),
         timestamp,

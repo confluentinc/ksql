@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -36,6 +37,7 @@ public class RecordTest {
     final Record record = new Record(
         TOPIC_NAME,
         10,
+        null,
         "bar",
         null,
         Optional.of(1000L),
@@ -55,6 +57,7 @@ public class RecordTest {
     final Record record = new Record(
         TOPIC_NAME,
         "foo",
+        null,
         "bar",
         null,
         Optional.of(1000L),
@@ -78,6 +81,7 @@ public class RecordTest {
     final Record record = new Record(
         TOPIC_NAME,
         "foo",
+        null,
         "bar",
         null,
         Optional.of(1000L),

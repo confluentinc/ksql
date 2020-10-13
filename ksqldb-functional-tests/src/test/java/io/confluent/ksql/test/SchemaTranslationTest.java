@@ -8,6 +8,7 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableList;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -83,6 +84,7 @@ public class SchemaTranslationTest {
       final Record record = new Record(
           TOPIC_NAME,
           "test-key",
+          JsonNodeFactory.instance.textNode("test-key"),
           avroToValueSpec(avro, avroSchema, true),
           spec,
           Optional.of(0L),
@@ -100,6 +102,7 @@ public class SchemaTranslationTest {
             r -> new Record(
                 OUTPUT_TOPIC_NAME,
                 "test-key",
+                JsonNodeFactory.instance.textNode("test-key"),
                 r.value(),
                 r.getJsonValue().orElse(null),
                 Optional.of(0L),

@@ -71,6 +71,9 @@ ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent
 ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
 The schema is registered under the subject `<topic-name>-value`.
 
+Specify the WINDOW clause to create a windowed aggregation. For more information,
+see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
+
 The WITH clause supports the following properties:
 
 |     Property      |                                             Description                                              |
@@ -92,8 +95,8 @@ The WITH clause supports the following properties:
     - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB
     column name behavior.
 
-Example
--------
+Examples
+--------
 
 ```sql
 -- Derive a new view from an existing table:
@@ -104,8 +107,10 @@ CREATE TABLE derived AS
     d
   FROM source
   WHERE A is not null;
+```
 
--- Or, join a stream of play events to a songs table, windowing weekly, to create a weekly chart:
+```sql
+-- Join a stream of play events to a songs table, windowing weekly, to create a weekly chart:
 CREATE TABLE weeklyMusicCharts AS
    SELECT
       s.songName,
@@ -114,4 +119,22 @@ CREATE TABLE weeklyMusicCharts AS
       JOIN songs s ON p.song_id = s.id
    WINDOW TUMBLING (7 DAYS)
    GROUP BY s.songName;
+```
+
+```sql
+-- Window retention: configure the number of windows in the past that ksqlDB retains.
+CREATE TABLE pageviews_per_region AS
+  SELECT regionid, COUNT(*) FROM pageviews
+  WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS, RETENTION 7 DAYS, GRACE PERIOD 30 MINUTES)
+  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
+  GROUP BY regionid
+  EMIT CHANGES;
+```
+
+```sql
+-- Late arriving events: accept events for up to two hours after the window ends.
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
 ```

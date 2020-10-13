@@ -239,7 +239,11 @@ public final class KsqlRestClient implements Closeable {
 
   private static URI parseUri(final String serverAddress) {
     try {
-      return new URL(serverAddress).toURI();
+      final URL url = new URL(serverAddress);
+      if (url.getPort() == -1) {
+        return new URL(serverAddress.concat(":") + url.getDefaultPort()).toURI();
+      }
+      return url.toURI();
     } catch (final Exception e) {
       throw new KsqlRestClientException(
           "The supplied serverAddress is invalid: " + serverAddress, e);

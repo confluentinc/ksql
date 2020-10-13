@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde;
 
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 
 /**
@@ -51,16 +50,16 @@ public final class InternalFormats {
    * @see <a href=https://github.com/confluentinc/ksql/issues/6296>Issue 6296</a>
    * @see SerdeFeaturesFactory#buildInternal
    */
-  public static Formats of(final KeyFormat keyFormat, final ValueFormat valueFormat) {
+  public static Formats of(final FormatInfo keyFormat, final FormatInfo valueFormat) {
     // Do not use NONE format for internal topics:
-    final FormatInfo formatInfo = keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)
-        ? FormatInfo.of(JsonFormat.NAME)
-        : keyFormat.getFormatInfo();
+    if (keyFormat.getFormat().equals(NoneFormat.NAME)) {
+      throw new IllegalArgumentException(NoneFormat.NAME + " can not be used for internal topics");
+    }
 
     return Formats.of(
-        formatInfo,
-        valueFormat.getFormatInfo(),
-        SerdeFeaturesFactory.buildInternal(FormatFactory.of(formatInfo)),
+        keyFormat,
+        valueFormat,
+        SerdeFeaturesFactory.buildInternal(FormatFactory.fromName(keyFormat.getFormat())),
         SerdeFeatures.of()
     );
   }

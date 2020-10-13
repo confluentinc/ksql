@@ -127,7 +127,7 @@ public class SchemaKGroupedStreamTest {
         NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
@@ -142,7 +142,7 @@ public class SchemaKGroupedStreamTest {
         NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
@@ -171,7 +171,7 @@ public class SchemaKGroupedStreamTest {
         NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
@@ -197,7 +197,7 @@ public class SchemaKGroupedStreamTest {
         NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.of(windowExp),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 

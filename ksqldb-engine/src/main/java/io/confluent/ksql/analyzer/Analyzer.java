@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
@@ -61,6 +62,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
@@ -165,7 +167,7 @@ class Analyzer {
           .getDataSource()
           .getKsqlTopic();
 
-      final FormatInfo keyFmtInfo = buildFormatInfo(
+      final FormatInfo keyFmtInfo = buildKeyFormatInfo(
           props.getKeyFormat(),
           props.getKeyFormatProperties(),
           srcTopic.getKeyFormat().getFormatInfo()
@@ -187,6 +189,30 @@ class Analyzer {
 
       analysis
           .setInto(Into.newSink(sink.getName(), topicName, windowInfo, keyFmtInfo, valueFmtInfo));
+    }
+
+    private FormatInfo buildKeyFormatInfo(
+        final Optional<String> explicitFormat,
+        final Map<String, String> formatProperties,
+        final FormatInfo sourceFormat
+    ) {
+      final boolean partitioningByNull = analysis.getPartitionBy()
+          .map(pb -> pb.getExpression() instanceof NullLiteral)
+          .orElse(false);
+
+      if (partitioningByNull) {
+        final boolean nonNoneExplicitFormat = explicitFormat
+            .map(fmt -> !fmt.equalsIgnoreCase(NoneFormat.NAME))
+            .orElse(false);
+
+        if (nonNoneExplicitFormat) {
+          throw new KsqlException("Key format specified for stream without key columns.");
+        }
+
+        return FormatInfo.of(NoneFormat.NAME);
+      }
+
+      return buildFormatInfo(explicitFormat, formatProperties, sourceFormat);
     }
 
     private FormatInfo buildFormatInfo(

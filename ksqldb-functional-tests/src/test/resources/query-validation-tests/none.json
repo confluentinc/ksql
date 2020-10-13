@@ -109,7 +109,6 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY BAR;"
       ],
       "properties": {
-        "ksql.key.format.enabled": true,
         "ksql.persistence.default.format.key": "JSON"
       },
       "inputs": [
@@ -135,10 +134,6 @@
         "CREATE STREAM S (ID INT) WITH (kafka_topic='s', key_format='NONE', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT S.ID, VAL FROM S JOIN T ON S.ID = T.ID;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true,
-        "ksql.persistence.default.format.key": "KAFKA"
-      },
       "inputs": [
         {"topic": "t", "key": 10, "value": {"VAL": "hello"}},
         {"topic": "s", "key": null, "value": {"id": 10}}
@@ -159,7 +154,6 @@
         "CREATE TABLE OUTPUT AS SELECT FOO, COUNT() AS COUNT FROM INPUT GROUP BY FOO;"
       ],
       "properties": {
-        "ksql.key.format.enabled": true,
         "ksql.persistence.default.format.key": "JSON"
       },
       "inputs": [

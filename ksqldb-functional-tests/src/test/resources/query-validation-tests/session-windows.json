@@ -144,9 +144,6 @@
         "CREATE STREAM INPUT (A DECIMAL(4,2)) WITH (kafka_topic='INPUT', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT A, COUNT() AS COUNT FROM INPUT WINDOW SESSION (30 SECONDS) group by A;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "INPUT", "value": {"A": 12.30}, "timestamp": 10},
         {"topic": "INPUT", "value": {"A": 12.30}, "timestamp": 11},

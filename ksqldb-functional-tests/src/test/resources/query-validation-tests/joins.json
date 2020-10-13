@@ -1975,9 +1975,6 @@
         "CREATE TABLE R (A INT PRIMARY KEY, B INT, C INT) WITH (kafka_topic='RIGHT', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R ON L.A = R.A;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "RIGHT", "key": 1, "value": {"B": -1, "C": -2}, "timestamp": 10},
         {"topic": "LEFT", "key": 1, "value": {"B": 1, "C": 2}, "timestamp": 11},

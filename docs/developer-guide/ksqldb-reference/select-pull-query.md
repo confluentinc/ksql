@@ -36,7 +36,7 @@ Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
 The WHERE clause must contain a single primary-key to retrieve and may
-optionally include bounds on `WINDOWSTART` and `WINDOWEND` if the materialized table is windowed.
+optionally include bounds on WINDOWSTART if the materialized table is windowed.
 For more information, see 
 [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
 

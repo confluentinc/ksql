@@ -198,21 +198,3 @@ SELECT orderzip_code, TOPK(order_total, 5) FROM orders
   GROUP BY order_zipcode
   EMIT CHANGES;
 ```
-
-#### EMIT
-
-The EMIT clause lets you control the output refinement of your push query. The output refinement is
-how you would like to *emit* your results. 
-
-ksqlDB supports the following output refinement types.
-
-#### CHANGES
-
-This is the standard output refinement for push queries, for when we would like to see all changes 
-happening.
-
-#### FINAL
-
-This is for when we want to emit only the final result of a windowed aggregation, and suppress the 
-intermediate results until the window closes. Note that this output refinement is supported only 
-for windowed aggregations.

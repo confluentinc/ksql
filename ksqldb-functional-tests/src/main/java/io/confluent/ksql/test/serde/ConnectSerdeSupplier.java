@@ -99,9 +99,7 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
 
       final T schema;
       try {
-        final String subject = isKey
-                ? topic + KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
-                : topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+        final String subject = KsqlConstants.getSRSubject(topic, isKey);
         final int id = srClient.getLatestSchemaMetadata(subject).getId();
         schema = (T) srClient.getSchemaBySubjectAndId(subject, id);
       } catch (Exception e) {

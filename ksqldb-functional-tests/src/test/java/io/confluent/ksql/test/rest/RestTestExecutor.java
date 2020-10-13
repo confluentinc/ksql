@@ -189,7 +189,7 @@ public class RestTestExecutor implements Closeable {
       topic.getKeySchema().ifPresent(schema -> {
         try {
           serviceContext.getSchemaRegistryClient()
-              .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX, schema);
+              .register(KsqlConstants.getSRSubject(topic.getName(), true), schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }
@@ -197,7 +197,7 @@ public class RestTestExecutor implements Closeable {
       topic.getValueSchema().ifPresent(schema -> {
         try {
           serviceContext.getSchemaRegistryClient()
-              .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+              .register(KsqlConstants.getSRSubject(topic.getName(), false), schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }

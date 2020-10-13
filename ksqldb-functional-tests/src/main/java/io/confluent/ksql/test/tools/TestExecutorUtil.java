@@ -279,14 +279,14 @@ public final class TestExecutorUtil {
 
       topic.getKeySchema().ifPresent(schema -> {
         try {
-          srClient.register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX, schema);
+          srClient.register(KsqlConstants.getSRSubject(topic.getName(), true), schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }
       });
       topic.getValueSchema().ifPresent(schema -> {
         try {
-          srClient.register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+          srClient.register(KsqlConstants.getSRSubject(topic.getName(), false), schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }

@@ -33,6 +33,7 @@ import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.engine.rewrite.PullQueryKeyUpdater;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
@@ -53,8 +54,8 @@ import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNodeList;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -70,10 +71,12 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
@@ -110,6 +113,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -237,14 +241,18 @@ public final class PullQueryExecutor {
       final List<List<?>> tableRows = new ArrayList<>();
       final List<LogicalSchema> schemas = new ArrayList<>();
       final List<Future<PullQueryResult>> futures = new ArrayList<>();
-      final List<List<Struct>> keysByLocation = mat.locator().groupByLocation(
-          whereInfo.keysBound.stream()
-              .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
-              .collect(Collectors.toList()));
+      final List<Struct> keys = whereInfo.keysBound.stream()
+          .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
+          .collect(ImmutableList.toImmutableList());
+      final List<KsqlNodeList> nodeLists = mat.locator().locate(
+          keys,
+          routingOptions,
+          routingFilterFactory
+      );
 
-      for (List<Struct> keys : keysByLocation) {
+      for (KsqlNodeList ksqlNodeList : nodeLists) {
         final PullQueryContext pullQueryContext = new PullQueryContext(
-            keys,
+            ksqlNodeList.getKeys(),
             mat,
             analysis,
             whereInfo,
@@ -257,6 +265,7 @@ public final class PullQueryExecutor {
             executionContext,
             serviceContext,
             pullQueryContext,
+            ksqlNodeList.getNodes(),
             routingOptions
         )));
 
@@ -277,10 +286,11 @@ public final class PullQueryExecutor {
 
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+      final Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
       throw new KsqlStatementException(
-          e.getMessage() == null ? "Server Error" : e.getMessage(),
+          cause.getMessage() == null ? "Server Error" : cause.getMessage(),
           statement.getStatementText(),
-          e
+          cause
       );
     }
   }
@@ -307,17 +317,9 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final PullQueryContext pullQueryContext,
+      final List<KsqlNode> filteredAndOrderedNodes,
       final RoutingOptions routingOptions
   ) {
-    // Get active and standby nodes for this key
-    final Locator locator = pullQueryContext.mat.locator();
-    final Struct key = Iterables.getLast(pullQueryContext.keys);
-    final List<KsqlNode> filteredAndOrderedNodes = locator.locate(
-        key,
-        routingOptions,
-        routingFilterFactory
-    );
-
     if (filteredAndOrderedNodes.isEmpty()) {
       LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
                 statement.getStatementText());
@@ -368,7 +370,7 @@ public final class PullQueryExecutor {
                 statement.getStatementText(), node.location(), System.currentTimeMillis());
       pullQueryContext.pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
-      return forwardTo(node, statement, serviceContext);
+      return forwardTo(node, statement, serviceContext, pullQueryContext);
     }
   }
 
@@ -439,8 +441,14 @@ public final class PullQueryExecutor {
   private static TableRows forwardTo(
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final PullQueryContext pullQueryContext
   ) {
+    // Rewrite the expression to only query for the particular keys we care about for this node.
+    // Otherwise, we'll risk reading standby data for other partitions.
+    final Statement rewrittenStatement = PullQueryKeyUpdater.update(statement.getStatement(),
+        pullQueryContext.keys);
+    final String rewrittenSql = SqlFormatter.formatSql(rewrittenStatement) + ";";
     // Add skip forward flag to properties
     final Map<String, Object> requestProperties = ImmutableMap.of(
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true,
@@ -449,7 +457,7 @@ public final class PullQueryExecutor {
         .getKsqlClient()
         .makeQueryRequest(
             owner.location(),
-            statement.getStatementText(),
+            rewrittenSql,
             statement.getSessionConfig().getOverrides(),
             requestProperties
         );

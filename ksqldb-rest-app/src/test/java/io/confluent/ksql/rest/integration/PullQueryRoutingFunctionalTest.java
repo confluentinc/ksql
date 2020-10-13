@@ -98,10 +98,12 @@ public class PullQueryRoutingFunctionalTest {
   private static final TemporaryFolder TMP = new TemporaryFolder();
   private static final int BASE_TIME = 1_000_000;
   private final static String KEY = USER_PROVIDER.getStringKey(0);
+  private final static String KEY1 = USER_PROVIDER.getStringKey(1);
   private final AtomicLong timestampSupplier = new AtomicLong(BASE_TIME);
   private String output;
   private String queryId;
   private String sql;
+  private String sqlMultipleKeys;
   private String topic;
 
   private static final Map<String, ?> LAG_FILTER_6 =
@@ -229,6 +231,8 @@ public class PullQueryRoutingFunctionalTest {
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
     sql = "SELECT * FROM " + output + " WHERE USERID = '" + KEY + "';";
+    sqlMultipleKeys = "SELECT * FROM " + output + " WHERE USERID IN ('"
+        + KEY + "', '" + KEY1 + "');";
     List<KsqlEntity> res = makeAdminRequestWithResponse(
         REST_APP_0,
         "CREATE TABLE " + output + " AS"
@@ -341,6 +345,45 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+  }
+
+  @Test
+  public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter_multipleKeys()
+      throws Exception {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+
+    // Partition off the active
+    clusterFormation.active.getShutoffs().shutOffAll();
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp);
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsDown);
+
+    // When:
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
+        sqlMultipleKeys);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 2));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    host = rows_0.get(2).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
+    assertThat(rows_0.get(2).getRow(), is(not(Optional.empty())));
+    assertThat(rows_0.get(2).getRow().get().values(), is(ImmutableList.of(KEY1, 1)));
   }
 
   @Test

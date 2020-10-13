@@ -42,6 +42,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;
@@ -126,6 +127,8 @@ public class PullQueryFunctionalTest {
       .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JAAS_CONFIG.jaasFile().toString())
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
+      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .build();
 
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
@@ -140,6 +143,8 @@ public class PullQueryFunctionalTest {
       .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JAAS_CONFIG.jaasFile().toString())
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
+      .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
+      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .build();
 
   @ClassRule
@@ -314,7 +319,7 @@ public class PullQueryFunctionalTest {
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 3));
-    assertThat(rows_1, is(matchersRows(rows_0)));
+    assertThat(rows_1, is(matchersRowsAnyOrder(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))

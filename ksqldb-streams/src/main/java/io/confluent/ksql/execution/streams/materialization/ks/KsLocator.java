@@ -33,7 +33,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,6 +51,8 @@ import org.slf4j.LoggerFactory;
 final class KsLocator implements Locator {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsLocator.class);
+  private static final Comparator<HostInfo> HOST_INFO_COMPARATOR = Comparator
+      .comparing(HostInfo::host).thenComparingInt(HostInfo::port);
   private final String stateStoreName;
   private final KafkaStreams kafkaStreams;
   private final Serializer<Struct> keySerializer;
@@ -73,69 +74,61 @@ final class KsLocator implements Locator {
   }
 
   @Override
-  public List<KsqlNode> locate(
-      final Struct key,
+  public List<KsqlNodeList> locate(
+      final List<Struct> keys,
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory
   ) {
-    final KeyQueryMetadata metadata = kafkaStreams
-        .queryMetadataForKey(stateStoreName, key, keySerializer);
-
-    // Fail fast if Streams not ready. Let client handle it
-    if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
-      LOG.debug("KeyQueryMetadata not available for state store {} and key {}",
-                stateStoreName, key);
-      throw new MaterializationException(String.format(
-          "KeyQueryMetadata not available for state store %s and key %s", stateStoreName, key));
-    }
-
-    LOG.debug("Handling pull query for key {} in partition {} of state store {}.",
-              key, metadata.partition(), stateStoreName);
-    
-    final HostInfo activeHost = metadata.activeHost();
-    final Set<HostInfo> standByHosts = metadata.standbyHosts();
-
-    // If the lookup is for a forwarded request, only filter localhost
-    List<KsqlHostInfo> allHosts = null;
-    if (routingOptions.skipForwardRequest()) {
-      LOG.debug("Before filtering: Local host {} ", localHost);
-      allHosts = ImmutableList.of(new KsqlHostInfo(localHost.getHost(), localHost.getPort()));
-    } else {
-      LOG.debug("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
-      allHosts = Stream.concat(Stream.of(activeHost), standByHosts.stream())
-          .map(this::asKsqlHost)
-          .collect(Collectors.toList());
-    }
-    final RoutingFilter routingFilter = routingFilterFactory.createRoutingFilter(routingOptions,
-        allHosts, activeHost, applicationId, stateStoreName, metadata.partition());
-
-    // Filter out hosts based on active, liveness and max lag filters.
-    // The list is ordered by routing preference: active node is first, then standby nodes.
-    // If heartbeat is not enabled, all hosts are considered alive.
-    // If the request is forwarded internally from another ksql server, only the max lag filter
-    // is applied.
-    final List<KsqlNode> filteredHosts = allHosts.stream()
-        .filter(routingFilter::filter)
-        .map(this::asNode)
-        .collect(Collectors.toList());
-
-    LOG.debug("Filtered and ordered hosts: {}", filteredHosts);
-    return filteredHosts;
-  }
-
-  @Override
-  public List<List<Struct>> groupByLocation(final List<Struct> keys) {
-    final Map<String, List<Struct>> groups = new HashMap<>();
+    final Map<ImmutableList<KsqlNode>, List<Struct>> groups = new HashMap<>();
     for (Struct key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
           .queryMetadataForKey(stateStoreName, key, keySerializer);
-      groups.computeIfAbsent(metadata.activeHost().toString(), active -> new ArrayList<>());
-      groups.get(metadata.activeHost().toString()).add(key);
+
+      // Fail fast if Streams not ready. Let client handle it
+      if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
+        LOG.debug("KeyQueryMetadata not available for state store {} and key {}",
+            stateStoreName, key);
+        throw new MaterializationException(String.format(
+            "KeyQueryMetadata not available for state store %s and key %s", stateStoreName, key));
+      }
+
+      LOG.debug("Handling pull query for key {} in partition {} of state store {}.",
+          key, metadata.partition(), stateStoreName);
+      final HostInfo activeHost = metadata.activeHost();
+      final Set<HostInfo> standByHosts = metadata.standbyHosts();
+
+      // If the lookup is for a forwarded request, only filter localhost
+      List<KsqlHostInfo> allHosts = null;
+      if (routingOptions.skipForwardRequest()) {
+        LOG.debug("Before filtering: Local host {} ", localHost);
+        allHosts = ImmutableList.of(new KsqlHostInfo(localHost.getHost(), localHost.getPort()));
+      } else {
+        LOG.debug("Before filtering: Active host {} , standby hosts {}", activeHost, standByHosts);
+        allHosts = Stream.concat(Stream.of(activeHost), standByHosts.stream())
+            .map(this::asKsqlHost)
+            .collect(Collectors.toList());
+      }
+      final RoutingFilter routingFilter = routingFilterFactory.createRoutingFilter(routingOptions,
+          allHosts, activeHost, applicationId, stateStoreName, metadata.partition());
+
+      // Filter out hosts based on active, liveness and max lag filters.
+      // The list is ordered by routing preference: active node is first, then standby nodes.
+      // If heartbeat is not enabled, all hosts are considered alive.
+      // If the request is forwarded internally from another ksql server, only the max lag filter
+      // is applied.
+      final ImmutableList<KsqlNode> filteredHosts = allHosts.stream()
+          .filter(routingFilter::filter)
+          .map(this::asNode)
+          .collect(ImmutableList.toImmutableList());
+
+      LOG.debug("Filtered and ordered hosts: {}", filteredHosts);
+
+      groups.computeIfAbsent(filteredHosts, nl -> new ArrayList<>());
+      groups.get(filteredHosts).add(key);
     }
     return groups.entrySet().stream()
-        .sorted(Comparator.comparing(Entry::getKey))
-        .map(Entry::getValue)
-        .collect(Collectors.toList());
+        .map(e -> new NodeList(e.getValue(), e.getKey()))
+        .collect(ImmutableList.toImmutableList());
   }
 
   @VisibleForTesting
@@ -223,5 +216,23 @@ final class KsLocator implements Locator {
       return Objects.hash(local, location);
     }
 
+  }
+
+  private static final class NodeList implements KsqlNodeList {
+    private final List<Struct> keys;
+    private final List<KsqlNode> nodes;
+
+    private NodeList(final List<Struct> keys, final List<KsqlNode> nodes) {
+      this.keys = keys;
+      this.nodes = nodes;
+    }
+
+    public List<Struct> getKeys() {
+      return keys;
+    }
+
+    public List<KsqlNode> getNodes() {
+      return nodes;
+    }
   }
 }

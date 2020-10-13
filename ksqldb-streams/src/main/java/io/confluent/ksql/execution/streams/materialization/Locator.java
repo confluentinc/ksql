@@ -36,22 +36,14 @@ public interface Locator {
    * <p>Implementations are free to return {@link Optional#empty()} if the location is not known at
    * this time.
    *
-   * @param key the required key.
+   * @param keys the required keys.
    * @return the list of nodes, that can potentially serve the key.
    */
-  List<KsqlNode> locate(
-      Struct key,
+  List<KsqlNodeList> locate(
+      List<Struct> keys,
       RoutingOptions routingOptions,
       RoutingFilterFactory routingFilterFactory
   );
-
-  /**
-   * Combines the given keys into groups which are co-located together and therefore can be queried
-   * for using the same call to locate.
-   * @param keys The keys to group
-   * @return A list of groups of keys
-   */
-  List<List<Struct>> groupByLocation(List<Struct> keys);
 
   interface KsqlNode {
 
@@ -64,5 +56,18 @@ public interface Locator {
      * @return The base URI of the node, including protocol, host and port.
      */
     URI location();
+  }
+
+  interface KsqlNodeList {
+
+    /**
+     * @return the keys associated with this list of nodes to contact for the data.
+     */
+    List<Struct> getKeys();
+
+    /**
+     * @return the ordered and filtered list of nodes to contact to access the above keys.
+     */
+    List<KsqlNode> getNodes();
   }
 }

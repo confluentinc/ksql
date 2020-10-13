@@ -138,7 +138,7 @@ public interface Format {
       Map<String, String> formatProperties,
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> srClientFactory,
-      final boolean isKey
+      boolean isKey
   );
 
 }

@@ -21,7 +21,7 @@ import org.apache.kafka.common.serialization.Serializer;
 
 public interface SerdeSupplier<T> {
 
-  Serializer<T> getSerializer(SchemaRegistryClient schemaRegistryClient, final boolean isKey);
+  Serializer<T> getSerializer(SchemaRegistryClient schemaRegistryClient, boolean isKey);
 
-  Deserializer<T> getDeserializer(SchemaRegistryClient schemaRegistryClient, final boolean isKey);
+  Deserializer<T> getDeserializer(SchemaRegistryClient schemaRegistryClient, boolean isKey);
 }

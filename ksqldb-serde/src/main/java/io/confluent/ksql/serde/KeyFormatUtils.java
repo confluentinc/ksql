@@ -24,7 +24,7 @@ public final class KeyFormatUtils {
   private static final List<Format> SUPPORTED_KEY_FORMATS =
       ImmutableList.of(FormatFactory.NONE, FormatFactory.KAFKA, FormatFactory.DELIMITED);
   private static final List<Format> KEY_FORMATS_UNDER_DEVELOPMENT =
-      ImmutableList.of(FormatFactory.JSON);
+      ImmutableList.of(FormatFactory.JSON, FormatFactory.AVRO);
 
   /**
    * Until the primitive key work is complete, not all formats are supported as key formats.

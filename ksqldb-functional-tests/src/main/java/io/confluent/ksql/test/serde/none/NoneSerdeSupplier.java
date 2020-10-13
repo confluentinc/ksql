@@ -25,12 +25,18 @@ import org.apache.kafka.common.serialization.Serializer;
 public class NoneSerdeSupplier implements SerdeSupplier<Void> {
 
   @Override
-  public Serializer<Void> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Serializer<Void> getSerializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return new KsqlVoidSerde<Void>().serializer();
   }
 
   @Override
-  public Deserializer<Void> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Deserializer<Void> getDeserializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return new KsqlVoidSerde<Void>().deserializer();
   }
 } 

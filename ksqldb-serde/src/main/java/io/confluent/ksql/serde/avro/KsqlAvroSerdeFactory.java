@@ -51,7 +51,8 @@ class KsqlAvroSerdeFactory {
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     AvroUtil.throwOnInvalidSchema(schema);
 
@@ -59,14 +60,16 @@ class KsqlAvroSerdeFactory {
         schema,
         ksqlConfig,
         srFactory,
-        targetType
+        targetType,
+        isKey
     );
 
     final Supplier<Deserializer<T>> deserializerSupplier = createConnectDeserializer(
         schema,
         ksqlConfig,
         srFactory,
-        targetType
+        targetType,
+        isKey
     );
 
     // Sanity check:
@@ -83,13 +86,14 @@ class KsqlAvroSerdeFactory {
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     return () -> {
       final AvroDataTranslator translator = createAvroTranslator(schema);
 
       final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig);
+          getAvroConverter(srFactory.get(), ksqlConfig, isKey);
 
       return new KsqlConnectSerializer<>(
           translator.getAvroCompatibleSchema(),
@@ -104,13 +108,14 @@ class KsqlAvroSerdeFactory {
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     return () -> {
       final AvroDataTranslator translator = createAvroTranslator(schema);
 
       final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig);
+          getAvroConverter(srFactory.get(), ksqlConfig, isKey);
 
       return new KsqlConnectDeserializer<>(avroConverter, translator, targetType);
     };
@@ -122,7 +127,8 @@ class KsqlAvroSerdeFactory {
 
   private static AvroConverter getAvroConverter(
       final SchemaRegistryClient schemaRegistryClient,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final boolean isKey
   ) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
 
@@ -134,7 +140,7 @@ class KsqlAvroSerdeFactory {
 
     avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
 
-    avroConverter.configure(avroConfig, false);
+    avroConverter.configure(avroConfig, isKey);
     return avroConverter;
   }
 }

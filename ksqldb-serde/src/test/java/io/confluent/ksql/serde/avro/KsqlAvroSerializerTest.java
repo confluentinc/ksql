@@ -654,8 +654,8 @@ public class KsqlAvroSerializerTest {
                 schema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
-                Map.class
-            )
+                Map.class,
+                false)
     );
 
     // Then:
@@ -681,8 +681,8 @@ public class KsqlAvroSerializerTest {
                 schema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
-                Struct.class
-            )
+                Struct.class,
+                false)
     );
 
     // Then:
@@ -1022,8 +1022,8 @@ public class KsqlAvroSerializerTest {
                 (ConnectSchema) ksqlRecordSchema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
-                Struct.class
-            ).serializer();
+                Struct.class,
+                false).serializer();
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
@@ -1145,8 +1145,8 @@ public class KsqlAvroSerializerTest {
             (ConnectSchema) schema,
             ksqlConfig,
             () -> schemaRegistryClient,
-            targetType
-        ).serializer();
+            targetType,
+            false).serializer();
   }
 
   private org.apache.avro.Schema avroSchemaStoredInSchemaRegistry() {

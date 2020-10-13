@@ -81,8 +81,8 @@ The WITH clause supports the following properties:
     file. See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md).
     - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB column name behavior.
 
-Example
--------
+Examples
+--------
 
 ```sql
 -- table with declared columns: 
@@ -95,7 +95,9 @@ CREATE TABLE users (
      KAFKA_TOPIC = 'my-users-topic', 
      VALUE_FORMAT = 'JSON'
    );
+```
 
+```sql
 -- table with value columns loaded from Schema Registry: 
 CREATE TABLE users (
      id BIGINT PRIMARY KEY
@@ -103,4 +105,12 @@ CREATE TABLE users (
      KAFKA_TOPIC = 'my-users-topic', 
      VALUE_FORMAT = 'JSON'
    );
+```
+
+```sql
+-- Late arriving events: accept events for up to two hours after the window ends.
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
 ```

@@ -74,6 +74,9 @@ ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent
 ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
 The schema is registered under the subject `<topic-name>-value`.
 
+Specify the WINDOW clause to create a windowed aggregation. For more information,
+see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
+
 The WITH clause supports the following properties:
 
 |     Property      |                                             Description                                              |

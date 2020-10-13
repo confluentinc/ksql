@@ -216,6 +216,8 @@ ksqlDB tracks windows per record key.
       "keyed", for subsequent operations. When you use the GROUP BY clause in
       a query, windowing enables you to further sub-group the records of a
       key.
+      
+      Windowing queries must group by the keys that are selected in the query.
 
 When using windows in your SQL queries, aggregate functions are applied
 only to the records that occur within a specific time window. Records

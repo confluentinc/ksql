@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -99,7 +100,7 @@ public class GenericRowSerDeTest {
     serializer = new GenericRowSerializer(innerSerializer, 2);
     deserializer = new GenericRowDeserializer(innerDeserializer, 2);
 
-    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), any())).thenReturn(innerSerde);
+    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
     when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
     when(innerSerde.serializer()).thenReturn(innerSerializer);

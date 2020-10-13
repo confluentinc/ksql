@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -139,7 +140,7 @@ public class GenericSerdeFactoryTest {
   @Test
   public void shouldThrowIfGetSerdeThrows() {
     // Given:
-    when(format.getSerde(any(), any(), any(), any(), false)).thenThrow(new RuntimeException("boom"));
+    when(format.getSerde(any(), any(), any(), any(), eq(false))).thenThrow(new RuntimeException("boom"));
 
     // When:
     final Exception actual = assertThrows(

@@ -65,7 +65,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -78,7 +77,6 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
-import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
@@ -588,8 +586,8 @@ public class TestExecutor implements Closeable {
 
     if (expectedRecord.getWindow() != null) {
       final Windowed<?> windowed = (Windowed<?>) actualKey;
-      if (!new WindowData(windowed).equals(expectedRecord.getWindow()) ||
-          !ExpectedRecordComparator.matches(((Windowed<?>) actualKey).key(), expectedKey)) {
+      if (!new WindowData(windowed).equals(expectedRecord.getWindow())
+          || !ExpectedRecordComparator.matches(((Windowed<?>) actualKey).key(), expectedKey)) {
         throw error;
       }
     } else {

@@ -135,12 +135,13 @@ public class DistributingExecutor {
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
           statement.getStatementText()), e);
     }
-    
+
+    CommandId commandId = null;
     try {
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
 
-      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
+      commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final Command command = validatedCommandFactory.create(
           injected,
           executionContext.createSandbox(executionContext.getServiceContext())
@@ -164,11 +165,17 @@ public class DistributingExecutor {
     ) {
       // We can't recover from these exceptions, so our only option is close producer and exit.
       // This catch doesn't abortTransaction() since doing that would throw another exception.
+      if (commandId != null) {
+        commandQueue.abortCommand(commandId);
+      }
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic.",
           statement.getStatementText()), e);
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
+      if (commandId != null) {
+        commandQueue.abortCommand(commandId);
+      }
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic.",
           statement.getStatementText()), e);

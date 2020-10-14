@@ -174,6 +174,10 @@ public class RecoveryTest {
     }
 
     @Override
+    public void abortCommand(CommandId commandId) {
+    }
+
+    @Override
     public boolean corruptionDetected() {
       return false;
     }

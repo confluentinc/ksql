@@ -304,6 +304,21 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   @Override
+  public void abortCommand(final CommandId commandId) {
+    commandStatusMap.compute(
+        commandId,
+        (k, v) -> {
+          if (v == null) {
+            throw new IllegalStateException(
+                String.format("Trying to abort an unknown commandId (%s)", commandId)
+            );
+          }
+          return null;
+        }
+    );
+  }
+
+  @Override
   public void waitForCommandConsumer() {
     try {
       final long endOffset = getCommandTopicOffset();

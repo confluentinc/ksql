@@ -127,7 +127,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
     final List<SimpleColumn> columns;
     try {
-      columns = translator.toColumns(parsedSchema);
+      columns = translator.toColumns(parsedSchema, isKey);
     } catch (final Exception e) {
       return notCompatible(topic, parsedSchema.canonicalString(), e, isKey);
     }

@@ -99,6 +99,31 @@ You can create your own aggregation logic by implementing a User Defined
 Aggregation Function (UDAF). For more information, see
 [UDAFs](../concepts/functions.md#udafs).
 
+Aggregations return results per partition. To get results across all partitions,
+you can use PARTITION BY with a fixed key, for example:
+
+```sql
+CREATE STREAM allplaycounts AS
+  SELECT "fixed_key" VARCHAR KEY, COUNT(*) FROM
+    playcountsstream PARTITION BY "fixed_key";
+```
+
+Also, you can get results across all partitions as part of the aggregate query,
+instead of requiring a separate step to partition by a fixed key. In the
+following example, GROUP BY causes COUNT to aggregate over all records.
+
+```sql
+SELECT 'totalCount', COUNT(*) FROM
+  ksql_processing_log GROUP BY 'totalCount';
+```
+
+Grouping by a single constant indicates that ksqlDB uses one big bucket
+(partition) containing all of the records for the aggregation. If you're
+creating a persistent query, you can set the partition count of the sink
+topic to 1 by using WITH(PARTITIONS=1). We recommend this approach even
+if you're using GROUP BY because otherwise all but one of the sink topic's
+partitions will be unused and empty.
+
 ### Window
 
 The WINDOW clause controls how to group input records that have the same key

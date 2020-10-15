@@ -28,8 +28,8 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -78,7 +78,7 @@ final class KsLocator implements Locator {
       final RoutingFilterFactory routingFilterFactory
   ) {
     final Map<Integer, List<KsqlNode>> locationsByPartition = new HashMap<>();
-    final Map<Integer, List<Struct>> keysByPartition = new HashMap<>();
+    final Map<Integer, Set<Struct>> keysByPartition = new HashMap<>();
     final Set<Integer> filterPartitions = routingOptions.getPartitions();
     for (Struct key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
@@ -103,7 +103,7 @@ final class KsLocator implements Locator {
         continue;
       }
 
-      keysByPartition.putIfAbsent(metadata.partition(), new ArrayList<>());
+      keysByPartition.putIfAbsent(metadata.partition(), new LinkedHashSet<>());
       keysByPartition.get(metadata.partition()).add(key);
 
       if (locationsByPartition.containsKey(metadata.partition())) {
@@ -245,18 +245,18 @@ final class KsLocator implements Locator {
   }
 
   private static final class Location implements KsqlLocation {
-    private final Optional<List<Struct>> keys;
+    private final Optional<Set<Struct>> keys;
     private final int partition;
     private final List<KsqlNode> nodes;
 
-    private Location(final Optional<List<Struct>> keys, final int partition,
+    private Location(final Optional<Set<Struct>> keys, final int partition,
         final List<KsqlNode> nodes) {
       this.keys = keys;
       this.partition = partition;
       this.nodes = nodes;
     }
 
-    public Optional<List<Struct>> getKeys() {
+    public Optional<Set<Struct>> getKeys() {
       return keys;
     }
 

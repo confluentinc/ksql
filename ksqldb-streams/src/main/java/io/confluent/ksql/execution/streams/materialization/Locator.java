@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.connect.data.Struct;
 
 /**
@@ -74,6 +75,6 @@ public interface Locator {
      * @return the keys associated with the data we want to access, if any. Keys may not be present
      *     for queries which don't enumerate them up front, such as range queries.
      */
-    Optional<List<Struct>> getKeys();
+    Optional<Set<Struct>> getKeys();
   }
 }

@@ -17,7 +17,9 @@ package io.confluent.ksql.rest.server.restore;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.BackupInputFile;
 import io.confluent.ksql.rest.server.computation.Command;
@@ -35,16 +37,21 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.OutOfOrderSequenceException;
+import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -201,7 +208,30 @@ public class KsqlRestoreCommandTopic {
   private final KsqlConfig serverConfig;
   private final String commandTopicName;
   private final KafkaTopicClient topicClient;
-  private final Producer<byte[], byte[]> kafkaProducer;
+  private final Supplier<Producer<byte[], byte[]>> kafkaProducerSupplier;
+
+  private static KafkaProducer<byte[], byte[]> transactionalProducer(
+      final KsqlConfig serverConfig
+  ) {
+    final Map<String, Object> transactionalProperties =
+        new HashMap<>(serverConfig.getProducerClientConfigProps());
+
+    transactionalProperties.put(
+        ProducerConfig.TRANSACTIONAL_ID_CONFIG,
+        serverConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+    );
+
+    transactionalProperties.put(
+        ProducerConfig.ACKS_CONFIG,
+        "all"
+    );
+
+    return new KafkaProducer<>(
+        transactionalProperties,
+        BYTES_SERIALIZER,
+        BYTES_SERIALIZER
+    );
+  }
 
   KsqlRestoreCommandTopic(final KsqlConfig serverConfig) {
     this(
@@ -209,24 +239,21 @@ public class KsqlRestoreCommandTopic {
         ReservedInternalTopics.commandTopic(serverConfig),
         ServiceContextFactory.create(serverConfig,
             () -> /* no ksql client */ null).getTopicClient(),
-        new KafkaProducer<>(
-            serverConfig.getProducerClientConfigProps(),
-            BYTES_SERIALIZER,
-            BYTES_SERIALIZER
-        )
+        () -> transactionalProducer(serverConfig)
     );
   }
 
+  @VisibleForTesting
   KsqlRestoreCommandTopic(
       final KsqlConfig serverConfig,
       final String commandTopicName,
       final KafkaTopicClient topicClient,
-      final Producer<byte[], byte[]> kafkaProducer
+      final Supplier<Producer<byte[], byte[]>> kafkaProducerSupplier
   ) {
     this.serverConfig = requireNonNull(serverConfig, "serverConfig");
     this.commandTopicName = requireNonNull(commandTopicName, "commandTopicName");
     this.topicClient = requireNonNull(topicClient, "topicClient");
-    this.kafkaProducer = requireNonNull(kafkaProducer, "kafkaProducer");
+    this.kafkaProducerSupplier = requireNonNull(kafkaProducerSupplier, "kafkaProducerSupplier");
   }
 
   public void restore(final List<Pair<byte[], byte[]>> backupCommands) {
@@ -254,35 +281,60 @@ public class KsqlRestoreCommandTopic {
   }
 
   private void restoreCommandTopic(final List<Pair<byte[], byte[]>> commands) {
-    final List<Future<RecordMetadata>> futures = new ArrayList<>(commands.size());
+    try (Producer<byte[], byte[]> kafkaProducer = createTransactionalProducer()) {
+      for (int i = 0; i < commands.size(); i++) {
+        final Pair<byte[], byte[]> command = commands.get(i);
 
-    for (final Pair<byte[], byte[]> command : commands) {
-      futures.add(enqueueCommand(command.getLeft(), command.getRight()));
-    }
-
-    int i = 0;
-    for (final Future<RecordMetadata> future : futures) {
-      try {
-        future.get();
-      } catch (final InterruptedException e) {
-        throw new KsqlException("Restore process was interrupted.", e);
-      } catch (final Exception e) {
-        throw new KsqlException(
-            String.format("Failed restoring command (line %d): %s",
-                i + 1, new String(commands.get(i).getLeft(), StandardCharsets.UTF_8)), e);
+        try {
+          kafkaProducer.beginTransaction();
+          enqueueCommand(kafkaProducer, command.getLeft(), command.getRight());
+          kafkaProducer.commitTransaction();
+        } catch (final ProducerFencedException
+            | OutOfOrderSequenceException
+            | AuthorizationException e
+        ) {
+          // We can't recover from these exceptions, so our only option is close producer and exit.
+          // This catch doesn't abortTransaction() since doing that would throw another exception.
+          throw new KsqlException(
+              String.format("Failed restoring command (line %d): %s",
+                  i + 1, new String(commands.get(i).getLeft(), StandardCharsets.UTF_8)), e);
+        } catch (final InterruptedException e) {
+          kafkaProducer.abortTransaction();
+          throw new KsqlException("Restore process was interrupted.", e);
+        } catch (final Exception e) {
+          kafkaProducer.abortTransaction();
+          throw new KsqlException(
+              String.format("Failed restoring command (line %d): %s",
+                  i + 1, new String(commands.get(i).getLeft(), StandardCharsets.UTF_8)), e);
+        }
       }
-
-      i++;
     }
   }
 
-  public Future<RecordMetadata> enqueueCommand(final byte[] commandId, final byte[] command) {
+  private void enqueueCommand(
+      final Producer<byte[], byte[]> kafkaProducer,
+      final byte[] commandId,
+      final byte[] command
+  ) throws ExecutionException, InterruptedException {
     final ProducerRecord<byte[], byte[]> producerRecord = new ProducerRecord<>(
         commandTopicName,
         COMMAND_TOPIC_PARTITION,
         commandId,
         command);
 
-    return kafkaProducer.send(producerRecord);
+    kafkaProducer.send(producerRecord).get();
+  }
+
+  private Producer<byte[], byte[]> createTransactionalProducer() {
+    try {
+      final Producer<byte[], byte[]> kafkaProducer = kafkaProducerSupplier.get();
+      kafkaProducer.initTransactions();
+      return kafkaProducer;
+    } catch (final TimeoutException e) {
+      final DefaultErrorMessages errorMessages = new DefaultErrorMessages();
+      throw new KsqlException(errorMessages.transactionInitTimeoutErrorMessage(e), e);
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to initialize topic transactions.", e);
+    }
   }
 }

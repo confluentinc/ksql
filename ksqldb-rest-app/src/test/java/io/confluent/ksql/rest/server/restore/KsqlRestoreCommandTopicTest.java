@@ -41,7 +41,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -115,7 +114,7 @@ public class KsqlRestoreCommandTopicTest {
         serverConfig,
         COMMAND_TOPIC_NAME,
         topicClient,
-        kafkaProducer
+        () -> kafkaProducer
     );
 
     when(kafkaProducer.send(RECORD_1)).thenReturn(future1);
@@ -133,12 +132,16 @@ public class KsqlRestoreCommandTopicTest {
 
     // Then:
     verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verify(kafkaProducer).initTransactions();
+    verify(kafkaProducer, times(3)).beginTransaction();
     verify(kafkaProducer).send(RECORD_1);
     verify(kafkaProducer).send(RECORD_2);
     verify(kafkaProducer).send(RECORD_3);
     verify(future1).get();
     verify(future2).get();
     verify(future3).get();
+    verify(kafkaProducer, times(3)).commitTransaction();
+    verify(kafkaProducer).close();
     verifyNoMoreInteractions(kafkaProducer, future1, future2, future3);
   }
 
@@ -156,11 +159,15 @@ public class KsqlRestoreCommandTopicTest {
     // Then:
     assertThat(e.getMessage(), containsString("Restore process was interrupted."));
     verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verify(kafkaProducer).initTransactions();
+    verify(kafkaProducer, times(2)).beginTransaction();
     verify(kafkaProducer).send(RECORD_1);
     verify(kafkaProducer).send(RECORD_2);
-    verify(kafkaProducer).send(RECORD_3);
     verify(future1).get();
     verify(future2).get();
+    verify(kafkaProducer).commitTransaction();
+    verify(kafkaProducer).abortTransaction();
+    verify(kafkaProducer).close();
     verifyNoMoreInteractions(kafkaProducer, future1, future2);
     verifyZeroInteractions(future3);
   }
@@ -182,11 +189,15 @@ public class KsqlRestoreCommandTopicTest {
             new String(RECORD_2.key(), StandardCharsets.UTF_8))));
 
     verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verify(kafkaProducer).initTransactions();
+    verify(kafkaProducer, times(2)).beginTransaction();
     verify(kafkaProducer).send(RECORD_1);
     verify(kafkaProducer).send(RECORD_2);
-    verify(kafkaProducer).send(RECORD_3);
     verify(future1).get();
     verify(future2).get();
+    verify(kafkaProducer).commitTransaction();
+    verify(kafkaProducer).abortTransaction();
+    verify(kafkaProducer).close();
     verifyNoMoreInteractions(kafkaProducer, future1, future2);
     verifyZeroInteractions(future3);
   }
@@ -201,6 +212,8 @@ public class KsqlRestoreCommandTopicTest {
 
     // Then:
     verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verify(kafkaProducer).initTransactions();
+    verify(kafkaProducer).close();
     verifyZeroInteractions(kafkaProducer, future1, future2, future3);
   }
 
@@ -215,8 +228,12 @@ public class KsqlRestoreCommandTopicTest {
     // Then:
     verifyDeleteTopic(COMMAND_TOPIC_NAME);
     verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verify(kafkaProducer).initTransactions();
+    verify(kafkaProducer).beginTransaction();
     verify(kafkaProducer).send(RECORD_1);
     verify(future1).get();
+    verify(kafkaProducer).commitTransaction();
+    verify(kafkaProducer).close();
     verifyNoMoreInteractions(kafkaProducer, future1);
   }
 

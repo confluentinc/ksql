@@ -431,7 +431,6 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildTumblingWindowedAggregateCorrectly() {
     // Given:
     givenTumblingWindowedAggregate();

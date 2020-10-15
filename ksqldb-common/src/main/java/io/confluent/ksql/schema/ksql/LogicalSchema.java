@@ -29,7 +29,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.DuplicateColumnException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -320,13 +320,13 @@ public final class LogicalSchema {
       switch (column.namespace()) {
         case KEY:
           if (!seenKeys.add(column.name())) {
-            throw new KsqlException("Duplicate key columns found in schema: " + column);
+            throw new DuplicateColumnException(column.namespace(), column);
           }
           break;
 
         case VALUE:
           if (!seenValues.add(column.name())) {
-            throw new KsqlException("Duplicate value columns found in schema: " + column);
+            throw new DuplicateColumnException(column.namespace(), column);
           }
           break;
 

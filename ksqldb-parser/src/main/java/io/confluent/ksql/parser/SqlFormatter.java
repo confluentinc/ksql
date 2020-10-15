@@ -498,7 +498,7 @@ public final class SqlFormatter {
     @Override
     public Void visitAlterSource(final AlterSource node, final Integer indent) {
       append(indent, String.format(
-          "ALTER %s %s ",
+          "ALTER %s %s%n",
           node.getDataSourceType().getKsqlType(),
           node.getName().text()));
 
@@ -506,8 +506,9 @@ public final class SqlFormatter {
           node.getAlterOptions()
               .stream()
               .map(SqlFormatter::formatAlterOption)
-              .collect(Collectors.joining(", "))
+              .collect(Collectors.joining(",\n"))
       );
+      builder.append(";");
       return null;
     }
 

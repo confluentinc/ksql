@@ -15,8 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
@@ -29,7 +28,7 @@ import java.util.Optional;
 public class AlterSource extends Statement implements ExecutableDdlStatement {
   private final SourceName name;
   private final DataSourceType dataSourceType;
-  private final List<AlterOption> alterOptions;
+  private final ImmutableList<AlterOption> alterOptions;
 
   public AlterSource(
       final SourceName name,
@@ -48,7 +47,7 @@ public class AlterSource extends Statement implements ExecutableDdlStatement {
     super(location);
     this.name = name;
     this.dataSourceType = dataSourceType;
-    this.alterOptions = alterOptions;
+    this.alterOptions = ImmutableList.copyOf(alterOptions);
   }
 
   public SourceName getName() {
@@ -89,10 +88,10 @@ public class AlterSource extends Statement implements ExecutableDdlStatement {
 
   @Override
   public String toString() {
-    return toStringHelper(this)
-        .add("name", name)
-        .add("dataSourceType", dataSourceType)
-        .add("alterOptions", alterOptions)
-        .toString();
+    return "AlterSource{"
+        + "name=" + getName()
+        + ", dataSourceType=" + getDataSourceType()
+        + ", alterOptions=" + getAlterOptions()
+        + "}";
   }
 }

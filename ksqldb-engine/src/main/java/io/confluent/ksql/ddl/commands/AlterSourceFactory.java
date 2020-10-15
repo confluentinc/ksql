@@ -21,7 +21,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,9 +44,7 @@ public class AlterSourceFactory {
     return new AlterSourceCommand(
         statement.getName(),
         statement.getDataSourceType().getKsqlType(),
-        LogicalSchema.builder()
-            .valueColumns(newColumns)
-            .build()
+        newColumns
     );
   }
 }

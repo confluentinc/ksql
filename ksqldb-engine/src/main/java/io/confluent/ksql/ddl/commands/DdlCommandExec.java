@@ -36,6 +36,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.util.DuplicateColumnException;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
@@ -157,53 +158,26 @@ public class DdlCommandExec {
         ));
       }
 
-      final LogicalSchema newSchema = dataSource.getSchema()
-          .asBuilder()
-          .valueColumns(alterSource.getNewColumns().columns())
-          .build();
+      final LogicalSchema newSchema;
 
-      if (alterSource.getKsqlType().equals(DataSourceType.KSTREAM.getKsqlType())) {
-        return alterStream(dataSource, newSchema);
-      } else {
-        return alterTable(dataSource, newSchema);
+      try {
+        newSchema = dataSource.getSchema()
+            .asBuilder()
+            .valueColumns(alterSource.getNewColumns())
+            .build();
+      } catch (DuplicateColumnException e) {
+        throw new KsqlException("Cannot add existing column to schema: " + e.getColumn());
       }
-    }
 
-    private DdlCommandResult alterStream(
-        final DataSource dataSource,
-        final LogicalSchema newSchema
-    ) {
-      final KsqlStream<?> ksqlStream = new KsqlStream<>(
-          dataSource.getSqlExpression().concat(sql),
-          dataSource.getName(),
-          newSchema,
-          dataSource.getTimestampColumn(),
-          dataSource.isCasTarget(),
-          dataSource.getKsqlTopic()
-      );
-      metaStore.putSource(ksqlStream, true);
+      metaStore.putSource(dataSource.with(sql, newSchema), true);
+
       return new DdlCommandResult(
           true,
-          "Stream " + dataSource.getName().text() + " altered"
-      );
-    }
-
-    private DdlCommandResult alterTable(
-        final DataSource dataSource,
-        final LogicalSchema newSchema
-    ) {
-      final KsqlTable<?> ksqlTable = new KsqlTable<>(
-          dataSource.getSqlExpression().concat(sql),
-          dataSource.getName(),
-          newSchema,
-          dataSource.getTimestampColumn(),
-          dataSource.isCasTarget(),
-          dataSource.getKsqlTopic()
-      );
-      metaStore.putSource(ksqlTable, true);
-      return new DdlCommandResult(
-          true,
-          "Stream " + dataSource.getName().text() + " altered"
+          String.format(
+              "%s %s altered.",
+              dataSource.getDataSourceType() == DataSourceType.KSTREAM ? "Stream" : "Table",
+              dataSource.getName().text()
+          )
       );
     }
   }

@@ -17,18 +17,19 @@ package io.confluent.ksql.execution.ddl.commands;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.Column;
+import java.util.List;
 
 public class AlterSourceCommand implements DdlCommand {
   private final SourceName sourceName;
   private final String ksqlType;
-  private final LogicalSchema newColumns;
+  private final List<Column> newColumns;
 
 
   public AlterSourceCommand(
       @JsonProperty(value = "sourceName", required = true) final SourceName sourceName,
       @JsonProperty(value = "ksqlType", required = true) final String ksqlType,
-      @JsonProperty(value = "newColumns", required = true) final LogicalSchema newColumns
+      @JsonProperty(value = "newColumns", required = true) final List<Column> newColumns
   ) {
     this.sourceName = sourceName;
     this.ksqlType = ksqlType;
@@ -43,7 +44,7 @@ public class AlterSourceCommand implements DdlCommand {
     return ksqlType;
   }
 
-  public LogicalSchema getNewColumns() {
+  public List<Column> getNewColumns() {
     return newColumns;
   }
 

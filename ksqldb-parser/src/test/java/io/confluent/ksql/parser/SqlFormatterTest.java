@@ -1051,6 +1051,21 @@ public class SqlFormatterTest {
         + "EMIT FINAL"));
   }
 
+  @Test
+  public void shouldFormatAlterStatement() {
+    // Given:
+    final String statementString = "ALTER STREAM FOO ADD COLUMN A STRING, ADD COLUMN B INT;";
+    final Statement statement = parseSingle(statementString);
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("ALTER STREAM FOO\n"
+        + "ADD COLUMN A STRING,\n"
+        + "ADD COLUMN B INTEGER;"));
+  }
+
   private Statement parseSingle(final String statementString) {
     return KsqlParserTestUtil.buildSingleAst(statementString, metaStore).getStatement();
   }

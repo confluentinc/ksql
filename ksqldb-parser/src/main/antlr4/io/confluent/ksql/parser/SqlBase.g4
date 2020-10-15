@@ -370,6 +370,8 @@ nonReserved
     | ESCAPE
     | REPLACE
     | ASSERT
+    | ALTER
+    | ADD
     ;
 
 EMIT: 'EMIT';

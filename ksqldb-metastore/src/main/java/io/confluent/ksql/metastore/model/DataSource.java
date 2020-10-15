@@ -97,4 +97,9 @@ public interface DataSource {
    */
   Optional<String> canUpgradeTo(DataSource other);
 
+  /**
+   * @param schema a schema
+   * @return a new DataSource object with all attributes the same as this, but with a new schema
+   */
+  DataSource with(String sql, LogicalSchema schema);
 }

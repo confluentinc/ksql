@@ -58,7 +58,7 @@ public class AlterSourceFactoryTest {
     // Then:
     assertEquals(result.getKsqlType(), DataSourceType.KSTREAM.getKsqlType());
     assertEquals(result.getSourceName(), STREAM_NAME);
-    assertEquals(result.getNewColumns().columns().size(), 1);
+    assertEquals(result.getNewColumns().size(), 1);
   }
 
   @Test
@@ -72,6 +72,6 @@ public class AlterSourceFactoryTest {
     // Then:
     assertEquals(result.getKsqlType(), DataSourceType.KTABLE.getKsqlType());
     assertEquals(result.getSourceName(), TABLE_NAME);
-    assertEquals(result.getNewColumns().columns().size(), 1);
+    assertEquals(result.getNewColumns().size(), 1);
   }
 }

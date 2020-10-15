@@ -278,13 +278,21 @@
     },
     {
       "name": "ARRAY - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
       "statements": [
-        "CREATE STREAM INPUT (K ARRAY<DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');"
+        "CREATE STREAM INPUT (K ARRAY<DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Unsupported key schema: [`K` ARRAY<DOUBLE> KEY]"
-      }
+      "inputs": [
+        {"topic": "input_topic", "key": [10.10], "value": {"V": 10}},
+        {"topic": "input_topic", "key": null, "value": {"V": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": [10.1], "value": {"V": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 10}}
+      ]
     },
     {
       "name": "ARRAY - value - anonymous - deserialize",
@@ -318,13 +326,21 @@
     },
     {
       "name": "MAP - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
       "statements": [
-        "CREATE STREAM INPUT (K MAP<STRING, DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');"
+        "CREATE STREAM INPUT (K MAP<STRING, DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Unsupported key schema: [`K` MAP<STRING, DOUBLE> KEY]"
-      }
+      "inputs": [
+        {"topic": "input_topic", "key": {"a": 45.67}, "value": {"V": 10}},
+        {"topic": "input_topic", "key": null, "value": {"V": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"a": 45.67}, "value": {"V": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 10}}
+      ]
     },
     {
       "name": "MAP - value - anonymous - deserialize",
@@ -358,13 +374,21 @@
     },
     {
       "name": "STRUCT - key",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
       "statements": [
-        "CREATE STREAM INPUT (K STRUCT<F DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');"
+        "CREATE STREAM INPUT (K STRUCT<F DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Unsupported key schema: [`K` STRUCT<`F` DOUBLE> KEY]"
-      }
+      "inputs": [
+        {"topic": "input_topic", "key": {"f": 45.67}, "value": {"V": 10}},
+        {"topic": "input_topic", "key": null, "value": {"V": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F": 45.67}, "value": {"V": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"V": 10}}
+      ]
     },
     {
       "name": "STRUCT - value - anonymous - deserialize",

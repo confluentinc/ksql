@@ -35,6 +35,6 @@ public class KsqlParserSerializationModule extends SimpleModule {
     addSerializer(KsqlWindowExpression.class, new KsqlWindowExpressionSerializer());
     addDeserializer(KsqlWindowExpression.class, new WindowExpressionDeserializer<>());
     addSerializer(Column.class, new ColumnSerializer());
-    addDeserializer(Column.class, new ColumnDeserialization());
+    addDeserializer(Column.class, new ColumnDeserializor());
   }
 }

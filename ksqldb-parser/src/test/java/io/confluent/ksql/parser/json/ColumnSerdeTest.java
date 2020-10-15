@@ -10,7 +10,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import java.io.IOException;
 import org.junit.Test;
 
-public class ColumnSerializerTest {
+public class ColumnSerdeTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 

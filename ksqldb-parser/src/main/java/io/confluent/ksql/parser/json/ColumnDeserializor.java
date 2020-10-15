@@ -32,9 +32,9 @@ import java.io.IOException;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-public class ColumnDeserialization extends JsonDeserializer<Column> {
+public class ColumnDeserializor extends JsonDeserializer<Column> {
 
-  public ColumnDeserialization() {
+  public ColumnDeserializor() {
   }
 
   @Override

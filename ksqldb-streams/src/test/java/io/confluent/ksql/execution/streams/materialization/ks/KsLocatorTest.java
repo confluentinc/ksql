@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -68,6 +69,7 @@ public class KsLocatorTest {
   private static final Struct SOME_KEY = new Struct(SCHEMA).put("a", 1);
   private static final Struct SOME_KEY1 = new Struct(SCHEMA).put("a", 2);
   private static final Struct SOME_KEY2 = new Struct(SCHEMA).put("a", 3);
+  private static final Struct SOME_KEY3 = new Struct(SCHEMA).put("a", 4);
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -166,209 +168,224 @@ public class KsLocatorTest {
         "KeyQueryMetadata not available for state store someStoreName and key Struct{a=1}"));
   }
 
-//  @Test
-//  public void shouldReturnOwnerIfKnown() {
-//    // Given:
-//    getActiveAndStandbyMetadata();
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryActive);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(0).getNodes();
-//    final Optional<URI> url = nodeList.stream().findFirst().map(KsqlNode::location);
-//    assertThat(url.map(URI::getScheme), is(Optional.of(LOCAL_HOST_URL.getProtocol())));
-//    assertThat(url.map(URI::getHost), is(Optional.of(activeHost.host())));
-//    assertThat(url.map(URI::getPort), is(Optional.of(activeHost.port())));
-//    assertThat(url.map(URI::getPath), is(Optional.of("/")));
-//  }
-//
-//  @Test
-//  public void shouldReturnLocalOwnerIfSameAsSuppliedLocalHost() {
-//    // Given:
-//    final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort());
-//    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
-//    getActiveAndStandbyMetadata(localHostInfo);
-//    when(activeFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//    when(livenessFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY),
-//        routingOptions, routingFilterFactoryActive);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
-//  }
-//
-//  @Test
-//  public void shouldReturnLocalOwnerIfExplicitlyLocalHostOnSamePortAsSuppliedLocalHost() {
-//    // Given:
-//    final HostInfo localHostInfo = new HostInfo("LocalHOST", LOCAL_HOST_URL.getPort());
-//    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
-//    getActiveAndStandbyMetadata(localHostInfo);
-//    when(activeFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//    when(livenessFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryActive);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
-//  }
-//
-//  @Test
-//  public void shouldReturnRemoteOwnerForDifferentHost() {
-//    // Given:
-//    final HostInfo localHostInfo = new HostInfo("different", LOCAL_HOST_URL.getPort());
-//    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
-//    getActiveAndStandbyMetadata(localHostInfo);
-//    when(activeFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//    when(livenessFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryActive);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
-//  }
-//
-//  @Test
-//  public void shouldReturnRemoteOwnerForDifferentPort() {
-//    // Given:
-//    final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort() + 1);
-//    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
-//    getActiveAndStandbyMetadata(localHostInfo);
-//    when(activeFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//    when(livenessFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryActive);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal),
-//        is(Optional.of(false)));
-//  }
-//
-//  @Test
-//  public void shouldReturnRemoteOwnerForDifferentPortOnLocalHost() {
-//    // Given:
-//    final HostInfo localHostInfo = new HostInfo("LOCALhost", LOCAL_HOST_URL.getPort() + 1);
-//    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
-//    getActiveAndStandbyMetadata(localHostInfo);
-//    when(activeFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//    when(livenessFilter.filter(eq(localHost)))
-//        .thenReturn(true);
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryActive);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal),
-//        is(Optional.of(false)));
-//  }
-//
-//  @Test
-//  public void shouldReturnActiveWhenRoutingStandbyNotEnabledHeartBeatNotEnabled() {
-//    // Given:
-//    getActiveAndStandbyMetadata();
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryActive);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.size(), is(1));
-//    assertThat(nodeList.stream().findFirst().get(), is(activeNode));
-//  }
-//
-//  @Test
-//  public void shouldReturnActiveAndStandBysWhenRoutingStandbyEnabledHeartBeatNotEnabled() {
-//    // Given:
-//    getActiveAndStandbyMetadata();
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryStandby);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.size(), is(3));
-//    assertThat(nodeList.stream().findFirst().get(), is(activeNode));
-//    assertThat(nodeList, containsInAnyOrder(activeNode, standByNode1, standByNode2));
-//  }
-//
-//  @Test
-//  public void shouldReturnStandBysWhenActiveDown() {
-//    // Given:
-//    getActiveAndStandbyMetadata();
-//    when(livenessFilter.filter(eq(activeHost)))
-//        .thenReturn(false);
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryStandby);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.size(), is(2));
-//    assertThat(nodeList, containsInAnyOrder(standByNode1, standByNode2));
-//  }
-//
-//  @Test
-//  public void shouldReturnOneStandByWhenActiveAndOtherStandByDown() {
-//    // Given:
-//    getActiveAndStandbyMetadata();
-//    when(livenessFilter.filter(eq(activeHost)))
-//        .thenReturn(false);
-//    when(livenessFilter.filter(eq(standByHost1)))
-//        .thenReturn(false);
-//
-//    // When:
-//    final Map<Struct, KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
-//        routingFilterFactoryStandby);
-//
-//    // Then:
-//    List<KsqlNode> nodeList = result.get(SOME_KEY).getNodes();
-//    assertThat(nodeList.size(), is(1));
-//    assertThat(nodeList.stream().findFirst().get(), is(standByNode2));
-//  }
+  @Test
+  public void shouldReturnOwnerIfKnown() {
+    // Given:
+    getActiveAndStandbyMetadata();
 
-//  @Test
-//  public void shouldGroupKeysByLocation() {
-//    // Given:
-//    getActiveMetadata(SOME_KEY, new HostInfo("host", 123));
-//    getActiveMetadata(SOME_KEY1, new HostInfo("host2", 345));
-//    getActiveMetadata(SOME_KEY2, new HostInfo("host", 123));
-//
-//    // When:
-//    final List<List<Struct>> result = locator.groupByLocation(ImmutableList.of(
-//        SOME_KEY, SOME_KEY1, SOME_KEY2));
-//
-//    // Then:
-//    assertThat(result.size(), is(2));
-//    assertThat(result.get(0), is(ImmutableList.of(SOME_KEY, SOME_KEY2)));
-//    assertThat(result.get(1), is(ImmutableList.of(SOME_KEY1)));
-//  }
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryActive);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    final Optional<URI> url = nodeList.stream().findFirst().map(KsqlNode::location);
+    assertThat(url.map(URI::getScheme), is(Optional.of(LOCAL_HOST_URL.getProtocol())));
+    assertThat(url.map(URI::getHost), is(Optional.of(activeHost.host())));
+    assertThat(url.map(URI::getPort), is(Optional.of(activeHost.port())));
+    assertThat(url.map(URI::getPath), is(Optional.of("/")));
+  }
+
+  @Test
+  public void shouldReturnLocalOwnerIfSameAsSuppliedLocalHost() {
+    // Given:
+    final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort());
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
+    getActiveAndStandbyMetadata(localHostInfo);
+    when(activeFilter.filter(eq(localHost)))
+        .thenReturn(true);
+    when(livenessFilter.filter(eq(localHost)))
+        .thenReturn(true);
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY),
+        routingOptions, routingFilterFactoryActive);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
+  }
+
+  @Test
+  public void shouldReturnLocalOwnerIfExplicitlyLocalHostOnSamePortAsSuppliedLocalHost() {
+    // Given:
+    final HostInfo localHostInfo = new HostInfo("LocalHOST", LOCAL_HOST_URL.getPort());
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
+    getActiveAndStandbyMetadata(localHostInfo);
+    when(activeFilter.filter(eq(localHost)))
+        .thenReturn(true);
+    when(livenessFilter.filter(eq(localHost)))
+        .thenReturn(true);
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryActive);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
+  }
+
+  @Test
+  public void shouldReturnRemoteOwnerForDifferentHost() {
+    // Given:
+    final HostInfo localHostInfo = new HostInfo("different", LOCAL_HOST_URL.getPort());
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
+    getActiveAndStandbyMetadata(localHostInfo);
+    when(activeFilter.filter(eq(localHost)))
+        .thenReturn(true);
+    when(livenessFilter.filter(eq(localHost)))
+        .thenReturn(true);
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryActive);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
+  }
+
+  @Test
+  public void shouldReturnRemoteOwnerForDifferentPort() {
+    // Given:
+    final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort() + 1);
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
+    getActiveAndStandbyMetadata(localHostInfo);
+    when(activeFilter.filter(eq(localHost)))
+        .thenReturn(true);
+    when(livenessFilter.filter(eq(localHost)))
+        .thenReturn(true);
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryActive);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal),
+        is(Optional.of(false)));
+  }
+
+  @Test
+  public void shouldReturnRemoteOwnerForDifferentPortOnLocalHost() {
+    // Given:
+    final HostInfo localHostInfo = new HostInfo("LOCALhost", LOCAL_HOST_URL.getPort() + 1);
+    final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
+    getActiveAndStandbyMetadata(localHostInfo);
+    when(activeFilter.filter(eq(localHost)))
+        .thenReturn(true);
+    when(livenessFilter.filter(eq(localHost)))
+        .thenReturn(true);
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryActive);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal),
+        is(Optional.of(false)));
+  }
+
+  @Test
+  public void shouldReturnActiveWhenRoutingStandbyNotEnabledHeartBeatNotEnabled() {
+    // Given:
+    getActiveAndStandbyMetadata();
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryActive);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(1));
+    assertThat(nodeList.stream().findFirst().get(), is(activeNode));
+  }
+
+  @Test
+  public void shouldReturnActiveAndStandBysWhenRoutingStandbyEnabledHeartBeatNotEnabled() {
+    // Given:
+    getActiveAndStandbyMetadata();
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryStandby);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(3));
+    assertThat(nodeList.stream().findFirst().get(), is(activeNode));
+    assertThat(nodeList, containsInAnyOrder(activeNode, standByNode1, standByNode2));
+  }
+
+  @Test
+  public void shouldReturnStandBysWhenActiveDown() {
+    // Given:
+    getActiveAndStandbyMetadata();
+    when(livenessFilter.filter(eq(activeHost)))
+        .thenReturn(false);
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryStandby);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(2));
+    assertThat(nodeList, containsInAnyOrder(standByNode1, standByNode2));
+  }
+
+  @Test
+  public void shouldReturnOneStandByWhenActiveAndOtherStandByDown() {
+    // Given:
+    getActiveAndStandbyMetadata();
+    when(livenessFilter.filter(eq(activeHost)))
+        .thenReturn(false);
+    when(livenessFilter.filter(eq(standByHost1)))
+        .thenReturn(false);
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+        routingFilterFactoryStandby);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(1));
+    assertThat(nodeList.stream().findFirst().get(), is(standByNode2));
+  }
+
+  @Test
+  public void shouldGroupKeysByLocation() {
+    // Given:
+    getActiveStandbyMetadata(SOME_KEY, 0, activeHostInfo, standByHostInfo1);
+    getActiveStandbyMetadata(SOME_KEY1, 1, standByHostInfo1, activeHostInfo);
+    getActiveStandbyMetadata(SOME_KEY2, 0, activeHostInfo, standByHostInfo1);
+    getActiveStandbyMetadata(SOME_KEY3, 2, activeHostInfo, standByHostInfo1);
+
+    // When:
+    final List<KsqlLocation> result = locator.locate(
+        ImmutableList.of(SOME_KEY, SOME_KEY1, SOME_KEY2, SOME_KEY3), routingOptions,
+        routingFilterFactoryStandby);
+
+    // Then:
+    assertThat(result.size(), is(3));
+    assertThat(result.get(0).getKeys().get(), contains(SOME_KEY, SOME_KEY2));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(2));
+    assertThat(nodeList.get(0), is(activeNode));
+    assertThat(nodeList.get(1), is(standByNode1));
+    assertThat(result.get(1).getKeys().get(), contains(SOME_KEY1));
+    nodeList = result.get(1).getNodes();
+    assertThat(nodeList.size(), is(2));
+    assertThat(nodeList.get(0), is(standByNode1));
+    assertThat(nodeList.get(1), is(activeNode));
+    assertThat(result.get(2).getKeys().get(), contains(SOME_KEY3));
+    nodeList = result.get(2).getNodes();
+    assertThat(nodeList.size(), is(2));
+    assertThat(nodeList.get(0), is(activeNode));
+    assertThat(nodeList.get(1), is(standByNode1));
+  }
 
   @SuppressWarnings("unchecked")
   private void getEmtpyMetadata() {
@@ -394,9 +411,12 @@ public class KsLocatorTest {
   }
 
   @SuppressWarnings("unchecked")
-  private void getActiveMetadata(final Struct key, final HostInfo activeHostInfo) {
+  private void getActiveStandbyMetadata(final Struct key, int partition,
+      final HostInfo activeHostInfo, final HostInfo standByHostInfo) {
     KeyQueryMetadata keyQueryMetadata = mock(KeyQueryMetadata.class);
     when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);
+    when(keyQueryMetadata.standbyHosts()).thenReturn(ImmutableSet.of(standByHostInfo));
+    when(keyQueryMetadata.partition()).thenReturn(partition);
     when(kafkaStreams.queryMetadataForKey(any(), eq(key), any(Serializer.class)))
         .thenReturn(keyQueryMetadata);
   }

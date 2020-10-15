@@ -69,9 +69,10 @@ public final class SerdeUtils {
     return (ConnectSchema) schema.fields().get(0).schema();
   }
 
-  public static Schema wrapSingle(final Schema fieldSchema) {
+  public static Schema wrapSingle(final Schema fieldSchema, final boolean isKey) {
+    final String fieldName = isKey ? "ROWKEY" : "ROWVAL";
     return SchemaBuilder.struct()
-        .field("ROWVAL", fieldSchema)
+        .field(fieldName, fieldSchema)
         .build();
   }
 

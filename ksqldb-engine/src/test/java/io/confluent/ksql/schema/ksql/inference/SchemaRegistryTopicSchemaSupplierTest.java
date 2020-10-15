@@ -21,7 +21,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -90,7 +92,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
     when(format.getSchemaTranslator(any())).thenReturn(schemaTranslator);
-    when(schemaTranslator.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1));
+    when(schemaTranslator.toColumns(eq(parsedSchema), anyBoolean())).thenReturn(ImmutableList.of(column1));
     when(schemaTranslator.name()).thenReturn("AVRO");
 
     when(expectedFormat.getProperties()).thenReturn(formatProperties);
@@ -427,7 +429,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetValueSchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(schemaTranslator.toColumns(any()))
+    when(schemaTranslator.toColumns(any(), anyBoolean()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
@@ -446,7 +448,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetKeySchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(schemaTranslator.toColumns(any()))
+    when(schemaTranslator.toColumns(any(), anyBoolean()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
@@ -465,7 +467,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetKeySchemaOnMultipleColumns() {
     // Given:
-    when(schemaTranslator.toColumns(parsedSchema)).thenReturn(ImmutableList.of(column1, column2));
+    when(schemaTranslator.toColumns(parsedSchema, true)).thenReturn(ImmutableList.of(column1, column2));
 
     // When:
     final SchemaResult result = supplier
@@ -522,7 +524,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
     // Then:
     verify(format).getSchemaTranslator(formatProperties);
-    verify(schemaTranslator).toColumns(parsedSchema);
+    verify(schemaTranslator).toColumns(parsedSchema, false);
   }
 
   @Test

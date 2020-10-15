@@ -59,7 +59,7 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
   }
 
   @Override
-  public List<SimpleColumn> toColumns(final ParsedSchema schema) {
+  public List<SimpleColumn> toColumns(final ParsedSchema schema, final boolean isKey) {
     Schema connectSchema = connectSrTranslator.toConnectSchema(schema);
 
     if (connectSchema.type() != Type.STRUCT) {
@@ -69,7 +69,7 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
             + "schema: " + schema);
       }
 
-      connectSchema = SerdeUtils.wrapSingle(connectSchema);
+      connectSchema = SerdeUtils.wrapSingle(connectSchema, isKey);
     }
 
     final Schema rowSchema = connectKsqlTranslator.apply(connectSchema);

@@ -90,7 +90,7 @@ public class ConnectFormatSchemaTranslatorTest {
   @Test
   public void shouldPassConnectSchemaReturnedBySubclassToTranslator() {
     // When:
-    translator.toColumns(parsedSchema);
+    translator.toColumns(parsedSchema, false);
 
     // Then:
     verify(connectKsqlTranslator).apply(connectSchema);
@@ -105,7 +105,7 @@ public class ConnectFormatSchemaTranslatorTest {
     ));
 
     // When:
-    final List<SimpleColumn> result = translator.toColumns(parsedSchema);
+    final List<SimpleColumn> result = translator.toColumns(parsedSchema, false);
 
     // Then:
     assertThat(result, hasSize(2));
@@ -121,7 +121,7 @@ public class ConnectFormatSchemaTranslatorTest {
 
     // When:
     final Exception e = assertThrows(KsqlException.class,
-        () -> translator.toColumns(parsedSchema)
+        () -> translator.toColumns(parsedSchema, false)
     );
 
     // Then:
@@ -147,17 +147,32 @@ public class ConnectFormatSchemaTranslatorTest {
   }
 
   @Test
-  public void shouldSupportBuildingColumnsFromPrimitiveSchema() {
+  public void shouldSupportBuildingColumnsFromPrimitiveValueSchema() {
     // Given:
     when(connectSchema.type()).thenReturn(Type.INT32);
     when(format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
 
     // When:
-    translator.toColumns(parsedSchema);
+    translator.toColumns(parsedSchema, false);
 
     // Then:
     verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
         .field("ROWVAL", connectSchema)
+        .build());
+  }
+
+  @Test
+  public void shouldSupportBuildingColumnsFromPrimitiveKeySchema() {
+    // Given:
+    when(connectSchema.type()).thenReturn(Type.INT32);
+    when(format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
+
+    // When:
+    translator.toColumns(parsedSchema, true);
+
+    // Then:
+    verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
+        .field("ROWKEY", connectSchema)
         .build());
   }
 

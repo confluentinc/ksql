@@ -954,7 +954,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Unsupported key schema: [`ROWVAL` ARRAY<STRING> KEY]"
+        "message": "Unsupported key schema: [`ROWKEY` ARRAY<STRING> KEY]"
       }
     },
     {
@@ -984,6 +984,35 @@
         {"topic": "OUTPUT", "key": 10, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": 12, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "INT - key - key and anonymous value inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='AVRO', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "int"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"type": "int"},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": 10},
+        {"topic": "input_topic", "key": 12, "value": null},
+        {"topic": "input_topic", "key": null, "value": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"ROWVAL": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": null},
+        {"topic": "OUTPUT", "key": null, "value": {"ROWVAL": 10}}
       ]
     },
     {

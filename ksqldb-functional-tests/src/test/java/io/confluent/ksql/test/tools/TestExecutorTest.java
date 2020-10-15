@@ -25,7 +25,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -391,9 +391,9 @@ public class TestExecutorTest {
     final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
-    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", JsonNodeFactory.instance.textNode("k1"), "v1", TextNode.valueOf("v1"),
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", TextNode.valueOf("k1"), "v1", TextNode.valueOf("v1"),
         Optional.of(123456719L), null);
-    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", JsonNodeFactory.instance.textNode("k2"), "different",
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", TextNode.valueOf("k2"), "different",
         TextNode.valueOf("different"), Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
@@ -415,9 +415,9 @@ public class TestExecutorTest {
     final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
-    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", JsonNodeFactory.instance.textNode("k1"), "v1", TextNode.valueOf("v1"),
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", TextNode.valueOf("k1"), "v1", TextNode.valueOf("v1"),
         Optional.of(123456719L), null);
-    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", JsonNodeFactory.instance.textNode("k2"), "v2", TextNode.valueOf("v2"),
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", TextNode.valueOf("k2"), "v2", TextNode.valueOf("v2"),
         Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
@@ -434,9 +434,9 @@ public class TestExecutorTest {
     final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, 1, "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
-    final Record expected_0 = new Record(SINK_TOPIC_NAME, 1, JsonNodeFactory.instance.numberNode(1), "v1", TextNode.valueOf("v1"),
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, 1, IntNode.valueOf(1), "v1", TextNode.valueOf("v1"),
         Optional.of(123456719L), null);
-    final Record expected_1 = new Record(SINK_TOPIC_NAME, 1, JsonNodeFactory.instance.numberNode(1), "v2", TextNode.valueOf("v2"),
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, 1, IntNode.valueOf(1), "v2", TextNode.valueOf("v2"),
         Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 

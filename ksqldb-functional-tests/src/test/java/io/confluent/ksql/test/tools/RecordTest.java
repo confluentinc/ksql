@@ -19,7 +19,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.Windowed;

@@ -55,7 +55,7 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNodeList;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -107,6 +107,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -237,52 +238,34 @@ public final class PullQueryExecutor {
           .getMaterialization(queryId, contextStacker)
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
-      final List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
-      final List<List<?>> tableRows = new ArrayList<>();
-      final List<LogicalSchema> schemas = new ArrayList<>();
-      final List<Future<PullQueryResult>> futures = new ArrayList<>();
       final List<Struct> keys = whereInfo.keysBound.stream()
           .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
           .collect(ImmutableList.toImmutableList());
-      final List<KsqlNodeList> nodeLists = mat.locator().locate(
+
+      final List<KsqlLocation> nodeLists = mat.locator().locate(
           keys,
           routingOptions,
           routingFilterFactory
       );
 
-      for (KsqlNodeList ksqlNodeList : nodeLists) {
-        final PullQueryContext pullQueryContext = new PullQueryContext(
-            ksqlNodeList.getKeys(),
-            mat,
-            analysis,
-            whereInfo,
-            queryId,
-            contextStacker,
-            pullQueryMetrics);
+      final Function<List<Struct>, PullQueryContext> contextFactory = (keysForHost) ->
+          new PullQueryContext(
+              keysForHost,
+              mat,
+              analysis,
+              whereInfo,
+              queryId,
+              contextStacker,
+              pullQueryMetrics);
 
-        futures.add(executorService.submit(() -> handlePullQuery(
-            statement,
-            executionContext,
-            serviceContext,
-            pullQueryContext,
-            ksqlNodeList.getNodes(),
-            routingOptions
-        )));
-
-      }
-      for (Future<PullQueryResult> future : futures) {
-        final PullQueryResult result = future.get();
-
-        sourceNodes.addAll(result.getSourceNodes());
-        schemas.add(result.getTableRows().getSchema());
-        tableRows.addAll(result.getTableRows().getRows());
-      }
-
-      validateSchemas(schemas);
-      return new PullQueryResult(
-          new TableRows(statement.getStatementText(), queryId, Iterables.getLast(schemas),
-              tableRows),
-          sourceNodes);
+      return handlePullQuery(
+          statement,
+          executionContext,
+          serviceContext,
+          routingOptions,
+          contextFactory,
+          queryId,
+          nodeLists);
 
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
@@ -316,37 +299,81 @@ public final class PullQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
-      final PullQueryContext pullQueryContext,
-      final List<KsqlNode> filteredAndOrderedNodes,
-      final RoutingOptions routingOptions
-  ) {
-    if (filteredAndOrderedNodes.isEmpty()) {
-      LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
-                statement.getStatementText());
-      throw new MaterializationException(String.format(
-          "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
-          statement.getStatementText()));
-    }
-
-    // Nodes are ordered by preference: active is first if alive then standby nodes in
-    // increasing order of lag.
-    for (KsqlNode node : filteredAndOrderedNodes) {
-      try {
-        final TableRows rows
-            = routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
-        final Optional<KsqlNode> debugNode = Optional.ofNullable(
-            routingOptions.isDebugRequest() ? node : null);
-        final List<Optional<KsqlNode>> debugNodes = rows.getRows().stream()
-            .map(r -> debugNode)
+      final RoutingOptions routingOptions,
+      final Function<List<Struct>, PullQueryContext> contextFactory,
+      final QueryId queryId,
+      final List<KsqlLocation> nodeLists
+  ) throws InterruptedException {
+    final List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
+    final List<List<?>> tableRows = new ArrayList<>();
+    final List<LogicalSchema> schemas = new ArrayList<>();
+    final Map<KsqlNode, Future<PullQueryResult>> futures = new HashMap<>();
+    List<KsqlLocation> remainingNodeLists = new ArrayList<>(nodeLists);
+    for (int i = 0; ; i++) {
+      Map<KsqlNode, List<KsqlLocation>> groupedByHost = groupByHost(statement,
+          remainingNodeLists, i);
+      for (Map.Entry<KsqlNode, List<KsqlLocation>> entry : groupedByHost.entrySet()) {
+        final KsqlNode node = entry.getKey();
+        List<Struct> keysForHost = entry.getValue().stream()
+            .map(KsqlLocation::getKey)
             .collect(Collectors.toList());
-        return new PullQueryResult(rows, debugNodes);
-      } catch (Exception t) {
-        LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
-                  statement.getStatementText(), node, System.currentTimeMillis(), t);
+
+        final PullQueryContext pullQueryContext = contextFactory.apply(keysForHost);
+
+        futures.put(node, executorService.submit(() ->  {
+          final TableRows rows
+              = routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
+          final Optional<KsqlNode> debugNode = Optional.ofNullable(
+              routingOptions.isDebugRequest() ? node : null);
+          final List<Optional<KsqlNode>> debugNodes = rows.getRows().stream()
+              .map(r -> debugNode)
+              .collect(Collectors.toList());
+          return new PullQueryResult(rows, debugNodes);
+        }));
+      }
+
+      remainingNodeLists.clear();
+      for (Map.Entry<KsqlNode, Future<PullQueryResult>>  entry : futures.entrySet()) {
+        final Future<PullQueryResult> future = entry.getValue();
+        final KsqlNode node = entry.getKey();
+        try {
+          final PullQueryResult result = future.get();
+          sourceNodes.addAll(result.getSourceNodes());
+          schemas.add(result.getTableRows().getSchema());
+          tableRows.addAll(result.getTableRows().getRows());
+        } catch (ExecutionException e) {
+          LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
+              statement.getStatementText(), node, System.currentTimeMillis(), e);
+          List<KsqlLocation> ksqlLocations = groupedByHost.get(node);
+          remainingNodeLists.addAll(ksqlLocations);
+        }
+      }
+
+      if (remainingNodeLists.size() == 0) {
+        validateSchemas(schemas);
+        return new PullQueryResult(
+            new TableRows(statement.getStatementText(), queryId, Iterables.getLast(schemas),
+                tableRows),
+            sourceNodes);
       }
     }
-    throw new MaterializationException(String.format(
-        "Unable to execute pull query: %s", statement.getStatementText()));
+  }
+
+  private Map<KsqlNode, List<KsqlLocation>> groupByHost(
+      final ConfiguredStatement<Query> statement,
+      final List<KsqlLocation> nodeLists,
+      final int round) {
+    Map<KsqlNode, List<KsqlLocation>> groupedByHost = new HashMap<>();
+    for (KsqlLocation location : nodeLists) {
+      if (round >= location.getNodes().size()) {
+        throw new MaterializationException(String.format(
+            "Unable to execute pull query: %s", statement.getStatementText()));
+      }
+      KsqlNode nextHost = location.getNodes().get(round);
+      groupedByHost.putIfAbsent(nextHost, new ArrayList<>());
+      groupedByHost.get(nextHost).add(location);
+    }
+    return groupedByHost;
   }
 
   private static TableRows routeQuery(

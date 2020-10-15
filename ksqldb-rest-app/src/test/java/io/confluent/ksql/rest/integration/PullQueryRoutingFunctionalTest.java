@@ -25,6 +25,7 @@ import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitFo
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -62,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
@@ -347,6 +349,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter_multipleKeys()
       throws Exception {
@@ -377,13 +380,18 @@ public class PullQueryRoutingFunctionalTest {
     KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
-    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
     host = rows_0.get(2).getSourceHost().get();
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
-    assertThat(rows_0.get(2).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(2).getRow().get().values(), is(ImmutableList.of(KEY1, 1)));
+
+    List<List<Object>> values = rows_0.stream()
+        .skip(HEADER)
+        .map(sr -> {
+          assertThat(sr.getRow(), is(not(Optional.empty())));
+          return sr.getRow().get().values();
+        })
+        .collect(Collectors.toList());
+    assertThat(values, containsInAnyOrder(ImmutableList.of(KEY, 1), ImmutableList.of(KEY1, 1)));
   }
 
   @Test

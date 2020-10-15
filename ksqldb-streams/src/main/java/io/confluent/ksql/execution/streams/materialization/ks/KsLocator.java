@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -28,7 +29,6 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -74,12 +74,12 @@ final class KsLocator implements Locator {
   }
 
   @Override
-  public List<KsqlNodeList> locate(
+  public List<KsqlLocation> locate(
       final List<Struct> keys,
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory
   ) {
-    final Map<ImmutableList<KsqlNode>, List<Struct>> groups = new HashMap<>();
+    final Map<Struct, KsqlLocation> locations = new HashMap<>();
     for (Struct key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
           .queryMetadataForKey(stateStoreName, key, keySerializer);
@@ -123,12 +123,9 @@ final class KsLocator implements Locator {
 
       LOG.debug("Filtered and ordered hosts: {}", filteredHosts);
 
-      groups.computeIfAbsent(filteredHosts, nl -> new ArrayList<>());
-      groups.get(filteredHosts).add(key);
+      locations.put(key, new Location(key, metadata.partition(), filteredHosts));
     }
-    return groups.entrySet().stream()
-        .map(e -> new NodeList(e.getValue(), e.getKey()))
-        .collect(ImmutableList.toImmutableList());
+    return ImmutableList.copyOf(locations.values());
   }
 
   @VisibleForTesting
@@ -218,21 +215,27 @@ final class KsLocator implements Locator {
 
   }
 
-  private static final class NodeList implements KsqlNodeList {
-    private final List<Struct> keys;
+  private static final class Location implements KsqlLocation {
+    private final Struct key;
+    private final int partition;
     private final List<KsqlNode> nodes;
 
-    private NodeList(final List<Struct> keys, final List<KsqlNode> nodes) {
-      this.keys = keys;
+    private Location(final Struct key, final int partition, final List<KsqlNode> nodes) {
+      this.key = key;
+      this.partition = partition;
       this.nodes = nodes;
     }
 
-    public List<Struct> getKeys() {
-      return keys;
+    public Struct getKey() {
+      return key;
     }
 
     public List<KsqlNode> getNodes() {
       return nodes;
+    }
+
+    public int getPartition() {
+      return partition;
     }
   }
 }

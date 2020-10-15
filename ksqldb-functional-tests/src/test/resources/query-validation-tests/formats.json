@@ -380,6 +380,35 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The 'KAFKA' format does not support type 'BOOLEAN'"
       }
+    },
+    {
+      "name": "INT - key - key and value inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "int"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"type": "int"},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": 10},
+        {"topic": "input_topic", "key": 12, "value": 10},
+        {"topic": "input_topic", "key": null, "value": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": 10},
+        {"topic": "OUTPUT", "key": 12, "value": 10},
+        {"topic": "OUTPUT", "key": null, "value": 10}
+      ]
     }
   ]
 }

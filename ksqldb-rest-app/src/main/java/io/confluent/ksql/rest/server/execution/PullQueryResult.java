@@ -23,11 +23,11 @@ import java.util.Optional;
 public class PullQueryResult {
 
   private final TableRows tableRows;
-  private final List<Optional<KsqlNode>> sourceNodes;
+  private final Optional<List<KsqlNode>> sourceNodes;
 
   public PullQueryResult(
       final TableRows tableRowsEntity,
-      final List<Optional<KsqlNode>> sourceNodes) {
+      final Optional<List<KsqlNode>> sourceNodes) {
 
     this.tableRows = tableRowsEntity;
     this.sourceNodes = sourceNodes;
@@ -37,7 +37,7 @@ public class PullQueryResult {
     return tableRows;
   }
 
-  public List<Optional<KsqlNode>> getSourceNodes() {
+  public Optional<List<KsqlNode>> getSourceNodes() {
     return sourceNodes;
   }
 }

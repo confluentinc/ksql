@@ -33,7 +33,6 @@ import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.engine.rewrite.PullQueryKeyUpdater;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
@@ -54,8 +53,8 @@ import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlLocation;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -71,12 +70,10 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
@@ -107,7 +104,8 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -242,15 +240,15 @@ public final class PullQueryExecutor {
           .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
           .collect(ImmutableList.toImmutableList());
 
-      final List<KsqlLocation> nodeLists = mat.locator().locate(
+      final List<KsqlLocation> locations = mat.locator().locate(
           keys,
           routingOptions,
           routingFilterFactory
       );
 
-      final Function<List<Struct>, PullQueryContext> contextFactory = (keysForHost) ->
+      final Function<List<KsqlLocation>, PullQueryContext> contextFactory = (locationsForHost) ->
           new PullQueryContext(
-              keysForHost,
+              locationsForHost,
               mat,
               analysis,
               whereInfo,
@@ -265,15 +263,16 @@ public final class PullQueryExecutor {
           routingOptions,
           contextFactory,
           queryId,
-          nodeLists);
+          locations,
+          executorService,
+          PullQueryExecutor::routeQuery);
 
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
-      final Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
       throw new KsqlStatementException(
-          cause.getMessage() == null ? "Server Error" : cause.getMessage(),
+          e.getMessage() == null ? "Server Error" : e.getMessage(),
           statement.getStatementText(),
-          cause
+          e
       );
     }
   }
@@ -295,83 +294,102 @@ public final class PullQueryExecutor {
     }
   }
 
-  private PullQueryResult handlePullQuery(
+  @VisibleForTesting
+  interface RouteQuery {
+    TableRows routeQuery(
+        KsqlNode node,
+        ConfiguredStatement<Query> statement,
+        KsqlExecutionContext executionContext,
+        ServiceContext serviceContext,
+        PullQueryContext pullQueryContext
+    );
+  }
+
+  @VisibleForTesting
+  static PullQueryResult handlePullQuery(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final RoutingOptions routingOptions,
-      final Function<List<Struct>, PullQueryContext> contextFactory,
+      final Function<List<KsqlLocation>, PullQueryContext> contextFactory,
       final QueryId queryId,
-      final List<KsqlLocation> nodeLists
+      final List<KsqlLocation> locations,
+      final ExecutorService executorService,
+      final RouteQuery routeQuery
   ) throws InterruptedException {
-    final List<Optional<KsqlNode>> sourceNodes = new ArrayList<>();
+    final boolean anyPartitionsEmpty = locations.stream()
+        .anyMatch(location -> location.getNodes().isEmpty());
+    if (anyPartitionsEmpty) {
+      LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
+          statement.getStatementText());
+      throw new MaterializationException(String.format(
+          "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
+          statement.getStatementText()));
+    }
+
+    final List<KsqlNode> sourceNodes = new ArrayList<>();
     final List<List<?>> tableRows = new ArrayList<>();
     final List<LogicalSchema> schemas = new ArrayList<>();
-    final Map<KsqlNode, Future<PullQueryResult>> futures = new HashMap<>();
-    List<KsqlLocation> remainingNodeLists = new ArrayList<>(nodeLists);
-    for (int i = 0; ; i++) {
-      Map<KsqlNode, List<KsqlLocation>> groupedByHost = groupByHost(statement,
-          remainingNodeLists, i);
+    List<KsqlLocation> remainingLocations = ImmutableList.copyOf(locations);
+    for (int round = 0; ; round++) {
+      final Map<KsqlNode, List<KsqlLocation>> groupedByHost
+          = groupByHost(statement, remainingLocations, round);
+
+      final Map<KsqlNode, Future<PullQueryResult>> futures = new LinkedHashMap<>();
       for (Map.Entry<KsqlNode, List<KsqlLocation>> entry : groupedByHost.entrySet()) {
         final KsqlNode node = entry.getKey();
-        List<Struct> keysForHost = entry.getValue().stream()
-            .map(KsqlLocation::getKey)
-            .collect(Collectors.toList());
-
-        final PullQueryContext pullQueryContext = contextFactory.apply(keysForHost);
+        final PullQueryContext pullQueryContext = contextFactory.apply(entry.getValue());
 
         futures.put(node, executorService.submit(() ->  {
-          final TableRows rows
-              = routeQuery(node, statement, executionContext, serviceContext, pullQueryContext);
-          final Optional<KsqlNode> debugNode = Optional.ofNullable(
-              routingOptions.isDebugRequest() ? node : null);
-          final List<Optional<KsqlNode>> debugNodes = rows.getRows().stream()
-              .map(r -> debugNode)
-              .collect(Collectors.toList());
+          final TableRows rows = routeQuery.routeQuery(
+              node, statement, executionContext, serviceContext, pullQueryContext);
+          final Optional<List<KsqlNode>> debugNodes = Optional.ofNullable(
+              routingOptions.isDebugRequest()
+                  ? Collections.nCopies(rows.getRows().size(), node) : null);
           return new PullQueryResult(rows, debugNodes);
         }));
       }
 
-      remainingNodeLists.clear();
+      final ImmutableList.Builder<KsqlLocation> nextRoundRemaining = ImmutableList.builder();
       for (Map.Entry<KsqlNode, Future<PullQueryResult>>  entry : futures.entrySet()) {
         final Future<PullQueryResult> future = entry.getValue();
         final KsqlNode node = entry.getKey();
         try {
           final PullQueryResult result = future.get();
-          sourceNodes.addAll(result.getSourceNodes());
+          result.getSourceNodes().ifPresent(sourceNodes::addAll);
           schemas.add(result.getTableRows().getSchema());
           tableRows.addAll(result.getTableRows().getRows());
         } catch (ExecutionException e) {
           LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
-              statement.getStatementText(), node, System.currentTimeMillis(), e);
-          List<KsqlLocation> ksqlLocations = groupedByHost.get(node);
-          remainingNodeLists.addAll(ksqlLocations);
+              statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
+          nextRoundRemaining.addAll(groupedByHost.get(node));
         }
       }
+      remainingLocations = nextRoundRemaining.build();
 
-      if (remainingNodeLists.size() == 0) {
+      if (remainingLocations.size() == 0) {
         validateSchemas(schemas);
         return new PullQueryResult(
             new TableRows(statement.getStatementText(), queryId, Iterables.getLast(schemas),
                 tableRows),
-            sourceNodes);
+            sourceNodes.isEmpty() ? Optional.empty() : Optional.of(sourceNodes));
       }
     }
   }
 
-  private Map<KsqlNode, List<KsqlLocation>> groupByHost(
+  private static Map<KsqlNode, List<KsqlLocation>> groupByHost(
       final ConfiguredStatement<Query> statement,
-      final List<KsqlLocation> nodeLists,
+      final List<KsqlLocation> locations,
       final int round) {
-    Map<KsqlNode, List<KsqlLocation>> groupedByHost = new HashMap<>();
-    for (KsqlLocation location : nodeLists) {
+    final Map<KsqlNode, List<KsqlLocation>> groupedByHost = new LinkedHashMap<>();
+    for (KsqlLocation location : locations) {
+      // If one of the partitions required is out of nodes, then we cannot continue.
       if (round >= location.getNodes().size()) {
         throw new MaterializationException(String.format(
             "Unable to execute pull query: %s", statement.getStatementText()));
       }
-      KsqlNode nextHost = location.getNodes().get(round);
-      groupedByHost.putIfAbsent(nextHost, new ArrayList<>());
-      groupedByHost.get(nextHost).add(location);
+      final KsqlNode nextHost = location.getNodes().get(round);
+      groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);
     }
     return groupedByHost;
   }
@@ -411,20 +429,31 @@ public final class PullQueryExecutor {
       final WindowBounds windowBounds = pullQueryContext.whereInfo.windowBounds.get();
 
       final ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
-      for (Struct key : pullQueryContext.keys) {
-        final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
-            .get(key, windowBounds.start, windowBounds.end);
-        allRows.addAll(rows);
+      for (KsqlLocation location : pullQueryContext.locations) {
+        if (!location.getKeys().isPresent()) {
+          throw new IllegalStateException("Window queries should be done with keys");
+        }
+        for (Struct key : location.getKeys().get()) {
+          final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
+              .get(key, location.getPartition(), windowBounds.start,
+                  windowBounds.end);
+          allRows.addAll(rows);
+        }
       }
       result = new Result(pullQueryContext.mat.schema(), allRows.build());
     } else {
       final ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
-      for (Struct key : pullQueryContext.keys) {
-        final List<? extends TableRow> rows = pullQueryContext.mat.nonWindowed()
-            .get(key)
-            .map(ImmutableList::of)
-            .orElse(ImmutableList.of());
-        allRows.addAll(rows);
+      for (KsqlLocation location : pullQueryContext.locations) {
+        if (!location.getKeys().isPresent()) {
+          throw new IllegalStateException("Window queries should be done with keys");
+        }
+        for (Struct key : location.getKeys().get()) {
+          final List<? extends TableRow> rows = pullQueryContext.mat.nonWindowed()
+              .get(key, location.getPartition())
+              .map(ImmutableList::of)
+              .orElse(ImmutableList.of());
+          allRows.addAll(rows);
+        }
       }
       result = new Result(pullQueryContext.mat.schema(), allRows.build());
     }
@@ -471,20 +500,21 @@ public final class PullQueryExecutor {
       final ServiceContext serviceContext,
       final PullQueryContext pullQueryContext
   ) {
-    // Rewrite the expression to only query for the particular keys we care about for this node.
-    // Otherwise, we'll risk reading standby data for other partitions.
-    final Statement rewrittenStatement = PullQueryKeyUpdater.update(statement.getStatement(),
-        pullQueryContext.keys);
-    final String rewrittenSql = SqlFormatter.formatSql(rewrittenStatement) + ";";
+    // Specify the partitions we specifically want to read.  This will prevent reading unintended
+    // standby data when we are reading active for example.
+    final String partitions = pullQueryContext.locations.stream()
+        .map(location -> Integer.toString(location.getPartition()))
+        .collect(Collectors.joining(","));
     // Add skip forward flag to properties
     final Map<String, Object> requestProperties = ImmutableMap.of(
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true,
-        KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
+        KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true,
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS, partitions);
     final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
         .makeQueryRequest(
             owner.location(),
-            rewrittenSql,
+            statement.getStatementText(),
             statement.getSessionConfig().getOverrides(),
             requestProperties
         );
@@ -539,9 +569,9 @@ public final class PullQueryExecutor {
     return queryAnalyzer.analyze(statement.getStatement(), Optional.empty());
   }
 
-  private static final class PullQueryContext {
+  static final class PullQueryContext {
 
-    private final List<Struct> keys;
+    private final List<KsqlLocation> locations;
     private final Materialization mat;
     private final ImmutableAnalysis analysis;
     private final WhereInfo whereInfo;
@@ -550,16 +580,15 @@ public final class PullQueryExecutor {
     private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
     private PullQueryContext(
-        final List<Struct> keys,
+        final List<KsqlLocation> locations,
         final Materialization mat,
         final ImmutableAnalysis analysis,
         final WhereInfo whereInfo,
         final QueryId queryId,
         final QueryContext.Stacker contextStacker,
         final Optional<PullQueryExecutorMetrics> pullQueryMetrics
-
     ) {
-      this.keys = Objects.requireNonNull(keys, "keys");
+      this.locations = Objects.requireNonNull(locations, "locations");
       this.mat = Objects.requireNonNull(mat, "materialization");
       this.analysis = Objects.requireNonNull(analysis, "analysis");
       this.whereInfo = Objects.requireNonNull(whereInfo, "whereInfo");
@@ -661,7 +690,7 @@ public final class PullQueryExecutor {
     final List<Object> result = new ArrayList<>();
     for (Expression expression : inPredicate.getValueList().getValues()) {
       if (!(expression instanceof Literal)) {
-        throw new KsqlException("Ony comparison to literals is currently supported: "
+        throw new KsqlException("Only comparison to literals is currently supported: "
             + inPredicate);
       }
       if (expression instanceof NullLiteral) {
@@ -1278,6 +1307,25 @@ public final class PullQueryExecutor {
         return (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST);
       }
       return KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT;
+    }
+
+    @Override
+    public Set<Integer> getPartitions() {
+      if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS)) {
+        @SuppressWarnings("unchecked")
+        final List<String> partitions = (List<String>) requestProperties.get(
+            KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS);
+        return partitions.stream()
+            .map(partition -> {
+              try {
+                return Integer.parseInt(partition);
+              } catch (NumberFormatException e) {
+                throw new IllegalStateException("Internal request got a bad partition "
+                    + partition);
+              }
+            }).collect(Collectors.toSet());
+      }
+      return Collections.emptySet();
     }
 
     @Override

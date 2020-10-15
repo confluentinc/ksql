@@ -92,7 +92,7 @@ public class PullQueryPublisherTest {
         TIME_NANOS);
 
     when(pullQueryResult.getTableRows()).thenReturn(entity);
-    when(pullQueryResult.getSourceNodes()).thenReturn(Collections.emptyList());
+    when(pullQueryResult.getSourceNodes()).thenReturn(Optional.empty());
     when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
@@ -184,7 +184,7 @@ public class PullQueryPublisherTest {
         ImmutableList.of("b", 1, 2L, 3.0f)
     ));
     when(pullQueryResult.getSourceNodes())
-        .thenReturn(ImmutableList.of(Optional.empty(), Optional.empty()));
+        .thenReturn(Optional.empty());
 
     // When:
     subscription.request(1);

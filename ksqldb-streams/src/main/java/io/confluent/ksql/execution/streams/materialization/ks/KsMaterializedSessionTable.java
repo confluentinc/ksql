@@ -47,12 +47,13 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
   @Override
   public List<WindowedRow> get(
       final Struct key,
+      final int partition,
       final Range<Instant> windowStart,
       final Range<Instant> windowEnd
   ) {
     try {
       final ReadOnlySessionStore<Struct, GenericRow> store = stateStore
-          .store(QueryableStoreTypes.sessionStore());
+          .store(QueryableStoreTypes.sessionStore(), partition);
 
       return findSession(store, key, windowStart, windowEnd);
     } catch (final Exception e) {

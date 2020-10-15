@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -61,6 +62,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsMaterializedWindowTableTest {
 
   private static final Duration WINDOW_SIZE = Duration.ofMinutes(1);
+  private static final int PARTITION = 0;
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("K0"), SqlTypes.STRING)
@@ -104,7 +106,7 @@ public class KsMaterializedWindowTableTest {
   public void setUp() {
     table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE);
 
-    when(stateStore.store(any())).thenReturn(tableStore);
+    when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
   }
@@ -120,12 +122,12 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldThrowIfGettingStateStoreFails() {
     // Given:
-    when(stateStore.store(any())).thenThrow(new MaterializationTimeOutException("Boom"));
+    when(stateStore.store(any(), anyInt())).thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -143,7 +145,7 @@ public class KsMaterializedWindowTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -155,10 +157,10 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
-    verify(stateStore).store(storeTypeCaptor.capture());
+    verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
     assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(),
         is("TimestampedWindowStoreType"));
   }
@@ -167,7 +169,7 @@ public class KsMaterializedWindowTableTest {
   public void shouldFetchWithCorrectKey() {
     // Given:
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(tableStore).fetch(eq(A_KEY), any(), any());
@@ -176,7 +178,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithNoBounds() {
     // When:
-    table.get(A_KEY, Range.all(), Range.all());
+    table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(tableStore).fetch(
@@ -189,7 +191,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithOnlyStartBounds() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS, Range.all());
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all());
 
     // Then:
     verify(tableStore).fetch(
@@ -202,7 +204,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithOnlyEndBounds() {
     // When:
-    table.get(A_KEY, Range.all(), WINDOW_END_BOUNDS);
+    table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS);
 
     // Then:
     verify(tableStore).fetch(
@@ -226,7 +228,7 @@ public class KsMaterializedWindowTableTest {
     );
 
     // When:
-    table.get(A_KEY, startBounds, endBounds);
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
 
     // Then:
     verify(tableStore).fetch(any(), eq(startBounds.lowerEndpoint()), any());
@@ -246,7 +248,7 @@ public class KsMaterializedWindowTableTest {
     );
 
     // When:
-    table.get(A_KEY, startBounds, endBounds);
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
 
     // Then:
     verify(tableStore).fetch(any(), eq(endBounds.lowerEndpoint().minus(WINDOW_SIZE)), any());
@@ -266,7 +268,7 @@ public class KsMaterializedWindowTableTest {
     );
 
     // When:
-    table.get(A_KEY, startBounds, endBounds);
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
 
     // Then:
     verify(tableStore).fetch(any(), any(), eq(startBounds.upperEndpoint()));
@@ -286,7 +288,7 @@ public class KsMaterializedWindowTableTest {
     );
 
     // When:
-    table.get(A_KEY, startBounds, endBounds);
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
 
     // Then:
     verify(tableStore).fetch(any(), any(), eq(endBounds.upperEndpoint().minus(WINDOW_SIZE)));
@@ -295,7 +297,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(fetchIterator).close();
@@ -304,7 +306,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -331,7 +333,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, start, Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, start, Range.all());
 
     // Then:
     assertThat(result, contains(
@@ -376,7 +378,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), end);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), end);
 
     // Then:
     assertThat(result, contains(
@@ -418,7 +420,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, start, Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, start, Range.all());
 
     // Then:
     assertThat(result, contains(
@@ -460,7 +462,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), end);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), end);
 
     // Then:
     assertThat(result, contains(
@@ -493,7 +495,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     assertThat(result, contains(
@@ -521,7 +523,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldSupportRangeAll() {
     // When:
-    table.get(A_KEY, Range.all(), Range.all());
+    table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(tableStore).fetch(

@@ -107,18 +107,18 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       try {
         final PullQueryResult result = executor.call();
         final TableRows entity = result.getTableRows();
-        final List<Optional<KsqlHostInfoEntity>> hosts = result.getSourceNodes().stream()
-            .map(optional -> optional
-                .map(KsqlNode::location)
-                .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort())))
-            .collect(Collectors.toList());
+        final Optional<List<KsqlHostInfoEntity>> hosts = result.getSourceNodes()
+            .map(list -> list.stream().map(KsqlNode::location)
+                .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()))
+                .collect(Collectors.toList()));
 
         subscriber.onSchema(entity.getSchema());
 
-        Preconditions.checkState(hosts.size() == entity.getRows().size());
+        hosts.ifPresent(h -> Preconditions.checkState(h.size() == entity.getRows().size()));
         final List<StreamedRow> rows = IntStream.range(0, entity.getRows().size())
             .mapToObj(i -> Pair.of(
-                PullQuerySubscription.toGenericRow(entity.getRows().get(i)), hosts.get(i)))
+                PullQuerySubscription.toGenericRow(entity.getRows().get(i)),
+                hosts.map(h -> h.get(i))))
             .map(pair -> StreamedRow.row(pair.getLeft(), pair.getRight()))
             .collect(Collectors.toList());
 

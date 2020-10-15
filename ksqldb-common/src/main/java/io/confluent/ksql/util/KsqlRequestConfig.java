@@ -44,6 +44,12 @@ public class KsqlRequestConfig extends AbstractConfig {
   private static final String KSQL_DEBUG_REQUEST_DOC =
       "Indicates whether a KsqlRequest should contain debugging information.";
 
+  public static final String KSQL_REQUEST_QUERY_PULL_PARTITIONS =
+      "request.ksql.query.pull.partition";
+  public static final String KSQL_REQUEST_QUERY_PULL_PARTITIONS_DEFAULT = "";
+  private static final String KSQL_REQUEST_QUERY_PULL_PARTITIONS_DOC =
+      "Indicates which partitions to limit pull queries to.";
+
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
         .define(
@@ -64,6 +70,12 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_DEBUG_REQUEST_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_DEBUG_REQUEST_DOC
+        ).define(
+            KSQL_REQUEST_QUERY_PULL_PARTITIONS,
+            Type.LIST,
+            KSQL_REQUEST_QUERY_PULL_PARTITIONS_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_REQUEST_QUERY_PULL_PARTITIONS_DOC
         );
     return configDef;
   }

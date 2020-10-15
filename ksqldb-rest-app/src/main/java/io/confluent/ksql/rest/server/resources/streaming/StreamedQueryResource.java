@@ -269,18 +269,18 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final PullQueryResult result = pullQueryExecutor.execute(
         configured, requestProperties, serviceContext, isInternalRequest, pullQueryMetrics);
     final TableRows tableRows = result.getTableRows();
-    final List<Optional<KsqlHostInfoEntity>> hosts = result.getSourceNodes().stream()
-        .map(optional -> optional
-            .map(KsqlNode::location)
-            .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort())))
-        .collect(Collectors.toList());
+    final Optional<List<KsqlHostInfoEntity>> hosts = result.getSourceNodes()
+        .map(list -> list.stream().map(KsqlNode::location)
+            .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()))
+            .collect(Collectors.toList()));
 
     final StreamedRow header = StreamedRow.header(tableRows.getQueryId(), tableRows.getSchema());
 
-    Preconditions.checkState(hosts.size() == tableRows.getRows().size());
+    hosts.ifPresent(h -> Preconditions.checkState(h.size() == tableRows.getRows().size()));
     final List<StreamedRow> rows = IntStream.range(0, tableRows.getRows().size())
         .mapToObj(i -> Pair.of(
-            StreamedQueryResource.toGenericRow(tableRows.getRows().get(i)), hosts.get(i)))
+            StreamedQueryResource.toGenericRow(tableRows.getRows().get(i)),
+            hosts.map(h -> h.get(i))))
         .map(pair -> StreamedRow.row(pair.getLeft(), pair.getRight()))
         .collect(Collectors.toList());
 

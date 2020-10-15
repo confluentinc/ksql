@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
@@ -62,18 +61,19 @@ public interface Locator {
   interface KsqlLocation {
 
     /**
-     * @return the key associated with this list of nodes to contact for the data.
-     */
-    Struct getKey();
-
-    /**
      * @return the ordered and filtered list of nodes to contact to access the above key.
      */
     List<KsqlNode> getNodes();
 
     /**
-     * @return The partition associated with the given key.
+     * @return The partition associated with the given data we want to access.
      */
     int getPartition();
+
+    /**
+     * @return the keys associated with the data we want to access, if any. Keys may not be present
+     *     for queries which don't enumerate them up front, such as range queries.
+     */
+    Optional<List<Struct>> getKeys();
   }
 }

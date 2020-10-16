@@ -75,7 +75,7 @@ This data format supports all SQL
 | Feature                      | Supported |
 |------------------------------|-----------|
 | [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
-| [Schema inference][1]        | Yes. `JSON` supports _reading_ schemas. `JSON_SR` supports both _reading_ and _writing_ scheams.  |
+| [Schema inference][1]        | `JSON`: No, `JSON_SR`: Yes|
 | [Single field unwrapping][2] | Yes       |
 
 There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and

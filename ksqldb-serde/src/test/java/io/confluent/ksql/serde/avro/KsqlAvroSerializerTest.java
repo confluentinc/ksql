@@ -1152,7 +1152,7 @@ public class KsqlAvroSerializerTest {
   private org.apache.avro.Schema avroSchemaStoredInSchemaRegistry() {
     try {
       final SchemaMetadata schemaMetadata = schemaRegistryClient
-          .getLatestSchemaMetadata(SOME_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+          .getLatestSchemaMetadata(KsqlConstants.getSRSubject(SOME_TOPIC, false));
 
       return parseAvroSchema(schemaMetadata.getSchema());
     } catch (final Exception e) {

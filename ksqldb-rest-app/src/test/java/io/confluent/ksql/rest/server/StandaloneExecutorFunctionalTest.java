@@ -319,7 +319,7 @@ public class StandaloneExecutorFunctionalTest {
         SerdeFeatures.of()
     );
 
-    TEST_HARNESS.ensureSchema(topicName, incompatiblePhysical);
+    TEST_HARNESS.ensureSchema(topicName, incompatiblePhysical, false);
   }
 
   private void givenScript(final String contents) {

@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -433,14 +434,14 @@ public class DefaultSchemaInjectorTest {
     assertThat(result.getStatementText(), containsString("KEY_SCHEMA_ID=18"));
     assertThat(result.getStatementText(), containsString("VALUE_SCHEMA_ID=5"));
 
-    verify(schemaSupplier).getKeySchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("PROTOBUF"), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+    verify(schemaSupplier).getKeySchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("PROTOBUF"), SerdeFeatures.of());
     verify(schemaSupplier).getValueSchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("AVRO"), SerdeFeatures.of());
   }
 
   @Test
   public void shouldGetValueSchemaWithSchemaId() {
     // Given:
-    givenValueButNotKeyInferenceSupported(ImmutableMap.of("VALUE_SCHEMA_ID", 42));
+    givenValueButNotKeyInferenceSupported(ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
@@ -454,7 +455,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldGetKeySchemaWithSchemaId() {
     // Given:
-    givenKeyButNotValueInferenceSupported(ImmutableMap.of("KEY_SCHEMA_ID", 42));
+    givenKeyButNotValueInferenceSupported(ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
@@ -505,6 +506,61 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
+  public void shouldSetUnwrappingForKeySchemaIfSupported() {
+    // Given:
+    givenFormatsAndProps("avro", "delimited", ImmutableMap.of());
+
+    // When:
+    injector.inject(ctStatement);
+
+    // Then:
+    verify(schemaSupplier).getKeySchema(
+        KAFKA_TOPIC,
+        Optional.empty(),
+        FormatInfo.of("AVRO"),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+    );
+  }
+
+  @Test
+  public void shouldNotSetUnwrappingForKeySchemaIfUnsupported() {
+    // Given:
+    givenFormatsAndProps("protobuf", "delimited", ImmutableMap.of());
+
+    // When:
+    injector.inject(ctStatement);
+
+    // Then:
+    verify(schemaSupplier).getKeySchema(
+        KAFKA_TOPIC,
+        Optional.empty(),
+        FormatInfo.of("PROTOBUF"),
+        SerdeFeatures.of()
+    );
+  }
+
+  @Test
+  public void shouldSetUnwrappingForValueSchemaIfPresent() {
+    // Given:
+    givenFormatsAndProps(
+        "delimited",
+        "avro",
+        ImmutableMap.of("WRAP_SINGLE_VALUE", new BooleanLiteral("false"))
+    );
+
+    // When:
+    injector.inject(ctStatement);
+
+    // Then:
+    verify(schemaSupplier).getValueSchema(
+        KAFKA_TOPIC,
+        Optional.empty(),
+        FormatInfo.of("AVRO"),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+    );
+  }
+
+  @Test
   public void shouldThrowIfSchemaSupplierThrows() {
     // Given:
     givenKeyAndValueInferenceSupported();
@@ -537,7 +593,7 @@ public class DefaultSchemaInjectorTest {
     givenKeyButNotValueInferenceSupported(ImmutableMap.of());
   }
 
-  private void givenKeyButNotValueInferenceSupported(final Map<String, Integer> additionalProps) {
+  private void givenKeyButNotValueInferenceSupported(final Map<String, Literal> additionalProps) {
     givenFormatsAndProps("avro", "delimited", additionalProps);
   }
 
@@ -545,18 +601,18 @@ public class DefaultSchemaInjectorTest {
     givenValueButNotKeyInferenceSupported(ImmutableMap.of());
   }
 
-  private void givenValueButNotKeyInferenceSupported(final Map<String, Integer> additionalProps) {
+  private void givenValueButNotKeyInferenceSupported(final Map<String, Literal> additionalProps) {
     givenFormatsAndProps("kafka", "json_sr", additionalProps);
   }
 
   private void givenFormatsAndProps(
       final String keyFormat,
       final String valueFormat,
-      final Map<String, Integer> additionalProps) {
+      final Map<String, Literal> additionalProps) {
     final HashMap<String, Literal> props = new HashMap<>(BASE_PROPS);
     props.put("KEY_FORMAT", new StringLiteral(keyFormat));
     props.put("VALUE_FORMAT", new StringLiteral(valueFormat));
-    additionalProps.forEach((k, v) -> props.put(k, new IntegerLiteral(v)));
+    props.putAll(additionalProps);
     final CreateSourceProperties csProps = CreateSourceProperties.from(props);
 
     when(cs.getProperties()).thenReturn(csProps);

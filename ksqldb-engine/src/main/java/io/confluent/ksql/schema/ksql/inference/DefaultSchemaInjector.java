@@ -33,6 +33,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -123,7 +124,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKafkaTopic(),
         props.getKeySchemaId(),
         keyFormat,
-        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeaturesFactory.buildInternal(FormatFactory.of(keyFormat)),
         statement.getStatementText(),
         true
     ));

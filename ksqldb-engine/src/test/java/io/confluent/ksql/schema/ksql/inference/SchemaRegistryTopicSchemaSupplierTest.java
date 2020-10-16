@@ -94,7 +94,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
     when(format.getSchemaTranslator(any())).thenReturn(schemaTranslator);
-    when(schemaTranslator.toColumns(eq(parsedSchema), anyBoolean(), anyBoolean()))
+    when(schemaTranslator.toColumns(eq(parsedSchema), any(), anyBoolean()))
         .thenReturn(ImmutableList.of(column1));
     when(schemaTranslator.name()).thenReturn("AVRO");
 
@@ -432,7 +432,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetValueSchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(schemaTranslator.toColumns(any(), anyBoolean(), anyBoolean()))
+    when(schemaTranslator.toColumns(any(), any(), anyBoolean()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
@@ -451,7 +451,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetKeySchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(schemaTranslator.toColumns(any(), anyBoolean(), anyBoolean()))
+    when(schemaTranslator.toColumns(any(), any(), anyBoolean()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
@@ -470,7 +470,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetKeySchemaOnMultipleColumns() {
     // Given:
-    when(schemaTranslator.toColumns(parsedSchema, true, true)).thenReturn(ImmutableList.of(column1, column2));
+    when(schemaTranslator.toColumns(parsedSchema, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), true))
+        .thenReturn(ImmutableList.of(column1, column2));
 
     // When:
     final SchemaResult result = supplier.getKeySchema(
@@ -527,7 +528,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
     // Then:
     verify(format).getSchemaTranslator(formatProperties);
-    verify(schemaTranslator).toColumns(parsedSchema, false, false);
+    verify(schemaTranslator).toColumns(parsedSchema, SerdeFeatures.of(), false);
   }
 
   @Test
@@ -536,7 +537,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
-    verify(schemaTranslator).toColumns(parsedSchema, false, true);
+    verify(schemaTranslator).toColumns(parsedSchema, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), false);
   }
 
   @Test
@@ -545,7 +546,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     supplier.getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
-    verify(schemaTranslator).toColumns(parsedSchema, true, true);
+    verify(schemaTranslator).toColumns(parsedSchema, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), true);
   }
 
   @Test

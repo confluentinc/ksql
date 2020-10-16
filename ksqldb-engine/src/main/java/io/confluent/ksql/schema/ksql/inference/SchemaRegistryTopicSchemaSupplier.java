@@ -28,7 +28,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SchemaTranslator;
-import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -135,8 +134,8 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
     try {
       columns = translator.toColumns(
           parsedSchema,
-          isKey,
-          serdeFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)
+          serdeFeatures,
+          isKey
       );
     } catch (final Exception e) {
       return notCompatible(topic, parsedSchema.canonicalString(), e, isKey);

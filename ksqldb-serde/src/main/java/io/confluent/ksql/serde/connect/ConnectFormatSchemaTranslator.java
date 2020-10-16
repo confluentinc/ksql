@@ -20,12 +20,14 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -61,28 +63,24 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
   @Override
   public List<SimpleColumn> toColumns(
       final ParsedSchema schema,
-      final boolean isKey,
-      final boolean unwrapSingle) {
+      final SerdeFeatures serdeFeatures,
+      final boolean isKey) {
+    SerdeUtils.throwOnUnsupportedFeatures(serdeFeatures, format.supportedFeatures());
+
     Schema connectSchema = connectSrTranslator.toConnectSchema(schema);
 
-    if (connectSchema.type() != Type.STRUCT || unwrapSingle) {
-      if (!format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)) {
-        throw new KsqlException("Schema returned from schema registry is anonymous type, "
-            + "but format " + format.name() + " does not support anonymous types. "
-            + "schema: " + schema);
-      }
-
-      if (!unwrapSingle) {
-        if (isKey) {
-          throw new IllegalStateException("Key schemas are always unwrapped.");
-        }
-
-        throw new KsqlException("Schema returned from schema registry is anonymous type. "
-            + "To use this schema with ksqlDB, set 'WRAP_SINGLE_VALUE=false' in the "
-            + "WITH clause properties.");
-      }
-
+    if (serdeFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)) {
       connectSchema = SerdeUtils.wrapSingle(connectSchema, isKey);
+    }
+
+    if (connectSchema.type() != Type.STRUCT) {
+      if (isKey) {
+        throw new IllegalStateException("Key schemas are always unwrapped.");
+      }
+
+      throw new KsqlException("Schema returned from schema registry is anonymous type. "
+          + "To use this schema with ksqlDB, set '" + CommonCreateConfigs.WRAP_SINGLE_VALUE
+          + "=false' in the WITH clause properties.");
     }
 
     final Schema rowSchema = connectKsqlTranslator.apply(connectSchema);

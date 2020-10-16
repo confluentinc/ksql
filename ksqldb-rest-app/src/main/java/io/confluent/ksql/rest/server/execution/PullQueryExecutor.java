@@ -191,7 +191,8 @@ public final class PullQueryExecutor {
     }
 
     try {
-      // Not using session.getConfig(true) due to performance issues
+      // Not using session.getConfig(true) due to performance issues,
+      // see: https://github.com/confluentinc/ksql/issues/6407
       final RoutingOptions routingOptions = new ConfigRoutingOptions(
           sessionConfig.getConfig(false),
           statement.getSessionConfig().getOverrides(),

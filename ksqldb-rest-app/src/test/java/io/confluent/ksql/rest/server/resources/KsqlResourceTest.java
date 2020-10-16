@@ -1099,22 +1099,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailWhenAvroSchemaCanNotBeEvolved() {
-    // Given:
-    givenAvroValueSchemaNotEvolveable("S1");
-
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM S1 WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO') AS SELECT * FROM test_stream;",
-        BAD_REQUEST.code());
-
-    // Then:
-    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
-    assertThat(result.getMessage(),
-        containsString("Cannot register avro schema for S1 as the schema is incompatible with the current schema version registered for the topic"));
-  }
-
-  @Test
   public void shouldWaitForLastDistributedStatementBeforeExecutingAnyNonDistributed()
       throws Exception {
     // Given:
@@ -2434,18 +2418,6 @@ public class KsqlResourceTest {
         description.appendText(properties.toString());
       }
     };
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private void givenAvroValueSchemaNotEvolveable(final String topicName) {
-    final org.apache.avro.Schema schema = org.apache.avro.Schema.create(Type.INT);
-
-    try {
-      schemaRegistryClient.register(
-          KsqlConstants.getSRSubject(topicName, false), new AvroSchema(schema));
-    } catch (final Exception e) {
-      fail(e.getMessage());
-    }
   }
 
   private void givenKafkaTopicExists(final String name) {

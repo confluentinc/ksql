@@ -606,42 +606,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldFailIfAvroSchemaNotEvolvable() {
-    // Given:
-    givenTopicWithValueSchema("T", Schema.create(Type.INT));
-
-    // When:
-    final KsqlStatementException e = assertThrows(
-        KsqlStatementException.class,
-        () -> KsqlEngineTestUtil.execute(
-            serviceContext,
-            ksqlEngine,
-            "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;",
-            KSQL_CONFIG,
-            Collections.emptyMap()
-        )
-    );
-
-    // Then:
-    assertThat(e, rawMessage(containsString(
-        "Cannot register avro schema for T as the schema is incompatible with the current schema version registered for the topic.\n" +
-            "KSQL schema: {" +
-            "\"type\":\"record\"," +
-            "\"name\":\"KsqlDataSourceSchema\"," +
-            "\"namespace\":\"io.confluent.ksql.avro_schemas\"," +
-            "\"fields\":[" +
-            "{\"name\":\"COL1\",\"type\":[\"null\",\"string\"],\"default\":null}," +
-            "{\"name\":\"COL2\",\"type\":[\"null\",\"string\"],\"default\":null}," +
-            "{\"name\":\"COL3\",\"type\":[\"null\",\"double\"],\"default\":null}," +
-            "{\"name\":\"COL4\",\"type\":[\"null\",\"boolean\"],\"default\":null}" +
-            "],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"" +
-            "}\n" +
-            "Registered schema: \"int\"")));
-    assertThat(e, statementText(is(
-        "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;")));
-  }
-
-  @Test
   public void shouldNotFailIfAvroSchemaEvolvable() {
     // Given:
     final Schema evolvableSchema = SchemaBuilder

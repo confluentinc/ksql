@@ -195,6 +195,7 @@ import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -331,7 +332,7 @@ public class KsqlResourceTest {
     kafkaConsumerGroupClient = new FakeKafkaConsumerGroupClient();
     serviceContext = TestServiceContext.create(kafkaTopicClient, kafkaConsumerGroupClient);
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
-    registerSchema(schemaRegistryClient);
+    registerValueSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
 
@@ -1100,7 +1101,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailWhenAvroSchemaCanNotBeEvolved() {
     // Given:
-    givenAvroSchemaNotEvolveable("S1");
+    givenAvroValueSchemaNotEvolveable("S1");
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -2384,7 +2385,7 @@ public class KsqlResourceTest {
     return properties;
   }
 
-  private static void registerSchema(final SchemaRegistryClient schemaRegistryClient)
+  private static void registerValueSchema(final SchemaRegistryClient schemaRegistryClient)
       throws IOException, RestClientException {
     final String ordersAvroSchemaStr = "{"
         + "\"namespace\": \"kql\","
@@ -2401,7 +2402,7 @@ public class KsqlResourceTest {
         + "}";
     final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
-    schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+    schemaRegistryClient.register(KsqlConstants.getSRSubject("orders-topic", false),
         new AvroSchema(avroSchema));
   }
 
@@ -2436,12 +2437,12 @@ public class KsqlResourceTest {
   }
 
   @SuppressWarnings("SameParameterValue")
-  private void givenAvroSchemaNotEvolveable(final String topicName) {
+  private void givenAvroValueSchemaNotEvolveable(final String topicName) {
     final org.apache.avro.Schema schema = org.apache.avro.Schema.create(Type.INT);
 
     try {
       schemaRegistryClient.register(
-          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(schema));
+          KsqlConstants.getSRSubject(topicName, false), new AvroSchema(schema));
     } catch (final Exception e) {
       fail(e.getMessage());
     }

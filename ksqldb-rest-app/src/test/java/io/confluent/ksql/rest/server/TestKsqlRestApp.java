@@ -285,7 +285,6 @@ public class TestKsqlRestApp extends ExternalResource {
     final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
 
     try {
-
       Vertx vertx = Vertx.vertx();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
@@ -293,7 +292,7 @@ public class TestKsqlRestApp extends ExternalResource {
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
-          MockSchemaRegistryClient::new,
+          () -> serviceContext.get().getSchemaRegistryClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
               KsqlRestApplication.toClientProps(config.originals()),

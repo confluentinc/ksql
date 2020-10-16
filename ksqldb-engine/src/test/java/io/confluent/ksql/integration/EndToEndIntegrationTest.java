@@ -123,6 +123,10 @@ public class EndToEndIntegrationTest {
       .withAdditionalConfig(
           KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
           "http://foo:8080")
+      .withAdditionalConfig(
+          KsqlConfig.KSQL_KEY_FORMAT_ENABLED,
+          true
+      )
       .build();
 
   @Rule
@@ -222,62 +226,70 @@ public class EndToEndIntegrationTest {
     final String topicName = "avro_stream_topic";
 
     executeStatement(format(
-        "create stream avro_stream with (kafka_topic='%s',value_format='avro') as select * from %s;",
+        "create stream avro_stream with (kafka_topic='%s',format='avro') as select * from %s;",
         topicName,
         PAGE_VIEW_STREAM));
 
     TEST_HARNESS.produceRows(
         PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, System::currentTimeMillis);
 
-    TEST_HARNESS.waitForSubjectToBePresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, true));
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, false));
 
     ksqlContext.terminateQuery(new QueryId("CSAS_AVRO_STREAM_0"));
 
     executeStatement("DROP STREAM avro_stream DELETE TOPIC;");
 
-    TEST_HARNESS.waitForSubjectToBeAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(topicName, true));
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(topicName, false));
   }
 
   @Test
   public void shouldRegisterCorrectPrimitiveSchemaForCreateStatements() throws Exception {
     // Given:
     final String topicName = "create_stream_topic";
-    final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
 
     // When:
     executeStatement("create stream s ("
+        + "  K INT KEY,"
         + "  VAL INT"
         + ") with ("
         + "  kafka_topic = '" + topicName + "',"
         + "  partitions = 1,"
-        + "  value_format = 'avro',"
+        + "  format = 'avro',"
         + "  wrap_single_value = false);"
     );
 
     // Then:
-    TEST_HARNESS.waitForSubjectToBePresent(subject);
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, false));
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, true));
 
-    assertThat(TEST_HARNESS.getSchema(subject), is(new AvroSchema("{\"type\":\"int\"}")));
+    assertThat(TEST_HARNESS.getSchema(KsqlConstants.getSRSubject(topicName, true)), is(new AvroSchema("{\"type\":\"int\"}")));
+    assertThat(TEST_HARNESS.getSchema(KsqlConstants.getSRSubject(topicName, false)), is(new AvroSchema("{\"type\":\"int\"}")));
   }
 
   @Test
   public void shouldRegisterCorrectPrimitiveSchemaForCreateAsStatements() throws Exception {
     // Given:
     final String topicName = "create_as_stream_topic";
-    final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
 
     executeStatement("create stream s with ("
         + "  kafka_topic = '" + topicName + "',"
-        + "  value_format = 'avro',"
+        + "  format = 'avro',"
         + "  wrap_single_value = false"
         + ") as "
         + "select pageid, viewtime from " + PAGE_VIEW_STREAM + ";"
     );
 
     // Then:
-    TEST_HARNESS.waitForSubjectToBePresent(subject);
+    final String valSbuejct = KsqlConstants.getSRSubject(topicName, false);
+    final String keySubject = KsqlConstants.getSRSubject(topicName, true);
 
-    assertThat(TEST_HARNESS.getSchema(subject), is(new AvroSchema("{\"type\":\"long\"}")));
+    TEST_HARNESS.waitForSubjectToBePresent(keySubject);
+    TEST_HARNESS.waitForSubjectToBePresent(valSbuejct);
+
+    assertThat(TEST_HARNESS.getSchema(keySubject), is(new AvroSchema("{\"type\":\"string\"}")));
+    assertThat(TEST_HARNESS.getSchema(valSbuejct), is(new AvroSchema("{\"type\":\"long\"}")));
   }
 
   @Test

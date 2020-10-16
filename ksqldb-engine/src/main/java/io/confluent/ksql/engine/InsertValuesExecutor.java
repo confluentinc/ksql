@@ -256,11 +256,18 @@ public class InsertValuesExecutor {
         Optional.empty()
     );
 
+    final String topicName = dataSource.getKafkaTopicName();
     try {
       return keySerde
           .serializer()
-          .serialize(dataSource.getKafkaTopicName(), keyValue);
+          .serialize(topicName, keyValue);
     } catch (final Exception e) {
+      maybeThrowSchemaRegistryAuthError(
+          FormatFactory.fromName(dataSource.getKsqlTopic().getKeyFormat().getFormat()),
+          topicName,
+          true,
+          e);
+      LOG.error("Could not serialize key.", e);
       throw new KsqlException("Could not serialize key: " + keyValue, e);
     }
   }
@@ -292,26 +299,36 @@ public class InsertValuesExecutor {
     try {
       return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
-      final Format valueFormat = FormatFactory
-          .fromName(dataSource.getKsqlTopic().getValueFormat().getFormat());
-      if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
-        final Throwable rootCause = ExceptionUtils.getRootCause(e);
-        if (rootCause instanceof RestClientException) {
-          switch (((RestClientException) rootCause).getStatus()) {
-            case HttpStatus.SC_UNAUTHORIZED:
-            case HttpStatus.SC_FORBIDDEN:
-              throw new KsqlException(String.format(
-                  "Not authorized to write Schema Registry subject: [%s]",
-                  topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
-              ));
-            default:
-              break;
-          }
-        }
-      }
-
+      maybeThrowSchemaRegistryAuthError(
+          FormatFactory.fromName(dataSource.getKsqlTopic().getValueFormat().getFormat()),
+          topicName,
+          false,
+          e);
       LOG.error("Could not serialize row.", e);
       throw new KsqlException("Could not serialize row: " + row + ". " + e.getMessage(), e);
+    }
+  }
+
+  private static void maybeThrowSchemaRegistryAuthError(
+      final Format format,
+      final String topicName,
+      final boolean isKey,
+      final Exception e
+  ) {
+    if (format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+      final Throwable rootCause = ExceptionUtils.getRootCause(e);
+      if (rootCause instanceof RestClientException) {
+        switch (((RestClientException) rootCause).getStatus()) {
+          case HttpStatus.SC_UNAUTHORIZED:
+          case HttpStatus.SC_FORBIDDEN:
+            throw new KsqlException(String.format(
+                "Not authorized to write Schema Registry subject: [%s]",
+                KsqlConstants.getSRSubject(topicName, isKey)
+            ));
+          default:
+            break;
+        }
+      }
     }
   }
 

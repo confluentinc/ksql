@@ -42,8 +42,9 @@ class RegisterSchemaCallback implements StaticTopicSerde.Callback {
       final String changelog,
       final byte[] data
   ) {
-    final String sourceSubject = source + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-    final String changelogSubject = changelog + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+    // NOTE: this only happens for values, we should never auto-register key schemas
+    final String sourceSubject = KsqlConstants.getSRSubject(source, false);
+    final String changelogSubject = KsqlConstants.getSRSubject(changelog, false);
 
     // all schema registry events start with a magic byte 0x0 and then four bytes
     // indicating the schema id - we extract that schema id from the data that failed

@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
@@ -452,6 +453,13 @@ public final class SqlFormatter {
       builder.append("='");
       builder.append(node.getVariableValue());
       builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    public Void visitListVariables(final ListVariables node, final Integer context) {
+      builder.append("SHOW VARIABLES");
 
       return null;
     }

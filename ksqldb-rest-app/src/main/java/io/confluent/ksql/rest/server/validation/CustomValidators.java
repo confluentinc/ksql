@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -45,6 +46,7 @@ import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
 import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
+import io.confluent.ksql.rest.server.execution.ListVariablesExecutor;
 import io.confluent.ksql.rest.server.execution.PropertyExecutor;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.VariableExecutor;
@@ -77,6 +79,7 @@ public enum CustomValidators {
   LIST_TYPES(ListTypes.class, StatementValidator.NO_VALIDATION),
   CREATE_CONNECTOR(CreateConnector.class, StatementValidator.NO_VALIDATION),
   DROP_CONNECTOR(DropConnector.class, StatementValidator.NO_VALIDATION),
+  LIST_VARIABLES(ListVariables.class, ListVariablesExecutor::execute),
 
   INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute),
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),

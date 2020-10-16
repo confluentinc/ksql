@@ -131,6 +131,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -730,6 +731,11 @@ public class AstBuilder {
     @Override
     public Node visitListProperties(final SqlBaseParser.ListPropertiesContext context) {
       return new ListProperties(getLocation(context));
+    }
+
+    @Override
+    public Node visitListVariables(final SqlBaseParser.ListVariablesContext context) {
+      return new ListVariables(getLocation(context));
     }
 
     @Override

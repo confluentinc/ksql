@@ -48,6 +48,7 @@ import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -802,6 +803,18 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(formatted, is("SHOW TABLES EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatShowVariables() {
+    // Given:
+    final ListVariables listVariables = new ListVariables(Optional.empty());
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listVariables);
+
+    // Then:
+    assertThat(formatted, is("SHOW VARIABLES"));
   }
 
   @Test

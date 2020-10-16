@@ -53,6 +53,7 @@ statement
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
+    | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE EXTENDED? sourceName                                         #showColumns
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
@@ -517,6 +518,7 @@ REPLACE: 'REPLACE';
 ASSERT: 'ASSERT';
 ADD: 'ADD';
 ALTER: 'ALTER';
+VARIABLES: 'VARIABLES';
 
 IF: 'IF';
 

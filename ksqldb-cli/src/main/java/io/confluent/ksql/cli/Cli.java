@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.DefineVariableContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListVariablesContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.QueryStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
@@ -44,6 +45,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.VariablesList;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
@@ -55,6 +57,7 @@ import io.vertx.core.Context;
 import io.vertx.core.VertxException;
 import java.io.Closeable;
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,6 +68,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
@@ -90,6 +95,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
           .put(UnsetPropertyContext.class, Cli::unsetPropertyFromCtxt)
           .put(DefineVariableContext.class, Cli::defineVariableFromCtxt)
           .put(UndefineVariableContext.class, Cli::undefineVariableFromCtxt)
+          .put(ListVariablesContext.class, Cli::listVariablesFromCtxt)
           .build();
 
   private final Long streamedQueryRowLimit;
@@ -508,9 +514,23 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     if (sessionVariables.remove(variableName) == null) {
       // Print only (no throws exception) to keep it as a warning message (like VariableExecutor)
       terminal.writer()
-          .printf("Cannot undefine variable '%s' which was never defined", variableName);
+          .printf("Cannot undefine variable '%s' which was never defined.%n", variableName);
       terminal.flush();
     }
+  }
+
+  @SuppressWarnings("unused")
+  private void listVariablesFromCtxt(
+      final String ignored,
+      final ListVariablesContext listVariablesContext
+  ) {
+    final List<VariablesList.Variable> variables = sessionVariables.entrySet().stream()
+        .map(e -> new VariablesList.Variable(e.getKey(), e.getValue()))
+        .collect(Collectors.toList());
+
+    terminal.printKsqlEntityList(Collections.singletonList(
+        new VariablesList(listVariablesContext.getText(),variables)
+    ));
   }
 
   private static boolean isSequenceNumberTimeout(final RestResponse<?> response) {

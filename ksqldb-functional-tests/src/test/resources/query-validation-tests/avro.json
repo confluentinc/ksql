@@ -385,6 +385,46 @@
       ]
     },
     {
+      "name": "deserialize anonymous struct - value - no inference",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"F0": 1}},
+        {"topic": "input_topic", "value": {"F0": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": null}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous struct - value - inference",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', value_format='AVRO', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "valueSchema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"F0": 1}},
+        {"topic": "input_topic", "value": {"F0": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ROWVAL": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"ROWVAL": {"F0": null}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
       "name": "serialize anonymous struct - value",
       "statements": [
         "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",

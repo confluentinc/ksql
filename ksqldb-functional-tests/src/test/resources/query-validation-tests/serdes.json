@@ -122,6 +122,19 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas"
       }
+    },
+    {
+      "name": "deserialize and serialize unwrapped struct",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F1 STRING>) WITH (kafka_topic='input_topic', value_format='JSON', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT WITH (wrap_single_value=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"F1": "bar"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"F1": "bar"}}
+      ]
     }
   ]
 }

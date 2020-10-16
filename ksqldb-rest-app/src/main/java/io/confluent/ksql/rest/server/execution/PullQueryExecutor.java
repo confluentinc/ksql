@@ -191,8 +191,11 @@ public final class PullQueryExecutor {
     }
 
     try {
+      // Not using session.getConfig(true) due to performance issues,
+      // see: https://github.com/confluentinc/ksql/issues/6407
       final RoutingOptions routingOptions = new ConfigRoutingOptions(
-          sessionConfig.getConfig(true),
+          sessionConfig.getConfig(false),
+          statement.getSessionConfig().getOverrides(),
           requestProperties
       );
 
@@ -1074,14 +1077,24 @@ public final class PullQueryExecutor {
   private static final class ConfigRoutingOptions implements RoutingOptions {
 
     private final KsqlConfig ksqlConfig;
+    private final Map<String, ?> configOverrides;
     private final Map<String, ?> requestProperties;
 
     ConfigRoutingOptions(
         final KsqlConfig ksqlConfig,
+        final Map<String, ?> configOverrides,
         final Map<String, ?> requestProperties
     ) {
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.configOverrides = configOverrides;
       this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
+    }
+
+    private long getLong(final String key) {
+      if (configOverrides.containsKey(key)) {
+        return (Long) configOverrides.get(key);
+      }
+      return ksqlConfig.getLong(key);
     }
 
     private boolean getForwardedFlag(final String key) {
@@ -1100,7 +1113,7 @@ public final class PullQueryExecutor {
 
     @Override
     public long getOffsetLagAllowed() {
-      return ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
+      return getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
     }
 
     @Override

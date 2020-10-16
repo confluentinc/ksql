@@ -52,6 +52,8 @@ import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -161,12 +163,12 @@ public class DefaultSchemaInjectorTest {
     ctStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ct),
         SessionConfig.of(config, ImmutableMap.of()));
 
-    when(schemaSupplier.getKeySchema(any(), any(), any()))
+    when(schemaSupplier.getKeySchema(any(), any(), any(), any()))
         .thenAnswer(invocation -> {
           final Optional<Integer> id = (Optional<Integer>) invocation.getArguments()[1];
           return SchemaResult.success(schemaAndId(SR_KEY_SCHEMA, id.orElse(KEY_SCHEMA_ID)));
         });
-    when(schemaSupplier.getValueSchema(any(), any(), any()))
+    when(schemaSupplier.getValueSchema(any(), any(), any(), any()))
         .thenAnswer(invocation -> {
           final Optional<Integer> id = (Optional<Integer>) invocation.getArguments()[1];
           return SchemaResult.success(schemaAndId(SR_VALUE_SCHEMA, id.orElse(VALUE_SCHEMA_ID)));
@@ -431,8 +433,8 @@ public class DefaultSchemaInjectorTest {
     assertThat(result.getStatementText(), containsString("KEY_SCHEMA_ID=18"));
     assertThat(result.getStatementText(), containsString("VALUE_SCHEMA_ID=5"));
 
-    verify(schemaSupplier).getKeySchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("PROTOBUF"));
-    verify(schemaSupplier).getValueSchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("AVRO"));
+    verify(schemaSupplier).getKeySchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("PROTOBUF"), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+    verify(schemaSupplier).getValueSchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("AVRO"), SerdeFeatures.of());
   }
 
   @Test
@@ -446,7 +448,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatementText(), containsString("VALUE_SCHEMA_ID=42"));
 
-    verify(schemaSupplier).getValueSchema(any(), eq(Optional.of(42)), any());
+    verify(schemaSupplier).getValueSchema(any(), eq(Optional.of(42)), any(), any());
   }
 
   @Test
@@ -460,7 +462,7 @@ public class DefaultSchemaInjectorTest {
     // Then:
     assertThat(result.getStatementText(), containsString("KEY_SCHEMA_ID=42"));
 
-    verify(schemaSupplier).getKeySchema(any(), eq(Optional.of(42)), any());
+    verify(schemaSupplier).getKeySchema(any(), eq(Optional.of(42)), any(), any());
   }
 
   @Test
@@ -485,14 +487,14 @@ public class DefaultSchemaInjectorTest {
     givenKeyAndValueInferenceSupported();
 
     reset(schemaSupplier);
-    when(schemaSupplier.getKeySchema(any(), any(), any()))
+    when(schemaSupplier.getKeySchema(any(), any(), any(), any()))
         .thenReturn(SchemaResult.success(schemaAndId(SR_KEY_SCHEMA, KEY_SCHEMA_ID)));
 
     final SimpleColumn col0 = mock(SimpleColumn.class);
     when(col0.name()).thenReturn(ColumnName.of("CREATE"));
     when(col0.type()).thenReturn(SqlTypes.BIGINT);
 
-    when(schemaSupplier.getValueSchema(any(), any(), any()))
+    when(schemaSupplier.getValueSchema(any(), any(), any(), any()))
         .thenReturn(SchemaResult.success(schemaAndId(ImmutableList.of(col0), VALUE_SCHEMA_ID)));
 
     // When:
@@ -508,9 +510,9 @@ public class DefaultSchemaInjectorTest {
     givenKeyAndValueInferenceSupported();
 
     reset(schemaSupplier);
-    when(schemaSupplier.getKeySchema(any(), any(), any()))
+    when(schemaSupplier.getKeySchema(any(), any(), any(), any()))
         .thenReturn(SchemaResult.success(schemaAndId(SR_KEY_SCHEMA, KEY_SCHEMA_ID)));
-    when(schemaSupplier.getValueSchema(any(), any(), any()))
+    when(schemaSupplier.getValueSchema(any(), any(), any(), any()))
         .thenThrow(new KsqlException("Oh no!"));
 
     // When:

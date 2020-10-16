@@ -32,6 +32,7 @@ import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -122,6 +123,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKafkaTopic(),
         props.getKeySchemaId(),
         keyFormat,
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         statement.getStatementText(),
         true
     ));
@@ -141,6 +143,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKafkaTopic(),
         props.getValueSchemaId(),
         valueFormat,
+        props.getValueSerdeFeatures(),
         statement.getStatementText(),
         false
     ));
@@ -150,12 +153,13 @@ public class DefaultSchemaInjector implements Injector {
       final String topicName,
       final Optional<Integer> schemaId,
       final FormatInfo expectedFormat,
+      final SerdeFeatures serdeFeatures,
       final String statementText,
       final boolean isKey
   ) {
     final SchemaResult result = isKey
-        ? schemaSupplier.getKeySchema(topicName, schemaId, expectedFormat)
-        : schemaSupplier.getValueSchema(topicName, schemaId, expectedFormat);
+        ? schemaSupplier.getKeySchema(topicName, schemaId, expectedFormat, serdeFeatures)
+        : schemaSupplier.getValueSchema(topicName, schemaId, expectedFormat, serdeFeatures);
 
     if (result.failureReason.isPresent()) {
       final Exception cause = result.failureReason.get();

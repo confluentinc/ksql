@@ -90,7 +90,7 @@ public class ConnectFormatSchemaTranslatorTest {
   @Test
   public void shouldPassConnectSchemaReturnedBySubclassToTranslator() {
     // When:
-    translator.toColumns(parsedSchema, false);
+    translator.toColumns(parsedSchema, false, false);
 
     // Then:
     verify(connectKsqlTranslator).apply(connectSchema);
@@ -105,7 +105,7 @@ public class ConnectFormatSchemaTranslatorTest {
     ));
 
     // When:
-    final List<SimpleColumn> result = translator.toColumns(parsedSchema, false);
+    final List<SimpleColumn> result = translator.toColumns(parsedSchema, false, false);
 
     // Then:
     assertThat(result, hasSize(2));
@@ -117,17 +117,35 @@ public class ConnectFormatSchemaTranslatorTest {
 
   @Test
   public void shouldThrowOnUnwrappedSchemaIfNotSupportedWhenBuildingColumns() {
+    // Given:
     when(connectSchema.type()).thenReturn(Type.INT32);
 
     // When:
     final Exception e = assertThrows(KsqlException.class,
-        () -> translator.toColumns(parsedSchema, false)
+        () -> translator.toColumns(parsedSchema, false, true)
     );
 
     // Then:
     assertThat(e.getMessage(), is("Schema returned from schema registry is anonymous type, "
         + "but format TestFormat does not support anonymous types. "
         + "schema: parsedSchema"));
+  }
+
+  @Test
+  public void shouldThrowOnUnwrappedSchemaIfUnwrapSingleIsFalse() {
+    // Given:
+    when(connectSchema.type()).thenReturn(Type.INT32);
+    when(format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(KsqlException.class,
+        () -> translator.toColumns(parsedSchema, false, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Schema returned from schema registry is anonymous type. "
+        + "To use this schema with ksqlDB, set 'WRAP_SINGLE_VALUE=false' in the "
+        + "WITH clause properties."));
   }
 
   @Test
@@ -153,7 +171,7 @@ public class ConnectFormatSchemaTranslatorTest {
     when(format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
 
     // When:
-    translator.toColumns(parsedSchema, false);
+    translator.toColumns(parsedSchema, false, true);
 
     // Then:
     verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
@@ -168,7 +186,37 @@ public class ConnectFormatSchemaTranslatorTest {
     when(format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
 
     // When:
-    translator.toColumns(parsedSchema, true);
+    translator.toColumns(parsedSchema, true, true);
+
+    // Then:
+    verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
+        .field("ROWKEY", connectSchema)
+        .build());
+  }
+
+  @Test
+  public void shouldSupportBuildingColumnsFromPrimitiveStructValueSchema() {
+    // Given:
+    when(connectSchema.type()).thenReturn(Type.STRUCT);
+    when(format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
+
+    // When:
+    translator.toColumns(parsedSchema, false, true);
+
+    // Then:
+    verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
+        .field("ROWVAL", connectSchema)
+        .build());
+  }
+
+  @Test
+  public void shouldSupportBuildingColumnsFromPrimitiveStructKeySchema() {
+    // Given:
+    when(connectSchema.type()).thenReturn(Type.STRUCT);
+    when(format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
+
+    // When:
+    translator.toColumns(parsedSchema, true, true);
 
     // Then:
     verify(connectKsqlTranslator).apply(SchemaBuilder.struct()

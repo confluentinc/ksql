@@ -28,6 +28,8 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -63,24 +65,27 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   public SchemaResult getKeySchema(
       final String topicName,
       final Optional<Integer> schemaId,
-      final FormatInfo expectedFormat
+      final FormatInfo expectedFormat,
+      final SerdeFeatures serdeFeatures
   ) {
-    return getSchema(topicName, schemaId, expectedFormat, true);
+    return getSchema(topicName, schemaId, expectedFormat, serdeFeatures, true);
   }
 
   @Override
   public SchemaResult getValueSchema(
       final String topicName,
       final Optional<Integer> schemaId,
-      final FormatInfo expectedFormat
+      final FormatInfo expectedFormat,
+      final SerdeFeatures serdeFeatures
   ) {
-    return getSchema(topicName, schemaId, expectedFormat, false);
+    return getSchema(topicName, schemaId, expectedFormat, serdeFeatures, false);
   }
 
   private SchemaResult getSchema(
       final String topicName,
       final Optional<Integer> schemaId,
       final FormatInfo expectedFormat,
+      final SerdeFeatures serdeFeatures,
       final boolean isKey
   ) {
     try {
@@ -94,7 +99,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       }
 
       final ParsedSchema schema = srClient.getSchemaBySubjectAndId(subject, id);
-      return fromParsedSchema(topicName, id, schema, expectedFormat, isKey);
+      return fromParsedSchema(topicName, id, schema, expectedFormat, serdeFeatures, isKey);
     } catch (final RestClientException e) {
       switch (e.getStatus()) {
         case HttpStatus.SC_NOT_FOUND:
@@ -116,6 +121,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       final int id,
       final ParsedSchema parsedSchema,
       final FormatInfo expectedFormat,
+      final SerdeFeatures serdeFeatures,
       final boolean isKey
   ) {
     final Format format = formatFactory.apply(expectedFormat);
@@ -127,7 +133,11 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
 
     final List<SimpleColumn> columns;
     try {
-      columns = translator.toColumns(parsedSchema, isKey);
+      columns = translator.toColumns(
+          parsedSchema,
+          isKey,
+          serdeFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)
+      );
     } catch (final Exception e) {
       return notCompatible(topic, parsedSchema.canonicalString(), e, isKey);
     }

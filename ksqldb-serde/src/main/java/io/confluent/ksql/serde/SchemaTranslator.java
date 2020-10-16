@@ -41,9 +41,10 @@ public interface SchemaTranslator {
    *
    * @param schema the {@code ParsedSchema} returned from Schema Registry
    * @param isKey whether the schema being translated is a key schema
+   * @param unwrapSingle whether a single, unwrapped column should be returned
    * @return the list of columns the schema defines
    */
-  List<SimpleColumn> toColumns(ParsedSchema schema, boolean isKey);
+  List<SimpleColumn> toColumns(ParsedSchema schema, boolean isKey, boolean unwrapSingle);
 
   /**
    * Converts a {@link PersistenceSchema} into a Schema Registry's {@link ParsedSchema}.

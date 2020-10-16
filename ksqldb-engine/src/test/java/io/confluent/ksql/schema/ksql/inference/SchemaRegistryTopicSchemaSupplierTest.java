@@ -39,6 +39,8 @@ import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.Map;
@@ -92,7 +94,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
     when(format.getSchemaTranslator(any())).thenReturn(schemaTranslator);
-    when(schemaTranslator.toColumns(eq(parsedSchema), anyBoolean())).thenReturn(ImmutableList.of(column1));
+    when(schemaTranslator.toColumns(eq(parsedSchema), anyBoolean(), anyBoolean()))
+        .thenReturn(ImmutableList.of(column1));
     when(schemaTranslator.name()).thenReturn("AVRO");
 
     when(expectedFormat.getProperties()).thenReturn(formatProperties);
@@ -105,7 +108,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
     // When:
     final SchemaResult result = supplier
-        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of());
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -128,8 +131,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(parsedSchema.schemaType()).thenReturn(ProtobufSchema.TYPE);
 
     // When:
-    final SchemaResult result = supplier
-        .getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+    final SchemaResult result = supplier.getKeySchema(
+        TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -154,7 +157,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
     // When:
     final SchemaResult result = supplier
-        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of());
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -171,8 +174,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(notFoundException());
 
     // When:
-    final SchemaResult result = supplier
-        .getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+    final SchemaResult result = supplier.getKeySchema(
+        TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -189,8 +192,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(notFoundException());
 
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42),
-        expectedFormat);
+    final SchemaResult result = supplier.getValueSchema(
+        TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of());
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -207,8 +210,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(notFoundException());
 
     // When:
-    final SchemaResult result = supplier.getKeySchema(TOPIC_NAME, Optional.of(42),
-        expectedFormat);
+    final SchemaResult result = supplier.getKeySchema(
+        TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -225,8 +228,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(unauthorizedException());
 
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42),
-        expectedFormat);
+    final SchemaResult result = supplier.getValueSchema(
+        TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of());
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -243,8 +246,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(unauthorizedException());
 
     // When:
-    final SchemaResult result = supplier.getKeySchema(TOPIC_NAME, Optional.of(42),
-        expectedFormat);
+    final SchemaResult result = supplier.getKeySchema(
+        TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -261,8 +264,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(forbiddenException());
 
     // When:
-    final SchemaResult result = supplier.getValueSchema(TOPIC_NAME, Optional.of(42),
-        expectedFormat);
+    final SchemaResult result = supplier.getValueSchema(
+        TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of());
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -279,8 +282,8 @@ public class SchemaRegistryTopicSchemaSupplierTest {
         .thenThrow(forbiddenException());
 
     // When:
-    final SchemaResult result = supplier.getKeySchema(TOPIC_NAME, Optional.of(42),
-        expectedFormat);
+    final SchemaResult result = supplier.getKeySchema(
+        TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -299,7 +302,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat)
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of())
     );
 
     // Then:
@@ -316,7 +319,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat)
+        () -> supplier.getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES))
     );
 
     // Then:
@@ -333,7 +336,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedFormat)
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of())
     );
 
     // Then:
@@ -350,7 +353,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getKeySchema(TOPIC_NAME, Optional.of(42), expectedFormat)
+        () -> supplier.getKeySchema(TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES))
     );
 
     // Then:
@@ -367,7 +370,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat)
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of())
     );
 
     // Then:
@@ -384,7 +387,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat)
+        () -> supplier.getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES))
     );
 
     // Then:
@@ -401,7 +404,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedFormat)
+        () -> supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of())
     );
 
     // Then:
@@ -418,7 +421,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> supplier.getKeySchema(TOPIC_NAME, Optional.of(42), expectedFormat)
+        () -> supplier.getKeySchema(TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES))
     );
 
     // Then:
@@ -429,12 +432,12 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetValueSchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(schemaTranslator.toColumns(any(), anyBoolean()))
+    when(schemaTranslator.toColumns(any(), anyBoolean(), anyBoolean()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
     final SchemaResult result = supplier
-        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of());
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -448,12 +451,12 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetKeySchemaIfCanNotConvertToConnectSchema() {
     // Given:
-    when(schemaTranslator.toColumns(any(), anyBoolean()))
+    when(schemaTranslator.toColumns(any(), anyBoolean(), anyBoolean()))
         .thenThrow(new RuntimeException("it went boom"));
 
     // When:
-    final SchemaResult result = supplier
-        .getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+    final SchemaResult result = supplier.getKeySchema(
+        TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -467,11 +470,11 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldReturnErrorFromGetKeySchemaOnMultipleColumns() {
     // Given:
-    when(schemaTranslator.toColumns(parsedSchema, true)).thenReturn(ImmutableList.of(column1, column2));
+    when(schemaTranslator.toColumns(parsedSchema, true, true)).thenReturn(ImmutableList.of(column1, column2));
 
     // When:
-    final SchemaResult result = supplier
-        .getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+    final SchemaResult result = supplier.getKeySchema(
+        TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
@@ -484,7 +487,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldRequestCorrectSchemaOnGetValueSchema() throws Exception {
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+    supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of());
 
     // Then:
     verify(srClient).getLatestSchemaMetadata(TOPIC_NAME + "-value");
@@ -493,7 +496,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldRequestCorrectSchemaOnGetKeySchema() throws Exception {
     // When:
-    supplier.getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+    supplier.getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     verify(srClient).getLatestSchemaMetadata(TOPIC_NAME + "-key");
@@ -502,7 +505,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldRequestCorrectSchemaOnGetValueSchemaWithId() throws Exception {
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedFormat);
+    supplier.getValueSchema(TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of());
 
     // Then:
     verify(srClient).getSchemaBySubjectAndId(TOPIC_NAME + "-value", 42);
@@ -511,7 +514,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldRequestCorrectSchemaOnGetKeySchemaWithId() throws Exception {
     // When:
-    supplier.getKeySchema(TOPIC_NAME, Optional.of(42), expectedFormat);
+    supplier.getKeySchema(TOPIC_NAME, Optional.of(42), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     verify(srClient).getSchemaBySubjectAndId(TOPIC_NAME + "-key", 42);
@@ -520,18 +523,36 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Test
   public void shouldPassRightSchemaToFormat() {
     // When:
-    supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+    supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of());
 
     // Then:
     verify(format).getSchemaTranslator(formatProperties);
-    verify(schemaTranslator).toColumns(parsedSchema, false);
+    verify(schemaTranslator).toColumns(parsedSchema, false, false);
+  }
+
+  @Test
+  public void shouldPassCorrectValueWrapping() {
+    // When:
+    supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+    // Then:
+    verify(schemaTranslator).toColumns(parsedSchema, false, true);
+  }
+
+  @Test
+  public void shouldPassCorrectKeyWrapping() {
+    // When:
+    supplier.getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+    // Then:
+    verify(schemaTranslator).toColumns(parsedSchema, true, true);
   }
 
   @Test
   public void shouldReturnSchemaFromGetValueSchemaIfFound() {
     // When:
     final SchemaResult result = supplier
-        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+        .getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of());
 
     // Then:
     assertThat(result.schemaAndId, is(not(Optional.empty())));
@@ -543,7 +564,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   public void shouldReturnSchemaFromGetKeySchemaIfFound() {
     // When:
     final SchemaResult result = supplier
-        .getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat);
+        .getKeySchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // Then:
     assertThat(result.schemaAndId, is(not(Optional.empty())));

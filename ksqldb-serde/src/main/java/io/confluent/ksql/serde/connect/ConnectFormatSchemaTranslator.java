@@ -59,14 +59,27 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
   }
 
   @Override
-  public List<SimpleColumn> toColumns(final ParsedSchema schema, final boolean isKey) {
+  public List<SimpleColumn> toColumns(
+      final ParsedSchema schema,
+      final boolean isKey,
+      final boolean unwrapSingle) {
     Schema connectSchema = connectSrTranslator.toConnectSchema(schema);
 
-    if (connectSchema.type() != Type.STRUCT) {
+    if (connectSchema.type() != Type.STRUCT || unwrapSingle) {
       if (!format.supportsFeature(SerdeFeature.UNWRAP_SINGLES)) {
         throw new KsqlException("Schema returned from schema registry is anonymous type, "
             + "but format " + format.name() + " does not support anonymous types. "
             + "schema: " + schema);
+      }
+
+      if (!unwrapSingle) {
+        if (isKey) {
+          throw new IllegalStateException("Key schemas are always unwrapped.");
+        }
+
+        throw new KsqlException("Schema returned from schema registry is anonymous type. "
+            + "To use this schema with ksqlDB, set 'WRAP_SINGLE_VALUE=false' in the "
+            + "WITH clause properties.");
       }
 
       connectSchema = SerdeUtils.wrapSingle(connectSchema, isKey);

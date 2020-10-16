@@ -308,10 +308,8 @@ public class CommandStore implements CommandQueue, Closeable {
     commandStatusMap.compute(
         commandId,
         (k, v) -> {
-          if (v == null) {
-            throw new IllegalStateException(
-                String.format("Trying to abort an unknown commandId (%s)", commandId)
-            );
+          if (v != null) {
+            LOG.info("Aborting existing command {}", commandId);
           }
           return null;
         }

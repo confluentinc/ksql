@@ -369,15 +369,6 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldThrowErrorOnAbortUnknown() {
-    // When/Then:
-    assertThrows(
-        IllegalStateException.class,
-        () -> commandStore.abortCommand(commandId)
-    );
-  }
-
-  @Test
   public void shouldSuccessfullyAbortAndRetry() {
     // Given:
     commandStore.enqueueCommand(commandId, command, transactionalProducer);

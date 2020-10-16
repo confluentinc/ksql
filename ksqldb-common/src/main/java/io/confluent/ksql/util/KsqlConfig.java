@@ -235,7 +235,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
-  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 40;
+  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
       "Size of thread pool used for sending/executing pull queries";
 

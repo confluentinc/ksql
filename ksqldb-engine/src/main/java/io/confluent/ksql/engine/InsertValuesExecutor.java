@@ -304,8 +304,8 @@ public class InsertValuesExecutor {
           topicName,
           false,
           e);
-      LOG.error("Could not serialize row.", e);
-      throw new KsqlException("Could not serialize row: " + row + ". " + e.getMessage(), e);
+      LOG.error("Could not serialize value.", e);
+      throw new KsqlException("Could not serialize value: " + row + ". " + e.getMessage(), e);
     }
   }
 

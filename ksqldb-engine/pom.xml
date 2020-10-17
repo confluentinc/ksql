@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.1.0-SNAPSHOT</version>
+        <version>6.1.0-0</version>
     </parent>
 
     <artifactId>ksqldb-engine</artifactId>
@@ -31,36 +31,43 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-common</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-execution</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-streams</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-serde</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-parser</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-metastore</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-udf</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
@@ -136,7 +143,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-metastore</artifactId>
-            <version>${project.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -144,7 +151,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-common</artifactId>
-            <version>${project.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -152,7 +159,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>
-            <version>${project.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <scope>test</scope>
         </dependency>
 

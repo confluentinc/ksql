@@ -634,7 +634,7 @@ public class InsertValuesExecutorTest {
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(containsString("Could not serialize row"))));
+    assertThat(e.getCause(), (hasMessage(containsString("Could not serialize value"))));
   }
 
   @Test

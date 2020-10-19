@@ -541,31 +541,6 @@
       "outputs": [{"topic": "S", "value": {"UNKNOWN": null, "C1": 4}}]
     },
     {
-      "name": "validate AVRO fails on incompatible schema evolution",
-      "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot register avro schema for OUTPUT as the schema is incompatible with the current schema version registered for the topic.\nKSQL schema: {\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\",\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":[{\"name\":\"C1\",\"type\":[\"null\",\"int\"],\"default\":null}],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}\nRegistered schema: {\"type\":\"record\",\"name\":\"blah\",\"fields\":[{\"name\":\"C1\",\"type\":\"double\"}]}"
-      },
-      "topics": [
-        {
-          "name": "input",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "C1", "type": "int"}]},
-          "valueFormat": "AVRO",
-          "partitions": 4
-        },
-        {
-          "name": "OUTPUT",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "C1", "type": "double"}]},
-          "format": "AVRO",
-          "partitions": 4
-        }
-      ]
-    },
-    {
       "name": "non-join should reject ROWTIME in projection",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, F0 INT) WITH (kafka_topic='input', value_format='JSON');",

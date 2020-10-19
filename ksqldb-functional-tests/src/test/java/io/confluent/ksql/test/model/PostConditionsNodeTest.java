@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.model;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -43,7 +44,7 @@ public class PostConditionsNodeTest {
     final PostTopicsNode topics = new PostTopicsNode(
         Optional.of(".*repartition"),
         Optional.of(ImmutableList.of(
-            new PostTopicNode("t1", KEY_FORMAT, VALUE_FORMAT, PARTITION_COUNT)
+            new PostTopicNode("t1", KEY_FORMAT, VALUE_FORMAT, PARTITION_COUNT, JsonNodeFactory.instance.textNode("a"), JsonNodeFactory.instance.textNode("b"))
         ))
     );
 

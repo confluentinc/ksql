@@ -1147,7 +1147,34 @@
         {"topic": "OUTPUT", "key": {"F1": "foo"}, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": {"F1": null}, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ]
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat" : { "format" : "AVRO", "features": ["UNWRAP_SINGLES"] },
+              "keySchema": {
+                "type": "record",
+                "name": "KsqlDataSourceSchema",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  { "name": "F1", "type": [ "null", "string" ], "default": null }
+                ]
+              },
+              "valueFormat" : { "format" : "AVRO" },
+              "valueSchema": {
+                "type": "record",
+                "name": "KsqlDataSourceSchema",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  { "name": "FOO", "type": [ "null", "int" ], "default": null }
+                ]
+              }
+            }
+          ]
+        }
+      }
     },
     {
       "name": "INT - key - key and value inference",

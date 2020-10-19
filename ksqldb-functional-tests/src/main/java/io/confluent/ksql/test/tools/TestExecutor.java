@@ -22,7 +22,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -30,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -42,6 +45,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
@@ -200,11 +205,18 @@ public class TestExecutor implements Closeable {
                 ? OptionalInt.empty()
                 : OptionalInt.of(topic.getNumPartitions());
 
+            final Optional<SchemaMetadata> keyMetadata = SchemaRegistryUtil.getLatestSchema(
+                serviceContext.getSchemaRegistryClient(), ti.getTopicName(), true);
+            final Optional<SchemaMetadata> valueMetadata = SchemaRegistryUtil.getLatestSchema(
+                serviceContext.getSchemaRegistryClient(), ti.getTopicName(), false);
+
             return new PostTopicNode(
                 ti.getTopicName(),
                 ti.getKeyFormat(),
                 ti.getValueFormat(),
-                partitions
+                partitions,
+                fromSchemaMetadata(keyMetadata),
+                fromSchemaMetadata(valueMetadata)
             );
           })
           .collect(Collectors.toList());
@@ -226,6 +238,22 @@ public class TestExecutor implements Closeable {
       assertThat(e, isThrowable(expectedExceptionMatcher.get()));
     } finally {
       System.clearProperty(KsqlQueryBuilder.KSQL_TEST_TRACK_SERDE_TOPICS);
+    }
+  }
+
+  private static JsonNode fromSchemaMetadata(final Optional<SchemaMetadata> metadata) {
+    if (!metadata.isPresent()) {
+      return NullNode.getInstance();
+    }
+
+    if (ProtobufFormat.NAME.equals(metadata.get().getSchemaType())) {
+      return JsonNodeFactory.instance.textNode(metadata.get().getSchema());
+    }
+
+    try {
+      return TestJsonMapper.INSTANCE.get().readTree(metadata.get().getSchema());
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
     }
   }
 

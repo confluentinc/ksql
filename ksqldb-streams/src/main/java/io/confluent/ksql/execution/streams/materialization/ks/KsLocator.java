@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +78,9 @@ final class KsLocator implements Locator {
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory
   ) {
-    final Map<Integer, List<KsqlNode>> locationsByPartition = new HashMap<>();
+    // Maintain request order for reproducibility by using a LinkedHashMap, even though it's
+    // not a guarantee of the API.
+    final Map<Integer, List<KsqlNode>> locationsByPartition = new LinkedHashMap<>();
     final Map<Integer, Set<Struct>> keysByPartition = new HashMap<>();
     final Set<Integer> filterPartitions = routingOptions.getPartitions();
     for (Struct key : keys) {

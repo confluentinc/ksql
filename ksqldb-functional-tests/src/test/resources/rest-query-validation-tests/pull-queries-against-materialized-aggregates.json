@@ -1931,11 +1931,11 @@
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID IN (CAST(1 AS INT));"
+        "SELECT * FROM AGGREGATE WHERE ID IN (CAST(1 AS INTEGER));"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Ony comparison to literals is currently supported: (ID IN (CAST(1 AS INTEGER)))",
+        "message": "Only comparison to literals is currently supported: (ID IN (CAST(1 AS INTEGER)))",
         "status": 400
       }
     }

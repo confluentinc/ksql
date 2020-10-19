@@ -98,6 +98,7 @@ public interface DataSource {
   Optional<String> canUpgradeTo(DataSource other);
 
   /**
+   * @param sql a sql statement to append to the current sql
    * @param schema a schema
    * @return a new DataSource object with all attributes the same as this, but with a new schema
    */

@@ -166,7 +166,8 @@ public class DdlCommandExec {
             .valueColumns(alterSource.getNewColumns())
             .build();
       } catch (DuplicateColumnException e) {
-        throw new KsqlException("Cannot add existing column to schema: " + e.getColumn());
+        throw new KsqlException("Cannot add column " + e.getColumn().name()
+            + " to schema. A column with the same name already exists.");
       }
 
       metaStore.putSource(dataSource.with(sql, newSchema), true);

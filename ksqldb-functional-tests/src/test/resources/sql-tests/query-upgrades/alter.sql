@@ -56,7 +56,7 @@ ALTER TABLE b ADD COLUMN col2 INT;
 ----------------------------------------------------------------------------------------------------
 --@test: add an already existing column to a stream
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: Cannot add existing column to schema: `COL1` INTEGER
+--@expected.message: Cannot add column `COL1` to schema. A column with the same name already exists.
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 

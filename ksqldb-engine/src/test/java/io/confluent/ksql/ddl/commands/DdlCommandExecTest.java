@@ -302,7 +302,7 @@ public class DdlCommandExecTest {
     final KsqlException e = assertThrows(KsqlException.class, () -> cmdExec.execute(SQL_TEXT, alterSource, false));
 
     // Then:
-    assertThat(e.getMessage(), is("Cannot add existing column to schema: `F1` BIGINT"));
+    assertThat(e.getMessage(), is("Cannot add column `F1` to schema. A column with the same name already exists."));
   }
 
   @Test

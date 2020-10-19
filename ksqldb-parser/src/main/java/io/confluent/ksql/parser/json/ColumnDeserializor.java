@@ -19,18 +19,9 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.confluent.ksql.metastore.TypeRegistry;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.parser.CaseInsensitiveStream;
-import io.confluent.ksql.parser.SqlBaseLexer;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.SqlBaseParser.TableElementContext;
+import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.Column.Namespace;
-import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.util.ParserUtil;
 import java.io.IOException;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
 
 public class ColumnDeserializor extends JsonDeserializer<Column> {
 
@@ -43,18 +34,6 @@ public class ColumnDeserializor extends JsonDeserializer<Column> {
       final DeserializationContext ctxt
   ) throws IOException {
     final String text = p.readValueAs(String.class);
-    final SqlBaseLexer lexer = new SqlBaseLexer(
-        new CaseInsensitiveStream(CharStreams.fromString(text))
-    );
-    final CommonTokenStream tokStream = new CommonTokenStream(lexer);
-    final SqlBaseParser parser = new SqlBaseParser(tokStream);
-    final TableElementContext context = parser.tableElement();
-
-    return Column.of(
-        ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
-        SqlTypeParser.create(TypeRegistry.EMPTY).getType(context.type()).getSqlType(),
-        context.KEY() == null ? Namespace.VALUE : Namespace.KEY,
-        0
-    );
+    return SchemaParser.parse(text, TypeRegistry.EMPTY).toLogicalSchema().columns().get(0);
   }
 }

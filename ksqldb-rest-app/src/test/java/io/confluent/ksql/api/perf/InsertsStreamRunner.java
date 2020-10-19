@@ -25,6 +25,7 @@ import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.codegen.annotations.Nullable;
@@ -191,7 +192,8 @@ public class InsertsStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-        ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest) {
+        ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
+        KsqlMediaType mediaType) {
       return null;
     }
 

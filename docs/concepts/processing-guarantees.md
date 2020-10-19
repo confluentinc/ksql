@@ -67,8 +67,8 @@ Pass the config as a property along with the request:
 
 ```http
 POST /query HTTP/1.1
-Accept: application/vnd.ksql.v1+json
-Content-Type: application/vnd.ksql.v1+json
+Accept: application/vnd.ksql.v2+json
+Content-Type: application/vnd.ksql.v2+json
 
 {
 "ksql": "SELECT * FROM pageviews EMIT CHANGES;",

@@ -430,13 +430,13 @@ public final class PullQueryExecutor {
         throw new KsqlServerException("Unexpected forwarding response");
       }
 
-      rows.add(row.getRow().get().values());
+      rows.add(row.getRow().get().getColumns().orElseThrow(IllegalStateException::new));
     }
 
     return new TableRows(
         statement.getStatementText(),
         header.getQueryId(),
-        header.getSchema(),
+        header.getColumnsSchema(),
         rows.build()
     );
   }

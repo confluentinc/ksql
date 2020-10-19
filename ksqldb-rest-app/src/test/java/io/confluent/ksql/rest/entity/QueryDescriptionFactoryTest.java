@@ -48,6 +48,7 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -137,7 +138,9 @@ public class QueryDescriptionFactoryTest {
         PROP_OVERRIDES,
         queryCloseCallback,
         closeTimeout,
-        10);
+        10,
+        ResultType.STREAM
+    );
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
@@ -269,7 +272,9 @@ public class QueryDescriptionFactoryTest {
         PROP_OVERRIDES,
         queryCloseCallback,
         closeTimeout,
-        10);
+        10,
+        ResultType.STREAM
+    );
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
@@ -303,7 +308,9 @@ public class QueryDescriptionFactoryTest {
         PROP_OVERRIDES,
         queryCloseCallback,
         closeTimeout,
-        10);
+        10,
+        ResultType.STREAM
+    );
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());

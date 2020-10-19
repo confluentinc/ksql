@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -207,7 +206,7 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(key, 1))));
   }
 
   @Test
@@ -236,12 +235,12 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(
         key,                    // USERID
         BASE_TIME,              // WINDOWSTART
         BASE_TIME + ONE_SECOND, // WINDOWEND
         1                       // COUNT
-    )));
+    ))));
   }
 
   private static List<StreamedRow> makePullQueryRequest(

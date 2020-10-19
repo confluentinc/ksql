@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.cli.console.CliConfig.OnOff;
 import io.confluent.ksql.cli.console.KsqlTerminal.HistoryEntry;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
@@ -63,7 +62,6 @@ import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
@@ -79,18 +77,20 @@ import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
+import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.entity.WarningEntity;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TabularRow;
+import io.confluent.ksql.util.TombstoneConverter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -202,10 +202,11 @@ public class Console implements Closeable {
   private OutputFormat outputFormat;
   private Optional<File> spoolFile = Optional.empty();
   private CliConfig config;
+  private Optional<TombstoneConverter> tombstoneConverter;
 
   public interface RowCaptor {
 
-    void addRow(GenericRow row);
+    void addRow(DataRow row);
 
     void addRows(List<List<String>> fields);
   }
@@ -338,12 +339,12 @@ public class Console implements Closeable {
 
     row.getFinalMessage().ifPresent(finalMsg -> writer().println(finalMsg));
 
-    row.getHeader().ifPresent(header -> printRowHeader(header.getSchema()));
+    row.getHeader().ifPresent(this::printRowHeader);
 
     if (row.getRow().isPresent()) {
       switch (outputFormat) {
         case JSON:
-          printAsJson(row.getRow().get().values());
+          printAsJson(row.getRow().get());
           break;
         case TABULAR:
           printAsTable(row.getRow().get());
@@ -380,15 +381,20 @@ public class Console implements Closeable {
     }
   }
 
-  private void printRowHeader(final LogicalSchema schema) {
+  private void printRowHeader(final Header header) {
+    if (header.getKeySchema().isPresent()) {
+      tombstoneConverter = Optional.of(new TombstoneConverter(header));
+    }
+
     switch (outputFormat) {
       case JSON:
+        printAsJson(header);
         break;
       case TABULAR:
         writer().println(
             TabularRow.createHeader(
                 getWidth(),
-                schema.columns(),
+                header.getColumnsSchema().columns(),
                 config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString()),
                 config.getInt(CliConfig.COLUMN_WIDTH_CONFIG)
             )
@@ -437,14 +443,26 @@ public class Console implements Closeable {
         .findFirst();
   }
 
-  private void printAsTable(final GenericRow row) {
+  private void printAsTable(final DataRow row) {
     rowCaptor.addRow(row);
+
+    final boolean tombstone = row.getTombstone().orElse(false);
+
+    final List<?> columns;
+    if (!tombstone) {
+      columns = row.getColumns().orElseThrow(IllegalStateException::new);
+    } else {
+      columns = tombstoneConverter.orElseThrow(IllegalStateException::new)
+          .asColumns(row);
+    }
+
     writer().println(TabularRow.createRow(
         getWidth(),
-        row,
+        columns,
         config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString()),
         config.getInt(CliConfig.COLUMN_WIDTH_CONFIG))
     );
+
     flush();
   }
 
@@ -878,13 +896,6 @@ public class Console implements Closeable {
   }
 
   private void printAsJson(final Object o) {
-    if (!((o instanceof PropertiesList || (o instanceof KsqlEntityList)))) {
-      log.warn(
-          "Unexpected result class: '{}' found in printAsJson",
-          o.getClass().getCanonicalName()
-      );
-    }
-
     try {
       OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
       writer().println();
@@ -897,7 +908,7 @@ public class Console implements Closeable {
   static class NoOpRowCaptor implements RowCaptor {
 
     @Override
-    public void addRow(final GenericRow row) {
+    public void addRow(final DataRow row) {
     }
 
     @Override

@@ -17,7 +17,9 @@ package io.confluent.ksql.api.perf;
 
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_NAMES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
+import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_KEY;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
+import static io.confluent.ksql.util.KeyValue.keyValue;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
@@ -29,8 +31,10 @@ import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -58,7 +62,7 @@ public class PullQueryRunner extends BasePerfRunner {
   private static final JsonObject DEFAULT_PULL_QUERY_REQUEST_BODY = new JsonObject()
       .put("sql", DEFAULT_PULL_QUERY)
       .put("properties", new JsonObject().put("auto.offset.reset", "earliest"));
-  private static final List<GenericRow> DEFAULT_ROWS = generateResults();
+  private static final List<KeyValue<List<?>, GenericRow>> DEFAULT_ROWS = generateResults();
   private static final int MAX_CONCURRENT_REQUESTS = 100;
 
   private PullQueryEndpoints pullQueryEndpoints;
@@ -99,10 +103,10 @@ public class PullQueryRunner extends BasePerfRunner {
     Thread.sleep(500);
   }
 
-  private static List<GenericRow> generateResults() {
-    List<GenericRow> results = new ArrayList<>();
+  private static List<KeyValue<List<?>, GenericRow>> generateResults() {
+    final List<KeyValue<List<?>, GenericRow>> results = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      results.add(DEFAULT_ROW);
+      results.add(keyValue(DEFAULT_KEY, DEFAULT_ROW));
     }
     return results;
   }
@@ -147,7 +151,8 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-        ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest) {
+        ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
+        KsqlMediaType mediaType) {
       return null;
     }
 
@@ -224,10 +229,11 @@ public class PullQueryRunner extends BasePerfRunner {
     }
   }
 
-  private static class PullQueryPublisher extends BufferedPublisher<GenericRow> implements
-      QueryPublisher {
+  private static class PullQueryPublisher
+      extends BufferedPublisher<KeyValue<List<?>, GenericRow>>
+      implements QueryPublisher {
 
-    public PullQueryPublisher(final Context ctx, List<GenericRow> rows) {
+    public PullQueryPublisher(final Context ctx, List<KeyValue<List<?>, GenericRow>> rows) {
       super(ctx, rows);
     }
 
@@ -246,6 +252,4 @@ public class PullQueryRunner extends BasePerfRunner {
       return true;
     }
   }
-
-
 }

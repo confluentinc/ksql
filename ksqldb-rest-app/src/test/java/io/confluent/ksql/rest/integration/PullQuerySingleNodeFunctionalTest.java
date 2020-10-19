@@ -228,7 +228,7 @@ public class PullQuerySingleNodeFunctionalTest {
     assertThat(host.getHost(), is(host0.getHost()));
     assertThat(host.getPort(), is(host0.getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
 
     // Stop the server and blow away the state
     LOG.info("Shutting down the server " + host0.toString());
@@ -261,7 +261,7 @@ public class PullQuerySingleNodeFunctionalTest {
     assertThat(host.getPort(), is(host0.getPort()));
     assertThat(sameRows.get(1).getRow(), is(not(Optional.empty())));
     // Still haven't gotten the update yet
-    assertThat(sameRows.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(sameRows.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
 
     // Row not found!
     final List<StreamedRow> headerOnly = makePullQueryRequest(
@@ -288,7 +288,7 @@ public class PullQuerySingleNodeFunctionalTest {
     assertThat(host.getHost(), is(host0.getHost()));
     assertThat(host.getPort(), is(host0.getPort()));
     assertThat(updatedRows.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(updatedRows.get(1).getRow().get().values(), is(ImmutableList.of(KEY_3, 1)));
+    assertThat(updatedRows.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY_3, 1))));
   }
 
   private static String extractQueryId(final String outputString) {

@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.query;
 
+import static io.confluent.ksql.util.KeyValue.keyValue;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KeyValue;
 import java.util.Collection;
+import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,7 +34,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
   public static final int BLOCKING_QUEUE_CAPACITY = 500;
 
-  private final BlockingQueue<GenericRow> rowQueue;
+  private final BlockingQueue<KeyValue<List<?>, GenericRow>> rowQueue;
   private final int offerTimeoutMs;
   private LimitQueueCallback callback;
   private volatile boolean closed = false;
@@ -81,18 +85,18 @@ public class TransientQueryQueue implements BlockingRowQueue {
   }
 
   @Override
-  public GenericRow poll(final long timeout, final TimeUnit unit)
+  public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
       throws InterruptedException {
     return rowQueue.poll(timeout, unit);
   }
 
   @Override
-  public GenericRow poll() {
+  public KeyValue<List<?>, GenericRow> poll() {
     return rowQueue.poll();
   }
 
   @Override
-  public void drainTo(final Collection<? super GenericRow> collection) {
+  public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
     rowQueue.drainTo(collection);
   }
 
@@ -111,15 +115,13 @@ public class TransientQueryQueue implements BlockingRowQueue {
     closed = true;
   }
 
-  public void acceptRow(final GenericRow row) {
+  public void acceptRow(final List<?> key, final GenericRow value) {
     try {
-      if (row == null) {
-        return;
-      }
-
       if (!callback.shouldQueue()) {
         return;
       }
+
+      final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
 
       while (!closed) {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {

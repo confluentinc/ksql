@@ -293,7 +293,7 @@ public class KsqlClientTest {
     List<StreamedRow> expectedResponse = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       GenericRow row = GenericRow.genericRow("foo", 123, true);
-      StreamedRow sr = StreamedRow.row(row);
+      StreamedRow sr = StreamedRow.streamRow(row);
       expectedResponse.add(sr);
     }
     server.setResponseBuffer(createResponseBuffer(expectedResponse));
@@ -329,7 +329,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(response.getResponse(), is(ImmutableList.of(
-        StreamedRow.row(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
+        StreamedRow.streamRow(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
     )));
   }
 
@@ -688,7 +688,7 @@ public class KsqlClientTest {
     List<StreamedRow> expectedResponse = new ArrayList<>();
     for (int i = 0; i < numRows; i++) {
       GenericRow row = GenericRow.genericRow("foo", 123, true);
-      StreamedRow sr = StreamedRow.row(row);
+      StreamedRow sr = StreamedRow.streamRow(row);
       expectedResponse.add(sr);
     }
     if (limitReached) {

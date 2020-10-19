@@ -26,8 +26,8 @@ statements are passed to the engine for execution.
 
 ```http
 POST /ksql/terminate HTTP/1.1
-Accept: application/vnd.ksql.v1+json
-Content-Type: application/vnd.ksql.v1+json
+Accept: application/vnd.ksql.v2+json
+Content-Type: application/vnd.ksql.v2+json
 
 {}
 ```
@@ -48,8 +48,8 @@ example shows how to delete topic `FOO`, along with all topics with prefix
 
 ```http
 POST /ksql/terminate HTTP/1.1
-Accept: application/vnd.ksql.v1+json
-Content-Type: application/vnd.ksql.v1+json
+Accept: application/vnd.ksql.v2+json
+Content-Type: application/vnd.ksql.v2+json
 
 {
   "deleteTopicList": ["FOO", "bar.*"]

@@ -232,7 +232,7 @@ public final class AssertExecutor {
     contents.append(row.ts);
     contents.appendAll(row.value.values());
 
-    return TabularRow.createRow(80, contents, false, 0);
+    return TabularRow.createRow(80, contents.values(), false, 0);
   }
 
   public static void assertStream(

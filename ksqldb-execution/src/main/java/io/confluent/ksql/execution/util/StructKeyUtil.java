@@ -21,11 +21,14 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.Windowed;
 
 /**
  * Helper for dealing with Struct keys.
@@ -53,6 +56,40 @@ public final class StructKeyUtil {
         .field(name.text(), connectSchema)
         .build()
     );
+  }
+
+  @SuppressWarnings("unchecked")
+  public static List<?> asList(final Object key) {
+    final Optional<Windowed<Object>> windowed = key instanceof Windowed
+        ? Optional.of((Windowed<Object>) key)
+        : Optional.empty();
+
+    final Object naturalKey = windowed
+        .map(Windowed::key)
+        .orElse(key);
+
+    if (naturalKey != null && !(naturalKey instanceof Struct)) {
+      throw new IllegalArgumentException("None struct key: " + key);
+    }
+
+    final Optional<Struct> structKey = Optional.ofNullable((Struct) naturalKey);
+
+    final List<Object> data = new ArrayList<>(3);
+
+    structKey.ifPresent(k ->
+        k.schema().fields().stream()
+            .map(k::get)
+            .forEach(data::add)
+    );
+
+    windowed
+        .map(Windowed::window)
+        .ifPresent(wnd -> {
+          data.add(wnd.start());
+          data.add(wnd.end());
+        });
+
+    return data;
   }
 
   public static final class KeyBuilder {

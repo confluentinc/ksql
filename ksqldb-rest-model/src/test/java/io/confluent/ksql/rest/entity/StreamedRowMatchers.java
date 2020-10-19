@@ -20,10 +20,11 @@ import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -41,11 +42,13 @@ public final class StreamedRowMatchers {
 
     public static Matcher<? super Header> header(
         final Matcher<? super QueryId> expectedQueryId,
-        final Matcher<? super LogicalSchema> expectedSchema
+        final Matcher<? super Optional<List<SimpleColumn>>> expectedKeysSchema,
+        final Matcher<? super LogicalSchema> expectedColumnsSchema
     ) {
       return allOf(
           withQueryId(expectedQueryId),
-          withSchema(expectedSchema)
+          withKeysSchema(expectedKeysSchema),
+          withColumnsSchema(expectedColumnsSchema)
       );
     }
 
@@ -61,14 +64,26 @@ public final class StreamedRowMatchers {
       };
     }
 
-    private static Matcher<? super Header> withSchema(
+    private static Matcher<? super Header> withKeysSchema(
+        final Matcher<? super Optional<List<SimpleColumn>>> expectedSchema
+    ) {
+      return new FeatureMatcher<Header, Optional<List<SimpleColumn>>>
+          (expectedSchema, "header with keysSchema", "keysSchema") {
+        @Override
+        protected Optional<List<SimpleColumn>> featureValueOf(final Header actual) {
+          return actual.getKeySchema();
+        }
+      };
+    }
+
+    private static Matcher<? super Header> withColumnsSchema(
         final Matcher<? super LogicalSchema> expectedSchema
     ) {
       return new FeatureMatcher<Header, LogicalSchema>
-          (expectedSchema, "header", "header") {
+          (expectedSchema, "header with columnsSchema", "columnsSchema") {
         @Override
         protected LogicalSchema featureValueOf(final Header actual) {
-          return actual.getSchema();
+          return actual.getColumnsSchema();
         }
       };
     }
@@ -88,8 +103,8 @@ public final class StreamedRowMatchers {
     );
   }
 
-  public static Matcher<? super StreamedRow> value(
-      final Matcher<? super Optional<GenericRow>> expectedRow
+  public static Matcher<? super StreamedRow> dataRow(
+      final Matcher<? super Optional<DataRow>> expectedRow
   ) {
     return streamedRow(
         is(Optional.empty()),
@@ -132,8 +147,11 @@ public final class StreamedRowMatchers {
       final StreamedRow expected
   ) {
     final Matcher<? super Optional<Header>> headerMatcher = expected.getHeader()
-        .<Matcher<Optional<Header>>>map(header ->
-            OptionalMatchers.of(HeaderMatchers.header(any(QueryId.class), is(header.getSchema()))))
+        .<Matcher<Optional<Header>>>map(header -> OptionalMatchers.of(HeaderMatchers.header(
+            any(QueryId.class),
+            is(header.getKeySchema()),
+            is(header.getColumnsSchema())
+        )))
         .orElse(is(Optional.empty()));
 
     return streamedRow(
@@ -156,7 +174,7 @@ public final class StreamedRowMatchers {
 
   private static Matcher<? super StreamedRow> streamedRow(
       final Matcher<? super Optional<Header>> expectedHeader,
-      final Matcher<? super Optional<GenericRow>> expectedRow,
+      final Matcher<? super Optional<DataRow>> expectedRow,
       final Matcher<? super Optional<KsqlErrorMessage>> expectedError,
       final Matcher<? super Optional<String>> expectedFinalMsg
   ) {
@@ -181,12 +199,12 @@ public final class StreamedRowMatchers {
   }
 
   private static Matcher<? super StreamedRow> withValue(
-      final Matcher<? super Optional<GenericRow>> expectedRow
+      final Matcher<? super Optional<DataRow>> expectedRow
   ) {
-    return new FeatureMatcher<StreamedRow, Optional<GenericRow>>
+    return new FeatureMatcher<StreamedRow, Optional<DataRow>>
         (expectedRow, "value", "value") {
       @Override
-      protected Optional<GenericRow> featureValueOf(final StreamedRow actual) {
+      protected Optional<DataRow> featureValueOf(final StreamedRow actual) {
         return actual.getRow();
       }
     };

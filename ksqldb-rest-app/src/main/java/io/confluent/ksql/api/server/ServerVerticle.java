@@ -24,9 +24,9 @@ import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +87,7 @@ public class ServerVerticle extends AbstractVerticle {
   public void start(final Promise<Void> startPromise) {
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
-        .exceptionHandler(ServerVerticle::unhandledExceptionHandler);;
+        .exceptionHandler(ServerVerticle::unhandledExceptionHandler);
     httpServer.listen(ar -> {
       if (ar.succeeded()) {
         startPromise.complete();
@@ -148,66 +149,80 @@ public class ServerVerticle extends AbstractVerticle {
     // ----------------------------------------------
 
     router.route(HttpMethod.GET, "/")
-        .handler(this::handleInfoRedirect);
+        .handler(ServerVerticle::handleInfoRedirect);
     router.route(HttpMethod.POST, "/ksql")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleKsqlRequest);
     router.route(HttpMethod.POST, "/ksql/terminate")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleTerminateRequest);
     router.route(HttpMethod.POST, "/query")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleQueryRequest);
     router.route(HttpMethod.GET, "/info")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleInfoRequest);
     router.route(HttpMethod.POST, "/heartbeat")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleHeartbeatRequest);
     router.route(HttpMethod.GET, "/clusterStatus")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleClusterStatusRequest);
     router.route(HttpMethod.GET, "/status/:type/:entity/:action")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleStatusRequest);
     router.route(HttpMethod.GET, "/status")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleAllStatusesRequest);
     router.route(HttpMethod.POST, "/lag")
         .handler(BodyHandler.create())
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleLagReportRequest);
     router.route(HttpMethod.GET, "/healthcheck")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleHealthcheckRequest);
     router.route(HttpMethod.GET, "/v1/metadata")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleServerMetadataRequest);
     router.route(HttpMethod.GET, "/v1/metadata/id")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleServerMetadataClusterIdRequest);
     router.route(HttpMethod.GET, "/ws/query")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        // No support yet for V2. See https://github.com/confluentinc/ksql/issues/6439.
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleWebsocket);
     router.route(HttpMethod.GET, "/v1/configs")
-        .produces(Versions.KSQL_V1_JSON)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleConfigRequest);
     return router;
@@ -241,7 +256,9 @@ public class ServerVerticle extends AbstractVerticle {
                 .executeQueryRequest(
                     request, server.getWorkerExecutor(), connectionClosedFuture,
                     DefaultApiSecurityContext.create(routingContext),
-                    isInternalRequest(routingContext))
+                    isInternalRequest(routingContext),
+                    getContentType(routingContext)
+                )
 
     );
   }
@@ -315,7 +332,7 @@ public class ServerVerticle extends AbstractVerticle {
     );
   }
 
-  private void handleInfoRedirect(final RoutingContext routingContext) {
+  private static void handleInfoRedirect(final RoutingContext routingContext) {
     // We redirect to the /info endpoint.
     // (This preserves behaviour of the old API)
     routingContext.response().putHeader("location", "/info")
@@ -342,6 +359,15 @@ public class ServerVerticle extends AbstractVerticle {
   private static void chcHandler(final RoutingContext routingContext) {
     routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
         .end(new JsonObject().toBuffer());
+  }
+
+  private static KsqlMediaType getContentType(final RoutingContext routingContext) {
+    final String mediaType = routingContext.getAcceptableContentType();
+    if (mediaType == null || MediaType.APPLICATION_JSON.equals(mediaType)) {
+      return KsqlMediaType.LATEST_FORMAT;
+    }
+
+    return KsqlMediaType.parse(mediaType);
   }
 
   private static void unhandledExceptionHandler(final Throwable t) {

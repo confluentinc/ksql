@@ -275,7 +275,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
   }
 
 
@@ -308,7 +308,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
   }
 
   @Test
@@ -340,7 +340,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
   }
 
   @Test
@@ -406,7 +406,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     // This line ensures that we've not processed the new data
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
 
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
         clusterFormation.router.getApp(), sql, LAG_FILTER_3);

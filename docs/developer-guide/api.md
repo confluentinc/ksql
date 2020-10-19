@@ -33,18 +33,20 @@ Your request should specify this serialization
 format and version in the `Accept` header, for example:
 
 ```
-Accept: application/vnd.ksql.v1+json
+Accept: application/vnd.ksql.v2+json
 ```
 
 The less specific `application/json` content type is also permitted.
 However, this is only for compatibility and ease of use, and you should
-use the versioned value if possible.
+use the versioned value where possible. `application/json` maps to the latest
+versioned content type, meaning the response may change after upgrading the server to 
+a later version.
 
 The server also supports content negotiation, so you may include
 multiple, weighted preferences:
 
 ```
-Accept: application/vnd.ksql.v1+json; q=0.9, application/json; q=0.5
+Accept: application/vnd.ksql.v2+json; q=0.9, application/vnd.ksql.v1+json; q=0.5
 ```
 
 For example, content negotiation is useful when a new version of the API
@@ -55,7 +57,7 @@ Here's an example request that returns the results from the
 
 ```bash
 curl -X "POST" "http://localhost:8088/ksql" \
-     -H "Accept: application/vnd.ksql.v1+json" \
+     -H "Accept: application/vnd.ksql.v2+json" \
      -d $'{
   "ksql": "LIST STREAMS;",
   "streamsProperties": {}
@@ -67,7 +69,7 @@ Here's an example request that retrieves streaming data from
 
 ```bash
 curl -X "POST" "http://localhost:8088/query" \
-     -H "Accept: application/vnd.ksql.v1+json" \
+     -H "Accept: application/vnd.ksql.v2+json" \
      -d $'{
   "sql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
   "streamsProperties": {}
@@ -79,7 +81,7 @@ enabled on the cluster, as shown in the following command.
 
 ```bash hl_lines="3"
 curl -X "POST" "https://localhost:8088/ksql" \
-     -H "Accept: application/vnd.ksql.v1+json" \
+     -H "Accept: application/vnd.ksql.v2+json" \
      --basic --user "<API key>:<secret>" \
      -d $'{
   "ksql": "LIST STREAMS;",

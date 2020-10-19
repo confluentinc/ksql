@@ -113,7 +113,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
         final List<StreamedRow> rows = entity.getRows().stream()
             .map(PullQuerySubscription::toGenericRow)
-            .map(row -> StreamedRow.row(row, host))
+            .map(row -> StreamedRow.pullRow(row, host))
             .collect(Collectors.toList());
 
         subscriber.onNext(rows);

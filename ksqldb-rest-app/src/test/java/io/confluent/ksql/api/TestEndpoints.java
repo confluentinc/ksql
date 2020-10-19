@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
@@ -138,7 +139,8 @@ public class TestEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
       WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-      ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest) {
+      ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
+      KsqlMediaType mediaType) {
     return null;
   }
 

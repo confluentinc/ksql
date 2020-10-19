@@ -26,12 +26,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -43,14 +49,25 @@ public final class StreamedRow {
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private final Optional<Header> header;
-  private final Optional<GenericRow> row;
+  private final Optional<DataRow> row;
   private final Optional<KsqlErrorMessage> errorMessage;
   private final Optional<String> finalMessage;
   private final Optional<KsqlHostInfoEntity> sourceHost;
 
-  public static StreamedRow header(final QueryId queryId, final LogicalSchema schema) {
+  /**
+   * The header used in pull queries currently marks any primary key columns in the projection as
+   * {@code KEY} columns in the {@code schema} field of the header.
+   *
+   * @param queryId the id of the query
+   * @param schema the schema of the result
+   * @return the header row.
+   */
+  public static StreamedRow pullHeader(
+      final QueryId queryId,
+      final LogicalSchema schema
+  ) {
     return new StreamedRow(
-        Optional.of(Header.of(queryId, schema)),
+        Optional.of(Header.of(queryId, Optional.empty(), schema)),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -58,24 +75,94 @@ public final class StreamedRow {
     );
   }
 
-  public static StreamedRow row(final GenericRow row) {
+  /**
+   * The header used in push queries currently does not mark any columns in the projection as {@code
+   * KEY} columns.
+   *
+   * @param queryId the id of the query
+   * @param key the ordered list of columns in the primary key of the result
+   * @param values the ordered list of the columns in the projection
+   * @return the header row.
+   */
+  public static StreamedRow pushHeader(
+      final QueryId queryId,
+      final List<? extends SimpleColumn> key,
+      final List<? extends SimpleColumn> values
+  ) {
+    final Optional<List<? extends SimpleColumn>> keySchema = key.isEmpty()
+        ? Optional.empty()
+        : Optional.of(key);
+
+    // Cheeky overloaded use of LogicalSchema to only represent the schema of the selected columns:
+    final LogicalSchema columnsSchema = LogicalSchema.builder()
+        .valueColumns(values)
+        .build();
+
     return new StreamedRow(
+        Optional.of(Header.of(queryId, keySchema, columnsSchema)),
         Optional.empty(),
-        Optional.of(row),
         Optional.empty(),
         Optional.empty(),
         Optional.empty()
     );
   }
 
-  public static StreamedRow row(final GenericRow row,
-      final Optional<KsqlHostInfoEntity> sourceHost) {
+  /**
+   * Row returned from a push query table.
+   */
+  public static StreamedRow tableRow(
+      final List<?> key,
+      final GenericRow value
+  ) {
+    if (key.isEmpty()) {
+      throw new IllegalArgumentException("Must provide key");
+    }
+
     return new StreamedRow(
         Optional.empty(),
-        Optional.of(row),
+        Optional.of(DataRow.row(Optional.of(key), value.values())),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty()
+    );
+  }
+
+  /**
+   * Row returned from a push query stream.
+   */
+  public static StreamedRow streamRow(final GenericRow value) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.of(DataRow.row(Optional.empty(), value.values())),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty()
+    );
+  }
+
+  /**
+   * Row returned from a pull query.
+   */
+  public static StreamedRow pullRow(
+      final GenericRow value,
+      final Optional<KsqlHostInfoEntity> sourceHost
+  ) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.of(DataRow.row(Optional.empty(), value.values())),
         Optional.empty(),
         Optional.empty(),
         sourceHost
+    );
+  }
+
+  public static StreamedRow tombstone(final List<?> key) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.of(DataRow.tombstone(key)),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty()
     );
   }
 
@@ -102,7 +189,7 @@ public final class StreamedRow {
   @JsonCreator
   private StreamedRow(
       @JsonProperty("header") final Optional<Header> header,
-      @JsonProperty("row") final Optional<GenericRow> row,
+      @JsonProperty("row") final Optional<DataRow> row,
       @JsonProperty("errorMessage") final Optional<KsqlErrorMessage> errorMessage,
       @JsonProperty("finalMessage") final Optional<String> finalMessage,
       @JsonProperty("sourceHost") final Optional<KsqlHostInfoEntity> sourceHost
@@ -120,7 +207,7 @@ public final class StreamedRow {
     return header;
   }
 
-  public Optional<GenericRow> getRow() {
+  public Optional<DataRow> getRow() {
     return row;
   }
 
@@ -153,12 +240,13 @@ public final class StreamedRow {
     return Objects.equals(header, that.header)
         && Objects.equals(row, that.row)
         && Objects.equals(errorMessage, that.errorMessage)
-        && Objects.equals(finalMessage, that.finalMessage);
+        && Objects.equals(finalMessage, that.finalMessage)
+        && Objects.equals(sourceHost, that.sourceHost);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(header, row, errorMessage, finalMessage);
+    return Objects.hash(header, row, errorMessage, finalMessage, sourceHost);
   }
 
   @Override
@@ -181,31 +269,93 @@ public final class StreamedRow {
   }
 
   @Immutable
+  public abstract static class BaseRow {
+
+    @Override
+    public String toString() {
+      try {
+        return OBJECT_MAPPER.writeValueAsString(this);
+      } catch (final JsonProcessingException e) {
+        return super.toString();
+      }
+    }
+  }
+
+  // Note: Type used `LogicalSchema` as a cheeky way of (de)serializing lists of columns.
+  @JsonInclude(Include.NON_EMPTY)
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public static final class Header {
+  public static final class Header extends BaseRow {
 
     private final QueryId queryId;
-    private final LogicalSchema schema;
+    private final Optional<ImmutableList<SimpleColumn>> keySchema;
+    private final LogicalSchema columnsSchema;
 
-    @JsonCreator
     public static Header of(
-        @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-        @JsonProperty(value = "schema", required = true) final LogicalSchema schema
+        final QueryId queryId,
+        final Optional<List<? extends SimpleColumn>> key,
+        final LogicalSchema columnsSchema
     ) {
-      return new Header(queryId, schema);
+      final Optional<List<? extends SimpleColumn>> keySchema = key
+          .map(k -> LogicalSchema.builder().valueColumns(k).build())
+          .map(LogicalSchema::columns);
+
+      return new Header(queryId, keySchema, columnsSchema);
     }
 
     public QueryId getQueryId() {
       return queryId;
     }
 
-    public LogicalSchema getSchema() {
-      return schema;
+    /**
+     * Used for push queries to return the schema of the key columns.
+     *
+     * <p>Note: The columns that make up the key may or may not be present in the projection, i.e.
+     * in the {@link #getColumnsSchema()}.
+     *
+     * @return the columns that make up the key.
+     */
+    @JsonIgnore
+    public Optional<List<SimpleColumn>> getKeySchema() {
+      return keySchema.map(v -> v);
     }
 
-    private Header(final QueryId queryId, final LogicalSchema schema) {
+    /**
+     * @return The schema of the columns being returned by the query.
+     */
+    @JsonProperty("schema")
+    public LogicalSchema getColumnsSchema() {
+      return columnsSchema;
+    }
+
+    @JsonProperty("key")
+    @SuppressWarnings("unused") // Invoked by reflection by Jackson.
+    private Optional<LogicalSchema> getSerializedKeySchema() {
+      // Type used Logical Schema to serialize key columns.
+      // Note use of `valueColumns` rather than `keyColumns`, so that the list of key columns
+      // does not include the `KEY` keyword.
+      return keySchema
+          .map(key -> LogicalSchema.builder().valueColumns(key).build());
+    }
+
+    @JsonCreator
+    @SuppressWarnings("unused") // Invoked by reflection by Jackson.
+    private static Header jsonCreator(
+        @JsonProperty(value = "queryId", required = true) final QueryId queryId,
+        @JsonProperty(value = "key") final Optional<LogicalSchema> keysSchema,
+        @JsonProperty(value = "schema", required = true) final LogicalSchema columnsSchema
+    ) {
+      return new Header(queryId, keysSchema.map(LogicalSchema::value), columnsSchema);
+    }
+
+    private Header(
+        final QueryId queryId,
+        final Optional<List<? extends SimpleColumn>> keySchema,
+        final LogicalSchema columnsSchema
+    ) {
       this.queryId = requireNonNull(queryId, "queryId");
-      this.schema = requireNonNull(schema, "schema");
+      this.keySchema = requireNonNull(keySchema, "keySchema")
+          .map(ImmutableList::copyOf);
+      this.columnsSchema = requireNonNull(columnsSchema, "columnsSchema");
     }
 
     @Override
@@ -218,21 +368,80 @@ public final class StreamedRow {
       }
       final Header header = (Header) o;
       return Objects.equals(queryId, header.queryId)
-          && Objects.equals(schema, header.schema);
+          && Objects.equals(keySchema, header.keySchema)
+          && Objects.equals(columnsSchema, header.columnsSchema);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(queryId, schema);
+      return Objects.hash(queryId, keySchema, columnsSchema);
+    }
+  }
+
+  @JsonInclude(Include.NON_EMPTY)
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static final class DataRow extends BaseRow {
+
+    @EffectivelyImmutable
+    private final Optional<List<?>> key;
+    @EffectivelyImmutable
+    private final Optional<List<?>> columns;
+
+    public static DataRow row(
+        final Optional<List<?>> key,
+        final List<?> columns
+    ) {
+      return new DataRow(key, Optional.of(columns));
+    }
+
+    public static DataRow tombstone(
+        final List<?> key
+    ) {
+      return new DataRow(Optional.of(key), Optional.empty());
+    }
+
+
+    public Optional<List<?>> getKey() {
+      return key;
+    }
+
+    public Optional<List<?>> getColumns() {
+      return columns;
+    }
+
+    public Optional<Boolean> getTombstone() {
+      return columns.isPresent() ? Optional.empty() : Optional.of(true);
+    }
+
+    @JsonCreator
+    private DataRow(
+        @JsonProperty(value = "key") final Optional<List<?>> key,
+        @JsonProperty(value = "columns") final Optional<List<?>> columns
+    ) {
+      this.key = requireNonNull(key, "key")
+          .map(ArrayList::new)
+          .map(Collections::unmodifiableList);
+      this.columns = requireNonNull(columns, "columns")
+          .map(ArrayList::new)
+          .map(Collections::unmodifiableList);
     }
 
     @Override
-    public String toString() {
-      try {
-        return OBJECT_MAPPER.writeValueAsString(this);
-      } catch (final JsonProcessingException e) {
-        return super.toString();
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
       }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final DataRow row = (DataRow) o;
+      return Objects.equals(key, row.key)
+          && Objects.equals(columns, row.columns);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(key, columns);
     }
   }
 }

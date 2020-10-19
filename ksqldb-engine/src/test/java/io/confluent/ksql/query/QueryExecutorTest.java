@@ -209,6 +209,8 @@ public class QueryExecutorTest {
     when(streamsBuilder.build(any())).thenReturn(topology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
+    when(kstream.filter(any())).thenReturn(kstream);
+
     queryBuilder = new QueryExecutor(
         config,
         processingLogContext,
@@ -238,7 +240,9 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY,
         TRANSIENT_SINK_SCHEMA,
-        LIMIT
+        LIMIT,
+        Optional.empty(),
+        false
     );
 
     // Then:

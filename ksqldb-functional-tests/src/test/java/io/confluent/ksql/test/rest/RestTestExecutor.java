@@ -61,12 +61,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.slf4j.Logger;
@@ -215,14 +217,19 @@ public class RestTestExecutor implements Closeable {
           topicInfo.getKeySerializer(),
           topicInfo.getValueSerializer()
       )) {
-        for (final Record record : records) {
-          producer.send(new ProducerRecord<>(
-              topicName,
-              null,
-              record.timestamp().orElse(0L),
-              record.key(),
-              record.value()
-          ));
+        final List<Future<RecordMetadata>> futures = records.stream()
+            .map(record -> new ProducerRecord<>(
+                topicName,
+                null,
+                record.timestamp().orElse(0L),
+                record.key(),
+                record.value()
+            ))
+            .map(producer::send)
+            .collect(Collectors.toList());
+
+        for (final Future<RecordMetadata> future : futures) {
+          future.get();
         }
       } catch (final Exception e) {
         throw new RuntimeException("Failed to send record to " + topicName, e);

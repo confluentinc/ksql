@@ -51,6 +51,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -152,6 +153,23 @@ public class TopicDeleteInjectorTest {
 
     // Then:
     verify(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", true));
+    verify(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", false));
+  }
+
+  @Test
+  public void shouldDeleteValueAvroSchemaInSrEvenIfKeyDeleteFails() throws IOException, RestClientException {
+    // Given:
+    when(topic.getKeyFormat()).thenReturn(KeyFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of(), Optional.empty()));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()),
+        SerdeFeatures.of()));
+    doThrow(new KsqlException("foo"))
+        .when(registryClient)
+        .deleteSubject(KsqlConstants.getSRSubject("something", true));
+
+    // When:
+    assertThrows(KsqlException.class, () -> deleteInjector.inject(DROP_WITH_DELETE_TOPIC));
+
+    // Then:
     verify(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", false));
   }
 

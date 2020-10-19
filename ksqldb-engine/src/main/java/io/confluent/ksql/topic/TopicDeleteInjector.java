@@ -102,11 +102,11 @@ public class TopicDeleteInjector implements Injector {
       deleteTopic(source);
 
       final Closer closer = Closer.create();
-      deleteValueSubject(source);
-      deleteKeySubject(source);
+      closer.register(() -> deleteKeySubject(source));
+      closer.register(() -> deleteValueSubject(source));
       try {
         closer.close();
-      } catch (final RuntimeException e) {
+      } catch (final KsqlException e) {
         throw e;
       } catch (final Exception e) {
         throw new KsqlException(e);

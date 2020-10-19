@@ -28,6 +28,8 @@
             "$ref" : "#/definitions/DropSourceCommand"
           }, {
             "$ref" : "#/definitions/DropTypeCommand"
+          }, {
+            "$ref" : "#/definitions/AlterSourceCommand"
           } ]
         },
         "queryPlan" : {
@@ -234,6 +236,29 @@
       },
       "title" : "dropTypeV1",
       "required" : [ "@type", "typeName" ]
+    },
+    "AlterSourceCommand" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "alterSourceV1" ],
+          "default" : "alterSourceV1"
+        },
+        "sourceName" : {
+          "type" : "string"
+        },
+        "ksqlType" : {
+          "type" : "string"
+        },
+        "newColumns" : {
+          "type" : "array",
+          "items" : { }
+        }
+      },
+      "title" : "alterSourceV1",
+      "required" : [ "@type", "sourceName", "ksqlType", "newColumns" ]
     },
     "QueryPlan" : {
       "type" : "object",

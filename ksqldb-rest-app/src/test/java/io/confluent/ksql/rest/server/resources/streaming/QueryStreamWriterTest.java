@@ -136,7 +136,8 @@ public class QueryStreamWriterTest {
 
     // Then:
     final List<String> lines = getOutput(out);
-    assertThat(lines, hasItems(
+    assertThat(lines, contains(
+        containsString("header"),
         containsString("Row1"),
         containsString("Row2"),
         containsString("Row3")));

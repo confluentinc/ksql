@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -43,14 +42,18 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Repartitioning;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,8 +64,6 @@ import org.apache.kafka.streams.kstream.JoinWindows;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-
-  private static final String GROUP_BY_COLUMN_SEPARATOR = "|+|";
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 
@@ -160,14 +161,18 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
-      final ValueFormat valueFormat,
+      final FormatInfo leftValueFormat,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
+    final Formats fmts = InternalFormats.of(keyFormat.getFormatInfo(), leftValueFormat);
+
     final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
         contextStacker,
         JoinType.LEFT,
         keyColName,
-        InternalFormats.of(keyFormat, valueFormat),
+        fmts,
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
@@ -185,16 +190,18 @@ public class SchemaKStream<K> {
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
       final JoinWindows joinWindows,
-      final ValueFormat leftFormat,
-      final ValueFormat rightFormat,
+      final FormatInfo leftFormat,
+      final FormatInfo rightFormat,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
+
     final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.LEFT,
         keyColName,
-        InternalFormats.of(keyFormat, leftFormat),
-        InternalFormats.of(keyFormat, rightFormat),
+        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
+        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -212,14 +219,16 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
-      final ValueFormat valueFormat,
+      final FormatInfo leftValueFormat,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
         contextStacker,
         JoinType.INNER,
         keyColName,
-        InternalFormats.of(keyFormat, valueFormat),
+        InternalFormats.of(keyFormat.getFormatInfo(), leftValueFormat),
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
@@ -237,16 +246,18 @@ public class SchemaKStream<K> {
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
       final JoinWindows joinWindows,
-      final ValueFormat leftFormat,
-      final ValueFormat rightFormat,
+      final FormatInfo leftFormat,
+      final FormatInfo rightFormat,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
+
     final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.INNER,
         keyColName,
-        InternalFormats.of(keyFormat, leftFormat),
-        InternalFormats.of(keyFormat, rightFormat),
+        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
+        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -265,16 +276,18 @@ public class SchemaKStream<K> {
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
       final JoinWindows joinWindows,
-      final ValueFormat leftFormat,
-      final ValueFormat rightFormat,
+      final FormatInfo leftFormat,
+      final FormatInfo rightFormat,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
+
     final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.OUTER,
         keyColName,
-        InternalFormats.of(keyFormat, leftFormat),
-        InternalFormats.of(keyFormat, rightFormat),
+        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
+        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -292,9 +305,13 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
       final Expression keyExpression,
+      final Optional<FormatInfo> forceInternalKeyFormat,
       final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression))) {
+    final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
+        && !forceInternalKeyFormat.get().equals(keyFormat.getFormatInfo());
+
+    if (!keyFormatChange && repartitionNotNeeded(ImmutableList.of(keyExpression))) {
       return (SchemaKStream<Struct>) this;
     }
 
@@ -306,72 +323,43 @@ public class SchemaKStream<K> {
     final ExecutionStep<KStreamHolder<Struct>> step = ExecutionStepFactory
         .streamSelectKey(contextStacker, sourceStep, keyExpression);
 
+    final KeyFormat newKeyFormat = forceInternalKeyFormat
+        .map(newFmt -> KeyFormat.of(newFmt, keyFormat.getFeatures(), keyFormat.getWindowInfo()))
+        .orElse(keyFormat);
+
     return new SchemaKStream<>(
         step,
         resolveSchema(step),
-        keyFormat,
+        newKeyFormat,
         ksqlConfig,
         functionRegistry
     );
   }
 
   boolean repartitionNotNeeded(final List<Expression> expressions) {
-    // Note: A repartition is only not required if partitioning by the existing key column, or
-    // the existing keyField.
-
-    if (schema.key().isEmpty()) {
-      // No current key, so repartition needed:
-      return false;
-    }
-
-    if (schema.key().size() != 1) {
-      throw new UnsupportedOperationException("logic only supports single key column");
-    }
-
-    if (expressions.size() != 1) {
-      // Currently only support single key column,
-      // so a repartition on multiple expressions _must_ require a re-key
-      return false;
-    }
-
-    final Expression expression = expressions.get(0);
-    if (!(expression instanceof ColumnReferenceExp)) {
-      // If expression is not a column reference then the key will be changing
-      return false;
-    }
-
-    final ColumnName newKeyColName = ((ColumnReferenceExp) expression).getColumnName();
-
-    getSchema()
-        .findValueColumn(newKeyColName)
-        .orElseThrow(IllegalStateException::new);
-
-    return isKeyColumn(newKeyColName);
-  }
-
-  private boolean isKeyColumn(final ColumnName fieldName) {
-    // until we support structured keys, there will only be a single key column
-    // - furthermore, that key column is always prefixed at this point
-    // unless it is a join, in which case every other source field is prefixed
-    return fieldName.equals(schema.key().get(0).name());
+    return !Repartitioning.repartitionNeeded(schema, expressions);
   }
 
   public SchemaKGroupedStream groupBy(
-      final ValueFormat valueFormat,
+      final FormatInfo valueFormat,
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
-    final KeyFormat rekeyedKeyFormat = KeyFormat
-        .nonWindowed(keyFormat.getFormatInfo(), SerdeFeatures.of());
-
     if (repartitionNotNeeded(groupByExpressions)) {
-      return groupByKey(rekeyedKeyFormat, valueFormat, contextStacker);
+      return groupByKey(keyFormat.getFormatInfo(), valueFormat, contextStacker);
     }
+
+    final FormatInfo keyFmtInfo = keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)
+        ? FormatInfo.of(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG))
+        : keyFormat.getFormatInfo();
+
+    final KeyFormat rekeyedKeyFormat = KeyFormat
+        .nonWindowed(keyFmtInfo, SerdeFeatures.of());
 
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
         sourceStep,
-        InternalFormats.of(rekeyedKeyFormat, valueFormat),
+        InternalFormats.of(rekeyedKeyFormat.getFormatInfo(), valueFormat),
         groupByExpressions
     );
 
@@ -386,8 +374,8 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   private SchemaKGroupedStream groupByKey(
-      final KeyFormat rekeyedKeyFormat,
-      final ValueFormat valueFormat,
+      final FormatInfo rekeyedKeyFormat,
+      final FormatInfo valueFormat,
       final QueryContext.Stacker contextStacker
   ) {
     if (keyFormat.isWindowed()) {
@@ -433,14 +421,6 @@ public class SchemaKStream<K> {
     return schema;
   }
 
-  public KeyFormat getKeyFormat() {
-    return keyFormat;
-  }
-
-  public FunctionRegistry getFunctionRegistry() {
-    return functionRegistry;
-  }
-
   LogicalSchema resolveSchema(final ExecutionStep<?> step) {
     return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(step, schema);
   }
@@ -451,5 +431,37 @@ public class SchemaKStream<K> {
         schema,
         right.getSchema()
     );
+  }
+
+  void throwOnJoinKeyFormatsMismatch(final SchemaKStream<?> right) {
+    final FormatInfo leftFmt = this.keyFormat.getFormatInfo();
+    final FormatInfo rightFmt = right.keyFormat.getFormatInfo();
+    if (!leftFmt.equals(rightFmt)) {
+      throw new IllegalArgumentException("Key format mismatch in join. "
+          + "left: " + leftFmt + ", right: " + rightFmt);
+    }
+
+    final SerdeFeatures leftFeats = this.keyFormat.getFeatures();
+    final SerdeFeatures rightFeats = right.keyFormat.getFeatures();
+    if (!leftFeats.equals(rightFeats)) {
+      throw new IllegalArgumentException("Key format features mismatch in join. "
+          + "left: " + leftFeats + ", right: " + rightFeats);
+    }
+
+    final Optional<WindowType> leftWnd = this.keyFormat.getWindowInfo().map(WindowInfo::getType);
+    final Optional<WindowType> rightWnd = right.keyFormat.getWindowInfo().map(WindowInfo::getType);
+    if (leftWnd.isPresent() != rightWnd.isPresent()) {
+      throw new IllegalArgumentException("Key format windowing mismatch in join. "
+          + "left: " + leftWnd + ", right: " + rightWnd);
+    }
+
+    final boolean leftIsSession = leftWnd.map(type -> type == WindowType.SESSION).orElse(false);
+    final boolean rightIsSession = rightWnd.map(type -> type == WindowType.SESSION).orElse(false);
+    if (leftIsSession != rightIsSession) {
+      throw new IllegalArgumentException("Key format window type mismatch in join. "
+          + "left: " + (leftIsSession ? "Session Windowed" : "Non Session Windowed")
+          + ", right: " + (rightIsSession ? "Session Windowed" : "Non Session Windowed")
+      );
+    }
   }
 }

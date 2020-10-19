@@ -461,7 +461,9 @@ public class LogicalPlanner {
           + analysis.getAllDataSources());
     }
 
-    return buildJoin((Join) tree, "");
+    final JoinNode joinNode = buildJoin((Join) tree, "");
+    joinNode.resolveKeyFormats();
+    return joinNode;
   }
 
   /**
@@ -469,7 +471,7 @@ public class LogicalPlanner {
    * @param prefix  the prefix to uniquely identify the plan node
    * @return the PlanNode representing this Join Tree
    */
-  private PlanNode buildJoin(final Join root, final String prefix) {
+  private JoinNode buildJoin(final Join root, final String prefix) {
     final PlanNode left;
     if (root.getLeft() instanceof JoinTree.Join) {
       left = buildSourceForJoin(
@@ -509,7 +511,8 @@ public class LogicalPlanner {
         finalJoin,
         left,
         right,
-        root.getInfo().getWithinExpression()
+        root.getInfo().getWithinExpression(),
+        ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)
     );
   }
 

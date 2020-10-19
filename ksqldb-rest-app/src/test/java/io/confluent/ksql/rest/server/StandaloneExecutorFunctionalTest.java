@@ -38,7 +38,6 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.io.IOException;
@@ -259,28 +258,6 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   @Test
-  public void shouldFailOnAvroWithoutSchemasIfSchemaNotEvolvable() {
-    // Given:
-    givenIncompatibleSchemaExists(s1);
-
-    givenScript(""
-        + "SET 'auto.offset.reset' = 'earliest';"
-        + ""
-        + "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
-        + ""
-        + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> standalone.startAsync()
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("schema is incompatible with the current schema version registered for the topic"));
-  }
-
-  @Test
   public void shouldHandleComments() {
     // Given:
     givenScript(""
@@ -302,24 +279,6 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, KAFKA, JSON, DATA_SCHEMA);
-  }
-
-  private static void givenIncompatibleSchemaExists(final String topicName) {
-    final LogicalSchema logical = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(ColumnName.of("ITEMID"), SqlTypes.struct()
-            .field("fred", SqlTypes.INTEGER)
-            .build())
-        .valueColumn(ColumnName.of("Other"), SqlTypes.BIGINT)
-        .build();
-
-    final PhysicalSchema incompatiblePhysical = PhysicalSchema.from(
-        logical,
-        SerdeFeatures.of(),
-        SerdeFeatures.of()
-    );
-
-    TEST_HARNESS.ensureSchema(topicName, incompatiblePhysical);
   }
 
   private void givenScript(final String contents) {

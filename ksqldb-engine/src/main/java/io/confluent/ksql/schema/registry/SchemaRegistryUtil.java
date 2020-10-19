@@ -15,9 +15,8 @@
 
 package io.confluent.ksql.schema.registry;
 
-import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
-
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.stream.Stream;
@@ -27,12 +26,7 @@ import org.slf4j.LoggerFactory;
 public final class SchemaRegistryUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(SchemaRegistryUtil.class);
-
-  public static final String CHANGE_LOG_SUFFIX = KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX
-      + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-
-  public static final String REPARTITION_SUFFIX = KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX
-      + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+  private static final int SUBJECT_NOT_FOUND_ERROR_CODE = 40401;
 
   private SchemaRegistryUtil() {
   }
@@ -69,14 +63,24 @@ public final class SchemaRegistryUtil {
   public static void deleteSubjectWithRetries(
       final SchemaRegistryClient schemaRegistryClient,
       final String subject) throws Exception {
-    ExecutorUtil.executeWithRetries(() -> schemaRegistryClient.deleteSubject(subject), ALWAYS);
+    ExecutorUtil.executeWithRetries(
+        () -> schemaRegistryClient.deleteSubject(subject),
+        error -> !isSubjectNotFoundErrorCode(error)
+    );
+  }
+
+  public static boolean isSubjectNotFoundErrorCode(final Throwable error) {
+    return (error instanceof RestClientException
+        && ((RestClientException) error).getErrorCode() == SUBJECT_NOT_FOUND_ERROR_CODE);
   }
 
   private static void hardDeleteSubjectWithRetries(
       final SchemaRegistryClient schemaRegistryClient,
       final String subject) throws Exception {
     ExecutorUtil.executeWithRetries(
-        () -> schemaRegistryClient.deleteSubject(subject, true), ALWAYS);
+        () -> schemaRegistryClient.deleteSubject(subject, true),
+        error -> !isSubjectNotFoundErrorCode(error)
+    );
   }
 
   private static Stream<String> getInternalSubjectNames(
@@ -88,8 +92,20 @@ public final class SchemaRegistryUtil {
         "Could not clean up the schema registry for query: " + applicationId);
     return allSubjectNames
         .filter(subjectName -> subjectName.startsWith(applicationId))
-        .filter(subjectName ->
-            subjectName.endsWith(CHANGE_LOG_SUFFIX) || subjectName.endsWith(REPARTITION_SUFFIX));
+        .filter(SchemaRegistryUtil::isInternalSubject);
+  }
+
+  private static boolean isInternalSubject(final String subjectName) {
+    for (boolean isKey : new boolean[]{true, false}) {
+      final String changelog =
+          KsqlConstants.getSRSubject(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, isKey);
+      final String repartition =
+          KsqlConstants.getSRSubject(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, isKey);
+      if (subjectName.endsWith(changelog) || subjectName.endsWith(repartition)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static void tryDeleteInternalSubject(

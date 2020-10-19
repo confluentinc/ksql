@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
@@ -285,7 +284,6 @@ public class TestKsqlRestApp extends ExternalResource {
     final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
 
     try {
-
       Vertx vertx = Vertx.vertx();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
@@ -293,7 +291,7 @@ public class TestKsqlRestApp extends ExternalResource {
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
-          MockSchemaRegistryClient::new,
+          () -> serviceContext.get().getSchemaRegistryClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
               KsqlRestApplication.toClientProps(config.originals()),

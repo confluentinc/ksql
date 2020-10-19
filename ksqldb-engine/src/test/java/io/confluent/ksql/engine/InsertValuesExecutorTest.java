@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -73,6 +74,7 @@ import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -632,7 +634,7 @@ public class InsertValuesExecutorTest {
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(containsString("Could not serialize row"))));
+    assertThat(e.getCause(), (hasMessage(containsString("Could not serialize value"))));
   }
 
   @Test
@@ -871,6 +873,74 @@ public class InsertValuesExecutorTest {
     );
   }
 
+  @Test
+  public void shouldThrowWhenNotAuthorizedToWriteKeySchemaToSR() {
+    // Given:
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false);
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allColumnNames(SCHEMA),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L)
+        )
+    );
+    when(keySerializer.serialize(any(), any())).thenThrow(
+        new RuntimeException(new RestClientException("foo", 401, 1))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Not authorized to write Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
+  }
+
+  @Test
+  public void shouldThrowWhenNotAuthorizedToWriteValSchemaToSR() {
+    // Given:
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false);
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allColumnNames(SCHEMA),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L)
+        )
+    );
+    when(valueSerializer.serialize(any(), any())).thenThrow(
+        new RuntimeException(new RestClientException("foo", 401, 1))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Not authorized to write Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, false)));
+  }
+
   private static ConfiguredStatement<InsertValues> givenInsertValues(
       final List<ColumnName> columns,
       final List<Expression> values
@@ -903,10 +973,30 @@ public class InsertValuesExecutorTest {
       final SerdeFeatures valFeatures,
       final boolean table
   ) {
+    givenDataSourceWithSchema(
+        topicName,
+        schema,
+        keyFeatures,
+        valFeatures,
+        FormatInfo.of(FormatFactory.KAFKA.name()),
+        FormatInfo.of(FormatFactory.JSON.name()),
+        table
+    );
+  }
+
+  private void givenDataSourceWithSchema(
+      final String topicName,
+      final LogicalSchema schema,
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valFeatures,
+      final FormatInfo keyFormat,
+      final FormatInfo valueFormat,
+      final boolean table
+  ) {
     final KsqlTopic topic = new KsqlTopic(
         topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), keyFeatures),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), valFeatures)
+        KeyFormat.nonWindowed(keyFormat, keyFeatures),
+        ValueFormat.of(valueFormat, valFeatures)
     );
 
     final DataSource dataSource;

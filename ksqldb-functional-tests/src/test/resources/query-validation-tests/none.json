@@ -109,7 +109,6 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY BAR;"
       ],
       "properties": {
-        "ksql.key.format.enabled": true,
         "ksql.persistence.default.format.key": "JSON"
       },
       "inputs": [
@@ -130,17 +129,11 @@
     },
     {
       "name": "inherited in CSAS - JOIN with repartition",
-      "enabled": false,
-      "comment": "Will be enabled as part of https://github.com/confluentinc/ksql/issues/6213",
       "statements": [
-        "CREATE TABLE T (ID INT PRIMARY KEY, VAL STRING) WITH (kafka_topic='t', value_format='JSON');",
+        "CREATE TABLE T (ID INT PRIMARY KEY, VAL STRING) WITH (kafka_topic='t', key_format='KAFKA', value_format='JSON');",
         "CREATE STREAM S (ID INT) WITH (kafka_topic='s', key_format='NONE', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT S.ID, VAL FROM S JOIN T ON S.ID = T.ID;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true,
-        "ksql.persistence.default.format.key": "JSON"
-      },
       "inputs": [
         {"topic": "t", "key": 10, "value": {"VAL": "hello"}},
         {"topic": "s", "key": null, "value": {"id": 10}}
@@ -150,7 +143,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "JSON"}}
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "KAFKA"}}
         ]
       }
     },
@@ -161,7 +154,6 @@
         "CREATE TABLE OUTPUT AS SELECT FOO, COUNT() AS COUNT FROM INPUT GROUP BY FOO;"
       ],
       "properties": {
-        "ksql.key.format.enabled": true,
         "ksql.persistence.default.format.key": "JSON"
       },
       "inputs": [

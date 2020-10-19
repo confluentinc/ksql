@@ -79,7 +79,7 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
     return (((SchemaKTable<?>) schemaKStream)
         .suppress(
             refinementInfo,
-            valueFormat,
+            valueFormat.getFormatInfo(),
             contextStacker
         ));
   }

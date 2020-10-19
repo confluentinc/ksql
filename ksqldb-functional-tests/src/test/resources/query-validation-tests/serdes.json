@@ -46,20 +46,6 @@
       }
     },
     {
-      "name": "serialization should fail if primitive schema not compatible with existing value schema - AVRO",
-      "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (kafka_topic='input_topic', value_format='AVRO');",
-        "CREATE STREAM OUTPUT WITH (wrap_single_value=false) AS SELECT * FROM INPUT;"
-      ],
-      "topics": [
-        {"name": "OUTPUT", "valueSchema": {"name": "KsqlRecord", "type": "record", "fields": [{"name": "FOO", "type": "string"}]}}
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot register avro schema for OUTPUT as the schema is incompatible with the current schema version registered for the topic."
-      }
-    },
-    {
       "name": "C* should throw for multi-field schema if WRAP_SINGLE_VALUE=true",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, f0 STRING, f1 STRING) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON');"
@@ -122,6 +108,19 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas"
       }
+    },
+    {
+      "name": "deserialize and serialize unwrapped struct",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F1 STRING>) WITH (kafka_topic='input_topic', value_format='JSON', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT WITH (wrap_single_value=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"F1": "bar"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"F1": "bar"}}
+      ]
     }
   ]
 }

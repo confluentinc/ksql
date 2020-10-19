@@ -121,9 +121,6 @@
         "CREATE STREAM INPUT (ID BOOLEAN KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": true, "value": {"V0": 2, "V1": 3}}
       ],
@@ -141,9 +138,6 @@
         "CREATE STREAM INPUT (ID DECIMAL(4,2) KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "input", "key": 12.30, "value": {"V0": 2, "V1": 3}}
       ],

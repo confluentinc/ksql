@@ -152,7 +152,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
@@ -167,7 +167,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> result = initialSchemaKStream
-        .selectKey(repartitionNode.getPartitionBy(), childContextStacker);
+        .selectKey(repartitionNode.getPartitionBy(), Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
@@ -182,7 +182,7 @@ public class SchemaKStreamTest {
 
     // When:
     initialSchemaKStream.selectKey(repartitionNode.getPartitionBy(),
-        childContextStacker
+        Optional.empty(), childContextStacker
     );
   }
 
@@ -195,7 +195,7 @@ public class SchemaKStreamTest {
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
 
     // When:
-    schemaKTable.selectKey(col2, childContextStacker);
+    schemaKTable.selectKey(col2, Optional.empty(), childContextStacker);
   }
 
   @Test
@@ -260,7 +260,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        childContextStacker);
+        Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(
@@ -283,7 +283,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        childContextStacker);
+        Optional.empty(), childContextStacker);
 
     // Then:
     assertThat(
@@ -303,7 +303,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupBy,
         childContextStacker
     );
@@ -333,7 +333,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupBy,
         childContextStacker
     );
@@ -356,7 +356,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupBy,
         childContextStacker
     );
@@ -387,7 +387,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupBy,
         childContextStacker
     );
@@ -414,7 +414,7 @@ public class SchemaKStreamTest {
     SchemaKStream join(
         SchemaKTable other,
         ColumnName keyNameCol,
-        ValueFormat leftFormat,
+        FormatInfo leftFormat,
         QueryContext.Stacker contextStacker
     );
   }
@@ -433,7 +433,7 @@ public class SchemaKStreamTest {
       final SchemaKStream joinedKStream = testcase.right.join(
           schemaKTable,
           KEY,
-          valueFormat,
+          valueFormat.getFormatInfo(),
           childContextStacker
       );
 
@@ -469,7 +469,7 @@ public class SchemaKStreamTest {
       final SchemaKStream joinedKStream = testcase.right.join(
           schemaKTable,
           KEY,
-          valueFormat,
+          valueFormat.getFormatInfo(),
           childContextStacker
       );
 

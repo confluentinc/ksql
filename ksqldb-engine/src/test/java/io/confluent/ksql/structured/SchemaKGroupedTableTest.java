@@ -100,7 +100,7 @@ public class SchemaKGroupedTableTest {
             NON_AGG_COLUMNS,
             ImmutableList.of(SUM, COUNT),
             Optional.of(windowExp),
-            valueFormat,
+            valueFormat.getFormatInfo(),
             queryContext
         )
     );
@@ -121,7 +121,7 @@ public class SchemaKGroupedTableTest {
             NON_AGG_COLUMNS,
             ImmutableList.of(MIN, MAX),
             Optional.empty(),
-            valueFormat,
+            valueFormat.getFormatInfo(),
             queryContext
         )
     );
@@ -152,7 +152,7 @@ public class SchemaKGroupedTableTest {
         NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
@@ -183,7 +183,7 @@ public class SchemaKGroupedTableTest {
         NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
@@ -212,7 +212,7 @@ public class SchemaKGroupedTableTest {
         NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 

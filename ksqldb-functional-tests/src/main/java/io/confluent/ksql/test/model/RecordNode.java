@@ -49,7 +49,7 @@ public final class RecordNode {
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
   private final String topicName;
-  private final Optional<Object> key;
+  private final JsonNode key;
   private final JsonNode value;
   private final Optional<Long> timestamp;
   private final Optional<WindowData> window;
@@ -57,7 +57,7 @@ public final class RecordNode {
   @VisibleForTesting
   RecordNode(
       final String topicName,
-      final Optional<Object> key,
+      final JsonNode key,
       final JsonNode value,
       final Optional<Long> timestamp,
       final Optional<WindowData> window
@@ -78,11 +78,13 @@ public final class RecordNode {
   }
 
   public Record build() {
-    final Object recordValue = buildValue();
+    final Object recordKey = buildJson(key);
+    final Object recordValue = buildJson(value);
 
     return new Record(
         topicName,
-        key.orElse(null),
+        recordKey,
+        key,
         recordValue,
         value,
         timestamp,
@@ -93,7 +95,7 @@ public final class RecordNode {
   public static RecordNode from(final Record record) {
     return new RecordNode(
         record.getTopicName(),
-        Optional.ofNullable(record.rawKey()),
+        record.getJsonKey().orElse(NullNode.getInstance()),
         record.getJsonValue().orElse(NullNode.getInstance()),
         record.timestamp(),
         Optional.ofNullable(record.getWindow())
@@ -104,17 +106,17 @@ public final class RecordNode {
     return window;
   }
 
-  private Object buildValue() {
-    if (value instanceof NullNode) {
+  private Object buildJson(final JsonNode contents) {
+    if (contents instanceof NullNode) {
       return null;
     }
 
-    if (value instanceof TextNode) {
-      return value.asText();
+    if (contents instanceof TextNode) {
+      return contents.asText();
     }
 
     try {
-      return objectMapper.readValue(objectMapper.writeValueAsString(value), Object.class);
+      return objectMapper.readValue(objectMapper.writeValueAsString(contents), Object.class);
     } catch (final IOException e) {
       throw new InvalidFieldException("value", "failed to parse", e);
     }
@@ -131,7 +133,7 @@ public final class RecordNode {
 
       final String topic = JsonParsingUtil.getRequired("topic", node, jp, String.class);
 
-      final Optional<Object> key = JsonParsingUtil.getOptional("key", node, jp, Object.class);
+      final Optional<JsonNode> key = JsonParsingUtil.getOptional("key", node, jp, JsonNode.class);
 
       final JsonNode value = JsonParsingUtil.getRequired("value", node, jp, JsonNode.class);
 
@@ -141,7 +143,7 @@ public final class RecordNode {
       final Optional<WindowData> window = JsonParsingUtil
           .getOptional("window", node, jp, WindowData.class);
 
-      return new RecordNode(topic, key, value, timestamp, window);
+      return new RecordNode(topic, key.orElse(NullNode.getInstance()), value, timestamp, window);
     }
   }
 
@@ -155,11 +157,7 @@ public final class RecordNode {
     ) throws IOException {
       jsonGenerator.writeStartObject();
       jsonGenerator.writeStringField("topic", record.topicName);
-      if (record.key.isPresent()) {
-        jsonGenerator.writeObjectField("key", record.key);
-      } else {
-        jsonGenerator.writeNullField("key");
-      }
+      jsonGenerator.writeObjectField("key", record.key);
       jsonGenerator.writeObjectField("value", record.value);
       if (record.timestamp.isPresent()) {
         jsonGenerator.writeNumberField("timestamp", record.timestamp.get());

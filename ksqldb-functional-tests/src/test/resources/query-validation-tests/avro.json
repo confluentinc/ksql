@@ -385,6 +385,46 @@
       ]
     },
     {
+      "name": "deserialize anonymous struct - value - no inference",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"F0": 1}},
+        {"topic": "input_topic", "value": {"F0": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": null}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous struct - value - inference",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', value_format='AVRO', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "valueSchema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"F0": 1}},
+        {"topic": "input_topic", "value": {"F0": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ROWVAL": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"ROWVAL": {"F0": null}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
       "name": "serialize anonymous struct - value",
       "statements": [
         "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
@@ -649,6 +689,24 @@
         "CREATE STREAM INPUT (K BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
+      "inputs": [
+        {"topic": "input_topic", "key": true, "value": {"FOO": 10}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "BOOLEAN - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
       "topics": [
         {
           "name": "input_topic",
@@ -676,6 +734,26 @@
         "CREATE STREAM INPUT (K INT KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": 12, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "INT - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
       "topics": [
         {
           "name": "input_topic",
@@ -697,7 +775,440 @@
       ]
     },
     {
-      "name": "map with non-string keys fails - C*",
+      "name": "BIGINT - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 998877665544332211, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 998877665544332211, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "BIGINT - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "long"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 998877665544332211, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 998877665544332211, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "DOUBLE - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 654.321, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 654.321, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "DOUBLE - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "double"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 654.321, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 654.321, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "STRING - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K VARCHAR KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "foo", "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "foo", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "STRING - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "string"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "foo", "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "foo", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "DECIMAL - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K DECIMAL(4,2) KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "DECIMAL - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {
+            "type": "bytes",
+            "logicalType": "decimal",
+            "precision": 4,
+            "scale": 2
+          },
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "ARRAY - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K ARRAY<VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": ["foo"], "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": [null], "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": ["foo"], "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": [null], "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "ARRAY - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "array", "items": ["null", "string"]},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": ["foo"], "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": [null], "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": ["foo"], "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": [null], "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "MAP - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K MAP<STRING, INT> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "MAP - key - no inference - with coercion",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K MAP<STRING, STRING> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"a": "1", "b": "2", "c": "3"}, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "MAP - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "map", "values": ["null", "int"]},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "map with non-string keys fails - key - C*",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Avro only supports MAPs with STRING keys"
+      }
+    },
+    {
+      "name": "map with non-string keys fails - key - C*AS",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (key_format='AVRO') AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Avro only supports MAPs with STRING keys"
+      }
+    },
+    {
+      "name": "STRUCT - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K STRUCT<F1 VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"F1": "foo"}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": {"F1": null}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": "foo"}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": {"F1": null}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "STRUCT - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"name": "key", "type": "record", "fields": [{"name": "F1", "type": ["null", "string"]}]},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"F1": "foo"}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": {"F1": null}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": "foo"}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": {"F1": null}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "INT - key - key and value inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "int"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": 12, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "INT - key - key and anonymous value inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='AVRO', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type": "int"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"type": "int"},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": 10},
+        {"topic": "input_topic", "key": 12, "value": null},
+        {"topic": "input_topic", "key": null, "value": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"ROWVAL": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": null},
+        {"topic": "OUTPUT", "key": null, "value": {"ROWVAL": 10}}
+      ]
+    },
+    {
+      "name": "map with non-string keys fails - value - C*",
       "statements": [
         "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='AVRO');"
       ],
@@ -707,7 +1218,7 @@
       }
     },
     {
-      "name": "map with non-string keys fails - C*AS",
+      "name": "map with non-string keys fails - value - C*AS",
       "statements": [
         "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"

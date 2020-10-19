@@ -309,7 +309,7 @@ public final class RestIntegrationTestUtil {
   ) {
     makeKsqlRequest(
         restApp,
-        "CREATE STREAM " + dataProvider.kstreamName()
+        "CREATE STREAM " + dataProvider.sourceName()
             + " (" + dataProvider.ksqlSchemaString(false) + ") "
             + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
         userCreds

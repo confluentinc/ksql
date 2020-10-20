@@ -550,9 +550,10 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitInPredicate(
-        final InPredicate inPredicate, final ExpressionTypeContext expressionTypeContext
+        final InPredicate inPredicate, final ExpressionTypeContext context
     ) {
-      throw VisitorUtil.unsupportedOperation(this, inPredicate);
+      context.setSqlType(SqlTypes.BOOLEAN);
+      return null;
     }
 
     @Override

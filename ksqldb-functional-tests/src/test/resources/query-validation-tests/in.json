@@ -1,0 +1,223 @@
+{
+  "tests": [
+    {
+      "name": "expressions",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (VAL, VAL * 2);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {"VAL": 10}},
+        {"topic": "input_topic", "key": 12, "value": {"VAL": 20}},
+        {"topic": "input_topic", "key": 11, "value": {"VAL": 110}},
+        {"topic": "input_topic", "key": 38, "value": {"VAL": 19}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": 10}},
+        {"topic": "OUTPUT", "key": 38, "value": {"VAL": 19}}
+      ]
+    },
+    {
+      "name": "nulls",
+      "comment": "Null is not equivalent to null, i.e. it never matches",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (11,NULL,VAL);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": null, "value": {"VAL":10}},
+        {"topic": "input_topic", "key": null, "value": {"VAL":null}},
+        {"topic": "input_topic", "key": 11, "value": {"VAL":10}},
+        {"topic": "input_topic", "key": 19, "value": {"VAL":10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 11, "value": {"VAL": 10}}
+      ]
+    },
+    {
+      "name": "inverted",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID NOT IN (11,20,10);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {}},
+        {"topic": "input_topic", "key": 12, "value": {}},
+        {"topic": "input_topic", "key": 11, "value": {}},
+        {"topic": "input_topic", "key": 19, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 12, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 19, "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "boolean",
+      "statements": [
+        "CREATE STREAM INPUT (ID BOOLEAN KEY, VAL BOOLEAN, VAL2 STRING) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (true, 'Not a boolean', 10) OR VAL IN ('TruE', ARRAY[1]) OR VAL2 IN (true);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": true, "value": {"VAL": false}},
+        {"topic": "input_topic", "key": false, "value": {"VAL": true}},
+        {"topic": "input_topic", "key": false, "value": {"VAL": false}},
+        {"topic": "input_topic", "key": false, "value": {"VAL2": "true"}},
+        {"topic": "input_topic", "key": false, "value": {"VAL2": "t"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"VAL": false, "VAL2": null}},
+        {"topic": "OUTPUT", "key": false, "value": {"VAL": true, "VAL2": null}},
+        {"topic": "OUTPUT", "key": false, "value": {"VAL": null, "VAL2": "true"}},
+        {"topic": "OUTPUT", "key": false, "value": {"VAL": null, "VAL2": "t"}}
+      ]
+    },
+    {
+      "name": "int",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (11,20,10,'not a number',false,12.0, ARRAY[1]);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {}},
+        {"topic": "input_topic", "key": 12, "value": {}},
+        {"topic": "input_topic", "key": 11, "value": {}},
+        {"topic": "input_topic", "key": 19, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 11, "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "bigint",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (123456789123456789,20,10,'not a number',false,12.0, ARRAY[1]);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {}},
+        {"topic": "input_topic", "key": 12, "value": {}},
+        {"topic": "input_topic", "key": 123456789123456789, "value": {}},
+        {"topic": "input_topic", "key": 19, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 123456789123456789, "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "double",
+      "statements": [
+        "CREATE STREAM INPUT (ID DOUBLE KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, 10.1, '10.2', 10.30, '10.40', 'not a number', false, ARRAY[1]);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10.0, "value": {}},
+        {"topic": "input_topic", "key": 10.1, "value": {}},
+        {"topic": "input_topic", "key": 10.2, "value": {}},
+        {"topic": "input_topic", "key": 10.3, "value": {}},
+        {"topic": "input_topic", "key": 10.4, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10.1, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 10.2, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 10.4, "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "string",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN ('k', 10, '10.1', 10.30, 'not a match', false, ARRAY[1]);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "k", "value": {}},
+        {"topic": "input_topic", "key": "no", "value": {}},
+        {"topic": "input_topic", "key": "10", "value": {}},
+        {"topic": "input_topic", "key": "10.0", "value": {}},
+        {"topic": "input_topic", "key": "10.1", "value": {}},
+        {"topic": "input_topic", "key": "10.10", "value": {}},
+        {"topic": "input_topic", "key": "false", "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k", "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": "10", "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": "10.1", "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": "false", "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "decimal",
+      "statements": [
+        "CREATE STREAM INPUT (ID DECIMAL(4,2) KEY, VAL INT) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (10, 10.0, 10.10, 10.201, '10.30', '10.4', '10.400', 'not a match', false, ARRAY[1]);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10.00, "value": {}},
+        {"topic": "input_topic", "key": 10.10, "value": {}},
+        {"topic": "input_topic", "key": 10.20, "value": {}},
+        {"topic": "input_topic", "key": 10.30, "value": {}},
+        {"topic": "input_topic", "key": 10.40, "value": {}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10.10, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 10.30, "value": {"VAL": null}}
+      ]
+    },
+    {
+      "name": "array",
+      "statements": [
+        "CREATE STREAM INPUT (ID ARRAY<BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (ARRAY[1,2],ARRAY[CAST(5 AS BIGINT),123456789000],ARRAY[3,null],false,'not an array');"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"ID": [1,2]}},
+        {"topic": "input_topic", "value": {"ID": [1]}},
+        {"topic": "input_topic", "value": {"ID": [1,2,3]}},
+        {"topic": "input_topic", "value": {"ID": [3,4]}},
+        {"topic": "input_topic", "value": {"ID": [5,123456789000]}},
+        {"topic": "input_topic", "value": {"ID": [3,null]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID": [1,2]}},
+        {"topic": "OUTPUT", "value": {"ID": [5,123456789000]}}
+      ]
+    },
+    {
+      "name": "map",
+      "statements": [
+        "CREATE STREAM INPUT (ID MAP<STRING, BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (MAP('a':=1),MAP('b':=CAST(5 AS BIGINT),'c':=123456789000),MAP('c':=CAST(null AS BIGINT)),false,'not a map', Array[1]);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"ID": {"a": 1}}},
+        {"topic": "input_topic", "value": {"ID": {"a": 1, "b": 2}}},
+        {"topic": "input_topic", "value": {"ID": {}}},
+        {"topic": "input_topic", "value": {"ID": {"b": 5, "c": 123456789000}}},
+        {"topic": "input_topic", "value": {"ID": {"c": null}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID": {"a": 1}}},
+        {"topic": "OUTPUT", "value": {"ID": {"b": 5, "c": 123456789000}}}
+      ]
+    },
+    {
+      "name": "struct",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<A BIGINT, B BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (STRUCT(A:=1,B:=2),STRUCT(B:=2),STRUCT(A:=2,B:=3,C:=4),STRUCT(B:=2,A:=3),STRUCT(A:=123456789000,B:=2),STRUCT(A:=CAST(null AS BIGINT),B:=2),false,'not a map', Array[1]);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"ID": {"A": 1, "B": 2}}},
+        {"topic": "input_topic", "value": {"ID": {"A": 2, "B": 2}}},
+        {"topic": "input_topic", "value": {"ID": {"A": 3, "B": 2}}},
+        {"topic": "input_topic", "value": {"ID": {"A": 123456789000, "B": 2}}},
+        {"topic": "input_topic", "value": {"ID": {"A": null, "B": 2}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID": {"A": 1, "B": 2}}},
+        {"topic": "OUTPUT", "value": {"ID": {"A": 123456789000, "B": 2}}}
+      ]
+    }
+  ]
+}

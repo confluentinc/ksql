@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
+import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.LikeEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
@@ -130,7 +131,8 @@ public class SqlToJavaVisitor {
       Struct.class.getCanonicalName(),
       ArrayBuilder.class.getCanonicalName(),
       LikeEvaluator.class.getCanonicalName(),
-      MapBuilder.class.getCanonicalName()
+      MapBuilder.class.getCanonicalName(),
+      InListEvaluator.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -208,7 +210,6 @@ public class SqlToJavaVisitor {
     return expressionFormatterResult.getLeft();
   }
 
-
   private class Formatter implements ExpressionVisitor<Pair<String, SqlType>, Void> {
 
     private final FunctionRegistry functionRegistry;
@@ -247,7 +248,17 @@ public class SqlToJavaVisitor {
         final InPredicate inPredicate,
         final Void context
     ) {
-      return visitUnsupported(inPredicate);
+      final Pair<String, SqlType> value = process(inPredicate.getValue(), context);
+
+      final String values = inPredicate.getValueList().getValues().stream()
+          .map(v -> process(v, context))
+          .map(Pair::getLeft)
+          .collect(Collectors.joining(","));
+
+      return new Pair<>(
+          "InListEvaluator.matches(" + value.getLeft() + ", " + values + ")",
+          SqlTypes.BOOLEAN
+      );
     }
 
     @Override

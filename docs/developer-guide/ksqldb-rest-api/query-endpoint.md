@@ -120,5 +120,7 @@ Transfer-Encoding: chunked
 ...
 ```
 
-Note: media type `application/vnd.ksql.v1+json` does not populate **row.key** or return tombstone
+!!! note
+    Media type `application/vnd.ksql.v1+json` does not populate **row.key** or return tombstone
+
 rows.

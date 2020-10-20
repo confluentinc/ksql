@@ -138,34 +138,7 @@ public final class PostConditionsNode {
     @SuppressWarnings("unchecked")
     Matcher<Iterable<PostTopicNode>> buildTopics() {
       final Matcher<PostTopicNode>[] matchers = topics.stream()
-          .map(topic -> new BaseMatcher<PostTopicNode>() {
-            @Override
-            public void describeTo(final Description description) {
-              try {
-                description.appendText(TestJsonMapper.INSTANCE.get().writeValueAsString(topic));
-              } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException(e);
-              }
-            }
-
-            // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-            @Override
-            public boolean matches(final Object item) {
-              if (!(item instanceof PostTopicNode)) {
-                return false;
-              }
-
-              final PostTopicNode that = (PostTopicNode) item;
-              return Objects.equals(topic.name, that.name)
-                  && Objects.equals(topic.keyFormat, that.keyFormat)
-                  && Objects.equals(topic.valueFormat, that.valueFormat)
-                  && (!topic.partitions.isPresent() || topic.partitions.equals(that.partitions))
-                  && (topic.keySchema instanceof NullNode || topic.keySchema.equals(that.keySchema))
-                  && (topic.valueSchema instanceof NullNode
-                          || topic.valueSchema.equals(that.valueSchema));
-            }
-            // CHECKSTYLE_RULES.ON: BooleanExpessionComplexity
-          })
+          .map(PostTopicNode::build)
           .toArray(Matcher[]::new);
 
       return hasItems(matchers);
@@ -223,6 +196,37 @@ public final class PostConditionsNode {
         throw new IllegalArgumentException("Partition count must be positive, but was: "
             + partitions);
       }
+    }
+
+    public Matcher<PostTopicNode> build() {
+      return new BaseMatcher<PostTopicNode>() {
+        @Override
+        public void describeTo(final Description description) {
+          try {
+            description.appendText(TestJsonMapper.INSTANCE.get().writeValueAsString(this));
+          } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(e);
+          }
+        }
+
+        // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+        @Override
+        public boolean matches(final Object item) {
+          if (!(item instanceof PostTopicNode)) {
+            return false;
+          }
+
+          final PostTopicNode that = (PostTopicNode) item;
+          return Objects.equals(name, that.name)
+              && Objects.equals(keyFormat, that.keyFormat)
+              && Objects.equals(valueFormat, that.valueFormat)
+              && (!partitions.isPresent() || partitions.equals(that.partitions))
+              && (keySchema instanceof NullNode || keySchema.equals(that.keySchema))
+              && (valueSchema instanceof NullNode
+              || valueSchema.equals(that.valueSchema));
+        }
+        // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+      };
     }
 
     public String getName() {

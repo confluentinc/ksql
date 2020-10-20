@@ -151,6 +151,48 @@
       }
     },
     {
+      "name": "MAP",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (ID MAP<VARCHAR, VARCHAR> KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": {"F1": "foo"}, "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": "foo"}, "value": {"ID_COPY": {"F1": "foo"}, "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID MAP<VARCHAR, VARCHAR> KEY, ID_COPY MAP<VARCHAR, VARCHAR>, V1 INT"}
+        ]
+      }
+    },
+    {
+      "name": "ARRAY",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (ID ARRAY<VARCHAR> KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": ["foo"], "value": {"V0": 2, "V1": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": ["foo"], "value": {"ID_COPY": ["foo"], "V1": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID ARRAY<VARCHAR> KEY, ID_COPY ARRAY<VARCHAR>, V1 INT"}
+        ]
+      }
+    },
+    {
       "name": "STRUCT",
       "properties": {
         "ksql.key.format.enabled": true

@@ -21,7 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.BackupInputFile;
+import io.confluent.ksql.rest.server.BackupReplayFile;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
@@ -68,7 +68,7 @@ public class KsqlRestoreCommandTopic {
   }
 
   public static List<Pair<byte[], byte[]>> loadBackup(final File file) throws IOException {
-    final BackupInputFile commandTopicBackupFile = new BackupInputFile(file);
+    final BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file);
 
     final List<Pair<byte[], byte[]>> records = commandTopicBackupFile.readRecords();
     throwOnInvalidRecords(records);

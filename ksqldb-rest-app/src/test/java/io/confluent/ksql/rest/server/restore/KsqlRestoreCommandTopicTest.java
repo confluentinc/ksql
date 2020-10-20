@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.restore;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -251,7 +252,7 @@ public class KsqlRestoreCommandTopicTest {
     verifyNoMoreInteractions(kafkaProducer, future1);
   }
 
-  @SuppressWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldThrowIfCannotDescribeTopicExists() {
     // Given:
@@ -267,6 +268,7 @@ public class KsqlRestoreCommandTopicTest {
     verifyZeroInteractions(kafkaProducer);
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldThrowIfCannotDeleteTopic() {
     // Given:
@@ -287,6 +289,7 @@ public class KsqlRestoreCommandTopicTest {
     verifyZeroInteractions(kafkaProducer);
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldThrowIfCannotCreateTopic() {
     // Given:

@@ -202,7 +202,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   }
 
   private BackupReplayFile newReplayFile() {
-    return new BackupReplayFile(Paths.get(
+    return BackupReplayFile.writable(Paths.get(
         backupLocation.getAbsolutePath(),
         String.format("%s%s_%s", PREFIX, topicName, ticker.read())
     ).toFile());
@@ -236,7 +236,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     }
 
     return (latestBakFile != null)
-        ? Optional.of(new BackupReplayFile(latestBakFile))
+        ? Optional.of(BackupReplayFile.writable(latestBakFile))
         : Optional.empty();
   }
 

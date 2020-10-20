@@ -65,7 +65,7 @@ public class KsqlVersionTest {
   }
 
   @Test
-  public void shouldParseWeirdNewFormat() {
+  public void shouldParseNanoVersions() {
     // When:
     final KsqlVersion result = KsqlVersion.parse("5.4.1-0");
 

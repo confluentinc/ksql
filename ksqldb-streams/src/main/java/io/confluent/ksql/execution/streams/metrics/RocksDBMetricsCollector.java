@@ -291,26 +291,26 @@ public class RocksDBMetricsCollector implements MetricsReporter {
       final Map<String, Collection<AggregatedMetric<?>>> builder,
       final Metrics metrics
   ) {
-      registerBigIntTotal(interval, builder, NUMBER_OF_RUNNING_COMPACTIONS, metrics);
-      registerBigIntTotal(interval, builder, BLOCK_CACHE_USAGE, metrics);
-      registerBigIntMax(interval, builder, BLOCK_CACHE_USAGE, metrics);
-      registerBigIntTotal(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
-      registerBigIntMax(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
-      registerBigIntTotal(interval, builder, ESTIMATE_NUM_KEYS, metrics);
-      registerBigIntTotal(interval, builder, ESTIMATE_TABLE_READERS_MEM, metrics);
-      registerBigIntTotal(interval, builder, NUMBER_OF_ENTRIES_ACTIVE_MEMTABLE, metrics);
-      registerBigIntTotal(interval, builder, NUMBER_OF_ENTRIES_IMMUTABLE_MEMTABLES, metrics);
-      registerBigIntTotal(interval, builder, NUMBER_OF_DELETES_ACTIVE_MEMTABLE ,metrics);
-      registerBigIntTotal(interval, builder, NUMBER_OF_DELETES_IMMUTABLE_MEMTABLES, metrics);
-      registerBigIntTotal(interval, builder, NUMBER_OF_IMMUTABLE_MEMTABLES, metrics);
-      registerBigIntTotal(interval, builder, CURRENT_SIZE_OF_ACTIVE_MEMTABLE, metrics);
-      registerBigIntTotal(interval, builder, CURRENT_SIZE_OF_ALL_MEMTABLES, metrics);
-      registerBigIntTotal(interval, builder, SIZE_OF_ALL_MEMTABLES, metrics);
-      registerBigIntTotal(interval, builder, MEMTABLE_FLUSH_PENDING, metrics);
-      registerBigIntTotal(interval, builder, NUMBER_OF_RUNNING_FLUSHES, metrics);
-      registerBigIntTotal(interval, builder, COMPACTION_PENDING, metrics);
-      registerBigIntTotal(interval, builder, ESTIMATED_BYTES_OF_PENDING_COMPACTION, metrics);
-      registerBigIntTotal(interval, builder, TOTAL_SST_FILES_SIZE, metrics);
-      registerBigIntTotal(interval, builder, LIVE_SST_FILES_SIZE, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_RUNNING_COMPACTIONS, metrics);
+    registerBigIntTotal(interval, builder, BLOCK_CACHE_USAGE, metrics);
+    registerBigIntMax(interval, builder, BLOCK_CACHE_USAGE, metrics);
+    registerBigIntTotal(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
+    registerBigIntMax(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
+    registerBigIntTotal(interval, builder, ESTIMATE_NUM_KEYS, metrics);
+    registerBigIntTotal(interval, builder, ESTIMATE_TABLE_READERS_MEM, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_ENTRIES_ACTIVE_MEMTABLE, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_ENTRIES_IMMUTABLE_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_DELETES_ACTIVE_MEMTABLE ,metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_DELETES_IMMUTABLE_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_IMMUTABLE_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, CURRENT_SIZE_OF_ACTIVE_MEMTABLE, metrics);
+    registerBigIntTotal(interval, builder, CURRENT_SIZE_OF_ALL_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, SIZE_OF_ALL_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, MEMTABLE_FLUSH_PENDING, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_RUNNING_FLUSHES, metrics);
+    registerBigIntTotal(interval, builder, COMPACTION_PENDING, metrics);
+    registerBigIntTotal(interval, builder, ESTIMATED_BYTES_OF_PENDING_COMPACTION, metrics);
+    registerBigIntTotal(interval, builder, TOTAL_SST_FILES_SIZE, metrics);
+    registerBigIntTotal(interval, builder, LIVE_SST_FILES_SIZE, metrics);
   }
 }

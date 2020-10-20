@@ -84,8 +84,10 @@ Content-Type: application/vnd.ksql.v2+json
 
 ### Example stream response
 
-Where the result of the query is a stream, the response will not include the **row.key** or
-**row.tombstone** fields, as streams do not have primary keys.
+If the query result is a stream, the response doesn't include the **row.key** or
+
+**row.tombstone** fields, because streams don't have primary keys.
+
 
 ```http
 HTTP/1.1 200 OK
@@ -100,8 +102,10 @@ Transfer-Encoding: chunked
 
 ### Example table response
 
-Where the result of the query is a table, the response will include the primary key of each row in 
-the **row.key** field. Deletes from the result table will be identified by the **row.tombstone** 
+If the query result is a table, the response includes the primary key of each row in
+
+the **row.key** field. Rows that are deleted from the result table are identified by the **row.tombstone** 
+
 field.
 
 ```http
@@ -116,6 +120,7 @@ Transfer-Encoding: chunked
 ...
 ```
 
-Note: media type `application/vnd.ksql.v1+json` does not populate **row.key** or return tombstone
-rows.
+!!! note
+    Media type `application/vnd.ksql.v1+json` does not populate **row.key** or return tombstone
 
+rows.

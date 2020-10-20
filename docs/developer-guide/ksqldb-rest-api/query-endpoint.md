@@ -104,7 +104,8 @@ Transfer-Encoding: chunked
 
 If the query result is a table, the response includes the primary key of each row in
 
-the **row.key** field. Deletes from the result table will be identified by the **row.tombstone** 
+the **row.key** field. Rows that are deleted from the result table are identified by the **row.tombstone** 
+
 field.
 
 ```http

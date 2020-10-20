@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.InsertValuesExecutor;
 import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DropConnector;
@@ -35,6 +36,7 @@ import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -69,6 +71,8 @@ public enum CustomExecutors {
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
+  DEFINE_VARIABLE(DefineVariable.class, VariableExecutor::set),
+  UNDEFINE_VARIABLE(UndefineVariable.class, VariableExecutor::unset),
   INSERT_VALUES(InsertValues.class, insertValuesExecutor()),
   CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
   DROP_CONNECTOR(DropConnector.class, DropConnectorExecutor::execute),

@@ -25,10 +25,12 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.DefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.QueryStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementContext;
+import io.confluent.ksql.parser.SqlBaseParser.UndefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
@@ -54,8 +56,10 @@ import io.vertx.core.VertxException;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -84,6 +88,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
           .put(PrintTopicContext.class, Cli::handlePrintedTopic)
           .put(SetPropertyContext.class, Cli::setPropertyFromCtxt)
           .put(UnsetPropertyContext.class, Cli::unsetPropertyFromCtxt)
+          .put(DefineVariableContext.class, Cli::defineVariableFromCtxt)
+          .put(UndefineVariableContext.class, Cli::undefineVariableFromCtxt)
           .build();
 
   private final Long streamedQueryRowLimit;
@@ -92,6 +98,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private final KsqlRestClient restClient;
   private final Console terminal;
   private final RemoteServerState remoteServerState;
+
+  private final Map<String, String> sessionVariables;
 
   public static Cli build(
       final Long streamedQueryRowLimit,
@@ -117,6 +125,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     this.restClient = restClient;
     this.terminal = terminal;
     this.remoteServerState = new RemoteServerState();
+    this.sessionVariables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
     final Supplier<String> versionSuppler =
         () -> restClient.getServerInfo().getResponse().getVersion();
@@ -478,6 +487,30 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.writer()
         .printf("Successfully unset local property '%s' (value was '%s').%n", property, oldValue);
     terminal.flush();
+  }
+
+  @SuppressWarnings("unused")
+  private void defineVariableFromCtxt(
+      final String ignored,
+      final DefineVariableContext context
+  ) {
+    final String variableName = context.variableName().getText();
+    final String variableValue = ParserUtil.unquote(context.variableValue().getText(), "'");
+    sessionVariables.put(variableName, variableValue);
+  }
+
+  @SuppressWarnings("unused")
+  private void undefineVariableFromCtxt(
+      final String ignored,
+      final UndefineVariableContext context
+  ) {
+    final String variableName = context.variableName().getText();
+    if (sessionVariables.remove(variableName) == null) {
+      // Print only (no throws exception) to keep it as a warning message (like VariableExecutor)
+      terminal.writer()
+          .printf("Cannot undefine variable '%s' which was never defined", variableName);
+      terminal.flush();
+    }
   }
 
   private static boolean isSequenceNumberTimeout(final RestResponse<?> response) {

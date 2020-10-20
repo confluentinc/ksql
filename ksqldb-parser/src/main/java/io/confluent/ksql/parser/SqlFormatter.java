@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -65,6 +66,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -439,6 +441,25 @@ public final class SqlFormatter {
       builder.append("'='");
       builder.append(node.getPropertyValue());
       builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    protected Void visitDefineVariable(final DefineVariable node, final Integer context) {
+      builder.append("DEFINE ");
+      builder.append(node.getVariableName());
+      builder.append("='");
+      builder.append(node.getVariableValue());
+      builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    protected Void visitUndefineVariable(final UndefineVariable node, final Integer context) {
+      builder.append("UNDEFINE ");
+      builder.append(node.getVariableName());
 
       return null;
     }

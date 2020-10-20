@@ -669,6 +669,26 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatDefineStatement() {
+    final String statementString = "DEFINE _topic='t1';";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("DEFINE _topic='t1'"));
+  }
+
+  @Test
+  public void shouldFormatUndefineStatement() {
+    final String statementString = "UNDEFINE _topic;";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("UNDEFINE _topic"));
+  }
+
+  @Test
   public void shouldFormatExplainQuery() {
     final String statementString = "EXPLAIN foo;";
     final Statement statement = parseSingle(statementString);

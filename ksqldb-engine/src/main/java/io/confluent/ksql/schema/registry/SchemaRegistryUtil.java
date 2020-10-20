@@ -15,10 +15,13 @@
 
 package io.confluent.ksql.schema.registry;
 
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +70,23 @@ public final class SchemaRegistryUtil {
         () -> schemaRegistryClient.deleteSubject(subject),
         error -> !isSubjectNotFoundErrorCode(error)
     );
+  }
+
+  public static Optional<SchemaMetadata> getLatestSchema(
+      final SchemaRegistryClient srClient,
+      final String topic,
+      final boolean getKeySchema
+  ) {
+    final String subject = KsqlConstants.getSRSubject(topic, getKeySchema);
+    try {
+      final SchemaMetadata schemaMetadata = srClient.getLatestSchemaMetadata(subject);
+      return Optional.ofNullable(schemaMetadata);
+    } catch (final Exception e) {
+      if (isSubjectNotFoundErrorCode(e)) {
+        return Optional.empty();
+      }
+      throw new KsqlException("Could not get latest schema for subject " + topic, e);
+    }
   }
 
   public static boolean isSubjectNotFoundErrorCode(final Throwable error) {

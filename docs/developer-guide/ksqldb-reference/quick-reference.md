@@ -427,6 +427,23 @@ SELECT user_id
   EMIT CHANGES;
 ```
 
+## IN
+Short hand for multiple `OR` conditions.
+
+```sql hl_lines"3"
+  SELECT select_expr [., ...]
+    FROM from_stream | from_table
+    WHERE condition IN (exp0, exp1, exp2);
+```
+
+The above is equivalent to:
+
+```sql hl_lines"3"
+  SELECT select_expr [., ...]
+    FROM from_stream | from_table
+    WHERE condition = exp0 OR condition = exp1 OR condition = exp2;
+```
+
 ## PARTITION BY
 Repartition a stream. For more information, see
 [Partition Data to Enable Joins](../joins/partition-data).

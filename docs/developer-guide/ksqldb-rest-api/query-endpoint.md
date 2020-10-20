@@ -102,7 +102,8 @@ Transfer-Encoding: chunked
 
 ### Example table response
 
-Where the result of the query is a table, the response will include the primary key of each row in 
+If the query result is a table, the response includes the primary key of each row in
+
 the **row.key** field. Deletes from the result table will be identified by the **row.tombstone** 
 field.
 

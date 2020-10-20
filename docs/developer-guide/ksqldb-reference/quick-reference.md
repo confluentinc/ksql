@@ -355,16 +355,6 @@ DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 DROP TABLE  [IF EXISTS] table_name  [DELETE TOPIC];
 ```
 
-## IN
-Specify multiple values in a WHERE clause.
-
-```sql hl_lines="4"
-SELECT column_name(s)
-  FROM stream_name | table_name
-  WHERE column_name
-  IN (value1,value2,..)
-```
-
 ## INNER JOIN
 Select records in a stream or table that have matching values in another stream
 or table. For more information, see

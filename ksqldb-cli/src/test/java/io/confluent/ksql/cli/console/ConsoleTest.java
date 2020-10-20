@@ -229,7 +229,7 @@ public class ConsoleTest {
     assertThat(terminal.getOutputString(), containsString("k_0"));
 
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
-
+      assertThat(terminal.getOutputString(), containsString("<TOMBSTONE>"));
     } else {
       assertThat(terminal.getOutputString(), containsString("\"tombstone\" : true"));
     }

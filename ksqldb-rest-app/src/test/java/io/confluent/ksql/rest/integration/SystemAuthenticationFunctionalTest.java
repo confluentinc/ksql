@@ -89,7 +89,7 @@ public class SystemAuthenticationFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
   private static final BiFunction<Integer, String, SocketAddress> LOCALHOST_FACTORY =
       (port, host) -> SocketAddress.inetSocketAddress(port, "localhost");
 

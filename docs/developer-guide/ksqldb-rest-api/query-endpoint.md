@@ -36,7 +36,7 @@ Response JSON Object:
     - **header.schema**: (string): the list of columns being returned. This defines the schema for 
     the data returned later in **row.columns**.  
 - **row** (object): A single row being returned. This will be null if an error is being returned.
-    - **row.key** (array): If the data being returned is a table, the primary key of the row.
+    - **row.key** (array)(since v2): If the data being returned is a table, the primary key of the row.
     The key may be one or more values than uniquely identify the row. The schema of the key was 
     already supplied in **header.key**. 
     Updates with the same key _replace_ previous values for the row.

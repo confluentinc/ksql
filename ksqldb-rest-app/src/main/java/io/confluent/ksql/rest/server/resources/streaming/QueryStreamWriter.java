@@ -49,7 +49,7 @@ class QueryStreamWriter implements StreamingOutput {
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
 
   private final TransientQueryMetadata queryMetadata;
-  private final boolean oldFormat;
+  private final boolean v1Format;
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private volatile Exception streamsException;
@@ -62,12 +62,12 @@ class QueryStreamWriter implements StreamingOutput {
       final long disconnectCheckInterval,
       final ObjectMapper objectMapper,
       final CompletableFuture<Void> connectionClosedFuture,
-      final boolean oldFormat
+      final boolean v1Format
   ) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
-    this.oldFormat = oldFormat;
+    this.v1Format = v1Format;
     this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
     connectionClosedFuture.thenAccept(v -> connectionClosed = true);
@@ -136,7 +136,7 @@ class QueryStreamWriter implements StreamingOutput {
     final QueryId queryId = queryMetadata.getQueryId();
     final LogicalSchema storedSchema = queryMetadata.getLogicalSchema();
 
-    if (oldFormat) {
+    if (v1Format) {
       return StreamedRow.pushHeader(queryId, ImmutableList.of(), storedSchema.value());
     }
 
@@ -161,7 +161,7 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   private StreamedRow buildRow(final KeyValue<List<?>, GenericRow> row) {
-    if (oldFormat) {
+    if (v1Format) {
       return StreamedRow.streamRow(row.value());
     }
 

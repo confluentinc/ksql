@@ -82,6 +82,7 @@ statement
     | EXPLAIN  (statement | identifier)                                     #explain
     | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
+    | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
     ;
 
 assertStatement
@@ -110,6 +111,10 @@ query
 resultMaterialization
     : CHANGES
     | FINAL
+    ;
+
+alterOption
+    : ADD (COLUMN)? identifier type
     ;
 
 tableElements
@@ -365,6 +370,8 @@ nonReserved
     | ESCAPE
     | REPLACE
     | ASSERT
+    | ALTER
+    | ADD
     ;
 
 EMIT: 'EMIT';
@@ -495,6 +502,8 @@ VIEW: 'VIEW';
 PRIMARY: 'PRIMARY';
 REPLACE: 'REPLACE';
 ASSERT: 'ASSERT';
+ADD: 'ADD';
+ALTER: 'ALTER';
 
 IF: 'IF';
 

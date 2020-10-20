@@ -330,7 +330,7 @@ public final class StreamedRow {
     @JsonProperty("key")
     @SuppressWarnings("unused") // Invoked by reflection by Jackson.
     private Optional<LogicalSchema> getSerializedKeySchema() {
-      // Type used Logical Schema to serialize key columns.
+      // Type uses `LogicalSchema`` to serialize key columns. It's a bit of a hack, but works.
       // Note use of `valueColumns` rather than `keyColumns`, so that the list of key columns
       // does not include the `KEY` keyword.
       return keySchema

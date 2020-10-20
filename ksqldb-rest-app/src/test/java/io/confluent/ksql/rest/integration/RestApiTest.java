@@ -100,11 +100,11 @@ public class RestApiTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
 
   private static final TestDataProvider TOMBSTONE_PROVIDER = new TombstoneProvider();
   private static final String TOMBSTONE_TOPIC = TOMBSTONE_PROVIDER.topicName();
-  private static final String TOMBSTONE_TABLE = TOMBSTONE_PROVIDER.kstreamName();
+  private static final String TOMBSTONE_TABLE = TOMBSTONE_PROVIDER.sourceName();
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials SUPER_USER = VALID_USER1;

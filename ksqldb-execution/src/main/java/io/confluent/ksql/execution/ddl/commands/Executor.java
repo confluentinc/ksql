@@ -29,4 +29,6 @@ public interface Executor {
   DdlCommandResult executeRegisterType(RegisterTypeCommand registerType);
 
   DdlCommandResult executeDropType(DropTypeCommand dropType);
+
+  DdlCommandResult executeAlterSource(AlterSourceCommand alterSource);
 }

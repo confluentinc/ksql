@@ -73,6 +73,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
 import org.junit.Test;
@@ -400,5 +401,37 @@ public class DistributingExecutorTest {
     assertThat(e.getMessage(), containsString(
         "Cannot insert into read-only topic: "
             + "default_ksql_processing_log"));
+  }
+
+  @Test
+  public void shouldAbortOnError_ProducerFencedException() {
+    // When:
+    doThrow(new ProducerFencedException("Error!")).when(transactionalProducer).commitTransaction();
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    assertThat(e.getMessage(), containsString("Could not write the statement "
+        + "'statement' into the command topic."));
+
+    // Then:
+    verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
+  }
+
+  @Test
+  public void shouldAbortOnError_Exception() {
+    // When:
+    doThrow(new RuntimeException("Error!")).when(transactionalProducer).commitTransaction();
+    final Exception e = assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    assertThat(e.getMessage(), containsString("Could not write the statement "
+        + "'statement' into the command topic."));
+
+    // Then:
+    verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
   }
 }

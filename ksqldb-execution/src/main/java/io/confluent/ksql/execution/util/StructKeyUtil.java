@@ -69,7 +69,7 @@ public final class StructKeyUtil {
         .orElse(key);
 
     if (naturalKey != null && !(naturalKey instanceof Struct)) {
-      throw new IllegalArgumentException("None struct key: " + key);
+      throw new IllegalArgumentException("Non struct key: " + key);
     }
 
     final Optional<Struct> structKey = Optional.ofNullable((Struct) naturalKey);

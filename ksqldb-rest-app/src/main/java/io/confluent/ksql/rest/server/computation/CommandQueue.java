@@ -88,6 +88,12 @@ public interface CommandQueue extends Closeable {
   Producer<CommandId, Command> createTransactionalProducer();
 
   /**
+   * If a command created with enqueueCommand has had errors and the transaction has failed or been
+   * aborted, this should be called to ensure state is cleaned up.
+   */
+  void abortCommand(CommandId commandId);
+
+  /**
    * Blocks until the command topic consumer has processed all records up to
    * the current offset when this method is called.
    *

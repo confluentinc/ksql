@@ -202,7 +202,7 @@ public class CliTest {
   @Before
   public void setUp() {
     REST_APP.closePersistentQueries();
-    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.kstreamName());
+    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.sourceName());
 
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
@@ -244,7 +244,7 @@ public class CliTest {
   }
 
   private static void createKStream(final TestDataProvider dataProvider, final Cli cli) {
-    run("CREATE STREAM " + dataProvider.kstreamName()
+    run("CREATE STREAM " + dataProvider.sourceName()
             + " (" + dataProvider.ksqlSchemaString(false) + ")"
             + " WITH (value_format = 'json', kafka_topic = '" + dataProvider.topicName() + "');",
         cli);
@@ -390,7 +390,7 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(ORDER_DATA_PROVIDER.kstreamName(), ORDER_DATA_PROVIDER.topicName(), "KAFKA", "JSON", "false")
+        isRow(ORDER_DATA_PROVIDER.sourceName(), ORDER_DATA_PROVIDER.topicName(), "KAFKA", "JSON", "false")
     );
 
     assertRunListCommand("tables", is(EMPTY_RESULT));
@@ -488,7 +488,7 @@ public class CliTest {
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
     assertRunCommand(
-        "describe " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+        "describe " + ORDER_DATA_PROVIDER.sourceName() + ";",
         containsRows(
             row("ORDERID", "VARCHAR(STRING)  (key)"),
             row("ORDERTIME", "BIGINT"),
@@ -503,7 +503,7 @@ public class CliTest {
   @Test
   public void testPersistentSelectStar() {
     testCreateStreamAsSelect(
-        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";",
         ORDER_DATA_PROVIDER.schema(),
         ORDER_DATA_PROVIDER.finalData()
     );
@@ -552,7 +552,7 @@ public class CliTest {
 
     testCreateStreamAsSelect(
         "SELECT ORDERID, ITEMID, ORDERUNITS, PRICEARRAY "
-            + "FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+            + "FROM " + ORDER_DATA_PROVIDER.sourceName() + ";",
         resultSchema,
         expectedResults
     );
@@ -573,7 +573,7 @@ public class CliTest {
     );
 
     testCreateStreamAsSelect(
-        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName()
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
         ORDER_DATA_PROVIDER.schema(),
         expectedResults
@@ -588,7 +588,7 @@ public class CliTest {
     final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
-        "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
+        "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES",
         3,
         containsRows(
             row("ORDER_1", row1.get(1).toString()),
@@ -601,7 +601,7 @@ public class CliTest {
   public void shouldHandlePullQuery() {
     // Given:
     run("CREATE TABLE X AS SELECT ITEMID, COUNT(1) AS COUNT "
-            + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
+            + "FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " GROUP BY ITEMID;",
         localCli
     );
@@ -627,7 +627,7 @@ public class CliTest {
   public void shouldOutputPullQueryHeader() {
     // Given:
     run("CREATE TABLE Y AS SELECT ITEMID, COUNT(1) AS COUNT "
-            + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
+            + "FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " GROUP BY ITEMID;",
         localCli
     );
@@ -651,7 +651,7 @@ public class CliTest {
     final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
-        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES",
         3,
         containsRows(
             row(prependWithKey("ORDER_1", row1)),
@@ -663,7 +663,7 @@ public class CliTest {
   @Test
   public void shouldOutputPushQueryHeader() {
     // When:
-    run("SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
+    run("SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES LIMIT 1;", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
     assertThat(terminal.getOutputString(), containsString("ITEMID"));
@@ -686,7 +686,7 @@ public class CliTest {
             + "PRICEARRAY[2]>1000 AS Col4 "
             + "FROM %s "
             + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
-        ORDER_DATA_PROVIDER.kstreamName()
+        ORDER_DATA_PROVIDER.sourceName()
     );
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
@@ -713,7 +713,7 @@ public class CliTest {
   @Test
   public void testCreateTable() {
     final String queryString = "CREATE TABLE " + tableName + " AS " +
-        " SELECT ITEMID, COUNT(*) FROM " + ORDER_DATA_PROVIDER.kstreamName() +
+        " SELECT ITEMID, COUNT(*) FROM " + ORDER_DATA_PROVIDER.sourceName() +
         " GROUP BY ITEMID;";
 
     assertRunCommand(
@@ -928,7 +928,7 @@ public class CliTest {
   public void shouldExplainQueryId() {
     // Given:
     localCli.handleLine("CREATE STREAM " + streamName + " "
-        + "AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";");
+        + "AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";");
 
     final String queryId = extractQueryId(terminal.getOutputString());
 
@@ -970,7 +970,7 @@ public class CliTest {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";"
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
     when(lineSupplier.get())
@@ -990,7 +990,7 @@ public class CliTest {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";"
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
     // When:

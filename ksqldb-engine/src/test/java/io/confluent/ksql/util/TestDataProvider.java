@@ -76,7 +76,7 @@ public class TestDataProvider {
         ));
   }
 
-  public String kstreamName() {
+  public String sourceName() {
     return sourceName;
   }
 

@@ -86,7 +86,8 @@ Content-Type: application/vnd.ksql.v2+json
 
 If the query result is a stream, the response doesn't include the **row.key** or
 
-**row.tombstone** fields, as streams do not have primary keys.
+**row.tombstone** fields, because streams don't have primary keys.
+
 
 ```http
 HTTP/1.1 200 OK

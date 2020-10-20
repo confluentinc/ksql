@@ -74,7 +74,7 @@ public class ApiIntegrationTest {
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
-  private static final String TEST_STREAM = TEST_DATA_PROVIDER.kstreamName();
+  private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials NORMAL_USER = VALID_USER2;

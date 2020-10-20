@@ -135,10 +135,8 @@ public final class PostConditionsNode {
       }
     }
 
-    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
     @SuppressWarnings("unchecked")
     Matcher<Iterable<PostTopicNode>> buildTopics() {
-      // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
       final Matcher<PostTopicNode>[] matchers = topics.stream()
           .map(topic -> new BaseMatcher<PostTopicNode>() {
             @Override
@@ -150,6 +148,7 @@ public final class PostConditionsNode {
               }
             }
 
+            // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
             @Override
             public boolean matches(final Object item) {
               if (!(item instanceof PostTopicNode)) {
@@ -165,6 +164,7 @@ public final class PostConditionsNode {
                   && (topic.valueSchema instanceof NullNode
                           || topic.valueSchema.equals(that.valueSchema));
             }
+            // CHECKSTYLE_RULES.ON: BooleanExpessionComplexity
           })
           .toArray(Matcher[]::new);
 

@@ -327,14 +327,31 @@ public final class PullQueryExecutor {
           statement.getStatementText()));
     }
 
+    // The source nodes associated with each of the rows
     final List<KsqlNode> sourceNodes = new ArrayList<>();
+    // Each of the table rows returned, aggregated across nodes
     final List<List<?>> tableRows = new ArrayList<>();
+    // Each of the schemas returned, aggregated across nodes
     final List<LogicalSchema> schemas = new ArrayList<>();
     List<KsqlLocation> remainingLocations = ImmutableList.copyOf(locations);
+    // For each round, each set of partition location objects is grouped by host, and all
+    // keys associated with that host are batched together. For any requests that fail,
+    // the partition location objects will be added to remainingLocations, and the next round
+    // will attempt to fetch them from the next node in their prioritized list.
+    // For example, locations might be:
+    // [ Partition 0 <Host 1, Host 2>,
+    //   Partition 1 <Host 2, Host 1>,
+    //   Partition 2 <Host 1, Host 2> ]
+    // In Round 0, fetch from Host 1: [Partition 0, Partition 2], from Host 2: [Partition 1]
+    // If everything succeeds, we're done.  If Host 1 failed, then we'd have a Round 1:
+    // In Round 1, fetch from Host 2: [Partition 0, Partition 2].
     for (int round = 0; ; round++) {
+      // Group all partition location objects by their nth round node
       final Map<KsqlNode, List<KsqlLocation>> groupedByHost
           = groupByHost(statement, remainingLocations, round);
 
+      // Make requests to each host, specifying the partitions we're interested in from
+      // this host.
       final Map<KsqlNode, Future<PullQueryResult>> futures = new LinkedHashMap<>();
       for (Map.Entry<KsqlNode, List<KsqlLocation>> entry : groupedByHost.entrySet()) {
         final KsqlNode node = entry.getKey();
@@ -350,6 +367,8 @@ public final class PullQueryExecutor {
         }));
       }
 
+      // Go through all of the results of the requests, either aggregating rows or adding
+      // the locations to the nextRoundRemaining list.
       final ImmutableList.Builder<KsqlLocation> nextRoundRemaining = ImmutableList.builder();
       for (Map.Entry<KsqlNode, Future<PullQueryResult>>  entry : futures.entrySet()) {
         final Future<PullQueryResult> future = entry.getValue();
@@ -367,6 +386,7 @@ public final class PullQueryExecutor {
       }
       remainingLocations = nextRoundRemaining.build();
 
+      // If there are no partition locations remaining, then we're done.
       if (remainingLocations.size() == 0) {
         validateSchemas(schemas);
         return new PullQueryResult(
@@ -377,6 +397,14 @@ public final class PullQueryExecutor {
     }
   }
 
+  /**
+   * Groups all of the partition locations by the round-th entry in their prioritized list
+   * of host nodes.
+   * @param statement the statement from which this request came
+   * @param locations the list of partition locations to parse
+   * @param round which round this is
+   * @return A map of node to list of partition locations
+   */
   private static Map<KsqlNode, List<KsqlLocation>> groupByHost(
       final ConfiguredStatement<Query> statement,
       final List<KsqlLocation> locations,
@@ -386,7 +414,8 @@ public final class PullQueryExecutor {
       // If one of the partitions required is out of nodes, then we cannot continue.
       if (round >= location.getNodes().size()) {
         throw new MaterializationException(String.format(
-            "Unable to execute pull query: %s", statement.getStatementText()));
+            "Unable to execute pull query: %s. Exhausted standby hosts to try.",
+            statement.getStatementText()));
       }
       final KsqlNode nextHost = location.getNodes().get(round);
       groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);

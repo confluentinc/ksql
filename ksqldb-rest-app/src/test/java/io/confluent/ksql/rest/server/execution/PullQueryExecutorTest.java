@@ -306,7 +306,8 @@ public class PullQueryExecutorTest {
       assertThat(locationsQueried.get(2).get(0), is(location1));
       assertThat(locationsQueried.get(2).get(1), is(location3));
 
-      assertThat(e.getMessage(), containsString("Unable to execute pull query: foo"));
+      assertThat(e.getMessage(), containsString("Unable to execute pull query: foo. "
+          + "Exhausted standby hosts to try."));
     }
 
     @Test

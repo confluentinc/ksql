@@ -84,7 +84,8 @@ Content-Type: application/vnd.ksql.v2+json
 
 ### Example stream response
 
-Where the result of the query is a stream, the response will not include the **row.key** or
+If the query result is a stream, the response doesn't include the **row.key** or
+
 **row.tombstone** fields, as streams do not have primary keys.
 
 ```http
@@ -118,4 +119,3 @@ Transfer-Encoding: chunked
 
 Note: media type `application/vnd.ksql.v1+json` does not populate **row.key** or return tombstone
 rows.
-

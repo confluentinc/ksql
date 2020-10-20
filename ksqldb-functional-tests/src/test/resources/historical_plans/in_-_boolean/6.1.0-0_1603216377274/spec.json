@@ -1,0 +1,146 @@
+{
+  "version" : "6.1.0-0",
+  "timestamp" : 1603216377274,
+  "path" : "query-validation-tests/in.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BOOLEAN KEY, `VAL` BOOLEAN, `VAL2` STRING",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BOOLEAN KEY, `VAL` BOOLEAN, `VAL2` STRING",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "boolean",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : true,
+      "value" : {
+        "VAL" : false
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : false,
+      "value" : {
+        "VAL" : true
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : false,
+      "value" : {
+        "VAL" : false
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : false,
+      "value" : {
+        "VAL2" : "true"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : false,
+      "value" : {
+        "VAL2" : "t"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : true,
+      "value" : {
+        "VAL" : false,
+        "VAL2" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : false,
+      "value" : {
+        "VAL" : true,
+        "VAL2" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : false,
+      "value" : {
+        "VAL" : null,
+        "VAL2" : "true"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : false,
+      "value" : {
+        "VAL" : null,
+        "VAL2" : "t"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BOOLEAN KEY, VAL BOOLEAN, VAL2 STRING) WITH (kafka_topic='input_topic', format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (true, 'Not a boolean', 10) OR VAL IN ('TruE', ARRAY[1]) OR VAL2 IN (true);" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BOOLEAN KEY, `VAL` BOOLEAN, `VAL2` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BOOLEAN KEY, `VAL` BOOLEAN, `VAL2` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

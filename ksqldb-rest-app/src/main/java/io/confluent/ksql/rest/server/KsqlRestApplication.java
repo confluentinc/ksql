@@ -1014,7 +1014,7 @@ public final class KsqlRestApplication implements Executable {
         restConfig.getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG)
     );
 
-    authenticationSkipPaths.addAll(KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
+    authenticationSkipPaths.addAll(KsqlAuthorizationProviderHandler.KSQL_AUTHENTICATION_SKIP_PATHS);
 
     final Map<String, Object> restConfigs = restConfig.getOriginals();
 

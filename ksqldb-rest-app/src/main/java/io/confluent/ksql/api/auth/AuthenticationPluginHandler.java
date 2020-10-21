@@ -50,10 +50,10 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
       final AuthenticationPlugin securityHandlerPlugin) {
     this.server = Objects.requireNonNull(server);
     this.securityHandlerPlugin = Objects.requireNonNull(securityHandlerPlugin);
-    // We add in all the paths that don't require authorization from
+    // We add in all the paths that don't require authentication/authorization from
     // KsqlAuthorizationProviderHandler
     final Set<String> unauthenticatedPaths = new HashSet<>(
-        KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
+        KsqlAuthorizationProviderHandler.KSQL_AUTHENTICATION_SKIP_PATHS);
     // And then we add anything from the property authentication.skip.paths
     // This preserves the behaviour from the previous Jetty based implementation
     final List<String> unauthed = server.getConfig()

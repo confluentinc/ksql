@@ -32,7 +32,7 @@ import java.util.Set;
  */
 public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
 
-  public static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet
+  public static final Set<String> KSQL_AUTHENTICATION_SKIP_PATHS = ImmutableSet
       .of("/v1/metadata", "/v1/metadata/id", "/healthcheck");
 
   private final WorkerExecutor workerExecutor;
@@ -49,7 +49,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
 
     final String path = routingContext.normalisedPath();
 
-    if (PATHS_WITHOUT_AUTHORIZATION.contains(path)) {
+    if (KSQL_AUTHENTICATION_SKIP_PATHS.contains(path)) {
       routingContext.next();
       return;
     }

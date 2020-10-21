@@ -460,6 +460,7 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
+  @SuppressWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildHoppingWindowedAggregateCorrectly() {
     // Given:
     givenHoppingWindowedAggregate();
@@ -490,6 +491,7 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
+  @SuppressWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildSessionWindowedAggregateCorrectly() {
     // Given:
     givenSessionWindowedAggregate();

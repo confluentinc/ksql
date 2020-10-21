@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -188,6 +189,17 @@ public class BaseApiTest {
     assertThat(writeStream.isEnded(), is(false));
 
     return new QueryResponse(writeStream.getBody().toString());
+  }
+
+  protected HttpResponse<Buffer> sendGetRequest(final String uri) throws Exception {
+    return sendGetRequest(client, uri);
+  }
+
+  protected HttpResponse<Buffer> sendGetRequest(final WebClient client, final String uri)
+      throws Exception {
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client.get(uri).send(requestFuture);
+    return requestFuture.get();
   }
 
   protected HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)

@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
@@ -30,6 +31,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
+import io.confluent.ksql.services.ConfiguredKafkaClientSupplier;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -48,6 +50,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,6 +81,7 @@ public class AuthTest extends ApiTest {
       .build();
 
   private volatile KsqlAuthorizationProvider authorizationProvider;
+  private volatile KsqlUserContextProvider userContextProvider;
   private volatile AuthenticationPlugin securityHandlerPlugin;
   private String unauthedPaths;
 
@@ -125,7 +130,7 @@ public class AuthTest extends ApiTest {
 
           @Override
           public Optional<KsqlUserContextProvider> getUserContextProvider() {
-            return Optional.empty();
+            return Optional.ofNullable(userContextProvider);
           }
 
           @Override
@@ -135,6 +140,11 @@ public class AuthTest extends ApiTest {
         Optional.ofNullable(securityHandlerPlugin),
         serverState);
     server.start();
+  }
+
+  @Override
+  protected HttpResponse<Buffer> sendGetRequest(final String uri) throws Exception {
+    return sendGetRequestWithCreds(client, uri, USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
   }
 
   @Override
@@ -225,6 +235,18 @@ public class AuthTest extends ApiTest {
   public void shouldCloseQueryWithApiSecurityContext() throws Exception {
     super.shouldCloseQuery();
     assertAuthorisedSecurityContext(USER_WITH_ACCESS);
+  }
+
+  @Test
+  public void shouldAllowInfoWithPermissionCheck() throws Exception {
+    shouldAllowAccessWithPermissionCheck(USER_WITH_ACCESS, "GET",
+        "/info", super::shouldExecuteInfoRquest);
+  }
+
+  @Test
+  public void shouldAllowServiceMetadataIdWithoutAuthentication() throws Exception {
+    shouldAllowAccessWithoutAuthentication("GET",
+        "/v1/metadata/id", super::shouldExecuteServerMetadataIdRequest);
   }
 
   @Test
@@ -415,6 +437,22 @@ public class AuthTest extends ApiTest {
     validateError(expectedErrorCode, expectedMessage, insertsResponse.error);
   }
 
+  // auth header is omitted if username and password are null
+  private static HttpResponse<Buffer> sendGetRequestWithCreds(
+      final WebClient client,
+      final String uri,
+      final String username,
+      final String password
+  ) throws Exception {
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    HttpRequest<Buffer> request = client.get(uri);
+    if (username != null || password != null) {
+      request = request.basicAuthentication(username, password);
+    }
+    request.send(requestFuture);
+    return requestFuture.get();
+  }
+
   private HttpResponse<Buffer> sendRequestWithCreds(
       final String uri,
       final Buffer requestBody,
@@ -501,6 +539,37 @@ public class AuthTest extends ApiTest {
     assertThat(handlerCalled.get(), is(shouldCallHandler));
   }
 
+  private void throwIfNullPrincipal(final Principal user) {
+    if (user == null) {
+      throw new KsqlException("Got NULL principal");
+    }
+  }
+
+  private void shouldAllowAccessWithoutAuthentication(final String expectedMethod,
+      final String expectedPath, final ExceptionThrowingRunnable action) throws Exception {
+    stopServer();
+    stopClient();
+    this.authorizationProvider = (user, method, path) -> {
+      new KsqlException("Should not call authorization");
+    };
+    this.userContextProvider = new KsqlUserContextProvider() {
+      @Override
+      public ConfiguredKafkaClientSupplier getKafkaClientSupplier(Principal principal) {
+        new KsqlException("Should not call get kafka client supplier");
+        return null;
+      }
+
+      @Override
+      public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory(Principal principal) {
+        new KsqlException("Should not call get schema registry client factory");
+        return null;
+      }
+    };
+    createServer(createServerConfig());
+    client = createClient();
+    action.run();
+  }
+
   private void shouldAllowAccessWithPermissionCheck(final String expectedUser,
       final String expectedMethod, final String expectedPath,
       final ExceptionThrowingRunnable action) throws Exception {
@@ -510,6 +579,7 @@ public class AuthTest extends ApiTest {
     AtomicReference<String> methodAtomicReference = new AtomicReference<>();
     AtomicReference<String> pathAtomicReference = new AtomicReference<>();
     this.authorizationProvider = (user, method, path) -> {
+      throwIfNullPrincipal(user);
       principalAtomicReference.set(user);
       methodAtomicReference.set(method);
       pathAtomicReference.set(path);
@@ -539,7 +609,7 @@ public class AuthTest extends ApiTest {
     void run() throws Exception;
   }
 
-  private static class StringPrincipal implements Principal {
+  public static class StringPrincipal implements Principal {
 
     private final String name;
 

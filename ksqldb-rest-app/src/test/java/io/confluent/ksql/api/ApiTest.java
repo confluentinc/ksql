@@ -33,6 +33,7 @@ import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.api.utils.SendStream;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.entity.PushQueryId;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -52,6 +53,40 @@ public class ApiTest extends BaseApiTest {
   protected static final Logger log = LoggerFactory.getLogger(ApiTest.class);
 
   protected static final List<JsonObject> DEFAULT_INSERT_ROWS = generateInsertRows();
+
+  @Test
+  @CoreApiTest
+  public void shouldExecuteInfoRquest() throws Exception {
+    // When
+    HttpResponse<Buffer> response = sendGetRequest("/info");
+
+    // Then
+    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusMessage(), is("OK"));
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertThat(queryResponse.responseObject.getJsonObject("KsqlServerInfo").getString("version"),
+        is(AppInfo.getVersion()));
+    assertThat(queryResponse.responseObject.getJsonObject("KsqlServerInfo").getString("kafkaClusterId"),
+        is("kafka-cluster-id"));
+    assertThat(queryResponse.responseObject.getJsonObject("KsqlServerInfo").getString("ksqlServiceId"),
+        is("ksql-service-id"));
+  }
+
+  @Test
+  @CoreApiTest
+  public void shouldExecuteServerMetadataIdRequest() throws Exception {
+    // When
+    HttpResponse<Buffer> response = sendGetRequest("/v1/metadata/id");
+
+    // Then
+    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusMessage(), is("OK"));
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertThat(queryResponse.responseObject.getJsonObject("scope").getJsonObject("clusters")
+            .getString("kafka-cluster"), is("kafka-cluster-id"));
+    assertThat(queryResponse.responseObject.getJsonObject("scope").getJsonObject("clusters")
+            .getString("ksql-cluster"), is("ksql-service-id"));
+  }
 
   @Test
   @CoreApiTest

@@ -40,7 +40,7 @@ public interface Locator {
    * @param keys the required keys.
    * @return the list of nodes, that can potentially serve the key.
    */
-  List<KsqlLocation> locate(
+  List<KsqlPartitionLocation> locate(
       List<Struct> keys,
       RoutingOptions routingOptions,
       RoutingFilterFactory routingFilterFactory
@@ -59,7 +59,7 @@ public interface Locator {
     URI location();
   }
 
-  interface KsqlLocation {
+  interface KsqlPartitionLocation {
 
     /**
      * @return the ordered and filtered list of nodes to contact to access the above key.

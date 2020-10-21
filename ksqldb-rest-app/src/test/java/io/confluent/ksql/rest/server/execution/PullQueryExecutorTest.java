@@ -39,7 +39,7 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlLocation;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.name.ColumnName;
@@ -56,27 +56,22 @@ import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
-import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.utils.Time;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -195,13 +190,13 @@ public class PullQueryExecutorTest {
     @Mock
     private RouteQuery routeQuery;
     @Mock
-    private KsqlLocation location1;
+    private KsqlPartitionLocation location1;
     @Mock
-    private KsqlLocation location2;
+    private KsqlPartitionLocation location2;
     @Mock
-    private KsqlLocation location3;
+    private KsqlPartitionLocation location3;
     @Mock
-    private KsqlLocation location4;
+    private KsqlPartitionLocation location4;
     @Mock
     private KsqlNode node1;
     @Mock
@@ -228,8 +223,8 @@ public class PullQueryExecutorTest {
       when(routeQuery.routeQuery(eq(node1), any(), any(), any(), any())).thenReturn(rows);
       rows = new TableRows("", queryId, logicalSchema, ImmutableList.of(ROW2));
       when(routeQuery.routeQuery(eq(node2), any(), any(), any(), any())).thenReturn(rows);
-      List<KsqlLocation> locations = ImmutableList.of(location1, location2, location3, location4);
-      List<List<KsqlLocation>> locationsQueried = new ArrayList<>();
+      List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
+      List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
       PullQueryResult result = PullQueryExecutor.handlePullQuery(
           statement, executionContext, serviceContext, routingOptions, (l) -> {
             locationsQueried.add(l);
@@ -256,8 +251,8 @@ public class PullQueryExecutorTest {
       when(routeQuery.routeQuery(eq(node2), any(), any(), any(), any()))
           .thenReturn(rows2)
           .thenReturn(rows1);
-      List<KsqlLocation> locations = ImmutableList.of(location1, location2, location3, location4);
-      List<List<KsqlLocation>> locationsQueried = new ArrayList<>();
+      List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
+      List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
       PullQueryResult result = PullQueryExecutor.handlePullQuery(
           statement, executionContext, serviceContext, routingOptions, (l) -> {
             locationsQueried.add(l);
@@ -285,8 +280,8 @@ public class PullQueryExecutorTest {
       when(routeQuery.routeQuery(eq(node2), any(), any(), any(), any()))
           .thenReturn(rows2)
           .thenThrow(new RuntimeException("Error!"));
-      List<KsqlLocation> locations = ImmutableList.of(location1, location2, location3, location4);
-      List<List<KsqlLocation>> locationsQueried = new ArrayList<>();
+      List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
+      List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
 
       final Exception e = assertThrows(
           MaterializationException.class,
@@ -313,8 +308,8 @@ public class PullQueryExecutorTest {
     @Test
     public void shouldCallRouteQuery_allFiltered() throws InterruptedException {
       when(location1.getNodes()).thenReturn(ImmutableList.of());
-      List<KsqlLocation> locations = ImmutableList.of(location1, location2, location3, location4);
-      List<List<KsqlLocation>> locationsQueried = new ArrayList<>();
+      List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
+      List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
 
       final Exception e = assertThrows(
           MaterializationException.class,

@@ -73,7 +73,7 @@ final class KsLocator implements Locator {
   }
 
   @Override
-  public List<KsqlLocation> locate(
+  public List<KsqlPartitionLocation> locate(
       final List<Struct> keys,
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory
@@ -119,7 +119,7 @@ final class KsLocator implements Locator {
       locationsByPartition.put(metadata.partition(), filteredHosts);
     }
     return locationsByPartition.entrySet().stream()
-        .map(e -> new Location(
+        .map(e -> new PartitionLocation(
             Optional.of(keysByPartition.get(e.getKey())), e.getKey(), e.getValue()))
         .collect(ImmutableList.toImmutableList());
   }
@@ -247,12 +247,12 @@ final class KsLocator implements Locator {
 
   }
 
-  private static final class Location implements KsqlLocation {
+  private static final class PartitionLocation implements KsqlPartitionLocation {
     private final Optional<Set<Struct>> keys;
     private final int partition;
     private final List<KsqlNode> nodes;
 
-    private Location(final Optional<Set<Struct>> keys, final int partition,
+    private PartitionLocation(final Optional<Set<Struct>> keys, final int partition,
         final List<KsqlNode> nodes) {
       this.keys = keys;
       this.partition = partition;

@@ -53,8 +53,8 @@ import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlLocation;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -240,13 +240,14 @@ public final class PullQueryExecutor {
           .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
           .collect(ImmutableList.toImmutableList());
 
-      final List<KsqlLocation> locations = mat.locator().locate(
+      final List<KsqlPartitionLocation> locations = mat.locator().locate(
           keys,
           routingOptions,
           routingFilterFactory
       );
 
-      final Function<List<KsqlLocation>, PullQueryContext> contextFactory = (locationsForHost) ->
+      final Function<List<KsqlPartitionLocation>, PullQueryContext> contextFactory
+          = (locationsForHost) ->
           new PullQueryContext(
               locationsForHost,
               mat,
@@ -311,9 +312,9 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final RoutingOptions routingOptions,
-      final Function<List<KsqlLocation>, PullQueryContext> contextFactory,
+      final Function<List<KsqlPartitionLocation>, PullQueryContext> contextFactory,
       final QueryId queryId,
-      final List<KsqlLocation> locations,
+      final List<KsqlPartitionLocation> locations,
       final ExecutorService executorService,
       final RouteQuery routeQuery
   ) throws InterruptedException {
@@ -333,7 +334,7 @@ public final class PullQueryExecutor {
     final List<List<?>> tableRows = new ArrayList<>();
     // Each of the schemas returned, aggregated across nodes
     final List<LogicalSchema> schemas = new ArrayList<>();
-    List<KsqlLocation> remainingLocations = ImmutableList.copyOf(locations);
+    List<KsqlPartitionLocation> remainingLocations = ImmutableList.copyOf(locations);
     // For each round, each set of partition location objects is grouped by host, and all
     // keys associated with that host are batched together. For any requests that fail,
     // the partition location objects will be added to remainingLocations, and the next round
@@ -347,13 +348,13 @@ public final class PullQueryExecutor {
     // In Round 1, fetch from Host 2: [Partition 0, Partition 2].
     for (int round = 0; ; round++) {
       // Group all partition location objects by their nth round node
-      final Map<KsqlNode, List<KsqlLocation>> groupedByHost
+      final Map<KsqlNode, List<KsqlPartitionLocation>> groupedByHost
           = groupByHost(statement, remainingLocations, round);
 
       // Make requests to each host, specifying the partitions we're interested in from
       // this host.
       final Map<KsqlNode, Future<PullQueryResult>> futures = new LinkedHashMap<>();
-      for (Map.Entry<KsqlNode, List<KsqlLocation>> entry : groupedByHost.entrySet()) {
+      for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
         final KsqlNode node = entry.getKey();
         final PullQueryContext pullQueryContext = contextFactory.apply(entry.getValue());
 
@@ -369,7 +370,8 @@ public final class PullQueryExecutor {
 
       // Go through all of the results of the requests, either aggregating rows or adding
       // the locations to the nextRoundRemaining list.
-      final ImmutableList.Builder<KsqlLocation> nextRoundRemaining = ImmutableList.builder();
+      final ImmutableList.Builder<KsqlPartitionLocation> nextRoundRemaining
+          = ImmutableList.builder();
       for (Map.Entry<KsqlNode, Future<PullQueryResult>>  entry : futures.entrySet()) {
         final Future<PullQueryResult> future = entry.getValue();
         final KsqlNode node = entry.getKey();
@@ -405,12 +407,12 @@ public final class PullQueryExecutor {
    * @param round which round this is
    * @return A map of node to list of partition locations
    */
-  private static Map<KsqlNode, List<KsqlLocation>> groupByHost(
+  private static Map<KsqlNode, List<KsqlPartitionLocation>> groupByHost(
       final ConfiguredStatement<Query> statement,
-      final List<KsqlLocation> locations,
+      final List<KsqlPartitionLocation> locations,
       final int round) {
-    final Map<KsqlNode, List<KsqlLocation>> groupedByHost = new LinkedHashMap<>();
-    for (KsqlLocation location : locations) {
+    final Map<KsqlNode, List<KsqlPartitionLocation>> groupedByHost = new LinkedHashMap<>();
+    for (KsqlPartitionLocation location : locations) {
       // If one of the partitions required is out of nodes, then we cannot continue.
       if (round >= location.getNodes().size()) {
         throw new MaterializationException(String.format(
@@ -458,7 +460,7 @@ public final class PullQueryExecutor {
       final WindowBounds windowBounds = pullQueryContext.whereInfo.windowBounds.get();
 
       final ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
-      for (KsqlLocation location : pullQueryContext.locations) {
+      for (KsqlPartitionLocation location : pullQueryContext.locations) {
         if (!location.getKeys().isPresent()) {
           throw new IllegalStateException("Window queries should be done with keys");
         }
@@ -472,7 +474,7 @@ public final class PullQueryExecutor {
       result = new Result(pullQueryContext.mat.schema(), allRows.build());
     } else {
       final ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
-      for (KsqlLocation location : pullQueryContext.locations) {
+      for (KsqlPartitionLocation location : pullQueryContext.locations) {
         if (!location.getKeys().isPresent()) {
           throw new IllegalStateException("Window queries should be done with keys");
         }
@@ -600,7 +602,7 @@ public final class PullQueryExecutor {
 
   static final class PullQueryContext {
 
-    private final List<KsqlLocation> locations;
+    private final List<KsqlPartitionLocation> locations;
     private final Materialization mat;
     private final ImmutableAnalysis analysis;
     private final WhereInfo whereInfo;
@@ -609,7 +611,7 @@ public final class PullQueryExecutor {
     private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
     private PullQueryContext(
-        final List<KsqlLocation> locations,
+        final List<KsqlPartitionLocation> locations,
         final Materialization mat,
         final ImmutableAnalysis analysis,
         final WhereInfo whereInfo,

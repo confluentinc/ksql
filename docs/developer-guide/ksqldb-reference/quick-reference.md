@@ -428,7 +428,8 @@ SELECT user_id
 ```
 
 ## IN
-Short hand for multiple `OR` conditions.
+Specifies multiple `OR` conditions.
+
 
 ```sql hl_lines"3"
   SELECT select_expr [., ...]

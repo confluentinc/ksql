@@ -73,7 +73,8 @@ IN
 The IN operator enables specifying multiple values in a `WHERE` clause.
 
 
-The IN operator is a shorthand for multiple `OR` conditions.
+It provides the equivalent of multiple `OR` conditions.
+
 
 ```sql
 SELECT * FROM USERS WHERE USERID IN (1543, 6256, 87569);

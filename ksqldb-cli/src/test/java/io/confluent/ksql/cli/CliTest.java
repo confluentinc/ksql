@@ -432,6 +432,23 @@ public class CliTest {
   }
 
   @Test
+  public void testVariableSubstitution() {
+    // Given:
+    assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
+
+    // When:
+    run("PRINT ${topicName} FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
+
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Value format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
+    assertThat(terminal.getOutputString(),
+        containsString(", key: ITEM_1, value: home cinema"));
+  }
+
+  @Test
   public void testVariableDefineUndefine() {
     assertRunCommand("define var1 = '1';", is(EMPTY_RESULT));
     assertRunCommand("define var2 = '2';", is(EMPTY_RESULT));

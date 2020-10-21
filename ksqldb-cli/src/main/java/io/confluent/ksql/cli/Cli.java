@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.UndefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -341,8 +342,15 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
+  private List<ParsedStatement> substituteVariables(final List<ParsedStatement> statements) {
+    return statements.stream()
+        .map(stmt -> VariableSubstitutor.substitute(stmt, sessionVariables))
+        .flatMap(replacedSql -> KSQL_PARSER.parse(replacedSql).stream())
+        .collect(Collectors.toList());
+  }
+
   private void handleStatements(final String line) {
-    final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
+    final List<ParsedStatement> statements = substituteVariables(KSQL_PARSER.parse(line));
 
     final StringBuilder consecutiveStatements = new StringBuilder();
     for (final ParsedStatement parsed : statements) {

@@ -74,7 +74,10 @@ public class RequestHandler {
   ) {
     final KsqlEntityList entities = new KsqlEntityList();
     for (final ParsedStatement parsed : statements) {
-      final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
+      final PreparedStatement<?> prepared = ksqlEngine.prepare(
+          parsed,
+          sessionProperties.getSessionVariables()
+      );
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
           SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
       );

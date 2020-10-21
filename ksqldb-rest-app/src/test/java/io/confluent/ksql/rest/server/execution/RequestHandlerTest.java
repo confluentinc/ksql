@@ -36,6 +36,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
@@ -63,6 +64,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestHandlerTest {
 
+  private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
   
   @Mock private KsqlEngine ksqlEngine;
@@ -80,9 +82,9 @@ public class RequestHandlerTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.prepare(any()))
+    when(ksqlEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
-            new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
+            KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
     when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
     when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of());
     doNothing().when(sync).waitFor(any(), any());
@@ -100,7 +102,7 @@ public class RequestHandlerTest {
 
     // When
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+        KSQL_PARSER.parse(SOME_STREAM_SQL);
     final KsqlEntityList entities = handler.execute(securityContext, statements, sessionProperties);
 
     // Then
@@ -117,13 +119,29 @@ public class RequestHandlerTest {
   }
 
   @Test
+  public void shouldCallPrepareStatementWithSessionVariables() {
+    // Given
+    final StatementExecutor<CreateStream> customExecutor =
+        givenReturningExecutor(CreateStream.class, mock(KsqlEntity.class));
+    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
+    final Map<String, String> sessionVariables = ImmutableMap.of("a", "1");
+    when(sessionProperties.getSessionVariables()).thenReturn(sessionVariables);
+
+    // When
+    final List<ParsedStatement> statements = KSQL_PARSER.parse(SOME_STREAM_SQL);
+    handler.execute(securityContext, statements, sessionProperties);
+
+    // Then
+    verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
+  }
+
+  @Test
   public void shouldDefaultToDistributor() {
     // Given
     givenRequestHandler(ImmutableMap.of());
 
     // When
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+    final List<ParsedStatement> statements = KSQL_PARSER.parse(SOME_STREAM_SQL);
     final KsqlEntityList entities = handler.execute(securityContext, statements, sessionProperties);
 
     // Then
@@ -145,7 +163,7 @@ public class RequestHandlerTest {
     when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of("x", "y"));
     // When
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(SOME_STREAM_SQL);
+        KSQL_PARSER.parse(SOME_STREAM_SQL);
     final KsqlEntityList entities = handler.execute(
         securityContext,
         statements,
@@ -179,7 +197,7 @@ public class RequestHandlerTest {
     );
 
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(
+        KSQL_PARSER.parse(
             "CREATE STREAM x WITH (value_format='json', kafka_topic='x');"
                 + "CREATE STREAM y WITH (value_format='json', kafka_topic='y');"
                 + "CREATE STREAM z WITH (value_format='json', kafka_topic='z');"

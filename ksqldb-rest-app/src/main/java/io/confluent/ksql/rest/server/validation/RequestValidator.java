@@ -104,7 +104,10 @@ public class RequestValidator {
 
     int numPersistentQueries = 0;
     for (final ParsedStatement parsed : statements) {
-      final PreparedStatement<?> prepared = ctx.prepare(parsed);
+      final PreparedStatement<?> prepared = ctx.prepare(
+          parsed,
+          sessionProperties.getSessionVariables()
+      );
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
           SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
       );

@@ -333,7 +333,8 @@ whenClause
     ;
 
 identifier
-    : IDENTIFIER             #unquotedIdentifier
+    : VARIABLE               #variableIdentifier
+    | IDENTIFIER             #unquotedIdentifier
     | QUOTED_IDENTIFIER      #quotedIdentifierAlternative
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
@@ -364,6 +365,7 @@ literal
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
+    | VARIABLE                                                                       #variableLiteral
     ;
 
 nonReserved

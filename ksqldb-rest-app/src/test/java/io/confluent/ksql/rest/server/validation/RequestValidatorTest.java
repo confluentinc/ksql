@@ -41,6 +41,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
@@ -69,6 +70,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RequestValidatorTest {
 
+  private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
 
   @Mock
@@ -94,9 +96,9 @@ public class RequestValidatorTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.prepare(any()))
+    when(ksqlEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
-            new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
+            KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
     executionContext = ksqlEngine;
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
@@ -114,6 +116,21 @@ public class RequestValidatorTest {
     metaStore.putSource(sink, false);
 
     givenRequestValidator(ImmutableMap.of());
+  }
+
+  @Test
+  public void shouldCallPrepareStatementWithSessionVariables() {
+    // Given
+    givenRequestValidator(ImmutableMap.of(CreateStream.class, statementValidator));
+    final Map<String, String> sessionVariables = ImmutableMap.of("a", "1");
+    when(sessionProperties.getSessionVariables()).thenReturn(sessionVariables);
+
+    // When
+    final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
+
+    // Then
+    verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
   }
 
   @Test
@@ -292,7 +309,7 @@ public class RequestValidatorTest {
   }
 
   private List<ParsedStatement> givenParsed(final String sql) {
-    return new DefaultKsqlParser().parse(sql);
+    return KSQL_PARSER.parse(sql);
   }
 
   private void givenRequestValidator(

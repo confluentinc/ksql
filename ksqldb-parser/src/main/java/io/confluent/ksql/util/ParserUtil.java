@@ -43,6 +43,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.commons.lang3.text.translate.LookupTranslator;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ParserUtil {
@@ -57,6 +58,12 @@ public final class ParserUtil {
   private static final Pattern VALID_SOURCE_NAMES = Pattern.compile("[a-zA-Z0-9_-]*");
   public static final Pattern EXTRANEOUS_INPUT_PATTERN = Pattern.compile(
           "extraneous input.*expecting.*");
+
+  private static final LookupTranslator ESCAPE_SYMBOLS = new LookupTranslator(
+      new String[][]{
+          {"'", "''"}
+      }
+  );
 
   private ParserUtil() {
   }
@@ -91,6 +98,50 @@ public final class ParserUtil {
   public static String unquote(final String value, final String quote) {
     return value.substring(1, value.length() - 1)
         .replace(quote + quote, quote);
+  }
+
+  public static boolean isQuoted(final String value, final String quote) {
+    return value.startsWith(quote) && value.endsWith(quote);
+  }
+
+  public static String sanitize(final String value) {
+    if (isQuoted(value, "'")) {
+      return "'" + escapeString(unquote(value, "'")) + "'";
+    }
+
+    return escapeString(value);
+  }
+
+  private static String escapeString(final String value) {
+    if (value == null || value.isEmpty()) {
+      return value;
+    }
+
+    return ESCAPE_SYMBOLS.translate(value);
+  }
+
+  private static String validateAndUnquote(final String value, final char quote) {
+    if (value.charAt(0) != quote) {
+      throw new IllegalStateException("Value must begin with quote");
+    }
+    if (value.charAt(value.length() - 1) != quote || value.length() < 2) {
+      throw new IllegalArgumentException("Expected matching quote at end of value");
+    }
+
+    int i = 1;
+    while (i < value.length() - 1) {
+      if (value.charAt(i) == quote) {
+        if (value.charAt(i + 1) != quote || i + 1 == value.length() - 1) {
+          throw new IllegalArgumentException("Un-escaped quote in middle of value at index " + i);
+        }
+        i += 2;
+      } else {
+        i++;
+      }
+    }
+
+    return value.substring(1, value.length() - 1)
+        .replace("" + quote + quote, "" + quote);
   }
 
   public static int processIntegerNumber(final NumberContext number, final String context) {

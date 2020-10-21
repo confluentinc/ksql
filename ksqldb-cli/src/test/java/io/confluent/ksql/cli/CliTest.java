@@ -432,8 +432,27 @@ public class CliTest {
   }
 
   @Test
+  public void testDisableVariableSubstitution() {
+    // Given:
+    assertRunCommand(
+        "set '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'false';", is(EMPTY_RESULT));
+    assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
+
+    // When:
+    run("PRINT ${topicName} FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
+
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Failed to Describe Kafka Topic(s): [${topicName}]"));
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Caused by: This server does not host this topic-partition."));
+  }
+
+  @Test
   public void testVariableSubstitution() {
     // Given:
+    assertRunCommand(
+        "set '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';", is(EMPTY_RESULT));
     assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
 
     // When:

@@ -27,8 +27,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
@@ -59,6 +61,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -124,6 +127,7 @@ public class RequestValidatorTest {
     givenRequestValidator(ImmutableMap.of(CreateStream.class, statementValidator));
     final Map<String, String> sessionVariables = ImmutableMap.of("a", "1");
     when(sessionProperties.getSessionVariables()).thenReturn(sessionVariables);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE)).thenReturn(true);
 
     // When
     final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
@@ -131,6 +135,22 @@ public class RequestValidatorTest {
 
     // Then
     verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
+    verify(sessionProperties).getSessionVariables();
+  }
+
+  @Test
+  public void shouldCallPrepareStatementWithEmptySessionVariablesIfSubstitutionDisabled() {
+    // Given
+    givenRequestValidator(ImmutableMap.of(CreateStream.class, statementValidator));
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE)).thenReturn(false);
+
+    // When
+    final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
+
+    // Then
+    verify(ksqlEngine).prepare(statements.get(0), Collections.emptyMap());
+    verify(sessionProperties, never()).getSessionVariables();
   }
 
   @Test

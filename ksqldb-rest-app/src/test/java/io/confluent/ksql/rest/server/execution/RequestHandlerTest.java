@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,6 +49,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -126,6 +128,7 @@ public class RequestHandlerTest {
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
     final Map<String, String> sessionVariables = ImmutableMap.of("a", "1");
     when(sessionProperties.getSessionVariables()).thenReturn(sessionVariables);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE)).thenReturn(true);
 
     // When
     final List<ParsedStatement> statements = KSQL_PARSER.parse(SOME_STREAM_SQL);
@@ -133,6 +136,24 @@ public class RequestHandlerTest {
 
     // Then
     verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
+    verify(sessionProperties).getSessionVariables();
+  }
+
+  @Test
+  public void shouldCallPrepareStatementWithEmptySessionVariablesIfSubstitutionDisabled() {
+    // Given
+    final StatementExecutor<CreateStream> customExecutor =
+        givenReturningExecutor(CreateStream.class, mock(KsqlEntity.class));
+    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE)).thenReturn(false);
+
+    // When
+    final List<ParsedStatement> statements = KSQL_PARSER.parse(SOME_STREAM_SQL);
+    handler.execute(securityContext, statements, sessionProperties);
+
+    // Then
+    verify(ksqlEngine).prepare(statements.get(0), Collections.emptyMap());
+    verify(sessionProperties, never()).getSessionVariables();
   }
 
   @Test

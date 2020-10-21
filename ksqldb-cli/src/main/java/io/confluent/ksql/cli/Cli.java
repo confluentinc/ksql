@@ -53,6 +53,7 @@ import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
@@ -342,11 +343,26 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
+  private boolean isVariableSubstitutionEnabled() {
+    final Object substitutionEnabled
+        = restClient.getProperty(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+
+    if (substitutionEnabled != null && substitutionEnabled instanceof Boolean) {
+      return (boolean) substitutionEnabled;
+    }
+
+    return KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT;
+  }
+
   private List<ParsedStatement> substituteVariables(final List<ParsedStatement> statements) {
-    return statements.stream()
-        .map(stmt -> VariableSubstitutor.substitute(stmt, sessionVariables))
-        .flatMap(replacedSql -> KSQL_PARSER.parse(replacedSql).stream())
-        .collect(Collectors.toList());
+    if (isVariableSubstitutionEnabled()) {
+      return statements.stream()
+          .map(stmt -> VariableSubstitutor.substitute(stmt, sessionVariables))
+          .flatMap(replacedSql -> KSQL_PARSER.parse(replacedSql).stream())
+          .collect(Collectors.toList());
+    } else {
+      return statements;
+    }
   }
 
   private void handleStatements(final String line) {

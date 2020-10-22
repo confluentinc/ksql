@@ -217,6 +217,6 @@ public class Options {
   }
 
   public Optional<String> getScriptFile() {
-    return Optional.of(scriptFile);
+    return Optional.ofNullable(scriptFile);
   }
 }

@@ -31,7 +31,7 @@ see [Key Requirements](syntax-reference.md#key-requirements).
 Create a Table from an existing Kafka Topic
 -------------------------------------------
 
-Use the [CREATE TABLE](./create-table) statement to create a table from an existing
+Use the `CREATE TABLE` statement to create a table from an existing
 underlying {{ site.ak }} topic.
 
 The following examples show how to create tables from a {{ site.ak }} topic

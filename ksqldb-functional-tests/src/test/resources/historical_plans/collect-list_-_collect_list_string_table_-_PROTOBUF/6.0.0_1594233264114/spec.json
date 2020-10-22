@@ -107,6 +107,18 @@
       "topic" : "S2",
       "key" : 100,
       "value" : {
+        "COLLECTED" : [ "baz" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "COLLECTED" : [ ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
         "COLLECTED" : [ "foo" ]
       }
     } ],

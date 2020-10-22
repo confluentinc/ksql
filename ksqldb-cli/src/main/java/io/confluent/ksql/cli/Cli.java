@@ -21,6 +21,7 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
+import io.confluent.ksql.cli.console.cmd.RunScript;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -53,6 +54,7 @@ import io.vertx.core.Context;
 import io.vertx.core.VertxException;
 import java.io.Closeable;
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -180,6 +182,23 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       }
     }
     throw new KsqlRestClientException("Failed to execute request " + ksql);
+  }
+
+  public void runScript(final String scriptFile) {
+    RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
+
+    try {
+      final RunScript runScriptCommand = RunScript.create(this);
+      runScriptCommand.execute(Collections.singletonList(scriptFile), terminal.writer());
+    } catch (final Exception exception) {
+      LOGGER.error("An error occurred while running a script file. Error = "
+          + exception.getMessage(), exception);
+
+      terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
+          exception.toString());
+    }
+
+    terminal.flush();
   }
 
   public void runCommand(final String command) {

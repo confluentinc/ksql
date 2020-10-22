@@ -19,7 +19,6 @@ import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_R
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
@@ -28,7 +27,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
-import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.impl.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.MonitoredEndpoints;
@@ -117,13 +115,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -739,7 +735,7 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         ksqlEngine,
         ksqlConfig,
-        injectPathsWithoutAuthentication(restConfig),
+        restConfig,
         commandRunner,
         commandStore,
         statusResource,
@@ -1007,22 +1003,6 @@ public final class KsqlRestApplication implements Executable {
       metricsOptions.addMonitoredHttpServerUri(match);
     }
     return metricsOptions;
-  }
-
-  private static KsqlRestConfig injectPathsWithoutAuthentication(final KsqlRestConfig restConfig) {
-    final Set<String> authenticationSkipPaths = new HashSet<>(
-        restConfig.getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG)
-    );
-
-    authenticationSkipPaths.addAll(KsqlAuthorizationProviderHandler.KSQL_AUTHENTICATION_SKIP_PATHS);
-
-    final Map<String, Object> restConfigs = restConfig.getOriginals();
-
-    // REST paths that are public and do not require authentication
-    restConfigs.put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG,
-        Joiner.on(",").join(authenticationSkipPaths));
-
-    return new KsqlRestConfig(restConfigs);
   }
 
   @VisibleForTesting

@@ -245,8 +245,7 @@ public class AuthTest extends ApiTest {
 
   @Test
   public void shouldAllowServiceMetadataIdWithoutAuthentication() throws Exception {
-    shouldAllowAccessWithoutAuthentication("GET",
-        "/v1/metadata/id", super::shouldExecuteServerMetadataIdRequest);
+    shouldAllowAccessWithoutAuthentication(super::shouldExecuteServerMetadataIdRequest);
   }
 
   @Test
@@ -545,29 +544,33 @@ public class AuthTest extends ApiTest {
     }
   }
 
-  private void shouldAllowAccessWithoutAuthentication(final String expectedMethod,
-      final String expectedPath, final ExceptionThrowingRunnable action) throws Exception {
+  private void shouldAllowAccessWithoutAuthentication(
+      final ExceptionThrowingRunnable action) throws Exception {
     stopServer();
     stopClient();
+    AtomicReference<Boolean> authorizationCallReference = new AtomicReference<>(false);
+    AtomicReference<Boolean> userContextCallReference = new AtomicReference<>(false);
     this.authorizationProvider = (user, method, path) -> {
-      new KsqlException("Should not call authorization");
+      authorizationCallReference.set(true);
     };
     this.userContextProvider = new KsqlUserContextProvider() {
       @Override
       public ConfiguredKafkaClientSupplier getKafkaClientSupplier(Principal principal) {
-        new KsqlException("Should not call get kafka client supplier");
+        userContextCallReference.set(true);
         return null;
       }
 
       @Override
       public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory(Principal principal) {
-        new KsqlException("Should not call get schema registry client factory");
+        userContextCallReference.set(true);
         return null;
       }
     };
     createServer(createServerConfig());
     client = createClient();
     action.run();
+    assertThat("Should not call authorization", authorizationCallReference.get(), is(false));
+    assertThat("Should not call user context", userContextCallReference.get(), is(false));
   }
 
   private void shouldAllowAccessWithPermissionCheck(final String expectedUser,

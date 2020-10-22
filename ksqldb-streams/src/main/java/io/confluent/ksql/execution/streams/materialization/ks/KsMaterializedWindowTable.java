@@ -51,12 +51,13 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
   @Override
   public List<WindowedRow> get(
       final Struct key,
+      final int partition,
       final Range<Instant> windowStartBounds,
       final Range<Instant> windowEndBounds
   ) {
     try {
       final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
-          .store(QueryableStoreTypes.timestampedWindowStore());
+          .store(QueryableStoreTypes.timestampedWindowStore(), partition);
 
       final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
 

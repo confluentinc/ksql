@@ -65,6 +65,7 @@
         <module>ksqldb-docker</module>
         <module>ksqldb-api-reactive-streams-tck</module>
         <module>ksqldb-api-client</module>
+        <module>ksqldb-engine-common</module>
     </modules>
 
     <repositories>
@@ -152,6 +153,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-engine-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

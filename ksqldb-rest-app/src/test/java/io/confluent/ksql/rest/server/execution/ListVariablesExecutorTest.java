@@ -18,27 +18,24 @@ package io.confluent.ksql.rest.server.execution;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.VariablesList;
-import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ListVariablesExecutorTest {
-  @Rule
-  public final TemporaryEngine engine = new TemporaryEngine();
-
   private SessionProperties sessionProperties;
 
   @Before
@@ -48,11 +45,14 @@ public class ListVariablesExecutorTest {
   }
 
   private Optional<KsqlEntity> executeListVariables(final String sql) {
+    final ConfiguredStatement configuredStatement = mock(ConfiguredStatement.class);
+    when(configuredStatement.getStatementText()).thenReturn(sql);
+
     return CustomExecutors.LIST_VARIABLES.execute(
-        engine.configure(sql),
+        configuredStatement,
         sessionProperties,
-        engine.getEngine(),
-        engine.getServiceContext()
+        null,
+        null
     );
   }
 

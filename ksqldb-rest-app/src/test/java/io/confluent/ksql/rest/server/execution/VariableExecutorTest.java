@@ -135,6 +135,20 @@ public class VariableExecutorTest {
   }
 
   @Test
+  public void shouldOverrideCaseInsensitiveVariables() {
+    // When:
+    executeDefineVariable("DEFINE var1 = '1';");
+    executeDefineVariable("DEFINE VAR1 = '2';");
+    executeDefineVariable("DEFINE vAr1 = '3';"); // latest update
+
+    // Then:
+    final Map<String, String> variablesMap = sessionProperties.getSessionVariables();
+    assertThat(variablesMap.size(), is(1));
+    assertThat(variablesMap.containsKey("var1"), is(true));
+    assertThat(variablesMap.get("var1"), is("3"));
+  }
+
+  @Test
   public void shouldReturnWarningWhenUndefineAnUnknownVariable() {
     // When:
     final KsqlEntity response = executeUndefineVariable("UNDEFINE var1;").get();

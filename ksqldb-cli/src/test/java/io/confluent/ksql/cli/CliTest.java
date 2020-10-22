@@ -432,6 +432,26 @@ public class CliTest {
   }
 
   @Test
+  public void testVariableDefineUndefine() {
+    assertRunCommand("define var1 = '1';", is(EMPTY_RESULT));
+    assertRunCommand("define var2 = '2';", is(EMPTY_RESULT));
+    assertRunCommand("define var3 = '3';", is(EMPTY_RESULT));
+
+    assertRunCommand("undefine var1;", is(EMPTY_RESULT));
+
+    assertRunListCommand("variables", hasRows(
+        row(
+            "var2",
+            "2"
+        ),
+        row(
+            "var3",
+            "3"
+        )
+    ));
+  }
+
+  @Test
   public void testPropertySetUnset() {
     assertRunCommand("set 'auto.offset.reset' = 'latest';", is(EMPTY_RESULT));
     assertRunCommand("set 'application.id' = 'Test_App';", is(EMPTY_RESULT));

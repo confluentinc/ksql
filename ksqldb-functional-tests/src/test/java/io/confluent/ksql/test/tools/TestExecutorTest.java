@@ -131,7 +131,8 @@ public class TestExecutorTest {
         kafkaService,
         serviceContext,
         ksqlEngine,
-        topologyBuilder
+        topologyBuilder,
+        true
     );
 
     when(sourceTopic.getName()).thenReturn("source_topic");
@@ -547,7 +548,7 @@ public class TestExecutorTest {
         .getSerializer(null, false)
         .serialize("", value);
 
-    return new ProducerRecord<byte[], byte[]>(
+    return new ProducerRecord<>(
         topic.getName(),
         1,
         rowTime,

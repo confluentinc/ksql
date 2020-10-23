@@ -75,10 +75,12 @@ public final class TopicNode {
     return name;
   }
 
+  @JsonInclude(Include.NON_NULL)
   public JsonNode getKeySchema() {
     return keySchema instanceof NullNode ? null : keySchema;
   }
 
+  @JsonInclude(Include.NON_NULL)
   public JsonNode getValueSchema() {
     return valueSchema instanceof NullNode ? null : valueSchema;
   }

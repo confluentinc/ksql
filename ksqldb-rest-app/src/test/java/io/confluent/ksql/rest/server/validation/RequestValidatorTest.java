@@ -36,6 +36,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -121,6 +122,7 @@ public class RequestValidatorTest {
     givenRequestValidator(ImmutableMap.of());
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldCallPrepareStatementWithSessionVariables() {
     // Given
@@ -138,6 +140,7 @@ public class RequestValidatorTest {
     verify(sessionProperties).getSessionVariables();
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldCallPrepareStatementWithEmptySessionVariablesIfSubstitutionDisabled() {
     // Given

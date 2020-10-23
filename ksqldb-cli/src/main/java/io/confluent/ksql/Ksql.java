@@ -23,6 +23,7 @@ import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.Console;
@@ -112,8 +113,15 @@ public final class Ksql {
           options.getOutputFormat(),
           restClient)
       ) {
-        if (options.getExecute() != null) {
-          cli.runCommand(options.getExecute());
+        if (options.getExecute().isPresent()) {
+          cli.runCommand(options.getExecute().get());
+        } else if (options.getScriptFile().isPresent()) {
+          final File scriptFile = new File(options.getScriptFile().get());
+          if (scriptFile.exists() && scriptFile.isFile()) {
+            cli.runScript(scriptFile.getPath());
+          } else {
+            throw new KsqlException("No such script file: " + scriptFile.getPath());
+          }
         } else {
           cli.runInteractively();
         }

@@ -108,6 +108,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DropConnector;
@@ -130,6 +131,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -147,6 +149,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -731,6 +734,11 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitListVariables(final SqlBaseParser.ListVariablesContext context) {
+      return new ListVariables(getLocation(context));
+    }
+
+    @Override
     public Node visitSetProperty(final SqlBaseParser.SetPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
       final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
@@ -741,6 +749,19 @@ public class AstBuilder {
     public Node visitUnsetProperty(final SqlBaseParser.UnsetPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING().getText(), "'");
       return new UnsetProperty(getLocation(context), propertyName);
+    }
+
+    @Override
+    public Node visitDefineVariable(final SqlBaseParser.DefineVariableContext context) {
+      final String variableName = context.variableName().getText();
+      final String variableValue = ParserUtil.unquote(context.variableValue().getText(), "'");
+      return new DefineVariable(getLocation(context), variableName, variableValue);
+    }
+
+    @Override
+    public Node visitUndefineVariable(final SqlBaseParser.UndefineVariableContext context) {
+      final String variableName = context.variableName().getText();
+      return new UndefineVariable(getLocation(context), variableName);
     }
 
     @Override

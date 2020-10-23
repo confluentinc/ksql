@@ -105,9 +105,24 @@ public class TestExecutor implements Closeable {
   private final Map<String, ?> config = baseConfig();
   private final StubKafkaService kafka;
   private final TopologyBuilder topologyBuilder;
+  private final boolean validateResults;
   private final TopicInfoCache topicInfoCache;
 
-  public static TestExecutor create(final Optional<String> extensionDir) {
+  /**
+   * Create instance.
+   *
+   * <p>If {@code validateResults} is {@code true} the test will fail if the results are as
+   * expected. This is the norm. If {@code false} the test will not fail if the results differ. This
+   * is useful when re-writing the historical plans.
+   *
+   * @param validateResults flag to indicate if results should be validated.
+   * @param extensionDir Optional extension directory.
+   * @return the executor.
+   */
+  public static TestExecutor create(
+      final boolean validateResults,
+      final Optional<String> extensionDir
+  ) {
     final StubKafkaService kafkaService = StubKafkaService.create();
     final StubKafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
     final ServiceContext serviceContext = getServiceContext(kafkaClientSupplier);
@@ -116,7 +131,8 @@ public class TestExecutor implements Closeable {
         kafkaService,
         serviceContext,
         getKsqlEngine(serviceContext, extensionDir),
-        TestExecutorUtil::buildStreamsTopologyTestDrivers
+        TestExecutorUtil::buildStreamsTopologyTestDrivers,
+        validateResults
     );
   }
 
@@ -125,12 +141,14 @@ public class TestExecutor implements Closeable {
       final StubKafkaService kafka,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final TopologyBuilder topologyBuilder
+      final TopologyBuilder topologyBuilder,
+      final boolean validateResults
   ) {
     this.kafka = requireNonNull(kafka, "stubKafkaService");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.topologyBuilder = requireNonNull(topologyBuilder, "topologyBuilder");
+    this.validateResults = validateResults;
     this.topicInfoCache = new TopicInfoCache(ksqlEngine, serviceContext.getSchemaRegistryClient());
   }
 
@@ -162,7 +180,9 @@ public class TestExecutor implements Closeable {
           .collect(Collectors.toSet());
 
       for (final TopologyTestDriverContainer topologyTestDriverContainer : topologyTestDrivers) {
-        verifyTopology(testCase);
+        if (validateResults) {
+          verifyTopology(testCase);
+        }
 
         final Set<Topic> topicsFromInput = topologyTestDriverContainer.getSourceTopics()
             .stream()
@@ -225,7 +245,9 @@ public class TestExecutor implements Closeable {
           .map(SourceNode::fromDataSource)
           .collect(Collectors.toList());
 
-      testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), knownTopics);
+      if (validateResults) {
+        testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), knownTopics);
+      }
 
       listener.runComplete(knownTopics, knownSources);
 
@@ -281,12 +303,14 @@ public class TestExecutor implements Closeable {
           .map(rec -> deserialize(rec, topicInfo))
           .collect(Collectors.toList());
 
-      validateTopicData(
-          kafkaTopic,
-          expectedRecords,
-          actualRecords,
-          ranWithInsertStatements
-      );
+      if (validateResults) {
+        validateTopicData(
+            kafkaTopic,
+            expectedRecords,
+            actualRecords,
+            ranWithInsertStatements
+        );
+      }
     });
   }
 

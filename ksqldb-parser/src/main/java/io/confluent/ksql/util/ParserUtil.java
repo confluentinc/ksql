@@ -34,10 +34,7 @@ import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -91,46 +88,9 @@ public final class ParserUtil {
     }
   }
 
-  public static String getIdentifierText(final String text) {
-    if (text.isEmpty()) {
-      return "";
-    }
-
-    final char firstChar = text.charAt(0);
-    if (firstChar == '`' || firstChar == '"') {
-      return validateAndUnquote(text, firstChar);
-    }
-
-    return text.toUpperCase();
-  }
-
   public static String unquote(final String value, final String quote) {
     return value.substring(1, value.length() - 1)
         .replace(quote + quote, quote);
-  }
-
-  private static String validateAndUnquote(final String value, final char quote) {
-    if (value.charAt(0) != quote) {
-      throw new IllegalStateException("Value must begin with quote");
-    }
-    if (value.charAt(value.length() - 1) != quote || value.length() < 2) {
-      throw new IllegalArgumentException("Expected matching quote at end of value");
-    }
-
-    int i = 1;
-    while (i < value.length() - 1) {
-      if (value.charAt(i) == quote) {
-        if (value.charAt(i + 1) != quote || i + 1 == value.length() - 1) {
-          throw new IllegalArgumentException("Un-escaped quote in middle of value at index " + i);
-        }
-        i += 2;
-      } else {
-        i++;
-      }
-    }
-
-    return value.substring(1, value.length() - 1)
-        .replace("" + quote + quote, "" + quote);
   }
 
   public static int processIntegerNumber(final NumberContext number, final String context) {
@@ -198,27 +158,6 @@ public final class ParserUtil {
   public static Optional<NodeLocation> getLocation(final Token token) {
     requireNonNull(token, "token is null");
     return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
-  }
-
-  public static JsonObject convertJsonFieldCase(final JsonObject obj) {
-    final Map<String, Object> convertedMap = new HashMap<>();
-    for (Map.Entry<String, Object> entry : obj.getMap().entrySet()) {
-      final String key;
-      try {
-        key = ParserUtil.getIdentifierText(entry.getKey());
-      } catch (IllegalArgumentException e) {
-        throw new IllegalArgumentException(String.format(
-            "Invalid column / struct field name. Name: %s. Reason: %s.",
-            entry.getKey(),
-            e.getMessage()
-        ));
-      }
-      if (convertedMap.containsKey(key)) {
-        throw new IllegalArgumentException("Found duplicate column / struct field name: " + key);
-      }
-      convertedMap.put(key, entry.getValue());
-    }
-    return new JsonObject(convertedMap);
   }
 
   /**

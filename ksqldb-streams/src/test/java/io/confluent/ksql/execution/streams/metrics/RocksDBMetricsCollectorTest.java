@@ -104,7 +104,7 @@ public class RocksDBMetricsCollectorTest {
 
   @Test
   public void shouldComputeMaxOfBlockCachePinnedUsage() {
-    shouldComputeSumOfAllStoreMetrics(
+    shouldComputeMaxOfAllStoreMetrics(
         RocksDBMetricsCollector.BLOCK_CACHE_PINNED_USAGE,
         RocksDBMetricsCollector.BLOCK_CACHE_USAGE
     );

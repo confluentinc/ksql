@@ -70,6 +70,8 @@ public class PullQueryPublisherTest {
   private PullQueryExecutor pullQueryExecutor;
   @Mock
   private TableRows entity;
+  @Mock
+  private PullQueryResult pullQueryResult;
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
 
@@ -85,8 +87,9 @@ public class PullQueryPublisherTest {
         Optional.empty(),
         TIME_NANOS);
 
-    PullQueryResult result = new PullQueryResult(entity, Optional.empty());
-    when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenReturn(result);
+    when(pullQueryResult.getTableRows()).thenReturn(entity);
+    when(pullQueryResult.getSourceNodes()).thenReturn(Optional.empty());
+    when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -176,6 +179,8 @@ public class PullQueryPublisherTest {
         ImmutableList.of("a", 1, 2L, 3.0f),
         ImmutableList.of("b", 1, 2L, 3.0f)
     ));
+    when(pullQueryResult.getSourceNodes())
+        .thenReturn(Optional.empty());
 
     // When:
     subscription.request(1);

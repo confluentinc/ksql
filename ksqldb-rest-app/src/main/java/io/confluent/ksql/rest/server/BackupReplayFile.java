@@ -44,9 +44,22 @@ public final class BackupReplayFile implements Closeable {
   private final File file;
   private final FileOutputStream writer;
 
-  public BackupReplayFile(final File file) {
+  public static BackupReplayFile readOnly(final File file) {
+    return new BackupReplayFile(file, false);
+  }
+
+  public static BackupReplayFile writable(final File file) {
+    return new BackupReplayFile(file, true);
+  }
+
+  private BackupReplayFile(final File file, final boolean write) {
     this.file = Objects.requireNonNull(file, "file");
-    this.writer = createWriter(file);
+
+    if (write) {
+      this.writer = createWriter(file);
+    } else {
+      this.writer = null;
+    }
   }
 
   private static FileOutputStream createWriter(final File file) {
@@ -58,11 +71,19 @@ public final class BackupReplayFile implements Closeable {
     }
   }
 
+  public File getFile() {
+    return file;
+  }
+
   public String getPath() {
     return file.getAbsolutePath();
   }
 
   public void write(final ConsumerRecord<byte[], byte[]> record) throws IOException {
+    if (writer == null) {
+      throw new IOException("Write permission denied.");
+    }
+
     writer.write(record.key());
     writer.write(KEY_VALUE_SEPARATOR_BYTES);
     writer.write(record.value());
@@ -72,7 +93,7 @@ public final class BackupReplayFile implements Closeable {
 
   public List<Pair<byte[], byte[]>> readRecords() throws IOException {
     final List<Pair<byte[], byte[]>> commands = new ArrayList<>();
-    for (final String line : Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)) {
+    for (final String line : Files.readAllLines(getFile().toPath(), StandardCharsets.UTF_8)) {
       final String commandId = line.substring(0, line.indexOf(KEY_VALUE_SEPARATOR_STR));
       final String command = line.substring(line.indexOf(KEY_VALUE_SEPARATOR_STR) + 1);
 
@@ -87,6 +108,8 @@ public final class BackupReplayFile implements Closeable {
 
   @Override
   public void close() throws IOException {
-    writer.close();
+    if (writer != null) {
+      writer.close();
+    }
   }
 }

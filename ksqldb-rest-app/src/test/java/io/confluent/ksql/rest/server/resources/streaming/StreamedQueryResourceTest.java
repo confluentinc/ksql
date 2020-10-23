@@ -145,7 +145,6 @@ public class StreamedQueryResourceTest {
   private static final String PULL_QUERY_STRING =
       "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
   private static final String PRINT_TOPIC = "Print TEST_TOPIC;";
-  private static final String SERVICE_ID = "service_id";
 
   private static final RoutingFilterFactory ROUTING_FILTER_FACTORY =
       (routingOptions, hosts, active, applicationQueryId, storeName, partition) ->
@@ -197,7 +196,7 @@ public class StreamedQueryResourceTest {
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     pullQueryExecutor = new PullQueryExecutor(
-        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG, SERVICE_ID);
+        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,

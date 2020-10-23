@@ -56,7 +56,23 @@ public class RocksDBMetricsCollector implements MetricsReporter {
   static final String BLOCK_CACHE_PINNED_USAGE = "block-cache-pinned-usage";
   static final String ESTIMATE_NUM_KEYS = "estimate-num-keys";
   static final String ESTIMATE_TABLE_READERS_MEM = "estimate-table-readers-mem";
+  static final String NUMBER_OF_ENTRIES_ACTIVE_MEMTABLE = "num-entries-active-mem-table";
+  static final String NUMBER_OF_DELETES_ACTIVE_MEMTABLE = "num-deletes-active-mem-table";
+  static final String NUMBER_OF_ENTRIES_IMMUTABLE_MEMTABLES = "num-entries-imm-mem-tables";
+  static final String NUMBER_OF_DELETES_IMMUTABLE_MEMTABLES = "num-deletes-imm-mem-tables";
+  static final String NUMBER_OF_IMMUTABLE_MEMTABLES = "num-immutable-mem-table";
+  static final String CURRENT_SIZE_OF_ACTIVE_MEMTABLE = "cur-size-active-mem-table";
+  static final String CURRENT_SIZE_OF_ALL_MEMTABLES = "cur-size-all-mem-tables";
+  static final String SIZE_OF_ALL_MEMTABLES = "size-all-mem-tables";
+  static final String MEMTABLE_FLUSH_PENDING = "mem-table-flush-pending";
+  static final String NUMBER_OF_RUNNING_FLUSHES = "num-running-flushes";
+  static final String COMPACTION_PENDING = "compaction-pending";
+  static final String ESTIMATED_BYTES_OF_PENDING_COMPACTION = "estimate-pending-compaction-bytes";
+  static final String TOTAL_SST_FILES_SIZE = "total-sst-files-size";
+  static final String LIVE_SST_FILES_SIZE = "live-sst-files-size";
+
   static final String UPDATE_INTERVAL_CONFIG = "ksql.rocksdb.metrics.update.interval.seconds";
+
   private static final int UPDATE_INTERVAL_DEFAULT = 15;
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
@@ -261,18 +277,40 @@ public class RocksDBMetricsCollector implements MetricsReporter {
       }
       final int interval = config.getInt(UPDATE_INTERVAL_CONFIG);
       final Map<String, Collection<AggregatedMetric<?>>> builder = new HashMap<>();
-      registerBigIntTotal(interval, builder, NUMBER_OF_RUNNING_COMPACTIONS, metrics);
-      registerBigIntTotal(interval, builder, BLOCK_CACHE_USAGE, metrics);
-      registerBigIntMax(interval, builder, BLOCK_CACHE_USAGE, metrics);
-      registerBigIntTotal(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
-      registerBigIntMax(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
-      registerBigIntTotal(interval, builder, ESTIMATE_NUM_KEYS, metrics);
-      registerBigIntTotal(interval, builder, ESTIMATE_TABLE_READERS_MEM, metrics);
+      registerAll(interval, builder, metrics);
       registeredMetrics = ImmutableMap.copyOf(
           builder.entrySet()
               .stream()
               .collect(Collectors.toMap(Map.Entry::getKey, e -> ImmutableList.copyOf(e.getValue())))
       );
     }
+  }
+
+  private static void registerAll(
+      final int interval,
+      final Map<String, Collection<AggregatedMetric<?>>> builder,
+      final Metrics metrics
+  ) {
+    registerBigIntTotal(interval, builder, NUMBER_OF_RUNNING_COMPACTIONS, metrics);
+    registerBigIntTotal(interval, builder, BLOCK_CACHE_USAGE, metrics);
+    registerBigIntMax(interval, builder, BLOCK_CACHE_USAGE, metrics);
+    registerBigIntTotal(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
+    registerBigIntMax(interval, builder, BLOCK_CACHE_PINNED_USAGE, metrics);
+    registerBigIntTotal(interval, builder, ESTIMATE_NUM_KEYS, metrics);
+    registerBigIntTotal(interval, builder, ESTIMATE_TABLE_READERS_MEM, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_ENTRIES_ACTIVE_MEMTABLE, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_ENTRIES_IMMUTABLE_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_DELETES_ACTIVE_MEMTABLE ,metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_DELETES_IMMUTABLE_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_IMMUTABLE_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, CURRENT_SIZE_OF_ACTIVE_MEMTABLE, metrics);
+    registerBigIntTotal(interval, builder, CURRENT_SIZE_OF_ALL_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, SIZE_OF_ALL_MEMTABLES, metrics);
+    registerBigIntTotal(interval, builder, MEMTABLE_FLUSH_PENDING, metrics);
+    registerBigIntTotal(interval, builder, NUMBER_OF_RUNNING_FLUSHES, metrics);
+    registerBigIntTotal(interval, builder, COMPACTION_PENDING, metrics);
+    registerBigIntTotal(interval, builder, ESTIMATED_BYTES_OF_PENDING_COMPACTION, metrics);
+    registerBigIntTotal(interval, builder, TOTAL_SST_FILES_SIZE, metrics);
+    registerBigIntTotal(interval, builder, LIVE_SST_FILES_SIZE, metrics);
   }
 }

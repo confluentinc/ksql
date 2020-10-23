@@ -4,7 +4,7 @@ Topologies:
       --> KTABLE-SOURCE-0000000002
     Source: KSTREAM-SOURCE-0000000007 (topics: [right_topic])
       --> KTABLE-SOURCE-0000000008
-    Processor: KTABLE-SOURCE-0000000002 (stores: [left_topic-STATE-STORE-0000000000])
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
       --> KTABLE-MAPVALUES-0000000003
       <-- KSTREAM-SOURCE-0000000001
     Processor: KTABLE-SOURCE-0000000008 (stores: [])

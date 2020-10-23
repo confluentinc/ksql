@@ -230,7 +230,13 @@ public final class AssertExecutor {
       contents.append(row.key.get(key.name().text()));
     }
     contents.append(row.ts);
-    contents.appendAll(row.value.values());
+    if (row.value == null) {
+      for (final Column ignored : source.getSchema().value()) {
+        contents.append("<TOMBSTONE>");
+      }
+    } else {
+      contents.appendAll(row.value.values());
+    }
 
     return TabularRow.createRow(80, contents.values(), false, 0);
   }

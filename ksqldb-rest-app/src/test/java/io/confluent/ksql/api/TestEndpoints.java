@@ -198,12 +198,6 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeConfig(
-      List<String> requestedConfigs, ApiSecurityContext apiSecurityContext) {
-    return null;
-  }
-
-  @Override
   public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
 

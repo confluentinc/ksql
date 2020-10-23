@@ -24,7 +24,9 @@ import io.confluent.ksql.test.parser.TestDirective;
 import io.confluent.ksql.test.parser.TestStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -57,10 +59,12 @@ public class KsqlTestException extends KsqlException {
       final String message,
       final Path file
   ) {
+    final Path srcFile = toSourcePath(file);
+
     return stmt.apply(
-        parsed -> engineMessage(parsed, message, file),
-        assertStatement -> assertMessage(assertStatement, message, file),
-        directive -> directiveMessage(directive, message, file)
+        parsed -> engineMessage(parsed, message, srcFile),
+        assertStatement -> assertMessage(assertStatement, message, srcFile),
+        directive -> directiveMessage(directive, message, srcFile)
     );
   }
 
@@ -115,4 +119,15 @@ public class KsqlTestException extends KsqlException {
     );
   }
 
+  /**
+   * Convert path from under {@code target/test-classes} to source path
+   */
+  private static Path toSourcePath(final Path path) {
+    final Path converted = Paths.get(path.toAbsolutePath().toString()
+        .replace("/target/test-classes", "/src/test/resources/"));
+
+    return Files.exists(converted)
+        ? converted
+        : path;
+  }
 }

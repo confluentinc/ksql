@@ -50,7 +50,6 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ConfigResponse;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerClusterId;
@@ -63,7 +62,6 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TombstoneProvider;
@@ -367,28 +365,6 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldExecuteAllConfigsRequest() {
-    // When:
-    final ConfigResponse response = RestIntegrationTestUtil.makeConfigRequest(REST_APP);
-
-    // Then:
-    assertThat(response.getConfigs().get(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG), is(notNullValue()));
-  }
-
-  @Test
-  public void shouldExecuteConfigRequest() {
-    // When:
-    final ConfigResponse response = RestIntegrationTestUtil.makeConfigRequest(
-        REST_APP,
-        Arrays.asList("foo", KsqlConfig.CONNECT_URL_PROPERTY, KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
-    );
-
-    // Then:
-    assertThat(response.getConfigs().keySet().size(), is(1));
-    assertThat(response.getConfigs().get(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG), is(notNullValue()));
-  }
-
-  @Test
   public void shouldExecuteRootDocumentRequest() {
 
     HttpResponse<Buffer> resp = RestIntegrationTestUtil
@@ -430,7 +406,8 @@ public class RestApiTest {
     assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
     assertThat(messages.get(0),
         startsWith("[{\"header\":{\"queryId\":\""));
-    assertThat(messages.get(0),endsWith("\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},"));
+    assertThat(messages.get(0),
+        endsWith("\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},"));
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},"));
     assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
@@ -452,7 +429,7 @@ public class RestApiTest {
     assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
     assertThat(messages.get(0),
         startsWith("[{\"header\":{\"queryId\":\""));
-    assertThat(messages.get(0),endsWith("\",\"schema\":\"`VAL` STRING\"}},"));
+    assertThat(messages.get(0), endsWith("\",\"schema\":\"`VAL` STRING\"}},"));
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"a\"]}},"));
     assertThat(messages.get(2), is("{\"row\":{\"columns\":[null],\"tombstone\":true}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));

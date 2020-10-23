@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -49,6 +50,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
@@ -60,6 +62,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -267,18 +270,22 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final PullQueryResult result = pullQueryExecutor.execute(
         configured, requestProperties, serviceContext, isInternalRequest, pullQueryMetrics);
     final TableRows tableRows = result.getTableRows();
-    final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
-        .map(KsqlNode::location)
-        .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));
+    final Optional<List<KsqlHostInfoEntity>> hosts = result.getSourceNodes()
+        .map(list -> list.stream().map(KsqlNode::location)
+            .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()))
+            .collect(Collectors.toList()));
 
     final StreamedRow header = StreamedRow.header(
         tableRows.getQueryId(),
         tableRows.getSchema()
     );
 
-    final List<StreamedRow> rows = tableRows.getRows().stream()
-        .map(StreamedQueryResource::toGenericRow)
-        .map(row -> StreamedRow.pullRow(row, host))
+    hosts.ifPresent(h -> Preconditions.checkState(h.size() == tableRows.getRows().size()));
+    final List<StreamedRow> rows = IntStream.range(0, tableRows.getRows().size())
+        .mapToObj(i -> Pair.of(
+            StreamedQueryResource.toGenericRow(tableRows.getRows().get(i)),
+            hosts.map(h -> h.get(i))))
+        .map(pair -> StreamedRow.pullRow(pair.getLeft(), pair.getRight()))
         .collect(Collectors.toList());
 
     rows.add(0, header);

@@ -30,6 +30,7 @@ import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Optional;
@@ -84,13 +85,26 @@ public class KsqlTest {
   @Test
   public void shouldRunNonInteractiveCommandWhenExecuteOptionIsUsed() {
     // Given:
-    when(options.getExecute()).thenReturn("this is a command");
+    when(options.getExecute()).thenReturn(Optional.of("this is a command"));
 
     // When:
     ksql.run();
 
     // Then:
     verify(cli).runCommand("this is a command");
+  }
+
+  @Test
+  public void shouldRunScriptFileWhenFileOptionIsUsed() throws IOException {
+    // Given:
+    final String sqlFile = TMP.newFile().getAbsolutePath();
+    when(options.getScriptFile()).thenReturn(Optional.of(sqlFile));
+
+    // When:
+    ksql.run();
+
+    // Then:
+    verify(cli).runScript(sqlFile);
   }
 
   @Test

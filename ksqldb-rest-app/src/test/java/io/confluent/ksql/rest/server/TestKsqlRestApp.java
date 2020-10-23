@@ -92,6 +92,7 @@ public class TestKsqlRestApp extends ExternalResource {
   protected final Optional<BasicCredentials> credentials;
   protected Optional<URL> internalListener;
   protected KsqlExecutionContext ksqlEngine;
+  protected KsqlRestConfig ksqlRestConfig;
   protected KsqlRestApplication ksqlRestApplication;
   protected long lastCommandSequenceNumber = -1L;
 
@@ -245,6 +246,10 @@ public class TestKsqlRestApp extends ExternalResource {
     return serviceContext.get();
   }
 
+  public KsqlRestConfig getKsqlRestConfig() {
+    return ksqlRestConfig;
+  }
+
   @Override
   protected void before() {
     initialize();
@@ -274,6 +279,7 @@ public class TestKsqlRestApp extends ExternalResource {
       throw new RuntimeException(e);
     }
     ksqlRestApplication = null;
+    lastCommandSequenceNumber = -1;
   }
 
   protected void initialize() {
@@ -281,20 +287,20 @@ public class TestKsqlRestApp extends ExternalResource {
       after();
     }
 
-    final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
+    ksqlRestConfig = buildConfig(bootstrapServers, baseConfig);
 
     try {
       Vertx vertx = Vertx.vertx();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
-          config,
+          ksqlRestConfig,
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
           () -> serviceContext.get().getSchemaRegistryClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
-              KsqlRestApplication.toClientProps(config.originals()),
+              KsqlRestApplication.toClientProps(ksqlRestConfig.originals()),
               SocketAddress::inetSocketAddress,
               vertx));
 

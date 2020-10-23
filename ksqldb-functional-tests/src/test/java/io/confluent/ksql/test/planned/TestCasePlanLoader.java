@@ -116,7 +116,8 @@ public final class TestCasePlanLoader {
         TestCaseBuilderUtil.extractSimpleTestName(
             testCase.getOriginalFileName().toString(),
             testCase.getName()
-        )
+        ),
+        true
     );
   }
 
@@ -134,7 +135,8 @@ public final class TestCasePlanLoader {
         KsqlVersion.parse(original.getSpecNode().getVersion()),
         original.getSpecNode().getTimestamp(),
         original.getPlanNode().getConfigs(),
-        original.getSpecNode().getTestCase().name()
+        original.getSpecNode().getTestCase().name(),
+        false
     );
   }
 
@@ -213,9 +215,10 @@ public final class TestCasePlanLoader {
       final KsqlVersion version,
       final long timestamp,
       final Map<String, String> configs,
-      final String simpleTestName
+      final String simpleTestName,
+      final boolean validateResults
   ) {
-    final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase);
+    final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase, validateResults);
 
     final List<TopicNode> allTopicNodes = getTopicsFromTestCase(testCase, configs);
 
@@ -269,8 +272,11 @@ public final class TestCasePlanLoader {
         .collect(Collectors.toList());
   }
 
-  private static TestInfoGatherer executeTestCaseAndGatherInfo(final TestCase testCase) {
-    try (final TestExecutor testExecutor = TestExecutor.create(Optional.empty())) {
+  private static TestInfoGatherer executeTestCaseAndGatherInfo(
+      final TestCase testCase,
+      final boolean validateResults
+  ) {
+    try (final TestExecutor testExecutor = TestExecutor.create(validateResults, Optional.empty())) {
       final TestInfoGatherer listener = new TestInfoGatherer();
       testExecutor.buildAndExecuteQuery(testCase, listener);
       return listener;

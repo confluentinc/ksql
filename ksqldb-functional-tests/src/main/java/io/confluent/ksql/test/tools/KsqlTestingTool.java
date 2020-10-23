@@ -130,7 +130,7 @@ public final class KsqlTestingTool {
 
     executeTestCase(
         testCase,
-        TestExecutor.create(extensionDir));
+        TestExecutor.create(true, extensionDir));
   }
 
   static void executeTestCase(

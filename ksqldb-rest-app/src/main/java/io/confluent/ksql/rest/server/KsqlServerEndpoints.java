@@ -178,15 +178,16 @@ public class KsqlServerEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeInfo(
       final ApiSecurityContext apiSecurityContext) {
-    return executeOldApiEndpoint(() -> serverInfoResource.get());
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> serverInfoResource.get());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeHeartbeat(
       final HeartbeatMessage heartbeatMessage,
       final ApiSecurityContext apiSecurityContext) {
-    return heartbeatResource.map(resource -> executeOldApiEndpoint(
-        () -> resource.registerHeartbeat(heartbeatMessage)))
+    return heartbeatResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> resource.registerHeartbeat(heartbeatMessage)))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
   }
@@ -194,8 +195,8 @@ public class KsqlServerEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeClusterStatus(
       final ApiSecurityContext apiSecurityContext) {
-    return clusterStatusResource.map(resource -> executeOldApiEndpoint(
-        () -> resource.checkClusterStatus()))
+    return clusterStatusResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> resource.checkClusterStatus()))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
   }
@@ -203,20 +204,22 @@ public class KsqlServerEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeStatus(final String type, final String entity,
       final String action, final ApiSecurityContext apiSecurityContext) {
-    return executeOldApiEndpoint(() -> statusResource.getStatus(type, entity, action));
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> statusResource.getStatus(type, entity, action));
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeAllStatuses(
       final ApiSecurityContext apiSecurityContext) {
-    return executeOldApiEndpoint(() -> statusResource.getAllStatuses());
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> statusResource.getAllStatuses());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeLagReport(
       final LagReportingMessage lagReportingMessage, final ApiSecurityContext apiSecurityContext) {
-    return lagReportingResource.map(resource -> executeOldApiEndpoint(
-        () -> resource.receiveHostLag(lagReportingMessage)))
+    return lagReportingResource.map(resource -> executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> resource.receiveHostLag(lagReportingMessage)))
         .orElseGet(() -> CompletableFuture
             .completedFuture(EndpointResponse.failed(NOT_FOUND.code())));
   }
@@ -224,19 +227,22 @@ public class KsqlServerEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeCheckHealth(
       final ApiSecurityContext apiSecurityContext) {
-    return executeOldApiEndpoint(() -> healthCheckResource.checkHealth());
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> healthCheckResource.checkHealth());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeServerMetadata(
       final ApiSecurityContext apiSecurityContext) {
-    return executeOldApiEndpoint(() -> serverMetadataResource.getServerMetadata());
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> serverMetadataResource.getServerMetadata());
   }
 
   @Override
   public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
       final ApiSecurityContext apiSecurityContext) {
-    return executeOldApiEndpoint(() -> serverMetadataResource.getServerClusterId());
+    return executeOldApiEndpoint(apiSecurityContext,
+        ksqlSecurityContext -> serverMetadataResource.getServerClusterId());
   }
 
   @Override
@@ -282,8 +288,16 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   private CompletableFuture<EndpointResponse> executeOldApiEndpoint(
-      final Supplier<EndpointResponse> functionCall) {
-    return CompletableFuture.completedFuture(functionCall.get());
+      final ApiSecurityContext apiSecurityContext,
+      final Function<KsqlSecurityContext, EndpointResponse> functionCall) {
+    final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
+        .provide(apiSecurityContext);
+
+    try {
+      return CompletableFuture.completedFuture(functionCall.apply(ksqlSecurityContext));
+    } finally {
+      ksqlSecurityContext.getServiceContext().close();
+    }
   }
 
 }

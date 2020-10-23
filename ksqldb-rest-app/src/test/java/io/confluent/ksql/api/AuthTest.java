@@ -21,7 +21,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
@@ -31,7 +30,6 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
-import io.confluent.ksql.services.ConfiguredKafkaClientSupplier;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -50,7 +48,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -549,28 +546,13 @@ public class AuthTest extends ApiTest {
     stopServer();
     stopClient();
     AtomicReference<Boolean> authorizationCallReference = new AtomicReference<>(false);
-    AtomicReference<Boolean> userContextCallReference = new AtomicReference<>(false);
     this.authorizationProvider = (user, method, path) -> {
       authorizationCallReference.set(true);
-    };
-    this.userContextProvider = new KsqlUserContextProvider() {
-      @Override
-      public ConfiguredKafkaClientSupplier getKafkaClientSupplier(Principal principal) {
-        userContextCallReference.set(true);
-        return null;
-      }
-
-      @Override
-      public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory(Principal principal) {
-        userContextCallReference.set(true);
-        return null;
-      }
     };
     createServer(createServerConfig());
     client = createClient();
     action.run();
     assertThat("Should not call authorization", authorizationCallReference.get(), is(false));
-    assertThat("Should not call user context", userContextCallReference.get(), is(false));
   }
 
   private void shouldAllowAccessWithPermissionCheck(final String expectedUser,

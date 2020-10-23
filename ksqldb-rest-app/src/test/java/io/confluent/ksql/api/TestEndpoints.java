@@ -142,7 +142,8 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
+  public synchronized CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
+    this.lastApiSecurityContext = apiSecurityContext;
     final ServerInfo entity = new ServerInfo(
         AppInfo.getVersion(), "kafka-cluster-id", "ksql-service-id");
     return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
@@ -191,8 +192,9 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+  public synchronized CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
       ApiSecurityContext apiSecurityContext) {
+    this.lastApiSecurityContext = apiSecurityContext;
     final ServerClusterId entity = ServerClusterId.of("kafka-cluster-id", "ksql-service-id");
     return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
   }

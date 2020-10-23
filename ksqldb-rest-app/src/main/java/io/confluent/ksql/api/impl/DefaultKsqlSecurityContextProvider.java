@@ -57,7 +57,17 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
     final Optional<Principal> principal = apiSecurityContext.getPrincipal();
     final Optional<String> authHeader = apiSecurityContext.getAuthToken();
 
-    if (securityExtension == null || !securityExtension.getUserContextProvider().isPresent()) {
+    // A user context is not necessary if a user context provider is not present or
+    // the user principal is missing. The missing principal was already validated by the
+    // Authentication and Authorization plugins before calling this method, which means the
+    // missing principal is a valid connection. For those cases, we create a default service
+    // context that the missing user can use.
+    final boolean requiresUserContext =
+        securityExtension != null
+            && securityExtension.getUserContextProvider().isPresent()
+            && principal.isPresent();
+
+    if (!requiresUserContext) {
       return new KsqlSecurityContext(
           principal,
           defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory,
@@ -71,8 +81,8 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
             userServiceContextFactory.create(
                 ksqlConfig,
                 authHeader,
-                provider.getKafkaClientSupplier(principal.orElse(null)),
-                provider.getSchemaRegistryClientFactory(principal.orElse(null)),
+                provider.getKafkaClientSupplier(principal.get()),
+                provider.getSchemaRegistryClientFactory(principal.get()),
                 sharedClient)))
         .get();
   }

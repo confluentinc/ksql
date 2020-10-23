@@ -54,8 +54,6 @@ ASSERT VALUES b (id, col1) VALUES (1, 1);
 ASSERT VALUES b (id, col1) VALUES (1, -1);
 
 ----------------------------------------------------------------------------------------------------
--- note that each insert that is filtered out corresponds with a tombstone emitted into
--- the topic
 --@test: add filter to basic TABLE without filter
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
@@ -64,15 +62,22 @@ CREATE TABLE a (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='a', value_forma
 CREATE TABLE b AS SELECT * FROM a;
 
 INSERT INTO a (id, col1) VALUES (1, 0);
+
 ASSERT VALUES b (id, col1) VALUES (1, 0);
 
 CREATE OR REPLACE TABLE b AS SELECT * FROM a WHERE col1 > 0;
 
 INSERT INTO a (id, col1) VALUES (1, 0);
+-- note, though the table contains the row [1->0], and this update does not pass the filter,
+-- no tombstone is emitted. See https://github.com/confluentinc/ksql/issues/6493.
+
 INSERT INTO a (id, col1) VALUES (1, 1);
 
-ASSERT NULL VALUES b (id) KEY (1);
 ASSERT VALUES b (id, col1) VALUES (1, 1);
+
+INSERT INTO a (id, col1) VALUES (1, 0);
+
+ASSERT NULL VALUES b (id) KEY (1);
 
 ----------------------------------------------------------------------------------------------------
 --@test: remove filter from basic TABLE with filter
@@ -82,14 +87,19 @@ SET 'ksql.create.or.replace.enabled' = 'true';
 CREATE TABLE a (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
 CREATE TABLE b AS SELECT * FROM a WHERE col1 > 0;
 
+INSERT INTO a (id, col1) VALUES (1, 1);
 INSERT INTO a (id, col1) VALUES (1, 0);
+INSERT INTO a (id, col1) VALUES (1, 2);
+
+ASSERT VALUES b (id, col1) VALUES (1, 1);
+ASSERT NULL VALUES b (id) KEY (1);
+ASSERT VALUES b (id, col1) VALUES (1, 2);
 
 CREATE OR REPLACE TABLE b AS SELECT * FROM a;
 
-INSERT INTO a (id, col1) VALUES (1, 0);
+INSERT INTO a (id, col1) VALUES (1, -1);
 
-ASSERT NULL VALUES b (id) KEY (1);
-ASSERT VALUES b (id, col1) VALUES (1, 0);
+ASSERT VALUES b (id, col1) VALUES (1, -1);
 
 ----------------------------------------------------------------------------------------------------
 --@test: modify filter from basic TABLE with filter
@@ -99,18 +109,25 @@ SET 'ksql.create.or.replace.enabled' = 'true';
 CREATE TABLE a (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
 CREATE TABLE b AS SELECT * FROM a WHERE col1 > 0;
 
-INSERT INTO a (id, col1) VALUES (1, 0);
 INSERT INTO a (id, col1) VALUES (1, 1);
+INSERT INTO a (id, col1) VALUES (1, 0);
+INSERT INTO a (id, col1) VALUES (1, 2);
+
+ASSERT VALUES b (id, col1) VALUES (1, 1);
+ASSERT NULL VALUES b (id) KEY (1);
+ASSERT VALUES b (id, col1) VALUES (1, 2);
 
 CREATE OR REPLACE TABLE b AS SELECT * FROM a WHERE col1 < 0;
 
-INSERT INTO a (id, col1) VALUES (1, 0);
-INSERT INTO a (id, col1) VALUES (1, -1);
+INSERT INTO a (id, col1) VALUES (1, 3);
+-- note, though the table contains the row [1->2], and this update does not pass the filter,
+-- no tombstone is emitted. See https://github.com/confluentinc/ksql/issues/6493.
 
-ASSERT NULL VALUES b (id) KEY (1);
-ASSERT VALUES b (id, col1) VALUES (1, 1);
-ASSERT NULL VALUES b (id) KEY (1);
+INSERT INTO a (id, col1) VALUES (1, -1);
+INSERT INTO a (id, col1) VALUES (1, 5);
+
 ASSERT VALUES b (id, col1) VALUES (1, -1);
+ASSERT NULL VALUES b (id) KEY (1);
 
 ----------------------------------------------------------------------------------------------------
 --@test: add filter to StreamTableJoin
@@ -244,7 +261,6 @@ CREATE OR REPLACE TABLE baz AS SELECT * FROM bar WHERE count > 2;
 INSERT INTO foo (id, col1) VALUES (1, 0);
 INSERT INTO foo (id, col1) VALUES (1, 0);
 
-ASSERT NULL VALUES baz (id) KEY (1);
 ASSERT VALUES baz (id, count) VALUES (1, 3);
 
 ----------------------------------------------------------------------------------------------------

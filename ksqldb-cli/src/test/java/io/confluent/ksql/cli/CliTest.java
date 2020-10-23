@@ -432,6 +432,26 @@ public class CliTest {
   }
 
   @Test
+  public void testVariableDefineUndefine() {
+    assertRunCommand("define var1 = '1';", is(EMPTY_RESULT));
+    assertRunCommand("define var2 = '2';", is(EMPTY_RESULT));
+    assertRunCommand("define var3 = '3';", is(EMPTY_RESULT));
+
+    assertRunCommand("undefine var1;", is(EMPTY_RESULT));
+
+    assertRunListCommand("variables", hasRows(
+        row(
+            "var2",
+            "2"
+        ),
+        row(
+            "var3",
+            "3"
+        )
+    ));
+  }
+
+  @Test
   public void testPropertySetUnset() {
     assertRunCommand("set 'auto.offset.reset' = 'latest';", is(EMPTY_RESULT));
     assertRunCommand("set 'application.id' = 'Test_App';", is(EMPTY_RESULT));
@@ -765,6 +785,20 @@ public class CliTest {
   }
 
   @Test
+  public void shouldPrintErrorIfCantConnectToRestServerOnRunScript() throws Exception {
+    // Given
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getServerInfo())
+        .thenThrow(new KsqlRestClientException("Boom", new IOException("")));
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runScript("script_file_ignored");
+
+    assertThat(terminal.getOutputString(),
+        containsString("Please ensure that the URL provided is for an active KSQL server."));
+  }
+
+  @Test
   public void shouldRegisterRemoteCommand() {
     assertThat(console.getCliSpecificCommands().get("server"),
         instanceOf(RemoteServerSpecificCommand.class));
@@ -994,6 +1028,22 @@ public class CliTest {
 
     // When:
     localCli.runCommand("run script '" + scriptFile.getAbsolutePath() + "'");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
+  }
+
+  @Test
+  public void shouldRunScriptOnRunScript() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
+        + "").getBytes(StandardCharsets.UTF_8));
+
+    // When:
+    localCli.runScript(scriptFile.getPath());
 
     // Then:
     assertThat(terminal.getOutputString(),

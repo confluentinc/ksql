@@ -281,7 +281,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
 
@@ -314,7 +314,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
@@ -346,7 +346,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
   @SuppressWarnings("unchecked")
@@ -384,11 +384,11 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
 
-    List<List<Object>> values = rows_0.stream()
+    List<List<?>> values = rows_0.stream()
         .skip(HEADER)
         .map(sr -> {
           assertThat(sr.getRow(), is(not(Optional.empty())));
-          return sr.getRow().get().values();
+          return sr.getRow().get().getColumns();
         })
         .collect(Collectors.toList());
     assertThat(values, containsInAnyOrder(ImmutableList.of(KEY, 1), ImmutableList.of(KEY1, 1)));
@@ -457,7 +457,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     // This line ensures that we've not processed the new data
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(Optional.of(ImmutableList.of(KEY, 1))));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
 
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
         clusterFormation.router.getApp(), sql, LAG_FILTER_3);

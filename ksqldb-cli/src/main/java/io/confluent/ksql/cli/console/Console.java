@@ -392,7 +392,7 @@ public class Console implements Closeable {
         writer().println(
             TabularRow.createHeader(
                 getWidth(),
-                header.getColumnsSchema().columns(),
+                header.getSchema().columns(),
                 config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString()),
                 config.getInt(CliConfig.COLUMN_WIDTH_CONFIG)
             )
@@ -444,9 +444,17 @@ public class Console implements Closeable {
   private void printAsTable(final DataRow row) {
     rowCaptor.addRow(row);
 
+    final boolean tombstone = row.getTombstone().orElse(false);
+
+    final List<?> columns = tombstone
+        ? row.getColumns().stream()
+        .map(val -> val == null ? "<TOMBSTONE>" : val)
+        .collect(Collectors.toList())
+        : row.getColumns();
+
     writer().println(TabularRow.createRow(
         getWidth(),
-        row.getColumns(),
+        columns,
         config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString()),
         config.getInt(CliConfig.COLUMN_WIDTH_CONFIG))
     );

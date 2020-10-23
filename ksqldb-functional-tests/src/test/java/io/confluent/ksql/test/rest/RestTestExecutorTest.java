@@ -105,6 +105,40 @@ public class RestTestExecutorTest {
   }
 
   @Test
+  public void shouldFailToVerifyOnDifferentTombstoneValue() {
+    // Given:
+    final RqttQueryResponse response = new RqttQueryResponse(of(
+        StreamedRow.pushRow(genericRow("key", 55, new BigDecimal("66.675")))
+    ));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> response.verify(
+            "query",
+            of(
+                ImmutableMap.of("row",
+                    ImmutableMap.of(
+                        "columns", of("key", 55, new BigDecimal("66.675")),
+                        "tombstone", true
+                    )
+                )
+            ),
+            of("the SQL"),
+            0
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Response mismatch at responses[0]->query[0]->row"));
+    assertThat(e.getMessage(), containsString(
+        "Expected: map containing [\"tombstone\"->ANYTHING]"));
+    assertThat(e.getMessage(), containsString(
+        "but: map was [<columns=[key, 55, 66.675]>]"));
+  }
+
+  @Test
   public void shouldPassVerificationOnMatch() {
     // Given:
     final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(

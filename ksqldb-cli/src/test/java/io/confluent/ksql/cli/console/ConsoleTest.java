@@ -212,8 +212,10 @@ public class ConsoleTest {
     // Then:
     assertThat(terminal.getOutputString(), containsString("v_0"));
 
-    if (console.getOutputFormat() != OutputFormat.TABULAR) {
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
       assertThat(terminal.getOutputString(), containsString("<TOMBSTONE>"));
+    } else {
+      assertThat(terminal.getOutputString(), containsString("\"tombstone\" : true"));
     }
   }
 

@@ -252,8 +252,7 @@ public final class StreamedRow {
     /**
      * @return The schema of the columns being returned by the query.
      */
-    @JsonProperty("schema")
-    public LogicalSchema getColumnsSchema() {
+    public LogicalSchema getSchema() {
       return columnsSchema;
     }
 

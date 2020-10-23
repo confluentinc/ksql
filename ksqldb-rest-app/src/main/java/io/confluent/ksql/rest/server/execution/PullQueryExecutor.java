@@ -607,7 +607,7 @@ public final class PullQueryExecutor {
     return new TableRows(
         statement.getStatementText(),
         header.getQueryId(),
-        header.getColumnsSchema(),
+        header.getSchema(),
         rows.build()
     );
   }

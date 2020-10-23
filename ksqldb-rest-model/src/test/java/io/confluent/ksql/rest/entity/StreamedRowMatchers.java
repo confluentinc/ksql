@@ -42,11 +42,11 @@ public final class StreamedRowMatchers {
 
     public static Matcher<? super Header> header(
         final Matcher<? super QueryId> expectedQueryId,
-        final Matcher<? super LogicalSchema> expectedColumnsSchema
+        final Matcher<? super LogicalSchema> expectedSchema
     ) {
       return allOf(
           withQueryId(expectedQueryId),
-          withColumnsSchema(expectedColumnsSchema)
+          withSchema(expectedSchema)
       );
     }
 
@@ -62,14 +62,14 @@ public final class StreamedRowMatchers {
       };
     }
 
-    private static Matcher<? super Header> withColumnsSchema(
+    private static Matcher<? super Header> withSchema(
         final Matcher<? super LogicalSchema> expectedSchema
     ) {
       return new FeatureMatcher<Header, LogicalSchema>
-          (expectedSchema, "header with columnsSchema", "columnsSchema") {
+          (expectedSchema, "header with schema", "schema") {
         @Override
         protected LogicalSchema featureValueOf(final Header actual) {
-          return actual.getColumnsSchema();
+          return actual.getSchema();
         }
       };
     }
@@ -135,7 +135,7 @@ public final class StreamedRowMatchers {
     final Matcher<? super Optional<Header>> headerMatcher = expected.getHeader()
         .<Matcher<Optional<Header>>>map(header -> OptionalMatchers.of(HeaderMatchers.header(
             any(QueryId.class),
-            is(header.getColumnsSchema())
+            is(header.getSchema())
         )))
         .orElse(is(Optional.empty()));
 

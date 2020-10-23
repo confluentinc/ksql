@@ -46,7 +46,7 @@ The server also supports content negotiation, so you may include
 multiple, weighted preferences:
 
 ```
-Accept: application/vnd.ksql.v1+json; q=0.9, application/vnd.ksql.v1+json; q=0.5
+Accept: application/vnd.ksql.v1+json; q=0.9, application/json; q=0.5
 ```
 
 For example, content negotiation is useful when a new version of the API

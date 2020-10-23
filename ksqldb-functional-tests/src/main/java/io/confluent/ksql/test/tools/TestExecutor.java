@@ -30,7 +30,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -60,6 +59,7 @@ import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
+import io.confluent.ksql.test.utils.TestUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -575,7 +575,7 @@ public class TestExecutor implements Closeable {
   public static Map<String, ?> baseConfig() {
     return ImmutableMap.<String, Object>builder()
         .putAll(BASE_CONFIG)
-        .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
+        .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().toAbsolutePath().toString())
         .build();
   }
 

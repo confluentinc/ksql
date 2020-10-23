@@ -114,8 +114,8 @@ There are a few things to note in the above statements:
    `CREATE AS SELECT` statement aren't picked up in `valid_purchases`.
 
 _Schema Evolution_ upgrades have much stricter requirements than _Data Selection_
-upgrades. ksqlDB supports only adding new fields. Removing, renaming, or changing
-the type of any field is invalid.
+upgrades. ksqlDB supports only adding new columns at the end of the schema. Removing, 
+renaming, or changing the type of any existing field is invalid.
 
 ### Stateful data selection
 

@@ -182,9 +182,9 @@ public class QueryStreamWriterTest {
     // Then:
     final List<String> lines = getOutput(out);
     assertThat(lines, hasItems(
-        containsString("{\"row\":{\"key\":[\"key1\"],\"columns\":[\"Row1\"]}}"),
-        containsString("{\"row\":{\"key\":[\"key2\"],\"tombstone\":true}}"),
-        containsString("{\"row\":{\"key\":[\"key3\"],\"columns\":[\"Row3\"]}}")
+        containsString("{\"row\":{\"columns\":[\"Row1\"]}}"),
+        containsString("{\"row\":{\"columns\":[null],\"tombstone\":true}}"),
+        containsString("{\"row\":{\"columns\":[\"Row3\"]}}")
     ));
   }
 
@@ -206,10 +206,10 @@ public class QueryStreamWriterTest {
     // Then:
     final List<String> lines = getOutput(out);
     assertThat(lines, hasItems(
-        containsString("{\"header\":{\"queryId\":\"id\",\"key\":\"`keyCol` STRING, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT\",\"schema\":\"`col1` STRING\"}}"),
-        containsString("{\"row\":{\"key\":[\"key1\",1000,2000],\"columns\":[\"Row1\"]}}"),
-        containsString("{\"row\":{\"key\":[\"key2\",1000,2000],\"tombstone\":true}}"),
-        containsString("{\"row\":{\"key\":[\"key3\",1000,2000],\"columns\":[\"Row3\"]}}")
+        containsString("{\"header\":{\"queryId\":\"id\",\"schema\":\"`col1` STRING\"}}"),
+        containsString("{\"row\":{\"columns\":[\"Row1\"]}}"),
+        containsString("{\"row\":{\"columns\":[null],\"tombstone\":true}}"),
+        containsString("{\"row\":{\"columns\":[\"Row3\"]}}")
     ));
   }
 

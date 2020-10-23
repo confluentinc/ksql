@@ -556,7 +556,7 @@ public class StreamedQueryResourceTest {
           .getRow()
           .get();
 
-      assertThat(testRow.getColumns(), is(Optional.of(expectedRow.values())));
+      assertThat(testRow.getColumns(), is(expectedRow.values()));
     }
 
     responseOutputStream.close();

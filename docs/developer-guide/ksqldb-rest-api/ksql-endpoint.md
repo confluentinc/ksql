@@ -189,7 +189,7 @@ The ``/ksql`` endpoint may return the following error codes in the ``error_code`
 
 ```bash
 curl -X "POST" "http://<ksqldb-host-name>:8088/ksql" \
-     -H "Accept: application/vnd.ksql.v2+json" \
+     -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
   "ksql": "LIST STREAMS;",
   "streamsProperties": {}
@@ -200,8 +200,8 @@ curl -X "POST" "http://<ksqldb-host-name>:8088/ksql" \
 
 ```http
 POST /ksql HTTP/1.1
-Accept: application/vnd.ksql.v2+json
-Content-Type: application/vnd.ksql.v2+json
+Accept: application/vnd.ksql.v1+json
+Content-Type: application/vnd.ksql.v1+json
 
 {
   "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice';",
@@ -215,7 +215,7 @@ Content-Type: application/vnd.ksql.v2+json
 
 ```http
 HTTP/1.1 200 OK
-Content-Type: application/vnd.ksql.v2+json
+Content-Type: application/vnd.ksql.v1+json
 
 [
   {
@@ -247,8 +247,8 @@ request above:
 
 ```http
 POST /ksql HTTP/1.1
-Accept: application/vnd.ksql.v2+json
-Content-Type: application/vnd.ksql.v2+json
+Accept: application/vnd.ksql.v1+json
+Content-Type: application/vnd.ksql.v1+json
 
 {
   "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid EMIT CHANGES;"
@@ -261,8 +261,8 @@ the first request:
 
 ```http
 POST /ksql HTTP/1.1
-Accept: application/vnd.ksql.v2+json
-Content-Type: application/vnd.ksql.v2+json
+Accept: application/vnd.ksql.v1+json
+Content-Type: application/vnd.ksql.v1+json
 
 {
   "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home' EMIT CHANGES;"
@@ -273,7 +273,7 @@ Make note of the `commandSequenceNumber` returned in the response:
 
 ```http
 HTTP/1.1 200 OK
-Content-Type: application/vnd.ksql.v2+json
+Content-Type: application/vnd.ksql.v1+json
 
 [
   {
@@ -294,8 +294,8 @@ number 10 has finished executing:
 
 ```http
 POST /ksql HTTP/1.1
-Accept: application/vnd.ksql.v2+json
-Content-Type: application/vnd.ksql.v2+json
+Accept: application/vnd.ksql.v1+json
+Content-Type: application/vnd.ksql.v1+json
 
 {
   "ksql": "CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid EMIT CHANGES;",

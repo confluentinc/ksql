@@ -26,14 +26,9 @@ import java.util.regex.Pattern;
  */
 public enum KsqlMediaType {
 
-  KSQL_V1_JSON("application/vnd.ksql.v1+json"),
+  KSQL_V1_JSON("application/vnd.ksql.v1+json");
 
-  /**
-   * V2 enhances push query responses to include the key and tombstones for tables.
-   */
-  KSQL_V2_JSON("application/vnd.ksql.v2+json");
-
-  public static final KsqlMediaType LATEST_FORMAT = KSQL_V2_JSON;
+  public static final KsqlMediaType LATEST_FORMAT = KSQL_V1_JSON;
 
   private final int version;
   private final String mediaType;

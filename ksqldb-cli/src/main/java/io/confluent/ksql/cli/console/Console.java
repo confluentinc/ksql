@@ -90,7 +90,6 @@ import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TabularRow;
-import io.confluent.ksql.util.TombstoneConverter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -202,7 +201,6 @@ public class Console implements Closeable {
   private OutputFormat outputFormat;
   private Optional<File> spoolFile = Optional.empty();
   private CliConfig config;
-  private Optional<TombstoneConverter> tombstoneConverter;
 
   public interface RowCaptor {
 
@@ -382,10 +380,6 @@ public class Console implements Closeable {
   }
 
   private void printRowHeader(final Header header) {
-    if (header.getKeySchema().isPresent()) {
-      tombstoneConverter = Optional.of(new TombstoneConverter(header));
-    }
-
     switch (outputFormat) {
       case JSON:
         printAsJson(header);
@@ -446,19 +440,9 @@ public class Console implements Closeable {
   private void printAsTable(final DataRow row) {
     rowCaptor.addRow(row);
 
-    final boolean tombstone = row.getTombstone().orElse(false);
-
-    final List<?> columns;
-    if (!tombstone) {
-      columns = row.getColumns().orElseThrow(IllegalStateException::new);
-    } else {
-      columns = tombstoneConverter.orElseThrow(IllegalStateException::new)
-          .asColumns(row);
-    }
-
     writer().println(TabularRow.createRow(
         getWidth(),
-        columns,
+        row.getColumns(),
         config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString()),
         config.getInt(CliConfig.COLUMN_WIDTH_CONFIG))
     );

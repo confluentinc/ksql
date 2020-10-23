@@ -182,8 +182,8 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(ImmutableList.of(
-        StreamedRow.streamRow(GenericRow.genericRow("a", 1, 2L, 3.0f)),
-        StreamedRow.streamRow(GenericRow.genericRow("b", 1, 2L, 3.0f))
+        StreamedRow.pushRow(GenericRow.genericRow("a", 1, 2L, 3.0f)),
+        StreamedRow.pushRow(GenericRow.genericRow("b", 1, 2L, 3.0f))
     ));
   }
 

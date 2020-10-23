@@ -271,7 +271,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .map(KsqlNode::location)
         .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));
 
-    final StreamedRow header = StreamedRow.pullHeader(
+    final StreamedRow header = StreamedRow.header(
         tableRows.getQueryId(),
         tableRows.getSchema()
     );
@@ -284,7 +284,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     rows.add(0, header);
 
     final String data = rows.stream()
-        .map(this::writeValueAsString)
+        .map(StreamedQueryResource::writeValueAsString)
         .collect(Collectors.joining("," + System.lineSeparator(), "[", "]"));
 
     return EndpointResponse.ok(data);
@@ -300,24 +300,21 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
 
-    final boolean excludeTombstones = mediaType.getVersion() < 2;
-
     final TransientQueryMetadata query = ksqlEngine
-        .executeQuery(serviceContext, configured, excludeTombstones);
+        .executeQuery(serviceContext, configured, false);
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,
         disconnectCheckInterval.toMillis(),
         OBJECT_MAPPER,
-        connectionClosedFuture,
-        excludeTombstones
+        connectionClosedFuture
     );
 
     log.info("Streaming query '{}'", statement.getStatementText());
     return EndpointResponse.ok(queryStreamWriter);
   }
 
-  private String writeValueAsString(final Object object) {
+  private static String writeValueAsString(final Object object) {
     try {
       return OBJECT_MAPPER.writeValueAsString(object);
     } catch (final JsonProcessingException e) {

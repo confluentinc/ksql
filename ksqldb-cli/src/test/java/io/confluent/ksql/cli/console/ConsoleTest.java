@@ -187,30 +187,14 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintStreamRow() {
+  public void testPrintDataRow() {
     // Given:
-    final StreamedRow row = StreamedRow.streamRow(genericRow("col_1", "col_2"));
+    final StreamedRow row = StreamedRow.pushRow(genericRow("col_1", "col_2"));
 
     // When:
     console.printStreamedRow(row);
 
     // Then:
-    assertThat(terminal.getOutputString(), containsString("col_1"));
-    assertThat(terminal.getOutputString(), containsString("col_2"));
-  }
-
-  @Test
-  public void testPrintTableRow() {
-    // Given:
-    final StreamedRow row = StreamedRow.tableRow(ImmutableList.of("k_0"), genericRow("col_1", "col_2"));
-
-    // When:
-    console.printStreamedRow(row);
-
-    // Then:
-    if (console.getOutputFormat() != OutputFormat.TABULAR) {
-      assertThat(terminal.getOutputString(), containsString("k_0"));
-    }
     assertThat(terminal.getOutputString(), containsString("col_1"));
     assertThat(terminal.getOutputString(), containsString("col_2"));
   }
@@ -218,27 +202,25 @@ public class ConsoleTest {
   @Test
   public void testPrintTableTombstone() {
     // Given:
-    console.printStreamedRow(StreamedRow.pushHeader(new QueryId("id"), SCHEMA.key(), SCHEMA.value()));
+    console.printStreamedRow(StreamedRow.header(new QueryId("id"), SCHEMA));
 
-    final StreamedRow row = StreamedRow.tombstone(ImmutableList.of("k_0"));
+    final StreamedRow row = StreamedRow.tombstone(genericRow(null, "v_0", null));
 
     // When:
     console.printStreamedRow(row);
 
     // Then:
-    assertThat(terminal.getOutputString(), containsString("k_0"));
+    assertThat(terminal.getOutputString(), containsString("v_0"));
 
-    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+    if (console.getOutputFormat() != OutputFormat.TABULAR) {
       assertThat(terminal.getOutputString(), containsString("<TOMBSTONE>"));
-    } else {
-      assertThat(terminal.getOutputString(), containsString("\"tombstone\" : true"));
     }
   }
 
   @Test
   public void shouldPrintHeader() {
     // Given:
-    final StreamedRow header = StreamedRow.pushHeader(new QueryId("id"), SCHEMA.key(), SCHEMA.value());
+    final StreamedRow header = StreamedRow.header(new QueryId("id"), SCHEMA);
 
     // When:
     console.printStreamedRow(header);

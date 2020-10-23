@@ -1277,7 +1277,7 @@ public class CliTest {
 
     @Override
     public void addRow(final DataRow row) {
-      addRow(row.getColumns().orElseThrow(IllegalStateException::new));
+      addRow(row.getColumns());
     }
 
     private void addRow(final List<?> row) {

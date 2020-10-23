@@ -153,66 +153,54 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.POST, "/ksql")
         .handler(BodyHandler.create())
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleKsqlRequest);
     router.route(HttpMethod.POST, "/ksql/terminate")
         .handler(BodyHandler.create())
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleTerminateRequest);
     router.route(HttpMethod.POST, "/query")
         .handler(BodyHandler.create())
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleQueryRequest);
     router.route(HttpMethod.GET, "/info")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleInfoRequest);
     router.route(HttpMethod.POST, "/heartbeat")
         .handler(BodyHandler.create())
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleHeartbeatRequest);
     router.route(HttpMethod.GET, "/clusterStatus")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleClusterStatusRequest);
     router.route(HttpMethod.GET, "/status/:type/:entity/:action")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleStatusRequest);
     router.route(HttpMethod.GET, "/status")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleAllStatusesRequest);
     router.route(HttpMethod.POST, "/lag")
         .handler(BodyHandler.create())
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleLagReportRequest);
     router.route(HttpMethod.GET, "/healthcheck")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleHealthcheckRequest);
     router.route(HttpMethod.GET, "/v1/metadata")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleServerMetadataRequest);
     router.route(HttpMethod.GET, "/v1/metadata/id")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleServerMetadataClusterIdRequest);
     router.route(HttpMethod.GET, "/ws/query")
@@ -222,7 +210,6 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(this::handleWebsocket);
     router.route(HttpMethod.GET, "/v1/configs")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .produces(KsqlMediaType.KSQL_V2_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleConfigRequest);
     return router;

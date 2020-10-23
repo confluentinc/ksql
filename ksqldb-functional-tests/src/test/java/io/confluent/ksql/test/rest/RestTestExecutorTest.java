@@ -17,7 +17,7 @@ package io.confluent.ksql.test.rest;
 
 import static com.google.common.collect.ImmutableList.of;
 import static io.confluent.ksql.GenericRow.genericRow;
-import static io.confluent.ksql.rest.entity.StreamedRow.pushHeader;
+import static io.confluent.ksql.rest.entity.StreamedRow.header;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -29,7 +29,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.test.rest.RestTestExecutor.RqttQueryResponse;
 import java.math.BigDecimal;
@@ -38,7 +37,6 @@ import org.junit.Test;
 public class RestTestExecutorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
       .build();
 
@@ -46,7 +44,7 @@ public class RestTestExecutorTest {
   public void shouldFailToVerifyOnDifferentColumnsSchema() {
     // Given:
     final RqttQueryResponse response = new RqttQueryResponse(of(
-        pushHeader(new QueryId("not checked"), SCHEMA.key(), SCHEMA.value())
+        header(new QueryId("not checked"), SCHEMA)
     ));
 
     // When:
@@ -57,8 +55,7 @@ public class RestTestExecutorTest {
             of(
                 ImmutableMap.of("header",
                     ImmutableMap.of(
-                        "schema", "`expected` STRING",
-                        "key", "`ROWKEY` STRING"
+                        "schema", "`expected` STRING"
                     )
                 )
             ),
@@ -77,44 +74,10 @@ public class RestTestExecutorTest {
   }
 
   @Test
-  public void shouldFailToVerifyOnDifferentKeysSchema() {
-    // Given:
-    final RqttQueryResponse response = new RqttQueryResponse(of(
-        pushHeader(new QueryId("not checked"), SCHEMA.key(), SCHEMA.value())
-    ));
-
-    // When:
-    final AssertionError e = assertThrows(
-        AssertionError.class,
-        () -> response.verify(
-            "query",
-            of(
-                ImmutableMap.of("header",
-                    ImmutableMap.of(
-                        "schema", "`col0` STRING",
-                        "key", "`expected` STRING"
-                    )
-                )
-            ),
-            of("the SQL"),
-            0
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Response mismatch at responses[0]->query[0]->header->key"));
-    assertThat(e.getMessage(), containsString(
-        "Expected: is \"`expected` STRING\""));
-    assertThat(e.getMessage(), containsString(
-        "but: was \"`ROWKEY` STRING\""));
-  }
-
-  @Test
   public void shouldFailToVerifyOnDifferentRowValues() {
     // Given:
     final RqttQueryResponse response = new RqttQueryResponse(of(
-        StreamedRow.streamRow(genericRow("key", 55, new BigDecimal("66.675")))
+        StreamedRow.pushRow(genericRow("key", 55, new BigDecimal("66.675")))
     ));
 
     // When:
@@ -145,8 +108,8 @@ public class RestTestExecutorTest {
   public void shouldPassVerificationOnMatch() {
     // Given:
     final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
-        pushHeader(new QueryId("not checked"), SCHEMA.key(), SCHEMA.value()),
-        StreamedRow.streamRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675")))
+        header(new QueryId("not checked"), SCHEMA),
+        StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675")))
     ));
 
     // When:
@@ -155,8 +118,7 @@ public class RestTestExecutorTest {
         ImmutableList.of(
             ImmutableMap.of("header",
                 ImmutableMap.of(
-                    "schema", "`col0` STRING",
-                    "key", "`ROWKEY` STRING"
+                    "schema", "`col0` STRING"
                 )
             ),
             ImmutableMap.of("row",

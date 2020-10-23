@@ -26,13 +26,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,19 +53,23 @@ public final class StreamedRow {
   private final Optional<KsqlHostInfoEntity> sourceHost;
 
   /**
-   * The header used in pull queries currently marks any primary key columns in the projection as
+   * The header used in queries.
+   *
+   * <p>Pull queries currently mark any primary key columns in the projection as
    * {@code KEY} columns in the {@code schema} field of the header.
+   *
+   * <p>Push queries currently do not mark any key columns with {@code KEY}.
    *
    * @param queryId the id of the query
    * @param schema the schema of the result
    * @return the header row.
    */
-  public static StreamedRow pullHeader(
+  public static StreamedRow header(
       final QueryId queryId,
       final LogicalSchema schema
   ) {
     return new StreamedRow(
-        Optional.of(Header.of(queryId, Optional.empty(), schema)),
+        Optional.of(Header.of(queryId, schema)),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -76,64 +78,12 @@ public final class StreamedRow {
   }
 
   /**
-   * The header used in push queries currently does not mark any columns in the projection as {@code
-   * KEY} columns.
-   *
-   * @param queryId the id of the query
-   * @param key the ordered list of columns in the primary key of the result
-   * @param values the ordered list of the columns in the projection
-   * @return the header row.
+   * Row returned from a push query.
    */
-  public static StreamedRow pushHeader(
-      final QueryId queryId,
-      final List<? extends SimpleColumn> key,
-      final List<? extends SimpleColumn> values
-  ) {
-    final Optional<List<? extends SimpleColumn>> keySchema = key.isEmpty()
-        ? Optional.empty()
-        : Optional.of(key);
-
-    // Cheeky overloaded use of LogicalSchema to only represent the schema of the selected columns:
-    final LogicalSchema columnsSchema = LogicalSchema.builder()
-        .valueColumns(values)
-        .build();
-
-    return new StreamedRow(
-        Optional.of(Header.of(queryId, keySchema, columnsSchema)),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty()
-    );
-  }
-
-  /**
-   * Row returned from a push query table.
-   */
-  public static StreamedRow tableRow(
-      final List<?> key,
-      final GenericRow value
-  ) {
-    if (key.isEmpty()) {
-      throw new IllegalArgumentException("Must provide key");
-    }
-
+  public static StreamedRow pushRow(final GenericRow value) {
     return new StreamedRow(
         Optional.empty(),
-        Optional.of(DataRow.row(Optional.of(key), value.values())),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty()
-    );
-  }
-
-  /**
-   * Row returned from a push query stream.
-   */
-  public static StreamedRow streamRow(final GenericRow value) {
-    return new StreamedRow(
-        Optional.empty(),
-        Optional.of(DataRow.row(Optional.empty(), value.values())),
+        Optional.of(DataRow.row(value.values())),
         Optional.empty(),
         Optional.empty(),
         Optional.empty()
@@ -149,17 +99,17 @@ public final class StreamedRow {
   ) {
     return new StreamedRow(
         Optional.empty(),
-        Optional.of(DataRow.row(Optional.empty(), value.values())),
+        Optional.of(DataRow.row(value.values())),
         Optional.empty(),
         Optional.empty(),
         sourceHost
     );
   }
 
-  public static StreamedRow tombstone(final List<?> key) {
+  public static StreamedRow tombstone(final GenericRow columns) {
     return new StreamedRow(
         Optional.empty(),
-        Optional.of(DataRow.tombstone(key)),
+        Optional.of(DataRow.tombstone(columns.values())),
         Optional.empty(),
         Optional.empty(),
         Optional.empty()
@@ -281,42 +231,22 @@ public final class StreamedRow {
     }
   }
 
-  // Note: Type used `LogicalSchema` as a cheeky way of (de)serializing lists of columns.
   @JsonInclude(Include.NON_EMPTY)
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static final class Header extends BaseRow {
 
     private final QueryId queryId;
-    private final Optional<ImmutableList<SimpleColumn>> keySchema;
     private final LogicalSchema columnsSchema;
 
     public static Header of(
         final QueryId queryId,
-        final Optional<List<? extends SimpleColumn>> key,
         final LogicalSchema columnsSchema
     ) {
-      final Optional<List<? extends SimpleColumn>> keySchema = key
-          .map(k -> LogicalSchema.builder().valueColumns(k).build())
-          .map(LogicalSchema::columns);
-
-      return new Header(queryId, keySchema, columnsSchema);
+      return new Header(queryId, columnsSchema);
     }
 
     public QueryId getQueryId() {
       return queryId;
-    }
-
-    /**
-     * Used for push queries to return the schema of the key columns.
-     *
-     * <p>Note: The columns that make up the key may or may not be present in the projection, i.e.
-     * in the {@link #getColumnsSchema()}.
-     *
-     * @return the columns that make up the key.
-     */
-    @JsonIgnore
-    public Optional<List<SimpleColumn>> getKeySchema() {
-      return keySchema.map(v -> v);
     }
 
     /**
@@ -327,34 +257,20 @@ public final class StreamedRow {
       return columnsSchema;
     }
 
-    @JsonProperty("key")
-    @SuppressWarnings("unused") // Invoked by reflection by Jackson.
-    private Optional<LogicalSchema> getSerializedKeySchema() {
-      // Type uses `LogicalSchema`` to serialize key columns. It's a bit of a hack, but works.
-      // Note use of `valueColumns` rather than `keyColumns`, so that the list of key columns
-      // does not include the `KEY` keyword.
-      return keySchema
-          .map(key -> LogicalSchema.builder().valueColumns(key).build());
-    }
-
     @JsonCreator
     @SuppressWarnings("unused") // Invoked by reflection by Jackson.
     private static Header jsonCreator(
         @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-        @JsonProperty(value = "key") final Optional<LogicalSchema> keysSchema,
         @JsonProperty(value = "schema", required = true) final LogicalSchema columnsSchema
     ) {
-      return new Header(queryId, keysSchema.map(LogicalSchema::value), columnsSchema);
+      return new Header(queryId, columnsSchema);
     }
 
     private Header(
         final QueryId queryId,
-        final Optional<List<? extends SimpleColumn>> keySchema,
         final LogicalSchema columnsSchema
     ) {
       this.queryId = requireNonNull(queryId, "queryId");
-      this.keySchema = requireNonNull(keySchema, "keySchema")
-          .map(ImmutableList::copyOf);
       this.columnsSchema = requireNonNull(columnsSchema, "columnsSchema");
     }
 
@@ -368,13 +284,12 @@ public final class StreamedRow {
       }
       final Header header = (Header) o;
       return Objects.equals(queryId, header.queryId)
-          && Objects.equals(keySchema, header.keySchema)
           && Objects.equals(columnsSchema, header.columnsSchema);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(queryId, keySchema, columnsSchema);
+      return Objects.hash(queryId, columnsSchema);
     }
   }
 
@@ -383,47 +298,37 @@ public final class StreamedRow {
   public static final class DataRow extends BaseRow {
 
     @EffectivelyImmutable
-    private final Optional<List<?>> key;
-    @EffectivelyImmutable
-    private final Optional<List<?>> columns;
+    private final List<?> columns;
+    private final boolean tombstone;
 
     public static DataRow row(
-        final Optional<List<?>> key,
         final List<?> columns
     ) {
-      return new DataRow(key, Optional.of(columns));
+      return new DataRow(columns, Optional.empty());
     }
 
     public static DataRow tombstone(
-        final List<?> key
+        final List<?> columns
     ) {
-      return new DataRow(Optional.of(key), Optional.empty());
+      return new DataRow(columns, Optional.of(true));
     }
 
-
-    public Optional<List<?>> getKey() {
-      return key;
-    }
-
-    public Optional<List<?>> getColumns() {
+    public List<?> getColumns() {
       return columns;
     }
 
     public Optional<Boolean> getTombstone() {
-      return columns.isPresent() ? Optional.empty() : Optional.of(true);
+      return tombstone ? Optional.of(true) : Optional.empty();
     }
 
     @JsonCreator
     private DataRow(
-        @JsonProperty(value = "key") final Optional<List<?>> key,
-        @JsonProperty(value = "columns") final Optional<List<?>> columns
+        @JsonProperty(value = "columns") final List<?> columns,
+        @JsonProperty(value = "tombstone") final Optional<Boolean> tombstone
     ) {
-      this.key = requireNonNull(key, "key")
-          .map(ArrayList::new)
-          .map(Collections::unmodifiableList);
-      this.columns = requireNonNull(columns, "columns")
-          .map(ArrayList::new)
-          .map(Collections::unmodifiableList);
+      this.tombstone = tombstone.orElse(false);
+      this.columns = Collections
+          .unmodifiableList(new ArrayList<>(requireNonNull(columns, "columns")));
     }
 
     @Override
@@ -435,13 +340,13 @@ public final class StreamedRow {
         return false;
       }
       final DataRow row = (DataRow) o;
-      return Objects.equals(key, row.key)
+      return tombstone == row.tombstone
           && Objects.equals(columns, row.columns);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(key, columns);
+      return Objects.hash(tombstone, columns);
     }
   }
 }

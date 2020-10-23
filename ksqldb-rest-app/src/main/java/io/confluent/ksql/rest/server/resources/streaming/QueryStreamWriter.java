@@ -16,23 +16,17 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.StreamingOutput;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -49,9 +43,9 @@ class QueryStreamWriter implements StreamingOutput {
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
 
   private final TransientQueryMetadata queryMetadata;
-  private final boolean v1Format;
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
+  private final TombstoneFactory tombstoneFactory;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
   private volatile boolean connectionClosed;
@@ -61,15 +55,14 @@ class QueryStreamWriter implements StreamingOutput {
       final TransientQueryMetadata queryMetadata,
       final long disconnectCheckInterval,
       final ObjectMapper objectMapper,
-      final CompletableFuture<Void> connectionClosedFuture,
-      final boolean v1Format
+      final CompletableFuture<Void> connectionClosedFuture
   ) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
-    this.v1Format = v1Format;
     this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
+    this.tombstoneFactory = TombstoneFactory.create(queryMetadata);
     connectionClosedFuture.thenAccept(v -> connectionClosed = true);
     queryMetadata.start();
   }
@@ -134,44 +127,21 @@ class QueryStreamWriter implements StreamingOutput {
 
   private StreamedRow buildHeader() {
     final QueryId queryId = queryMetadata.getQueryId();
+
+    // Push queries only return value columns, but query metadata schema includes key and meta:
     final LogicalSchema storedSchema = queryMetadata.getLogicalSchema();
 
-    if (v1Format) {
-      return StreamedRow.pushHeader(queryId, ImmutableList.of(), storedSchema.value());
-    }
+    final Builder projectionSchema = LogicalSchema.builder();
 
-    final List<Column> key = queryMetadata.getResultType() != ResultType.WINDOWED_TABLE
-        ? storedSchema.key()
-        : addWindowBounds(storedSchema.key());
+    storedSchema.value().forEach(projectionSchema::valueColumn);
 
-    return StreamedRow.pushHeader(queryId, key, storedSchema.value());
-  }
-
-  private static List<Column> addWindowBounds(final List<Column> key) {
-    final Builder<Column> builder = ImmutableList.<Column>builder()
-        .addAll(key);
-
-    int idx = key.size();
-    for (final ColumnName name : SystemColumns.windowBoundsColumnNames()) {
-      final Column column = Column.of(name, SystemColumns.WINDOWBOUND_TYPE, Namespace.KEY, idx++);
-      builder.add(column);
-    }
-
-    return builder.build();
+    return StreamedRow.header(queryId, projectionSchema.build());
   }
 
   private StreamedRow buildRow(final KeyValue<List<?>, GenericRow> row) {
-    if (v1Format) {
-      return StreamedRow.streamRow(row.value());
-    }
-
-    if (queryMetadata.getResultType() == ResultType.STREAM) {
-      return StreamedRow.streamRow(row.value());
-    }
-
     return row.value() == null
-        ? StreamedRow.tombstone(row.key())
-        : StreamedRow.tableRow(row.key(), row.value());
+        ? StreamedRow.tombstone(tombstoneFactory.createRow(row))
+        : StreamedRow.pushRow(row.value());
   }
 
   private void outputException(final OutputStream out, final Throwable exception) {

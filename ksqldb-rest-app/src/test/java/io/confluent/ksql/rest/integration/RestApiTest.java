@@ -454,52 +454,7 @@ public class RestApiTest {
         startsWith("[{\"header\":{\"queryId\":\""));
     assertThat(messages.get(0),endsWith("\",\"schema\":\"`VAL` STRING\"}},"));
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"a\"]}},"));
-    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"b\"]}},"));
-    assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
-  }
-
-  @Test
-  public void shouldExecutePushQueryThatReturnsStreamOverRestV2() {
-    // When:
-    final String response = rawRestQueryRequest(
-        "SELECT USERID, PAGEID, VIEWTIME from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT "
-            + LIMIT + ";",
-        KsqlMediaType.KSQL_V2_JSON.mediaType()
-    );
-
-    // Then:
-    assertThat(parseRawRestQueryResponse(response), hasSize(HEADER + LIMIT + FOOTER));
-    final List<String> messages = Arrays.stream(response.split(System.lineSeparator()))
-        .filter(s -> !s.isEmpty())
-        .collect(Collectors.toList());
-    assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
-    assertThat(messages.get(0),
-        startsWith("[{\"header\":{\"queryId\":\""));
-    assertThat(messages.get(0),endsWith("\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},"));
-    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},"));
-    assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
-  }
-
-  @Test
-  public void shouldExecutePushQueryThatReturnsTableOverRestV2() {
-    // When:
-    final String response = rawRestQueryRequest(
-        "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
-        KsqlMediaType.KSQL_V2_JSON.mediaType()
-    );
-
-    // Then:
-    assertThat(parseRawRestQueryResponse(response), hasSize(HEADER + LIMIT + FOOTER));
-    final List<String> messages = Arrays.stream(response.split(System.lineSeparator()))
-        .filter(s -> !s.isEmpty())
-        .collect(Collectors.toList());
-    assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
-    assertThat(messages.get(0),
-        startsWith("[{\"header\":{\"queryId\":\""));
-    assertThat(messages.get(0),endsWith("\",\"schema\":\"`VAL` STRING\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"key\":[1],\"columns\":[\"a\"]}},"));
-    assertThat(messages.get(2), is("{\"row\":{\"key\":[1],\"tombstone\":true}},"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[null],\"tombstone\":true}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
   }
 
@@ -543,8 +498,8 @@ public class RestApiTest {
     assertThat(messages.get(0),
         startsWith("[{\"header\":{\"queryId\":\""));
     assertThat(messages.get(0),endsWith("\",\"schema\":\"`VAL` STRING\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"key\":[1],\"columns\":[\"a\"]}},"));
-    assertThat(messages.get(2), is("{\"row\":{\"key\":[1],\"tombstone\":true}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"a\"]}},"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[null],\"tombstone\":true}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
   }
 

@@ -821,42 +821,18 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"key":"`K` INTEGER", "schema":"`K` INTEGER, `ID` INTEGER"}},
-          {"row":{"key":[10],"columns":[10, 110]}},
-          {"row":{"key":[10],"tombstone":true}},
-          {"row":{"key":[11],"columns":[11, null]}},
-          {"row":{"key":[11],"columns":[11, null]}},
-          {"row":{"key":[11],"columns":[11, 111]}},
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[10, 110]}},
+          {"row":{"columns":[10, null],"tombstone":true}},
+          {"row":{"columns":[11, null]}},
+          {"row":{"columns":[11, null]}},
+          {"row":{"columns":[11, 111]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
     },
     {
-      "name": "windowed table with tombstones",
-      "statements": [
-        "CREATE STREAM INPUT (K INT KEY, VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT K, SUM(VAL) AS SUM FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K HAVING SUM(VAL) > 0;",
-        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 3;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 1, "key": 11, "value": {"val": 10}},
-        {"topic": "test_topic", "timestamp": 2, "key": 11, "value": {"val": -20}},
-        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"val": 21}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"key":"`K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT", "schema":"`K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `SUM` INTEGER"}},
-          {"row":{"key":[11, 0, 1000],"columns":[11, 0, 1000, 10]}},
-          {"row":{"key":[11, 0, 1000],"tombstone": true}},
-          {"row":{"key":[11, 0, 1000],"columns":[11, 0, 1000, 11]}},
-          {"finalMessage":"Limit Reached"}
-        ]}
-      ]
-    },
-    {
-      "name": "table with tombstones and no key columns in projection",
+      "name": "non-windowed table with tombstones - key not in projection",
       "notes": "message at timestamp 3 is invalid as key is null, so will be ignored",
       "statements": [
         "CREATE TABLE INPUT (K INT PRIMARY KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
@@ -873,12 +849,84 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"key":"`K` INTEGER", "schema":"`ID` INTEGER"}},
-          {"row":{"key":[10],"columns":[110]}},
-          {"row":{"key":[10],"tombstone":true}},
-          {"row":{"key":[11],"columns":[null]}},
-          {"row":{"key":[11],"columns":[null]}},
-          {"row":{"key":[11],"columns":[111]}},
+          {"header":{"schema":"`ID` INTEGER"}},
+          {"row":{"columns":[110]}},
+          {"row":{"columns":[null],"tombstone":true}},
+          {"row":{"columns":[null]}},
+          {"row":{"columns":[null]}},
+          {"row":{"columns":[111]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table with tombstones",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT SUM(VAL) AS SUM, K FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K HAVING SUM(VAL) > 0;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 11, "value": {"val": 10}},
+        {"topic": "test_topic", "timestamp": 2, "key": 11, "value": {"val": -20}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"val": 21}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `SUM` INTEGER"}},
+          {"row":{"columns":[11, 0, 1000, 10]}},
+          {"row":{"columns":[11, 0, 1000, null], "tombstone": true}},
+          {"row":{"columns":[11, 0, 1000, 11]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table with tombstones - key not in projection",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT K, SUM(VAL) AS SUM FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K HAVING SUM(VAL) > 0;",
+        "SELECT SUM FROM AGGREGATE EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 11, "value": {"val": 10}},
+        {"topic": "test_topic", "timestamp": 2, "key": 11, "value": {"val": -20}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"val": 21}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`SUM` INTEGER"}},
+          {"row":{"columns":[10]}},
+          {"row":{"columns":[null], "tombstone": true}},
+          {"row":{"columns":[11]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table with tombstones - only window bounds in projection",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT K, SUM(VAL) AS SUM FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K HAVING SUM(VAL) > 0;",
+        "SELECT SUM, WINDOWSTART, WINDOWEND FROM AGGREGATE EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 11, "value": {"val": 10}},
+        {"topic": "test_topic", "timestamp": 2, "key": 11, "value": {"val": -20}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"val": 21}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`SUM` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT"}},
+          {"row":{"columns":[10, 0, 1000]}},
+          {"row":{"columns":[null, 0, 1000], "tombstone": true}},
+          {"row":{"columns":[11, 0, 1000]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

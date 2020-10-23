@@ -40,15 +40,15 @@ Response JSON Object:
 
 ```http
 GET /status/stream/PAGEVIEWS/create HTTP/1.1
-Accept: application/vnd.ksql.v2+json
-Content-Type: application/vnd.ksql.v2+json
+Accept: application/vnd.ksql.v1+json
+Content-Type: application/vnd.ksql.v1+json
 ```
 
 **Example response**
 
 ```http
 HTTP/1.1 200 OK
-Content-Type application/vnd.ksql.v2+json
+Content-Type application/vnd.ksql.v1+json
 
 {
   "status": "SUCCESS",

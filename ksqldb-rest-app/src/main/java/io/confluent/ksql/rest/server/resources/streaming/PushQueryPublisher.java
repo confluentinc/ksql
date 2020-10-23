@@ -98,7 +98,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         return null;
       } else {
         return rows.stream()
-            .map(kv -> StreamedRow.streamRow(kv.value()))
+            .map(kv -> StreamedRow.pushRow(kv.value()))
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

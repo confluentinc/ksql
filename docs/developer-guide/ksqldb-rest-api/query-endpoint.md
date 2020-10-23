@@ -31,18 +31,12 @@ Response JSON Object:
 - **header** (object): Information about the result.
     - **header.queryId**: (string): the unique id of the query. This can be useful when debugging. 
     For example, when looking in the logs or processing log for errors or issues.
-    - **header.key**: (string)(since v2): the list of key columns, if the result is a table. 
-    This defines the schema for the data returned later in **row.key**. 
     - **header.schema**: (string): the list of columns being returned. This defines the schema for 
     the data returned later in **row.columns**.  
 - **row** (object): A single row being returned. This will be null if an error is being returned.
-    - **row.key** (array)(since v2): If the data being returned is a table, the primary key of the row.
-    The key may be one or more values than uniquely identify the row. The schema of the key was 
-    already supplied in **header.key**. 
-    Updates with the same key _replace_ previous values for the row.
     - **row.columns** (array): The values of the columns requested. The schema of the columns was
     already supplied in **header.schema**.
-    - **row.tombstone** (boolean)(since v2): the row is a deletion of a previously row.
+    - **row.tombstone** (boolean): the row is a deletion of a previously row.
     The **row.key** field contains the unique key of the row that has been deleted.
     Prior to v2 of the API, tombstones were not returned as part of the response.
 - **finalMessage** (string): If this field is non-null, it contains a final message from the server.
@@ -59,7 +53,7 @@ Response JSON Object:
 
 ```bash
 curl -X "POST" "http://<ksqldb-host-name>:8088/query" \
-     -H "Accept: application/vnd.ksql.v2+json" \
+     -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
   "ksql": "SELECT * FROM USERS;",
   "streamsProperties": {}
@@ -71,8 +65,8 @@ curl -X "POST" "http://<ksqldb-host-name>:8088/query" \
 
 ```http
 POST /query HTTP/1.1
-Accept: application/vnd.ksql.v2+json
-Content-Type: application/vnd.ksql.v2+json
+Accept: application/vnd.ksql.v1+json
+Content-Type: application/vnd.ksql.v1+json
 
 {
   "sql": "SELECT * FROM pageviews;",
@@ -91,7 +85,7 @@ If the query result is a stream, the response doesn't include the **row.key** or
 
 ```http
 HTTP/1.1 200 OK
-Content-Type: application/vnd.ksql.v2+json
+Content-Type: application/vnd.ksql.v1+json
 Transfer-Encoding: chunked
 
 ...
@@ -110,17 +104,12 @@ field.
 
 ```http
 HTTP/1.1 200 OK
-Content-Type: application/vnd.ksql.v2+json
+Content-Type: application/vnd.ksql.v1+json
 Transfer-Encoding: chunked
 
 ...
-{"header":{"queryId":"_confluent_id_34",key":"`ID BIGINT`",schema":"`ROWTIME` BIGINT, `NAME` STRING, `AGE` INT"}}
-{"row":{"key":[10],"columns":[1524760769983,"alice",10]}},
-{"row":{"key":[10],"tombstone":true}}
+{"header":{"queryId":"_confluent_id_34",schema":"`ROWTIME` BIGINT, `NAME` STRING, `ID` INT"}}
+{"row":{"columns":[1524760769983,"alice",10]}},
+{"row":{"columns":[null,null,10],"tombstone":true}}
 ...
 ```
-
-!!! note
-    Media type `application/vnd.ksql.v1+json` does not populate **row.key** or return tombstone
-
-rows.

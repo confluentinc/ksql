@@ -15,18 +15,15 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.KsqlClient;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
@@ -52,7 +49,7 @@ public class StreamedRowTest {
 
   @Test
   public void shouldRoundTripPullHeader() throws Exception {
-    final StreamedRow row = StreamedRow.pullHeader(QUERY_ID, PULL_SCHEMA);
+    final StreamedRow row = StreamedRow.header(QUERY_ID, PULL_SCHEMA);
 
     final String expectedJson = "{\"header\":{"
         + "\"queryId\":\"theQueryId\","
@@ -64,19 +61,15 @@ public class StreamedRowTest {
 
   @Test
   public void shouldRoundTripPushHeader() throws Exception {
-    final StreamedRow row = StreamedRow.pushHeader(
+    final StreamedRow row = StreamedRow.header(
         QUERY_ID,
-        ImmutableList.of(
-            Column.of(ColumnName.of("ID"), SqlTypes.BIGINT, Namespace.KEY, 0)
-        ),
-        ImmutableList.of(
-            Column.of(ColumnName.of("VAL"), SqlTypes.STRING, Namespace.VALUE, 0)
-        )
+        LogicalSchema.builder()
+            .valueColumn(ColumnName.of("VAL"), SqlTypes.STRING)
+            .build()
     );
 
     final String expectedJson = "{\"header\":{"
         + "\"queryId\":\"theQueryId\","
-        + "\"key\":\"`ID` BIGINT\","
         + "\"schema\":\"`VAL` STRING\""
         + "}}";
 
@@ -85,13 +78,11 @@ public class StreamedRowTest {
 
   @Test
   public void shouldRoundTripTableRow() throws Exception {
-    final StreamedRow row = StreamedRow.tableRow(
-        ImmutableList.<Object>of("some", 123456789123456789L),
-        GenericRow.genericRow("v0", new BigDecimal("1.2"), 4)
+    final StreamedRow row = StreamedRow.pushRow(
+        genericRow("v0", new BigDecimal("1.2"), 4)
     );
 
     final String expectedJson = "{\"row\":{"
-        + "\"key\":[\"some\",123456789123456789],"
         + "\"columns\":[\"v0\",1.2,4]"
         + "}}";
 
@@ -100,8 +91,8 @@ public class StreamedRowTest {
 
   @Test
   public void shouldRoundTripStreamRow() throws Exception {
-    final StreamedRow row = StreamedRow.streamRow(
-        GenericRow.genericRow("v0", new BigDecimal("1.2"), 4)
+    final StreamedRow row = StreamedRow.pushRow(
+        genericRow("v0", new BigDecimal("1.2"), 4)
     );
 
     final String expectedJson = "{\"row\":{"
@@ -114,7 +105,7 @@ public class StreamedRowTest {
   @Test
   public void shouldRoundTripPullRow() throws Exception {
     final StreamedRow row = StreamedRow.pullRow(
-        GenericRow.genericRow("v0", new BigDecimal("1.2"), 4),
+        genericRow("v0", new BigDecimal("1.2"), 4),
         Optional.of(hostInfo)
     );
 
@@ -129,7 +120,7 @@ public class StreamedRowTest {
   @Test
   public void shouldRoundTripPullRowNoHost() throws Exception {
     final StreamedRow row = StreamedRow.pullRow(
-        GenericRow.genericRow("v0", new BigDecimal("1.2"), 4),
+        genericRow("v0", new BigDecimal("1.2"), 4),
         Optional.empty()
     );
 
@@ -143,11 +134,11 @@ public class StreamedRowTest {
   @Test
   public void shouldRoundTripTableTombstone() throws Exception {
     final StreamedRow row = StreamedRow.tombstone(
-        ImmutableList.<Object>of("some", 123456789123456789L)
+        genericRow("some", 123456789123456789L)
     );
 
     final String expectedJson = "{\"row\":{"
-        + "\"key\":[\"some\",123456789123456789],"
+        + "\"columns\":[\"some\",123456789123456789],"
         + "\"tombstone\":true"
         + "}}";
 

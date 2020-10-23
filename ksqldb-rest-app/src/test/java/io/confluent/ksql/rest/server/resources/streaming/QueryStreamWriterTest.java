@@ -218,8 +218,8 @@ public class QueryStreamWriterTest {
   }
 
   private void createWriter() {
-    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper, new CompletableFuture<>(),
-        false);
+    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper, new CompletableFuture<>()
+    );
 
     out = new ByteArrayOutputStream();
 

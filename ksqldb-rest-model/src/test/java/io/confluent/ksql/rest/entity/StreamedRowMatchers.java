@@ -24,7 +24,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -42,12 +41,10 @@ public final class StreamedRowMatchers {
 
     public static Matcher<? super Header> header(
         final Matcher<? super QueryId> expectedQueryId,
-        final Matcher<? super Optional<List<SimpleColumn>>> expectedKeysSchema,
         final Matcher<? super LogicalSchema> expectedColumnsSchema
     ) {
       return allOf(
           withQueryId(expectedQueryId),
-          withKeysSchema(expectedKeysSchema),
           withColumnsSchema(expectedColumnsSchema)
       );
     }
@@ -60,18 +57,6 @@ public final class StreamedRowMatchers {
         @Override
         protected QueryId featureValueOf(final Header actual) {
           return actual.getQueryId();
-        }
-      };
-    }
-
-    private static Matcher<? super Header> withKeysSchema(
-        final Matcher<? super Optional<List<SimpleColumn>>> expectedSchema
-    ) {
-      return new FeatureMatcher<Header, Optional<List<SimpleColumn>>>
-          (expectedSchema, "header with keysSchema", "keysSchema") {
-        @Override
-        protected Optional<List<SimpleColumn>> featureValueOf(final Header actual) {
-          return actual.getKeySchema();
         }
       };
     }
@@ -149,7 +134,6 @@ public final class StreamedRowMatchers {
     final Matcher<? super Optional<Header>> headerMatcher = expected.getHeader()
         .<Matcher<Optional<Header>>>map(header -> OptionalMatchers.of(HeaderMatchers.header(
             any(QueryId.class),
-            is(header.getKeySchema()),
             is(header.getColumnsSchema())
         )))
         .orElse(is(Optional.empty()));

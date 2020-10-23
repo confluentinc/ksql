@@ -1495,7 +1495,6 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(metaStore.getSource(SourceName.of("TEST3")), is(notNullValue()));
-    assertThat(metaStore.getQueriesWithSource(SourceName.of("TEST2")), is(empty()));
     assertThat(metaStore.getSource(SourceName.of("BAR")), is(nullValue()));
     assertThat(metaStore.getSource(SourceName.of("FOO")), is(nullValue()));
     assertThat("live", ksqlEngine.numberOfLiveQueries(), is(numberOfLiveQueries));

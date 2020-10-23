@@ -48,7 +48,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   private final Map<SourceName, Set<SourceName>> dropConstraints = new ConcurrentHashMap<>();
 
   private final Map<SourceName, SourceInfo> dataSources = new ConcurrentHashMap<>();
-  private final Object referentialIntegrityLock = new Object();
+  private final Object metaStoreLock = new Object();
   private final FunctionRegistry functionRegistry;
   private final TypeRegistry typeRegistry;
 
@@ -111,7 +111,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   @Override
   public void deleteSource(final SourceName sourceName) {
-    synchronized (referentialIntegrityLock) {
+    synchronized (metaStoreLock) {
       dataSources.compute(sourceName, (ignored, sourceInfo) -> {
         if (sourceInfo == null) {
           throw new KsqlException(String.format("No data source with name %s exists.",
@@ -143,7 +143,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
       final SourceName sourceName,
       final Set<SourceName> sourceReferences
   ) {
-    synchronized (referentialIntegrityLock) {
+    synchronized (metaStoreLock) {
       if (sourceReferences.contains(sourceName)) {
         throw new KsqlException(String.format("Source name '%s' should not be referenced itself.",
             sourceName.text()));
@@ -200,68 +200,8 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void updateForPersistentQuery(
-      final String queryId,
-      final Set<SourceName> sourceNames,
-      final Set<SourceName> sinkNames
-  ) {
-    synchronized (referentialIntegrityLock) {
-      final String sourceAlreadyRegistered = streamSources(sourceNames)
-          .filter(source -> source.referentialIntegrity.getSourceForQueries().contains(queryId))
-          .map(source -> source.source.getName())
-          .map(Object::toString)
-          .collect(Collectors.joining(","));
-
-      final String sinkAlreadyRegistered = streamSources(sinkNames)
-          .filter(source -> source.referentialIntegrity.getSinkForQueries().contains(queryId))
-          .map(source -> source.source.getName())
-          .map(Object::toString)
-          .collect(Collectors.joining(","));
-
-      if (!sourceAlreadyRegistered.isEmpty() || !sinkAlreadyRegistered.isEmpty()) {
-        throw new KsqlException("query already registered."
-            + " queryId: " + queryId
-            + ", registeredAgainstSource: " + sourceAlreadyRegistered
-            + ", registeredAgainstSink: " + sinkAlreadyRegistered);
-      }
-
-      streamSources(sourceNames)
-          .forEach(source -> source.referentialIntegrity.addSourceForQueries(queryId));
-      streamSources(sinkNames)
-          .forEach(source -> source.referentialIntegrity.addSinkForQueries(queryId));
-    }
-  }
-
-  @Override
-  public void removePersistentQuery(final String queryId) {
-    synchronized (referentialIntegrityLock) {
-      for (final SourceInfo sourceInfo : dataSources.values()) {
-        sourceInfo.referentialIntegrity.removeQuery(queryId);
-      }
-    }
-  }
-
-  @Override
-  public Set<String> getQueriesWithSource(final SourceName sourceName) {
-    final SourceInfo sourceInfo = dataSources.get(sourceName);
-    if (sourceInfo == null) {
-      return Collections.emptySet();
-    }
-    return sourceInfo.referentialIntegrity.getSourceForQueries();
-  }
-
-  @Override
-  public Set<String> getQueriesWithSink(final SourceName sourceName) {
-    final SourceInfo sourceInfo = dataSources.get(sourceName);
-    if (sourceInfo == null) {
-      return Collections.emptySet();
-    }
-    return sourceInfo.referentialIntegrity.getSinkForQueries();
-  }
-
-  @Override
   public MutableMetaStore copy() {
-    synchronized (referentialIntegrityLock) {
+    synchronized (metaStoreLock) {
       return new MetaStoreImpl(dataSources, functionRegistry, typeRegistry, dropConstraints);
     }
   }
@@ -353,7 +293,6 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   private static final class SourceInfo {
     private final DataSource source;
-    private final ReferentialIntegrityTableEntry referentialIntegrity;
 
     // parent sources that this source references to; it is used to remove constraints from
     // the parent table when this source is deleted
@@ -363,16 +302,13 @@ public final class MetaStoreImpl implements MutableMetaStore {
         final DataSource source
     ) {
       this.source = Objects.requireNonNull(source, "source");
-      this.referentialIntegrity = new ReferentialIntegrityTableEntry();
     }
 
     private SourceInfo(
         final DataSource source,
-        final ReferentialIntegrityTableEntry referentialIntegrity,
         final Set<SourceName> references
     ) {
       this.source = Objects.requireNonNull(source, "source");
-      this.referentialIntegrity = referentialIntegrity.copy();
       this.references.addAll(
           Objects.requireNonNull(references, "references"));
     }
@@ -382,7 +318,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
     }
 
     public SourceInfo copyWith(final DataSource source) {
-      return new SourceInfo(source, referentialIntegrity, references);
+      return new SourceInfo(source, references);
     }
   }
 }

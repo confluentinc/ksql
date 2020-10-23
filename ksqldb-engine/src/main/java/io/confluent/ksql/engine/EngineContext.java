@@ -19,12 +19,14 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.engine.rewrite.AstSanitizer;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
+import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
@@ -40,17 +42,21 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +80,8 @@ final class EngineContext {
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> allLiveQueries = ConcurrentHashMap.newKeySet();
   private final QueryCleanupService cleanupService;
+  private final Map<SourceName, QueryId> createAsQueries = new ConcurrentHashMap();
+  private final Map<SourceName, Set<QueryId>> otherQueries = new ConcurrentHashMap();
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -125,6 +133,9 @@ final class EngineContext {
             query.getQueryId(),
             SandboxedPersistentQueryMetadata.of(query, sandBox::closeQuery)));
 
+    sandBox.createAsQueries.putAll(createAsQueries);
+    sandBox.otherQueries.putAll(otherQueries);
+
     return sandBox;
   }
 
@@ -137,7 +148,14 @@ final class EngineContext {
   }
 
   Set<String> getQueriesWithSink(final SourceName sourceName) {
-    return metaStore.getQueriesWithSink(sourceName);
+    final ImmutableSet.Builder<String> queries = ImmutableSet.builder();
+
+    if (createAsQueries.containsKey(sourceName)) {
+      queries.add(createAsQueries.get(sourceName).toString());
+    }
+
+    queries.addAll(getOtherQueriesWithSink(sourceName));
+    return queries.build();
   }
 
   MutableMetaStore getMetaStore() {
@@ -227,15 +245,87 @@ final class EngineContext {
       final boolean withQuery,
       final Set<SourceName> withQuerySources
   ) {
+    if (command instanceof DropSourceCommand) {
+      throwIfOtherQueriesExist(((DropSourceCommand) command).getSourceName());
+    }
+
     final DdlCommandResult result =
         ddlCommandExec.execute(sqlExpression, command, withQuery, withQuerySources);
     if (!result.isSuccess()) {
       throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }
+
+    if (command instanceof DropSourceCommand) {
+      terminateCreateAsQuery(((DropSourceCommand) command).getSourceName());
+    }
+
     return result.getMessage();
   }
 
-  void registerQuery(final QueryMetadata query) {
+  private void terminateCreateAsQuery(final SourceName sourceName) {
+    createAsQueries.computeIfPresent(sourceName, (ignore , queryId) -> {
+      final PersistentQueryMetadata query = persistentQueries.get(queryId);
+      if (query != null) {
+        query.close();
+      }
+
+      return null;
+    });
+  }
+
+  private Set<String> getOtherQueriesWithSink(final SourceName sourceName) {
+    final ImmutableSet.Builder<String> queries = ImmutableSet.builder();
+
+    if (otherQueries.containsKey(sourceName)) {
+      otherQueries.get(sourceName).forEach(queryId -> {
+        final PersistentQueryMetadata query = persistentQueries.get(queryId);
+        if (query != null && query.getSinkName().equals(sourceName)) {
+          queries.add(queryId.toString());
+        }
+      });
+    }
+
+    return queries.build();
+  }
+
+  private Set<String> getOtherQueriesWithSource(final SourceName sourceName) {
+    final ImmutableSet.Builder<String> queries = ImmutableSet.builder();
+
+    if (otherQueries.containsKey(sourceName)) {
+      otherQueries.get(sourceName).forEach(queryId -> {
+        final PersistentQueryMetadata query = persistentQueries.get(queryId);
+        if (query != null && query.getSourceNames().contains(sourceName)) {
+          queries.add(queryId.toString());
+        }
+      });
+    }
+
+    return queries.build();
+  }
+
+  private void throwIfOtherQueriesExist(final SourceName sourceName) {
+    final Set<String> sinkQueries = getOtherQueriesWithSink(sourceName);
+    final Set<String> sourceQueries = getOtherQueriesWithSource(sourceName);
+
+    if (!sinkQueries.isEmpty() || !sourceQueries.isEmpty()) {
+      throw new KsqlReferentialIntegrityException(String.format(
+          "Cannot drop %s.%n"
+              + "The following queries read from this source: [%s].%n"
+              + "The following queries write into this source: [%s].%n"
+              + "You need to terminate them before dropping %s.",
+          sourceName.text(),
+          sourceQueries.stream()
+                .sorted()
+                .collect(Collectors.joining(", ")),
+          sinkQueries.stream()
+                .sorted()
+                .collect(Collectors.joining(", ")),
+          sourceName.text()
+      ));
+    }
+  }
+
+  void registerQuery(final QueryMetadata query, final boolean createAsQuery) {
     allLiveQueries.add(query);
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
@@ -256,10 +346,17 @@ final class EngineContext {
       }
 
       persistentQueries.put(queryId, persistentQuery);
-      metaStore.updateForPersistentQuery(
-          queryId.toString(),
-          persistentQuery.getSourceNames(),
-          ImmutableSet.of(persistentQuery.getSinkName()));
+      if (createAsQuery) {
+        createAsQueries.put(persistentQuery.getSinkName(), queryId);
+      } else {
+        final Iterable<SourceName> allSourceNames = Iterables.concat(
+            Collections.singleton(persistentQuery.getSinkName()),
+            persistentQuery.getSourceNames()
+        );
+
+        allSourceNames.forEach(sourceName ->
+            otherQueries.computeIfAbsent(sourceName, x -> new HashSet<>()).add(queryId));
+      }
     }
   }
 
@@ -271,8 +368,25 @@ final class EngineContext {
 
   private boolean unregisterQuery(final QueryMetadata query) {
     if (query instanceof PersistentQueryMetadata) {
-      persistentQueries.remove(query.getQueryId());
-      metaStore.removePersistentQuery(query.getQueryId().toString());
+      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
+      final QueryId queryId = persistentQuery.getQueryId();
+      persistentQueries.remove(queryId);
+
+      final Iterable<SourceName> allSourceNames = Iterables.concat(
+          Collections.singleton(persistentQuery.getSinkName()),
+          persistentQuery.getSourceNames()
+      );
+
+      // If query is a INSERT query, then this line should not cause any effect
+      createAsQueries.remove(persistentQuery.getSinkName());
+
+      // If query is a C*AS query, then these lines should not cause any effect
+      allSourceNames.forEach(sourceName ->
+          otherQueries.computeIfPresent(sourceName, (s, queries) -> {
+            queries.remove(queryId);
+            return (queries.isEmpty()) ? null : queries;
+          })
+      );
     }
 
     if (!query.getState().equals(State.NOT_RUNNING)) {

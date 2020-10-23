@@ -117,7 +117,11 @@ final class EngineExecutor {
     final QueryPlan queryPlan = plan.getQueryPlan().get();
     plan.getDdlCommand().map(ddl ->
         executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
-    return ExecuteResult.of(executePersistentQuery(queryPlan, plan.getStatementText()));
+    return ExecuteResult.of(executePersistentQuery(
+        queryPlan,
+        plan.getStatementText(),
+        plan.getDdlCommand().isPresent())
+    );
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
@@ -385,7 +389,8 @@ final class EngineExecutor {
 
   private PersistentQueryMetadata executePersistentQuery(
       final QueryPlan queryPlan,
-      final String statementText
+      final String statementText,
+      final boolean createAsQuery
   ) {
     final QueryExecutor executor = engineContext.createQueryExecutor(
         config,
@@ -401,7 +406,7 @@ final class EngineExecutor {
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan())
     );
 
-    engineContext.registerQuery(queryMetadata);
+    engineContext.registerQuery(queryMetadata, createAsQuery);
     return queryMetadata;
   }
 

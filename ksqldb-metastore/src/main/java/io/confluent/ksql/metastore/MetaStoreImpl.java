@@ -27,7 +27,6 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -117,28 +116,6 @@ public final class MetaStoreImpl implements MutableMetaStore {
         if (sourceInfo == null) {
           throw new KsqlException(String.format("No data source with name %s exists.",
               sourceName.text()));
-        }
-
-        final String sourceForQueriesMessage = sourceInfo.referentialIntegrity
-            .getSourceForQueries()
-            .stream()
-            .collect(Collectors.joining(", "));
-
-        final String sinkForQueriesMessage = sourceInfo.referentialIntegrity
-            .getSinkForQueries()
-            .stream()
-            .collect(Collectors.joining(", "));
-
-        if (!sourceForQueriesMessage.isEmpty() || !sinkForQueriesMessage.isEmpty()) {
-          throw new KsqlReferentialIntegrityException(
-              String.format("Cannot drop %s.%n"
-                      + "The following queries read from this source: [%s].%n"
-                      + "The following queries write into this source: [%s].%n"
-                      + "You need to terminate them before dropping %s.",
-                  sourceName.toString(FormatOptions.noEscape()),
-                  sourceForQueriesMessage,
-                  sinkForQueriesMessage,
-                  sourceName.toString(FormatOptions.noEscape())));
         }
 
         if (dropConstraints.containsKey(sourceName)) {

@@ -248,7 +248,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           .executeQuery(statement, excludeTombstones);
 
       registerQuery(query);
-      primaryContext.registerQuery(query);
+      primaryContext.registerQuery(query, false);
       return query;
     } catch (final KsqlStatementException e) {
       throw e;

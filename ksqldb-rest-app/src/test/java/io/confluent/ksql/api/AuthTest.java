@@ -612,7 +612,7 @@ public class AuthTest extends ApiTest {
     void run() throws Exception;
   }
 
-  public static class StringPrincipal implements Principal {
+  private static class StringPrincipal implements Principal {
 
     private final String name;
 

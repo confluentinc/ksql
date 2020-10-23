@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -466,7 +467,9 @@ public class TestExecutorTest {
                 sinkTopic.getName(),
                 KeyFormat.nonWindowed(FormatInfo.of("Kafka"), SerdeFeatures.of()),
                 ValueFormat.of(FormatInfo.of("Json"), SerdeFeatures.of()),
-                OptionalInt.empty()
+                OptionalInt.empty(),
+                NullNode.getInstance(),
+                NullNode.getInstance()
             )
         )
     );

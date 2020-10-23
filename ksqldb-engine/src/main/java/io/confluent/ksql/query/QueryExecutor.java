@@ -35,6 +35,7 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
+import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -305,6 +306,11 @@ public final class QueryExecutor {
         newStreamsProperties,
         StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
         ProducerCollector.class.getCanonicalName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        RocksDBMetricsCollector.class.getName()
     );
     return newStreamsProperties;
   }

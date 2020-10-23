@@ -174,6 +174,18 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
+  protected R visitDefineVariable(final DefineVariable node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitUndefineVariable(final UndefineVariable node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitListVariables(final ListVariables node, final C context) {
+    return visitStatement(node, context);
+  }
+
   public R visitRegisterType(final RegisterType node, final C context) {
     return visitStatement(node, context);
   }
@@ -196,5 +208,13 @@ public abstract class AstVisitor<R, C> {
 
   public R visitAssertTombstone(final AssertTombstone node, final C context) {
     return visitStatement(node.getStatement(), context);
+  }
+
+  public R visitAlterOption(final AlterOption node, final C context) {
+    return visitNode(node, context);
+  }
+
+  public R visitAlterSource(final AlterSource node, final C context) {
+    return visitNode(node, context);
   }
 }

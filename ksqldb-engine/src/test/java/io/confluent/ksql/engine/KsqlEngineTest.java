@@ -64,7 +64,6 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -95,6 +94,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
@@ -606,42 +606,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldFailIfAvroSchemaNotEvolvable() {
-    // Given:
-    givenTopicWithSchema("T", Schema.create(Type.INT));
-
-    // When:
-    final KsqlStatementException e = assertThrows(
-        KsqlStatementException.class,
-        () -> KsqlEngineTestUtil.execute(
-            serviceContext,
-            ksqlEngine,
-            "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;",
-            KSQL_CONFIG,
-            Collections.emptyMap()
-        )
-    );
-
-    // Then:
-    assertThat(e, rawMessage(containsString(
-        "Cannot register avro schema for T as the schema is incompatible with the current schema version registered for the topic.\n" +
-            "KSQL schema: {" +
-            "\"type\":\"record\"," +
-            "\"name\":\"KsqlDataSourceSchema\"," +
-            "\"namespace\":\"io.confluent.ksql.avro_schemas\"," +
-            "\"fields\":[" +
-            "{\"name\":\"COL1\",\"type\":[\"null\",\"string\"],\"default\":null}," +
-            "{\"name\":\"COL2\",\"type\":[\"null\",\"string\"],\"default\":null}," +
-            "{\"name\":\"COL3\",\"type\":[\"null\",\"double\"],\"default\":null}," +
-            "{\"name\":\"COL4\",\"type\":[\"null\",\"boolean\"],\"default\":null}" +
-            "],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"" +
-            "}\n" +
-            "Registered schema: \"int\"")));
-    assertThat(e, statementText(is(
-        "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;")));
-  }
-
-  @Test
   public void shouldNotFailIfAvroSchemaEvolvable() {
     // Given:
     final Schema evolvableSchema = SchemaBuilder
@@ -649,7 +613,7 @@ public class KsqlEngineTest {
         .nullableInt("f1", 1)
         .endRecord();
 
-    givenTopicWithSchema("T", evolvableSchema);
+    givenTopicWithValueSchema("T", evolvableSchema);
 
     // When:
     KsqlEngineTestUtil.execute(
@@ -746,13 +710,22 @@ public class KsqlEngineTest {
         "select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
     );
-    final String internalTopic1 = query.getQueryApplicationId() + "-subject1" + SchemaRegistryUtil.CHANGE_LOG_SUFFIX;
-    final String internalTopic2 = query.getQueryApplicationId() + "-subject3" + SchemaRegistryUtil.REPARTITION_SUFFIX;
+    final String internalTopic1Val = KsqlConstants.getSRSubject(
+        query.getQueryApplicationId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
+    final String internalTopic2Val = KsqlConstants.getSRSubject(
+        query.getQueryApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
+    final String internalTopic1Key = KsqlConstants.getSRSubject(
+        query.getQueryApplicationId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
+    final String internalTopic2Key = KsqlConstants.getSRSubject(
+        query.getQueryApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
+
     when(schemaRegistryClient.getAllSubjects()).thenReturn(
         Arrays.asList(
-            internalTopic1,
+            internalTopic1Val,
+            internalTopic1Key,
             "subject2",
-            internalTopic2));
+            internalTopic2Val,
+            internalTopic2Key));
 
     query.start();
 
@@ -761,9 +734,11 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(schemaRegistryClient, times(2)).deleteSubject(any());
-    verify(schemaRegistryClient).deleteSubject(internalTopic1, true);
-    verify(schemaRegistryClient).deleteSubject(internalTopic2, true);
+    verify(schemaRegistryClient, times(4)).deleteSubject(any());
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Key, true);
     verify(schemaRegistryClient, never()).deleteSubject("subject2");
   }
 
@@ -868,13 +843,21 @@ public class KsqlEngineTest {
         KSQL_CONFIG, Collections.emptyMap()
     );
     final String applicationId = query.get(0).getQueryApplicationId();
-    final String internalTopic1 =  applicationId + "-subject1" + SchemaRegistryUtil.CHANGE_LOG_SUFFIX;
-    final String internalTopic2 = applicationId + "-subject3" + SchemaRegistryUtil.REPARTITION_SUFFIX;
+    final String internalTopic1Val = KsqlConstants.getSRSubject(
+        applicationId + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
+    final String internalTopic2Val = KsqlConstants.getSRSubject(
+        applicationId + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
+    final String internalTopic1Key = KsqlConstants.getSRSubject(
+        applicationId + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
+    final String internalTopic2Key = KsqlConstants.getSRSubject(
+        applicationId + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
     when(schemaRegistryClient.getAllSubjects()).thenReturn(
         Arrays.asList(
-            internalTopic1,
+            internalTopic1Val,
+            internalTopic1Key,
             "subject2",
-            internalTopic2));
+            internalTopic2Val,
+            internalTopic2Key));
     query.get(0).start();
 
     // When:
@@ -882,9 +865,11 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(schemaRegistryClient, times(2)).deleteSubject(any());
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2, true);
+    verify(schemaRegistryClient, times(4)).deleteSubject(any());
+    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Val, true);
+    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Key, true);
+    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Val, true);
+    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Key, true);
   }
 
   @Test
@@ -1603,11 +1588,11 @@ public class KsqlEngineTest {
     }
   }
 
-  private void givenTopicWithSchema(final String topicName, final Schema schema) {
+  private void givenTopicWithValueSchema(final String topicName, final Schema schema) {
     try {
       givenTopicsExist(1, topicName);
       schemaRegistryClient.register(
-          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(schema));
+          KsqlConstants.getSRSubject(topicName, false), new AvroSchema(schema));
     } catch (final Exception e) {
       fail("invalid test:" + e.getMessage());
     }

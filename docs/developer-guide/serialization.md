@@ -144,8 +144,7 @@ This data format supports all SQL
 | As value format              | Yes       |
 | As key format                | `JSON`: Yes, `JSON_SR`: No |
 | [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
-| [Schema inference][1]        | `JSON`: No, `JSON_SR`: Yes |
-| [Single field wrapping][2]   | Yes       |
+| [Schema inference][1]        | `JSON`: No, `JSON_SR`: Yes|
 | [Single field unwrapping][2] | Yes       |
 
 There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and

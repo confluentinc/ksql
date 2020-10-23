@@ -89,7 +89,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
           newType, name.text(), existingType));
     } else if (existing != null) {
       existing.source.canUpgradeTo(dataSource).ifPresent(msg -> {
-        throw new KsqlException("Cannot REPLACE data source: " + msg);
+        throw new KsqlException("Cannot upgrade data source: " + msg);
       });
     }
 

@@ -118,7 +118,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final ProcessingLogContext processingLogContext,
       final Optional<TrackedCallback> tracker
   ) {
-    if (unsupportedSchema(schema.columns())) {
+    if (unsupportedSchema(schema.columns(), ksqlConfig)) {
       throw new KsqlException("Unsupported key schema: " + schema.columns());
     }
 
@@ -139,17 +139,24 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     return serde;
   }
 
-  private static boolean unsupportedSchema(final List<SimpleColumn> columns) {
-    if (columns.isEmpty()) {
-      return false;
-    }
+  private static boolean unsupportedSchema(
+      final List<SimpleColumn> columns,
+      final KsqlConfig config
+  ) {
+    if (config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)) {
+      return columns.size() > 1;
+    } else {
+      if (columns.isEmpty()) {
+        return false;
+      }
 
-    if (columns.size() > 1) {
-      return true;
-    }
+      if (columns.size() > 1) {
+        return true;
+      }
 
-    final SqlType sqlType = columns.get(0).type();
-    return !(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal);
+      final SqlType sqlType = columns.get(0).type();
+      return !(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal);
+    }
   }
 
   private static Serde<Struct> toStructSerde(

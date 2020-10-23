@@ -283,5 +283,10 @@ public class StructuredDataSourceTest {
           topic
       );
     }
+
+    @Override
+    public DataSource with(String sql, LogicalSchema schema) {
+      return new TestStructuredDataSource(schema);
+    }
   }
 }

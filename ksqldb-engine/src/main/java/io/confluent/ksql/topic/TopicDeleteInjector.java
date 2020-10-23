@@ -17,8 +17,8 @@ package io.confluent.ksql.topic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Closer;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -57,8 +57,6 @@ public class TopicDeleteInjector implements Injector {
   private final KafkaTopicClient topicClient;
   private final SchemaRegistryClient schemaRegistryClient;
 
-  private static final int SUBJECT_NOT_FOUND_ERROR_CODE = 40401;
-
   public TopicDeleteInjector(
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
@@ -82,7 +80,7 @@ public class TopicDeleteInjector implements Injector {
         Objects.requireNonNull(schemaRegistryClient, "schemaRegistryClient");
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "UnstableApiUsage"})
   @Override
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement) {
@@ -100,26 +98,18 @@ public class TopicDeleteInjector implements Injector {
 
     if (source != null) {
       checkTopicRefs(source);
-      try {
-        ExecutorUtil.executeWithRetries(
-            () -> topicClient.deleteTopics(ImmutableList.of(source.getKafkaTopicName())),
-            ExecutorUtil.RetryBehaviour.ALWAYS);
-      } catch (final Exception e) {
-        throw new RuntimeException("Could not delete the corresponding kafka topic: "
-                + source.getKafkaTopicName(), e);
-      }
 
-      try {
-        final Format valueFormat = FormatFactory
-            .fromName(source.getKsqlTopic().getValueFormat().getFormat());
+      deleteTopic(source);
 
-        if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
-          SchemaRegistryUtil.deleteSubjectWithRetries(
-                  schemaRegistryClient,
-                  source.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-        }
+      final Closer closer = Closer.create();
+      closer.register(() -> deleteKeySubject(source));
+      closer.register(() -> deleteValueSubject(source));
+      try {
+        closer.close();
+      } catch (final KsqlException e) {
+        throw e;
       } catch (final Exception e) {
-        checkSchemaError(e, source.getKafkaTopicName());
+        throw new KsqlException(e);
       }
     } else if (dropStatement.getIfExists()) {
       throw new KsqlException("Could not find source to delete topic for: " + statement);
@@ -131,9 +121,49 @@ public class TopicDeleteInjector implements Injector {
     return statement.withStatement(withoutDeleteText, withoutDelete);
   }
 
+  private void deleteTopic(final DataSource source) {
+    try {
+      ExecutorUtil.executeWithRetries(
+          () -> topicClient.deleteTopics(ImmutableList.of(source.getKafkaTopicName())),
+          ExecutorUtil.RetryBehaviour.ALWAYS);
+    } catch (final Exception e) {
+      throw new RuntimeException("Could not delete the corresponding kafka topic: "
+          + source.getKafkaTopicName(), e);
+    }
+  }
+
+  private void deleteKeySubject(final DataSource source) {
+    try {
+      final Format keyFormat = FormatFactory
+          .fromName(source.getKsqlTopic().getKeyFormat().getFormat());
+
+      if (keyFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+        SchemaRegistryUtil.deleteSubjectWithRetries(
+            schemaRegistryClient,
+            KsqlConstants.getSRSubject(source.getKafkaTopicName(), true));
+      }
+    } catch (final Exception e) {
+      checkSchemaError(e, source.getKafkaTopicName());
+    }
+  }
+
+  private void deleteValueSubject(final DataSource source) {
+    try {
+      final Format valueFormat = FormatFactory
+          .fromName(source.getKsqlTopic().getValueFormat().getFormat());
+
+      if (valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+        SchemaRegistryUtil.deleteSubjectWithRetries(
+            schemaRegistryClient,
+            KsqlConstants.getSRSubject(source.getKafkaTopicName(), false));
+      }
+    } catch (final Exception e) {
+      checkSchemaError(e, source.getKafkaTopicName());
+    }
+  }
+
   private static void checkSchemaError(final Exception error, final String sourceName) {
-    if (!(error instanceof RestClientException
-            && ((RestClientException) error).getErrorCode() == SUBJECT_NOT_FOUND_ERROR_CODE)) {
+    if (!(SchemaRegistryUtil.isSubjectNotFoundErrorCode(error))) {
       throw new RuntimeException("Could not clean up the schema registry for topic: "
               + sourceName, error);
     }

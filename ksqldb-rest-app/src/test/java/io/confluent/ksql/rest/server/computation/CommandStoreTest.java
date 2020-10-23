@@ -368,6 +368,16 @@ public class CommandStoreTest {
     verify(commandTopic).start();
   }
 
+  @Test
+  public void shouldSuccessfullyAbortAndRetry() {
+    // Given:
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+
+    // When/Then:
+    commandStore.abortCommand(commandId);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+  }
+
   private static ConsumerRecords<byte[], byte[]> buildRecords(final Object... args) {
     assertThat(args.length % 2, equalTo(0));
     final List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();

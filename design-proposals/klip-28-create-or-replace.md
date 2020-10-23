@@ -78,6 +78,12 @@ The syntax `CREATE OR REPLACE (STREAM | TABLE) source_name WITH (key=value, ...)
 introduced to allow users to specify an existing stream or table to replace with a new query that
 will resume from the same processing point as any previously existing query.
 
+An alternative syntax, `ALTER (STREAM|TABLE) source_table ADD COLUMN col_name col_type 
+[, ADD COLUMN col_name col_type...];` will also be introduced to allow the developer to add new
+columns to the end of the schema without copying the entire schema. It will function in the exact
+same way as `CREATE OR REPLACE`, except that it will only be supported for sources that are not
+defined by queries (CAS statements).
+
 ## Design
 
 If the `source_name` does not yet exist, a `CREATE OR REPLACE` statement functions identically to

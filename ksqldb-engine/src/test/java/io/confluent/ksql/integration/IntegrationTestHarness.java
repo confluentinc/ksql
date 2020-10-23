@@ -715,7 +715,8 @@ public final class IntegrationTestHarness extends ExternalResource {
 
   public void ensureSchema(
       final String topicName,
-      final PhysicalSchema schema) {
+      final PhysicalSchema schema,
+      final boolean keySchema) {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
       final Map<String, String> formatProps = ImmutableMap
@@ -725,12 +726,12 @@ public final class IntegrationTestHarness extends ExternalResource {
 
       final ParsedSchema parsedSchema = translator.toParsedSchema(
           PersistenceSchema.from(
-              schema.logicalSchema().value(),
-              schema.valueSchema().features()
+              keySchema ? schema.logicalSchema().key() : schema.logicalSchema().value(),
+              keySchema ? schema.keySchema().features() : schema.valueSchema().features()
           )
       );
 
-      srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, parsedSchema);
+      srClient.register(KsqlConstants.getSRSubject(topicName, keySchema), parsedSchema);
     } catch (final Exception e) {
       throw new AssertionError(e);
     }

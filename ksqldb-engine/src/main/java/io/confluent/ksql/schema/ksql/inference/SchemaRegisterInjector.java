@@ -206,7 +206,10 @@ public class SchemaRegisterInjector implements Injector {
         srClient.register(subject, parsedSchema);
       }
     } catch (IOException | RestClientException e) {
-      throw new KsqlStatementException("Could not register schema for topic.", statementText, e);
+      throw new KsqlStatementException(
+          "Could not register schema for topic: " + e.getMessage(),
+          statementText,
+          e);
     }
   }
 }

@@ -17,7 +17,6 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
@@ -52,7 +51,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KeyFormatUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -270,8 +268,6 @@ final class EngineExecutor {
       );
     }
 
-    final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-    AvroUtil.throwOnInvalidSchemaEvolution(cfgStatement.getStatementText(), ddl, srClient);
     return Optional.of(ddl);
   }
 

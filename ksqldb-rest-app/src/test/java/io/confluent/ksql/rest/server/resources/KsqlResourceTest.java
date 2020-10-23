@@ -195,6 +195,7 @@ import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -331,7 +332,7 @@ public class KsqlResourceTest {
     kafkaConsumerGroupClient = new FakeKafkaConsumerGroupClient();
     serviceContext = TestServiceContext.create(kafkaTopicClient, kafkaConsumerGroupClient);
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
-    registerSchema(schemaRegistryClient);
+    registerValueSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
 
@@ -1095,22 +1096,6 @@ public class KsqlResourceTest {
     assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
     assertThat(e, exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
     assertThat(e, exceptionErrorMessage(errorMessage(is("The statement does not define any columns."))));
-  }
-
-  @Test
-  public void shouldFailWhenAvroSchemaCanNotBeEvolved() {
-    // Given:
-    givenAvroSchemaNotEvolveable("S1");
-
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM S1 WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO') AS SELECT * FROM test_stream;",
-        BAD_REQUEST.code());
-
-    // Then:
-    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
-    assertThat(result.getMessage(),
-        containsString("Cannot register avro schema for S1 as the schema is incompatible with the current schema version registered for the topic"));
   }
 
   @Test
@@ -2384,7 +2369,7 @@ public class KsqlResourceTest {
     return properties;
   }
 
-  private static void registerSchema(final SchemaRegistryClient schemaRegistryClient)
+  private static void registerValueSchema(final SchemaRegistryClient schemaRegistryClient)
       throws IOException, RestClientException {
     final String ordersAvroSchemaStr = "{"
         + "\"namespace\": \"kql\","
@@ -2401,7 +2386,7 @@ public class KsqlResourceTest {
         + "}";
     final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
-    schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
+    schemaRegistryClient.register(KsqlConstants.getSRSubject("orders-topic", false),
         new AvroSchema(avroSchema));
   }
 
@@ -2433,18 +2418,6 @@ public class KsqlResourceTest {
         description.appendText(properties.toString());
       }
     };
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private void givenAvroSchemaNotEvolveable(final String topicName) {
-    final org.apache.avro.Schema schema = org.apache.avro.Schema.create(Type.INT);
-
-    try {
-      schemaRegistryClient.register(
-          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, new AvroSchema(schema));
-    } catch (final Exception e) {
-      fail(e.getMessage());
-    }
   }
 
   private void givenKafkaTopicExists(final String name) {

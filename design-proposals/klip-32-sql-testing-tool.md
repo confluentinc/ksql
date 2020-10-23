@@ -96,7 +96,7 @@ ASSERT STREAM bar (id VARCHAR KEY, col1 INT) WITH (kafka_topic='BAR', value_form
 ---------------------------------------------------------------------------------------------------
 --@test: dml - stream - change column
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: "Cannot REPLACE data source: DataSource '`BAR`' has schema ..."
+--@expected.message: "Cannot upgrade data source: DataSource '`BAR`' has schema ..."
 ---------------------------------------------------------------------------------------------------
 
 CREATE STREAM foo (id VARCHAR KEY, col1 VARCHAR, col2 VARCHAR) 

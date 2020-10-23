@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -181,19 +182,32 @@ public class KsqlAuthorizationValidatorFactoryTest {
   @Test
   public void shouldReturnEmptyValidatorIfKafkaBrokerVersionTooLowButAuthorizerClassConfigIsSet() {
     // Given:
-    final Collection<Node> nodes = Collections.singletonList(node);
-    final DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
-    when(describeClusterResult.nodes()).thenReturn(KafkaFuture.completedFuture(nodes));
-    when(adminClient.describeCluster()).thenReturn(describeClusterResult);
-
-    final DescribeConfigsResult describeConfigsResult = describeBrokerResult(
-        Collections.singletonList(
-            new ConfigEntry(KAFKA_AUTHORIZER_CLASS_NAME, "a-class")
-        )
-    );
-    when(adminClient.describeConfigs(describeBrokerRequest()))
-        .thenReturn(describeConfigsResult);
+    givenSingleNode();
+    givenAuthorizerClass("a-class");
     when(adminClient.describeCluster(any())).thenThrow(new UnsupportedVersionException("too old"));
+
+    // When:
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
+        ksqlConfig,
+        serviceContext
+    );
+
+    // Then
+    assertThat(validator, is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldReturnEmptyValidatorIfKafkaBrokerVersionTooLowAndExceptionWrapped()
+      throws InterruptedException, ExecutionException {
+    // Given:
+    givenSingleNode();
+    givenAuthorizerClass("a-class");
+    final KafkaFuture<Set<AclOperation>> authorized = mockAuthorizedOperationsFuture();
+    final DescribeClusterResult result = mock(DescribeClusterResult.class);
+    when(adminClient.describeCluster(any())).thenReturn(result);
+    when(result.authorizedOperations()).thenReturn(authorized);
+    when(authorized.get())
+        .thenThrow(new ExecutionException(new UnsupportedVersionException("too old")));
 
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
@@ -241,5 +255,27 @@ public class KsqlAuthorizationValidatorFactoryTest {
         new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(brokerConfigs));
     when(describeConfigsResult.all()).thenReturn(KafkaFuture.completedFuture(config));
     return describeConfigsResult;
+  }
+
+  private void givenSingleNode() {
+    final Collection<Node> nodes = Collections.singletonList(node);
+    final DescribeClusterResult describeClusterResult = mock(DescribeClusterResult.class);
+    when(describeClusterResult.nodes()).thenReturn(KafkaFuture.completedFuture(nodes));
+    when(adminClient.describeCluster()).thenReturn(describeClusterResult);
+  }
+
+  private void givenAuthorizerClass(final String name) {
+    final DescribeConfigsResult describeConfigsResult = describeBrokerResult(
+        Collections.singletonList(
+            new ConfigEntry(KAFKA_AUTHORIZER_CLASS_NAME, name)
+        )
+    );
+    when(adminClient.describeConfigs(describeBrokerRequest()))
+        .thenReturn(describeConfigsResult);
+  }
+
+  @SuppressWarnings("unchecked")
+  private KafkaFuture<Set<AclOperation>> mockAuthorizedOperationsFuture() {
+    return mock(KafkaFuture.class);
   }
 }

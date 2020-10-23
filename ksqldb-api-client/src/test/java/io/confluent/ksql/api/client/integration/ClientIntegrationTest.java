@@ -110,7 +110,7 @@ public class ClientIntegrationTest {
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
-  private static final String TEST_STREAM = TEST_DATA_PROVIDER.kstreamName();
+  private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
   private static final List<String> TEST_COLUMN_NAMES =
       ImmutableList.of("STR", "LONG", "DEC", "ARRAY", "MAP", "STRUCT", "COMPLEX");
@@ -136,12 +136,12 @@ public class ClientIntegrationTest {
   private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
-  private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.kstreamName();
+  private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.sourceName();
 
   private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES_2", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC_2 = EMPTY_TEST_DATA_PROVIDER_2.topicName();
-  private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.kstreamName();
+  private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.sourceName();
 
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
@@ -1166,7 +1166,7 @@ public class ClientIntegrationTest {
       final TestDataProvider testDataProvider
   ) {
     return streamInfo(
-        testDataProvider.kstreamName(),
+        testDataProvider.sourceName(),
         testDataProvider.topicName(),
         KEY_FORMAT.name(),
         VALUE_FORMAT.name(),

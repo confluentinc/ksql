@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -50,6 +51,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -93,6 +95,7 @@ public class TopicDeleteInjectorTest {
     when(source.getName()).thenReturn(SOURCE_NAME);
     when(source.getKafkaTopicName()).thenReturn(TOPIC_NAME);
     when(source.getKsqlTopic()).thenReturn(topic);
+    when(topic.getKeyFormat()).thenReturn(KeyFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of(), Optional.empty()));
     when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of()));
   }
 
@@ -141,6 +144,7 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldDeleteAvroSchemaInSR() throws IOException, RestClientException {
     // Given:
+    when(topic.getKeyFormat()).thenReturn(KeyFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of(), Optional.empty()));
     when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()),
         SerdeFeatures.of()));
 
@@ -148,7 +152,25 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
 
     // Then:
-    verify(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    verify(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", true));
+    verify(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", false));
+  }
+
+  @Test
+  public void shouldDeleteValueAvroSchemaInSrEvenIfKeyDeleteFails() throws IOException, RestClientException {
+    // Given:
+    when(topic.getKeyFormat()).thenReturn(KeyFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of(), Optional.empty()));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()),
+        SerdeFeatures.of()));
+    doThrow(new KsqlException("foo"))
+        .when(registryClient)
+        .deleteSubject(KsqlConstants.getSRSubject("something", true));
+
+    // When:
+    assertThrows(KsqlException.class, () -> deleteInjector.inject(DROP_WITH_DELETE_TOPIC));
+
+    // Then:
+    verify(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", false));
   }
 
   @Test
@@ -161,7 +183,7 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
 
     // Then:
-    verify(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    verify(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", false));
   }
 
   @Test
@@ -267,13 +289,20 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
     // Given:
+    when(topic.getKeyFormat())
+        .thenReturn(KeyFormat.of(FormatInfo.of(
+            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo")),
+            SerdeFeatures.of(),
+            Optional.empty()));
     when(topic.getValueFormat())
         .thenReturn(ValueFormat.of(FormatInfo.of(
             FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo")),
             SerdeFeatures.of()));
 
     doThrow(new RestClientException("Subject not found.", 404, 40401))
-        .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+        .when(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", true));
+    doThrow(new RestClientException("Subject not found.", 404, 40401))
+        .when(registryClient).deleteSubject(KsqlConstants.getSRSubject("something", false));
 
     // When:
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);

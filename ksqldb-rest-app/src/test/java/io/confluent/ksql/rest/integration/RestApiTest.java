@@ -50,7 +50,6 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ConfigResponse;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -63,7 +62,6 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -94,7 +92,7 @@ public class RestApiTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
 
   private static final String APPLICATION_JSON_TYPE = "application/json";
 
@@ -289,28 +287,6 @@ public class RestApiTest {
 
     // Then:
     assertThat(response, is(notNullValue()));
-  }
-
-  @Test
-  public void shouldExecuteAllConfigsRequest() {
-    // When:
-    final ConfigResponse response = RestIntegrationTestUtil.makeConfigRequest(REST_APP);
-
-    // Then:
-    assertThat(response.getConfigs().get(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG), is(notNullValue()));
-  }
-
-  @Test
-  public void shouldExecuteConfigRequest() {
-    // When:
-    final ConfigResponse response = RestIntegrationTestUtil.makeConfigRequest(
-        REST_APP,
-        Arrays.asList(new String[] {"foo", KsqlConfig.CONNECT_URL_PROPERTY, KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG})
-    );
-
-    // Then:
-    assertThat(response.getConfigs().keySet().size(), is(1));
-    assertThat(response.getConfigs().get(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG), is(notNullValue()));
   }
 
   @Test

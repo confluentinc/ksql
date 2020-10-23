@@ -28,7 +28,7 @@ public final class KsqlConstants {
   public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
   private static final String SCHEMA_REGISTRY_KEY_SUFFIX = "-key";
-  public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
+  private static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
 
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 

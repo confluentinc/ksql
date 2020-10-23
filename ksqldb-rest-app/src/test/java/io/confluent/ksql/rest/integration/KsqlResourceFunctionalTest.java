@@ -43,6 +43,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
@@ -69,7 +70,7 @@ public class KsqlResourceFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -77,6 +78,7 @@ public class KsqlResourceFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true)
       .build();
 
   @ClassRule
@@ -164,7 +166,7 @@ public class KsqlResourceFunctionalTest {
             .keyColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)
             .build(),
-        SerdeFeatures.of(),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         SerdeFeatures.of()
     );
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(schema.logicalSchema());
@@ -172,22 +174,32 @@ public class KsqlResourceFunctionalTest {
     final SchemaTranslator translator = new AvroFormat()
         .getSchemaTranslator(ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value"));
 
-    final ParsedSchema parsedSchema = translator.toParsedSchema(
+    final ParsedSchema keySchema = translator.toParsedSchema(
+        PersistenceSchema.from(
+            schema.logicalSchema().key(),
+            schema.keySchema().features()
+        )
+    );
+    TEST_HARNESS.getSchemaRegistryClient().register(
+        KsqlConstants.getSRSubject("books", true),
+        keySchema
+    );
+
+    final ParsedSchema valueSchema = translator.toParsedSchema(
         PersistenceSchema.from(
             schema.logicalSchema().value(),
             schema.valueSchema().features()
         )
     );
-
     TEST_HARNESS.getSchemaRegistryClient().register(
-        "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-        parsedSchema
+        KsqlConstants.getSRSubject("books", false),
+        valueSchema
     );
 
     // When:
     final List<KsqlEntity> results = makeKsqlRequest(""
         + "CREATE STREAM books (author VARCHAR KEY, title VARCHAR) "
-        + "WITH (kafka_topic='books', value_format='avro', partitions=1);"
+        + "WITH (kafka_topic='books', format='avro', partitions=1);"
         + " "
         + "INSERT INTO BOOKS (ROWTIME, author, title) VALUES (123, 'Metamorphosis', 'Franz Kafka');"
     );
@@ -203,7 +215,7 @@ public class KsqlResourceFunctionalTest {
             0,
             0L,
             123L)),
-        FormatFactory.KAFKA,
+        FormatFactory.AVRO,
         FormatFactory.AVRO,
         schema
     );

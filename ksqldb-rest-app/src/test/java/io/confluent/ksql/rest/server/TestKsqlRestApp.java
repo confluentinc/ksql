@@ -279,6 +279,7 @@ public class TestKsqlRestApp extends ExternalResource {
       throw new RuntimeException(e);
     }
     ksqlRestApplication = null;
+    lastCommandSequenceNumber = -1;
   }
 
   protected void initialize() {

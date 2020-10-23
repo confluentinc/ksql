@@ -381,7 +381,7 @@ public final class PullQueryExecutor {
           schemas.add(result.getTableRows().getSchema());
           tableRows.addAll(result.getTableRows().getRows());
         } catch (ExecutionException e) {
-          LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
+          LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
               statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
           nextRoundRemaining.addAll(groupedByHost.get(node));
         }

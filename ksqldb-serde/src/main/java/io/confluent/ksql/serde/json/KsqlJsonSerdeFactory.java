@@ -53,13 +53,15 @@ class KsqlJsonSerdeFactory {
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
         schema,
         ksqlConfig,
         srFactory,
-        targetType
+        targetType,
+        isKey
     );
 
     final Deserializer<T> deserializer = createDeserializer(schema, targetType);
@@ -77,10 +79,11 @@ class KsqlJsonSerdeFactory {
       final ConnectSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final boolean isKey
   ) {
     final Converter converter = useSchemaRegistryFormat
-        ? getSchemaConverter(srFactory.get(), ksqlConfig)
+        ? getSchemaConverter(srFactory.get(), ksqlConfig, isKey)
         : getConverter();
 
     return new KsqlConnectSerializer<>(
@@ -113,7 +116,8 @@ class KsqlJsonSerdeFactory {
 
   private static Converter getSchemaConverter(
       final SchemaRegistryClient schemaRegistryClient,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final boolean isKey
   ) {
     final Map<String, Object> config = ksqlConfig
         .originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
@@ -125,7 +129,7 @@ class KsqlJsonSerdeFactory {
     config.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name());
 
     final Converter converter = new JsonSchemaConverter(schemaRegistryClient);
-    converter.configure(config, false);
+    converter.configure(config, isKey);
 
     return converter;
   }

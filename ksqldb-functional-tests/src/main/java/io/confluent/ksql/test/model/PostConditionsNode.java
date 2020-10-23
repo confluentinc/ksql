@@ -205,7 +205,7 @@ public final class PostConditionsNode {
         @Override
         public void describeTo(final Description description) {
           try {
-            description.appendText(TestJsonMapper.INSTANCE.get().writeValueAsString(this));
+            description.appendText(TestJsonMapper.INSTANCE.get().writeValueAsString(PostTopicNode.this));
           } catch (JsonProcessingException e) {
             throw new IllegalArgumentException(e);
           }

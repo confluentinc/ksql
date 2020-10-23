@@ -25,7 +25,8 @@ public final class KeyFormatUtils {
       FormatFactory.NONE,
       FormatFactory.KAFKA,
       FormatFactory.DELIMITED,
-      FormatFactory.JSON
+      FormatFactory.JSON,
+      FormatFactory.JSON_SR
   );
 
   private static final List<Format> KEY_FORMATS_UNDER_DEVELOPMENT = ImmutableList.of(

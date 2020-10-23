@@ -48,7 +48,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -168,7 +167,7 @@ public class BaseApiTest {
 
     ReceiveStream writeStream = new ReceiveStream(vertx);
 
-    sendRequest(client, "/query-stream",
+    sendPostRequest(client, "/query-stream",
         (request) -> request
             .as(BodyCodec.pipe(writeStream))
             .sendJsonObject(requestBody, ar -> {
@@ -202,13 +201,13 @@ public class BaseApiTest {
     return requestFuture.get();
   }
 
-  protected HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)
+  protected HttpResponse<Buffer> sendPostRequest(final String uri, final Buffer requestBody)
       throws Exception {
-    return sendRequest(client, uri, requestBody);
+    return sendPostRequest(client, uri, requestBody);
   }
 
-  protected HttpResponse<Buffer> sendRequest(final WebClient client, final String uri,
-      final Buffer requestBody)
+  protected HttpResponse<Buffer> sendPostRequest(final WebClient client, final String uri,
+                                                 final Buffer requestBody)
       throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
@@ -217,11 +216,11 @@ public class BaseApiTest {
     return requestFuture.get();
   }
 
-  protected void sendRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {
-    sendRequest(client, uri, requestSender);
+  protected void sendPostRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {
+    sendPostRequest(client, uri, requestSender);
   }
 
-  protected void sendRequest(
+  protected void sendPostRequest(
       final WebClient client,
       final String uri,
       final Consumer<HttpRequest<Buffer>> requestSender) {

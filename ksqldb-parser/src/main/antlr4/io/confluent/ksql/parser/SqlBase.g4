@@ -53,6 +53,7 @@ statement
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
+    | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE EXTENDED? sourceName                                         #showColumns
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
@@ -62,6 +63,8 @@ statement
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
+    | DEFINE variableName EQ variableValue                                  #defineVariable
+    | UNDEFINE variableName                                                 #undefineVariable
     | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
@@ -82,6 +85,7 @@ statement
     | EXPLAIN  (statement | identifier)                                     #explain
     | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
+    | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
     ;
 
 assertStatement
@@ -110,6 +114,10 @@ query
 resultMaterialization
     : CHANGES
     | FINAL
+    ;
+
+alterOption
+    : ADD (COLUMN)? identifier type
     ;
 
 tableElements
@@ -332,6 +340,15 @@ identifier
     | DIGIT_IDENTIFIER       #digitIdentifier
     ;
 
+variableName
+    : IDENTIFIER
+    | nonReserved
+    ;
+
+variableValue
+    : STRING
+    ;
+
 sourceName
     : identifier
     ;
@@ -365,6 +382,8 @@ nonReserved
     | ESCAPE
     | REPLACE
     | ASSERT
+    | ALTER
+    | ADD
     ;
 
 EMIT: 'EMIT';
@@ -473,6 +492,8 @@ RENAME: 'RENAME';
 ARRAY: 'ARRAY';
 MAP: 'MAP';
 SET: 'SET';
+DEFINE: 'DEFINE';
+UNDEFINE: 'UNDEFINE';
 RESET: 'RESET';
 SESSION: 'SESSION';
 SAMPLE: 'SAMPLE';
@@ -495,6 +516,9 @@ VIEW: 'VIEW';
 PRIMARY: 'PRIMARY';
 REPLACE: 'REPLACE';
 ASSERT: 'ASSERT';
+ADD: 'ADD';
+ALTER: 'ALTER';
+VARIABLES: 'VARIABLES';
 
 IF: 'IF';
 
@@ -555,6 +579,10 @@ TIME_WITH_TIME_ZONE
 
 TIMESTAMP_WITH_TIME_ZONE
     : 'TIMESTAMP' WS 'WITH' WS 'TIME' WS 'ZONE'
+    ;
+
+VARIABLE
+    : '${' IDENTIFIER '}'
     ;
 
 fragment EXPONENT

@@ -43,4 +43,16 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
         ksqlTopic
     );
   }
+
+  @Override
+  public DataSource with(final String sql, final LogicalSchema schema) {
+    return new KsqlStream<>(
+        getSqlExpression() + '\n' + sql,
+        getName(),
+        schema,
+        getTimestampColumn(),
+        isCasTarget(),
+        getKsqlTopic()
+    );
+  }
 }

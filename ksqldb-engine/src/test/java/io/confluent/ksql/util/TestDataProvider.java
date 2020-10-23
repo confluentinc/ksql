@@ -32,7 +32,7 @@ public class TestDataProvider {
   private final String topicName;
   private final PhysicalSchema schema;
   private final Multimap<Struct, GenericRow> data;
-  private final String kstreamName;
+  private final String sourceName;
 
   public TestDataProvider(
       final String namePrefix,
@@ -40,7 +40,7 @@ public class TestDataProvider {
       final Multimap<Struct, GenericRow> data
   ) {
     this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
-    this.kstreamName = namePrefix + "_KSTREAM";
+    this.sourceName = namePrefix + "_KSTREAM";
     this.schema = Objects.requireNonNull(schema, "schema");
     this.data = Objects.requireNonNull(data, "data");
   }
@@ -76,8 +76,8 @@ public class TestDataProvider {
         ));
   }
 
-  public String kstreamName() {
-    return kstreamName;
+  public String sourceName() {
+    return sourceName;
   }
 
   private static String namespace(final Namespace namespace, final boolean asTable) {

@@ -25,6 +25,8 @@ import io.confluent.ksql.name.Name;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AlterOption;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
@@ -36,6 +38,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -50,6 +53,7 @@ import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
@@ -63,6 +67,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -441,6 +446,32 @@ public final class SqlFormatter {
       return null;
     }
 
+    @Override
+    protected Void visitDefineVariable(final DefineVariable node, final Integer context) {
+      builder.append("DEFINE ");
+      builder.append(node.getVariableName());
+      builder.append("='");
+      builder.append(node.getVariableValue());
+      builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    public Void visitListVariables(final ListVariables node, final Integer context) {
+      builder.append("SHOW VARIABLES");
+
+      return null;
+    }
+
+    @Override
+    protected Void visitUndefineVariable(final UndefineVariable node, final Integer context) {
+      builder.append("UNDEFINE ");
+      builder.append(node.getVariableName());
+
+      return null;
+    }
+
     private void visitExtended() {
       builder.append(" EXTENDED");
     }
@@ -490,6 +521,23 @@ public final class SqlFormatter {
       append(indent, "GROUP BY " + expressions)
           .append('\n');
 
+      return null;
+    }
+
+    @Override
+    public Void visitAlterSource(final AlterSource node, final Integer indent) {
+      append(indent, String.format(
+          "ALTER %s %s%n",
+          node.getDataSourceType().getKsqlType(),
+          node.getName().text()));
+
+      builder.append(
+          node.getAlterOptions()
+              .stream()
+              .map(SqlFormatter::formatAlterOption)
+              .collect(Collectors.joining(",\n"))
+      );
+      builder.append(";");
       return null;
     }
 
@@ -635,5 +683,9 @@ public final class SqlFormatter {
 
   private static String escapedName(final Name<?> name) {
     return name.toString(FORMAT_OPTIONS);
+  }
+
+  private static String formatAlterOption(final AlterOption option) {
+    return "ADD COLUMN " + option.getColumnName() + " " + option.getType();
   }
 }

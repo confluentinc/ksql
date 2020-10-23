@@ -17,6 +17,7 @@ package io.confluent.ksql.ddl.commands;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
@@ -25,6 +26,7 @@ import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.DropType;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -52,19 +54,22 @@ public class CommandFactories implements DdlCommandFactory {
       .put(DropTable.class, CommandFactories::handleDropTable)
       .put(RegisterType.class, CommandFactories::handleRegisterType)
       .put(DropType.class, CommandFactories::handleDropType)
+      .put(AlterSource.class, CommandFactories::handleAlterSource)
       .build();
 
   private final CreateSourceFactory createSourceFactory;
   private final DropSourceFactory dropSourceFactory;
   private final RegisterTypeFactory registerTypeFactory;
   private final DropTypeFactory dropTypeFactory;
+  private final AlterSourceFactory alterSourceFactory;
 
   public CommandFactories(final ServiceContext serviceContext, final MetaStore metaStore) {
     this(
         new CreateSourceFactory(serviceContext),
         new DropSourceFactory(metaStore),
         new RegisterTypeFactory(metaStore),
-        new DropTypeFactory(metaStore)
+        new DropTypeFactory(metaStore),
+        new AlterSourceFactory()
     );
   }
 
@@ -73,7 +78,8 @@ public class CommandFactories implements DdlCommandFactory {
       final CreateSourceFactory createSourceFactory,
       final DropSourceFactory dropSourceFactory,
       final RegisterTypeFactory registerTypeFactory,
-      final DropTypeFactory dropTypeFactory
+      final DropTypeFactory dropTypeFactory,
+      final AlterSourceFactory alterSourceFactory
   ) {
     this.createSourceFactory =
         Objects.requireNonNull(createSourceFactory, "createSourceFactory");
@@ -81,6 +87,7 @@ public class CommandFactories implements DdlCommandFactory {
     this.registerTypeFactory =
         Objects.requireNonNull(registerTypeFactory, "registerTypeFactory");
     this.dropTypeFactory = Objects.requireNonNull(dropTypeFactory, "dropTypeFactory");
+    this.alterSourceFactory = Objects.requireNonNull(alterSourceFactory, "alterSourceFactory");
   }
 
   @Override
@@ -138,6 +145,10 @@ public class CommandFactories implements DdlCommandFactory {
 
   private DropTypeCommand handleDropType(final DropType statement) {
     return dropTypeFactory.create(statement);
+  }
+
+  private AlterSourceCommand handleAlterSource(final AlterSource statement) {
+    return alterSourceFactory.create(statement);
   }
 
   private static final class CallInfo {

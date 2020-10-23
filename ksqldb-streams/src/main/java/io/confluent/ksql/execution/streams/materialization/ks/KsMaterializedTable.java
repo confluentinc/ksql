@@ -39,11 +39,12 @@ class KsMaterializedTable implements MaterializedTable {
 
   @Override
   public Optional<Row> get(
-      final Struct key
+      final Struct key,
+      final int partition
   ) {
     try {
       final ReadOnlyKeyValueStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
-          .store(QueryableStoreTypes.timestampedKeyValueStore());
+          .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
 
       return Optional.ofNullable(store.get(key))
           .map(v -> Row.of(stateStore.schema(), key, v.value(), v.timestamp()));

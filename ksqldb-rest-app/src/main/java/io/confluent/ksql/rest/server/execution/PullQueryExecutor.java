@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil.QueryType;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -52,8 +53,8 @@ import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -102,15 +103,21 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
@@ -141,6 +148,7 @@ public final class PullQueryExecutor {
   private final KsqlExecutionContext executionContext;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final ExecutorService executorService;
 
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
@@ -153,7 +161,8 @@ public final class PullQueryExecutor {
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
-
+    this.executorService = Executors.newFixedThreadPool(ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG));
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -227,26 +236,38 @@ public final class PullQueryExecutor {
           .getMaterialization(queryId, contextStacker)
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
-      final Struct key = asKeyStruct(whereInfo.keyBound, query.getPhysicalSchema());
+      final List<Struct> keys = whereInfo.keysBound.stream()
+          .map(keyBound -> asKeyStruct(keyBound, query.getPhysicalSchema()))
+          .collect(ImmutableList.toImmutableList());
 
-      final PullQueryContext pullQueryContext = new PullQueryContext(
-          key,
-          mat,
-          analysis,
-          whereInfo,
-          queryId,
-          contextStacker,
-          pullQueryMetrics);
+      final List<KsqlPartitionLocation> locations = mat.locator().locate(
+          keys,
+          routingOptions,
+          routingFilterFactory
+      );
 
-      final PullQueryResult result = handlePullQuery(
+      final Function<List<KsqlPartitionLocation>, PullQueryContext> contextFactory
+          = (locationsForHost) ->
+          new PullQueryContext(
+              locationsForHost,
+              mat,
+              analysis,
+              whereInfo,
+              queryId,
+              contextStacker,
+              pullQueryMetrics);
+
+      return handlePullQuery(
           statement,
           executionContext,
           serviceContext,
-          pullQueryContext,
-          routingOptions
-      );
+          routingOptions,
+          contextFactory,
+          queryId,
+          locations,
+          executorService,
+          PullQueryExecutor::routeQuery);
 
-      return result;
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
@@ -254,6 +275,15 @@ public final class PullQueryExecutor {
           statement.getStatementText(),
           e
       );
+    }
+  }
+
+  static void validateSchemas(final List<LogicalSchema> schemas) {
+    final LogicalSchema schema = Iterables.getLast(schemas);
+    for (LogicalSchema s : schemas) {
+      if (!schema.equals(s)) {
+        throw new KsqlException("Schemas from different hosts should be identical");
+      }
     }
   }
 
@@ -265,45 +295,134 @@ public final class PullQueryExecutor {
     }
   }
 
-  private PullQueryResult handlePullQuery(
+  @VisibleForTesting
+  interface RouteQuery {
+    TableRows routeQuery(
+        KsqlNode node,
+        ConfiguredStatement<Query> statement,
+        KsqlExecutionContext executionContext,
+        ServiceContext serviceContext,
+        PullQueryContext pullQueryContext
+    );
+  }
+
+  @VisibleForTesting
+  static PullQueryResult handlePullQuery(
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
-      final PullQueryContext pullQueryContext,
-      final RoutingOptions routingOptions
-  ) {
-    // Get active and standby nodes for this key
-    final Locator locator = pullQueryContext.mat.locator();
-    final List<KsqlNode> filteredAndOrderedNodes = locator.locate(
-        pullQueryContext.key,
-        routingOptions,
-        routingFilterFactory
-    );
-
-    if (filteredAndOrderedNodes.isEmpty()) {
+      final RoutingOptions routingOptions,
+      final Function<List<KsqlPartitionLocation>, PullQueryContext> contextFactory,
+      final QueryId queryId,
+      final List<KsqlPartitionLocation> locations,
+      final ExecutorService executorService,
+      final RouteQuery routeQuery
+  ) throws InterruptedException {
+    final boolean anyPartitionsEmpty = locations.stream()
+        .anyMatch(location -> location.getNodes().isEmpty());
+    if (anyPartitionsEmpty) {
       LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
-                statement.getStatementText());
+          statement.getStatementText());
       throw new MaterializationException(String.format(
           "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
           statement.getStatementText()));
     }
 
-    // Nodes are ordered by preference: active is first if alive then standby nodes in
-    // increasing order of lag.
-    for (KsqlNode node : filteredAndOrderedNodes) {
-      try {
-        final Optional<KsqlNode> debugNode = Optional.ofNullable(
-            routingOptions.isDebugRequest() ? node : null);
+    // The source nodes associated with each of the rows
+    final List<KsqlNode> sourceNodes = new ArrayList<>();
+    // Each of the table rows returned, aggregated across nodes
+    final List<List<?>> tableRows = new ArrayList<>();
+    // Each of the schemas returned, aggregated across nodes
+    final List<LogicalSchema> schemas = new ArrayList<>();
+    List<KsqlPartitionLocation> remainingLocations = ImmutableList.copyOf(locations);
+    // For each round, each set of partition location objects is grouped by host, and all
+    // keys associated with that host are batched together. For any requests that fail,
+    // the partition location objects will be added to remainingLocations, and the next round
+    // will attempt to fetch them from the next node in their prioritized list.
+    // For example, locations might be:
+    // [ Partition 0 <Host 1, Host 2>,
+    //   Partition 1 <Host 2, Host 1>,
+    //   Partition 2 <Host 1, Host 2> ]
+    // In Round 0, fetch from Host 1: [Partition 0, Partition 2], from Host 2: [Partition 1]
+    // If everything succeeds, we're done.  If Host 1 failed, then we'd have a Round 1:
+    // In Round 1, fetch from Host 2: [Partition 0, Partition 2].
+    for (int round = 0; ; round++) {
+      // Group all partition location objects by their nth round node
+      final Map<KsqlNode, List<KsqlPartitionLocation>> groupedByHost
+          = groupByHost(statement, remainingLocations, round);
+
+      // Make requests to each host, specifying the partitions we're interested in from
+      // this host.
+      final Map<KsqlNode, Future<PullQueryResult>> futures = new LinkedHashMap<>();
+      for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
+        final KsqlNode node = entry.getKey();
+        final PullQueryContext pullQueryContext = contextFactory.apply(entry.getValue());
+
+        futures.put(node, executorService.submit(() ->  {
+          final TableRows rows = routeQuery.routeQuery(
+              node, statement, executionContext, serviceContext, pullQueryContext);
+          final Optional<List<KsqlNode>> debugNodes = Optional.ofNullable(
+              routingOptions.isDebugRequest()
+                  ? Collections.nCopies(rows.getRows().size(), node) : null);
+          return new PullQueryResult(rows, debugNodes);
+        }));
+      }
+
+      // Go through all of the results of the requests, either aggregating rows or adding
+      // the locations to the nextRoundRemaining list.
+      final ImmutableList.Builder<KsqlPartitionLocation> nextRoundRemaining
+          = ImmutableList.builder();
+      for (Map.Entry<KsqlNode, Future<PullQueryResult>>  entry : futures.entrySet()) {
+        final Future<PullQueryResult> future = entry.getValue();
+        final KsqlNode node = entry.getKey();
+        try {
+          final PullQueryResult result = future.get();
+          result.getSourceNodes().ifPresent(sourceNodes::addAll);
+          schemas.add(result.getTableRows().getSchema());
+          tableRows.addAll(result.getTableRows().getRows());
+        } catch (ExecutionException e) {
+          LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
+              statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
+          nextRoundRemaining.addAll(groupedByHost.get(node));
+        }
+      }
+      remainingLocations = nextRoundRemaining.build();
+
+      // If there are no partition locations remaining, then we're done.
+      if (remainingLocations.size() == 0) {
+        validateSchemas(schemas);
         return new PullQueryResult(
-            routeQuery(node, statement, executionContext, serviceContext, pullQueryContext),
-            debugNode);
-      } catch (Exception t) {
-        LOG.debug("Error routing query {} to host {} at timestamp {} with exception {}",
-                  statement.getStatementText(), node, System.currentTimeMillis(), t);
+            new TableRows(statement.getStatementText(), queryId, Iterables.getLast(schemas),
+                tableRows),
+            sourceNodes.isEmpty() ? Optional.empty() : Optional.of(sourceNodes));
       }
     }
-    throw new MaterializationException(String.format(
-        "Unable to execute pull query: %s", statement.getStatementText()));
+  }
+
+  /**
+   * Groups all of the partition locations by the round-th entry in their prioritized list
+   * of host nodes.
+   * @param statement the statement from which this request came
+   * @param locations the list of partition locations to parse
+   * @param round which round this is
+   * @return A map of node to list of partition locations
+   */
+  private static Map<KsqlNode, List<KsqlPartitionLocation>> groupByHost(
+      final ConfiguredStatement<Query> statement,
+      final List<KsqlPartitionLocation> locations,
+      final int round) {
+    final Map<KsqlNode, List<KsqlPartitionLocation>> groupedByHost = new LinkedHashMap<>();
+    for (KsqlPartitionLocation location : locations) {
+      // If one of the partitions required is out of nodes, then we cannot continue.
+      if (round >= location.getNodes().size()) {
+        throw new MaterializationException(String.format(
+            "Unable to execute pull query: %s. Exhausted standby hosts to try.",
+            statement.getStatementText()));
+      }
+      final KsqlNode nextHost = location.getNodes().get(round);
+      groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);
+    }
+    return groupedByHost;
   }
 
   private static TableRows routeQuery(
@@ -327,7 +446,7 @@ public final class PullQueryExecutor {
                 statement.getStatementText(), node.location(), System.currentTimeMillis());
       pullQueryContext.pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
-      return forwardTo(node, statement, serviceContext);
+      return forwardTo(node, statement, serviceContext, pullQueryContext);
     }
   }
 
@@ -340,17 +459,34 @@ public final class PullQueryExecutor {
     if (pullQueryContext.whereInfo.windowBounds.isPresent()) {
       final WindowBounds windowBounds = pullQueryContext.whereInfo.windowBounds.get();
 
-      final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
-          .get(pullQueryContext.key, windowBounds.start, windowBounds.end);
-
-      result = new Result(pullQueryContext.mat.schema(), rows);
+      final ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
+      for (KsqlPartitionLocation location : pullQueryContext.locations) {
+        if (!location.getKeys().isPresent()) {
+          throw new IllegalStateException("Window queries should be done with keys");
+        }
+        for (Struct key : location.getKeys().get()) {
+          final List<? extends TableRow> rows = pullQueryContext.mat.windowed()
+              .get(key, location.getPartition(), windowBounds.start,
+                  windowBounds.end);
+          allRows.addAll(rows);
+        }
+      }
+      result = new Result(pullQueryContext.mat.schema(), allRows.build());
     } else {
-      final List<? extends TableRow> rows = pullQueryContext.mat.nonWindowed()
-          .get(pullQueryContext.key)
-          .map(ImmutableList::of)
-          .orElse(ImmutableList.of());
-
-      result = new Result(pullQueryContext.mat.schema(), rows);
+      final ImmutableList.Builder<TableRow> allRows = ImmutableList.builder();
+      for (KsqlPartitionLocation location : pullQueryContext.locations) {
+        if (!location.getKeys().isPresent()) {
+          throw new IllegalStateException("Window queries should be done with keys");
+        }
+        for (Struct key : location.getKeys().get()) {
+          final List<? extends TableRow> rows = pullQueryContext.mat.nonWindowed()
+              .get(key, location.getPartition())
+              .map(ImmutableList::of)
+              .orElse(ImmutableList.of());
+          allRows.addAll(rows);
+        }
+      }
+      result = new Result(pullQueryContext.mat.schema(), allRows.build());
     }
 
     final LogicalSchema outputSchema;
@@ -392,12 +528,19 @@ public final class PullQueryExecutor {
   private static TableRows forwardTo(
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final PullQueryContext pullQueryContext
   ) {
+    // Specify the partitions we specifically want to read.  This will prevent reading unintended
+    // standby data when we are reading active for example.
+    final String partitions = pullQueryContext.locations.stream()
+        .map(location -> Integer.toString(location.getPartition()))
+        .collect(Collectors.joining(","));
     // Add skip forward flag to properties
     final Map<String, Object> requestProperties = ImmutableMap.of(
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true,
-        KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
+        KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true,
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS, partitions);
     final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
         .makeQueryRequest(
@@ -457,9 +600,9 @@ public final class PullQueryExecutor {
     return queryAnalyzer.analyze(statement.getStatement(), Optional.empty());
   }
 
-  private static final class PullQueryContext {
+  static final class PullQueryContext {
 
-    private final Struct key;
+    private final List<KsqlPartitionLocation> locations;
     private final Materialization mat;
     private final ImmutableAnalysis analysis;
     private final WhereInfo whereInfo;
@@ -468,16 +611,15 @@ public final class PullQueryExecutor {
     private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
     private PullQueryContext(
-        final Struct key,
+        final List<KsqlPartitionLocation> locations,
         final Materialization mat,
         final ImmutableAnalysis analysis,
         final WhereInfo whereInfo,
         final QueryId queryId,
         final QueryContext.Stacker contextStacker,
         final Optional<PullQueryExecutorMetrics> pullQueryMetrics
-
     ) {
-      this.key = Objects.requireNonNull(key, "key");
+      this.locations = Objects.requireNonNull(locations, "locations");
       this.mat = Objects.requireNonNull(mat, "materialization");
       this.analysis = Objects.requireNonNull(analysis, "analysis");
       this.whereInfo = Objects.requireNonNull(whereInfo, "whereInfo");
@@ -503,14 +645,14 @@ public final class PullQueryExecutor {
 
   private static final class WhereInfo {
 
-    private final Object keyBound;
+    private final List<Object> keysBound;
     private final Optional<WindowBounds> windowBounds;
 
     private WhereInfo(
-        final Object keyBound,
+        final List<Object> keysBound,
         final Optional<WindowBounds> windowBounds
     ) {
-      this.keyBound = keyBound;
+      this.keysBound = keysBound;
       this.windowBounds = Objects.requireNonNull(windowBounds);
     }
   }
@@ -538,32 +680,57 @@ public final class PullQueryExecutor {
     final Expression where = analysis.getWhereExpression()
         .orElseThrow(() -> invalidWhereClauseException("Missing WHERE clause", windowed));
 
-    final Map<ComparisonTarget, List<ComparisonExpression>> comparisons =
-        extractComparisons(where, query);
-
-    final List<ComparisonExpression> keyComparison = comparisons.get(ComparisonTarget.KEYCOL);
-    if (keyComparison == null) {
+    final KeyAndWindowBounds keyAndWindowBounds = extractComparisons(where, query);
+    final List<ComparisonExpression> keyComparison = keyAndWindowBounds.getKeyColExpression();
+    final List<InPredicate> inPredicate = keyAndWindowBounds.getInPredicate();
+    if (keyComparison.size() == 0 && inPredicate.size() == 0) {
       throw invalidWhereClauseException("WHERE clause missing key column", windowed);
+    } else if ((keyComparison.size() + inPredicate.size()) > 1) {
+      throw invalidWhereClauseException("Multiple bounds on key column", windowed);
     }
 
-    final Object key = extractKeyWhereClause(
-        keyComparison,
-        windowed,
-        query.getLogicalSchema()
-    );
+    final List<Object> keys;
+    if (keyComparison.size() > 0) {
+      keys = ImmutableList.of(
+          extractKeyWhereClause(keyComparison, windowed, query.getLogicalSchema()));
+    } else {
+      keys = extractKeysFromInPredicate(inPredicate, windowed, query.getLogicalSchema());
+    }
 
     if (!windowed) {
-      if (comparisons.size() > 1) {
+      if (keyAndWindowBounds.getWindowStartExpression().size() > 0
+          || keyAndWindowBounds.getWindowEndExpression().size() > 0) {
         throw invalidWhereClauseException("Unsupported WHERE clause", false);
       }
 
-      return new WhereInfo(key, Optional.empty());
+      return new WhereInfo(keys, Optional.empty());
     }
 
     final WindowBounds windowBounds =
-        extractWhereClauseWindowBounds(comparisons);
+        extractWhereClauseWindowBounds(keyAndWindowBounds);
 
-    return new WhereInfo(key, Optional.of(windowBounds));
+    return new WhereInfo(keys, Optional.of(windowBounds));
+  }
+
+  private static List<Object> extractKeysFromInPredicate(
+      final List<InPredicate> inPredicates,
+      final boolean windowed,
+      final LogicalSchema schema
+  ) {
+    final InPredicate inPredicate = Iterables.getLast(inPredicates);
+    final List<Object> result = new ArrayList<>();
+    for (Expression expression : inPredicate.getValueList().getValues()) {
+      if (!(expression instanceof Literal)) {
+        throw new KsqlException("Only comparison to literals is currently supported: "
+            + inPredicate);
+      }
+      if (expression instanceof NullLiteral) {
+        throw new KsqlException("Primary key columns can not be NULL: " + inPredicate);
+      }
+      final Object value = ((Literal) expression).getValue();
+      result.add(coerceKey(schema, value, windowed));
+    }
+    return result;
   }
 
   private static Object extractKeyWhereClause(
@@ -571,11 +738,7 @@ public final class PullQueryExecutor {
       final boolean windowed,
       final LogicalSchema schema
   ) {
-    if (comparisons.size() != 1) {
-      throw invalidWhereClauseException("Multiple bounds on key column", windowed);
-    }
-
-    final ComparisonExpression comparison = comparisons.get(0);
+    final ComparisonExpression comparison = Iterables.getLast(comparisons);
     if (comparison.getType() != Type.EQUAL) {
       final ColumnName keyColumn = Iterables.getOnlyElement(schema.key()).name();
       throw invalidWhereClauseException("Bound on '" + keyColumn.text()
@@ -613,22 +776,20 @@ public final class PullQueryExecutor {
   }
 
   private static WindowBounds extractWhereClauseWindowBounds(
-      final Map<ComparisonTarget, List<ComparisonExpression>> allComparisons
+      final KeyAndWindowBounds keyAndWindowBounds
   ) {
     return new WindowBounds(
-        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWSTART, allComparisons),
-        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWEND, allComparisons)
+        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWSTART,
+            keyAndWindowBounds.getWindowStartExpression()),
+        extractWhereClauseWindowBounds(ComparisonTarget.WINDOWEND,
+            keyAndWindowBounds.getWindowEndExpression())
     );
   }
 
   private static Range<Instant> extractWhereClauseWindowBounds(
       final ComparisonTarget windowType,
-      final Map<ComparisonTarget, List<ComparisonExpression>> allComparisons
+      final List<ComparisonExpression> comparisons
   ) {
-    final List<ComparisonExpression> comparisons =
-        Optional.ofNullable(allComparisons.get(windowType))
-            .orElseGet(ImmutableList::of);
-
     if (comparisons.isEmpty()) {
       return Range.all();
     }
@@ -764,19 +925,78 @@ public final class PullQueryExecutor {
   }
 
   private enum ComparisonTarget {
-    KEYCOL,
     WINDOWSTART,
     WINDOWEND
   }
 
-  private static Map<ComparisonTarget, List<ComparisonExpression>> extractComparisons(
+  private static class KeyAndWindowBounds {
+    private List<ComparisonExpression> keyColExpression = new ArrayList<>();
+    private List<ComparisonExpression> windowStartExpression = new ArrayList<>();
+    private List<ComparisonExpression> windowEndExpression = new ArrayList<>();
+    private List<InPredicate> inPredicate = new ArrayList<>();
+
+    KeyAndWindowBounds() {
+    }
+
+    public KeyAndWindowBounds addKeyColExpression(final ComparisonExpression keyColExpression) {
+      this.keyColExpression.add(keyColExpression);
+      return this;
+    }
+
+    public KeyAndWindowBounds addWindowStartExpression(
+        final ComparisonExpression windowStartExpression) {
+      this.windowStartExpression.add(windowStartExpression);
+      return this;
+    }
+
+    public KeyAndWindowBounds addWindowEndExpression(
+        final ComparisonExpression windowEndExpression) {
+      this.windowEndExpression.add(windowEndExpression);
+      return this;
+    }
+
+    public KeyAndWindowBounds addInPredicate(final InPredicate inPredicate) {
+      this.inPredicate.add(inPredicate);
+      return this;
+    }
+
+    public KeyAndWindowBounds merge(final KeyAndWindowBounds other) {
+      keyColExpression.addAll(other.keyColExpression);
+      windowStartExpression.addAll(other.windowStartExpression);
+      windowEndExpression.addAll(other.windowEndExpression);
+      inPredicate.addAll(other.inPredicate);
+      return this;
+    }
+
+    public List<ComparisonExpression> getKeyColExpression() {
+      return keyColExpression;
+    }
+
+    public List<ComparisonExpression> getWindowStartExpression() {
+      return windowStartExpression;
+    }
+
+    public List<ComparisonExpression> getWindowEndExpression() {
+      return windowEndExpression;
+    }
+
+    public List<InPredicate> getInPredicate() {
+      return inPredicate;
+    }
+  }
+
+  private static KeyAndWindowBounds extractComparisons(
       final Expression exp,
       final PersistentQueryMetadata query
   ) {
     if (exp instanceof ComparisonExpression) {
       final ComparisonExpression comparison = (ComparisonExpression) exp;
-      final ComparisonTarget target = extractWhereClauseTarget(comparison, query);
-      return ImmutableMap.of(target, ImmutableList.of(comparison));
+      return extractWhereClauseTarget(comparison, query);
+    }
+
+    if (exp instanceof InPredicate) {
+      final InPredicate inPredicate = (InPredicate) exp;
+      return extractWhereClauseTarget(inPredicate, query);
     }
 
     if (exp instanceof LogicalBinaryExpression) {
@@ -785,23 +1005,15 @@ public final class PullQueryExecutor {
         throw invalidWhereClauseException("Only AND expressions are supported: " + exp, false);
       }
 
-      final Map<ComparisonTarget, List<ComparisonExpression>> left =
-          extractComparisons(binary.getLeft(), query);
-
-      final Map<ComparisonTarget, List<ComparisonExpression>> right =
-          extractComparisons(binary.getRight(), query);
-
-      return Stream
-          .concat(left.entrySet().stream(), right.entrySet().stream())
-          .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (l, r) ->
-              ImmutableList.<ComparisonExpression>builder().addAll(l).addAll(r).build()
-          ));
+      final KeyAndWindowBounds left = extractComparisons(binary.getLeft(), query);
+      final KeyAndWindowBounds right = extractComparisons(binary.getRight(), query);
+      return left.merge(right);
     }
 
     throw invalidWhereClauseException("Unsupported expression: " + exp, false);
   }
 
-  private static ComparisonTarget extractWhereClauseTarget(
+  private static KeyAndWindowBounds extractWhereClauseTarget(
       final ComparisonExpression comparison,
       final PersistentQueryMetadata query
   ) {
@@ -816,20 +1028,37 @@ public final class PullQueryExecutor {
 
     final ColumnName columnName = column.getColumnName();
     if (columnName.equals(SystemColumns.WINDOWSTART_NAME)) {
-      return ComparisonTarget.WINDOWSTART;
+      return new KeyAndWindowBounds().addWindowStartExpression(comparison);
     }
 
     if (columnName.equals(SystemColumns.WINDOWEND_NAME)) {
-      return ComparisonTarget.WINDOWEND;
+      return new KeyAndWindowBounds().addWindowEndExpression(comparison);
     }
 
     final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
     if (columnName.equals(keyColumn)) {
-      return ComparisonTarget.KEYCOL;
+      return new KeyAndWindowBounds().addKeyColExpression(comparison);
     }
 
     throw invalidWhereClauseException(
         "WHERE clause on unsupported column: " + columnName.text(),
+        false
+    );
+  }
+
+  private static KeyAndWindowBounds extractWhereClauseTarget(
+      final InPredicate inPredicate,
+      final PersistentQueryMetadata query
+  ) {
+    final UnqualifiedColumnReferenceExp column
+        = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
+    final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
+    if (column.getColumnName().equals(keyColumn)) {
+      return new KeyAndWindowBounds().addInPredicate(inPredicate);
+    }
+
+    throw invalidWhereClauseException(
+        "IN expression on unsupported column: " + column.getColumnName().text(),
         false
     );
   }
@@ -1109,6 +1338,25 @@ public final class PullQueryExecutor {
         return (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST);
       }
       return KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT;
+    }
+
+    @Override
+    public Set<Integer> getPartitions() {
+      if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS)) {
+        @SuppressWarnings("unchecked")
+        final List<String> partitions = (List<String>) requestProperties.get(
+            KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS);
+        return partitions.stream()
+            .map(partition -> {
+              try {
+                return Integer.parseInt(partition);
+              } catch (NumberFormatException e) {
+                throw new IllegalStateException("Internal request got a bad partition "
+                    + partition);
+              }
+            }).collect(Collectors.toSet());
+      }
+      return Collections.emptySet();
     }
 
     @Override

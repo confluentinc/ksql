@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
@@ -22,6 +23,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -33,6 +35,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,12 +64,16 @@ public class DdlCommandExecTest {
       .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
   private static final KeyFormat KEY_FORMAT = KeyFormat
       .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
+  private static final SourceName EXISTING_STREAM = SourceName.of("TEST0");
+  private static final SourceName EXISTING_TABLE = SourceName.of("TEST2");
+  private static final List<Column> NEW_COLUMNS = SCHEMA.columns();
 
   private CreateStreamCommand createStream;
   private CreateTableCommand createTable;
   private DropSourceCommand dropSource;
   private DropTypeCommand dropType;
   private RegisterTypeCommand registerType;
+  private AlterSourceCommand alterSource;
 
   private final MutableMetaStore metaStore
       = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -216,6 +223,86 @@ public class DdlCommandExecTest {
 
     // Then:
     assertThat(metaStore.getSource(TABLE_NAME).isCasTarget(), is(true));
+  }
+
+  @Test
+  public void shouldAlterStream() {
+    // Given:
+    alterSource = new AlterSourceCommand(EXISTING_STREAM, DataSourceType.KSTREAM.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, alterSource, false);
+
+    // Then:
+    assertThat(result.isSuccess(), is(true));
+    assertThat(metaStore.getSource(EXISTING_STREAM).getSchema().columns().size(), is(9));
+    assertThat(metaStore.getSource(EXISTING_STREAM).getSqlExpression(), is("sqlexpression\nsome ksql"));
+  }
+
+  @Test
+  public void shouldAlterTable() {
+    // Given:
+    alterSource = new AlterSourceCommand(EXISTING_TABLE, DataSourceType.KTABLE.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, alterSource, false);
+
+    // Then:
+    assertThat(result.isSuccess(), is(true));
+    assertThat(metaStore.getSource(EXISTING_TABLE).getSchema().columns().size(), is(8));
+    assertThat(metaStore.getSource(EXISTING_TABLE).getSqlExpression(), is("sqlexpression\nsome ksql"));
+  }
+
+  @Test
+  public void shouldThrowOnAlterMissingSource() {
+    // Given:
+    alterSource = new AlterSourceCommand(STREAM_NAME, DataSourceType.KSTREAM.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> cmdExec.execute(SQL_TEXT, alterSource, false));
+
+    // Then:
+    assertThat(e.getMessage(), is("Source s1 does not exist."));
+  }
+
+  @Test
+  public void shouldThrowOnMismatchedDatasourceType() {
+    // Given:
+    alterSource = new AlterSourceCommand(EXISTING_STREAM, DataSourceType.KTABLE.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> cmdExec.execute(SQL_TEXT, alterSource, false));
+
+    // Then:
+    assertThat(e.getMessage(), is("Incompatible data source type is STREAM, but statement was ALTER TABLE"));
+  }
+
+  @Test
+  public void shouldThrowOnAlterCAS() {
+    // Given:
+    givenCreateStream();
+    cmdExec.execute(SQL_TEXT, createStream, true);
+    alterSource = new AlterSourceCommand(STREAM_NAME, DataSourceType.KSTREAM.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> cmdExec.execute(SQL_TEXT, alterSource, false));
+
+    // Then:
+    assertThat(e.getMessage(), is("ALTER command is not supported for CREATE ... AS statements."));
+  }
+
+  @Test
+  public void shouldThrowOnAddExistingColumn() {
+    // Given:
+    givenCreateStream();
+    cmdExec.execute(SQL_TEXT, createStream, false);
+    alterSource = new AlterSourceCommand(STREAM_NAME, DataSourceType.KSTREAM.getKsqlType(), SCHEMA2.columns());
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> cmdExec.execute(SQL_TEXT, alterSource, false));
+
+    // Then:
+    assertThat(e.getMessage(), is("Cannot add column `F1` to schema. A column with the same name already exists."));
   }
 
   @Test

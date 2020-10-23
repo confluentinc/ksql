@@ -48,6 +48,7 @@ import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -669,6 +670,26 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatDefineStatement() {
+    final String statementString = "DEFINE _topic='t1';";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("DEFINE _topic='t1'"));
+  }
+
+  @Test
+  public void shouldFormatUndefineStatement() {
+    final String statementString = "UNDEFINE _topic;";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("UNDEFINE _topic"));
+  }
+
+  @Test
   public void shouldFormatExplainQuery() {
     final String statementString = "EXPLAIN foo;";
     final Statement statement = parseSingle(statementString);
@@ -782,6 +803,18 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(formatted, is("SHOW TABLES EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatShowVariables() {
+    // Given:
+    final ListVariables listVariables = new ListVariables(Optional.empty());
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listVariables);
+
+    // Then:
+    assertThat(formatted, is("SHOW VARIABLES"));
   }
 
   @Test
@@ -1049,6 +1082,21 @@ public class SqlFormatterTest {
         + "WINDOW TUMBLING ( SIZE 7 DAYS , GRACE PERIOD 1 DAYS ) \n"
         + "GROUP BY ITEMID\n"
         + "EMIT FINAL"));
+  }
+
+  @Test
+  public void shouldFormatAlterStatement() {
+    // Given:
+    final String statementString = "ALTER STREAM FOO ADD COLUMN A STRING, ADD COLUMN B INT;";
+    final Statement statement = parseSingle(statementString);
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("ALTER STREAM FOO\n"
+        + "ADD COLUMN A STRING,\n"
+        + "ADD COLUMN B INTEGER;"));
   }
 
   private Statement parseSingle(final String statementString) {

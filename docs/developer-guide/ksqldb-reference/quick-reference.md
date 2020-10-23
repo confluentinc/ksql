@@ -21,6 +21,27 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
+## ALTER STREAM
+Add new columns to a stream. This is not supported for streams defined using queries
+(`CREATE STREAM ... AS`).
+
+```sql
+ALTER STREAM stream_name
+  ADD [COLUMN] column_name data_type
+  ADD [COLUMN] ... ...
+  ...
+```
+
+## ALTER TABLE
+Add new columns to a table. This is not supported for table defined using queries
+(`CREATE TABLE ... AS`)
+```sql
+ALTER TABLE stream_name
+  ADD [COLUMN] column_name data_type
+  ADD [COLUMN] ... ...
+  ...
+```
+
 ## AND / OR
 Logical AND/OR operators in a WHERE clause. For more information, see
 [SELECT](../../ksqldb-reference/select-push-query/#example).
@@ -332,16 +353,6 @@ Test whether a stream or table is present in ksqlDB.
 ```sql
 DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 DROP TABLE  [IF EXISTS] table_name  [DELETE TOPIC];
-```
-
-## IN
-Specify multiple values in a WHERE clause.
-
-```sql hl_lines="4"
-SELECT column_name(s)
-  FROM stream_name | table_name
-  WHERE column_name
-  IN (value1,value2,..)
 ```
 
 ## INNER JOIN

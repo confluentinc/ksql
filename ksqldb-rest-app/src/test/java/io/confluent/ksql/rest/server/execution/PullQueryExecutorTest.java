@@ -21,7 +21,6 @@ import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -39,8 +38,8 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -62,10 +61,13 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Time;
 import org.junit.Before;
 import org.junit.Rule;
@@ -86,9 +88,6 @@ public class PullQueryExecutorTest {
     public final TemporaryEngine engine = new TemporaryEngine()
         .withConfigs(ImmutableMap.of(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG, false));
 
-    @Mock
-    private Time time;
-
     @Test
     public void shouldThrowExceptionIfConfigDisabled() {
       // Given:
@@ -98,8 +97,8 @@ public class PullQueryExecutorTest {
           .of(PreparedStatement.of("SELECT * FROM test_table;", theQuery),
               SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of()));
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(),
-          engine.getEngine().getServiceId());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig()
+      );
 
       // When:
       final Exception e = assertThrows(
@@ -161,8 +160,8 @@ public class PullQueryExecutorTest {
     @Test
     public void shouldRateLimit() {
       PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig(),
-          engine.getEngine().getServiceId());
+          engine.getEngine(), ROUTING_FILTER_FACTORY, engine.getKsqlConfig()
+      );
 
       // When:
       pullQueryExecutor.checkRateLimit();
@@ -203,6 +202,10 @@ public class PullQueryExecutorTest {
     private KsqlNode node2;
     @Mock
     private LogicalSchema logicalSchema;
+    @Mock
+    private ExecutorService executorService;
+    @Mock
+    private RoutingFilterFactory routingFilterFactory;
 
     @Before
     public void setUp() {
@@ -273,7 +276,7 @@ public class PullQueryExecutorTest {
     }
 
     @Test
-    public void shouldCallRouteQuery_allFail() throws InterruptedException {
+    public void shouldCallRouteQuery_allFail() {
       when(routeQuery.routeQuery(eq(node1), any(), any(), any(), any()))
           .thenThrow(new RuntimeException("Error!"));
       TableRows rows2 = new TableRows("", queryId, logicalSchema, ImmutableList.of(ROW2));
@@ -306,7 +309,7 @@ public class PullQueryExecutorTest {
     }
 
     @Test
-    public void shouldCallRouteQuery_allFiltered() throws InterruptedException {
+    public void shouldCallRouteQuery_allFiltered() {
       when(location1.getNodes()).thenReturn(ImmutableList.of());
       List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
       List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
@@ -322,6 +325,20 @@ public class PullQueryExecutorTest {
 
       assertThat(e.getMessage(), containsString("Unable to execute pull query foo. "
           + "All nodes are dead or exceed max allowed lag."));
+    }
+
+    @Test
+    public void shouldCloseExecutorOnClose() throws Exception {
+      // Given:
+      final PullQueryExecutor executor =
+          new PullQueryExecutor(executionContext, routingFilterFactory, 10, executorService);
+
+      // When:
+      executor.close(Duration.ofSeconds(30));
+
+      // Then:
+      verify(executorService).shutdown();
+      verify(executorService).awaitTermination(30_000, TimeUnit.MILLISECONDS);
     }
   }
 }

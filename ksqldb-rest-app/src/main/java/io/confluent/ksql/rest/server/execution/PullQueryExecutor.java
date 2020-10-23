@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
@@ -102,6 +104,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -116,6 +119,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -153,16 +157,28 @@ public final class PullQueryExecutor {
   public PullQueryExecutor(
       final KsqlExecutionContext executionContext,
       final RoutingFilterFactory routingFilterFactory,
-      final KsqlConfig ksqlConfig,
-      final String serviceId
+      final KsqlConfig ksqlConfig
   ) {
-    this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
-    this.routingFilterFactory =
-        Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.rateLimiter = RateLimiter.create(ksqlConfig.getInt(
-        KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
-    this.executorService = Executors.newFixedThreadPool(ksqlConfig.getInt(
-        KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG));
+    this(
+        executionContext,
+        routingFilterFactory,
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG),
+        Executors.newFixedThreadPool(
+            ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)
+        )
+    );
+  }
+
+  @VisibleForTesting
+  PullQueryExecutor(
+      final KsqlExecutionContext executionContext,
+      final RoutingFilterFactory routingFilterFactory,
+      final int maxQps, final ExecutorService executorService
+  ) {
+    this.executionContext = requireNonNull(executionContext, "executionContext");
+    this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
+    this.rateLimiter = RateLimiter.create(maxQps);
+    this.executorService = requireNonNull(executorService, "executorService");
   }
 
   @SuppressWarnings("unused") // Needs to match validator API.
@@ -278,7 +294,16 @@ public final class PullQueryExecutor {
     }
   }
 
-  static void validateSchemas(final List<LogicalSchema> schemas) {
+  public void close(final Duration timeout) {
+    try {
+      executorService.shutdown();
+      executorService.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private static void validateSchemas(final List<LogicalSchema> schemas) {
     final LogicalSchema schema = Iterables.getLast(schemas);
     for (LogicalSchema s : schemas) {
       if (!schema.equals(s)) {

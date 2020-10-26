@@ -3,7 +3,7 @@ layout: page
 title: ksqlDB Variable Substitution
 tagline: Use variables in SQL statements
 description: Learn how to use variables in SQL statements
----------------------------------------------------------
+---
 
 Define variables
 ----------------
@@ -17,44 +17,44 @@ Where:
   <value>    is the variable value
 ```
 
-Valid variables names start with a letter or underscore (\_) followed by zero or more alphanumeric characters or underscores (_).
+Valid variable names start with a letter or underscore (\_) followed by zero or more alphanumeric characters or underscores (_).
 
-There are no type definition for values.  All variables values must be wrapped into single-quotes.
+There is no type declaration for a value.  All variable values must be enclosed into single-quotes.
 
-Example:
+The following DEFINE statements show example assignments to variable values.
 ```
 DEFINE replicas = '3';
 DEFINE format = 'JSON';
 DEFINE name = 'Tom Sawyer';
 ```
 
-Single-quotes are removed during variable substitution. If you need to escape single-quotes, then wrap the value with triple-quotes.
+Single-quotes are removed during variable substitution. To escape single-quotes, enclose the value with triple-quotes.
 
-Example:
+The following DEFINE statement shows an example variable assignment that embeds single quotes in the value.
 ```
 # becomes 'my_topic'
 DEFINE topicName = '''my_topic''';      
 ```
 
-Deleting variables
-------------------
+Delete variables
+----------------
 
 Syntax:
 ```
 UNDEFINE name;
 ```
 
-You can delete defined variables with the `UNDEFINE` syntax.
+Delete defined variables by using the `UNDEFINE` statement.
 
-Printing variables
-------------------
+Print variables
+---------------
 
 Syntax:
 ```
 SHOW VARIABLES;
 ```
 
-Example:
+The following example shows how to assign and print variable values.
 ```
 ksql> DEFINE replicas = '3';
 ksql> DEFINE format = 'AVRO';
@@ -69,21 +69,22 @@ ksql> SHOW VARIABLES;
 ----------------------------
 ```
 
-Referencing substitution variables
-----------------------------------
+Reference substitution variables
+--------------------------------
 
-Variables are referenced by wrapping the variable name between `${}` characters (i.e. `${replicas}`).
+Reference a variable by enclosing the variable name between `${}` characters, for example, `${replicas}`.
 
-Example:
+The following example shows how to assign and reference variable values.
 ```
 ksql> DEFINE format = 'AVRO';
 ksql> DEFINE replicas = '3';
 ksql> CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1', value_format='${format}', replicas=${replicas});
 ```
 
-Substitution will not attempt to add single-quotes to the values. You need to know the data type to use when using a variable.
+ksqlDB doesn't add single-quotes to values during variable substitution. Also, you must know the data type of a variable to use it.
 
-Note: Variables are case-insensitive. A reference to `${replicas}` is the same as `${REPLICAS}`.
+!!! note
+    Variables are case-insensitive. A reference to `${replicas}` is the same as `${REPLICAS}`.
 
 Context for substitution variables
 ----------------------------------

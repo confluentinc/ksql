@@ -60,7 +60,7 @@ public class Http2OnlyStreamTest extends BaseApiTest {
   private void shouldRejectRequestUsingHttp11(final String uri, final JsonObject request)
       throws Exception {
     // When
-    HttpResponse<Buffer> response = sendRequest(uri, request.toBuffer());
+    HttpResponse<Buffer> response = sendPostRequest(uri, request.toBuffer());
 
     // Then
     assertThat(response.statusCode(), is(400));

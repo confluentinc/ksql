@@ -28,6 +28,15 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+<<<<<<< HEAD
+=======
+import io.confluent.ksql.rest.entity.ServerClusterId;
+import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerMetadata;
+import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.util.AppInfo;
+import io.confluent.ksql.util.KsqlConfig;
+>>>>>>> 6.0.x
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -143,8 +152,11 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
-    return null;
+  public synchronized CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
+    this.lastApiSecurityContext = apiSecurityContext;
+    final ServerInfo entity = new ServerInfo(
+        AppInfo.getVersion(), "kafka-cluster-id", "ksql-service-id", "server-status");
+    return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
   }
 
   @Override
@@ -190,9 +202,11 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
+  public synchronized CompletableFuture<EndpointResponse> executeServerMetadataClusterId(
       ApiSecurityContext apiSecurityContext) {
-    return null;
+    this.lastApiSecurityContext = apiSecurityContext;
+    final ServerClusterId entity = ServerClusterId.of("kafka-cluster-id", "ksql-service-id");
+    return CompletableFuture.completedFuture(EndpointResponse.ok(entity));
   }
 
   @Override

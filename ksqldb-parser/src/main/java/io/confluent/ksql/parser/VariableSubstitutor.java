@@ -150,8 +150,8 @@ public final class VariableSubstitutor {
       if (!VALID_IDENTIFIER_NAMES.matcher(identifierText).matches()) {
         throw new ParseFailedException(
             "Illegal argument at " + location.map(NodeLocation::toString).orElse("?")
-                + ". Identifier names may only contain alphanumeric values, '_' "
-                + "or not starting with '@'. Got: '" + value + "'",
+                + ". Identifier names cannot start with '@' and may only contain alphanumeric "
+                + "values and '_'. Got: '" + value + "'",
             statementText);
       }
     }

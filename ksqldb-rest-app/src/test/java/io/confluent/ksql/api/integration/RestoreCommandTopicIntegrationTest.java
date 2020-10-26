@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.integration;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,16 +24,36 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.DefaultErrorMessages;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.streams.StreamsConfig;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
+
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -41,17 +62,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.streams.StreamsConfig;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
 
 
 /**
@@ -60,6 +73,7 @@ import org.junit.rules.TemporaryFolder;
 @Category({IntegrationTest.class})
 public class RestoreCommandTopicIntegrationTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final Serializer<byte[]> BYTES_SERIALIZER = new ByteArraySerializer();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -77,7 +91,7 @@ public class RestoreCommandTopicIntegrationTest {
   private static Path PROPERTIES_FILE;
 
   @BeforeClass
-  public static void setup() throws IOException {
+  public static void classSetUp() throws IOException {
     BACKUP_LOCATION = TMP_FOLDER.newFolder();
 
     REST_APP = TestKsqlRestApp
@@ -85,20 +99,27 @@ public class RestoreCommandTopicIntegrationTest {
         .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
         .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
         .build();
+  }
 
+  @Before
+  public void setup() throws IOException {
     REST_APP.start();
-
     KSQL_CONFIG = new KsqlConfig(REST_APP.getKsqlRestConfig().getKsqlConfigProperties());
     COMMAND_TOPIC = ReservedInternalTopics.commandTopic(KSQL_CONFIG);
     BACKUP_FILE = Files.list(BACKUP_LOCATION.toPath()).findFirst().get();
     PROPERTIES_FILE = TMP_FOLDER.newFile().toPath();
-
     writeServerProperties();
   }
 
-  @AfterClass
-  public static void teardown() {
+  @After
+  public void teardown() throws IOException {
     REST_APP.stop();
+    TEST_HARNESS.deleteTopics(Collections.singletonList(COMMAND_TOPIC));
+    new File(String.valueOf(BACKUP_FILE)).delete();
+  }
+
+  @After
+  public void teardownClass() {
     TMP_FOLDER.delete();
   }
 
@@ -131,7 +152,7 @@ public class RestoreCommandTopicIntegrationTest {
 
     // Delete the command topic and check the server is in degraded state
     TEST_HARNESS.deleteTopics(Collections.singletonList(COMMAND_TOPIC));
-    assertThat("Server should be in degraded state", isDegradedState(), is(true));
+    assertThatEventually("Degraded State", this::isDegradedState, is(true));
 
     // Restore the command topic
     KsqlRestoreCommandTopic.main(
@@ -150,18 +171,81 @@ public class RestoreCommandTopicIntegrationTest {
     assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
     assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
     assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
-    assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
+    assertThat("Should have STREAM2", streamsNames.contains("STREAM2"), is(true));
     assertThat("Server should NOT be in degraded state", isDegradedState(), is(false));
+  }
+
+  @Test
+  public void shouldSkipIncompatibleCommands() throws Exception {
+    // Given
+    TEST_HARNESS.ensureTopics("topic3", "topic4");
+
+    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic3', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM TOPIC4 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic4', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM stream3 AS SELECT * FROM topic3;");
+
+    final CommandId commandId = new CommandId("TOPIC", "entity", "CREATE");
+    final Command command = new Command(
+        "statement",
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        Optional.empty(),
+        Optional.of(Command.VERSION + 1),
+        Command.VERSION + 1);
+
+    writeToBackupFile(commandId, command, BACKUP_FILE);
+    
+    // Delete the command topic
+    TEST_HARNESS.deleteTopics(Collections.singletonList(COMMAND_TOPIC));
+    REST_APP.stop();
+
+    // Restore the command topic
+    KsqlRestoreCommandTopic.main(
+        new String[]{
+            "--yes",
+            "--config-file", PROPERTIES_FILE.toString(),
+            BACKUP_FILE.toString()
+        });
+
+    // Re-load the command topic
+    REST_APP.start();
+
+    // Server should be in degraded state since the backup file had incompatible command
+    assertThat("Server should be in degraded state", isDegradedState(), is(true));
+
+    // Delete the command topic again and restore with skip flag
+    TEST_HARNESS.deleteTopics(Collections.singletonList(COMMAND_TOPIC));
+    REST_APP.stop();
+    KsqlRestoreCommandTopic.main(
+        new String[]{
+            "--yes",
+            "-s",
+            "--config-file", PROPERTIES_FILE.toString(),
+            BACKUP_FILE.toString()
+        });
+
+    // Re-load the command topic
+    REST_APP.start();
+    final List<String> streamsNames = showStreams();
+    assertThat("Should have TOPIC3", streamsNames.contains("TOPIC3"), is(true));
+    assertThat("Should have TOPIC4", streamsNames.contains("TOPIC4"), is(true));
+    assertThat("Should have STREAM3", streamsNames.contains("STREAM3"), is(true));
+    assertThat("Server should not be in degraded state", isDegradedState(), is(false));
   }
 
   private boolean isDegradedState() {
     // If in degraded state, then the following command will return a warning
     final List<KsqlEntity> response = makeKsqlRequest(
-        "CREATE STREAM ANY (id INT) WITH (KAFKA_TOPIC='topic1', VALUE_FORMAT='JSON');");
+        "Show Streams;");
 
     final List<KsqlWarning> warnings = response.get(0).getWarnings();
-    return warnings.size() > 0 && warnings.get(0).getMessage()
-        .contains("The server has detected corruption in the command topic");
+    return warnings.size() > 0 &&
+        (warnings.get(0).getMessage().contains(
+            DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_CORRUPTED_ERROR_MESSAGE) ||
+            warnings.get(0).getMessage().contains(
+                DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE));
   }
 
   private List<String> showStreams() {
@@ -171,5 +255,28 @@ public class RestoreCommandTopicIntegrationTest {
 
   private List<KsqlEntity> makeKsqlRequest(final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  }
+
+  public static void writeToBackupFile(
+      final CommandId commandId,
+      final Command command,
+      final Path backUpFileLocation
+  ) throws IOException {
+    FileOutputStream writer;
+    try {
+      writer = new FileOutputStream(new File(String.valueOf(backUpFileLocation)), true);
+    } catch (final FileNotFoundException e) {
+      throw new KsqlException(
+          String.format("Failed to open backup file: %s", backUpFileLocation), e);
+    }
+
+    final byte[] keyValueSeparator = ":".getBytes(StandardCharsets.UTF_8);
+    final byte[] newLine = "/n".getBytes(StandardCharsets.UTF_8);
+
+    writer.write(InternalTopicSerdes.serializer().serialize("", commandId));
+    writer.write(keyValueSeparator);
+    writer.write(InternalTopicSerdes.serializer().serialize("", command));
+    writer.write(newLine);
+    writer.flush();
   }
 }

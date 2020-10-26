@@ -90,7 +90,6 @@ public class CommandTopic {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
               + "restored or all backup files are deleted.", e);
-          return records;
         }
         records.add(record);
       }
@@ -117,7 +116,6 @@ public class CommandTopic {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
               + "restored or all backup files are deleted.", e);
-          return restoreCommands;
         }
 
         if (record.value() == null) {

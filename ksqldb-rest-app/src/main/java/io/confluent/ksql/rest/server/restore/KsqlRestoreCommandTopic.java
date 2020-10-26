@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.BackupReplayFile;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
+import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContextFactory;
@@ -36,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +51,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -65,17 +68,26 @@ public class KsqlRestoreCommandTopic {
     return new KsqlConfig(serverProps);
   }
 
-  public static List<Pair<byte[], byte[]>> loadBackup(final File file) throws IOException {
+  public static List<Pair<byte[], byte[]>> loadBackup(
+      final File file,
+      final RestoreOptions options
+  ) throws IOException {
     final BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file);
+    List<Pair<byte[], byte[]>> records = commandTopicBackupFile.readRecords();
 
-    final List<Pair<byte[], byte[]>> records = commandTopicBackupFile.readRecords();
-    throwOnInvalidRecords(records);
+    if (options.isSkipIncompatibleCommands()) {
+      records = removeIncompatibleCommands(records);
+    }
 
     return records;
   }
 
-  private static void throwOnInvalidRecords(final List<Pair<byte[], byte[]>> records) {
+  private static List<Pair<byte[], byte[]>> removeIncompatibleCommands(
+      final List<Pair<byte[], byte[]>> records
+  ) {
     int n = 0;
+    int numFilteredCommands = 0;
+    final List<Pair<byte[], byte[]>> filteredRecords = new ArrayList<>();
 
     for (final Pair<byte[], byte[]> record : records) {
       n++;
@@ -85,23 +97,28 @@ public class KsqlRestoreCommandTopic {
             .deserialize(null, record.getLeft());
       } catch (final Exception e) {
         throw new KsqlException(String.format(
-            "Invalid CommandId string (line %d): %s",
-            n, new String(record.getLeft(), StandardCharsets.UTF_8)),
-            e
-        );
+            "Invalid CommandId string (line %d): %s (%s)",
+            n, new String(record.getLeft(), StandardCharsets.UTF_8), e.getMessage()
+        ));
       }
 
       try {
         InternalTopicSerdes.deserializer(Command.class)
             .deserialize(null, record.getRight());
+      } catch (final SerializationException | IncomaptibleKsqlCommandVersionException e) {
+        numFilteredCommands++;
+        continue;
       } catch (final Exception e) {
         throw new KsqlException(String.format(
-            "Invalid Command string (line %d): %s",
-            n, new String(record.getRight(), StandardCharsets.UTF_8)),
-            e
-        );
+            "Invalid Command string (line %d): %s (%s)",
+            n, new String(record.getRight(), StandardCharsets.UTF_8), e.getMessage()
+        ));
       }
+      filteredRecords.add(record);
     }
+    System.out.println(
+        String.format("%s incompatible command(s) skipped from backup file.", numFilteredCommands));
+    return filteredRecords;
   }
 
   private static void checkFileExists(final File file) throws Exception {
@@ -171,7 +188,7 @@ public class KsqlRestoreCommandTopic {
 
     List<Pair<byte[], byte[]>> backupCommands = null;
     try {
-      backupCommands = loadBackup(backupFile);
+      backupCommands = loadBackup(backupFile, restoreOptions);
     } catch (final Exception e) {
       System.err.println(String.format(
           "Failed loading backup file.%nError = %s", e.getMessage()));

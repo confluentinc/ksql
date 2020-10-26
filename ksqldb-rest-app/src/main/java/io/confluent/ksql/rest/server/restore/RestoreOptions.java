@@ -42,8 +42,16 @@ public class RestoreOptions {
 
   @SuppressWarnings("unused") // Accessed via reflection
   @Option(
-      name = {"--yes", "-y"},
-      description = "Automatic \"yes\" as answer to prompt and run non-interactively.")
+      name = {"--skip-incompatible-commands", "-s"},
+      description = "This restore command can restore command topic commands that "
+          + "are of version (" + io.confluent.ksql.rest.server.computation.Command.VERSION + ") "
+          + "or lower. If true, the restore command will skip all incompatible commands."
+          + "If false, the restore command will restore the backup file as is.")
+  private boolean skipIncompatibleCommands = false;
+
+  @Option(
+          name = {"--yes", "-y"},
+          description = "Automatic \"yes\" as answer to prompt and run non-interactively.")
   private boolean automaticYes = false;
 
   @SuppressWarnings("unused") // Accessed via reflection
@@ -64,6 +72,10 @@ public class RestoreOptions {
 
   public boolean isAutomaticYes() {
     return automaticYes;
+  }
+
+  public boolean isSkipIncompatibleCommands() {
+    return skipIncompatibleCommands;
   }
 
   public static RestoreOptions parse(final String...args) throws IOException {

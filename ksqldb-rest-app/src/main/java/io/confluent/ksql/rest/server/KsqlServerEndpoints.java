@@ -290,7 +290,6 @@ public class KsqlServerEndpoints implements Endpoints {
   private CompletableFuture<EndpointResponse> executeOldApiEndpoint(
       final ApiSecurityContext apiSecurityContext,
       final Function<KsqlSecurityContext, EndpointResponse> functionCall) {
-
     final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
         .provide(apiSecurityContext);
 

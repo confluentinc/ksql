@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilc
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -40,6 +41,8 @@ import java.util.regex.Pattern;
  * Handler that calls any authentication plugin
  */
 public class AuthenticationPluginHandler implements Handler<RoutingContext> {
+  public static final Set<String> KSQL_AUTHENTICATION_SKIP_PATHS = ImmutableSet
+      .of("/v1/metadata", "/v1/metadata/id", "/healthcheck");
 
   private final Server server;
   private final AuthenticationPlugin securityHandlerPlugin;
@@ -50,10 +53,9 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
       final AuthenticationPlugin securityHandlerPlugin) {
     this.server = Objects.requireNonNull(server);
     this.securityHandlerPlugin = Objects.requireNonNull(securityHandlerPlugin);
-    // We add in all the paths that don't require authorization from
+    // We add in all the paths that don't require authentication/authorization from
     // KsqlAuthorizationProviderHandler
-    final Set<String> unauthenticatedPaths = new HashSet<>(
-        KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
+    final Set<String> unauthenticatedPaths = new HashSet<>(KSQL_AUTHENTICATION_SKIP_PATHS);
     // And then we add anything from the property authentication.skip.paths
     // This preserves the behaviour from the previous Jetty based implementation
     final List<String> unauthed = server.getConfig()

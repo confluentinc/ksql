@@ -48,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,6 +78,7 @@ public class AuthTest extends ApiTest {
       .build();
 
   private volatile KsqlAuthorizationProvider authorizationProvider;
+  private volatile KsqlUserContextProvider userContextProvider;
   private volatile AuthenticationPlugin securityHandlerPlugin;
   private String unauthedPaths;
 
@@ -125,7 +127,7 @@ public class AuthTest extends ApiTest {
 
           @Override
           public Optional<KsqlUserContextProvider> getUserContextProvider() {
-            return Optional.empty();
+            return Optional.ofNullable(userContextProvider);
           }
 
           @Override
@@ -138,14 +140,19 @@ public class AuthTest extends ApiTest {
   }
 
   @Override
-  protected HttpResponse<Buffer> sendRequest(final WebClient client, final String uri,
-      final Buffer requestBody)
-      throws Exception {
-    return sendRequestWithCreds(client, uri, requestBody, USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+  protected HttpResponse<Buffer> sendGetRequest(final String uri) throws Exception {
+    return sendGetRequestWithCreds(client, uri, USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
   }
 
   @Override
-  protected void sendRequest(
+  protected HttpResponse<Buffer> sendPostRequest(final WebClient client, final String uri,
+      final Buffer requestBody)
+      throws Exception {
+    return sendPostRequestWithCreds(client, uri, requestBody, USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+  }
+
+  @Override
+  protected void sendPostRequest(
       final WebClient client,
       final String uri,
       final Consumer<HttpRequest<Buffer>> requestSender) {
@@ -225,6 +232,17 @@ public class AuthTest extends ApiTest {
   public void shouldCloseQueryWithApiSecurityContext() throws Exception {
     super.shouldCloseQuery();
     assertAuthorisedSecurityContext(USER_WITH_ACCESS);
+  }
+
+  @Test
+  public void shouldAllowInfoWithPermissionCheck() throws Exception {
+    shouldAllowAccessWithPermissionCheck(USER_WITH_ACCESS, "GET",
+        "/info", super::shouldExecuteInfoRquest);
+  }
+
+  @Test
+  public void shouldAllowServiceMetadataIdWithoutAuthentication() throws Exception {
+    shouldAllowAccessWithoutAuthentication(super::shouldExecuteServerMetadataIdRequest);
   }
 
   @Test
@@ -332,7 +350,7 @@ public class AuthTest extends ApiTest {
       throws Exception {
     setupSecurityPlugin(USER_WITHOUT_ACCESS,
         () -> {
-          HttpResponse<Buffer> response = sendRequestWithNonBasicCredentials(client,
+          HttpResponse<Buffer> response = sendPostRequestWithNonBasicCredentials(client,
               "/query-stream", new JsonObject().put("sql", DEFAULT_PULL_QUERY).toBuffer(),
               "BEARER quydwquywdg");
           assertThat(response.statusCode(), is(200));
@@ -343,7 +361,7 @@ public class AuthTest extends ApiTest {
   public void shouldRejectRequestIfJaasConfiguredWIthNoSecurityPluginAndNotBasicAuth()
       throws Exception {
 
-    HttpResponse<Buffer> response = sendRequestWithNonBasicCredentials(client,
+    HttpResponse<Buffer> response = sendPostRequestWithNonBasicCredentials(client,
         "/query-stream", new JsonObject().put("sql", DEFAULT_PULL_QUERY).toBuffer(),
         "BEARER quydwquywdg");
     assertThat(response.statusCode(), is(401));
@@ -354,7 +372,7 @@ public class AuthTest extends ApiTest {
       final int expectedStatus, final String expectedMessage, final int expectedErrorCode)
       throws Exception {
     // When
-    HttpResponse<Buffer> response = sendRequestWithCreds(
+    HttpResponse<Buffer> response = sendPostRequestWithCreds(
         "/query-stream",
         DEFAULT_PUSH_QUERY_REQUEST_BODY.toBuffer(),
         username,
@@ -375,7 +393,7 @@ public class AuthTest extends ApiTest {
     JsonObject requestBody = new JsonObject().put("queryId", "foo");
 
     // When
-    HttpResponse<Buffer> response = sendRequestWithCreds(
+    HttpResponse<Buffer> response = sendPostRequestWithCreds(
         "/close-query",
         requestBody.toBuffer(),
         username,
@@ -401,7 +419,7 @@ public class AuthTest extends ApiTest {
     }
 
     // When
-    HttpResponse<Buffer> response = sendRequestWithCreds(
+    HttpResponse<Buffer> response = sendPostRequestWithCreds(
         "/inserts-stream",
         requestBody,
         username,
@@ -415,17 +433,33 @@ public class AuthTest extends ApiTest {
     validateError(expectedErrorCode, expectedMessage, insertsResponse.error);
   }
 
-  private HttpResponse<Buffer> sendRequestWithCreds(
+  // auth header is omitted if username and password are null
+  private static HttpResponse<Buffer> sendGetRequestWithCreds(
+      final WebClient client,
+      final String uri,
+      final String username,
+      final String password
+  ) throws Exception {
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    HttpRequest<Buffer> request = client.get(uri);
+    if (username != null || password != null) {
+      request = request.basicAuthentication(username, password);
+    }
+    request.send(requestFuture);
+    return requestFuture.get();
+  }
+
+  private HttpResponse<Buffer> sendPostRequestWithCreds(
       final String uri,
       final Buffer requestBody,
       final String username,
       final String password
   ) throws Exception {
-    return sendRequestWithCreds(client, uri, requestBody, username, password);
+    return sendPostRequestWithCreds(client, uri, requestBody, username, password);
   }
 
   // auth header is omitted if username and password are null
-  private static HttpResponse<Buffer> sendRequestWithCreds(
+  private static HttpResponse<Buffer> sendPostRequestWithCreds(
       final WebClient client,
       final String uri,
       final Buffer requestBody,
@@ -441,7 +475,7 @@ public class AuthTest extends ApiTest {
     return requestFuture.get();
   }
 
-  private static HttpResponse<Buffer> sendRequestWithNonBasicCredentials(
+  private static HttpResponse<Buffer> sendPostRequestWithNonBasicCredentials(
       final WebClient client,
       final String uri,
       final Buffer requestBody,
@@ -501,6 +535,26 @@ public class AuthTest extends ApiTest {
     assertThat(handlerCalled.get(), is(shouldCallHandler));
   }
 
+  private void throwIfNullPrincipal(final Principal user) {
+    if (user == null) {
+      throw new KsqlException("Got NULL principal");
+    }
+  }
+
+  private void shouldAllowAccessWithoutAuthentication(
+      final ExceptionThrowingRunnable action) throws Exception {
+    stopServer();
+    stopClient();
+    AtomicReference<Boolean> authorizationCallReference = new AtomicReference<>(false);
+    this.authorizationProvider = (user, method, path) -> {
+      authorizationCallReference.set(true);
+    };
+    createServer(createServerConfig());
+    client = createClient();
+    action.run();
+    assertThat("Should not call authorization", authorizationCallReference.get(), is(false));
+  }
+
   private void shouldAllowAccessWithPermissionCheck(final String expectedUser,
       final String expectedMethod, final String expectedPath,
       final ExceptionThrowingRunnable action) throws Exception {
@@ -510,6 +564,7 @@ public class AuthTest extends ApiTest {
     AtomicReference<String> methodAtomicReference = new AtomicReference<>();
     AtomicReference<String> pathAtomicReference = new AtomicReference<>();
     this.authorizationProvider = (user, method, path) -> {
+      throwIfNullPrincipal(user);
       principalAtomicReference.set(user);
       methodAtomicReference.set(method);
       pathAtomicReference.set(path);

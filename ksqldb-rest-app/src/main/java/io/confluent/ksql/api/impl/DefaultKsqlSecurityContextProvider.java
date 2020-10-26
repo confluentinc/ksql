@@ -57,11 +57,12 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
     final Optional<Principal> principal = apiSecurityContext.getPrincipal();
     final Optional<String> authHeader = apiSecurityContext.getAuthToken();
 
-    // A user context is not necessary if a user context provider is not present or
-    // the user principal is missing. The missing principal was already validated by the
-    // Authentication and Authorization plugins before calling this method, which means the
-    // missing principal is a valid connection. For those cases, we create a default service
-    // context that the missing user can use.
+    // A user context is not necessary if a user context provider is not present or the user
+    // principal is missing. If a failed authentication attempt results in a missing principle,
+    // then the authentication plugin will have already failed the connection before calling
+    // this method. Therefore, if we've reached this method with a missing principle, then this
+    // must be a valid connection that does not require authentication.
+    // For these cases, we create a default service context that the missing user can use.
     final boolean requiresUserContext =
         securityExtension != null
             && securityExtension.getUserContextProvider().isPresent()

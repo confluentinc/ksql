@@ -28,15 +28,9 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
-<<<<<<< HEAD
-=======
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.entity.ServerMetadata;
-import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.util.AppInfo;
-import io.confluent.ksql.util.KsqlConfig;
->>>>>>> 6.0.x
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;

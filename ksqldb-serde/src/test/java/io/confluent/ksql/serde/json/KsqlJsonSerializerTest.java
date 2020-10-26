@@ -236,7 +236,7 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
-  public void shouldSerializeBoolean() throws IOException, RestClientException {
+  public void shouldSerializeBoolean() throws Exception {
     // Given:
     final Serializer<Boolean> serializer =
         givenSerializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);

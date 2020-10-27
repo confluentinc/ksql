@@ -215,6 +215,10 @@ public final class KsqlRestClient implements Closeable {
     return localProperties.unset(property);
   }
 
+  public Object getProperty(final String property) {
+    return localProperties.get(property);
+  }
+
   private KsqlTarget target() {
     return client.target(getServerAddress());
   }

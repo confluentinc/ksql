@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
@@ -158,9 +159,19 @@ final class EngineContext {
     return ImmutableList.copyOf(allLiveQueries);
   }
 
-  PreparedStatement<?> prepare(final ParsedStatement stmt) {
+  private ParsedStatement substituteVariables(
+      final ParsedStatement stmt,
+      final Map<String, String> variablesMap
+  ) {
+    return (!variablesMap.isEmpty())
+        ? parse(VariableSubstitutor.substitute(stmt, variablesMap)).get(0)
+        : stmt ;
+  }
+
+  PreparedStatement<?> prepare(final ParsedStatement stmt, final Map<String, String> variablesMap) {
     try {
-      final PreparedStatement<?> preparedStatement = parser.prepare(stmt, metaStore);
+      final PreparedStatement<?> preparedStatement =
+          parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
       return PreparedStatement.of(
           preparedStatement.getStatementText(),
           AstSanitizer.sanitize(preparedStatement.getStatement(), metaStore)

@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.UndefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -52,6 +53,7 @@ import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
@@ -341,8 +343,30 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
+  private boolean isVariableSubstitutionEnabled() {
+    final Object substitutionEnabled
+        = restClient.getProperty(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+
+    if (substitutionEnabled != null && substitutionEnabled instanceof Boolean) {
+      return (boolean) substitutionEnabled;
+    }
+
+    return KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT;
+  }
+
+  private List<ParsedStatement> substituteVariables(final List<ParsedStatement> statements) {
+    if (isVariableSubstitutionEnabled()) {
+      return statements.stream()
+          .map(stmt -> VariableSubstitutor.substitute(stmt, sessionVariables))
+          .flatMap(replacedSql -> KSQL_PARSER.parse(replacedSql).stream())
+          .collect(Collectors.toList());
+    } else {
+      return statements;
+    }
+  }
+
   private void handleStatements(final String line) {
-    final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
+    final List<ParsedStatement> statements = substituteVariables(KSQL_PARSER.parse(line));
 
     final StringBuilder consecutiveStatements = new StringBuilder();
     for (final ParsedStatement parsed : statements) {

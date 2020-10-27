@@ -58,6 +58,7 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
     try {
       final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedWindowStore(), partition);
+      WindowStoreCacheRemover.remove(store);
 
       final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
 

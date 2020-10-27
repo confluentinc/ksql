@@ -202,3 +202,4 @@ ksqlDB supports the following output refinement types.
 
 This is the standard output refinement for push queries, for when we would like to see all changes 
 happening.
+

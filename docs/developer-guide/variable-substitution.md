@@ -76,9 +76,9 @@ Reference a variable by enclosing the variable name between `${}` characters, fo
 
 The following example shows how to assign and reference variable values.
 ```
-ksql> DEFINE format = 'AVRO';
-ksql> DEFINE replicas = '3';
-ksql> CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1', value_format='${format}', replicas=${replicas});
+DEFINE format = 'AVRO';
+DEFINE replicas = '3';
+CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1', value_format='${format}', replicas=${replicas});
 ```
 
 ksqlDB doesn't add single-quotes to values during variable substitution. Also, you must know the data type of a variable to use it.
@@ -89,29 +89,29 @@ ksqlDB doesn't add single-quotes to values during variable substitution. Also, y
 Context for substitution variables
 ----------------------------------
 
-Variable substitution are allowed in specific SQL statements. They can be used to replace text and non-text literals, and identifiers such as
-column names and stream/table names. Variables cannot be used as reserved keywords.
+Variable substitution is allowed in specific SQL statements. You can replace text and non-text literals, and identifiers like
+column names and stream/table names. You can't use variables as reserved keywords.
 
-For instance:
+The following statements show examples of using variables for stream and column names, and in other places.  
 
 ```
-ksql> CREATE STREAM ${streamName} (${colName1} INT, ${colName2} STRING) \
-      WITH (kafka_topic='${topicName}', format='${format}', replicas=${replicas}, ...);
+CREATE STREAM ${streamName} (${colName1} INT, ${colName2} STRING) \
+WITH (kafka_topic='${topicName}', format='${format}', replicas=${replicas}, ...);
       
-ksql> INSERT INTO ${streamName} (${colName1}, ${colName2}) \
-      VALUES (${val1}, '${val2}');
+INSERT INTO ${streamName} (${colName1}, ${colName2}) \
+VALUES (${val1}, '${val2}');
 
-ksql> SELECT * FROM ${streamName} \
-      WHERE ${colName1} == ${val1} and ${colName2} == '${val2}' EMIT CHANGES; 
+SELECT * FROM ${streamName} \
+WHERE ${colName1} == ${val1} and ${colName2} == '${val2}' EMIT CHANGES; 
 ```
 
-Any attempt of using variables on non-permitted places will fail with the current SQL parsing error found when parsing the variable string.
+Using a variable in a statement that doesn't support variables causes a SQL parsing error.
 
-Enable/disable substitution variables
--------------------------------------
+Enable or disable substitution variables
+----------------------------------------
 
-The `ksql.variable.substitution.enable` config will be used to enable/disable this feature. The config can be enabled from
-the server-side configuration (ksql-server.properties), or it can be overriden by the users in the CLI or HTTP requests.
+Enable or disable variable substitution by setting the `ksql.variable.substitution.enable` config. You can set this config in
+the server-side configuration file (`ksql-server.properties`), or you can set it in CLI and HTTP requests.
 
 ```
 ksql> set 'ksql.variable.substitution.enable' = 'false';

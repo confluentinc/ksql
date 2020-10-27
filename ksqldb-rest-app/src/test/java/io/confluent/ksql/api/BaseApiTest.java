@@ -175,7 +175,7 @@ public class BaseApiTest {
 
     ReceiveStream writeStream = new ReceiveStream(vertx);
 
-    sendRequest(client, "/query-stream",
+    sendPostRequest(client, "/query-stream",
         (request) -> request
             .as(BodyCodec.pipe(writeStream))
             .sendJsonObject(requestBody, ar -> {
@@ -198,13 +198,24 @@ public class BaseApiTest {
     return new QueryResponse(writeStream.getBody().toString());
   }
 
-  protected HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody)
-      throws Exception {
-    return sendRequest(client, uri, requestBody);
+  protected HttpResponse<Buffer> sendGetRequest(final String uri) throws Exception {
+    return sendGetRequest(client, uri);
   }
 
-  protected HttpResponse<Buffer> sendRequest(final WebClient client, final String uri,
-      final Buffer requestBody)
+  protected HttpResponse<Buffer> sendGetRequest(final WebClient client, final String uri)
+      throws Exception {
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client.get(uri).send(requestFuture);
+    return requestFuture.get();
+  }
+
+  protected HttpResponse<Buffer> sendPostRequest(final String uri, final Buffer requestBody)
+      throws Exception {
+    return sendPostRequest(client, uri, requestBody);
+  }
+
+  protected HttpResponse<Buffer> sendPostRequest(final WebClient client, final String uri,
+                                                 final Buffer requestBody)
       throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
@@ -213,11 +224,11 @@ public class BaseApiTest {
     return requestFuture.get();
   }
 
-  protected void sendRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {
-    sendRequest(client, uri, requestSender);
+  protected void sendPostRequest(final String uri, final Consumer<HttpRequest<Buffer>> requestSender) {
+    sendPostRequest(client, uri, requestSender);
   }
 
-  protected void sendRequest(
+  protected void sendPostRequest(
       final WebClient client,
       final String uri,
       final Consumer<HttpRequest<Buffer>> requestSender) {

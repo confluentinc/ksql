@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.api.auth;
 
+import static io.confluent.ksql.api.auth.AuthenticationPluginHandler.KSQL_AUTHENTICATION_SKIP_PATHS;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -25,15 +25,11 @@ import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Set;
 
 /**
  * Handler that calls a KsqlAuthorizationProvider plugin that can be used for custom authorization
  */
 public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext> {
-
-  public static final Set<String> PATHS_WITHOUT_AUTHORIZATION = ImmutableSet
-      .of("/v1/metadata", "/v1/metadata/id", "/healthcheck");
 
   private final WorkerExecutor workerExecutor;
   private final KsqlAuthorizationProvider ksqlAuthorizationProvider;
@@ -49,7 +45,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
 
     final String path = routingContext.normalisedPath();
 
-    if (PATHS_WITHOUT_AUTHORIZATION.contains(path)) {
+    if (KSQL_AUTHENTICATION_SKIP_PATHS.contains(path)) {
       routingContext.next();
       return;
     }

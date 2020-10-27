@@ -54,7 +54,7 @@ public class ServerStateTest extends BaseApiTest {
       final String expectedMessage
   ) throws Exception {
     // When:
-    HttpResponse<Buffer> response = sendRequest(
+    HttpResponse<Buffer> response = sendPostRequest(
         "/query-stream",
         DEFAULT_PUSH_QUERY_REQUEST_BODY.toBuffer()
     );

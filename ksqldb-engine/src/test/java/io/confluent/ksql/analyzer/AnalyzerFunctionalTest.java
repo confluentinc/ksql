@@ -239,6 +239,29 @@ public class AnalyzerFunctionalTest {
   }
 
   @Test
+  public void shouldThrowOnNwayJoinWithDuplicateSource() {
+    // Given:
+    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
+        "CREATE STREAM FOO AS "
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 JOIN test2 t3 ON t1.col0 = t3.col0;"
+    );
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "N-way joins do not support multiple occurrences of the same source. Source: 'TEST2'"));
+  }
+
+  @Test
   public void shouldFailOnJoinWithoutSource() {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(

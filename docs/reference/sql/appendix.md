@@ -39,7 +39,6 @@ The following table shows all keywords in the language.
 | `EXPLAIN`      | show execution plan                   | `EXPLAIN <query-name>;` or `EXPLAIN <expression>;`                   |
 | `EXTENDED`     | list details for an object            | `DESCRIBE EXTENDED <stream-name>;`                                   |
 | `FALSE`        | Boolean value of false                |                                                                      |
-| `FINAL`        | specify pull query                    | `SELECT * FROM users EMIT FINAL;`                                    |
 | `FROM`         | specify record source for queries     | `SELECT * FROM users;`                                               |
 | `FULL`         | specify `FULL JOIN`                   | `CREATE TABLE t AS SELECT * FROM l FULL OUTER JOIN r ON l.ID = r.ID;`|
 | `FUNCTION`     | list details for a function           | `DESCRIBE FUNCTION <function-name>;`                                 |

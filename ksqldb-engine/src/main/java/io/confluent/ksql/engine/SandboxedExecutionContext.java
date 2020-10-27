@@ -84,7 +84,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public Set<String> getQueriesWithSink(final SourceName sourceName) {
+  public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
     return engineContext.getQueriesWithSink(sourceName);
   }
 

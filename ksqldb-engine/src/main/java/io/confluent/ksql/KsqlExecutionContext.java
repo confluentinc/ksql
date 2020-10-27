@@ -88,7 +88,7 @@ public interface KsqlExecutionContext {
    * @param sourceName the sourceName of the queries to retrieve.
    * @return the list of queries.
    */
-  Set<String> getQueriesWithSink(SourceName sourceName);
+  Set<QueryId> getQueriesWithSink(SourceName sourceName);
 
   /**
    * Retrieves the list of all running queries.

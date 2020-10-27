@@ -55,6 +55,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -70,6 +71,12 @@ final class EngineContext {
 
   private static final Logger LOG = LoggerFactory.getLogger(EngineContext.class);
 
+  private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
+      (sourceName, query) -> query.getSinkName().equals(sourceName);
+
+  private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SOURCE =
+      (sourceName, query) -> query.getSourceNames().contains(sourceName);
+
   private final MutableMetaStore metaStore;
   private final ServiceContext serviceContext;
   private final CommandFactories ddlCommandFactory;
@@ -80,8 +87,8 @@ final class EngineContext {
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> allLiveQueries = ConcurrentHashMap.newKeySet();
   private final QueryCleanupService cleanupService;
-  private final Map<SourceName, QueryId> createAsQueries = new ConcurrentHashMap();
-  private final Map<SourceName, Set<QueryId>> otherQueries = new ConcurrentHashMap();
+  private final Map<SourceName, QueryId> createAsQueries = new ConcurrentHashMap<>();
+  private final Map<SourceName, Set<QueryId>> otherQueries = new ConcurrentHashMap<>();
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -147,14 +154,14 @@ final class EngineContext {
     return Collections.unmodifiableMap(persistentQueries);
   }
 
-  Set<String> getQueriesWithSink(final SourceName sourceName) {
-    final ImmutableSet.Builder<String> queries = ImmutableSet.builder();
+  Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
+    final ImmutableSet.Builder<QueryId> queries = ImmutableSet.builder();
 
     if (createAsQueries.containsKey(sourceName)) {
-      queries.add(createAsQueries.get(sourceName).toString());
+      queries.add(createAsQueries.get(sourceName));
     }
 
-    queries.addAll(getOtherQueriesWithSink(sourceName));
+    queries.addAll(getOtherQueries(sourceName, FILTER_QUERIES_WITH_SINK));
     return queries.build();
   }
 
@@ -256,56 +263,35 @@ final class EngineContext {
     }
 
     if (command instanceof DropSourceCommand) {
-      terminateCreateAsQuery(((DropSourceCommand) command).getSourceName());
+      // terminate the query (linked by create_as commands) after deleting the source to avoid
+      // other commands to create queries from this source while the query is being terminated
+      maybeTerminateCreateAsQuery(((DropSourceCommand) command).getSourceName());
     }
 
     return result.getMessage();
   }
 
-  private void terminateCreateAsQuery(final SourceName sourceName) {
+  private void maybeTerminateCreateAsQuery(final SourceName sourceName) {
     createAsQueries.computeIfPresent(sourceName, (ignore , queryId) -> {
-      final PersistentQueryMetadata query = persistentQueries.get(queryId);
-      if (query != null) {
-        query.close();
-      }
-
+      persistentQueries.get(queryId).close();
       return null;
     });
   }
 
-  private Set<String> getOtherQueriesWithSink(final SourceName sourceName) {
-    final ImmutableSet.Builder<String> queries = ImmutableSet.builder();
-
-    if (otherQueries.containsKey(sourceName)) {
-      otherQueries.get(sourceName).forEach(queryId -> {
-        final PersistentQueryMetadata query = persistentQueries.get(queryId);
-        if (query != null && query.getSinkName().equals(sourceName)) {
-          queries.add(queryId.toString());
-        }
-      });
-    }
-
-    return queries.build();
-  }
-
-  private Set<String> getOtherQueriesWithSource(final SourceName sourceName) {
-    final ImmutableSet.Builder<String> queries = ImmutableSet.builder();
-
-    if (otherQueries.containsKey(sourceName)) {
-      otherQueries.get(sourceName).forEach(queryId -> {
-        final PersistentQueryMetadata query = persistentQueries.get(queryId);
-        if (query != null && query.getSourceNames().contains(sourceName)) {
-          queries.add(queryId.toString());
-        }
-      });
-    }
-
-    return queries.build();
+  private Set<QueryId> getOtherQueries(
+      final SourceName sourceName,
+      final BiPredicate<SourceName, PersistentQueryMetadata> filterQueries
+  ) {
+    return otherQueries.getOrDefault(sourceName, Collections.emptySet()).stream()
+        .map(persistentQueries::get)
+        .filter(query -> filterQueries.test(sourceName, query))
+        .map(QueryMetadata::getQueryId)
+        .collect(Collectors.toSet());
   }
 
   private void throwIfOtherQueriesExist(final SourceName sourceName) {
-    final Set<String> sinkQueries = getOtherQueriesWithSink(sourceName);
-    final Set<String> sourceQueries = getOtherQueriesWithSource(sourceName);
+    final Set<QueryId> sinkQueries = getOtherQueries(sourceName, FILTER_QUERIES_WITH_SINK);
+    final Set<QueryId> sourceQueries = getOtherQueries(sourceName, FILTER_QUERIES_WITH_SOURCE);
 
     if (!sinkQueries.isEmpty() || !sourceQueries.isEmpty()) {
       throw new KsqlReferentialIntegrityException(String.format(
@@ -315,11 +301,13 @@ final class EngineContext {
               + "You need to terminate them before dropping %s.",
           sourceName.text(),
           sourceQueries.stream()
-                .sorted()
-                .collect(Collectors.joining(", ")),
+              .sorted()
+              .map(QueryId::toString)
+              .collect(Collectors.joining(", ")),
           sinkQueries.stream()
-                .sorted()
-                .collect(Collectors.joining(", ")),
+              .sorted()
+              .map(QueryId::toString)
+              .collect(Collectors.joining(", ")),
           sourceName.text()
       ));
     }
@@ -355,7 +343,8 @@ final class EngineContext {
         );
 
         allSourceNames.forEach(sourceName ->
-            otherQueries.computeIfAbsent(sourceName, x -> new HashSet<>()).add(queryId));
+            otherQueries.computeIfAbsent(sourceName,
+                x -> Collections.synchronizedSet(new HashSet<>())).add(queryId));
       }
     }
   }

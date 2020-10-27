@@ -137,7 +137,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public Set<String> getQueriesWithSink(final SourceName sourceName) {
+  public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
     return primaryContext.getQueriesWithSink(sourceName);
   }
 

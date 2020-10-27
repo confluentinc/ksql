@@ -59,7 +59,7 @@ final class QueryIdUtil {
     }
 
     final SourceName sink = outputNode.getSinkName().get();
-    final Set<String> queriesForSink = engineContext.getQueriesWithSink(sink);
+    final Set<QueryId> queriesForSink = engineContext.getQueriesWithSink(sink);
     if (queriesForSink.size() > 1) {
       throw new KsqlException("REPLACE for sink " + sink + " is not supported because there are "
           + "multiple queries writing into it: " + queriesForSink);
@@ -73,7 +73,7 @@ final class QueryIdUtil {
                 sink.text(),
                 type));
       }
-      return new QueryId(Iterables.getOnlyElement(queriesForSink));
+      return Iterables.getOnlyElement(queriesForSink);
     }
 
     final String suffix = outputNode.getId().toString().toUpperCase()

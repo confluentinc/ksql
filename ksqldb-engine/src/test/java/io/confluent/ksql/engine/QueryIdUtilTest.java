@@ -119,7 +119,8 @@ public class QueryIdUtilTest {
     // Given:
     when(plan.getSinkName()).thenReturn(Optional.of(SINK));
     when(plan.createInto()).thenReturn(true);
-    when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
+    when(engineContext.getQueriesWithSink(SINK))
+        .thenReturn(ImmutableSet.of(new QueryId("CTAS_FOO_10")));
 
     // When:
     final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, true);
@@ -134,7 +135,8 @@ public class QueryIdUtilTest {
     when(plan.getSinkName()).thenReturn(Optional.of(SINK));
     when(plan.createInto()).thenReturn(true);
     when(plan.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_10"));
+    when(engineContext.getQueriesWithSink(SINK))
+        .thenReturn(ImmutableSet.of(new QueryId("CTAS_FOO_10")));
 
     // When:
     QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
@@ -145,7 +147,8 @@ public class QueryIdUtilTest {
     // Given:
     when(plan.getSinkName()).thenReturn(Optional.of(SINK));
     when(plan.createInto()).thenReturn(true);
-    when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of("CTAS_FOO_1", "INSERTQUERY_1"));
+    when(engineContext.getQueriesWithSink(SINK))
+        .thenReturn(ImmutableSet.of(new QueryId("CTAS_FOO_1"), new QueryId("INSERTQUERY_1")));
 
     // When:
     final KsqlException e = assertThrows(KsqlException.class, () -> QueryIdUtil.buildId(engineContext, idGenerator, plan, false));

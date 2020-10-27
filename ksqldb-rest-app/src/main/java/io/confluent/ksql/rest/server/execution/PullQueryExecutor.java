@@ -1240,7 +1240,7 @@ public final class PullQueryExecutor {
   ) {
     final SourceName sourceName = getSourceName(analysis);
 
-    final Set<String> queries = executionContext.getQueriesWithSink(sourceName);
+    final Set<QueryId> queries = executionContext.getQueriesWithSink(sourceName);
     if (queries.isEmpty()) {
       throw notMaterializedException(sourceName);
     }
@@ -1250,7 +1250,7 @@ public final class PullQueryExecutor {
           + " materialized once.");
     }
 
-    final QueryId queryId = new QueryId(Iterables.get(queries, 0));
+    final QueryId queryId = Iterables.getOnlyElement(queries);
 
     final PersistentQueryMetadata query = executionContext
         .getPersistentQuery(queryId)

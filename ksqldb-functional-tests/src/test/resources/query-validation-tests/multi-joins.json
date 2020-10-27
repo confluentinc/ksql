@@ -1056,6 +1056,19 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 0, "value": {"S1_B": 1, "S2_A": 0, "S2_B": -1, "S3_A": 0, "S3_B": 9}, "timestamp":  12}
       ]
+    },
+    {
+      "name": "duplicate source",
+      "statements": [
+        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN T2 ON S1.ID = T2.ID JOIN T2 ON S1.V0 = T2.V0;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "N-way joins do not support multiple occurrences of the same source. Source: 'T2'"
+      }
     }
   ]
 }

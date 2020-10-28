@@ -30,7 +30,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +38,9 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
 public class DefaultSqlValueCoercerTest {
 
   private static final Map<SqlBaseType, SqlType> TYPES = ImmutableMap
@@ -77,17 +73,11 @@ public class DefaultSqlValueCoercerTest {
       .put(SqlBaseType.STRUCT, new Struct(STRUCT_SCHEMA).put("fred", 11))
       .build();
 
-  private final DefaultSqlValueCoercer coercer;
+  private DefaultSqlValueCoercer coercer;
 
-  @Parameters(name = "{0}")
-  public static Iterable<Object[]> data() {
-    return Arrays.stream(DefaultSqlValueCoercer.values())
-        .map(coercer -> new Object[]{coercer})
-        .collect(Collectors.toList());
-  }
-
-  public DefaultSqlValueCoercerTest(final DefaultSqlValueCoercer coercer) {
-    this.coercer = coercer;
+  @Before
+  public void setUp() {
+    coercer = DefaultSqlValueCoercer.INSTANCE;
   }
 
   @Test
@@ -145,10 +135,7 @@ public class DefaultSqlValueCoercerTest {
     assertThat(coercer.coerce(1L, decimalType), is(Result.of(new BigDecimal("1.0"))));
     assertThat(coercer.coerce(new BigDecimal("1.0"), decimalType),
         is(Result.of(new BigDecimal("1.0"))));
-    if (coercer.isAllowCastStringAndDoubleToDecimal()) {
-      assertThat(coercer.coerce("1.0", decimalType), is(Result.of(new BigDecimal("1.0"))));
-      assertThat(coercer.coerce(1.0d, decimalType), is(Result.of(new BigDecimal("1.0"))));
-    }
+
   }
 
   @Test
@@ -156,10 +143,8 @@ public class DefaultSqlValueCoercerTest {
     final SqlType decimalType = SqlTypes.decimal(2, 1);
     assertThat(coercer.coerce(true, decimalType), is(Result.failure()));
     assertThat(coercer.coerce(1234L, decimalType), is(Result.failure()));
-    if (!coercer.isAllowCastStringAndDoubleToDecimal()) {
-      assertThat(coercer.coerce("1.0", decimalType), is(Result.failure()));
-      assertThat(coercer.coerce(1.0d, decimalType), is(Result.failure()));
-    }
+    assertThat(coercer.coerce("1.0", decimalType), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, decimalType), is(Result.failure()));
   }
 
   @Test
@@ -185,11 +170,6 @@ public class DefaultSqlValueCoercerTest {
         is(Result.of(ImmutableList.of(1.1d))));
     assertThat(coercer.coerce(Collections.singletonList(null), arrayType),
         is(Result.of(Collections.singletonList(null))));
-
-    assertThat(coercer.coerce(new JsonArray().add(1), arrayType), is(Result.of(ImmutableList.of(1d))));
-    assertThat(coercer.coerce(new JsonArray().add(1L), arrayType), is(Result.of(ImmutableList.of(1d))));
-    assertThat(coercer.coerce(new JsonArray().add(1.1), arrayType), is(Result.of(ImmutableList.of(1.1d))));
-    assertThat(coercer.coerce(new JsonArray().addNull(), arrayType), is(Result.of(Collections.singletonList(null))));
   }
 
   @Test
@@ -211,11 +191,6 @@ public class DefaultSqlValueCoercerTest {
         is(Result.of(ImmutableMap.of("foo", 1.1d))));
     assertThat(coercer.coerce(Collections.singletonMap("foo", null), mapType),
         is(Result.of(Collections.singletonMap("foo", null))));
-
-    assertThat(coercer.coerce(new JsonObject().put("foo", 1), mapType), is(Result.of(ImmutableMap.of("foo", 1d))));
-    assertThat(coercer.coerce(new JsonObject().put("foo", 1L), mapType), is(Result.of(ImmutableMap.of("foo", 1d))));
-    assertThat(coercer.coerce(new JsonObject().put("foo", 1.1), mapType), is(Result.of(ImmutableMap.of("foo", 1.1d))));
-    assertThat(coercer.coerce(new JsonObject().putNull("foo"), mapType), is(Result.of(Collections.singletonMap("foo", null))));
   }
 
   @Test
@@ -330,12 +305,6 @@ public class DefaultSqlValueCoercerTest {
       final List<SqlBaseType> shouldUpCast = partitioned.getOrDefault(true, ImmutableList.of());
       final List<SqlBaseType> shouldNotUpCast = partitioned.getOrDefault(false, ImmutableList.of());
 
-      if (coercer.isAllowCastStringAndDoubleToDecimal()
-          && (fromBaseType == SqlBaseType.STRING || fromBaseType == SqlBaseType.DOUBLE)) {
-        shouldNotUpCast.remove(SqlBaseType.DECIMAL);
-        shouldUpCast.add(SqlBaseType.DECIMAL);
-      }
-
       // Then:
       shouldUpCast.forEach(toBaseType -> assertThat(
           "should coerce " + fromBaseType + " to " + toBaseType,
@@ -349,221 +318,6 @@ public class DefaultSqlValueCoercerTest {
           is(Result.failure())
       ));
     }
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  @Test
-  public void shouldCoerceJsonObjectToStruct() {
-    // Given:
-    final SqlType structType = SqlTypes.struct()
-        .field("FOO", SqlTypes.BIGINT)
-        .field("NULL", SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    final Result result = coercer.coerce(new JsonObject().put("FOO", 12), structType);
-
-    // Then:
-    assertThat("", !result.failed());
-    final Struct coerced = ((Optional<Struct>) result.value()).get();
-    assertThat(coerced.get("FOO"), is(12L));
-    assertThat(coerced.get("NULL"), is(nullValue()));
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  @Test
-  public void shouldCoerceJsonObjectToNestedStruct() {
-    // Given:
-    final SqlType structType = SqlTypes.struct()
-        .field("F1", SqlTypes.struct()
-            .field("G1", SqlTypes.BIGINT)
-            .field("NULL", SqlTypes.BIGINT)
-            .build())
-        .field("F2", SqlTypes.array(SqlTypes.STRING))
-        .field("F3", SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
-        .build();
-    final JsonObject obj = new JsonObject()
-        .put("F1", new JsonObject().put("G1", 12))
-        .put("F2", new JsonArray().add("v1").add("v2"))
-        .put("F3", new JsonObject().put("k1", "v1"));
-
-    // When:
-    final Result result = coercer.coerce(obj, structType);
-
-    // Then:
-    assertThat("", !result.failed());
-    final Struct coerced = ((Optional<Struct>) result.value()).get();
-
-    final Struct innerStruct = (Struct) coerced.get("F1");
-    assertThat(innerStruct.get("G1"), is(12L));
-    assertThat(innerStruct.get("NULL"), is(nullValue()));
-
-    final List<?> innerList = (List<?>) coerced.get("F2");
-    assertThat(innerList, is(ImmutableList.of("v1", "v2")));
-
-    final Map<?, ?> innerMap = (Map<?, ?>) coerced.get("F3");
-    assertThat(innerMap, is(ImmutableMap.of("k1", "v1")));
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  @Test
-  public void shouldCoerceJsonObjectToNestedMap() {
-    // Given:
-    final SqlType mapType = SqlTypes.map(SqlTypes.STRING, SqlTypes.struct()
-        .field("F1", SqlTypes.BIGINT)
-        .field("F2", SqlTypes.STRING)
-        .build());
-    final JsonObject obj = new JsonObject()
-        .put("k1", new JsonObject().put("F1", 1).put("F2", "foo"))
-        .put("k2", new JsonObject().put("F1", 2))
-        .put("k3", new JsonObject())
-        .putNull("k4");
-
-    // When:
-    final Result result = coercer.coerce(obj, mapType);
-
-    // Then:
-    assertThat("", !result.failed());
-    final Map<?, ?> coerced = ((Optional<Map<?, ?>>) result.value()).get();
-    assertThat(((Struct) coerced.get("k1")).get("F1"), is(1L));
-    assertThat(((Struct) coerced.get("k1")).get("F2"), is("foo"));
-    assertThat(((Struct) coerced.get("k2")).get("F1"), is(2L));
-    assertThat(((Struct) coerced.get("k2")).get("F2"), is(nullValue()));
-    assertThat(((Struct) coerced.get("k3")).get("F1"), is(nullValue()));
-    assertThat(((Struct) coerced.get("k3")).get("F2"), is(nullValue()));
-    assertThat(coerced.get("k4"), is(nullValue()));
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  @Test
-  public void shouldCoerceJsonArrayToNestedArray() {
-    // Given:
-    final SqlType arrayType = SqlTypes.array(SqlTypes.struct()
-        .field("F1", SqlTypes.BIGINT)
-        .field("F2", SqlTypes.STRING)
-        .build());
-    final JsonArray array = new JsonArray()
-        .add(new JsonObject().put("F1", 1).put("F2", "foo"))
-        .add(new JsonObject().put("F1", 2))
-        .add(new JsonObject())
-        .addNull();
-
-    // When:
-    final Result result = coercer.coerce(array, arrayType);
-
-    // Then:
-    assertThat("", !result.failed());
-    final List<?> coerced = ((Optional<List<?>>) result.value()).get();
-    assertThat(((Struct) coerced.get(0)).get("F1"), is(1L));
-    assertThat(((Struct) coerced.get(0)).get("F2"), is("foo"));
-    assertThat(((Struct) coerced.get(1)).get("F1"), is(2L));
-    assertThat(((Struct) coerced.get(1)).get("F2"), is(nullValue()));
-    assertThat(((Struct) coerced.get(2)).get("F1"), is(nullValue()));
-    assertThat(((Struct) coerced.get(2)).get("F2"), is(nullValue()));
-    assertThat(coerced.get(3), is(nullValue()));
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  @Test
-  public void shouldCoerceJsonStructToNestedDecimal() {
-    // Given:
-    final SqlType structType = SqlTypes.struct()
-        .field("INT", SqlTypes.decimal(2, 1))
-        .field("LONG", SqlTypes.decimal(2, 1))
-        .field("STRING", SqlTypes.decimal(2, 1))
-        .field("DOUBLE", SqlTypes.decimal(2, 1))
-        .build();
-    final JsonObject obj = new JsonObject()
-        .put("INT", 1)
-        .put("LONG", 1L);
-    if (coercer.isAllowCastStringAndDoubleToDecimal()) {
-      obj.put("STRING", "1.1")
-          .put("DOUBLE", 1.2);
-    }
-
-    // When:
-    final Result result = coercer.coerce(obj, structType);
-
-    // Then:
-    assertThat("", !result.failed());
-    final Struct coerced = ((Optional<Struct>) result.value()).get();
-    assertThat(coerced.get("INT"), is(new BigDecimal("1.0")));
-    assertThat(coerced.get("LONG"), is(new BigDecimal("1.0")));
-    if (coercer.isAllowCastStringAndDoubleToDecimal()) {
-      assertThat(coerced.get("STRING"), is(new BigDecimal("1.1")));
-      assertThat(coerced.get("DOUBLE"), is(new BigDecimal("1.2")));
-    }
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  @Test
-  public void shouldCoerceJsonStructWithCaseInsensitiveFields() {
-    // Given:
-    final SqlType structType = SqlTypes.struct()
-        .field("FOO", SqlTypes.BIGINT)
-        .field("foo", SqlTypes.STRING)
-        .field("bar", SqlTypes.STRING)
-        .build();
-    final JsonObject obj = new JsonObject()
-        .put("foo", 12)
-        .put("`foo`", "v1")
-        .put("\"bar\"", "v2");
-
-    // When:
-    final Result result = coercer.coerce(obj, structType);
-
-    // Then:
-    assertThat("", !result.failed());
-    final Struct coerced = ((Optional<Struct>) result.value()).get();
-    assertThat(coerced.get("FOO"), is(12L));
-    assertThat(coerced.get("foo"), is("v1"));
-    assertThat(coerced.get("bar"), is("v2"));
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  @Test
-  public void shouldCoerceNestedJsonStructWithCaseInsensitiveFields() {
-    // Given:
-    final SqlType structType = SqlTypes.struct().field("F1", SqlTypes.struct()
-        .field("FOO", SqlTypes.BIGINT)
-        .field("foo", SqlTypes.STRING)
-        .field("bar", SqlTypes.STRING)
-        .build()).build();
-    final JsonObject obj = new JsonObject().put("F1", new JsonObject()
-        .put("foo", 12)
-        .put("`foo`", "v1")
-        .put("\"bar\"", "v2"));
-
-    // When:
-    final Result result = coercer.coerce(obj, structType);
-
-    // Then:
-    assertThat("", !result.failed());
-    final Struct coerced = ((Optional<Struct>) result.value()).get();
-    final Struct innerStruct = ((Struct) coerced.get("F1"));
-    assertThat(innerStruct.get("FOO"), is(12L));
-    assertThat(innerStruct.get("foo"), is("v1"));
-    assertThat(innerStruct.get("bar"), is("v2"));
-  }
-
-  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
-  @Test
-  public void shouldCoerceNestedJsonMapWithCaseSensitiveKeys() {
-    // Given:
-    final SqlType structType = SqlTypes.struct()
-        .field("F1", SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT))
-        .build();
-    final JsonObject obj = new JsonObject().put("F1", new JsonObject().put("foo", 12));
-
-    // When:
-    final Result result = coercer.coerce(obj, structType);
-
-    // Then:
-    assertThat("", !result.failed());
-    final Struct coerced = ((Optional<Struct>) result.value()).get();
-    final Map<?, ?> innerMap = ((Map<?, ?>) coerced.get("F1"));
-    assertThat(innerMap.get("foo"), is(12L));
-    assertThat(innerMap.get("FOO"), is(nullValue()));
   }
 
   private static boolean coercionShouldBeSupported(

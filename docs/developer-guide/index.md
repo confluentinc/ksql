@@ -22,4 +22,5 @@ These topics show how to develop ksqlDB applications.
 - [ksqlDB REST API Reference](api.md)
 - [Processing Log](test-and-debug/processing-log.md)
 - [Tutorials and Examples](../tutorials/index.md)
+- [Variable Substitution](variable-substitution.md)
 

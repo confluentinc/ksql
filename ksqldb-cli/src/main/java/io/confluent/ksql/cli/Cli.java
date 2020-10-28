@@ -21,15 +21,20 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
+import io.confluent.ksql.cli.console.cmd.RunScript;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.DefineVariableContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListVariablesContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.QueryStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementContext;
+import io.confluent.ksql.parser.SqlBaseParser.UndefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -42,25 +47,32 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.VariablesList;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
 import io.vertx.core.VertxException;
 import java.io.Closeable;
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
@@ -84,6 +96,9 @@ public class Cli implements KsqlRequestExecutor, Closeable {
           .put(PrintTopicContext.class, Cli::handlePrintedTopic)
           .put(SetPropertyContext.class, Cli::setPropertyFromCtxt)
           .put(UnsetPropertyContext.class, Cli::unsetPropertyFromCtxt)
+          .put(DefineVariableContext.class, Cli::defineVariableFromCtxt)
+          .put(UndefineVariableContext.class, Cli::undefineVariableFromCtxt)
+          .put(ListVariablesContext.class, Cli::listVariablesFromCtxt)
           .build();
 
   private final Long streamedQueryRowLimit;
@@ -92,6 +107,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private final KsqlRestClient restClient;
   private final Console terminal;
   private final RemoteServerState remoteServerState;
+
+  private final Map<String, String> sessionVariables;
 
   public static Cli build(
       final Long streamedQueryRowLimit,
@@ -117,6 +134,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     this.restClient = restClient;
     this.terminal = terminal;
     this.remoteServerState = new RemoteServerState();
+    this.sessionVariables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
     final Supplier<String> versionSuppler =
         () -> restClient.getServerInfo().getResponse().getVersion();
@@ -180,6 +198,23 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       }
     }
     throw new KsqlRestClientException("Failed to execute request " + ksql);
+  }
+
+  public void runScript(final String scriptFile) {
+    RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
+
+    try {
+      final RunScript runScriptCommand = RunScript.create(this);
+      runScriptCommand.execute(Collections.singletonList(scriptFile), terminal.writer());
+    } catch (final Exception exception) {
+      LOGGER.error("An error occurred while running a script file. Error = "
+          + exception.getMessage(), exception);
+
+      terminal.printError(ErrorMessageUtil.buildErrorMessage(exception),
+          exception.toString());
+    }
+
+    terminal.flush();
   }
 
   public void runCommand(final String command) {
@@ -308,8 +343,30 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
+  private boolean isVariableSubstitutionEnabled() {
+    final Object substitutionEnabled
+        = restClient.getProperty(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+
+    if (substitutionEnabled != null && substitutionEnabled instanceof Boolean) {
+      return (boolean) substitutionEnabled;
+    }
+
+    return KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT;
+  }
+
+  private List<ParsedStatement> substituteVariables(final List<ParsedStatement> statements) {
+    if (isVariableSubstitutionEnabled()) {
+      return statements.stream()
+          .map(stmt -> VariableSubstitutor.substitute(stmt, sessionVariables))
+          .flatMap(replacedSql -> KSQL_PARSER.parse(replacedSql).stream())
+          .collect(Collectors.toList());
+    } else {
+      return statements;
+    }
+  }
+
   private void handleStatements(final String line) {
-    final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
+    final List<ParsedStatement> statements = substituteVariables(KSQL_PARSER.parse(line));
 
     final StringBuilder consecutiveStatements = new StringBuilder();
     for (final ParsedStatement parsed : statements) {
@@ -478,6 +535,44 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.writer()
         .printf("Successfully unset local property '%s' (value was '%s').%n", property, oldValue);
     terminal.flush();
+  }
+
+  @SuppressWarnings("unused")
+  private void defineVariableFromCtxt(
+      final String ignored,
+      final DefineVariableContext context
+  ) {
+    final String variableName = context.variableName().getText();
+    final String variableValue = ParserUtil.unquote(context.variableValue().getText(), "'");
+    sessionVariables.put(variableName, variableValue);
+  }
+
+  @SuppressWarnings("unused")
+  private void undefineVariableFromCtxt(
+      final String ignored,
+      final UndefineVariableContext context
+  ) {
+    final String variableName = context.variableName().getText();
+    if (sessionVariables.remove(variableName) == null) {
+      // Print only (no throws exception) to keep it as a warning message (like VariableExecutor)
+      terminal.writer()
+          .printf("Cannot undefine variable '%s' which was never defined.%n", variableName);
+      terminal.flush();
+    }
+  }
+
+  @SuppressWarnings("unused")
+  private void listVariablesFromCtxt(
+      final String ignored,
+      final ListVariablesContext listVariablesContext
+  ) {
+    final List<VariablesList.Variable> variables = sessionVariables.entrySet().stream()
+        .map(e -> new VariablesList.Variable(e.getKey(), e.getValue()))
+        .collect(Collectors.toList());
+
+    terminal.printKsqlEntityList(Collections.singletonList(
+        new VariablesList(listVariablesContext.getText(),variables)
+    ));
   }
 
   private static boolean isSequenceNumberTimeout(final RestResponse<?> response) {

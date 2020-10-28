@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.hasItems;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -203,7 +205,8 @@ public final class PostConditionsNode {
         @Override
         public void describeTo(final Description description) {
           try {
-            description.appendText(TestJsonMapper.INSTANCE.get().writeValueAsString(this));
+            description.appendText(
+                TestJsonMapper.INSTANCE.get().writeValueAsString(PostTopicNode.this));
           } catch (JsonProcessingException e) {
             throw new IllegalArgumentException(e);
           }
@@ -245,12 +248,14 @@ public final class PostConditionsNode {
       return partitions;
     }
 
+    @JsonInclude(Include.NON_NULL)
     public JsonNode getKeySchema() {
-      return keySchema;
+      return keySchema instanceof NullNode ? null : keySchema;
     }
 
+    @JsonInclude(Include.NON_NULL)
     public JsonNode getValueSchema() {
-      return valueSchema;
+      return valueSchema instanceof NullNode ? null : valueSchema;
     }
 
     @Override

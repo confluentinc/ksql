@@ -34,10 +34,7 @@ import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -46,6 +43,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.commons.lang3.text.translate.LookupTranslator;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ParserUtil {
@@ -60,6 +58,12 @@ public final class ParserUtil {
   private static final Pattern VALID_SOURCE_NAMES = Pattern.compile("[a-zA-Z0-9_-]*");
   public static final Pattern EXTRANEOUS_INPUT_PATTERN = Pattern.compile(
           "extraneous input.*expecting.*");
+
+  private static final LookupTranslator ESCAPE_SYMBOLS = new LookupTranslator(
+      new String[][]{
+          {"'", "''"}
+      }
+  );
 
   private ParserUtil() {
   }
@@ -91,22 +95,29 @@ public final class ParserUtil {
     }
   }
 
-  public static String getIdentifierText(final String text) {
-    if (text.isEmpty()) {
-      return "";
-    }
-
-    final char firstChar = text.charAt(0);
-    if (firstChar == '`' || firstChar == '"') {
-      return validateAndUnquote(text, firstChar);
-    }
-
-    return text.toUpperCase();
-  }
-
   public static String unquote(final String value, final String quote) {
     return value.substring(1, value.length() - 1)
         .replace(quote + quote, quote);
+  }
+
+  public static boolean isQuoted(final String value, final String quote) {
+    return value.startsWith(quote) && value.endsWith(quote);
+  }
+
+  public static String sanitize(final String value) {
+    if (isQuoted(value, "'")) {
+      return "'" + escapeString(unquote(value, "'")) + "'";
+    }
+
+    return escapeString(value);
+  }
+
+  private static String escapeString(final String value) {
+    if (value == null || value.isEmpty()) {
+      return value;
+    }
+
+    return ESCAPE_SYMBOLS.translate(value);
   }
 
   private static String validateAndUnquote(final String value, final char quote) {
@@ -198,27 +209,6 @@ public final class ParserUtil {
   public static Optional<NodeLocation> getLocation(final Token token) {
     requireNonNull(token, "token is null");
     return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
-  }
-
-  public static JsonObject convertJsonFieldCase(final JsonObject obj) {
-    final Map<String, Object> convertedMap = new HashMap<>();
-    for (Map.Entry<String, Object> entry : obj.getMap().entrySet()) {
-      final String key;
-      try {
-        key = ParserUtil.getIdentifierText(entry.getKey());
-      } catch (IllegalArgumentException e) {
-        throw new IllegalArgumentException(String.format(
-            "Invalid column / struct field name. Name: %s. Reason: %s.",
-            entry.getKey(),
-            e.getMessage()
-        ));
-      }
-      if (convertedMap.containsKey(key)) {
-        throw new IllegalArgumentException("Found duplicate column / struct field name: " + key);
-      }
-      convertedMap.put(key, entry.getValue());
-    }
-    return new JsonObject(convertedMap);
   }
 
   /**

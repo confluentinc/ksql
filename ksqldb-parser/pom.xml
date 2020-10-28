@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.1.0-0</version>
+        <version>6.2.0-0</version>
     </parent>
 
     <artifactId>ksqldb-parser</artifactId>
@@ -61,6 +61,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
         </dependency>
 
         <!-- Required for running tests -->

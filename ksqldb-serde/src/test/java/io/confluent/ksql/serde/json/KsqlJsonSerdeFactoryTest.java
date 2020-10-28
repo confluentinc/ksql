@@ -57,7 +57,7 @@ public class KsqlJsonSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> jsonFactory.createSerde(schemaOfInvalidMap, config, srFactory, String.class)
+        () -> jsonFactory.createSerde(schemaOfInvalidMap, config, srFactory, String.class, false)
     );
 
     // Then:
@@ -79,7 +79,7 @@ public class KsqlJsonSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> jsonFactory.createSerde(schemaWithNestedInvalidMap, config, srFactory, String.class)
+        () -> jsonFactory.createSerde(schemaWithNestedInvalidMap, config, srFactory, String.class, false)
     );
 
     // Then:

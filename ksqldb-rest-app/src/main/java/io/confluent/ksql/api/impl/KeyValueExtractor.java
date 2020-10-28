@@ -23,7 +23,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.ParserUtil;
+import io.confluent.ksql.util.JsonUtil;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +75,7 @@ public final class KeyValueExtractor {
 
   static JsonObject convertColumnNameCase(final JsonObject jsonObjectWithCaseInsensitiveFields) {
     try {
-      return ParserUtil.convertJsonFieldCase(jsonObjectWithCaseInsensitiveFields);
+      return JsonUtil.convertJsonFieldCase(jsonObjectWithCaseInsensitiveFields);
     } catch (IllegalArgumentException e) {
       throw new KsqlApiException(e.getMessage(), Errors.ERROR_CODE_BAD_REQUEST);
     }

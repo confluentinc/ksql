@@ -469,15 +469,23 @@ public final class KsqlRestApplication implements Executable {
     }
   }
 
-  @SuppressWarnings("checkstyle:NPathComplexity")
+  @SuppressWarnings({"checkstyle:NPathComplexity", "checkstyle:CyclomaticComplexity"})
   @Override
   public void shutdown() {
     log.info("ksqlDB shutdown called");
+
+    try {
+      pullQueryExecutor.close(Duration.ofSeconds(10));
+    } catch (final Exception e) {
+      log.error("Exception while waiting for Ksql Engine to close", e);
+    }
+
     try {
       pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
     } catch (final Exception e) {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
+
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -707,7 +715,7 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, routingFilterFactory, ksqlConfig, ksqlEngine.getServiceId());
+        ksqlEngine, routingFilterFactory, ksqlConfig);
 
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));

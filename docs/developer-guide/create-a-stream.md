@@ -27,7 +27,7 @@ For all supported formats, see [Serialization Formats](serialization.md#serializ
 Create a Stream from an existing Kafka topic
 --------------------------------------------
 
-Use the [CREATE STREAM](./create-stream) statement to create a stream from an
+Use the `CREATE STREAM` statement to create a stream from an
 existing underlying {{ site.ak }} topic.
 
 The following examples show how to create streams from a {{ site.ak }} topic

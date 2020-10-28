@@ -18,9 +18,9 @@ package io.confluent.ksql.cli;
 public interface KsqlRequestExecutor {
 
   /**
-   * Execute a request on the KSQL servers and handle the response.
+   * Handle and execute statements on the KSQL servers and handle the response.
    *
-   * @param body the request body.
+   * @param line the request statements separated by semi-colon.
    */
-  void makeKsqlRequest(String body);
+  void executeStatements(String line);
 }

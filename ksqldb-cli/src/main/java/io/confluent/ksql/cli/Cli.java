@@ -149,8 +149,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         remoteServerState::setRequestPipelining);
   }
 
-  @Override
-  public void makeKsqlRequest(final String statements) {
+  private void makeKsqlRequest(final String statements) {
     if (statements.isEmpty()) {
       return;
     }
@@ -220,10 +219,9 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   public void runCommand(final String command) {
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     try {
-      // Handles the RUN SCRIPT command if found
-      if (!terminal.maybeHandleCliSpecificCommands(command)) {
-        handleLine(command);
-      }
+      // Commands executed by the '-e' parameter do not need to execute specific CLI
+      // commands. For RUN SCRIPT commands, users can use the '-f' command parameter.
+      handleLine(command);
     } catch (final EndOfFileException exception) {
       // Ignore - only used by runInteractively() to exit the CLI
     } catch (final Exception exception) {
@@ -305,13 +303,13 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.close();
   }
 
-  void handleLine(final String line) {
+  public void handleLine(final String line) {
     final String trimmedLine = Optional.ofNullable(line).orElse("").trim();
     if (trimmedLine.isEmpty()) {
       return;
     }
 
-    handleStatements(trimmedLine);
+    executeStatements(trimmedLine);
   }
 
   /**
@@ -354,22 +352,21 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     return KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT;
   }
 
-  private List<ParsedStatement> substituteVariables(final List<ParsedStatement> statements) {
+  private ParsedStatement substituteVariables(final ParsedStatement statement) {
     if (isVariableSubstitutionEnabled()) {
-      return statements.stream()
-          .map(stmt -> VariableSubstitutor.substitute(stmt, sessionVariables))
-          .flatMap(replacedSql -> KSQL_PARSER.parse(replacedSql).stream())
-          .collect(Collectors.toList());
+      final String replacedStmt = VariableSubstitutor.substitute(statement, sessionVariables);
+      return KSQL_PARSER.parse(replacedStmt).get(0);
     } else {
-      return statements;
+      return statement;
     }
   }
 
-  private void handleStatements(final String line) {
-    final List<ParsedStatement> statements = substituteVariables(KSQL_PARSER.parse(line));
-
+  @Override
+  public void executeStatements(final String line) {
+    final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
     final StringBuilder consecutiveStatements = new StringBuilder();
-    for (final ParsedStatement parsed : statements) {
+
+    statements.stream().map(this::substituteVariables).forEach(parsed -> {
       final StatementContext statementContext = parsed.getStatement().statement();
       final String statementText = parsed.getStatementText();
 
@@ -384,7 +381,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
         handler.handle(this, statementText, statementContext);
       }
-    }
+    });
+
     if (consecutiveStatements.length() != 0) {
       makeKsqlRequest(consecutiveStatements.toString());
     }

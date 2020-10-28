@@ -416,7 +416,6 @@ SELECT user_id
 ## IN
 Specifies multiple `OR` conditions. This is currently only supported for Pull Queries.
 
-
 ```sql hl_lines"3"
   SELECT select_expr [., ...]
     FROM from_stream | from_table

@@ -76,7 +76,6 @@ It provides the equivalent of multiple `OR` conditions.
 
 Currently, this is only supported for Pull Queries.
 
-
 ```sql
 SELECT * FROM USERS WHERE USERID IN (1543, 6256, 87569);
 ```

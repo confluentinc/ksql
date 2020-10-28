@@ -114,6 +114,7 @@ public class SqlToJavaVisitor {
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
+      "java.util.Arrays",
       "java.util.HashMap",
       "java.util.Map",
       "java.util.List",
@@ -765,8 +766,8 @@ public class SqlToJavaVisitor {
           : "null";
 
       final String codeString = "((" + resultSchemaString + ")"
-          + functionClassName + ".searchedCaseFunction(ImmutableList.of( "
-          + StringUtils.join(lazyWhenClause, ", ") + "),"
+          + functionClassName + ".searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( "
+          + StringUtils.join(lazyWhenClause, ", ") + ")),"
           + buildSupplierCode(resultSchemaString, defaultValue)
           + "))";
       return new Pair<>(codeString, resultSchema);

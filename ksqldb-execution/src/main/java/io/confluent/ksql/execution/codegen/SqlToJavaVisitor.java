@@ -765,6 +765,9 @@ public class SqlToJavaVisitor {
           ? process(node.getDefaultValue().get(), context).getLeft()
           : "null";
 
+      // ImmutableList.copyOf(Arrays.asList()) replaced ImmutableList.of() to avoid
+      // CASE expressions with 12+ conditions from breaking. Don't change it unless
+      // you are certain it won't break it. See https://github.com/confluentinc/ksql/issues/5707
       final String codeString = "((" + resultSchemaString + ")"
           + functionClassName + ".searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( "
           + StringUtils.join(lazyWhenClause, ", ") + ")),"

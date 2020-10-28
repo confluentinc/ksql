@@ -50,7 +50,8 @@ import java.util.List;
     @JsonSubTypes.Type(value = ConnectorDescription.class, name = "connector_description"),
     @JsonSubTypes.Type(value = TypeList.class, name = "type_list"),
     @JsonSubTypes.Type(value = ErrorEntity.class, name = "error_entity"),
-    @JsonSubTypes.Type(value = WarningEntity.class, name = "warning_entity")
+    @JsonSubTypes.Type(value = WarningEntity.class, name = "warning_entity"),
+    @JsonSubTypes.Type(value = VariablesList.class, name = "variables")
 })
 public abstract class KsqlEntity {
   private final String statementText;

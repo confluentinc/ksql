@@ -149,8 +149,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         remoteServerState::setRequestPipelining);
   }
 
-  @Override
-  public void makeKsqlRequest(final String statements) {
+  private void makeKsqlRequest(final String statements) {
     if (statements.isEmpty()) {
       return;
     }
@@ -304,13 +303,13 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.close();
   }
 
-  void handleLine(final String line) {
+  public void handleLine(final String line) {
     final String trimmedLine = Optional.ofNullable(line).orElse("").trim();
     if (trimmedLine.isEmpty()) {
       return;
     }
 
-    handleStatements(trimmedLine);
+    executeStatements(trimmedLine);
   }
 
   /**
@@ -362,7 +361,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
-  private void handleStatements(final String line) {
+  @Override
+  public void executeStatements(final String line) {
     final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
     final StringBuilder consecutiveStatements = new StringBuilder();
 

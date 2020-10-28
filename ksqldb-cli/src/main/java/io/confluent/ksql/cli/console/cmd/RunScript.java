@@ -58,7 +58,7 @@ public final class RunScript implements CliSpecificCommand {
 
     final String filePath = args.get(0);
     final String content = loadScript(filePath);
-    requestExecutor.makeKsqlRequest(content);
+    requestExecutor.executeStatements(content);
   }
 
   private static String loadScript(final String filePath) {

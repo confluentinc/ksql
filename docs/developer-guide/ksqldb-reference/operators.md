@@ -13,6 +13,7 @@ ksqlDB supports the following operators in value expressions.
 
   - [Arithmetic](#arithmetic)
   - [Concatenation](#concatenation)
+  - [IN Operator](#in)
   - [Source Dereference](#source-dereference)
   - [Subscript](#subscript)
   - [STRUCT dereference](#struct-dereference)
@@ -64,6 +65,20 @@ SELECT USERID,
   FROM INVALID_USERS_LOGINS_PER_HOST
   WHERE INVALID_LOGIN_COUNT>=4
   EMIT CHANGES;
+```
+
+IN
+--
+
+The IN operator enables specifying multiple values in a `WHERE` clause.
+
+It provides the equivalent of multiple `OR` conditions.
+
+Currently, this is only supported for Pull Queries.
+
+
+```sql
+SELECT * FROM USERS WHERE USERID IN (1543, 6256, 87569);
 ```
 
 Source Dereference

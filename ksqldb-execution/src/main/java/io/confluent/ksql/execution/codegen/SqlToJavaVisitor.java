@@ -114,6 +114,7 @@ public class SqlToJavaVisitor {
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
+      "java.util.Arrays",
       "java.util.HashMap",
       "java.util.Map",
       "java.util.List",
@@ -764,11 +765,15 @@ public class SqlToJavaVisitor {
           ? process(node.getDefaultValue().get(), context).getLeft()
           : "null";
 
+      // ImmutableList.copyOf(Arrays.asList()) replaced ImmutableList.of() to avoid
+      // CASE expressions with 12+ conditions from breaking. Don't change it unless
+      // you are certain it won't break it. See https://github.com/confluentinc/ksql/issues/5707
       final String codeString = "((" + resultSchemaString + ")"
-          + functionClassName + ".searchedCaseFunction(ImmutableList.of( "
-          + StringUtils.join(lazyWhenClause, ", ") + "),"
+          + functionClassName + ".searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( "
+          + StringUtils.join(lazyWhenClause, ", ") + ")),"
           + buildSupplierCode(resultSchemaString, defaultValue)
           + "))";
+
       return new Pair<>(codeString, resultSchema);
     }
 

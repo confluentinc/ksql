@@ -1035,6 +1035,22 @@ public class CliTest {
   }
 
   @Test
+  public void shouldSubstituteVariablesOnRunCommand()  {
+    // Given:
+    final StringBuilder builder = new StringBuilder();
+    builder.append("SET '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';");
+    builder.append("DEFINE var = '" + ORDER_DATA_PROVIDER.sourceName() + "';");
+    builder.append("CREATE STREAM shouldRunCommand AS SELECT * FROM ${var};");
+
+    // When:
+    localCli.runCommand(builder.toString());
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Created query with ID CSAS_SHOULDRUNCOMMAND"));
+  }
+
+  @Test
   public void shouldRunScriptOnRunInteractively() throws Exception {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
@@ -1048,22 +1064,6 @@ public class CliTest {
 
     // When:
     localCli.runInteractively();
-
-    // Then:
-    assertThat(terminal.getOutputString(),
-        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
-  }
-
-  @Test
-  public void shouldRunScriptOnRunCommand() throws Exception {
-    // Given:
-    final File scriptFile = TMP.newFile("script.sql");
-    Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
-        + "").getBytes(StandardCharsets.UTF_8));
-
-    // When:
-    localCli.runCommand("run script '" + scriptFile.getAbsolutePath() + "'");
 
     // Then:
     assertThat(terminal.getOutputString(),

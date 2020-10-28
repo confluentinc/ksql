@@ -770,6 +770,7 @@ public class SqlToJavaVisitor {
           + StringUtils.join(lazyWhenClause, ", ") + ")),"
           + buildSupplierCode(resultSchemaString, defaultValue)
           + "))";
+
       return new Pair<>(codeString, resultSchema);
     }
 

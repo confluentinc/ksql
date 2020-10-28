@@ -57,6 +57,8 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.TransientQueryMetadata;
+
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -104,7 +106,7 @@ final class EngineExecutor {
     if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
-          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false))
+          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet()))
           .orElseThrow(
               () -> new IllegalStateException(
                   "DdlResult should be present if there is no physical plan."));
@@ -112,7 +114,8 @@ final class EngineExecutor {
     }
 
     final QueryPlan queryPlan = plan.getQueryPlan().get();
-    plan.getDdlCommand().map(ddl -> executeDdl(ddl, plan.getStatementText(), true));
+    plan.getDdlCommand().map(ddl ->
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
     return ExecuteResult.of(executePersistentQuery(queryPlan, plan.getStatementText()));
   }
 
@@ -362,10 +365,11 @@ final class EngineExecutor {
   private String executeDdl(
       final DdlCommand ddlCommand,
       final String statementText,
-      final boolean withQuery
+      final boolean withQuery,
+      final Set<SourceName> withQuerySources
   ) {
     try {
-      return engineContext.executeDdl(statementText, ddlCommand, withQuery);
+      return engineContext.executeDdl(statementText, ddlCommand, withQuery, withQuerySources);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

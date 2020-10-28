@@ -25,6 +25,8 @@ public interface MutableMetaStore extends MetaStore {
 
   void deleteSource(SourceName sourceName);
 
+  void addSourceReferences(SourceName sourceName, Set<SourceName> sourceReferences);
+
   void updateForPersistentQuery(
       String queryId,
       Set<SourceName> sourceNames,

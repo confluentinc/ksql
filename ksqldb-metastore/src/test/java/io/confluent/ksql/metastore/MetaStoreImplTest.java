@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -38,6 +39,8 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
+
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -143,6 +146,35 @@ public class MetaStoreImplTest {
   }
 
   @Test
+  public void shouldDeepCopyLinkedAndReferentialSourcesOnCopy() {
+    final DataSource dataSource2 = mock(DataSource.class);
+    when(dataSource2.getName()).thenReturn(SourceName.of("dataSource2"));
+
+    // Given:
+    metaStore.putSource(dataSource, false);
+    metaStore.putSource(dataSource1, false);
+    metaStore.putSource(dataSource2, false);
+    metaStore.addSourceReferences(dataSource1.getName(),
+        Collections.singleton(dataSource.getName()));
+
+    // When:
+    final MetaStoreImpl copy = (MetaStoreImpl) metaStore.copy();
+    metaStore.deleteSource(dataSource1.getName());
+    metaStore.addSourceReferences(dataSource2.getName(),
+        Collections.singleton(dataSource.getName()));
+
+    // Then:
+    assertThat(copy.getSourceConstraints(dataSource.getName()),
+        hasItem(dataSource1.getName()));
+    assertThat(metaStore.getSourceConstraints(dataSource.getName()),
+        hasItem(dataSource2.getName()));
+    assertThat(copy.getSourceReferences(dataSource1.getName()),
+        hasItem(dataSource.getName()));
+    assertThat(metaStore.getSourceReferences(dataSource2.getName()),
+        hasItem(dataSource.getName()));
+  }
+
+  @Test
   public void shouldNotAllowModificationViaGetAllDataSources() {
     // Given:
     metaStore.putSource(dataSource, false);
@@ -171,6 +203,115 @@ public class MetaStoreImplTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Cannot add table 'some source': A table with the same name already exists"));
+  }
+
+  @Test
+  public void shouldThrowOnLinkEqualSources() {
+    // Given:
+    metaStore.putSource(dataSource, false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.addSourceReferences(dataSource.getName(),
+            Collections.singleton(dataSource.getName()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Source name 'some source' should not be referenced itself."));
+  }
+
+  @Test
+  public void shouldThrowOnLinkSourceWithUnknownSourceName() {
+    // Given:
+    metaStore.putSource(dataSource, false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.addSourceReferences(SourceName.of("s1"),
+            Collections.singleton(dataSource.getName()))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "No data source with name 's1' exists."));
+  }
+
+  @Test
+  public void shouldThrowOnLinkSourceWithUnknownLinkedSource() {
+    // Given:
+    metaStore.putSource(dataSource, false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.addSourceReferences(dataSource.getName(),
+            Collections.singleton(SourceName.of("s1")))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "No data source with name 's1' exists."));
+  }
+
+  @Test
+  public void shouldThrowOnDeleteSourceIfAnotherSourceIsLinked() {
+    // Given:
+    metaStore.putSource(dataSource, false);
+    metaStore.putSource(dataSource1, false);
+    metaStore.addSourceReferences(dataSource1.getName(),
+        Collections.singleton(dataSource.getName()));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> metaStore.deleteSource(dataSource.getName())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot drop some source."));
+    assertThat(e.getMessage(), containsString(
+        "The following streams and/or tables read from this source: [some other source]."));
+    assertThat(e.getMessage(), containsString(
+        "You need to drop them before dropping some source."));
+  }
+
+  @Test
+  public void shouldDeleteSourceAfterLinkedSourceIsDeleted() {
+    // Given:
+    metaStore.putSource(dataSource, false);
+    metaStore.putSource(dataSource1, false);
+    metaStore.addSourceReferences(dataSource1.getName(),
+        Collections.singleton(dataSource.getName()));
+
+    // When:
+    metaStore.deleteSource(dataSource1.getName());
+    metaStore.deleteSource(dataSource.getName());
+
+    // Then:
+    assertThat(metaStore.getSource(dataSource.getName()), is(nullValue()));
+    assertThat(metaStore.getSource(dataSource1.getName()), is(nullValue()));
+  }
+
+  @Test
+  public void shouldReplaceSourceCopyLinkedAndReferentialSources() {
+    // Given:
+    metaStore.putSource(dataSource, false);
+    metaStore.putSource(dataSource1, false);
+    metaStore.addSourceReferences(dataSource1.getName(),
+        Collections.singleton(dataSource.getName()));
+
+    // When:
+    metaStore.putSource(dataSource, true);
+
+    // Then:
+    assertThat(metaStore.getSourceConstraints(dataSource.getName()),
+        hasItem(dataSource1.getName()));
+    assertThat(metaStore.getSourceReferences(dataSource1.getName()),
+        hasItem(dataSource.getName()));
   }
 
   @Test

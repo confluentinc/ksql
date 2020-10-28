@@ -40,18 +40,18 @@ public class RestoreOptions {
           + "documentation for a list of available configs.")
   private String configFile;
 
-  @SuppressWarnings("unused") // Accessed via reflection
   @Option(
       name = {"--skip-incompatible-commands", "-s"},
       description = "This restore command can restore command topic commands that "
           + "are of version (" + io.confluent.ksql.rest.server.computation.Command.VERSION + ") "
           + "or lower. If true, the restore command will skip all incompatible commands."
-          + "If false, the restore command will restore the backup file as is.")
+          + "If false, the restore command will throw an "
+          + "exception when it encounters an incompatible command.")
   private boolean skipIncompatibleCommands = false;
 
   @Option(
-          name = {"--yes", "-y"},
-          description = "Automatic \"yes\" as answer to prompt and run non-interactively.")
+      name = {"--yes", "-y"},
+      description = "Automatic \"yes\" as answer to prompt and run non-interactively.")
   private boolean automaticYes = false;
 
   @SuppressWarnings("unused") // Accessed via reflection

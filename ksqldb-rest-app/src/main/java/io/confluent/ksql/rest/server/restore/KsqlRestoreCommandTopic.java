@@ -75,15 +75,14 @@ public class KsqlRestoreCommandTopic {
     final BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file);
     List<Pair<byte[], byte[]>> records = commandTopicBackupFile.readRecords();
 
-    if (options.isSkipIncompatibleCommands()) {
-      records = removeIncompatibleCommands(records);
-    }
+    records = removeIncompatibleCommands(records, options.isSkipIncompatibleCommands());
 
     return records;
   }
 
   private static List<Pair<byte[], byte[]>> removeIncompatibleCommands(
-      final List<Pair<byte[], byte[]>> records
+      final List<Pair<byte[], byte[]>> records,
+      final boolean skipIncompatibleCommands
   ) {
     int n = 0;
     int numFilteredCommands = 0;
@@ -106,8 +105,15 @@ public class KsqlRestoreCommandTopic {
         InternalTopicSerdes.deserializer(Command.class)
             .deserialize(null, record.getRight());
       } catch (final SerializationException | IncomaptibleKsqlCommandVersionException e) {
-        numFilteredCommands++;
-        continue;
+        if (skipIncompatibleCommands) {
+          numFilteredCommands++;
+          continue;
+        } else {
+          throw new KsqlException(String.format(
+              "Incompatible Command string (line %d): %s (%s)",
+              n, new String(record.getLeft(), StandardCharsets.UTF_8), e.getMessage()
+          ));
+        }
       } catch (final Exception e) {
         throw new KsqlException(String.format(
             "Invalid Command string (line %d): %s (%s)",

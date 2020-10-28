@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
+import io.confluent.ksql.rest.server.BackupReplayFile;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
@@ -39,6 +40,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
@@ -52,8 +54,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -83,12 +83,11 @@ public class RestoreCommandTopicIntegrationTest {
   @ClassRule
   public static final TemporaryFolder TMP_FOLDER = new TemporaryFolder();
 
-  private static KsqlConfig KSQL_CONFIG;
   private static File BACKUP_LOCATION;
   private static TestKsqlRestApp REST_APP;
-  private static String COMMAND_TOPIC;
-  private static Path BACKUP_FILE;
-  private static Path PROPERTIES_FILE;
+  private String commandTopic;
+  private Path backupFile;
+  private Path propertiesFile;
 
   @BeforeClass
   public static void classSetUp() throws IOException {
@@ -104,18 +103,18 @@ public class RestoreCommandTopicIntegrationTest {
   @Before
   public void setup() throws IOException {
     REST_APP.start();
-    KSQL_CONFIG = new KsqlConfig(REST_APP.getKsqlRestConfig().getKsqlConfigProperties());
-    COMMAND_TOPIC = ReservedInternalTopics.commandTopic(KSQL_CONFIG);
-    BACKUP_FILE = Files.list(BACKUP_LOCATION.toPath()).findFirst().get();
-    PROPERTIES_FILE = TMP_FOLDER.newFile().toPath();
-    writeServerProperties();
+    final KsqlConfig ksqlConfig = new KsqlConfig(REST_APP.getKsqlRestConfig().getKsqlConfigProperties());
+    commandTopic = ReservedInternalTopics.commandTopic(ksqlConfig);
+    backupFile = Files.list(BACKUP_LOCATION.toPath()).findFirst().get();
+    propertiesFile = TMP_FOLDER.newFile().toPath();
+    writeServerProperties(propertiesFile);
   }
 
   @After
-  public void teardown() throws IOException {
+  public void teardown() {
     REST_APP.stop();
-    TEST_HARNESS.deleteTopics(Collections.singletonList(COMMAND_TOPIC));
-    new File(String.valueOf(BACKUP_FILE)).delete();
+    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    new File(String.valueOf(backupFile)).delete();
   }
 
   @After
@@ -123,11 +122,11 @@ public class RestoreCommandTopicIntegrationTest {
     TMP_FOLDER.delete();
   }
 
-  private static void writeServerProperties() throws IOException {
+  private static void writeServerProperties(final Path propertiesFile) throws IOException {
     final Map<String, Object> map = REST_APP.getKsqlRestConfig().getKsqlConfigProperties();
 
     Files.write(
-        PROPERTIES_FILE,
+            propertiesFile,
         map.keySet().stream()
             .map((key -> key + "=" + map.get(key)))
             .collect(Collectors.joining("\n"))
@@ -151,15 +150,15 @@ public class RestoreCommandTopicIntegrationTest {
     // When
 
     // Delete the command topic and check the server is in degraded state
-    TEST_HARNESS.deleteTopics(Collections.singletonList(COMMAND_TOPIC));
+    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
 
     // Restore the command topic
     KsqlRestoreCommandTopic.main(
         new String[]{
             "--yes",
-            "--config-file", PROPERTIES_FILE.toString(),
-            BACKUP_FILE.toString()
+            "--config-file", propertiesFile.toString(),
+            backupFile.toString()
         });
 
     // Re-load the command topic
@@ -195,35 +194,17 @@ public class RestoreCommandTopicIntegrationTest {
         Optional.of(Command.VERSION + 1),
         Command.VERSION + 1);
 
-    writeToBackupFile(commandId, command, BACKUP_FILE);
-    
-    // Delete the command topic
-    TEST_HARNESS.deleteTopics(Collections.singletonList(COMMAND_TOPIC));
-    REST_APP.stop();
-
-    // Restore the command topic
-    KsqlRestoreCommandTopic.main(
-        new String[]{
-            "--yes",
-            "--config-file", PROPERTIES_FILE.toString(),
-            BACKUP_FILE.toString()
-        });
-
-    // Re-load the command topic
-    REST_APP.start();
-
-    // Server should be in degraded state since the backup file had incompatible command
-    assertThat("Server should be in degraded state", isDegradedState(), is(true));
+    writeToBackupFile(commandId, command, backupFile);
 
     // Delete the command topic again and restore with skip flag
-    TEST_HARNESS.deleteTopics(Collections.singletonList(COMMAND_TOPIC));
+    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
     REST_APP.stop();
     KsqlRestoreCommandTopic.main(
         new String[]{
             "--yes",
             "-s",
-            "--config-file", PROPERTIES_FILE.toString(),
-            BACKUP_FILE.toString()
+            "--config-file", propertiesFile.toString(),
+            backupFile.toString()
         });
 
     // Re-load the command topic
@@ -257,26 +238,18 @@ public class RestoreCommandTopicIntegrationTest {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
 
-  public static void writeToBackupFile(
+  private static void writeToBackupFile(
       final CommandId commandId,
       final Command command,
       final Path backUpFileLocation
   ) throws IOException {
-    FileOutputStream writer;
-    try {
-      writer = new FileOutputStream(new File(String.valueOf(backUpFileLocation)), true);
-    } catch (final FileNotFoundException e) {
-      throw new KsqlException(
-          String.format("Failed to open backup file: %s", backUpFileLocation), e);
-    }
-
-    final byte[] keyValueSeparator = ":".getBytes(StandardCharsets.UTF_8);
-    final byte[] newLine = "/n".getBytes(StandardCharsets.UTF_8);
-
-    writer.write(InternalTopicSerdes.serializer().serialize("", commandId));
-    writer.write(keyValueSeparator);
-    writer.write(InternalTopicSerdes.serializer().serialize("", command));
-    writer.write(newLine);
-    writer.flush();
+    BackupReplayFile.writable(new File(String.valueOf(backUpFileLocation)))
+        .write(new ConsumerRecord<byte[], byte[]>(
+            "",
+            0,
+            0L,
+            InternalTopicSerdes.serializer().serialize("", commandId),
+            InternalTopicSerdes.serializer().serialize("", command))
+        );
   }
 }

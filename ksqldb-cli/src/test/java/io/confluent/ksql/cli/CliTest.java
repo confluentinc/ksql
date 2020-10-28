@@ -1036,15 +1036,18 @@ public class CliTest {
 
   @Test
   public void shouldSubstituteVariablesOnRunCommand()  {
+    // Given:
+    final StringBuilder builder = new StringBuilder();
+    builder.append("SET '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';");
+    builder.append("DEFINE var = '" + ORDER_DATA_PROVIDER.sourceName() + "';");
+    builder.append("CREATE STREAM shouldRunCommand AS SELECT * FROM ${var};");
+
     // When:
-    localCli.runCommand(String.format(
-        "DEFINE var = '%s'; CREATE STREAM shouldRunCommand AS SELECT * FROM ${var};",
-        ORDER_DATA_PROVIDER.sourceName()
-    ));
+    localCli.runCommand(builder.toString());
 
     // Then:
     assertThat(terminal.getOutputString(),
-        containsString("Created query with ID CSAS_SHOULDRUNCOMMAND_1"));
+        containsString("Created query with ID CSAS_SHOULDRUNCOMMAND"));
   }
 
   @Test

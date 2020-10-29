@@ -22,6 +22,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -42,13 +43,12 @@ import org.apache.kafka.streams.state.ValueAndTimestamp;
 class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
   private final KsStateStore stateStore;
-  private final Consumer<ReadOnlySessionStore<Struct, GenericRow>> sessionStoreCacheRemover;
+  private final SessionStoreCacheBypassFetcher cacheBypassFetcher;
 
   KsMaterializedSessionTable(final KsStateStore store,
-      final Consumer<ReadOnlySessionStore<Struct, GenericRow>> sessionStoreCacheRemover) {
+      final SessionStoreCacheBypassFetcher cacheBypassFetcher) {
     this.stateStore = Objects.requireNonNull(store, "store");
-    this.sessionStoreCacheRemover
-        = Objects.requireNonNull(sessionStoreCacheRemover, "sessionStoreCacheRemover");
+    this.cacheBypassFetcher = Objects.requireNonNull(cacheBypassFetcher, "cacheBypassFetcher");
   }
 
   @Override
@@ -62,8 +62,6 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
       final ReadOnlySessionStore<Struct, GenericRow> store = stateStore
           .store(QueryableStoreTypes.sessionStore(), partition);
 
-      sessionStoreCacheRemover.accept(store);
-
       return findSession(store, key, windowStart, windowEnd);
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
@@ -76,7 +74,7 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
       final Range<Instant> windowStart,
       final Range<Instant> windowEnd
   ) {
-    try (KeyValueIterator<Windowed<Struct>, GenericRow> it = store.fetch(key)) {
+    try (KeyValueIterator<Windowed<Struct>, GenericRow> it = cacheBypassFetcher.fetch(store, key)) {
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 

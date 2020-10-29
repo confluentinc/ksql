@@ -22,11 +22,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -43,16 +43,13 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
   private final KsStateStore stateStore;
   private final Duration windowSize;
-  private final Consumer<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>>
-      windowStoreCacheRemover;
+  private final WindowStoreCacheBypassFetcher cacheBypassFetcher;
 
   KsMaterializedWindowTable(final KsStateStore store, final Duration windowSize,
-      final Consumer<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>>
-          windowStoreCacheRemover) {
+      final WindowStoreCacheBypassFetcher cacheBypassFetcher) {
     this.stateStore = Objects.requireNonNull(store, "store");
     this.windowSize = Objects.requireNonNull(windowSize, "windowSize");
-    this.windowStoreCacheRemover
-        = Objects.requireNonNull(windowStoreCacheRemover, "windowStoreCacheRemover");;
+    this.cacheBypassFetcher = Objects.requireNonNull(cacheBypassFetcher, "cacheBypassFetcher");
   }
 
   @Override
@@ -70,7 +67,8 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
       final Instant upper = calculateUpperBound(windowStartBounds, windowEndBounds);
 
-      try (WindowStoreIterator<ValueAndTimestamp<GenericRow>> it = store.fetch(key, lower, upper)) {
+      try (WindowStoreIterator<ValueAndTimestamp<GenericRow>> it
+          = cacheBypassFetcher.fetch(store, key, lower, upper)) {
 
         final Builder<WindowedRow> builder = ImmutableList.builder();
 

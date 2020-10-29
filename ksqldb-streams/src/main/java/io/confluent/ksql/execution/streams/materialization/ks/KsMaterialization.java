@@ -79,12 +79,12 @@ public final class KsMaterialization implements Materialization {
     final WindowType wndType = wndInfo.getType();
     switch (wndType) {
       case SESSION:
-        return new KsMaterializedSessionTable(stateStore, StateStoreCacheRemover::remove);
+        return new KsMaterializedSessionTable(stateStore, SessionStoreCacheBypass::fetch);
 
       case HOPPING:
       case TUMBLING:
         return new KsMaterializedWindowTable(stateStore, wndInfo.getSize().get(),
-            StateStoreCacheRemover::remove);
+            WindowStoreCacheBypass::fetch);
 
       default:
         throw new UnsupportedOperationException("Unknown window type: " + wndInfo);

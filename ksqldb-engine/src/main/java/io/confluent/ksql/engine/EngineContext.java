@@ -88,7 +88,7 @@ final class EngineContext {
   private final Set<QueryMetadata> allLiveQueries = ConcurrentHashMap.newKeySet();
   private final QueryCleanupService cleanupService;
   private final Map<SourceName, QueryId> createAsQueries = new ConcurrentHashMap<>();
-  private final Map<SourceName, Set<QueryId>> otherQueries = new ConcurrentHashMap<>();
+  private final Map<SourceName, Set<QueryId>> insertQueries = new ConcurrentHashMap<>();
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -141,7 +141,7 @@ final class EngineContext {
             SandboxedPersistentQueryMetadata.of(query, sandBox::closeQuery)));
 
     sandBox.createAsQueries.putAll(createAsQueries);
-    sandBox.otherQueries.putAll(otherQueries);
+    sandBox.insertQueries.putAll(insertQueries);
 
     return sandBox;
   }
@@ -161,7 +161,7 @@ final class EngineContext {
       queries.add(createAsQueries.get(sourceName));
     }
 
-    queries.addAll(getOtherQueries(sourceName, FILTER_QUERIES_WITH_SINK));
+    queries.addAll(getInsertQueries(sourceName, FILTER_QUERIES_WITH_SINK));
     return queries.build();
   }
 
@@ -253,7 +253,7 @@ final class EngineContext {
       final Set<SourceName> withQuerySources
   ) {
     if (command instanceof DropSourceCommand) {
-      throwIfOtherQueriesExist(((DropSourceCommand) command).getSourceName());
+      throwIfInsertQueriesExist(((DropSourceCommand) command).getSourceName());
     }
 
     final DdlCommandResult result =
@@ -278,20 +278,20 @@ final class EngineContext {
     });
   }
 
-  private Set<QueryId> getOtherQueries(
+  private Set<QueryId> getInsertQueries(
       final SourceName sourceName,
       final BiPredicate<SourceName, PersistentQueryMetadata> filterQueries
   ) {
-    return otherQueries.getOrDefault(sourceName, Collections.emptySet()).stream()
+    return insertQueries.getOrDefault(sourceName, Collections.emptySet()).stream()
         .map(persistentQueries::get)
         .filter(query -> filterQueries.test(sourceName, query))
         .map(QueryMetadata::getQueryId)
         .collect(Collectors.toSet());
   }
 
-  private void throwIfOtherQueriesExist(final SourceName sourceName) {
-    final Set<QueryId> sinkQueries = getOtherQueries(sourceName, FILTER_QUERIES_WITH_SINK);
-    final Set<QueryId> sourceQueries = getOtherQueries(sourceName, FILTER_QUERIES_WITH_SOURCE);
+  private void throwIfInsertQueriesExist(final SourceName sourceName) {
+    final Set<QueryId> sinkQueries = getInsertQueries(sourceName, FILTER_QUERIES_WITH_SINK);
+    final Set<QueryId> sourceQueries = getInsertQueries(sourceName, FILTER_QUERIES_WITH_SOURCE);
 
     if (!sinkQueries.isEmpty() || !sourceQueries.isEmpty()) {
       throw new KsqlReferentialIntegrityException(String.format(
@@ -337,16 +337,19 @@ final class EngineContext {
       if (createAsQuery) {
         createAsQueries.put(persistentQuery.getSinkName(), queryId);
       } else {
-        final Iterable<SourceName> allSourceNames = Iterables.concat(
-            Collections.singleton(persistentQuery.getSinkName()),
-            persistentQuery.getSourceNames()
-        );
-
-        allSourceNames.forEach(sourceName ->
-            otherQueries.computeIfAbsent(sourceName,
+        // Only INSERT queries exist beside CREATE_AS
+        sinkAndSources(persistentQuery).forEach(sourceName ->
+            insertQueries.computeIfAbsent(sourceName,
                 x -> Collections.synchronizedSet(new HashSet<>())).add(queryId));
       }
     }
+  }
+
+  private Iterable<SourceName> sinkAndSources(final PersistentQueryMetadata query) {
+    return Iterables.concat(
+        Collections.singleton(query.getSinkName()),
+        query.getSourceNames()
+    );
   }
 
   private void closeQuery(final QueryMetadata query) {
@@ -361,17 +364,12 @@ final class EngineContext {
       final QueryId queryId = persistentQuery.getQueryId();
       persistentQueries.remove(queryId);
 
-      final Iterable<SourceName> allSourceNames = Iterables.concat(
-          Collections.singleton(persistentQuery.getSinkName()),
-          persistentQuery.getSourceNames()
-      );
-
       // If query is a INSERT query, then this line should not cause any effect
       createAsQueries.remove(persistentQuery.getSinkName());
 
       // If query is a C*AS query, then these lines should not cause any effect
-      allSourceNames.forEach(sourceName ->
-          otherQueries.computeIfPresent(sourceName, (s, queries) -> {
+      sinkAndSources(persistentQuery).forEach(sourceName ->
+          insertQueries.computeIfPresent(sourceName, (s, queries) -> {
             queries.remove(queryId);
             return (queries.isEmpty()) ? null : queries;
           })

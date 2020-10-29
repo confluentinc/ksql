@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -1354,7 +1355,7 @@ public class ClientTest extends BaseApiTest {
             1,
             "sql",
             Collections.emptyList(),
-            Collections.emptyList()
+            ImmutableList.of("s1", "s2")
         );
     final SourceDescriptionEntity entity = new SourceDescriptionEntity(
         "describe source;", sd, Collections.emptyList());
@@ -1386,6 +1387,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(description.timestampColumn(), is(Optional.empty()));
     assertThat(description.windowType(), is(Optional.of("TUMBLING")));
     assertThat(description.sqlStatement(), is("sql"));
+    assertThat(description.getSourceConstraints(), hasItems("s1", "s2"));
   }
 
   protected Client createJavaClient() {

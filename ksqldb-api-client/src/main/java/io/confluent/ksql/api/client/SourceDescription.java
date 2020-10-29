@@ -85,4 +85,11 @@ public interface SourceDescription {
    */
   String sqlStatement();
 
+  /**
+   * Returns a list of sources that have a DROP constraint reference on this source. This DROP
+   * constraint does not allow to delete this source after all referenced sources are deleted.
+   *
+   * @return a list of sources
+   */
+  List<String> getSourceConstraints();
 }

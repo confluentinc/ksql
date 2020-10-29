@@ -57,7 +57,7 @@ public class KsMaterializedTableTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x");
+      .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x", 0);
   private static final int PARTITION = 0;
 
   @Mock

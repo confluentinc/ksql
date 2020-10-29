@@ -148,6 +148,6 @@ public class OrderDataProvider extends TestDataProvider {
   }
 
   public static Struct buildKey(final String key) {
-    return KEY_BUILDER.build(key);
+    return KEY_BUILDER.build(key, 0);
   }
 }

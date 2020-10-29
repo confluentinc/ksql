@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -98,6 +97,7 @@ import org.mockito.junit.MockitoRule;
 public class SourceBuilderTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
+  private static final ColumnName K1 = ColumnName.of("k1");
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.BIGINT)
@@ -105,8 +105,20 @@ public class SourceBuilderTest {
       .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
       .build();
 
+  private static final LogicalSchema MULTI_COL_SOURCE_SCHEMA = LogicalSchema.builder()
+      .keyColumn(K0, SqlTypes.BIGINT)
+      .keyColumn(K1, SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
+      .build();
+
   private static final Schema KEY_SCHEMA = SchemaBuilder.struct()
       .field(K0.text(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .build();
+
+  private static final Schema MULTI_KEY_SCHEMA = SchemaBuilder.struct()
+      .field(K0.text(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field(K1.text(), Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
 
   private static final double A_KEY = 10.11;
@@ -488,29 +500,6 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldThrowOnMultiFieldKey() {
-    // Given:
-    givenUnwindowedSourceStream();
-    final StreamSource streamSource = new StreamSource(
-        new ExecutionStepPropertiesV1(ctx),
-        TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
-        Optional.empty(),
-        LogicalSchema.builder()
-            .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
-            .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
-            .valueColumns(SCHEMA.value())
-            .build()
-    );
-
-    // When:
-    assertThrows(
-        IllegalStateException.class,
-        () -> streamSource.build(planBuilder)
-    );
-  }
-
-  @Test
   public void shouldAddRowTimeAndRowKeyColumnsToNonWindowedStream() {
     // Given:
     givenUnwindowedSourceStream();
@@ -545,6 +534,22 @@ public class SourceBuilderTest {
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
         getTransformerFromStreamSource(streamSource);
 
+    final Struct nullKey = null;
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(nullKey, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null)));
+  }
+
+  @Test
+  public void shouldHandleEmptyKey() {
+    // Given:
+    givenUnwindowedSourceStream();
+    final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
     final Struct nullKey = new Struct(KEY_SCHEMA);
 
     // When:
@@ -555,6 +560,70 @@ public class SourceBuilderTest {
   }
 
   @Test
+  public void shouldHandleMultiField() {
+    // Given:
+    givenMultiColumnSourceStream();
+    final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final Struct key = new Struct(MULTI_KEY_SCHEMA).put(K0.text(), 1d).put(K1.text(), 2d);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, 1d, 2d)));
+  }
+
+  @Test
+  public void shouldHandleMultiFieldWithNullCol() {
+    // Given:
+    givenMultiColumnSourceStream();
+    final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final Struct key = new Struct(MULTI_KEY_SCHEMA).put(K0.text(), null).put(K1.text(), 2d);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, 2d)));
+  }
+
+  @Test
+  public void shouldHandleMultiFieldEmptyStruct() {
+    // Given:
+    givenMultiColumnSourceStream();
+    final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final Struct key = new Struct(MULTI_KEY_SCHEMA);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null)));
+  }
+
+  @Test
+  public void shouldHandleMultiFieldEntirelyNull() {
+    // Given:
+    givenMultiColumnSourceStream();
+    final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final Struct key = null;
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null)));
+  }
+
+    @Test
   public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToStream() {
     // Given:
     givenWindowedSourceStream();
@@ -754,6 +823,18 @@ public class SourceBuilderTest {
     );
   }
 
+  private void givenMultiColumnSourceStream() {
+    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    givenConsumed(consumed, keySerde);
+    streamSource = new StreamSource(
+        new ExecutionStepPropertiesV1(ctx),
+        TOPIC_NAME,
+        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        TIMESTAMP_COLUMN,
+        MULTI_COL_SOURCE_SCHEMA
+    );
+  }
+
   private void givenWindowedSourceTable() {
     when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
@@ -765,6 +846,20 @@ public class SourceBuilderTest {
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA
+    );
+  }
+
+  private void givenWindowedMultiKeySourceTable() {
+    when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
+    givenConsumed(consumedWindowed, windowedKeySerde);
+    givenConsumed(consumedWindowed, windowedKeySerde);
+    windowedTableSource = new WindowedTableSource(
+        new ExecutionStepPropertiesV1(ctx),
+        TOPIC_NAME,
+        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        windowInfo,
+        TIMESTAMP_COLUMN,
+        MULTI_COL_SOURCE_SCHEMA
     );
   }
 

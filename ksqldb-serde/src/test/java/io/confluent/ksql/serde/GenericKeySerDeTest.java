@@ -263,7 +263,8 @@ public class GenericKeySerDeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Unsupported key schema: [STRING, INTEGER]"));
+    assertThat(e.getMessage(), containsString("Only single KEY column supported. "
+        + "Multiple KEY columns found: [STRING, INTEGER]"));
   }
 
   @Test

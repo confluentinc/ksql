@@ -409,7 +409,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The projection contains the key column more than once: `L_A` and `KEY2`."
+        "message": "The projection contains a key column (`L_A`) more than once, aliased as: KEY2 and L_A."
       }
     },
     {

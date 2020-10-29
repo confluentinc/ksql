@@ -89,7 +89,7 @@ public class TableGroupByBuilderTest {
   );
 
   private static final Struct KEY = StructKeyUtil
-      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING).build("key");
+      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING).build("key", 0);
 
   @Mock
   private KsqlQueryBuilder queryBuilder;

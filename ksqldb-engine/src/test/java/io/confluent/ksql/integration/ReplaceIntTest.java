@@ -101,7 +101,7 @@ public class ReplaceIntTest {
             outputTopic));
 
     TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.KAFKA, FormatFactory.JSON);
-    assertForSource("PROJECT", outputTopic, ImmutableMap.of(Provider.KEY_BUILDER.build("1"), GenericRow.genericRow("A")));
+    assertForSource("PROJECT", outputTopic, ImmutableMap.of(Provider.KEY_BUILDER.build("1", 0), GenericRow.genericRow("A")));
 
     // When:
     ksqlContext.sql(
@@ -112,8 +112,8 @@ public class ReplaceIntTest {
 
     // Then:
     final Map<Struct, GenericRow> expected = ImmutableMap.of(
-        Provider.KEY_BUILDER.build("1"), GenericRow.genericRow("A", null),  // this row is leftover from the original query
-        Provider.KEY_BUILDER.build("2"), GenericRow.genericRow("B", 2)      // this row is an artifact from the new query
+        Provider.KEY_BUILDER.build("1", 0), GenericRow.genericRow("A", null),  // this row is leftover from the original query
+        Provider.KEY_BUILDER.build("2", 0), GenericRow.genericRow("B", 2)      // this row is an artifact from the new query
     );
     assertForSource("PROJECT", outputTopic, expected);
   }
@@ -128,7 +128,7 @@ public class ReplaceIntTest {
             outputTopic));
 
     TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.KAFKA, FormatFactory.JSON);
-    assertForSource("PROJECT", outputTopic, ImmutableMap.of(Provider.KEY_BUILDER.build("1"), GenericRow.genericRow("A")));
+    assertForSource("PROJECT", outputTopic, ImmutableMap.of(Provider.KEY_BUILDER.build("1", 0), GenericRow.genericRow("A")));
 
     // When:
     ksqlContext.sql(
@@ -139,8 +139,8 @@ public class ReplaceIntTest {
 
     // Then:
     final Map<Struct, GenericRow> expected = ImmutableMap.of(
-        Provider.KEY_BUILDER.build("1"), GenericRow.genericRow("A"),  // this row is leftover from the original query
-        Provider.KEY_BUILDER.build("3"), GenericRow.genericRow("C")   // this row is an artifact from the new query
+        Provider.KEY_BUILDER.build("1", 0), GenericRow.genericRow("A"),  // this row is leftover from the original query
+        Provider.KEY_BUILDER.build("3", 0), GenericRow.genericRow("C")   // this row is an artifact from the new query
     );
     assertForSource("PROJECT", outputTopic, expected);
   }
@@ -186,7 +186,7 @@ public class ReplaceIntTest {
         final String col1,
         final Integer col2
     ) {
-      return ImmutableListMultimap.of(KEY_BUILDER.build(key), GenericRow.genericRow(col1, col2));
+      return ImmutableListMultimap.of(KEY_BUILDER.build(key, 0), GenericRow.genericRow(col1, col2));
     }
   }
 

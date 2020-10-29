@@ -505,7 +505,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
         ]
       }
     },
@@ -529,7 +529,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
         ]
       }
     },

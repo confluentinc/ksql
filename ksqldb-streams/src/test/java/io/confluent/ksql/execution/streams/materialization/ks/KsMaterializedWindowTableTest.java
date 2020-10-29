@@ -71,7 +71,7 @@ public class KsMaterializedWindowTableTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x");
+      .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x", 0);
 
   protected static final Instant NOW = Instant.now();
 

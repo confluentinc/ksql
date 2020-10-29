@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheB
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Window;
@@ -34,8 +33,6 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
-import org.apache.kafka.streams.state.ReadOnlyWindowStore;
-import org.apache.kafka.streams.state.ValueAndTimestamp;
 
 /**
  * Kafka Streams impl of {@link MaterializedWindowedTable}.

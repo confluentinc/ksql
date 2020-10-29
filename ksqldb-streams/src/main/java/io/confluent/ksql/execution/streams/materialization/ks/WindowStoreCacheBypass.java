@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams.materialization.ks;
 
 import io.confluent.ksql.GenericRow;
@@ -22,7 +37,7 @@ import org.apache.kafka.streams.state.internals.MeteredWindowStore;
 import org.apache.kafka.streams.state.internals.StateStoreProvider;
 import org.apache.kafka.streams.state.internals.WrappedStateStore;
 
-public class WindowStoreCacheBypass {
+public final class WindowStoreCacheBypass {
   private static final Field PROVIDER_FIELD;
   private static final Field STORE_NAME_FIELD;
   private static final Field WINDOW_STORE_TYPE_FIELD;
@@ -44,13 +59,15 @@ public class WindowStoreCacheBypass {
     }
   }
 
+  private WindowStoreCacheBypass() {}
+
   interface WindowStoreCacheBypassFetcher {
 
     WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetch(
-        final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store,
-        final Struct key,
-        final Instant lower,
-        final Instant upper
+        ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store,
+        Struct key,
+        Instant lower,
+        Instant upper
     );
   }
 
@@ -64,27 +81,23 @@ public class WindowStoreCacheBypass {
     Objects.requireNonNull(key, "key can't be null");
 
     final StateStoreProvider provider;
+    final String storeName;
+    final QueryableStoreType<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>>
+        windowStoreType;
     try {
       provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
-    final String storeName;
-    try {
       storeName = (String) STORE_NAME_FIELD.get(store);
+      windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<Struct,
+          ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
     } catch (final IllegalAccessException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
-    final QueryableStoreType<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>> windowStoreType;
-    try {
-      windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
-    final List<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>> stores = provider.stores(storeName, windowStoreType);
+    final List<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>> stores
+        = provider.stores(storeName, windowStoreType);
     for (final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> windowStore : stores) {
       try {
-        final WindowStoreIterator<ValueAndTimestamp<GenericRow>> result = fetchUncached(windowStore, key, lower, upper);
+        final WindowStoreIterator<ValueAndTimestamp<GenericRow>> result
+            = fetchUncached(windowStore, key, lower, upper);
         // returns the first non-empty iterator
         if (!result.hasNext()) {
           result.close();
@@ -93,8 +106,8 @@ public class WindowStoreCacheBypass {
         }
       } catch (final InvalidStateStoreException e) {
         throw new InvalidStateStoreException(
-            "State store is not available anymore and may have been migrated to another instance; " +
-                "please re-discover its location from the state metadata.", e);
+            "State store is not available anymore and may have been migrated to another instance; "
+                + "please re-discover its location from the state metadata.", e);
       }
     }
     return new EmptyKeyValueIterator();
@@ -116,9 +129,10 @@ public class WindowStoreCacheBypass {
       }
 
       final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
-      WindowStore<Bytes, byte[]> wrapped = ((MeteredWindowStore<Struct, ValueAndTimestamp<GenericRow>>) windowStore).wrapped();
+      WindowStore<Bytes, byte[]> wrapped
+          = ((MeteredWindowStore<Struct, ValueAndTimestamp<GenericRow>>) windowStore).wrapped();
       while (wrapped instanceof WrappedStateStore) {
-        StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
+        final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
         if (!(store instanceof WindowStore)) {
           break;
         }
@@ -131,7 +145,8 @@ public class WindowStoreCacheBypass {
     return null;
   }
 
-  private static final class DeserializingIterator implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
+  private static final class DeserializingIterator
+      implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
     private final WindowStoreIterator<byte[]> fetch;
     private final StateSerdes<Struct, ValueAndTimestamp<GenericRow>> serdes;
 
@@ -163,7 +178,8 @@ public class WindowStoreCacheBypass {
     }
   }
 
-  private static class EmptyKeyValueIterator implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
+  private static class EmptyKeyValueIterator
+      implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
 
     @Override
     public void close() {

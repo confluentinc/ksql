@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams.materialization.ks;
 
 import io.confluent.ksql.GenericRow;
@@ -21,7 +36,7 @@ import org.apache.kafka.streams.state.internals.MeteredSessionStore;
 import org.apache.kafka.streams.state.internals.StateStoreProvider;
 import org.apache.kafka.streams.state.internals.WrappedStateStore;
 
-public class SessionStoreCacheBypass {
+public final class SessionStoreCacheBypass {
 
   private static final Field PROVIDER_FIELD;
   private static final Field STORE_NAME_FIELD;
@@ -44,11 +59,13 @@ public class SessionStoreCacheBypass {
     }
   }
 
+  private SessionStoreCacheBypass() {}
+
   interface SessionStoreCacheBypassFetcher {
 
     KeyValueIterator<Windowed<Struct>, GenericRow> fetch(
-        final ReadOnlySessionStore<Struct, GenericRow> store,
-        final Struct key
+        ReadOnlySessionStore<Struct, GenericRow> store,
+        Struct key
     );
   }
 
@@ -60,27 +77,22 @@ public class SessionStoreCacheBypass {
     Objects.requireNonNull(key, "key can't be null");
 
     final StateStoreProvider provider;
-    try {
-      provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
     final String storeName;
-    try {
-      storeName = (String) STORE_NAME_FIELD.get(store);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
     final QueryableStoreType<ReadOnlySessionStore<Struct, GenericRow>> storeType;
     try {
-      storeType = (QueryableStoreType<ReadOnlySessionStore<Struct, GenericRow>>) STORE_TYPE_FIELD.get(store);
+      provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
+      storeName = (String) STORE_NAME_FIELD.get(store);
+      storeType = (QueryableStoreType<ReadOnlySessionStore<Struct, GenericRow>>)
+          STORE_TYPE_FIELD.get(store);
     } catch (final IllegalAccessException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
-    final List<ReadOnlySessionStore<Struct, GenericRow>> stores = provider.stores(storeName, storeType);
+    final List<ReadOnlySessionStore<Struct, GenericRow>> stores
+        = provider.stores(storeName, storeType);
     for (final ReadOnlySessionStore<Struct, GenericRow> sessionStore : stores) {
       try {
-        final KeyValueIterator<Windowed<Struct>, GenericRow> result = fetchUncached(sessionStore, key);
+        final KeyValueIterator<Windowed<Struct>, GenericRow> result
+            = fetchUncached(sessionStore, key);
         // returns the first non-empty iterator
         if (!result.hasNext()) {
           result.close();
@@ -89,8 +101,8 @@ public class SessionStoreCacheBypass {
         }
       } catch (final InvalidStateStoreException e) {
         throw new InvalidStateStoreException(
-            "State store is not available anymore and may have been migrated to another instance; " +
-                "please re-discover its location from the state metadata.", e);
+            "State store is not available anymore and may have been migrated to another instance; "
+                + "please re-discover its location from the state metadata.", e);
       }
     }
     return new EmptyKeyValueIterator();
@@ -110,9 +122,10 @@ public class SessionStoreCacheBypass {
       }
 
       final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
-      SessionStore<Bytes, byte[]> wrapped = ((MeteredSessionStore<Struct, GenericRow>) sessionStore).wrapped();
+      SessionStore<Bytes, byte[]> wrapped
+          = ((MeteredSessionStore<Struct, GenericRow>) sessionStore).wrapped();
       while (wrapped instanceof WrappedStateStore) {
-        StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
+        final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
         if (!(store instanceof SessionStore)) {
           break;
         }
@@ -125,7 +138,8 @@ public class SessionStoreCacheBypass {
     return null;
   }
 
-  private static final class DeserializingIterator implements KeyValueIterator<Windowed<Struct>, GenericRow> {
+  private static final class DeserializingIterator
+      implements KeyValueIterator<Windowed<Struct>, GenericRow> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
     private final StateSerdes<Struct, GenericRow> serdes;
 
@@ -142,7 +156,7 @@ public class SessionStoreCacheBypass {
 
     @Override
     public Windowed<Struct> peekNextKey() {
-      Windowed<Bytes> windowed = fetch.peekNextKey();
+      final Windowed<Bytes> windowed = fetch.peekNextKey();
       return new Windowed<>(serdes.keyFrom(windowed.key().get()), windowed.window());
     }
 
@@ -153,13 +167,14 @@ public class SessionStoreCacheBypass {
 
     @Override
     public KeyValue<Windowed<Struct>, GenericRow> next() {
-      Windowed<Struct> key = peekNextKey();
+      final Windowed<Struct> key = peekNextKey();
       final KeyValue<Windowed<Bytes>, byte[]> next = fetch.next();
       return KeyValue.pair(key, serdes.valueFrom(next.value));
     }
   }
 
-  private static class EmptyKeyValueIterator implements KeyValueIterator<Windowed<Struct>, GenericRow> {
+  private static class EmptyKeyValueIterator
+      implements KeyValueIterator<Windowed<Struct>, GenericRow> {
 
     @Override
     public void close() {

@@ -209,7 +209,8 @@ public final class MetaStoreImpl implements MutableMetaStore {
     });
   }
 
-  Set<SourceName> getSourceConstraints(final SourceName sourceName) {
+  @Override
+  public Set<SourceName> getSourceConstraints(final SourceName sourceName) {
     return dropConstraints.getOrDefault(sourceName, Collections.emptySet());
   }
 

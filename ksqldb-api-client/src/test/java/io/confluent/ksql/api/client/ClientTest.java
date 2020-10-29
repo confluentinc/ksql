@@ -923,6 +923,7 @@ public class ClientTest extends BaseApiTest {
             4,
             1,
             "statement",
+            Collections.emptyList(),
             Collections.emptyList()),
         Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
@@ -1352,6 +1353,7 @@ public class ClientTest extends BaseApiTest {
             4,
             1,
             "sql",
+            Collections.emptyList(),
             Collections.emptyList()
         );
     final SourceDescriptionEntity entity = new SourceDescriptionEntity(

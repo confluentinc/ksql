@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -87,6 +88,11 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
   @Override
   public Sink getSink() {
     return Sink.of(getName(), true, isOrReplace(), getProperties());
+  }
+
+  @Override
+  public Optional<String> getQueryId() {
+    return Optional.empty();
   }
 
   @Override

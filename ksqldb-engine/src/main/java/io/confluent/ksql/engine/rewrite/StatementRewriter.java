@@ -434,7 +434,8 @@ public final class StatementRewriter<C> {
       return new InsertInto(
           node.getLocation(),
           node.getTarget(),
-          (Query) rewriter.apply(node.getQuery(), context)
+          (Query) rewriter.apply(node.getQuery(), context),
+          node.getProperties()
       );
     }
 

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
+import java.util.Optional;
+
 /**
  * Indicates the statement contains a {@link Query}.
  */
@@ -33,4 +35,11 @@ public interface QueryContainer {
    * @return the sink info.
    */
   Sink getSink();
+
+  /**
+   * Return an optional query ID if specified by the user
+   *
+   * @return the optional query ID
+   */
+  Optional<String> getQueryId();
 }

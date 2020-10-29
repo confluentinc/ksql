@@ -345,6 +345,31 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldExecuteInsertIntoWithCustomQueryId() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "insert into bar with (id='my_insert_id') select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    assertThat(queries, hasSize(1));
+    assertThat(queries.get(0).getQueryId(), is(new QueryId("MY_INSERT_ID")));
+  }
+
+  @Test
   public void shouldExecuteInsertIntoStream() {
     // Given:
     KsqlEngineTestUtil.execute(

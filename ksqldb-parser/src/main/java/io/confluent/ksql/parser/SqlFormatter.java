@@ -321,6 +321,16 @@ public final class SqlFormatter {
       builder.append("INSERT INTO ");
       builder.append(escapedName(node.getTarget()));
       builder.append(" ");
+
+      final String insertProps = node.getProperties().toString();
+      if (!insertProps.isEmpty()) {
+        builder
+            .append(" WITH (")
+            .append(insertProps)
+            .append(")");
+        builder.append(" ");
+      }
+
       process(node.getQuery(), indent);
       return null;
     }

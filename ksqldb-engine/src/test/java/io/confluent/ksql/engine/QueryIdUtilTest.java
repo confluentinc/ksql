@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
@@ -59,7 +58,8 @@ public class QueryIdUtilTest {
 
     // When:
     long numUniqueIds = IntStream.range(0, 100)
-        .mapToObj(i -> QueryIdUtil.buildId(engineContext, idGenerator, transientPlan, false))
+        .mapToObj(i -> QueryIdUtil.buildId(engineContext, idGenerator, transientPlan,
+            false, Optional.empty()))
         .distinct()
         .count();
 
@@ -74,7 +74,8 @@ public class QueryIdUtilTest {
     when(idGenerator.getNext()).thenReturn("1");
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        false, Optional.empty());
 
     // Then:
     assertThat(queryId, is(new QueryId("INSERTQUERY_1")));
@@ -91,8 +92,8 @@ public class QueryIdUtilTest {
     when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
-
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        false, Optional.empty());
     // Then:
     assertThat(queryId, is(new QueryId("CSAS_FOO_1")));
   }
@@ -108,7 +109,8 @@ public class QueryIdUtilTest {
     when(engineContext.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        false, Optional.empty());
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_1")));
@@ -123,7 +125,8 @@ public class QueryIdUtilTest {
         .thenReturn(ImmutableSet.of(new QueryId("CTAS_FOO_10")));
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan, true);
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        true, Optional.empty());
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_10")));
@@ -139,7 +142,8 @@ public class QueryIdUtilTest {
         .thenReturn(ImmutableSet.of(new QueryId("CTAS_FOO_10")));
 
     // When:
-    QueryIdUtil.buildId(engineContext, idGenerator, plan, false);
+    QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        false, Optional.empty());
   }
 
   @Test
@@ -151,10 +155,48 @@ public class QueryIdUtilTest {
         .thenReturn(ImmutableSet.of(new QueryId("CTAS_FOO_1"), new QueryId("INSERTQUERY_1")));
 
     // When:
-    final KsqlException e = assertThrows(KsqlException.class, () -> QueryIdUtil.buildId(engineContext, idGenerator, plan, false));
+    final KsqlException e = assertThrows(KsqlException.class, () ->
+        QueryIdUtil.buildId(engineContext, idGenerator, plan, false, Optional.empty()));
 
     // Then:
     assertThat(e.getMessage(), containsString("there are multiple queries writing"));
   }
 
+  @Test
+  public void shouldReturnWithQueryIdInUppercase(){
+    // When:
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        false, Optional.of("my_query_id"));
+
+    // Then:
+    assertThat(queryId, is(new QueryId("MY_QUERY_ID")));
+  }
+
+  @Test
+  public void shouldThrowIfWithQueryIdIsReserved() {
+    // When:
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> QueryIdUtil.buildId(engineContext, idGenerator, plan,
+            false, Optional.of("insertquery_custom"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Query IDs must not start with a "
+        + "reserved query ID prefix (INSERTQUERY_, CTAS_, CSAS_). Got 'INSERTQUERY_CUSTOM'."));
+  }
+
+  @Test
+  public void shouldThrowIfWithQueryIdIsNotValid() {
+    // When:
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> QueryIdUtil.buildId(engineContext, idGenerator, plan,
+            false, Optional.of("with space"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Query IDs may contain only alphanumeric characters and '_'. Got: 'WITH SPACE'"));
+  }
 }

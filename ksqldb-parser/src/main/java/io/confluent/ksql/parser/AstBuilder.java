@@ -94,6 +94,7 @@ import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.WindowUnitContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
@@ -352,10 +353,13 @@ public class AstBuilder {
     public Node visitInsertInto(final SqlBaseParser.InsertIntoContext context) {
       final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
       return new InsertInto(
           getLocation(context),
           targetName,
-          query);
+          query,
+          InsertIntoProperties.from(properties));
     }
 
     @Override

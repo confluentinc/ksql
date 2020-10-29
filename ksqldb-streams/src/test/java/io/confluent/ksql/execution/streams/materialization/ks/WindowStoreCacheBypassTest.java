@@ -65,6 +65,10 @@ public class WindowStoreCacheBypassTest {
   @Mock
   private WindowStore<Bytes, byte[]> windowStore;
   @Mock
+  private WrappedWindowStore<Bytes, byte[]> wrappedWindowStore;
+  @Mock
+  private StateStore stateStore;
+  @Mock
   private WindowStoreIterator<byte[]> windowStoreIterator;
   @Mock
   private StateSerdes<Struct, ValueAndTimestamp<GenericRow>> serdes;
@@ -82,7 +86,8 @@ public class WindowStoreCacheBypassTest {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
     SERDES_FIELD.set(meteredWindowStore, serdes);
     when(serdes.rawKey(any())).thenReturn(BYTES);
-    when(meteredWindowStore.wrapped()).thenReturn(windowStore);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
     when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
     when(windowStoreIterator.hasNext()).thenReturn(false);
 
@@ -91,7 +96,23 @@ public class WindowStoreCacheBypassTest {
   }
 
   @Test
-  public void shouldThrowException() throws IllegalAccessException {
+  public void shouldAvoidNonWindowStore() throws IllegalAccessException {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(stateStore);
+    when(wrappedWindowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
+    when(windowStoreIterator.hasNext()).thenReturn(false);
+
+    WindowStoreCacheBypass.fetch(
+        store, SOME_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    verify(wrappedWindowStore).fetch(
+        new Bytes(BYTES), Instant.ofEpochMilli(100L), Instant.ofEpochMilli(200L));
+  }
+
+  @Test
+  public void shouldThrowException_InvalidStateStoreException() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
     SERDES_FIELD.set(meteredWindowStore, serdes);
     when(serdes.rawKey(any())).thenReturn(BYTES);
@@ -107,5 +128,25 @@ public class WindowStoreCacheBypassTest {
 
     assertThat(e.getMessage(), containsString("State store is not "
         + "available anymore and may have been migrated to another instance"));
+  }
+
+  @Test
+  public void shouldThrowException_wrongStateStore() {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(windowStore));
+
+    final Exception e = assertThrows(
+        IllegalStateException.class,
+        () -> WindowStoreCacheBypass.fetch(store, SOME_KEY,
+            Instant.ofEpochMilli(100), Instant.ofEpochMilli(200))
+    );
+
+    assertThat(e.getMessage(), containsString("Expecting a MeteredWindowStore"));
+  }
+
+  private static abstract class WrappedWindowStore<K, V>
+      extends WrappedStateStore<StateStore, K, V> implements WindowStore<K, V> {
+    public WrappedWindowStore(StateStore wrapped) {
+      super(wrapped);
+    }
   }
 }

@@ -141,8 +141,9 @@ public final class WindowStoreCacheBypass {
       // now we have the innermost layer of the store.
       final WindowStoreIterator<byte[]> fetch = wrapped.fetch(rawKey, lower, upper);
       return new DeserializingIterator(fetch, serdes);
+    } else {
+      throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
-    return null;
   }
 
   private static final class DeserializingIterator

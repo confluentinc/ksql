@@ -31,6 +31,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.processor.StateStore;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
@@ -40,6 +41,7 @@ import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.apache.kafka.streams.state.internals.CompositeReadOnlySessionStore;
 import org.apache.kafka.streams.state.internals.MeteredSessionStore;
 import org.apache.kafka.streams.state.internals.StateStoreProvider;
+import org.apache.kafka.streams.state.internals.WrappedStateStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,6 +65,10 @@ public class SessionStoreCacheBypassTest {
   @Mock
   private SessionStore<Bytes, byte[]> sessionStore;
   @Mock
+  private WrappedSessionStore<Bytes, byte[]> wrappedSessionStore;
+  @Mock
+  private StateStore stateStore;
+  @Mock
   private KeyValueIterator<Windowed<Bytes>, byte[]> storeIterator;
   @Mock
   private StateSerdes<Struct, ValueAndTimestamp<GenericRow>> serdes;
@@ -79,7 +85,8 @@ public class SessionStoreCacheBypassTest {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
     SERDES_FIELD.set(meteredSessionStore, serdes);
     when(serdes.rawKey(any())).thenReturn(BYTES);
-    when(meteredSessionStore.wrapped()).thenReturn(sessionStore);
+    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any())).thenReturn(storeIterator);
     when(storeIterator.hasNext()).thenReturn(false);
 
@@ -88,7 +95,21 @@ public class SessionStoreCacheBypassTest {
   }
 
   @Test
-  public void shouldThrowException() throws IllegalAccessException {
+  public void shouldAvoidNonSessionStore() throws IllegalAccessException {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
+    SERDES_FIELD.set(meteredSessionStore, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(stateStore);
+    when(wrappedSessionStore.fetch(any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(false);
+
+    SessionStoreCacheBypass.fetch(store, SOME_KEY);
+    verify(wrappedSessionStore).fetch(new Bytes(BYTES));
+  }
+
+  @Test
+  public void shouldThrowException_InvalidStateStoreException() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
     SERDES_FIELD.set(meteredSessionStore, serdes);
     when(serdes.rawKey(any())).thenReturn(BYTES);
@@ -103,5 +124,24 @@ public class SessionStoreCacheBypassTest {
 
     assertThat(e.getMessage(), containsString("State store is not "
         + "available anymore and may have been migrated to another instance"));
+  }
+
+  @Test
+  public void shouldThrowException_wrongStateStore() {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(sessionStore));
+
+    final Exception e = assertThrows(
+        IllegalStateException.class,
+        () -> SessionStoreCacheBypass.fetch(store, SOME_KEY)
+    );
+
+    assertThat(e.getMessage(), containsString("Expecting a MeteredSessionStore"));
+  }
+
+  private static abstract class WrappedSessionStore<K, V>
+      extends WrappedStateStore<StateStore, K, V> implements SessionStore<K, V> {
+    public WrappedSessionStore(StateStore wrapped) {
+      super(wrapped);
+    }
   }
 }

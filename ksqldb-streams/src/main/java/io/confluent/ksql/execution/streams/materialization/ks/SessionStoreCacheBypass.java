@@ -134,8 +134,9 @@ public final class SessionStoreCacheBypass {
       // now we have the innermost layer of the store.
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
       return new DeserializingIterator(fetch, serdes);
+    } else {
+      throw new IllegalStateException("Expecting a MeteredSessionStore");
     }
-    return null;
   }
 
   private static final class DeserializingIterator

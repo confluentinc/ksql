@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Window;
@@ -32,6 +33,8 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
+import org.apache.kafka.streams.state.ReadOnlyWindowStore;
+import org.apache.kafka.streams.state.ValueAndTimestamp;
 
 /**
  * Kafka Streams impl of {@link MaterializedWindowedTable}.
@@ -39,9 +42,13 @@ import org.apache.kafka.streams.state.ReadOnlySessionStore;
 class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
   private final KsStateStore stateStore;
+  private final Consumer<ReadOnlySessionStore<Struct, GenericRow>> sessionStoreCacheRemover;
 
-  KsMaterializedSessionTable(final KsStateStore store) {
+  KsMaterializedSessionTable(final KsStateStore store,
+      final Consumer<ReadOnlySessionStore<Struct, GenericRow>> sessionStoreCacheRemover) {
     this.stateStore = Objects.requireNonNull(store, "store");
+    this.sessionStoreCacheRemover
+        = Objects.requireNonNull(sessionStoreCacheRemover, "sessionStoreCacheRemover");
   }
 
   @Override
@@ -54,6 +61,8 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
     try {
       final ReadOnlySessionStore<Struct, GenericRow> store = stateStore
           .store(QueryableStoreTypes.sessionStore(), partition);
+
+      sessionStoreCacheRemover.accept(store);
 
       return findSession(store, key, windowStart, windowEnd);
     } catch (final Exception e) {

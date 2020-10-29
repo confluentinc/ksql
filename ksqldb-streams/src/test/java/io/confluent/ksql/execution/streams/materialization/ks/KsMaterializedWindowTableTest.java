@@ -42,6 +42,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -99,12 +100,15 @@ public class KsMaterializedWindowTableTest {
   private WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetchIterator;
   @Captor
   private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
+  @Mock
+  private Consumer<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>>
+      windowStoreCacheRemover;
 
   private KsMaterializedWindowTable table;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE);
+    table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE, windowStoreCacheRemover);
 
     when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);

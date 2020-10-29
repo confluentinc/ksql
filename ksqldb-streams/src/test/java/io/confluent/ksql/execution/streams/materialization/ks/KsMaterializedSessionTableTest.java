@@ -42,6 +42,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -49,6 +50,8 @@ import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes.SessionStoreType;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
+import org.apache.kafka.streams.state.ReadOnlyWindowStore;
+import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -87,13 +90,15 @@ public class KsMaterializedSessionTableTest {
   private ReadOnlySessionStore<Struct, GenericRow> sessionStore;
   @Mock
   private KeyValueIterator<Windowed<Struct>, GenericRow> fetchIterator;
+  @Mock
+  private Consumer<ReadOnlySessionStore<Struct, GenericRow>> sessionStoreCacheRemover;
   private KsMaterializedSessionTable table;
   private final List<KeyValue<Windowed<Struct>, GenericRow>> sessions = new ArrayList<>();
   private int sessionIdx;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedSessionTable(stateStore);
+    table = new KsMaterializedSessionTable(stateStore, sessionStoreCacheRemover);
 
     when(stateStore.store(any(), anyInt())).thenReturn(sessionStore);
     when(stateStore.schema()).thenReturn(SCHEMA);

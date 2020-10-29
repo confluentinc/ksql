@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -42,10 +43,16 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
   private final KsStateStore stateStore;
   private final Duration windowSize;
+  private final Consumer<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>>
+      windowStoreCacheRemover;
 
-  KsMaterializedWindowTable(final KsStateStore store, final Duration windowSize) {
+  KsMaterializedWindowTable(final KsStateStore store, final Duration windowSize,
+      final Consumer<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>>
+          windowStoreCacheRemover) {
     this.stateStore = Objects.requireNonNull(store, "store");
     this.windowSize = Objects.requireNonNull(windowSize, "windowSize");
+    this.windowStoreCacheRemover
+        = Objects.requireNonNull(windowStoreCacheRemover, "windowStoreCacheRemover");;
   }
 
   @Override
@@ -58,7 +65,6 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
     try {
       final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedWindowStore(), partition);
-      WindowStoreCacheRemover.remove(store);
 
       final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
 

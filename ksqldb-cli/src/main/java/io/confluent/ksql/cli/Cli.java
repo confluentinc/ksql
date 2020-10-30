@@ -21,7 +21,6 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
-import io.confluent.ksql.cli.console.cmd.RunScript;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -60,6 +59,9 @@ import io.vertx.core.Context;
 import io.vertx.core.VertxException;
 import java.io.Closeable;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -149,7 +151,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         remoteServerState::setRequestPipelining);
   }
 
-  private void makeKsqlRequest(final String statements) {
+  @Override
+  public void makeKsqlRequest(final String statements) {
     if (statements.isEmpty()) {
       return;
     }
@@ -199,12 +202,24 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     throw new KsqlRestClientException("Failed to execute request " + ksql);
   }
 
+  // called by '-f' command parameter
   public void runScript(final String scriptFile) {
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
 
     try {
-      final RunScript runScriptCommand = RunScript.create(this);
-      runScriptCommand.execute(Collections.singletonList(scriptFile), terminal.writer());
+      // RUN SCRIPT calls the `makeKsqlRequest` directly, which does not support PRINT/SELECT.
+      //
+      // To avoid interfere with the RUN SCRIPT behavior, this code loads the content of the
+      // script and execute it with the 'handleLine', which supports PRINT/SELECT statements.
+      //
+      // RUN SCRIPT should be fixed to support PRINT/SELECT, but also should prevent override
+      // variables and properties from the CLI session.
+
+
+      final String content = Files.readAllLines(Paths.get(scriptFile), StandardCharsets.UTF_8)
+          .stream().collect(Collectors.joining(System.lineSeparator()));
+
+      handleLine(content);
     } catch (final Exception exception) {
       LOGGER.error("An error occurred while running a script file. Error = "
           + exception.getMessage(), exception);
@@ -216,6 +231,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.flush();
   }
 
+  // called by '-e' command parameter
   public void runCommand(final String command) {
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     try {
@@ -303,13 +319,13 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.close();
   }
 
-  public void handleLine(final String line) {
+  void handleLine(final String line) {
     final String trimmedLine = Optional.ofNullable(line).orElse("").trim();
     if (trimmedLine.isEmpty()) {
       return;
     }
 
-    executeStatements(trimmedLine);
+    handleStatements(trimmedLine);
   }
 
   /**
@@ -361,8 +377,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
-  @Override
-  public void executeStatements(final String line) {
+  private void handleStatements(final String line) {
     final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
     final StringBuilder consecutiveStatements = new StringBuilder();
 

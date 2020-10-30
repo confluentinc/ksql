@@ -74,7 +74,6 @@ public class WindowStoreCacheBypassTest {
   private StateSerdes<Struct, ValueAndTimestamp<GenericRow>> serdes;
 
   private CompositeReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store;
-  private WrappedStateStore<StateStore, Struct, ValueAndTimestamp<GenericRow>> wrappedStateStore;
 
   @Before
   public void setUp() {

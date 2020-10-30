@@ -45,10 +45,12 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
@@ -324,7 +326,10 @@ public class SchemaKStream<K> {
         .streamSelectKey(contextStacker, sourceStep, keyExpression);
 
     final KeyFormat newKeyFormat = forceInternalKeyFormat
-        .map(newFmt -> KeyFormat.of(newFmt, keyFormat.getFeatures(), keyFormat.getWindowInfo()))
+        .map(newFmt -> KeyFormat.of(
+            newFmt,
+            SerdeFeaturesFactory.buildInternal(FormatFactory.of(newFmt)),
+            keyFormat.getWindowInfo()))
         .orElse(keyFormat);
 
     return new SchemaKStream<>(

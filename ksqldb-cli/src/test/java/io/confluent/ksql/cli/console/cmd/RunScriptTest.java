@@ -110,7 +110,7 @@ public class RunScriptTest {
     cmd.execute(ImmutableList.of(scriptFile.toString()), terminal);
 
     // Then:
-    verify(requestExecutor).executeStatements(FILE_CONTENT);
+    verify(requestExecutor).makeKsqlRequest(FILE_CONTENT);
   }
 
   @Test

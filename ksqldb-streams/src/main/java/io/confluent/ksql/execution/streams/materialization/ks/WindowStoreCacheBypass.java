@@ -131,8 +131,12 @@ public final class WindowStoreCacheBypass {
       final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
       WindowStore<Bytes, byte[]> wrapped
           = ((MeteredWindowStore<Struct, ValueAndTimestamp<GenericRow>>) windowStore).wrapped();
+      // Unwrap state stores until we get to the last WindowStore, which is past the caching
+      // layer.
       while (wrapped instanceof WrappedStateStore) {
         final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
+        // A RocksDBWindowStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
+        // we just store there.
         if (!(store instanceof WindowStore)) {
           break;
         }

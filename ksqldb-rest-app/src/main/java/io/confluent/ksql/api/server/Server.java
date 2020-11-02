@@ -318,6 +318,33 @@ public class Server {
   ) {
     options.setUseAlpn(true).setSsl(true);
 
+    configureTlsKeyStore(ksqlRestConfig, options, keyStoreAlias);
+    configureTlsTrustStore(ksqlRestConfig, options);
+
+    final List<String> enabledProtocols =
+        ksqlRestConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG);
+    if (!enabledProtocols.isEmpty()) {
+      options.setEnabledSecureTransportProtocols(new HashSet<>(enabledProtocols));
+    }
+
+    final List<String> cipherSuites =
+        ksqlRestConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG);
+    if (!cipherSuites.isEmpty()) {
+      // Vert.x does not yet support a method for setting cipher suites, so we use the following
+      // workaround instead. See https://github.com/eclipse-vertx/vert.x/issues/1507.
+      final Set<String> enabledCipherSuites = options.getEnabledCipherSuites();
+      enabledCipherSuites.clear();
+      enabledCipherSuites.addAll(cipherSuites);
+    }
+
+    options.setClientAuth(clientAuth);
+  }
+
+  private static void configureTlsKeyStore(
+      final KsqlRestConfig ksqlRestConfig,
+      final HttpServerOptions options,
+      final String keyStoreAlias
+  ) {
     final String keyStorePath = ksqlRestConfig
         .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
     final Password keyStorePassword = ksqlRestConfig
@@ -341,7 +368,12 @@ public class Server {
             new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
       }
     }
+  }
 
+  private static void configureTlsTrustStore(
+      final KsqlRestConfig ksqlRestConfig,
+      final HttpServerOptions options
+  ) {
     final String trustStorePath = ksqlRestConfig
         .getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
     final Password trustStorePassword = ksqlRestConfig
@@ -350,8 +382,6 @@ public class Server {
       options.setTrustStoreOptions(
           new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
     }
-
-    options.setClientAuth(clientAuth);
   }
 
   private static List<URI> parseListeners(final KsqlRestConfig config) {

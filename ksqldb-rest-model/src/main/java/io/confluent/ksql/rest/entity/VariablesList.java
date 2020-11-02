@@ -79,7 +79,7 @@ public class VariablesList extends KsqlEntity {
   @JsonCreator
   public VariablesList(
       @JsonProperty("statementText") final String statementText,
-      @JsonProperty("properties") final List<Variable> variables
+      @JsonProperty("variables") final List<Variable> variables
   ) {
     super(statementText);
     this.variables = variables == null ? Collections.emptyList() : ImmutableList.copyOf(variables);

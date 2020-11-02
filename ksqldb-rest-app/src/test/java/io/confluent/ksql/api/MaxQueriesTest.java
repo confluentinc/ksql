@@ -43,7 +43,7 @@ public class MaxQueriesTest extends BaseApiTest {
     for (int i = 0; i < MAX_QUERIES + 4; i++) {
 
       if (i >= MAX_QUERIES) {
-        HttpResponse<Buffer> response = sendRequest("/query-stream",
+        HttpResponse<Buffer> response = sendPostRequest("/query-stream",
             DEFAULT_PUSH_QUERY_REQUEST_BODY.toBuffer());
         assertThat(response.statusCode(), is(400));
         QueryResponse queryResponse = new QueryResponse(response.bodyAsString());

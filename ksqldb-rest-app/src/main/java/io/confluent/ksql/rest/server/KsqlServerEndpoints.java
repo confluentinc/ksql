@@ -125,11 +125,22 @@ public class KsqlServerEndpoints implements Endpoints {
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return executeOnWorker(
-        () -> new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor, pullQueryMetrics)
-            .createQueryPublisher(sql, properties, context, workerExecutor,
-                ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
-        workerExecutor);
+    final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
+        .provide(apiSecurityContext);
+    return executeOnWorker(() -> {
+      try {
+        return new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor, pullQueryMetrics)
+            .createQueryPublisher(
+                sql,
+                properties,
+                context,
+                workerExecutor,
+                ksqlSecurityContext.getServiceContext());
+      } finally {
+        ksqlSecurityContext.getServiceContext().close();
+      }
+    },
+    workerExecutor);
   }
 
   @Override
@@ -301,7 +312,6 @@ public class KsqlServerEndpoints implements Endpoints {
   private CompletableFuture<EndpointResponse> executeOldApiEndpoint(
       final ApiSecurityContext apiSecurityContext,
       final Function<KsqlSecurityContext, EndpointResponse> functionCall) {
-
     final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
         .provide(apiSecurityContext);
 

@@ -2,7 +2,7 @@
 
 **Author**: Sergio Peña (@spena) |
 **Release Target**: 0.14 |
-**Status**: _In development_ |
+**Status**: _Merged_ |
 **Discussion**: https://github.com/confluentinc/ksql/pull/6259
 
 **tl;dr:** _Allow users to use variable substitution in SQL statements. Variable substitution enable users to write SQL scripts with customized output based on their environment needs._
@@ -103,7 +103,7 @@ SET;           # what to do? lists all server, cli, variables, etc?
 
 Also, the use of single-quotes in `SET` server settings is tedious to type. So after removing them, we'll have two different sets:
 * `SET 'server_property' = 'server_value'`
-* `SET VAR variable = variable_value`
+* `SET VAR variable = 'variable_value'`
 
 This looks confusing too. So we have to decide for a new syntax for substitution variables.
 
@@ -115,7 +115,7 @@ This is opened to discussion, but will continue with this for now.
 
 Syntax:
 ```
-DEFINE <name> = <value>;
+DEFINE <name> = '<value>';
 
 Where: 
   <name>     is the variable name
@@ -123,17 +123,12 @@ Where:
 ```
 Valid variables names start with a letter or underscore (\_) followed by zero or more alphanumeric characters or underscores.
 
-There are no type definition for values.
-Single-quotes are optional when assigning values. But if using spaces, then you must wrap the value with single-quotes.
+There are no type definition for values. All variables values must be wrapped into single-quotes.
 
 Example:
 ```
-# Without single-quotes
-DEFINE replicas = 3;
-DEFINE format = JSON;
-
-# With single-quotes
-DEFINE timestamp = 'tsColumn'; 
+DEFINE replicas = '3';
+DEFINE format = 'JSON';
 DEFINE name = 'Tom Sawyer';
 ```
 
@@ -154,32 +149,25 @@ UNDEFINE name;
 
 You can delete defined variables with the `UNDEFINE` syntax.
 
-#### Printing variables (only on CLI)
+#### Printing variables
 
 Syntax:
 ```
-DEFINE [<name>];
+SHOW VARIABLES;
 ```
-
-You can view a list of defined variable with the single `DEFINE` syntax.
 
 Example:
 ```
-ksql> DEFINE replicas = 3;
+ksql> DEFINE replicas = '3';
+ksql> DEFINE format = 'AVRO';
 ksql> DEFINE topicName = '''my_topic''';
-ksql> DEFINE;
-DEFINE replicas = 3;
-DEFINE topicName = 'my_topic';
-```
-
-If you specify the variable name, then you can view the value for that variable.
-
-Example:
-```
-ksql> DEFINE replicas = 3;
-ksql> DEFINE topicName = '''my_topic''';
-ksql> DEFINE replicas;
-DEFINE replicas = 3;
+ksql> SHOW VARIABLES;
+ Variable Name | Value      
+----------------------------
+ replicas      | 3
+ format        | AVRO         
+ topicName     | 'my_topic' 
+----------------------------
 ```
 
 #### Define variables during CLI execution
@@ -230,7 +218,7 @@ Example:
 Request 1:
 {
   "statement" : "
-    DEFINE id = 5;
+    DEFINE id = '5';
     SELECT name FROM table WHERE id = ${id};   
   "
 }
@@ -259,7 +247,7 @@ request (this will be considered during implementation).
 
 Example:
 ```
-ksql> DEFINE id = 5;
+ksql> DEFINE id = '5';
 ksql> SELECT name FROM table WHERE id = ${id};
 +---------+
 |  name   |
@@ -306,8 +294,8 @@ Note: We need to make changes in QTT tests to use `${}` references instead of `{
 
 Example:
 ```
-ksql> DEFINE format = AVRO;
-ksql> DEFINE replicas = 3;
+ksql> DEFINE format = 'AVRO';
+ksql> DEFINE replicas = '3';
 ksql> CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1', value_format='${format}', replicas=${replicas});
 ```
 
@@ -339,8 +327,12 @@ Variables can also be assigned to other variables:
 ```
 ksql> DEFINE var1 = 'topic';
 ksql> DEFINE var2 = 'other_${var1}';
-ksql> DEFINE var2;
-DEFINE var2    = 'other_topic'
+ksql> SHOW VARIABLES;
+
+ Variable Name | Value      
+----------------------------       
+ var2          | other_topic 
+----------------------------
 ```
 
 In CLI, variables can also be assigned to set server or CLI settings:
@@ -373,32 +365,26 @@ The server will substitute variables that are defined in the HTTP request only.
 
 #### CLI
 
-To allow the CLI use all variables of the CLI session, then the CLI will include the DEFINE syntax for each variable required by the statement.
+To allow the CLI use all variables of the CLI session, then the CLI will also substitute variables for every command executed.
+The CLI will make a request to the Server with the final statement replaced.
 
 Example:
 ```
 ksql> DEFINE topic1 = '''my_topic''';
-ksql> DEFINE topic2 = '''my_topic''';
 ksql> CREATE STREAM s1 (...) WITH (kafka_topic=${topic1}, ...);
 ... the following request will be sent
 {
   "statements" : "
-     DEFINE topic1 = '''my_topic''';
-     CREATE STREAM s1 (...) WITH (kafka_topic=${topic1}, ...);
+     CREATE STREAM s1 (...) WITH (kafka_topic='my_topic', ...);
   "
 }
 ```
 
-The CLI will use one parsing to find variables, and include them in the request.
-
-There is still the consideration of doing variable substitution in the CLI side. But if sessions are supported in the future,
-then the above approach will disappear, and one request per DEFINE will be sent. Also, there is less code to repeat if we do
-all of it in the server-side.
-
 #### Server
 
-In the server side, variable substitution will be done by the `KsqlParser.prepare()`, which will walk through the statement tree,  
-and replace any variables references.
+In the server side, variable substitution will be done by the `EngineContext.prepare()`, which will substitute variables from the  
+parsed statement prior to call the `KsqlParser.prepare()`. This way, the `EngineContext` will get a new statement string with the
+variables replaced, so it can be added to the `PreparedStatement`.
 
 The rules for where variable substitution is allowed will be defined in `SqlBase.g4`. The parser will throw an error if a variable  
 is used in an invalid place (i.e. attempting to replace SQL keywords).
@@ -411,7 +397,7 @@ replace it with the right literal or identifier object, instead of appending the
 ```
 
 DEFINE statements found in the HTTP request will be temporary available during the request execution. These variables will be
-stored in a Map object and passed to the `KsqlParser` to provide the variables for substitution.
+stored in a Map object and passed to the `EngineContext` to provide the variables for substitution.
 
 ## Test plan
 

@@ -433,6 +433,42 @@ public class CliTest {
   }
 
   @Test
+  public void testDisableVariableSubstitution() {
+    // Given:
+    assertRunCommand(
+        "set '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'false';", is(EMPTY_RESULT));
+    assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
+
+    // When:
+    run("PRINT ${topicName} FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
+
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Failed to Describe Kafka Topic(s): [${topicName}]"));
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Caused by: This server does not host this topic-partition."));
+  }
+
+  @Test
+  public void testVariableSubstitution() {
+    // Given:
+    assertRunCommand(
+        "set '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';", is(EMPTY_RESULT));
+    assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
+
+    // When:
+    run("PRINT ${topicName} FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
+
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Value format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
+    assertThat(terminal.getOutputString(),
+        containsString(", key: ITEM_1, value: home cinema"));
+  }
+
+  @Test
   public void testVariableDefineUndefine() {
     assertRunCommand("define var1 = '1';", is(EMPTY_RESULT));
     assertRunCommand("define var2 = '2';", is(EMPTY_RESULT));
@@ -1000,6 +1036,22 @@ public class CliTest {
   }
 
   @Test
+  public void shouldSubstituteVariablesOnRunCommand()  {
+    // Given:
+    final StringBuilder builder = new StringBuilder();
+    builder.append("SET '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';");
+    builder.append("DEFINE var = '" + ORDER_DATA_PROVIDER.sourceName() + "';");
+    builder.append("CREATE STREAM shouldRunCommand AS SELECT * FROM ${var};");
+
+    // When:
+    localCli.runCommand(builder.toString());
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Created query with ID CSAS_SHOULDRUNCOMMAND"));
+  }
+
+  @Test
   public void shouldRunScriptOnRunInteractively() throws Exception {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
@@ -1013,22 +1065,6 @@ public class CliTest {
 
     // When:
     localCli.runInteractively();
-
-    // Then:
-    assertThat(terminal.getOutputString(),
-        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
-  }
-
-  @Test
-  public void shouldRunScriptOnRunCommand() throws Exception {
-    // Given:
-    final File scriptFile = TMP.newFile("script.sql");
-    Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
-        + "").getBytes(StandardCharsets.UTF_8));
-
-    // When:
-    localCli.runCommand("run script '" + scriptFile.getAbsolutePath() + "'");
 
     // Then:
     assertThat(terminal.getOutputString(),

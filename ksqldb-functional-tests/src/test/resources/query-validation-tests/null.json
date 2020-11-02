@@ -51,21 +51,19 @@
     },
     {
       "name": "stream PARTITION BY IS NULL with null value",
-      "enabled": false,
-      "comment": "see https://github.com/confluentinc/ksql/issues/6506",
       "statements": [
-        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, VAL STRING) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY (NAME IS NULL);"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 1, "key": 1, "value": null},
-        {"topic": "test_topic", "timestamp": 2, "key": 2, "value": {"NAME": null}},
-        {"topic": "test_topic", "timestamp": 3, "key": 3, "value": {"NAME": "n"}}
+        {"topic": "test_topic", "timestamp": 2, "key": 2, "value": {"NAME": null, "VAL": "a"}},
+        {"topic": "test_topic", "timestamp": 3, "key": 3, "value": {"NAME": "n", "VAL": "b"}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "timestamp": 1, "key": null, "value": null},
-        {"topic": "OUTPUT", "timestamp": 2, "key": null, "value": {"ID": 2}},
-        {"topic": "OUTPUT", "timestamp": 3, "key": "n", "value": {"ID": 3}}
+        {"topic": "OUTPUT", "timestamp": 2, "key": true, "value": {"NAME": null, "ID": 2, "VAL": "a"}},
+        {"topic": "OUTPUT", "timestamp": 3, "key": false, "value": {"NAME": "n", "ID": 3, "VAL": "b"}}
       ]
     },
     {

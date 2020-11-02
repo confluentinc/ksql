@@ -933,7 +933,7 @@ public class KsqlResourceTest {
     final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
 
     final PreparedStatement<?> statementWithTopic =
-        ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
+        ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0), Collections.emptyMap());
     final ConfiguredStatement<?> configuredStatement =
         ConfiguredStatement.of(statementWithTopic, SessionConfig.of(ksqlConfig, ImmutableMap.of())
         );
@@ -963,7 +963,7 @@ public class KsqlResourceTest {
     final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
 
     final PreparedStatement<?> statementWithTopic =
-        ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
+        ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0), Collections.emptyMap());
     final ConfiguredStatement<?> configured =
         ConfiguredStatement.of(statementWithTopic, SessionConfig.of(ksqlConfig, ImmutableMap.of())
         );
@@ -1017,6 +1017,31 @@ public class KsqlResourceTest {
     assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
     assertThat(e, exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
     assertThat(e, exceptionStatementErrorMessage(errorMessage(is("boom"))));
+  }
+
+  @Test
+  public void shouldSupportVariableSubstitution() {
+    // Given:
+    final String csasRaw = "CREATE STREAM ${streamName} AS SELECT * FROM ${fromStream};";
+    final String csasSubstituted = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+
+
+    // When:
+    final List<CommandStatusEntity> results = makeMultipleRequest(
+        "DEFINE streamName = '" + streamName + "';\n"
+            + "DEFINE fromStream = 'test_stream';\n"
+            + csasRaw,
+        CommandStatusEntity.class);
+
+    // Then:
+    verify(commandStore).enqueueCommand(
+        argThat(is(commandIdWithString("stream/`" + streamName + "`/create"))),
+        argThat(is(commandWithStatement(csasSubstituted))),
+        any()
+    );
+
+    assertThat(results, hasSize(1));
+    assertThat(results.get(0).getStatementText(), is(csasSubstituted));
   }
 
   @Test
@@ -1406,8 +1431,10 @@ public class KsqlResourceTest {
 
     reset(sandbox);
     when(sandbox.getMetaStore()).thenReturn(metaStore);
-    when(sandbox.prepare(any()))
-        .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
+    when(sandbox.prepare(any(), any()))
+        .thenAnswer(invocation ->
+            realEngine.createSandbox(serviceContext)
+                .prepare(invocation.getArgument(0), Collections.emptyMap()));
     when(sandbox.plan(any(), any(ConfiguredStatement.class)))
         .thenThrow(new RuntimeException("internal error"));
 
@@ -2017,10 +2044,13 @@ public class KsqlResourceTest {
     ksqlEngine = mock(KsqlEngine.class);
     when(ksqlEngine.parse(any()))
         .thenAnswer(invocation -> realEngine.parse(invocation.getArgument(0)));
-    when(ksqlEngine.prepare(any()))
-        .thenAnswer(invocation -> realEngine.prepare(invocation.getArgument(0)));
-    when(sandbox.prepare(any()))
-        .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
+    when(ksqlEngine.prepare(any(), any()))
+        .thenAnswer(invocation ->
+            realEngine.prepare(invocation.getArgument(0), Collections.emptyMap()));
+    when(sandbox.prepare(any(), any()))
+        .thenAnswer(invocation ->
+            realEngine.createSandbox(serviceContext)
+                .prepare(invocation.getArgument(0), Collections.emptyMap()));
     when(sandbox.plan(any(), any())).thenAnswer(
         i -> KsqlPlan.ddlPlanCurrent(
             ((ConfiguredStatement<?>) i.getArgument(1)).getStatementText(),
@@ -2385,6 +2415,20 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
     schemaRegistryClient.register(KsqlConstants.getSRSubject("orders-topic", false),
         new AvroSchema(avroSchema));
+  }
+
+  private static Matcher<CommandId> commandIdWithString(final String commandIdStr) {
+    return new TypeSafeMatcher<CommandId>() {
+      @Override
+      protected boolean matchesSafely(final CommandId commandId) {
+        return commandId.toString().equals(commandIdStr);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(commandIdStr);
+      }
+    };
   }
 
   private static Matcher<Command> commandWithStatement(final String statement) {

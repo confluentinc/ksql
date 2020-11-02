@@ -21,7 +21,6 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
-import io.confluent.ksql.cli.console.cmd.RunScript;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -34,6 +33,7 @@ import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.UndefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -52,12 +52,16 @@ import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
 import io.vertx.core.VertxException;
 import java.io.Closeable;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -197,12 +201,24 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     throw new KsqlRestClientException("Failed to execute request " + ksql);
   }
 
+  // called by '-f' command parameter
   public void runScript(final String scriptFile) {
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
 
     try {
-      final RunScript runScriptCommand = RunScript.create(this);
-      runScriptCommand.execute(Collections.singletonList(scriptFile), terminal.writer());
+      // RUN SCRIPT calls the `makeKsqlRequest` directly, which does not support PRINT/SELECT.
+      //
+      // To avoid interfere with the RUN SCRIPT behavior, this code loads the content of the
+      // script and execute it with the 'handleLine', which supports PRINT/SELECT statements.
+      //
+      // RUN SCRIPT should be fixed to support PRINT/SELECT, but also should prevent override
+      // variables and properties from the CLI session.
+
+
+      final String content = Files.readAllLines(Paths.get(scriptFile), StandardCharsets.UTF_8)
+          .stream().collect(Collectors.joining(System.lineSeparator()));
+
+      handleLine(content);
     } catch (final Exception exception) {
       LOGGER.error("An error occurred while running a script file. Error = "
           + exception.getMessage(), exception);
@@ -214,13 +230,13 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.flush();
   }
 
+  // called by '-e' command parameter
   public void runCommand(final String command) {
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     try {
-      // Handles the RUN SCRIPT command if found
-      if (!terminal.maybeHandleCliSpecificCommands(command)) {
-        handleLine(command);
-      }
+      // Commands executed by the '-e' parameter do not need to execute specific CLI
+      // commands. For RUN SCRIPT commands, users can use the '-f' command parameter.
+      handleLine(command);
     } catch (final EndOfFileException exception) {
       // Ignore - only used by runInteractively() to exit the CLI
     } catch (final Exception exception) {
@@ -340,11 +356,31 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
+  private boolean isVariableSubstitutionEnabled() {
+    final Object substitutionEnabled
+        = restClient.getProperty(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+
+    if (substitutionEnabled != null && substitutionEnabled instanceof Boolean) {
+      return (boolean) substitutionEnabled;
+    }
+
+    return KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT;
+  }
+
+  private ParsedStatement substituteVariables(final ParsedStatement statement) {
+    if (isVariableSubstitutionEnabled()) {
+      final String replacedStmt = VariableSubstitutor.substitute(statement, sessionVariables);
+      return KSQL_PARSER.parse(replacedStmt).get(0);
+    } else {
+      return statement;
+    }
+  }
+
   private void handleStatements(final String line) {
     final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
-
     final StringBuilder consecutiveStatements = new StringBuilder();
-    for (final ParsedStatement parsed : statements) {
+
+    statements.stream().map(this::substituteVariables).forEach(parsed -> {
       final StatementContext statementContext = parsed.getStatement().statement();
       final String statementText = parsed.getStatementText();
 
@@ -359,7 +395,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
         handler.handle(this, statementText, statementContext);
       }
-    }
+    });
+
     if (consecutiveStatements.length() != 0) {
       makeKsqlRequest(consecutiveStatements.toString());
     }

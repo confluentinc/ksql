@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.json;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -30,8 +31,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -233,7 +236,7 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
-  public void shouldSerializeBoolean() {
+  public void shouldSerializeBoolean() throws Exception {
     // Given:
     final Serializer<Boolean> serializer =
         givenSerializerForSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA, Boolean.class);
@@ -242,6 +245,26 @@ public class KsqlJsonSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, true);
 
     // Then:
+    if (useSchemas) {
+      assertThat(srClient.getAllSubjects(), contains(KsqlConstants.getSRSubject(SOME_TOPIC, false)));
+    }
+    assertThat(asJsonString(bytes), is("true"));
+  }
+
+  @Test
+  public void shouldSerializeKeyAndRegisterKeySubject() throws IOException, RestClientException {
+    // Given;
+    final Serializer<Boolean> serializer = new KsqlJsonSerdeFactory(useSchemas)
+        .createSerde((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, config, () -> srClient, Boolean.class, true)
+        .serializer();
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, true);
+
+    // Then:
+    if (useSchemas) {
+      assertThat(srClient.getAllSubjects(), contains(KsqlConstants.getSRSubject(SOME_TOPIC, true)));
+    }
     assertThat(asJsonString(bytes), is("true"));
   }
 
@@ -440,7 +463,7 @@ public class KsqlJsonSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.createSerde(schema, config, () -> null, Struct.class)
+        () -> factory.createSerde(schema, config, () -> null, Struct.class, false)
     );
 
     // Then:
@@ -467,7 +490,7 @@ public class KsqlJsonSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.createSerde(schema, config, () -> null, Struct.class)
+        () -> factory.createSerde(schema, config, () -> null, Struct.class, false)
     );
 
     // Then:
@@ -594,7 +617,7 @@ public class KsqlJsonSerializerTest {
 
   private <T> Serializer<T> givenSerializerForSchema(final Schema schema, final Class<T> type) {
     return new KsqlJsonSerdeFactory(useSchemas)
-        .createSerde((ConnectSchema) schema, config, () -> srClient, type)
+        .createSerde((ConnectSchema) schema, config, () -> srClient, type, false)
         .serializer();
   }
 }

@@ -360,6 +360,12 @@ public class KsqlConfig extends AbstractConfig {
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
       + "properties that KSQL users cannot override.";
 
+  public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE
+      = "ksql.variable.substitution.enable";
+  public static final boolean KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT = true;
+  public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
+      = "Enable variable substitution on SQL statements.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -828,6 +834,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC
+        )
+        .define(
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE,
+            Type.BOOLEAN,
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
         )
         .withClientSslSupport();
 

@@ -204,7 +204,6 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(this::handleServerMetadataClusterIdRequest);
     router.route(HttpMethod.GET, "/ws/query")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        // No support yet for V2. See https://github.com/confluentinc/ksql/issues/6439.
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleWebsocket);
 

@@ -36,9 +36,9 @@ Response JSON Object:
 - **row** (object): A single row being returned. This will be null if an error is being returned.
     - **row.columns** (array): The values of the columns requested. The schema of the columns was
     already supplied in **header.schema**.
-    - **row.tombstone** (boolean): the row is a deletion of a previously row.
-    The **row.key** field contains the unique key of the row that has been deleted.
-    Prior to v2 of the API, tombstones were not returned as part of the response.
+    - **row.tombstone** (boolean): Whether the row is a deletion of a previous row.
+    It is recommended that you include all columns within the primary key in the projection
+    so that you can determine _which_ previous row was deleted.
 - **finalMessage** (string): If this field is non-null, it contains a final message from the server.
     This signifies successful completion of the query.  
     No additional rows will be returned and the server will end the response.
@@ -78,9 +78,8 @@ Content-Type: application/vnd.ksql.v1+json
 
 ### Example stream response
 
-If the query result is a stream, the response doesn't include the **row.key** or
-
-**row.tombstone** fields, because streams don't have primary keys.
+If the query result is a stream, the response will not include the **row.tombstone** field, as
+streams don't have primary keys or the concept of a deletion.
 
 
 ```http
@@ -96,11 +95,20 @@ Transfer-Encoding: chunked
 
 ### Example table response
 
-If the query result is a table, the response includes the primary key of each row in
+If the query result is a table, the response may include deleted rows, as identified by the
+**row.tombstone** field.
 
-the **row.key** field. Rows that are deleted from the result table are identified by the **row.tombstone** 
+Rows within the table are identified by their primary key. Rows may be inserted, updated or deleted.
+Rows without the **tombstone** field set indicate an upserts, (inserts or updates).
+Rows with the  **tombstone** field set indicate a delete.
 
-field.
+While it is not a requirement to include the primary key columns within the query's projection, any
+use-case that is attempting to materialize the table, or has a requirement to be able to 
+correlate later updates and deletes to previous rows, will generally need all primary key columns
+in the projection.
+
+In the example response below, the `ID` column is the primary key of the table. The second row in 
+the response deletes the first.
 
 ```http
 HTTP/1.1 200 OK

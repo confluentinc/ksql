@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.execution.streams.metrics;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -104,7 +104,7 @@ public class RocksDBMetricsCollectorTest {
 
   @Test
   public void shouldComputeMaxOfBlockCachePinnedUsage() {
-    shouldComputeSumOfAllStoreMetrics(
+    shouldComputeMaxOfAllStoreMetrics(
         RocksDBMetricsCollector.BLOCK_CACHE_PINNED_USAGE,
         RocksDBMetricsCollector.BLOCK_CACHE_USAGE
     );

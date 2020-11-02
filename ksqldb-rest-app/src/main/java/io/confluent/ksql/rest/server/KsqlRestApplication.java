@@ -19,7 +19,6 @@ import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_R
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
@@ -28,7 +27,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
-import io.confluent.ksql.api.auth.KsqlAuthorizationProviderHandler;
 import io.confluent.ksql.api.impl.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.MonitoredEndpoints;
@@ -69,7 +67,6 @@ import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
-import io.confluent.ksql.rest.server.resources.ConfigResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
@@ -124,13 +121,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -184,7 +179,6 @@ public final class KsqlRestApplication implements Executable {
   private final HealthCheckResource healthCheckResource;
   private volatile ServerMetadataResource serverMetadataResource;
   private volatile WSQueryEndpoint wsQueryEndpoint;
-  private final ConfigResource configResource;
   @SuppressWarnings("UnstableApiUsage")
   private volatile ListeningScheduledExecutorService oldApiWebsocketExecutor;
   private final Vertx vertx;
@@ -282,7 +276,6 @@ public final class KsqlRestApplication implements Executable {
         this.ksqlConfigNoPort,
         this.commandRunner);
     this.queryMonitor = requireNonNull(ksqlQueryMonitor, "ksqlQueryMonitor");
-    this.configResource = new ConfigResource(ksqlConfig);
     MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     this.pullQueryMetrics = requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     log.debug("ksqlDB API server instance created");
@@ -345,7 +338,6 @@ public final class KsqlRestApplication implements Executable {
           healthCheckResource,
           serverMetadataResource,
           wsQueryEndpoint,
-          configResource,
           pullQueryMetrics
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
@@ -477,15 +469,23 @@ public final class KsqlRestApplication implements Executable {
     }
   }
 
-  @SuppressWarnings("checkstyle:NPathComplexity")
+  @SuppressWarnings({"checkstyle:NPathComplexity", "checkstyle:CyclomaticComplexity"})
   @Override
   public void shutdown() {
     log.info("ksqlDB shutdown called");
+
+    try {
+      pullQueryExecutor.close(Duration.ofSeconds(10));
+    } catch (final Exception e) {
+      log.error("Exception while waiting for Ksql Engine to close", e);
+    }
+
     try {
       pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
     } catch (final Exception e) {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
+
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -715,7 +715,7 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent, lagReportingAgent);
 
     final PullQueryExecutor pullQueryExecutor = new PullQueryExecutor(
-        ksqlEngine, routingFilterFactory, ksqlConfig, ksqlEngine.getServiceId());
+        ksqlEngine, routingFilterFactory, ksqlConfig);
 
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
@@ -794,7 +794,7 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         ksqlEngine,
         ksqlConfig,
-        injectPathsWithoutAuthentication(restConfig),
+        restConfig,
         commandRunner,
         commandStore,
         statusResource,
@@ -1069,22 +1069,6 @@ public final class KsqlRestApplication implements Executable {
       metricsOptions.addMonitoredHttpServerUri(match);
     }
     return metricsOptions;
-  }
-
-  private static KsqlRestConfig injectPathsWithoutAuthentication(final KsqlRestConfig restConfig) {
-    final Set<String> authenticationSkipPaths = new HashSet<>(
-        restConfig.getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG)
-    );
-
-    authenticationSkipPaths.addAll(KsqlAuthorizationProviderHandler.PATHS_WITHOUT_AUTHORIZATION);
-
-    final Map<String, Object> restConfigs = restConfig.getOriginals();
-
-    // REST paths that are public and do not require authentication
-    restConfigs.put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG,
-        Joiner.on(",").join(authenticationSkipPaths));
-
-    return new KsqlRestConfig(restConfigs);
   }
 
   @VisibleForTesting

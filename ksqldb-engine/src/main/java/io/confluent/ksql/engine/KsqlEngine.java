@@ -43,6 +43,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -177,8 +178,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public PreparedStatement<?> prepare(final ParsedStatement stmt) {
-    return primaryContext.prepare(stmt);
+  public PreparedStatement<?> prepare(
+      final ParsedStatement stmt,
+      final Map<String, String> variablesMap
+  ) {
+    return primaryContext.prepare(stmt, variablesMap);
   }
 
   @Override

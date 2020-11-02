@@ -29,7 +29,8 @@ public final class KeyFormatUtils {
   );
 
   private static final List<Format> KEY_FORMATS_UNDER_DEVELOPMENT = ImmutableList.of(
-      FormatFactory.AVRO
+      FormatFactory.AVRO,
+      FormatFactory.JSON_SR
   );
 
   /**

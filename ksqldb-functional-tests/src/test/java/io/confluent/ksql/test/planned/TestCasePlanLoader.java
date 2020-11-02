@@ -66,7 +66,7 @@ import org.w3c.dom.NodeList;
  */
 public final class TestCasePlanLoader {
 
-  private static final String CURRENT_VERSION = getFormattedVersionFromPomFile();
+  private static final KsqlVersion CURRENT_VERSION = getFormattedVersionFromPomFile();
   private static final KsqlConfig BASE_CONFIG = new KsqlConfig(TestExecutor.baseConfig());
   public static final Path PLANS_DIR = Paths.get("historical_plans");
 
@@ -116,7 +116,8 @@ public final class TestCasePlanLoader {
         TestCaseBuilderUtil.extractSimpleTestName(
             testCase.getOriginalFileName().toString(),
             testCase.getName()
-        )
+        ),
+        true
     );
   }
 
@@ -131,10 +132,11 @@ public final class TestCasePlanLoader {
   ) {
     return buildStatementsInTestCase(
         PlannedTestUtils.buildPlannedTestCase(original),
-        original.getSpecNode().getVersion(),
+        KsqlVersion.parse(original.getSpecNode().getVersion()),
         original.getSpecNode().getTimestamp(),
         original.getPlanNode().getConfigs(),
-        original.getSpecNode().getTestCase().name()
+        original.getSpecNode().getTestCase().name(),
+        false
     );
   }
 
@@ -210,12 +212,13 @@ public final class TestCasePlanLoader {
 
   private static TestCasePlan buildStatementsInTestCase(
       final TestCase testCase,
-      final String version,
+      final KsqlVersion version,
       final long timestamp,
       final Map<String, String> configs,
-      final String simpleTestName
+      final String simpleTestName,
+      final boolean validateResults
   ) {
-    final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase);
+    final TestInfoGatherer testInfo = executeTestCaseAndGatherInfo(testCase, validateResults);
 
     final List<TopicNode> allTopicNodes = getTopicsFromTestCase(testCase, configs);
 
@@ -234,7 +237,7 @@ public final class TestCasePlanLoader {
     );
 
     final TestCaseSpecNode spec = new TestCaseSpecNode(
-        version,
+        version.getVersion().toString(),
         timestamp,
         testCase.getOriginalFileName().toString(),
         testInfo.getSchemas(),
@@ -269,8 +272,11 @@ public final class TestCasePlanLoader {
         .collect(Collectors.toList());
   }
 
-  private static TestInfoGatherer executeTestCaseAndGatherInfo(final TestCase testCase) {
-    try (final TestExecutor testExecutor = TestExecutor.create(Optional.empty())) {
+  private static TestInfoGatherer executeTestCaseAndGatherInfo(
+      final TestCase testCase,
+      final boolean validateResults
+  ) {
+    try (final TestExecutor testExecutor = TestExecutor.create(validateResults, Optional.empty())) {
       final TestInfoGatherer listener = new TestInfoGatherer();
       testExecutor.buildAndExecuteQuery(testCase, listener);
       return listener;
@@ -285,7 +291,8 @@ public final class TestCasePlanLoader {
     }
   }
 
-  private static String getFormattedVersionFromPomFile() {
+  @VisibleForTesting
+  static KsqlVersion getFormattedVersionFromPomFile() {
     try {
       final File pomFile = new File("pom.xml");
       final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -295,7 +302,7 @@ public final class TestCasePlanLoader {
       final NodeList versionNodeList = pomDoc.getElementsByTagName("version");
       final String versionName = versionNodeList.item(0).getTextContent();
 
-      return versionName.replaceAll("-SNAPSHOT?", "");
+      return KsqlVersion.parse(versionName.replaceAll("-SNAPSHOT?", ""));
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }

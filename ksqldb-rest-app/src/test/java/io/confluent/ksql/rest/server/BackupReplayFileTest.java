@@ -48,7 +48,7 @@ public class BackupReplayFileTest {
   @Before
   public void setup() throws IOException {
     internalReplayFile = backupLocation.newFile(REPLAY_FILE_NAME);
-    replayFile = new BackupReplayFile(internalReplayFile);
+    replayFile = BackupReplayFile.writable(internalReplayFile);
   }
 
   @Test
@@ -123,7 +123,7 @@ public class BackupReplayFileTest {
             KEY_VALUE_SEPARATOR,
             "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\","
                 + "\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null}"
-            ).getBytes(StandardCharsets.UTF_8));
+        ).getBytes(StandardCharsets.UTF_8));
 
     // When
     final List<Pair<byte[], byte[]>> commands = replayFile.readRecords();

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -130,7 +131,8 @@ public class TestExecutorTest {
         kafkaService,
         serviceContext,
         ksqlEngine,
-        topologyBuilder
+        topologyBuilder,
+        true
     );
 
     when(sourceTopic.getName()).thenReturn("source_topic");
@@ -466,7 +468,9 @@ public class TestExecutorTest {
                 sinkTopic.getName(),
                 KeyFormat.nonWindowed(FormatInfo.of("Kafka"), SerdeFeatures.of()),
                 ValueFormat.of(FormatInfo.of("Json"), SerdeFeatures.of()),
-                OptionalInt.empty()
+                OptionalInt.empty(),
+                NullNode.getInstance(),
+                NullNode.getInstance()
             )
         )
     );
@@ -544,7 +548,7 @@ public class TestExecutorTest {
         .getSerializer(null, false)
         .serialize("", value);
 
-    return new ProducerRecord<byte[], byte[]>(
+    return new ProducerRecord<>(
         topic.getName(),
         1,
         rowTime,

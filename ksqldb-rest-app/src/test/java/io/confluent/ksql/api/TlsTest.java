@@ -90,7 +90,7 @@ public class TlsTest extends ApiTest {
     JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
 
     // Given: sanity check that a query succeeds
-    HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
+    HttpResponse<Buffer> response = sendPostRequest("/query-stream", requestBody.toBuffer());
     assertThat(response.statusCode(), is(200));
     assertThat(response.statusMessage(), is("OK"));
 
@@ -108,7 +108,7 @@ public class TlsTest extends ApiTest {
 
             try {
               // this should fail
-              sendRequest("/query-stream", requestBody.toBuffer());
+              sendPostRequest("/query-stream", requestBody.toBuffer());
               return "error: request should have failed but did not";
             } catch (Exception e) {
               assertThat(e,
@@ -133,7 +133,7 @@ public class TlsTest extends ApiTest {
             this.client = createClient();
 
             try {
-              return sendRequest("/query-stream", requestBody.toBuffer()).statusCode();
+              return sendPostRequest("/query-stream", requestBody.toBuffer()).statusCode();
             } catch (Exception e) {
               return 0;
             }

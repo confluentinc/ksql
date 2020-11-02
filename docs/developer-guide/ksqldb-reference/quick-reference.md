@@ -278,20 +278,6 @@ CREATE STREAM stream_name
   EMIT CHANGES;
 ```
 
-## EMIT FINAL
-Specify a push query with a suppressed output refinement in a SELECT statement on a 
-windowed aggregation. 
-For more information, see [Push Queries](../../concepts/queries/push).
-
-```sql
-CREATE TABLE table_name
-  AS SELECT  select_expr_with_aggregation [, ...]
-  FROM from_stream
-  [ WINDOW window_expression ]
-  [ GROUP BY grouping_expression ]
-  EMIT FINAL;
-```
-
 ## EXPLAIN
 Show the execution plan for a SQL expression or running query. For more
 information, see [EXPLAIN](../../ksqldb-reference/explain).
@@ -430,11 +416,10 @@ SELECT user_id
 ## IN
 Specifies multiple `OR` conditions.
 
-
 ```sql hl_lines"3"
   SELECT select_expr [., ...]
     FROM from_stream | from_table
-    WHERE condition IN (exp0, exp1, exp2);
+    WHERE exp IN (exp0, exp1, exp2);
 ```
 
 The above is equivalent to:
@@ -442,7 +427,7 @@ The above is equivalent to:
 ```sql hl_lines"3"
   SELECT select_expr [., ...]
     FROM from_stream | from_table
-    WHERE condition = exp0 OR condition = exp1 OR condition = exp2;
+    WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
 ```
 
 ## PARTITION BY

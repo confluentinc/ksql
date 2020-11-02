@@ -29,7 +29,6 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ConfigResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -40,6 +39,7 @@ import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
@@ -156,37 +156,13 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static ConfigResponse makeConfigRequest(final TestKsqlRestApp restApp) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
-
-      final RestResponse<ConfigResponse> res = restClient.makeConfigRequest();
-
-      throwOnError(res);
-
-      return res.getResponse();
-    }
-  }
-
-  static ConfigResponse makeConfigRequest(
-      final TestKsqlRestApp restApp,
-      final List<String> requestedConfigs
-  ) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient(Optional.empty())) {
-
-      final RestResponse<ConfigResponse> res = restClient.makeConfigRequest(requestedConfigs);
-
-      throwOnError(res);
-
-      return res.getResponse();
-    }
-  }
-
   static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
       final Optional<BasicCredentials> userCreds
   ) {
-    return makeQueryRequest(restApp, sql, userCreds, null, Collections.emptyMap());
+    return makeQueryRequest(restApp, sql, userCreds, null,
+        ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
   }
 
   static List<StreamedRow> makeQueryRequest(

@@ -20,11 +20,11 @@ import static io.confluent.ksql.api.impl.KeyValueExtractor.convertColumnNameCase
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.util.ApiSqlValueCoercer;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
-import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.serde.GenericKeySerDe;
@@ -58,7 +58,7 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
 
   private static final Logger log = LoggerFactory.getLogger(InsertsSubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 200;
-  private static final SqlValueCoercer SQL_VALUE_COERCER = DefaultSqlValueCoercer.API_INSTANCE;
+  private static final SqlValueCoercer SQL_VALUE_COERCER = ApiSqlValueCoercer.INSTANCE;
 
   private final Producer<byte[], byte[]> producer;
   private final DataSource dataSource;

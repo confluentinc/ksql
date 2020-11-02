@@ -32,11 +32,13 @@ import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.Pair;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
@@ -105,15 +107,19 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       try {
         final PullQueryResult result = executor.call();
         final TableRows entity = result.getTableRows();
-        final Optional<KsqlHostInfoEntity> host = result.getSourceNode()
-            .map(KsqlNode::location)
-            .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()));
+        final Optional<List<KsqlHostInfoEntity>> hosts = result.getSourceNodes()
+            .map(list -> list.stream().map(KsqlNode::location)
+                .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()))
+                .collect(Collectors.toList()));
 
         subscriber.onSchema(entity.getSchema());
 
-        final List<StreamedRow> rows = entity.getRows().stream()
-            .map(PullQuerySubscription::toGenericRow)
-            .map(row -> StreamedRow.row(row, host))
+        hosts.ifPresent(h -> Preconditions.checkState(h.size() == entity.getRows().size()));
+        final List<StreamedRow> rows = IntStream.range(0, entity.getRows().size())
+            .mapToObj(i -> Pair.of(
+                PullQuerySubscription.toGenericRow(entity.getRows().get(i)),
+                hosts.map(h -> h.get(i))))
+            .map(pair -> StreamedRow.row(pair.getLeft(), pair.getRight()))
             .collect(Collectors.toList());
 
         subscriber.onNext(rows);

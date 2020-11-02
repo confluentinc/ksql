@@ -23,7 +23,6 @@ import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.entity.ConfigResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -150,14 +149,6 @@ public final class KsqlRestClient implements Closeable {
     return target().getClusterStatus();
   }
 
-  public RestResponse<ConfigResponse> makeConfigRequest() {
-    return target().getConfigRequest();
-  }
-
-  public RestResponse<ConfigResponse> makeConfigRequest(final List<String> requestedConfigs) {
-    return target().getConfigRequest(requestedConfigs);
-  }
-
   public CompletableFuture<RestResponse<LagReportingResponse>> makeAsyncLagReportingRequest(
       final LagReportingMessage lagReportingMessage
   ) {
@@ -222,6 +213,10 @@ public final class KsqlRestClient implements Closeable {
 
   public Object unsetProperty(final String property) {
     return localProperties.unset(property);
+  }
+
+  public Object getProperty(final String property) {
+    return localProperties.get(property);
   }
 
   private KsqlTarget target() {

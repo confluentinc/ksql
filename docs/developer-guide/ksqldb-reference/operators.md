@@ -13,7 +13,7 @@ ksqlDB supports the following operators in value expressions.
 
   - [Arithmetic](#arithmetic)
   - [Concatenation](#concatenation)
-  - [IN Operator](*#in)
+  - [IN Operator](#in)
   - [Source Dereference](#source-dereference)
   - [Subscript](#subscript)
   - [STRUCT dereference](#struct-dereference)
@@ -72,9 +72,7 @@ IN
 
 The IN operator enables specifying multiple values in a `WHERE` clause.
 
-
 It provides the equivalent of multiple `OR` conditions.
-
 
 ```sql
 SELECT * FROM USERS WHERE USERID IN (1543, 6256, 87569);

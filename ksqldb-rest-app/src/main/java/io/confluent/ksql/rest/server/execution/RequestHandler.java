@@ -27,6 +27,7 @@ import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,6 +68,17 @@ public class RequestHandler {
     this.commandQueueSync = Objects.requireNonNull(commandQueueSync, "commandQueueSync");
   }
 
+  private boolean isVariableSubstitutionEnabled(final SessionProperties sessionProperties) {
+    final Object substitutionEnabled = sessionProperties.getMutableScopedProperties()
+        .get(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+
+    if (substitutionEnabled != null && substitutionEnabled instanceof Boolean) {
+      return (boolean) substitutionEnabled;
+    }
+
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+  }
+
   public KsqlEntityList execute(
       final KsqlSecurityContext securityContext,
       final List<ParsedStatement> statements,
@@ -74,7 +86,12 @@ public class RequestHandler {
   ) {
     final KsqlEntityList entities = new KsqlEntityList();
     for (final ParsedStatement parsed : statements) {
-      final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
+      final PreparedStatement<?> prepared = ksqlEngine.prepare(
+          parsed,
+          (isVariableSubstitutionEnabled(sessionProperties)
+              ? sessionProperties.getSessionVariables()
+              : Collections.emptyMap())
+      );
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
           SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
       );

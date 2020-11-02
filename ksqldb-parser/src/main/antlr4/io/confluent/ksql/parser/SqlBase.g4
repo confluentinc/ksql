@@ -53,6 +53,7 @@ statement
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
+    | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE EXTENDED? sourceName                                         #showColumns
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
@@ -62,6 +63,8 @@ statement
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
+    | DEFINE variableName EQ variableValue                                  #defineVariable
+    | UNDEFINE variableName                                                 #undefineVariable
     | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
@@ -330,11 +333,21 @@ whenClause
     ;
 
 identifier
-    : IDENTIFIER             #unquotedIdentifier
+    : VARIABLE               #variableIdentifier
+    | IDENTIFIER             #unquotedIdentifier
     | QUOTED_IDENTIFIER      #quotedIdentifierAlternative
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
+    ;
+
+variableName
+    : IDENTIFIER
+    | nonReserved
+    ;
+
+variableValue
+    : STRING
     ;
 
 sourceName
@@ -352,6 +365,7 @@ literal
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
+    | VARIABLE                                                                       #variableLiteral
     ;
 
 nonReserved
@@ -480,6 +494,8 @@ RENAME: 'RENAME';
 ARRAY: 'ARRAY';
 MAP: 'MAP';
 SET: 'SET';
+DEFINE: 'DEFINE';
+UNDEFINE: 'UNDEFINE';
 RESET: 'RESET';
 SESSION: 'SESSION';
 SAMPLE: 'SAMPLE';
@@ -504,6 +520,7 @@ REPLACE: 'REPLACE';
 ASSERT: 'ASSERT';
 ADD: 'ADD';
 ALTER: 'ALTER';
+VARIABLES: 'VARIABLES';
 
 IF: 'IF';
 
@@ -564,6 +581,10 @@ TIME_WITH_TIME_ZONE
 
 TIMESTAMP_WITH_TIME_ZONE
     : 'TIMESTAMP' WS 'WITH' WS 'TIME' WS 'ZONE'
+    ;
+
+VARIABLE
+    : '${' IDENTIFIER '}'
     ;
 
 fragment EXPONENT

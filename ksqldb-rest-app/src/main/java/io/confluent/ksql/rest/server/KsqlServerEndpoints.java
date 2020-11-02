@@ -34,7 +34,6 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
-import io.confluent.ksql.rest.server.resources.ConfigResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -53,7 +52,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -80,7 +78,6 @@ public class KsqlServerEndpoints implements Endpoints {
   private final HealthCheckResource healthCheckResource;
   private final ServerMetadataResource serverMetadataResource;
   private final WSQueryEndpoint wsQueryEndpoint;
-  private final ConfigResource configResource;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
@@ -99,7 +96,6 @@ public class KsqlServerEndpoints implements Endpoints {
       final HealthCheckResource healthCheckResource,
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
-      final ConfigResource configResource,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
 
@@ -119,7 +115,6 @@ public class KsqlServerEndpoints implements Endpoints {
     this.healthCheckResource = Objects.requireNonNull(healthCheckResource);
     this.serverMetadataResource = Objects.requireNonNull(serverMetadataResource);
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
-    this.configResource = Objects.requireNonNull(configResource);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
   }
 
@@ -129,11 +124,22 @@ public class KsqlServerEndpoints implements Endpoints {
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return executeOnWorker(
-        () -> new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor, pullQueryMetrics)
-            .createQueryPublisher(sql, properties, context, workerExecutor,
-                ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
-        workerExecutor);
+    final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
+        .provide(apiSecurityContext);
+    return executeOnWorker(() -> {
+      try {
+        return new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryExecutor, pullQueryMetrics)
+            .createQueryPublisher(
+                sql,
+                properties,
+                context,
+                workerExecutor,
+                ksqlSecurityContext.getServiceContext());
+      } finally {
+        ksqlSecurityContext.getServiceContext().close();
+      }
+    },
+    workerExecutor);
   }
 
   @Override
@@ -259,19 +265,6 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<EndpointResponse> executeConfig(
-      final List<String> requestedConfigs,
-      final ApiSecurityContext apiSecurityContext) {
-    if (requestedConfigs.size() == 0) {
-      return executeOldApiEndpoint(apiSecurityContext,
-          ksqlSecurityContext -> configResource.getAllConfigs());
-    } else {
-      return executeOldApiEndpoint(apiSecurityContext,
-          ksqlSecurityContext -> configResource.getConfigs(requestedConfigs));
-    }
-  }
-
-  @Override
   public void executeWebsocketStream(final ServerWebSocket webSocket, final MultiMap requestParams,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
@@ -316,7 +309,6 @@ public class KsqlServerEndpoints implements Endpoints {
   private CompletableFuture<EndpointResponse> executeOldApiEndpoint(
       final ApiSecurityContext apiSecurityContext,
       final Function<KsqlSecurityContext, EndpointResponse> functionCall) {
-
     final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
         .provide(apiSecurityContext);
 

@@ -35,6 +35,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -42,6 +43,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -49,6 +51,8 @@ import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes.SessionStoreType;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
+import org.apache.kafka.streams.state.ReadOnlyWindowStore;
+import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -87,18 +91,20 @@ public class KsMaterializedSessionTableTest {
   private ReadOnlySessionStore<Struct, GenericRow> sessionStore;
   @Mock
   private KeyValueIterator<Windowed<Struct>, GenericRow> fetchIterator;
+  @Mock
+  private SessionStoreCacheBypassFetcher cacheBypassFetcher;
   private KsMaterializedSessionTable table;
   private final List<KeyValue<Windowed<Struct>, GenericRow>> sessions = new ArrayList<>();
   private int sessionIdx;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedSessionTable(stateStore);
+    table = new KsMaterializedSessionTable(stateStore, cacheBypassFetcher);
 
     when(stateStore.store(any(), anyInt())).thenReturn(sessionStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
 
-    when(sessionStore.fetch(any())).thenReturn(fetchIterator);
+    when(cacheBypassFetcher.fetch(any(), any())).thenReturn(fetchIterator);
 
     sessions.clear();
     sessionIdx = 0;
@@ -135,7 +141,8 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldThrowIfStoreFetchFails() {
     // Given:
-    when(sessionStore.fetch(any())).thenThrow(new MaterializationTimeOutException("Boom"));
+    when(cacheBypassFetcher.fetch(any(), any()))
+        .thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
     final Exception e = assertThrows(
@@ -165,7 +172,7 @@ public class KsMaterializedSessionTableTest {
     table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
-    verify(sessionStore).fetch(A_KEY);
+    verify(cacheBypassFetcher).fetch(sessionStore, A_KEY);
   }
 
   @Test

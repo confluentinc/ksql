@@ -129,6 +129,7 @@ public class PullQueryFunctionalTest {
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
+      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 10000)
       .build();
 
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
@@ -145,6 +146,7 @@ public class PullQueryFunctionalTest {
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
+      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 10000)
       .build();
 
   @ClassRule

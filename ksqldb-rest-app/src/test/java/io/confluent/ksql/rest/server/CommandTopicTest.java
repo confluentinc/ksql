@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.nio.charset.Charset;
 import java.time.Duration;
@@ -104,7 +105,7 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldGetCommandsEvenWhenIssueBackingUp() {
+  public void shouldNotGetCommandsWhenKsqlServerExceptionWhenBackingUp() {
     // Given:
     when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
     doNothing().doThrow(new KsqlServerException("error")).when(commandTopicBackup).writeRecord(any());
@@ -115,12 +116,56 @@ public class CommandTopicTest {
     final List<ConsumerRecord<byte[], byte[]>> newCommandsList = ImmutableList.copyOf(newCommands);
 
     // Then:
+    assertThat(newCommandsList.size(), is(1));
+    assertThat(newCommandsList, equalTo(ImmutableList.of(record1)));
+    verify(commandTopicBackup, never()).writeRecord(record3);
+  }
+
+  @Test
+  public void shouldGetCommandsWhenKsqlExceptionWhenBackingUp() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
+    doNothing().doThrow(new KsqlException("error")).when(commandTopicBackup).writeRecord(any());
+
+    // When:
+    final Iterable<ConsumerRecord<byte[], byte[]>> newCommands = commandTopic
+            .getNewCommands(Duration.ofHours(1));
+    final List<ConsumerRecord<byte[], byte[]>> newCommandsList = ImmutableList.copyOf(newCommands);
+
+    // Then:
     assertThat(newCommandsList.size(), is(3));
     assertThat(newCommandsList, equalTo(ImmutableList.of(record1, record2, record3)));
   }
 
   @Test
-  public void shouldGetCommandsEvenWhenIssueWithBackupInRestore() {
+  public void shouldGetCommandsEvenWhenKsqlExceptionInBackupInRestore() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords(
+            record1,
+            record2))
+        .thenReturn(someConsumerRecords(
+            record3))
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    doNothing().doThrow(new KsqlException("error")).when(commandTopicBackup).writeRecord(any());
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic
+        .getRestoreCommands(Duration.ofMillis(1));
+
+    // Then:
+    verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
+    verify(commandConsumer, times(3)).poll(any());
+    assertThat(topicPartitionsCaptor.getValue(),
+        equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(), 1L),
+        new QueuedCommand(commandId3, command3, Optional.empty(), 2L))));
+  }
+
+  @Test
+  public void shouldNotGetCommandsWhenKsqlServerExceptionIhBackupInRestore() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(
@@ -137,13 +182,11 @@ public class CommandTopicTest {
 
     // Then:
     verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
-    verify(commandConsumer, times(3)).poll(any());
+    verify(commandConsumer, times(1)).poll(any());
     assertThat(topicPartitionsCaptor.getValue(),
         equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
     assertThat(queuedCommandList, equalTo(ImmutableList.of(
-        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
-        new QueuedCommand(commandId2, command2, Optional.empty(), 1L),
-        new QueuedCommand(commandId3, command3, Optional.empty(), 2L))));
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L))));
   }
 
   @Test

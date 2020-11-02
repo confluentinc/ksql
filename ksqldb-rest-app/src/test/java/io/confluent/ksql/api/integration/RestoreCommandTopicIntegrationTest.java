@@ -37,7 +37,6 @@ import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -114,7 +113,6 @@ public class RestoreCommandTopicIntegrationTest {
   public void teardown() {
     REST_APP.stop();
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
-    new File(String.valueOf(backupFile)).delete();
   }
 
   @After
@@ -244,7 +242,7 @@ public class RestoreCommandTopicIntegrationTest {
       final Path backUpFileLocation
   ) throws IOException {
     BackupReplayFile.writable(new File(String.valueOf(backUpFileLocation)))
-        .write(new ConsumerRecord<byte[], byte[]>(
+        .write(new ConsumerRecord<>(
             "",
             0,
             0L,

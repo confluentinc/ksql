@@ -290,42 +290,71 @@ public class Server {
     if (tls) {
       options.setUseAlpn(true).setSsl(true);
 
-      final String keyStorePath = ksqlRestConfig
-          .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-      final Password keyStorePassword = ksqlRestConfig
-          .getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-      if (keyStorePath != null && !keyStorePath.isEmpty()) {
-        final String keyStoreType =
-            ksqlRestConfig.getString(KsqlRestConfig.SSL_KEYSTORE_TYPE_CONFIG);
-        if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
-          options.setKeyStoreOptions(
-              new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
-        } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
-          options.setPfxKeyCertOptions(
-              new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
-        }
+      configureTlsKeyStore(ksqlRestConfig, options);
+      configureTlsTrustStore(ksqlRestConfig, options);
+
+      final List<String> enabledProtocols =
+          ksqlRestConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG);
+      if (!enabledProtocols.isEmpty()) {
+        options.setEnabledSecureTransportProtocols(new HashSet<>(enabledProtocols));
       }
 
-      final String trustStorePath = ksqlRestConfig
-          .getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-      final Password trustStorePassword = ksqlRestConfig
-          .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-      if (trustStorePath != null && !trustStorePath.isEmpty()) {
-        final String trustStoreType =
-            ksqlRestConfig.getString(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG);
-        if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
-          options.setTrustStoreOptions(
-              new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
-        } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
-          options.setPfxTrustOptions(
-              new PfxOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
-        }
+      final List<String> cipherSuites =
+          ksqlRestConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG);
+      if (!cipherSuites.isEmpty()) {
+        // Vert.x does not yet support a method for setting cipher suites, so we use the following
+        // workaround instead. See https://github.com/eclipse-vertx/vert.x/issues/1507.
+        final Set<String> enabledCipherSuites = options.getEnabledCipherSuites();
+        enabledCipherSuites.clear();
+        enabledCipherSuites.addAll(cipherSuites);
       }
 
       options.setClientAuth(ksqlRestConfig.getClientAuth());
     }
 
     return options;
+  }
+
+  private static void configureTlsKeyStore(
+      final KsqlRestConfig ksqlRestConfig,
+      final HttpServerOptions options
+  ) {
+    final String keyStorePath = ksqlRestConfig
+        .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+    final Password keyStorePassword = ksqlRestConfig
+        .getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+    if (keyStorePath != null && !keyStorePath.isEmpty()) {
+      final String keyStoreType =
+          ksqlRestConfig.getString(KsqlRestConfig.SSL_KEYSTORE_TYPE_CONFIG);
+      if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+        options.setKeyStoreOptions(
+            new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
+      } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+        options.setPfxKeyCertOptions(
+            new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
+      }
+    }
+  }
+
+  private static void configureTlsTrustStore(
+      final KsqlRestConfig ksqlRestConfig,
+      final HttpServerOptions options
+  ) {
+    final String trustStorePath = ksqlRestConfig
+        .getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+    final Password trustStorePassword = ksqlRestConfig
+        .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+    if (trustStorePath != null && !trustStorePath.isEmpty()) {
+      final String trustStoreType =
+          ksqlRestConfig.getString(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG);
+      if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+        options.setTrustStoreOptions(
+            new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+      } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+        options.setPfxTrustOptions(
+            new PfxOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+      }
+    }
   }
 
   private static List<URI> parseListeners(final KsqlRestConfig config) {

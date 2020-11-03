@@ -105,7 +105,7 @@ Because the insertions happen asynchronously on the server side, it makes sense 
 for inserting one row at a time, but inserting batches of rows is less useful due to the lack of transactional guarantees.
 
 The client should provide a convenient way for users to create rows of data to insert.
-The Java client's [KsqlObject](api/io/confluent/ksql/api/client/KsqlObject.html) is one example,
+The Java client's [KsqlObject](../java-client/api/io/confluent/ksql/api/client/KsqlObject.html) is one example,
 though details will vary by language.
 
 ### Listing existing streams, tables, topics, and queries ###
@@ -172,8 +172,8 @@ Additional options that are important to expose include:
 - Support for mutual-TLS-enabled ksqlDB servers
 - Support for ksqlDB servers with HTTP basic authentication enabled.
 
-As an example, users specify options for the Java client via a [ClientOptions](api/io/confluent/ksql/api/client/ClientOptions.html)
-object that is passed when [creating a Client instance](api/io/confluent/ksql/api/client/Client.html#create(io.confluent.ksql.api.client.ClientOptions)).
+As an example, users specify options for the Java client via a [ClientOptions](../java-client/api/io/confluent/ksql/api/client/ClientOptions.html)
+object that is passed when [creating a Client instance](../java-client/api/io/confluent/ksql/api/client/Client.html#create(io.confluent.ksql.api.client.ClientOptions)).
 
 Additional configuration options that are nice to support include
 - Custom HTTP request headers, to support connecting to ksqlDB servers configured with custom
@@ -187,7 +187,7 @@ Contributing your client to the main ksqlDB repository
 Thanks for your interest in contributing a client!
 
 To get started:
-- Open [KLIP](../../../design-proposals/README.md) to propose the client you'd like to implement. The KLIP should include a high-level design and example interfaces.
+- Open a [KLIP](https://github.com/confluentinc/ksql/blob/master/design-proposals/README.md) to propose the client you'd like to implement. The KLIP should include a high-level design and example interfaces.
 - Contribute code to [ksql repository](https://github.com/confluentinc/ksql)
 - Testing: Besides unit tests in the relevant language, there should also be integration tests to spin up a ksqlDB server and validate client behavior.
 - Add a new docs page for the client with example usage to the [ksqlDB clients page](index.md).

@@ -22,23 +22,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-<<<<<<< HEAD
-        <version>[6.2.0-0, 6.2.1-0)</version>
-=======
         <version>6.1.0-SNAPSHOT</version>
->>>>>>> parent of ca35b16d4f... build: nano versioning, st-3461 (#6079)
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-<<<<<<< HEAD
-    <version>6.2.0-0</version>
-
-=======
     <version>6.1.0-SNAPSHOT</version>
->>>>>>> parent of ca35b16d4f... build: nano versioning, st-3461 (#6079)
     <licenses>
         <license>
             <name>Confluent Community License</name>
@@ -143,11 +134,6 @@
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.6</apache.io.version>
-<<<<<<< HEAD
-        <io.confluent.ksql.version>6.2.0-0</io.confluent.ksql.version>
-        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-=======
->>>>>>> parent of ca35b16d4f... build: nano versioning, st-3461 (#6079)
     </properties>
 
     <dependencyManagement>

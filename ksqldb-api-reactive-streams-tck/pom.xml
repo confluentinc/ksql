@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.1.0-0</version>
+        <version>6.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksqldb-api-reactive-streams-tck</artifactId>
@@ -31,13 +31,12 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-rest-app</artifactId>
-            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>
-            <version>${io.confluent.ksql.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 

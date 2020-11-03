@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.1.0-0</version>
+        <version>6.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksqldb-streams</artifactId>
@@ -31,19 +31,16 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-common</artifactId>
-            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-serde</artifactId>
-            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-execution</artifactId>
-            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
@@ -61,7 +58,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-common</artifactId>
-            <version>${io.confluent.ksql.version}</version>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -69,7 +66,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>
-            <version>${io.confluent.ksql.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 

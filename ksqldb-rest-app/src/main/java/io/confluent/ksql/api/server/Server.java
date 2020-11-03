@@ -379,8 +379,15 @@ public class Server {
     final Password trustStorePassword = ksqlRestConfig
         .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
     if (trustStorePath != null && !trustStorePath.isEmpty()) {
-      options.setTrustStoreOptions(
-          new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+      final String trustStoreType =
+          ksqlRestConfig.getString(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG);
+      if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+        options.setTrustStoreOptions(
+            new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+      } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+        options.setPfxTrustOptions(
+            new PfxOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+      }
     }
   }
 

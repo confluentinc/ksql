@@ -162,7 +162,7 @@ def job = {
         checkout changelog: false,
             poll: false,
             scm: [$class: 'GitSCM',
-                branches: [[name: config.revision]],
+                branches: [['refs/heads/master-without-nanoversion']],
                 doGenerateSubmoduleConfigurations: false,
                 extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'ksql-db']],
                 submoduleCfg: [],

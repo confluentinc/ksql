@@ -63,6 +63,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -1361,8 +1362,8 @@ public class CliTest {
     }
 
     @Override
-    public void addRow(final GenericRow row) {
-      addRow(row.values());
+    public void addRow(final DataRow row) {
+      addRow(row.getColumns());
     }
 
     private void addRow(final List<?> row) {

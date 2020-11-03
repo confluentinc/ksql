@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.base.Ticker;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
@@ -34,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Before;
 import org.junit.Rule;
@@ -47,12 +47,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CommandTopicBackupImplTest {
   private static final String COMMAND_TOPIC_NAME = "command_topic";
 
-  private ConsumerRecord<byte[], byte[]> command1 = newStreamRecord("stream1");
-  private ConsumerRecord<byte[], byte[]> command2 = newStreamRecord("stream2");
-  private ConsumerRecord<byte[], byte[]> command3 = newStreamRecord("stream3");
+  private final ConsumerRecord<byte[], byte[]> command1 = newStreamRecord("stream1");
+  private final ConsumerRecord<byte[], byte[]> command2 = newStreamRecord("stream2");
+  private final ConsumerRecord<byte[], byte[]> command3 = newStreamRecord("stream3");
 
   @Mock
-  private Ticker ticker;
+  private Supplier<Long> ticker;
 
   @Rule
   public TemporaryFolder backupLocation = new TemporaryFolder();
@@ -70,7 +70,10 @@ public class CommandTopicBackupImplTest {
   }
 
   @SuppressWarnings("unchecked")
-  private ConsumerRecord<byte[], byte[]> newStreamRecord(final String key, final String value) {
+  private static ConsumerRecord<byte[], byte[]> newStreamRecord(
+      final String key,
+      final String value
+  ) {
     final ConsumerRecord<byte[], byte[]> consumerRecord = mock(ConsumerRecord.class);
 
     when(consumerRecord.key()).thenReturn(key.getBytes(StandardCharsets.UTF_8));
@@ -304,7 +307,7 @@ public class CommandTopicBackupImplTest {
   @Test
   public void shouldCreateNewReplayFileWhenNoBackupFilesExist() {
     // Given:
-    when(ticker.read()).thenReturn(123L);
+    when(ticker.get()).thenReturn(123L);
 
     // When:
     final BackupReplayFile replayFile = commandTopicBackup.openOrCreateReplayFile();

@@ -64,8 +64,10 @@ import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
@@ -77,10 +79,12 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.EOFException;
 import java.io.IOException;
@@ -91,6 +95,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -242,7 +247,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT
         )
     );
 
@@ -264,7 +270,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT
         )
     );
 
@@ -281,7 +288,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
     // Then:
@@ -295,7 +303,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
     // Then:
@@ -316,7 +325,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT
         )
     );
 
@@ -339,7 +349,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
     // Then:
@@ -363,7 +374,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -413,7 +425,8 @@ public class StreamedQueryResourceTest {
             null
         ),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
     // Then:
@@ -433,7 +446,7 @@ public class StreamedQueryResourceTest {
 
     final String queryString = "SELECT * FROM test_stream;";
 
-    final SynchronousQueue<GenericRow> rowQueue = new SynchronousQueue<>();
+    final SynchronousQueue<KeyValue<List<?>, GenericRow>> rowQueue = new SynchronousQueue<>();
 
     final LinkedList<GenericRow> writtenRows = new LinkedList<>();
 
@@ -444,7 +457,7 @@ public class StreamedQueryResourceTest {
           synchronized (writtenRows) {
             writtenRows.add(value);
           }
-          rowQueue.put(value);
+          rowQueue.put(KeyValue.keyValue(null, value));
         }
       } catch (final InterruptedException exception) {
         // This should happen during the test, so it's fine
@@ -469,18 +482,20 @@ public class StreamedQueryResourceTest {
             Collections.emptySet(),
             "",
             new TestRowQueue(rowQueue),
-            "",
+            "appId",
             mock(Topology.class),
             kafkaStreamsBuilder,
             Collections.emptyMap(),
             Collections.emptyMap(),
             queryCloseCallback,
             closeTimeout,
-            10);
+            10,
+            ResultType.STREAM
+        );
 
     when(mockKsqlEngine.executeQuery(serviceContext,
         ConfiguredStatement
-            .of(query, SessionConfig.of(VALID_CONFIG, requestStreamsProperties))))
+            .of(query, SessionConfig.of(VALID_CONFIG, requestStreamsProperties)), false))
         .thenReturn(transientQueryMetadata);
 
     final EndpointResponse response =
@@ -488,7 +503,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT
         );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
@@ -525,7 +541,8 @@ public class StreamedQueryResourceTest {
 
       if (i == 0) {
         // Header:
-        assertThat(jsonLine, is("{\"header\":{\"queryId\":\"none\",\"schema\":\"`f1` INTEGER\"}}"));
+        assertThat(jsonLine,
+            is("{\"header\":{\"queryId\":\"appId\",\"schema\":\"`f1` INTEGER\"}}"));
         continue;
       }
 
@@ -534,12 +551,12 @@ public class StreamedQueryResourceTest {
         expectedRow = writtenRows.poll();
       }
 
-      final GenericRow testRow = objectMapper
+      final DataRow testRow = objectMapper
           .readValue(jsonLine, StreamedRow.class)
           .getRow()
           .get();
 
-      assertEquals(expectedRow, testRow);
+      assertThat(testRow.getColumns(), is(expectedRow.values()));
     }
 
     responseOutputStream.close();
@@ -630,7 +647,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
     // Then:
@@ -651,7 +669,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -676,7 +695,8 @@ public class StreamedQueryResourceTest {
         securityContext,
         new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
-        Optional.empty()
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
     assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
@@ -706,7 +726,8 @@ public class StreamedQueryResourceTest {
             securityContext,
             new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
-            Optional.empty()
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT
         )
     );
 
@@ -727,10 +748,10 @@ public class StreamedQueryResourceTest {
 
   private static class TestRowQueue implements BlockingRowQueue {
 
-    private final SynchronousQueue<GenericRow> rowQueue;
+    private final SynchronousQueue<KeyValue<List<?>, GenericRow>> rowQueue;
 
     TestRowQueue(
-        final SynchronousQueue<GenericRow> rowQueue
+        final SynchronousQueue<KeyValue<List<?>, GenericRow>> rowQueue
     ) {
       this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     }
@@ -746,18 +767,18 @@ public class StreamedQueryResourceTest {
     }
 
     @Override
-    public GenericRow poll(final long timeout, final TimeUnit unit)
+    public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
         throws InterruptedException {
       return rowQueue.poll(timeout, unit);
     }
 
     @Override
-    public GenericRow poll() {
+    public KeyValue<List<?>, GenericRow> poll() {
       return rowQueue.poll();
     }
 
     @Override
-    public void drainTo(final Collection<? super GenericRow> collection) {
+    public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
       rowQueue.drainTo(collection);
     }
 

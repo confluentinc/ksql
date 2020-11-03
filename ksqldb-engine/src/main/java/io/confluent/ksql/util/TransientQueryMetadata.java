@@ -35,7 +35,14 @@ import org.apache.kafka.streams.Topology;
  */
 public class TransientQueryMetadata extends QueryMetadata {
 
+  public enum ResultType {
+    STREAM,
+    TABLE,
+    WINDOWED_TABLE
+  }
+
   private final BlockingRowQueue rowQueue;
+  private final ResultType resultType;
   private final AtomicBoolean isRunning = new AtomicBoolean(true);
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -52,7 +59,8 @@ public class TransientQueryMetadata extends QueryMetadata {
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
-      final int maxQueryErrorsQueueSize
+      final int maxQueryErrorsQueueSize,
+      final ResultType resultType
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -72,6 +80,7 @@ public class TransientQueryMetadata extends QueryMetadata {
         maxQueryErrorsQueueSize
     );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
+    this.resultType = Objects.requireNonNull(resultType, "resultType");
     this.onStop(ignored -> isRunning.set(false));
   }
 
@@ -82,10 +91,14 @@ public class TransientQueryMetadata extends QueryMetadata {
   public BlockingRowQueue getRowQueue() {
     return rowQueue;
   }
-  
+
   @Override
   public KsqlQueryType getQueryType() {
     return KsqlQueryType.PUSH;
+  }
+
+  public ResultType getResultType() {
+    return resultType;
   }
 
   @Override
@@ -96,12 +109,14 @@ public class TransientQueryMetadata extends QueryMetadata {
 
     final TransientQueryMetadata that = (TransientQueryMetadata) o;
 
-    return Objects.equals(this.rowQueue, that.rowQueue) && super.equals(o);
+    return Objects.equals(this.rowQueue, that.rowQueue)
+        && Objects.equals(this.resultType, that.resultType)
+        && super.equals(o);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(rowQueue, super.hashCode());
+    return Objects.hash(rowQueue, resultType, super.hashCode());
   }
 
   public void setLimitHandler(final LimitHandler limitHandler) {

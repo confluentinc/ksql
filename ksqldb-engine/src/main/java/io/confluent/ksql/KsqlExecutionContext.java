@@ -121,7 +121,8 @@ public interface KsqlExecutionContext {
    */
   TransientQueryMetadata executeQuery(
       ServiceContext serviceContext,
-      ConfiguredStatement<Query> statement
+      ConfiguredStatement<Query> statement,
+      boolean excludeTombstones
   );
 
   /**

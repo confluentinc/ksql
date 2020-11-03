@@ -29,6 +29,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
@@ -172,14 +173,16 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final CompletableFuture<Void> connectionClosedFuture,
       final ApiSecurityContext apiSecurityContext,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final KsqlMediaType mediaType
   ) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
             ksqlSecurityContext,
             request,
             connectionClosedFuture,
-            isInternalRequest
+            isInternalRequest,
+            mediaType
         ), workerExecutor);
   }
 

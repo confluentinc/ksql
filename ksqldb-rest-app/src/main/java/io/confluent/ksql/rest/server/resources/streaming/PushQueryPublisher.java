@@ -28,6 +28,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
 import java.util.List;
@@ -59,8 +60,10 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final TransientQueryMetadata queryMetadata = ksqlEngine.executeQuery(serviceContext, query);
-    final PushQuerySubscription subscription = new PushQuerySubscription(subscriber, queryMetadata);
+    final TransientQueryMetadata queryMetadata = ksqlEngine
+        .executeQuery(serviceContext, query, true);
+    final PushQuerySubscription subscription =
+        new PushQuerySubscription(exec, subscriber, queryMetadata);
 
     log.info("Running query {}", queryMetadata.getQueryApplicationId());
     queryMetadata.start();
@@ -68,12 +71,13 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     subscriber.onSubscribe(subscription);
   }
 
-  class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {
+  static class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {
 
     private final TransientQueryMetadata queryMetadata;
     private boolean closed = false;
 
     PushQuerySubscription(
+        final ListeningScheduledExecutorService exec,
         final Subscriber<Collection<StreamedRow>> subscriber,
         final TransientQueryMetadata queryMetadata
     ) {
@@ -88,13 +92,13 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     @Override
     public Collection<StreamedRow> poll() {
-      final List<GenericRow> rows = Lists.newLinkedList();
+      final List<KeyValue<List<?>, GenericRow>> rows = Lists.newLinkedList();
       queryMetadata.getRowQueue().drainTo(rows);
       if (rows.isEmpty()) {
         return null;
       } else {
         return rows.stream()
-            .map(StreamedRow::row)
+            .map(kv -> StreamedRow.pushRow(kv.value()))
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

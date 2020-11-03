@@ -22,6 +22,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -39,9 +40,12 @@ import org.apache.kafka.streams.state.ReadOnlySessionStore;
 class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
   private final KsStateStore stateStore;
+  private final SessionStoreCacheBypassFetcher cacheBypassFetcher;
 
-  KsMaterializedSessionTable(final KsStateStore store) {
+  KsMaterializedSessionTable(final KsStateStore store,
+      final SessionStoreCacheBypassFetcher cacheBypassFetcher) {
     this.stateStore = Objects.requireNonNull(store, "store");
+    this.cacheBypassFetcher = Objects.requireNonNull(cacheBypassFetcher, "cacheBypassFetcher");
   }
 
   @Override
@@ -67,7 +71,7 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
       final Range<Instant> windowStart,
       final Range<Instant> windowEnd
   ) {
-    try (KeyValueIterator<Windowed<Struct>, GenericRow> it = store.fetch(key)) {
+    try (KeyValueIterator<Windowed<Struct>, GenericRow> it = cacheBypassFetcher.fetch(store, key)) {
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 

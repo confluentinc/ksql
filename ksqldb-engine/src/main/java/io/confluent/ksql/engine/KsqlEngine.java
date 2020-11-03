@@ -232,12 +232,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public TransientQueryMetadata executeQuery(
       final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement
+      final ConfiguredStatement<Query> statement,
+      final boolean excludeTombstones
   ) {
     try {
       final TransientQueryMetadata query = EngineExecutor
           .create(primaryContext, serviceContext, statement.getSessionConfig())
-          .executeQuery(statement);
+          .executeQuery(statement, excludeTombstones);
 
       registerQuery(query);
       primaryContext.registerQuery(query);

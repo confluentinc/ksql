@@ -86,8 +86,9 @@ public class KsqlRestoreCommandTopic {
       } catch (final Exception e) {
         throw new KsqlException(String.format(
             "Invalid CommandId string (line %d): %s",
-            n, new String(record.getLeft(), StandardCharsets.UTF_8), e
-        ));
+            n, new String(record.getLeft(), StandardCharsets.UTF_8)),
+            e
+        );
       }
 
       try {
@@ -96,8 +97,9 @@ public class KsqlRestoreCommandTopic {
       } catch (final Exception e) {
         throw new KsqlException(String.format(
             "Invalid Command string (line %d): %s",
-            n, new String(record.getRight(), StandardCharsets.UTF_8), e
-        ));
+            n, new String(record.getRight(), StandardCharsets.UTF_8)),
+            e
+        );
       }
     }
   }
@@ -133,12 +135,7 @@ public class KsqlRestoreCommandTopic {
     final Console console = System.console();
     final String decision = console.readLine();
 
-    switch (decision.toLowerCase()) {
-      case "yes":
-        return true;
-      default:
-        return false;
-    }
+    return "yes".equals(decision.toLowerCase());
   }
 
   /**

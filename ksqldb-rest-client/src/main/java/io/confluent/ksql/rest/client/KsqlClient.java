@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.client;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -38,7 +39,7 @@ import org.apache.kafka.common.config.SslConfigs;
 public final class KsqlClient implements AutoCloseable {
 
   static {
-    ApiJsonMapper.INSTANCE.get().registerModule(new KsqlTypesDeserializationModule());
+    initialize();
   }
 
   private final Vertx vertx;
@@ -106,6 +107,11 @@ public final class KsqlClient implements AutoCloseable {
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
         basicAuthHeader, server.getHost());
+  }
+
+  @VisibleForTesting
+  public static void initialize() {
+    ApiJsonMapper.INSTANCE.get().registerModule(new KsqlTypesDeserializationModule());
   }
 
   public void close() {

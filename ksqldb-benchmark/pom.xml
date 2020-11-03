@@ -47,7 +47,11 @@ questions.
   <parent>
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
+<<<<<<< HEAD
     <version>6.2.0-0</version>
+=======
+    <version>6.1.0-SNAPSHOT</version>
+>>>>>>> parent of ca35b16d4f... build: nano versioning, st-3461 (#6079)
   </parent>
 
   <artifactId>ksqldb-benchmark</artifactId>
@@ -78,20 +82,20 @@ questions.
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksqldb-serde</artifactId>
-      <version>${io.confluent.ksql.version}</version>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksqldb-examples</artifactId>
-      <version>${io.confluent.ksql.version}</version>
+      <version>${project.version}</version>
     </dependency>
 
     <!-- for running tests -->
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksqldb-test-util</artifactId>
-      <version>${io.confluent.ksql.version}</version>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -19,6 +19,10 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.confluent</groupId>
     <artifactId>build-tools</artifactId>
+<<<<<<< HEAD
     <version>6.2.0-0</version>
+=======
+    <version>6.1.0-SNAPSHOT</version>
+>>>>>>> parent of ca35b16d4f... build: nano versioning, st-3461 (#6079)
     <name>Build Tools</name>
 </project>

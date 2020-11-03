@@ -2,10 +2,9 @@
 
 dockerfile {
     slackChannel = '#ksql-alerts'
+    upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'
     dockerPush = false
     dockerScan = false
     dockerImageClean = false
-    downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
-    nanoVersion = true
 }

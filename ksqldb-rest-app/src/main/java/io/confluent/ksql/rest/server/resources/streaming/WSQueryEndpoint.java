@@ -29,9 +29,9 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
@@ -217,16 +217,16 @@ public class WSQueryEndpoint {
     }
   }
 
-  private void validateVersion(final MultiMap requestParams) {
-
-    final String version = requestParams.get(Versions.KSQL_V1_WS_PARAM);
-
+  private static void validateVersion(final MultiMap requestParams) {
+    final String version = requestParams.get("version");
     if (version == null) {
       return;
     }
 
-    if (!Versions.KSQL_V1_WS.equals(version)) {
-      throw new IllegalArgumentException("Received invalid api version: " + version);
+    try {
+      KsqlMediaType.valueOf("JSON", Integer.parseInt(version));
+    } catch (final Exception e) {
+      throw new IllegalArgumentException("Received invalid api version: " + version, e);
     }
   }
 

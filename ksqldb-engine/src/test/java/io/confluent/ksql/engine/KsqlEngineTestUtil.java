@@ -99,7 +99,7 @@ public final class KsqlEngineTestUtil {
     final ConfiguredStatement<Query> configured = ConfiguredStatement.of(
         prepared, SessionConfig.of(ksqlConfig, overriddenProperties)).cast();
     try {
-      return engine.executeQuery(serviceContext, configured);
+      return engine.executeQuery(serviceContext, configured, false);
     } catch (final KsqlStatementException e) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement

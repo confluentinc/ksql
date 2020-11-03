@@ -35,6 +35,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -352,10 +353,12 @@ public class EndToEndIntegrationTest {
         TimeUnit.SECONDS
     );
 
-    final List<GenericRow> rows = new ArrayList<>();
+    final List<KeyValue<List<?>, GenericRow>> rows = new ArrayList<>();
     rowQueue.drainTo(rows);
 
-    return rows;
+    return rows.stream()
+        .map(KeyValue::value)
+        .collect(Collectors.toList());
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {

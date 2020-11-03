@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -117,9 +118,12 @@ final class EngineExecutor {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
-  TransientQueryMetadata executeQuery(final ConfiguredStatement<Query> statement) {
+  TransientQueryMetadata executeQuery(
+      final ConfiguredStatement<Query> statement,
+      final boolean excludeTombstones
+  ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(), Optional.empty());
-    final OutputNode outputNode = plans.logicalPlan.getNode().get();
+    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
     final QueryExecutor executor = engineContext.createQueryExecutor(config, serviceContext);
 
     return executor.buildTransientQuery(
@@ -131,7 +135,9 @@ final class EngineExecutor {
             plans.physicalPlan.getQueryId(),
             plans.physicalPlan.getPhysicalPlan()),
         outputNode.getSchema(),
-        outputNode.getLimit()
+        outputNode.getLimit(),
+        outputNode.getWindowInfo(),
+        excludeTombstones
     );
   }
 

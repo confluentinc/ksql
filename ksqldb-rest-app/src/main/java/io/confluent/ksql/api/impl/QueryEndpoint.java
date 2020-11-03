@@ -94,7 +94,8 @@ public class QueryEndpoint {
   ) {
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-    final TransientQueryMetadata queryMetadata = ksqlEngine.executeQuery(serviceContext, statement);
+    final TransientQueryMetadata queryMetadata = ksqlEngine
+        .executeQuery(serviceContext, statement, true);
 
     publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata));
 

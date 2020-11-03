@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
@@ -159,7 +160,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request,
       final CompletableFuture<Void> connectionClosedFuture,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final KsqlMediaType mediaType
   ) {
     throwIfNotConfigured();
     activenessRegistrar.updateLastRequestTime();
@@ -170,7 +172,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest);
+        isInternalRequest, mediaType);
   }
 
   private void throwIfNotConfigured() {
@@ -198,7 +200,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final KsqlRequest request,
       final PreparedStatement<?> statement,
       final CompletableFuture<Void> connectionClosedFuture,
-      final Optional<Boolean> isInternalRequest
+      final Optional<Boolean> isInternalRequest,
+      final KsqlMediaType mediaType
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -214,8 +217,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       if (statement.getStatement() instanceof Query) {
         final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
         if (queryStmt.getStatement().isPullQuery()) {
-
-          final EndpointResponse response = handlePullQuery(
+          return handlePullQuery(
               securityContext.getServiceContext(),
               queryStmt,
               configProperties,
@@ -223,15 +225,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
               isInternalRequest,
               pullQueryMetrics
           );
-
-          return response;
         }
 
         return handlePushQuery(
             securityContext.getServiceContext(),
             queryStmt,
             configProperties,
-            connectionClosedFuture
+            connectionClosedFuture,
+            mediaType
         );
       }
 
@@ -274,20 +275,23 @@ public class StreamedQueryResource implements KsqlConfigurable {
             .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()))
             .collect(Collectors.toList()));
 
-    final StreamedRow header = StreamedRow.header(tableRows.getQueryId(), tableRows.getSchema());
+    final StreamedRow header = StreamedRow.header(
+        tableRows.getQueryId(),
+        tableRows.getSchema()
+    );
 
     hosts.ifPresent(h -> Preconditions.checkState(h.size() == tableRows.getRows().size()));
     final List<StreamedRow> rows = IntStream.range(0, tableRows.getRows().size())
         .mapToObj(i -> Pair.of(
             StreamedQueryResource.toGenericRow(tableRows.getRows().get(i)),
             hosts.map(h -> h.get(i))))
-        .map(pair -> StreamedRow.row(pair.getLeft(), pair.getRight()))
+        .map(pair -> StreamedRow.pullRow(pair.getLeft(), pair.getRight()))
         .collect(Collectors.toList());
 
     rows.add(0, header);
 
     final String data = rows.stream()
-        .map(this::writeValueAsString)
+        .map(StreamedQueryResource::writeValueAsString)
         .collect(Collectors.joining("," + System.lineSeparator(), "[", "]"));
 
     return EndpointResponse.ok(data);
@@ -297,12 +301,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties,
-      final CompletableFuture<Void> connectionClosedFuture
+      final CompletableFuture<Void> connectionClosedFuture,
+      final KsqlMediaType mediaType
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
 
-    final TransientQueryMetadata query = ksqlEngine.executeQuery(serviceContext, configured);
+    final TransientQueryMetadata query = ksqlEngine
+        .executeQuery(serviceContext, configured, false);
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,
@@ -315,7 +321,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     return EndpointResponse.ok(queryStreamWriter);
   }
 
-  private String writeValueAsString(final Object object) {
+  private static String writeValueAsString(final Object object) {
     try {
       return OBJECT_MAPPER.writeValueAsString(object);
     } catch (final JsonProcessingException e) {
@@ -384,5 +390,3 @@ public class StreamedQueryResource implements KsqlConfigurable {
     return new GenericRow().appendAll(values);
   }
 }
-
-

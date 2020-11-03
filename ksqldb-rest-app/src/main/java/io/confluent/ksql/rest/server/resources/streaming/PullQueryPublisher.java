@@ -119,7 +119,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
             .mapToObj(i -> Pair.of(
                 PullQuerySubscription.toGenericRow(entity.getRows().get(i)),
                 hosts.map(h -> h.get(i))))
-            .map(pair -> StreamedRow.row(pair.getLeft(), pair.getRight()))
+            .map(pair -> StreamedRow.pullRow(pair.getLeft(), pair.getRight()))
             .collect(Collectors.toList());
 
         subscriber.onNext(rows);

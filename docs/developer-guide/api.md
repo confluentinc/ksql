@@ -38,7 +38,9 @@ Accept: application/vnd.ksql.v1+json
 
 The less specific `application/json` content type is also permitted.
 However, this is only for compatibility and ease of use, and you should
-use the versioned value if possible.
+use the versioned value where possible. `application/json` maps to the latest
+versioned content type, meaning the response may change after upgrading the server to 
+a later version.
 
 The server also supports content negotiation, so you may include
 multiple, weighted preferences:

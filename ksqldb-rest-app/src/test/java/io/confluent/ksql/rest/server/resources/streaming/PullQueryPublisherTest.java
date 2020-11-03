@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -38,10 +37,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -191,8 +187,8 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(ImmutableList.of(
-        StreamedRow.row(GenericRow.genericRow("a", 1, 2L, 3.0f)),
-        StreamedRow.row(GenericRow.genericRow("b", 1, 2L, 3.0f))
+        StreamedRow.pushRow(GenericRow.genericRow("a", 1, 2L, 3.0f)),
+        StreamedRow.pushRow(GenericRow.genericRow("b", 1, 2L, 3.0f))
     ));
   }
 

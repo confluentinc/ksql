@@ -601,7 +601,7 @@ public final class PullQueryExecutor {
         throw new KsqlServerException("Unexpected forwarding response");
       }
 
-      rows.add(row.getRow().get().values());
+      rows.add(row.getRow().get().getColumns());
     }
 
     return new TableRows(

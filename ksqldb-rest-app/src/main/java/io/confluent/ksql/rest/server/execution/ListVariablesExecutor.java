@@ -23,7 +23,6 @@ import io.confluent.ksql.rest.entity.VariablesList;
 import io.confluent.ksql.rest.entity.VariablesList.Variable;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

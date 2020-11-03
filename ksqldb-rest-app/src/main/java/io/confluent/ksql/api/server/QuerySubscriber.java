@@ -20,8 +20,10 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.util.KeyValue;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
+import java.util.List;
 import java.util.Objects;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -31,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * This is a reactive streams subscriber which receives a stream of results from a publisher which
  * is implemented by the back-end. The results are then written to the HTTP2 response.
  */
-public class QuerySubscriber extends BaseSubscriber<GenericRow> {
+public class QuerySubscriber extends BaseSubscriber<KeyValue<List<?>, GenericRow>> {
 
   private static final Logger log = LoggerFactory.getLogger(QuerySubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 200;
@@ -53,8 +55,8 @@ public class QuerySubscriber extends BaseSubscriber<GenericRow> {
   }
 
   @Override
-  public void handleValue(final GenericRow row) {
-    queryStreamResponseWriter.writeRow(row);
+  public void handleValue(final KeyValue<List<?>, GenericRow> row) {
+    queryStreamResponseWriter.writeRow(row.value());
     tokens--;
     if (response.writeQueueFull()) {
       response.drainHandler(v -> checkMakeRequest());

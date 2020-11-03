@@ -39,6 +39,7 @@ import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -48,6 +49,7 @@ import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.JoinTree.Join;
 import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -81,6 +83,7 @@ import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
@@ -177,7 +180,8 @@ public class LogicalPlanner {
           sourcePlanNode,
           inputSchema,
           analysis.getLimitClause(),
-          timestampColumn
+          timestampColumn,
+          getWindowInfo()
       );
     }
 
@@ -195,6 +199,21 @@ public class LogicalPlanner {
         into.isCreate(),
         into.getName()
     );
+  }
+
+  private Optional<WindowInfo> getWindowInfo() {
+    final KsqlTopic srcTopic = analysis
+        .getFrom()
+        .getDataSource()
+        .getKsqlTopic();
+
+    final Optional<WindowInfo> explicitWindowInfo = analysis.getWindowExpression()
+        .map(WindowExpression::getKsqlWindowExpression)
+        .map(KsqlWindowExpression::getWindowInfo);
+
+    return explicitWindowInfo.isPresent()
+        ? explicitWindowInfo
+        : srcTopic.getKeyFormat().getWindowInfo();
   }
 
   private KsqlTopic getSinkTopic(final Into into, final LogicalSchema schema) {

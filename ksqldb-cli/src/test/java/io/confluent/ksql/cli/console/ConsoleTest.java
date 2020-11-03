@@ -124,7 +124,7 @@ public class ConsoleTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
-      .build();
+      .build().withPseudoAndKeyColsInValue(false);
 
   private final TestTerminal terminal;
   private final Console console;
@@ -187,17 +187,35 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintGenericStreamedRow() {
+  public void testPrintDataRow() {
     // Given:
-    final StreamedRow row = StreamedRow.row(genericRow("col_1", "col_2"));
+    final StreamedRow row = StreamedRow.pushRow(genericRow("col_1", "col_2"));
 
     // When:
     console.printStreamedRow(row);
 
     // Then:
+    assertThat(terminal.getOutputString(), containsString("col_1"));
+    assertThat(terminal.getOutputString(), containsString("col_2"));
+  }
+
+  @Test
+  public void testPrintTableTombstone() {
+    // Given:
+    console.printStreamedRow(StreamedRow.header(new QueryId("id"), SCHEMA));
+
+    final StreamedRow row = StreamedRow.tombstone(genericRow(null, "v_0", null));
+
+    // When:
+    console.printStreamedRow(row);
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString("v_0"));
+
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
-      assertThat(terminal.getOutputString(), containsString("col_1"));
-      assertThat(terminal.getOutputString(), containsString("col_2"));
+      assertThat(terminal.getOutputString(), containsString("<TOMBSTONE>"));
+    } else {
+      assertThat(terminal.getOutputString(), containsString("\"tombstone\" : true"));
     }
   }
 

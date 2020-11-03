@@ -31,7 +31,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -43,12 +47,27 @@ public final class StreamedRow {
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private final Optional<Header> header;
-  private final Optional<GenericRow> row;
+  private final Optional<DataRow> row;
   private final Optional<KsqlErrorMessage> errorMessage;
   private final Optional<String> finalMessage;
   private final Optional<KsqlHostInfoEntity> sourceHost;
 
-  public static StreamedRow header(final QueryId queryId, final LogicalSchema schema) {
+  /**
+   * The header used in queries.
+   *
+   * <p>Pull queries currently mark any primary key columns in the projection as
+   * {@code KEY} columns in the {@code schema} field of the header.
+   *
+   * <p>Push queries currently do not mark any key columns with {@code KEY}.
+   *
+   * @param queryId the id of the query
+   * @param schema the schema of the result
+   * @return the header row.
+   */
+  public static StreamedRow header(
+      final QueryId queryId,
+      final LogicalSchema schema
+  ) {
     return new StreamedRow(
         Optional.of(Header.of(queryId, schema)),
         Optional.empty(),
@@ -58,24 +77,42 @@ public final class StreamedRow {
     );
   }
 
-  public static StreamedRow row(final GenericRow row) {
+  /**
+   * Row returned from a push query.
+   */
+  public static StreamedRow pushRow(final GenericRow value) {
     return new StreamedRow(
         Optional.empty(),
-        Optional.of(row),
+        Optional.of(DataRow.row(value.values())),
         Optional.empty(),
         Optional.empty(),
         Optional.empty()
     );
   }
 
-  public static StreamedRow row(final GenericRow row,
-      final Optional<KsqlHostInfoEntity> sourceHost) {
+  /**
+   * Row returned from a pull query.
+   */
+  public static StreamedRow pullRow(
+      final GenericRow value,
+      final Optional<KsqlHostInfoEntity> sourceHost
+  ) {
     return new StreamedRow(
         Optional.empty(),
-        Optional.of(row),
+        Optional.of(DataRow.row(value.values())),
         Optional.empty(),
         Optional.empty(),
         sourceHost
+    );
+  }
+
+  public static StreamedRow tombstone(final GenericRow columns) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.of(DataRow.tombstone(columns.values())),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty()
     );
   }
 
@@ -102,7 +139,7 @@ public final class StreamedRow {
   @JsonCreator
   private StreamedRow(
       @JsonProperty("header") final Optional<Header> header,
-      @JsonProperty("row") final Optional<GenericRow> row,
+      @JsonProperty("row") final Optional<DataRow> row,
       @JsonProperty("errorMessage") final Optional<KsqlErrorMessage> errorMessage,
       @JsonProperty("finalMessage") final Optional<String> finalMessage,
       @JsonProperty("sourceHost") final Optional<KsqlHostInfoEntity> sourceHost
@@ -120,7 +157,7 @@ public final class StreamedRow {
     return header;
   }
 
-  public Optional<GenericRow> getRow() {
+  public Optional<DataRow> getRow() {
     return row;
   }
 
@@ -153,12 +190,13 @@ public final class StreamedRow {
     return Objects.equals(header, that.header)
         && Objects.equals(row, that.row)
         && Objects.equals(errorMessage, that.errorMessage)
-        && Objects.equals(finalMessage, that.finalMessage);
+        && Objects.equals(finalMessage, that.finalMessage)
+        && Objects.equals(sourceHost, that.sourceHost);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(header, row, errorMessage, finalMessage);
+    return Objects.hash(header, row, errorMessage, finalMessage, sourceHost);
   }
 
   @Override
@@ -181,31 +219,58 @@ public final class StreamedRow {
   }
 
   @Immutable
+  public abstract static class BaseRow {
+
+    @Override
+    public String toString() {
+      try {
+        return OBJECT_MAPPER.writeValueAsString(this);
+      } catch (final JsonProcessingException e) {
+        return super.toString();
+      }
+    }
+  }
+
+  @JsonInclude(Include.NON_EMPTY)
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public static final class Header {
+  public static final class Header extends BaseRow {
 
     private final QueryId queryId;
-    private final LogicalSchema schema;
+    private final LogicalSchema columnsSchema;
 
-    @JsonCreator
     public static Header of(
-        @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-        @JsonProperty(value = "schema", required = true) final LogicalSchema schema
+        final QueryId queryId,
+        final LogicalSchema columnsSchema
     ) {
-      return new Header(queryId, schema);
+      return new Header(queryId, columnsSchema);
     }
 
     public QueryId getQueryId() {
       return queryId;
     }
 
+    /**
+     * @return The schema of the columns being returned by the query.
+     */
     public LogicalSchema getSchema() {
-      return schema;
+      return columnsSchema;
     }
 
-    private Header(final QueryId queryId, final LogicalSchema schema) {
+    @JsonCreator
+    @SuppressWarnings("unused") // Invoked by reflection by Jackson.
+    private static Header jsonCreator(
+        @JsonProperty(value = "queryId", required = true) final QueryId queryId,
+        @JsonProperty(value = "schema", required = true) final LogicalSchema columnsSchema
+    ) {
+      return new Header(queryId, columnsSchema);
+    }
+
+    private Header(
+        final QueryId queryId,
+        final LogicalSchema columnsSchema
+    ) {
       this.queryId = requireNonNull(queryId, "queryId");
-      this.schema = requireNonNull(schema, "schema");
+      this.columnsSchema = requireNonNull(columnsSchema, "columnsSchema");
     }
 
     @Override
@@ -218,21 +283,69 @@ public final class StreamedRow {
       }
       final Header header = (Header) o;
       return Objects.equals(queryId, header.queryId)
-          && Objects.equals(schema, header.schema);
+          && Objects.equals(columnsSchema, header.columnsSchema);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(queryId, schema);
+      return Objects.hash(queryId, columnsSchema);
+    }
+  }
+
+  @JsonInclude(Include.NON_EMPTY)
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static final class DataRow extends BaseRow {
+
+    @EffectivelyImmutable
+    private final List<?> columns;
+    private final boolean tombstone;
+
+    public static DataRow row(
+        final List<?> columns
+    ) {
+      return new DataRow(columns, Optional.empty());
+    }
+
+    public static DataRow tombstone(
+        final List<?> columns
+    ) {
+      return new DataRow(columns, Optional.of(true));
+    }
+
+    public List<?> getColumns() {
+      return columns;
+    }
+
+    public Optional<Boolean> getTombstone() {
+      return tombstone ? Optional.of(true) : Optional.empty();
+    }
+
+    @JsonCreator
+    private DataRow(
+        @JsonProperty(value = "columns") final List<?> columns,
+        @JsonProperty(value = "tombstone") final Optional<Boolean> tombstone
+    ) {
+      this.tombstone = tombstone.orElse(false);
+      this.columns = Collections
+          .unmodifiableList(new ArrayList<>(requireNonNull(columns, "columns")));
     }
 
     @Override
-    public String toString() {
-      try {
-        return OBJECT_MAPPER.writeValueAsString(this);
-      } catch (final JsonProcessingException e) {
-        return super.toString();
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
       }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final DataRow row = (DataRow) o;
+      return tombstone == row.tombstone
+          && Objects.equals(columns, row.columns);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(tombstone, columns);
     }
   }
 }

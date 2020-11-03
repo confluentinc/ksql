@@ -218,7 +218,7 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(key, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, 1)));
   }
 
   @Test
@@ -247,7 +247,7 @@ public class PullQueryFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(
         key,                    // USERID
         BASE_TIME,              // WINDOWSTART
         BASE_TIME + ONE_SECOND, // WINDOWEND
@@ -287,8 +287,8 @@ public class PullQueryFunctionalTest {
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
     assertThat(hosts, containsInAnyOrder("localhost:8188", "localhost:8189"));
-    List<List<Object>> rows = rows_0.subList(1, rows_0.size()).stream()
-        .map(sr -> sr.getRow().get().values())
+    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
+        .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(ImmutableList.of(key0, 1), ImmutableList.of(key1, 1),
         ImmutableList.of(key2, 1)));
@@ -327,8 +327,8 @@ public class PullQueryFunctionalTest {
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
     assertThat(hosts, containsInAnyOrder("localhost:8188", "localhost:8189"));
-    List<List<Object>> rows = rows_0.subList(1, rows_0.size()).stream()
-        .map(sr -> sr.getRow().get().values())
+    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
+        .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(ImmutableList.of(
             key0,                    // USERID

@@ -18,7 +18,6 @@ package io.confluent.ksql.cli.console.table.builder;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.VariablesList;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;

@@ -161,7 +161,7 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-engine-common</artifactId>
-                <version>${io.confluent.ksql.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>

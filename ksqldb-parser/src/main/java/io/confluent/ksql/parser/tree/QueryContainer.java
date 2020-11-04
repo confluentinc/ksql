@@ -37,7 +37,8 @@ public interface QueryContainer {
   Sink getSink();
 
   /**
-   * Return an optional query ID if specified by the user
+   * Return an optional query ID if specified by the user. This query ID is used only by
+   * "INSERT INTO WITH (QUERY_ID='value')" statements.
    *
    * @return the optional query ID
    */

@@ -21,7 +21,7 @@ import org.apache.kafka.common.config.ConfigDef;
  * 'With Clause' properties for 'INSERT INTO' statements.
  */
 public final class InsertIntoConfigs {
-  public static final String QUERY_ID_PROPERTY = "ID";
+  public static final String QUERY_ID_PROPERTY = "QUERY_ID";
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
@@ -29,7 +29,11 @@ public final class InsertIntoConfigs {
           ConfigDef.Type.STRING,
           null,
           ConfigDef.Importance.LOW,
-          "Custom query ID to use for INSERT INTO queries"
+          "Optional query ID to use for INSERT INTO queries. This query ID will be "
+              + "displayed by `SHOW QUERIES`, and will also be used to terminate the query. "
+              + "If empty, the default 'INSERTQUERY_' prefix plus a number will be used. "
+              + "Queries IDs are case-insensitive. Queries IDs will be displayed in uppercase "
+              + "with `SHOW QUERIES`."
       );
 
   public static final ConfigMetaData CONFIG_METADATA = ConfigMetaData.of(CONFIG_DEF);

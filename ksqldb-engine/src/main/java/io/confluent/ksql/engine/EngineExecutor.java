@@ -227,6 +227,11 @@ final class EngineExecutor {
         ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
         withQueryId
     );
+
+    if (engineContext.getPersistentQuery(queryId).isPresent()) {
+      throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
+    }
+
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         config,

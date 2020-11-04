@@ -359,7 +359,7 @@ public class KsqlEngineTest {
     final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-        "insert into bar with (id='my_insert_id') select * from orders;",
+        "insert into bar with (query_id='my_insert_id') select * from orders;",
         KSQL_CONFIG,
         Collections.emptyMap()
     );
@@ -367,6 +367,32 @@ public class KsqlEngineTest {
     // Then:
     assertThat(queries, hasSize(1));
     assertThat(queries.get(0).getQueryId(), is(new QueryId("MY_INSERT_ID")));
+  }
+
+  @Test
+  public void shouldThrowInsertIntoIfCustomQueryIdAlreadyExists() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from orders;"
+            + "insert into bar with (query_id='my_insert_id') select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final Exception e = assertThrows(Exception.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "insert into bar with (query_id='my_insert_id') select * from orders;",
+            KSQL_CONFIG,
+            Collections.emptyMap())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Query ID 'MY_INSERT_ID' already exists."));
   }
 
   @Test

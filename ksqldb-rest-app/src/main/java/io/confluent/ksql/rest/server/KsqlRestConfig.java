@@ -139,7 +139,9 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String SSL_ENABLED_PROTOCOLS_CONFIG = "ssl.enabled.protocols";
   protected static final String SSL_ENABLED_PROTOCOLS_DOC =
       "The list of protocols enabled for SSL connections. Comma-separated list. "
-          + "If blank, the default of \"TLSv1,TLSv1.1,TLSv1.2\" will be used.";
+          + "If blank, the default from the Apache Kafka SslConfigs.java file will be used "
+          + "(see 'DEFAULT_SSL_ENABLED_PROTOCOLS' in "
+          + "https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/config/SslConfigs.java).";
 
   public static final String SSL_CIPHER_SUITES_CONFIG = "ssl.cipher.suites";
   protected static final String SSL_CIPHER_SUITES_DOC =
@@ -466,7 +468,7 @@ public class KsqlRestConfig extends AbstractConfig {
         ).define(
             SSL_ENABLED_PROTOCOLS_CONFIG,
             Type.LIST,
-            "",
+            SslConfigs.DEFAULT_SSL_ENABLED_PROTOCOLS,
             Importance.MEDIUM,
             SSL_ENABLED_PROTOCOLS_DOC
         ).define(

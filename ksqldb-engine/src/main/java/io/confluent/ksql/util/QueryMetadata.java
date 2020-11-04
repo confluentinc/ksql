@@ -24,6 +24,7 @@ import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -155,16 +156,23 @@ public abstract class QueryMetadata {
   }
 
   protected void uncaughtHandler(final Thread t, final Throwable e) {
-    LOG.error("Unhandled exception caught in streams thread {}.", t.getName(), e);
-    final QueryError queryError =
-        new QueryError(
-            System.currentTimeMillis(),
-            Throwables.getStackTraceAsString(e),
-            errorClassifier.classify(e)
-        );
+    QueryError.Type errorType = Type.UNKNOWN;
+    try {
+      final QueryError queryError =
+          new QueryError(
+              System.currentTimeMillis(),
+              Throwables.getStackTraceAsString(e),
+              errorClassifier.classify(e)
+          );
+      errorType = queryError.getType();
 
-    queryStateListener.ifPresent(lis -> lis.onError(queryError));
-    queryErrors.add(queryError);
+      queryStateListener.ifPresent(lis -> lis.onError(queryError));
+      queryErrors.add(queryError);
+    } finally {
+      // log in finally block to make sure that if there's ever an error in the classification
+      // we still get this in our logs
+      LOG.error("Unhandled exception caught in streams thread {}. ({})", t.getName(), errorType, e);
+    }
   }
 
   public Map<String, Object> getOverriddenProperties() {

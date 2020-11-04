@@ -90,14 +90,18 @@ public final class VariableSubstitutor {
       return StringSubstitutor.replace(statementText, sanitizedValueMap);
     }
 
-    @Override
-    public Void visitStringLiteral(final SqlBaseParser.StringLiteralContext context) {
-      final String text = unquote(context.getText(), "\'");
+    private void lookupVariables(final String text) {
       for (String variableName : VariablesLookup.lookup(text)) {
         if (valueMap.containsKey(variableName)) {
           sanitizedValueMap.putIfAbsent(variableName, sanitize(valueMap.get(variableName)));
         }
       }
+    }
+
+    @Override
+    public Void visitStringLiteral(final SqlBaseParser.StringLiteralContext context) {
+      final String text = unquote(context.getText(), "\'");
+      lookupVariables(text);
 
       return null;
     }
@@ -110,6 +114,14 @@ public final class VariableSubstitutor {
 
       throwIfInvalidLiteral(variableValue, getLocation(context));
       sanitizedValueMap.putIfAbsent(variableName, sanitize(variableValue));
+      return null;
+    }
+
+    @Override
+    public Void visitVariableValue(final SqlBaseParser.VariableValueContext context) {
+      final String text = unquote(context.getText(), "\'");
+      lookupVariables(text);
+
       return null;
     }
 

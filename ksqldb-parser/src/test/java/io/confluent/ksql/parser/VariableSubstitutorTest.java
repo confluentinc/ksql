@@ -19,6 +19,28 @@ public class VariableSubstitutorTest {
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
   @Test
+  public void shouldSubstituteVariableOnDefine() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("env", "qa");
+      put("env_quoted", "\"qa\"");
+      put("env_backQuoted", "`qa`");
+    }}.build();
+
+    final List<Pair<String, String>> statements = Arrays.asList(
+        Pair.of("DEFINE topicName = 'topic_${env}';",
+            "DEFINE topicName = 'topic_qa';"),
+        Pair.of("DEFINE topicName = 'topic_${env_quoted}';",
+            "DEFINE topicName = 'topic_\"qa\"';"),
+        Pair.of("DEFINE topicName = 'topic_${env_backQuoted}';",
+            "DEFINE topicName = 'topic_`qa`';")
+    );
+
+    // When/Then
+    assertReplacedStatements(statements, variablesMap);
+  }
+
+  @Test
   public void shouldSubstituteVariableOnDescribe() {
     // Given
     final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{

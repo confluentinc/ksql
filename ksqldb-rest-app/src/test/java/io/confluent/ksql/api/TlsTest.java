@@ -23,12 +23,15 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
+import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -55,6 +58,7 @@ public class TlsTest extends ApiTest {
 
     Map<String, Object> config = new HashMap<>();
     config.put(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0");
+    config.put(SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG, "TLSv1.2");
     config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath);
     config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword);
     config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath);
@@ -84,6 +88,31 @@ public class TlsTest extends ApiTest {
         setVerifyHost(false).
         setDefaultHost("localhost").
         setDefaultPort(server.getListeners().get(0).getPort());
+  }
+
+  @Test
+  public void shouldFailToUseDisabledTlsVersion() {
+    // Given
+    WebClientOptions clientOptions = createClientOptions()
+        .setEnabledSecureTransportProtocols(Collections.singleton("TLSv1.1"));
+    WebClient client = WebClient.create(vertx, clientOptions);
+
+    // When
+    JsonObject requestBody = new JsonObject().put("ksql", "show streams;");
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post("/ksql")
+        .sendBuffer(requestBody.toBuffer(), requestFuture);
+
+    // Then
+    try {
+      requestFuture.get();
+    } catch (Exception e) {
+      assertThat(e,
+          instanceOf(ExecutionException.class)); // thrown from CompletableFuture.get()
+      assertThat(e.getMessage(), containsString(
+          "javax.net.ssl.SSLHandshakeException: Failed to create SSL connection"));
+    }
   }
 
   @Test

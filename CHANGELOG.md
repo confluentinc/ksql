@@ -4,13 +4,11 @@
 
 ### Features
 
-* add `KEY_FORMAT` and `FORMAT` WITH clause properties ([#6194](https://github.com/confluentinc/ksql/pull/6194)) ([4b81912](https://github.com/confluentinc/ksql/commit/4b81912b01a16a663abf5ee29d9583cf514b3635))
 * add KSQL processing log message on uncaught streams exceptions ([#6253](https://github.com/confluentinc/ksql/pull/6253)) ([ac8875f](https://github.com/confluentinc/ksql/commit/ac8875f62d1e0e068386bcd7ff44f5c7dd74b8db))
 * Adds support for 0x, X'...', x'...' type hex strings in udf:encode ([#6118](https://github.com/confluentinc/ksql/pull/6118)) ([d492556](https://github.com/confluentinc/ksql/commit/d492556d5ff38acc83487b4cefaa1c828ffb58b7))
 * clarify key or value in (de)serialization processing log messages ([#6109](https://github.com/confluentinc/ksql/pull/6109)) ([7a16b91](https://github.com/confluentinc/ksql/commit/7a16b91850c6428bd71d858e4dfd100a0088df36))
 * CommandRunner enters degraded state when corruption detected in metastore ([#6164](https://github.com/confluentinc/ksql/pull/6164)) ([2b29ee0](https://github.com/confluentinc/ksql/commit/2b29ee080633d320b2ec3c2daa975143bc6957eb))
 * latest and earliest ByOffset UDFs to capture N values ([#6014](https://github.com/confluentinc/ksql/pull/6014)) ([96bb12a](https://github.com/confluentinc/ksql/commit/96bb12a51cacdd9cf4c349e3d205dabcb443fa9a))
-* substantially improve avro deserialization ([#6201](https://github.com/confluentinc/ksql/pull/6201)) ([325a009](https://github.com/confluentinc/ksql/commit/325a00911648b2a17bd9c4e7126a265c9a1cadd4))
 * Support for IF NOT EXISTS on CREATE CONNECTOR ([#6036](https://github.com/confluentinc/ksql/pull/6036)) ([8466197](https://github.com/confluentinc/ksql/commit/8466197627bd6f15616c7668180111380e073dcc))
 * Support IF NOT EXISTS on CREATE TYPE ([#6173](https://github.com/confluentinc/ksql/pull/6173)) ([a0f381b](https://github.com/confluentinc/ksql/commit/a0f381b1bce8ae58b658f51463001256d2fc3721))
 * support PARTITION BY NULL for creating keyless stream ([#6096](https://github.com/confluentinc/ksql/pull/6096)) ([81e3142](https://github.com/confluentinc/ksql/commit/81e31420d32aea3f3b3efea815150cdef0d79b21))
@@ -20,7 +18,7 @@
 
 ### Performance Improvements
 
-* fix:Case is now preserved for an unquoted topic name  (#3339) ([31b78a8](https://github.com/confluentinc/ksql/commit/31b78a8d117e9567e085f0ba71a94ad928216fb4)), closes [#3339](https://github.com/confluentinc/ksql/issues/3339) [#781](https://github.com/confluentinc/ksql/issues/781) [#3333](https://github.com/confluentinc/ksql/issues/3333)
+* substantially improve avro deserialization ([#6201](https://github.com/confluentinc/ksql/pull/6201)) ([325a009](https://github.com/confluentinc/ksql/commit/325a00911648b2a17bd9c4e7126a265c9a1cadd4))
 
 
 
@@ -33,17 +31,10 @@
 * don't use queryId of last terminate command after restore ([#6278](https://github.com/confluentinc/ksql/pull/6278)) ([2753ccd](https://github.com/confluentinc/ksql/commit/2753ccd7295d978e967ec309aa062334c16b36a1))
 * earliest/latest_by_offset should accept nulls ([#5729](https://github.com/confluentinc/ksql/pull/5729)) ([6eb5a41](https://github.com/confluentinc/ksql/commit/6eb5a414d7e69795563a21dadc45bdf094edb8eb))
 * fail on non-string MAP keys ([#6182](https://github.com/confluentinc/ksql/pull/6182)) ([9d4cc6d](https://github.com/confluentinc/ksql/commit/9d4cc6d1800c31879321f06c905c4f9175ca175f))
-* format cast arguments with passed context ([#6245](https://github.com/confluentinc/ksql/pull/6245)) ([d86fa52](https://github.com/confluentinc/ksql/commit/d86fa5231e2d8bae60d7230c56ba6ed9425efba9))
 * improve error handling of invalid Avro identifier ([#6239](https://github.com/confluentinc/ksql/pull/6239)) ([8dd3942](https://github.com/confluentinc/ksql/commit/8dd394246094d37b50a5ddc4058b1bc22deb8339))
 * missing topic classifier now uses MissingSourceTopicException ([#6172](https://github.com/confluentinc/ksql/pull/6172)) ([cf8e15d](https://github.com/confluentinc/ksql/commit/cf8e15d8b7de874e22175765730b4068b88b0c12))
 * register correct unwrapped schema ([#6188](https://github.com/confluentinc/ksql/pull/6188)) ([cb25f9c](https://github.com/confluentinc/ksql/commit/cb25f9c53f32997190f58ddfa6585f565b05ca67))
 * scale of ROUND() return value ([#6236](https://github.com/confluentinc/ksql/pull/6236)) ([42ab721](https://github.com/confluentinc/ksql/commit/42ab72160f4ae665cbdead1e3ffced4df534335d))
-
-
-
-### Reverts
-
-* "fix: improve join predictability by increasing max task idle ([#5594](https://github.com/confluentinc/ksql/pull/5594))" ([#6251](https://github.com/confluentinc/ksql/issues/6251)) ([07464df](https://github.com/confluentinc/ksql/commit/07464dfb54c59c9296a3420bdaf7d84a854758de))
 
 
 

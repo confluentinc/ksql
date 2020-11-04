@@ -136,6 +136,17 @@ public class KsqlRestConfig extends AbstractConfig {
           SSL_CLIENT_AUTHENTICATION_REQUIRED
       );
 
+  public static final String SSL_ENABLED_PROTOCOLS_CONFIG = "ssl.enabled.protocols";
+  protected static final String SSL_ENABLED_PROTOCOLS_DOC =
+      "The list of protocols enabled for SSL connections. Comma-separated list. "
+          + "If blank, the default from the Apache Kafka SslConfigs.java file will be used "
+          + "(see 'DEFAULT_SSL_ENABLED_PROTOCOLS' in "
+          + "https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/config/SslConfigs.java).";
+
+  public static final String SSL_CIPHER_SUITES_CONFIG = "ssl.cipher.suites";
+  protected static final String SSL_CIPHER_SUITES_DOC =
+      "A list of SSL cipher suites. If blank, the JVM default will be used.";
+
   public static final String SSL_KEYSTORE_RELOAD_CONFIG = "ssl.keystore.reload";
   protected static final String SSL_KEYSTORE_RELOAD_DOC =
       "Enable auto reload of ssl keystore.";
@@ -448,15 +459,25 @@ public class KsqlRestConfig extends AbstractConfig {
             "",
             Importance.MEDIUM,
             KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_DOC
-        )
-        .define(
+        ).define(
             KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
             Type.STRING,
             "",
             Importance.MEDIUM,
             KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_DOC
-        )
-        .define(
+        ).define(
+            SSL_ENABLED_PROTOCOLS_CONFIG,
+            Type.LIST,
+            SslConfigs.DEFAULT_SSL_ENABLED_PROTOCOLS,
+            Importance.MEDIUM,
+            SSL_ENABLED_PROTOCOLS_DOC
+        ).define(
+            SSL_CIPHER_SUITES_CONFIG,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            SSL_CIPHER_SUITES_DOC
+        ).define(
             ADVERTISED_LISTENER_CONFIG,
             Type.STRING,
             null,

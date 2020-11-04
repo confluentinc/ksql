@@ -146,11 +146,16 @@ ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
 ssl.truststore.password=zzzz
 ```
 
-Additional settings are available for configuring ksqlDB for HTTPS. For
-example, if you need to restrict the default configuration for
-[Jetty](https://www.eclipse.org/jetty/), there are settings like
-`ssl.enabled.protocols`. For more information, see
-[Configuration Options for HTTPS](https://docs.confluent.io/current/kafka-rest/config.html#configuration-options-for-https).
+### Additional server configuration options for HTTPS
+
+Additional settings are available for configuring ksqlDB for HTTPS.
+
+`ssl.enabled.protocols`: A comma-separated list of protocols enabled for SSL connections.
+Leave blank to use the default from the {{ site.aktm }} [`SslConfigs.java` file](https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/config/SslConfigs.java)
+(see `DEFAULT_SSL_ENABLED_PROTOCOLS`).
+
+`ssl.cipher.suites`: A comma-separated list of SSL cipher suites.
+Leave blank to use your JVM defaults.
 
 ### Configure the CLI for HTTPS
 

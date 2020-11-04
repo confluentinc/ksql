@@ -150,6 +150,10 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         remoteServerState::setRequestPipelining);
   }
 
+  public void addSessionVariables(final Map<String, String> vars) {
+    sessionVariables.putAll(vars);
+  }
+
   @Override
   public void makeKsqlRequest(final String statements) {
     if (statements.isEmpty()) {

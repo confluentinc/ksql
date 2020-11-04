@@ -40,7 +40,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -80,6 +82,21 @@ public class KsqlTest {
 
     // Then:
     verify(cli).runInteractively();
+  }
+
+  @Test
+  public void shouldAddDefinedVariablesToCliBeforeRunningCommands() {
+    // Given:
+    when(options.getVariables()).thenReturn(ImmutableMap.of("env", "qa"));
+    when(options.getExecute()).thenReturn(Optional.of("this is a command"));
+
+    // When:
+    ksql.run();
+
+    // Then:
+    final InOrder inOrder = Mockito.inOrder(cli);
+    inOrder.verify(cli).addSessionVariables(ImmutableMap.of("env", "qa"));
+    inOrder.verify(cli).runCommand("this is a command");
   }
 
   @Test

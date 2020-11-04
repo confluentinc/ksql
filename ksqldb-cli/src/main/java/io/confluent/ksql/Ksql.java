@@ -101,6 +101,8 @@ public final class Ksql {
         .map(Ksql::loadProperties)
         .orElseGet(Collections::emptyMap);
 
+    final Map<String, String> sessionVariables = options.getVariables();
+
     try (KsqlRestClient restClient = buildClient(configProps)) {
       try (Cli cli = cliBuilder.build(
           options.getStreamedQueryRowLimit(),
@@ -108,6 +110,9 @@ public final class Ksql {
           options.getOutputFormat(),
           restClient)
       ) {
+        // Add CLI variables If defined by parameters
+        cli.addSessionVariables(sessionVariables);
+
         if (options.getExecute().isPresent()) {
           cli.runCommand(options.getExecute().get());
         } else if (options.getScriptFile().isPresent()) {

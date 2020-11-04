@@ -489,6 +489,20 @@ public class CliTest {
   }
 
   @Test
+  public void testAddVariablesToCli() {
+    // Given
+    localCli.addSessionVariables(ImmutableMap.of("env", "qa"));
+
+    // Then
+    assertRunListCommand("variables", hasRows(
+        row(
+            "env",
+            "qa"
+        )
+    ));
+  }
+
+  @Test
   public void testPropertySetUnset() {
     assertRunCommand("set 'auto.offset.reset' = 'latest';", is(EMPTY_RESULT));
     assertRunCommand("set 'application.id' = 'Test_App';", is(EMPTY_RESULT));

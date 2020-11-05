@@ -147,3 +147,4 @@ The following table shows all operators in the language.
 | `OR`         | logical OR                     | boolean
 | `BETWEEN`    | test if value within range     | numeric, string
 | `LIKE`       | match a pattern                | string
+| `IN`         | short hand for multiple `OR` expressions | all

@@ -19,6 +19,22 @@ public class VariableSubstitutorTest {
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
   @Test
+  public void shouldNotSubstituteWithEscapedVariables() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("env", "qa");
+    }}.build();
+
+    final List<Pair<String, String>> statements = Arrays.asList(
+        Pair.of("DEFINE topicName = 'topic_$${env}';",
+            "DEFINE topicName = 'topic_${env}';")
+    );
+
+    // When/Then
+    assertReplacedStatements(statements, variablesMap);
+  }
+
+  @Test
   public void shouldSubstituteVariableOnDefine() {
     // Given
     final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{

@@ -560,7 +560,7 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldHandleMultiField() {
+  public void shouldHandleMultiKeyField() {
     // Given:
     givenMultiColumnSourceStream();
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
@@ -576,7 +576,7 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldHandleMultiFieldWithNullCol() {
+  public void shouldHandleMultiKeyFieldWithNullCol() {
     // Given:
     givenMultiColumnSourceStream();
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
@@ -592,7 +592,7 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldHandleMultiFieldEmptyStruct() {
+  public void shouldHandleMultiKeyFieldEmptyStruct() {
     // Given:
     givenMultiColumnSourceStream();
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
@@ -608,7 +608,7 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldHandleMultiFieldEntirelyNull() {
+  public void shouldHandleMultiKeyFieldEntirelyNull() {
     // Given:
     givenMultiColumnSourceStream();
     final ValueTransformerWithKey<Struct, GenericRow, GenericRow> transformer =
@@ -846,20 +846,6 @@ public class SourceBuilderTest {
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA
-    );
-  }
-
-  private void givenWindowedMultiKeySourceTable() {
-    when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
-    givenConsumed(consumedWindowed, windowedKeySerde);
-    givenConsumed(consumedWindowed, windowedKeySerde);
-    windowedTableSource = new WindowedTableSource(
-        new ExecutionStepPropertiesV1(ctx),
-        TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
-        windowInfo,
-        TIMESTAMP_COLUMN,
-        MULTI_COL_SOURCE_SCHEMA
     );
   }
 

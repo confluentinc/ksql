@@ -72,7 +72,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     this.schema = result.left;
     this.selectExpressions = ImmutableList.copyOf(result.right);
 
-    validate();
+    throwOnEmptyValueOrUnknownColumns();
   }
 
   @Override
@@ -107,7 +107,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
         SelectionUtil.buildProjectionSchema(parentSchema, selectExpressions, metaStore);
 
     if (into.isPresent()) {
-      // Persistent queries have key columns as key columns - so final projection can exclude them:
+      // Persistent queries have key columns as value columns - final projection can exclude them:
       final Map<ColumnName, Set<ColumnName>> seenKeyColumns = new HashMap<>();
       selectExpressions.removeIf(se -> {
         if (se.getExpression() instanceof UnqualifiedColumnReferenceExp) {
@@ -162,7 +162,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     return Pair.of(nodeSchema, selectExpressions);
   }
 
-  private void validate() {
+  private void throwOnEmptyValueOrUnknownColumns() {
     final LogicalSchema schema = getSchema();
 
     if (schema.value().isEmpty()) {

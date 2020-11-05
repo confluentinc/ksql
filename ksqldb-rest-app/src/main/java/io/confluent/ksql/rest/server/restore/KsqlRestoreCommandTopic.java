@@ -81,7 +81,7 @@ public class KsqlRestoreCommandTopic {
 
   public static List<Pair<byte[], byte[]>> loadBackup(
       final File file,
-      final RestoreOptions options,
+      final RestoreOptions restoreOptions,
       final KsqlConfig ksqlConfig
   ) throws IOException {
     final BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file);
@@ -89,7 +89,7 @@ public class KsqlRestoreCommandTopic {
 
     records = checkValidCommands(
         records,
-        options.isSkipIncompatibleCommands(),
+        restoreOptions.isSkipIncompatibleCommands(),
         ksqlConfig);
 
     return records;

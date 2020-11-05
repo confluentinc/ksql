@@ -129,33 +129,12 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     return false;
   }
 
-  private static void throwIfInvalidRecord(final ConsumerRecord<byte[], byte[]> record) {
-    try {
-      InternalTopicSerdes.deserializer(CommandId.class).deserialize(record.topic(), record.key());
-    } catch (final Exception e) {
-      throw new KsqlException(String.format(
-          "Failed to backup record because it cannot deserialize key: %s",
-          new String(record.key(), StandardCharsets.UTF_8)), e);
-    }
-
-    try {
-      InternalTopicSerdes.deserializer(Command.class).deserialize(record.topic(), record.value());
-    } catch (final Exception e) {
-      throw new KsqlException(String.format(
-          "Failed to backup record because it cannot deserialize value: %s",
-          new String(record.value(), StandardCharsets.UTF_8)), e
-      );
-    }
-  }
-
   @Override
   public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
     if (corruptionDetected) {
       throw new KsqlServerException(
           "Failed to write record due to out of sync command topic and backup file: " + record);
     }
-
-    throwIfInvalidRecord(record);
 
     if (isRestoring()) {
       if (isRecordInLatestReplay(record)) {

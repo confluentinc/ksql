@@ -89,8 +89,6 @@ public class CommandTopic {
       for (ConsumerRecord<byte[], byte[]> record : iterable) {
         try {
           backupRecord(record);
-        } catch (final KsqlException e) {
-          log.warn("Error encountered while backing up command.", e);
         } catch (final KsqlServerException e) {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
@@ -118,8 +116,6 @@ public class CommandTopic {
       for (final ConsumerRecord<byte[], byte[]> record : records) {
         try {
           backupRecord(record);
-        } catch (final KsqlException e) {
-          log.warn("Error encountered while backing up command.", e);
         } catch (final KsqlServerException e) {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "

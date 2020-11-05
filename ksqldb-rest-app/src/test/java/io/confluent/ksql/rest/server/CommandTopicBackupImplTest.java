@@ -162,40 +162,6 @@ public class CommandTopicBackupImplTest {
   }
 
   @Test
-  public void shouldThrowWhenRecordIsNotValidCommandId() {
-    // Given
-    commandTopicBackup.initialize();
-
-    // When
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> commandTopicBackup.writeRecord(new ConsumerRecord<>(
-        "topic1", 0, 0,
-            "stream/a/create/invalid".getBytes(StandardCharsets.UTF_8), command1.value())));
-
-    // Then
-    assertThat(e.getMessage(), containsString(
-        "Failed to backup record because it cannot deserialize key: stream/a/create/invalid"));
-  }
-
-  @Test
-  public void shouldThrowWhenRecordIsNotValidCommand() {
-    // Given
-    commandTopicBackup.initialize();
-
-    // When
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> commandTopicBackup.writeRecord(new ConsumerRecord<>(
-            "topic1", 0, 0, command1.key(),
-            "my command".getBytes(StandardCharsets.UTF_8))));
-
-    // Then
-    assertThat(e.getMessage(), containsString(
-        "Failed to backup record because it cannot deserialize value: my command"));
-  }
-
-  @Test
   public void shouldWriteCommandToBackupToReplayFile() throws IOException {
     // Given
     commandTopicBackup.initialize();

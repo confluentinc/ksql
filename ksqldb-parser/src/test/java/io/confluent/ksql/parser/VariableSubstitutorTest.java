@@ -27,7 +27,26 @@ public class VariableSubstitutorTest {
 
     final List<Pair<String, String>> statements = Arrays.asList(
         Pair.of("DEFINE topicName = 'topic_$${env}';",
-            "DEFINE topicName = 'topic_${env}';")
+            "DEFINE topicName = 'topic_${env}';"),
+        Pair.of("DEFINE topicName = 'topic_$${${env}}';",
+            "DEFINE topicName = 'topic_${qa}';")
+    );
+
+    // When/Then
+    assertReplacedStatements(statements, variablesMap);
+  }
+
+  @Test
+  public void shouldSupportRecursiveVariableReplacement() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("env", "qa");
+    }}.build();
+
+    final List<Pair<String, String>> statements = Arrays.asList(
+        // This case only shows that ${env} is replaced when inside a escaped variable reference
+        Pair.of("DEFINE topicName = 'topic_$${${env}}';",
+            "DEFINE topicName = 'topic_${qa}';")
     );
 
     // When/Then

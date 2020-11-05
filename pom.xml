@@ -134,6 +134,7 @@
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.6</apache.io.version>
+        <kafka.version>v6.1.0-beta201006024150-hf-1</kafka.version>
     </properties>
 
     <dependencyManagement>

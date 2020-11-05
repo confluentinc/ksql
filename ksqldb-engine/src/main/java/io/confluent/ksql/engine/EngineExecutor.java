@@ -228,7 +228,7 @@ final class EngineExecutor {
         withQueryId
     );
 
-    if (engineContext.getPersistentQuery(queryId).isPresent()) {
+    if (withQueryId.isPresent() && engineContext.getPersistentQuery(queryId).isPresent()) {
       throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
     }
 

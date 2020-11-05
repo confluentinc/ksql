@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.properties.with.InsertIntoConfigs.QUERY_ID_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -27,6 +28,7 @@ import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 
 import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
+import io.confluent.ksql.properties.with.InsertIntoConfigs;
 import io.confluent.ksql.query.QueryId;
 import org.junit.Test;
 
@@ -56,9 +58,11 @@ public class InsertIntoTest {
         )
         .addEqualityGroup(
             new InsertInto(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY,
-                InsertIntoProperties.from(ImmutableMap.of("id", new StringLiteral("insert1")))),
+                InsertIntoProperties.from(
+                    ImmutableMap.of(QUERY_ID_PROPERTY, new StringLiteral("insert1")))),
             new InsertInto(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY,
-                InsertIntoProperties.from(ImmutableMap.of("id", new StringLiteral("insert1"))))
+                InsertIntoProperties.from(
+                    ImmutableMap.of(QUERY_ID_PROPERTY, new StringLiteral("insert1"))))
         )
         .testEquals();
   }
@@ -67,9 +71,10 @@ public class InsertIntoTest {
   public void shouldReturnOptionalQueryId() {
     // When:
     final InsertInto insertInto = new InsertInto(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY,
-        InsertIntoProperties.from(ImmutableMap.of("ID", new StringLiteral("my_id"))));
+        InsertIntoProperties.from(
+            ImmutableMap.of(QUERY_ID_PROPERTY, new StringLiteral("my_id"))));
 
     // Then:
-    assertThat(insertInto.getQueryId(), is(Optional.of(new QueryId("MY_ID"))));
+    assertThat(insertInto.getQueryId(), is(Optional.of("MY_ID")));
   }
 }

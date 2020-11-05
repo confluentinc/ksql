@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import java.util.Collections;
@@ -40,7 +41,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql"),
+                "sql",
+                Collections.emptyList()),
             new SourceDescriptionImpl(
                 "name",
                 "type",
@@ -54,7 +56,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -70,7 +73,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -86,7 +90,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -102,7 +107,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -118,7 +124,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -134,7 +141,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -150,7 +158,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -166,7 +175,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -181,7 +191,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -196,7 +207,8 @@ public class SourceDescriptionImplTest {
                 Collections.emptyList(),
                 Optional.empty(),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -212,7 +224,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.of("timestamp"),
                 Optional.empty(),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -228,7 +241,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.of("window"),
-                "sql")
+                "sql",
+                Collections.emptyList())
         )
         .addEqualityGroup(
             new SourceDescriptionImpl(
@@ -244,7 +258,8 @@ public class SourceDescriptionImplTest {
                     Optional.of("name"), Optional.of("topic"))),
                 Optional.empty(),
                 Optional.empty(),
-                "other_sql")
+                "other_sql",
+                Collections.emptyList())
         )
         .testEquals();
   }

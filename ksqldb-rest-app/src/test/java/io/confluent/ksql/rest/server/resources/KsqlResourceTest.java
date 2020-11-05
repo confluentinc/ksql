@@ -86,6 +86,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -177,6 +178,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -514,11 +516,13 @@ public class KsqlResourceTest {
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
+            Collections.emptyList(),
             Collections.emptyList()),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
             Collections.emptyList()))
     );
   }
@@ -534,7 +538,7 @@ public class KsqlResourceTest {
 
     givenSource(
         DataSourceType.KTABLE, "new_table", "new_topic",
-        schema);
+        schema, ImmutableSet.of(SourceName.of("TEST_TABLE")));
 
     // When:
     final SourceDescriptionList descriptionList = makeSingleRequest(
@@ -546,11 +550,13 @@ public class KsqlResourceTest {
             ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
-            Collections.emptyList()),
+            Collections.emptyList(),
+            ImmutableList.of("new_table")),
         SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
             Collections.emptyList()))
     );
   }
@@ -621,6 +627,7 @@ public class KsqlResourceTest {
         Collections.singletonList(queries.get(1)),
         Collections.singletonList(queries.get(0)),
         Optional.empty(),
+        Collections.emptyList(),
         Collections.emptyList());
 
     assertThat(description.getSourceDescription(), is(expectedDescription));
@@ -2351,6 +2358,16 @@ public class KsqlResourceTest {
       final String topicName,
       final LogicalSchema schema
   ) {
+    givenSource(type, sourceName, topicName, schema, Collections.emptySet());
+  }
+
+  private void givenSource(
+      final DataSourceType type,
+      final String sourceName,
+      final String topicName,
+      final LogicalSchema schema,
+      final Set<SourceName> sourceReferences
+  ) {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
@@ -2358,28 +2375,34 @@ public class KsqlResourceTest {
     );
 
     givenKafkaTopicExists(topicName);
-    if (type == DataSourceType.KSTREAM) {
-      metaStore.putSource(
-          new KsqlStream<>(
-              "statementText",
-              SourceName.of(sourceName),
-              schema,
-              Optional.empty(),
-              false,
-              ksqlTopic
-          ), false);
+    final DataSource source;
+    switch (type) {
+      case KSTREAM:
+        source = new KsqlStream<>(
+            "statementText",
+            SourceName.of(sourceName),
+            schema,
+            Optional.empty(),
+            false,
+            ksqlTopic
+        );
+        break;
+      case KTABLE:
+        source = new KsqlTable<>(
+            "statementText",
+            SourceName.of(sourceName),
+            schema,
+            Optional.empty(),
+            false,
+            ksqlTopic
+        );
+        break;
+      default:
+        throw new IllegalArgumentException(type.toString());
     }
-    if (type == DataSourceType.KTABLE) {
-      metaStore.putSource(
-          new KsqlTable<>(
-              "statementText",
-              SourceName.of(sourceName),
-              schema,
-              Optional.empty(),
-              false,
-              ksqlTopic
-          ), false);
-    }
+
+    metaStore.putSource(source, false);
+    metaStore.addSourceReferences(source.getName(), sourceReferences);
   }
 
   private static Properties getDefaultKsqlConfig() {

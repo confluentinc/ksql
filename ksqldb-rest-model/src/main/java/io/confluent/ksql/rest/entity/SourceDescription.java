@@ -48,6 +48,7 @@ public class SourceDescription {
   private final int replication;
   private final String statement;
   private final List<QueryOffsetSummary> queryOffsetSummaries;
+  private final List<String> sourceConstraints;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -68,7 +69,9 @@ public class SourceDescription {
       @JsonProperty("partitions") final int partitions,
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
-      @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries) {
+      @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries,
+      @JsonProperty("sourceConstraints") final List<String> sourceConstraints
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
     this.windowType = Objects.requireNonNull(windowType, "windowType");
@@ -91,6 +94,8 @@ public class SourceDescription {
     this.statement = Objects.requireNonNull(statement, "statement");
     this.queryOffsetSummaries = ImmutableList.copyOf(
         Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
+    this.sourceConstraints =
+        ImmutableList.copyOf(Objects.requireNonNull(sourceConstraints, "sourceConstraints"));
   }
 
   public String getStatement() {
@@ -161,6 +166,10 @@ public class SourceDescription {
     return queryOffsetSummaries;
   }
 
+  public List<String> getSourceConstraints() {
+    return sourceConstraints;
+  }
+
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object o) {
@@ -188,7 +197,8 @@ public class SourceDescription {
         && Objects.equals(valueFormat, that.valueFormat)
         && Objects.equals(topic, that.topic)
         && Objects.equals(statement, that.statement)
-        && Objects.equals(queryOffsetSummaries, that.queryOffsetSummaries);
+        && Objects.equals(queryOffsetSummaries, that.queryOffsetSummaries)
+        && Objects.equals(sourceConstraints, that.sourceConstraints);
   }
 
   @Override
@@ -210,7 +220,8 @@ public class SourceDescription {
         partitions,
         replication,
         statement,
-        queryOffsetSummaries
+        queryOffsetSummaries,
+        sourceConstraints
     );
   }
 }

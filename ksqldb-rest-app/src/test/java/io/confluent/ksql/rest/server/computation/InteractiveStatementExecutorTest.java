@@ -584,6 +584,17 @@ public class InteractiveStatementExecutorTest {
     // Terminate the queries using the stream/table
     terminateQueries();
 
+    // Drop user1pv stream, which is linked to the pageview stream.
+    // The user1pv query will be terminated during the drop.
+    final Command dropStreamCommand1 = commandWithPlan(
+        "drop stream user1pv;",
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
+    );
+    final CommandId dropStreamCommandId1 =
+        new CommandId(Type.STREAM, "_user1pv", CommandId.Action.DROP);
+    handleStatement(
+        statementExecutor, dropStreamCommand1, dropStreamCommandId1, Optional.empty(), 4);
+
     // Now drop should be successful
     final Command dropTableCommand2 = commandWithPlan(
         "drop table table1;",

@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -219,9 +220,11 @@ final class EngineContext {
   String executeDdl(
       final String sqlExpression,
       final DdlCommand command,
-      final boolean withQuery
+      final boolean withQuery,
+      final Set<SourceName> withQuerySources
   ) {
-    final DdlCommandResult result = ddlCommandExec.execute(sqlExpression, command, withQuery);
+    final DdlCommandResult result =
+        ddlCommandExec.execute(sqlExpression, command, withQuery, withQuerySources);
     if (!result.isSuccess()) {
       throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }

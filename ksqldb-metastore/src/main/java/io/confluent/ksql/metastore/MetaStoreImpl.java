@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.metastore;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -29,6 +30,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
+import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +45,8 @@ import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
+  // these sources have a constraint that cannot be deleted until the references are dropped first
+  private final Map<SourceName, Set<SourceName>> dropConstraints = new ConcurrentHashMap<>();
 
   private final Map<SourceName, SourceInfo> dataSources = new ConcurrentHashMap<>();
   private final Object referentialIntegrityLock = new Object();
@@ -57,7 +61,8 @@ public final class MetaStoreImpl implements MutableMetaStore {
   private MetaStoreImpl(
       final Map<SourceName, SourceInfo> dataSources,
       final FunctionRegistry functionRegistry,
-      final TypeRegistry typeRegistry
+      final TypeRegistry typeRegistry,
+      final Map<SourceName, Set<SourceName>> dropConstraints
   ) {
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.typeRegistry = new TypeRegistryImpl();
@@ -65,6 +70,12 @@ public final class MetaStoreImpl implements MutableMetaStore {
     dataSources.forEach((name, info) -> this.dataSources.put(name, info.copy()));
     typeRegistry.types()
         .forEachRemaining(type -> this.typeRegistry.registerType(type.getName(), type.getType()));
+
+    dropConstraints.forEach((source, references) -> {
+      final Set<SourceName> childSources = new ConcurrentHashSet<>();
+      childSources.addAll(references);
+      this.dropConstraints.put(source, childSources);
+    });
   }
 
   @Override
@@ -93,24 +104,27 @@ public final class MetaStoreImpl implements MutableMetaStore {
       });
     }
 
-    dataSources.put(dataSource.getName(), new SourceInfo(dataSource));
+    // Replace the dataSource if one exists, which may contain changes in the Schema, with
+    // a copy of the previous source info
+    dataSources.put(dataSource.getName(),
+        (existing != null) ? existing.copyWith(dataSource) : new SourceInfo(dataSource));
   }
 
   @Override
   public void deleteSource(final SourceName sourceName) {
     synchronized (referentialIntegrityLock) {
-      dataSources.compute(sourceName, (ignored, source) -> {
-        if (source == null) {
+      dataSources.compute(sourceName, (ignored, sourceInfo) -> {
+        if (sourceInfo == null) {
           throw new KsqlException(String.format("No data source with name %s exists.",
               sourceName.text()));
         }
 
-        final String sourceForQueriesMessage = source.referentialIntegrity
+        final String sourceForQueriesMessage = sourceInfo.referentialIntegrity
             .getSourceForQueries()
             .stream()
             .collect(Collectors.joining(", "));
 
-        final String sinkForQueriesMessage = source.referentialIntegrity
+        final String sinkForQueriesMessage = sourceInfo.referentialIntegrity
             .getSinkForQueries()
             .stream()
             .collect(Collectors.joining(", "));
@@ -127,9 +141,77 @@ public final class MetaStoreImpl implements MutableMetaStore {
                   sourceName.toString(FormatOptions.noEscape())));
         }
 
+        if (dropConstraints.containsKey(sourceName)) {
+          throw new KsqlReferentialIntegrityException(String.format(
+              "Cannot drop %s.%n"
+                  + "The following streams and/or tables read from this source: [%s].%n"
+                  + "You need to drop them before dropping %s.",
+              sourceName.text(),
+              dropConstraints.get(sourceName).stream().map(SourceName::text)
+                  .sorted().collect(Collectors.joining(", ")),
+              sourceName.text()
+          ));
+        }
+
+        // Remove drop constraints from the referenced sources
+        sourceInfo.references.stream().forEach(ref -> dropConstraint(ref, sourceName));
+
         return null;
       });
     }
+  }
+
+  @Override
+  public void addSourceReferences(
+      final SourceName sourceName,
+      final Set<SourceName> sourceReferences
+  ) {
+    synchronized (referentialIntegrityLock) {
+      if (sourceReferences.contains(sourceName)) {
+        throw new KsqlException(String.format("Source name '%s' should not be referenced itself.",
+            sourceName.text()));
+      }
+
+      Iterables.concat(Collections.singleton(sourceName), sourceReferences).forEach(name -> {
+        if (!dataSources.containsKey(name)) {
+          throw new KsqlException(
+              String.format("No data source with name '%s' exists.", name.text())
+          );
+        }
+      });
+
+      // add a constraint to the referenced sources to prevent deleting them
+      sourceReferences.forEach(s -> addConstraint(s, sourceName));
+
+      // add all references to the source
+      dataSources.get(sourceName).references.addAll(sourceReferences);
+    }
+  }
+
+  Set<SourceName> getSourceReferences(final SourceName sourceName) {
+    final SourceInfo sourceInfo = dataSources.get(sourceName);
+    if (sourceInfo == null) {
+      return Collections.emptySet();
+    }
+
+    return sourceInfo.references;
+  }
+
+  private void addConstraint(final SourceName source, final SourceName sourceWithReference) {
+    dropConstraints.computeIfAbsent(source, x -> ConcurrentHashMap.newKeySet())
+        .add(sourceWithReference);
+  }
+
+  private void dropConstraint(final SourceName source, final SourceName sourceWithReference) {
+    dropConstraints.computeIfPresent(source, (k , info) -> {
+      info.remove(sourceWithReference);
+      return (info.isEmpty()) ? null : info;
+    });
+  }
+
+  @Override
+  public Set<SourceName> getSourceConstraints(final SourceName sourceName) {
+    return dropConstraints.getOrDefault(sourceName, Collections.emptySet());
   }
 
   @Override
@@ -203,7 +285,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   @Override
   public MutableMetaStore copy() {
     synchronized (referentialIntegrityLock) {
-      return new MetaStoreImpl(dataSources, functionRegistry, typeRegistry);
+      return new MetaStoreImpl(dataSources, functionRegistry, typeRegistry, dropConstraints);
     }
   }
 
@@ -293,9 +375,12 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   private static final class SourceInfo {
-
     private final DataSource source;
     private final ReferentialIntegrityTableEntry referentialIntegrity;
+
+    // parent sources that this source references to; it is used to remove constraints from
+    // the parent table when this source is deleted
+    private final Set<SourceName> references = new ConcurrentHashSet<>();
 
     private SourceInfo(
         final DataSource source
@@ -306,14 +391,21 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
     private SourceInfo(
         final DataSource source,
-        final ReferentialIntegrityTableEntry referentialIntegrity
+        final ReferentialIntegrityTableEntry referentialIntegrity,
+        final Set<SourceName> references
     ) {
       this.source = Objects.requireNonNull(source, "source");
       this.referentialIntegrity = referentialIntegrity.copy();
+      this.references.addAll(
+          Objects.requireNonNull(references, "references"));
     }
 
     public SourceInfo copy() {
-      return new SourceInfo(source, referentialIntegrity);
+      return copyWith(source);
+    }
+
+    public SourceInfo copyWith(final DataSource source) {
+      return new SourceInfo(source, referentialIntegrity, references);
     }
   }
 }

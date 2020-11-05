@@ -147,6 +147,7 @@ public class ConsoleTest {
       2,
       1,
       "statement",
+      Collections.emptyList(),
       Collections.emptyList());
 
   @Mock
@@ -547,6 +548,7 @@ public class ConsoleTest {
                 1,
                 1,
                 "sql statement",
+                Collections.emptyList(),
                 Collections.emptyList()),
             Collections.emptyList()
         )
@@ -679,7 +681,8 @@ public class ConsoleTest {
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -818,7 +821,8 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"statement\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ ]" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -1122,7 +1126,8 @@ public class ConsoleTest {
                     new QueryOffsetSummary(
                         "consumer2",
                         ImmutableList.of())
-                )),
+                ),
+                ImmutableList.of("S1", "S2")),
             Collections.emptyList()
         ))
     );
@@ -1222,7 +1227,8 @@ public class ConsoleTest {
           + "    }, {" + NEWLINE
           + "      \"groupId\" : \"consumer2\"," + NEWLINE
           + "      \"topicSummaries\" : [ ]" + NEWLINE
-          + "    } ]" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ \"S1\", \"S2\" ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -1241,6 +1247,11 @@ public class ConsoleTest {
           + " ROWKEY | VARCHAR(STRING)  (primary key) " + NEWLINE
           + " f_0    | VARCHAR(STRING)                " + NEWLINE
           + "-----------------------------------------" + NEWLINE
+          + "" + NEWLINE
+          + "Sources that have a DROP constraint on this source" + NEWLINE
+          + "--------------------------------------------------" + NEWLINE
+          + "S1" + NEWLINE
+          + "S2" + NEWLINE
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE

@@ -38,12 +38,15 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
@@ -142,13 +145,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKStream<Struct> selectKey(
+  public SchemaKTable<Struct> selectKey(
+      final FormatInfo valueFormat,
       final Expression keyExpression,
       final Optional<FormatInfo> forceInternalKeyFormat,
-      final Stacker contextStacker
+      final Stacker contextStacker,
+      final boolean forceRepartition
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression))) {
-      return (SchemaKStream<Struct>) this;
+    if (repartitionNotNeeded(ImmutableList.of(keyExpression)) && !forceRepartition) {
+      return (SchemaKTable<Struct>) this;
     }
 
     if (schema.key().size() > 1) {
@@ -157,10 +162,46 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
           + "a join, joins on tables with multiple columns is not yet supported.");
     }
 
-    throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
-        + "If this is a join, make sure that the criteria uses the TABLE's key column "
-        + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "
-        + keyExpression);
+    // Table repartitioning is only supported for internal use in enabling joins
+    if (!forceRepartition) {
+      throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
+          + "If this is a join, make sure that the criteria uses the TABLE's key column "
+          + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "
+          + keyExpression);
+    }
+
+    if (keyFormat.isWindowed()) {
+      final String errorMsg = "Implicit repartitioning of windowed sources is not supported. "
+          + "See https://github.com/confluentinc/ksql/issues/4385.";
+      final String additionalMsg = forceRepartition
+          ? " As a result, ksqlDB does not support joins on Schema-Registry-enabled key formats "
+          + "(AVRO, JSON_SR, PROTOBUF) at this time. Please repartition your sources to use a "
+          + "different key format before performing the join."
+          : "";
+      throw new KsqlException(errorMsg + additionalMsg);
+    }
+
+    final KeyFormat newKeyFormat = forceInternalKeyFormat
+        .map(newFmt -> KeyFormat.of(
+            newFmt,
+            SerdeFeaturesFactory.buildInternal(FormatFactory.of(newFmt)),
+            keyFormat.getWindowInfo()))
+        .orElse(keyFormat);
+
+    final ExecutionStep<KTableHolder<Struct>> step = ExecutionStepFactory.tableSelectKey(
+        contextStacker,
+        sourceTableStep,
+        InternalFormats.of(newKeyFormat.getFormatInfo(), valueFormat),
+        keyExpression
+    );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step),
+        newKeyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
   }
 
   @Override

@@ -68,6 +68,8 @@ public interface PlanBuilder {
 
   <K> KTableHolder<K> visitTableSelect(TableSelect<K> tableSelect);
 
+  KTableHolder<Struct> visitTableSelectKey(TableSelectKey tableSelectKey);
+
   <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink);
 
   <K> KTableHolder<K> visitTableSuppress(TableSuppress<K> tableSuppress);

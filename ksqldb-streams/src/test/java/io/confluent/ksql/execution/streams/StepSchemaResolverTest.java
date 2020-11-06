@@ -49,6 +49,7 @@ import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
@@ -476,6 +477,30 @@ public class StepSchemaResolverTest {
             .valueColumn(ColumnName.of("CITRUS"), SqlTypes.INTEGER)
             .build())
     );
+  }
+
+  @Test
+  public void shouldResolveSchemaForTableSelectKey() {
+    // Given:
+    final UnqualifiedColumnReferenceExp keyExpression =
+        new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
+
+    final TableSelectKey step = new TableSelectKey(
+        PROPERTIES,
+        tableSource,
+        formats,
+        keyExpression
+    );
+
+    // When:
+    final LogicalSchema result = resolver.resolve(step, SCHEMA);
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(keyExpression.getColumnName(), SqlTypes.INTEGER)
+        .valueColumns(SCHEMA.value())
+        .build()
+    ));
   }
 
   @Test

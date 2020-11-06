@@ -306,20 +306,31 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
+      final FormatInfo valueFormat,
       final Expression keyExpression,
       final Optional<FormatInfo> forceInternalKeyFormat,
-      final Stacker contextStacker
+      final Stacker contextStacker,
+      final boolean forceRepartition
   ) {
     final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
         && !forceInternalKeyFormat.get().equals(keyFormat.getFormatInfo());
 
-    if (!keyFormatChange && repartitionNotNeeded(ImmutableList.of(keyExpression))) {
+    if (!keyFormatChange
+        && repartitionNotNeeded(ImmutableList.of(keyExpression))
+        && !forceRepartition
+    ) {
       return (SchemaKStream<Struct>) this;
     }
 
     if (keyFormat.isWindowed()) {
-      throw new KsqlException("Implicit repartitioning of windowed sources is not supported. "
-          + "See https://github.com/confluentinc/ksql/issues/4385.");
+      final String errorMsg = "Implicit repartitioning of windowed sources is not supported. "
+          + "See https://github.com/confluentinc/ksql/issues/4385.";
+      final String additionalMsg = forceRepartition
+          ? " As a result, ksqlDB does not support joins on Schema-Registry-enabled key formats "
+          + "(AVRO, JSON_SR, PROTOBUF) at this time. Please repartition your sources to use a "
+          + "different key format before performing the join."
+          : "";
+      throw new KsqlException(errorMsg + additionalMsg);
     }
 
     final ExecutionStep<KStreamHolder<Struct>> step = ExecutionStepFactory

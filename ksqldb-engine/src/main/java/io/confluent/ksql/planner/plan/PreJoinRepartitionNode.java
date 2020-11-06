@@ -24,7 +24,10 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.Repartitioning;
 import java.util.Optional;
@@ -40,7 +43,9 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   private final Expression partitionBy;
   private final LogicalSchema schema;
   private final Optional<JoiningNode> joiningNode;
+  private final ValueFormat valueFormat;
   private Optional<FormatInfo> forcedInternalKeyFormat = Optional.empty();
+  private boolean forceRepartition = false;
 
   public PreJoinRepartitionNode(
       final PlanNodeId id,
@@ -54,6 +59,10 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
     this.joiningNode = source instanceof JoiningNode
         ? Optional.of((JoiningNode) source)
         : Optional.empty();
+    this.valueFormat = getLeftmostSourceNode()
+        .getDataSource()
+        .getKsqlTopic()
+        .getValueFormat();
   }
 
   @Override
@@ -92,6 +101,11 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
 
   @Override
   public void setKeyFormat(final FormatInfo format) {
+    // Force repartition in case of schema inference, to avoid misses due to key schema ID mismatch
+    if (FormatFactory.of(format).supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+      forceRepartition = true;
+    }
+
     if (requiresRepartition()) {
       // Node is repartitioning already:
       forcedInternalKeyFormat = Optional.of(format);
@@ -118,9 +132,11 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return getSource().buildStream(builder)
         .selectKey(
+            valueFormat.getFormatInfo(),
             partitionBy,
             forcedInternalKeyFormat,
-            builder.buildNodeContext(getId().toString())
+            builder.buildNodeContext(getId().toString()),
+            forceRepartition
         );
   }
 

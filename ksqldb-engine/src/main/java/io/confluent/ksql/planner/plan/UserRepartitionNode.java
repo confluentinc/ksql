@@ -28,6 +28,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -37,6 +38,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   private final Expression partitionBy;
   private final LogicalSchema schema;
   private final Expression originalPartitionBy;
+  private final ValueFormat valueFormat;
 
   public UserRepartitionNode(
       final PlanNodeId id,
@@ -49,6 +51,10 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
     this.schema = requireNonNull(schema, "schema");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
     this.originalPartitionBy = requireNonNull(originalPartitionBy, "originalPartitionBy");
+    this.valueFormat = getLeftmostSourceNode()
+        .getDataSource()
+        .getKsqlTopic()
+        .getValueFormat();
   }
 
   @Override
@@ -60,9 +66,11 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return getSource().buildStream(builder)
         .selectKey(
+            valueFormat.getFormatInfo(),
             partitionBy,
             Optional.empty(),
-            builder.buildNodeContext(getId().toString())
+            builder.buildNodeContext(getId().toString()),
+            false
         );
   }
 

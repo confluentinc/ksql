@@ -25,7 +25,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.BackupReplayFile;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
-import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
+import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
@@ -132,7 +132,7 @@ public class KsqlRestoreCommandTopic {
       try {
         InternalTopicSerdes.deserializer(Command.class)
             .deserialize(null, record.getRight());
-      } catch (final SerializationException | IncomaptibleKsqlCommandVersionException e) {
+      } catch (final SerializationException | IncompatibleKsqlCommandVersionException e) {
         if (skipIncompatibleCommands) {
           incompatibleCommands.add(record.getRight());
           numFilteredCommands++;

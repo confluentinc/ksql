@@ -38,7 +38,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.server.resources.IncomaptibleKsqlCommandVersionException;
+import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
@@ -276,7 +276,7 @@ public class CommandRunnerTest {
   public void shouldProcessPartialListOfCommandsOnIncompatibleCommandInRestore() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
-    doThrow(new IncomaptibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
+    doThrow(new IncompatibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
     commandRunner.processPriorCommands();
@@ -299,7 +299,7 @@ public class CommandRunnerTest {
   public void shouldProcessPartialListOfCommandsOnIncompatibleCommandInFetch() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
-    doThrow(new IncomaptibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
+    doThrow(new IncompatibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
     commandRunner.start();

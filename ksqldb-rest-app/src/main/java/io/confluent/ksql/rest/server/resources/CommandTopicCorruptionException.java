@@ -17,10 +17,10 @@ package io.confluent.ksql.rest.server.resources;
 
 import io.confluent.ksql.util.KsqlServerException;
 
-public class IncomaptibleKsqlCommandVersionException extends KsqlServerException {
+public class CommandTopicCorruptionException extends KsqlServerException {
 
-  public IncomaptibleKsqlCommandVersionException(final String message) {
+  public CommandTopicCorruptionException(final String message) {
     super(message);
   }
-  
+
 }

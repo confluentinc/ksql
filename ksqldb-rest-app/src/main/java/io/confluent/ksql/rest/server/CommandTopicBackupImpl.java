@@ -16,16 +16,12 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -132,7 +128,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   @Override
   public void writeRecord(final ConsumerRecord<byte[], byte[]> record) {
     if (corruptionDetected) {
-      throw new KsqlServerException(
+      throw new CommandTopicCorruptionException(
           "Failed to write record due to out of sync command topic and backup file: " + record);
     }
 
@@ -142,7 +138,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
         return;
       } else {
         corruptionDetected = true;
-        throw new KsqlServerException(
+        throw new CommandTopicCorruptionException(
             "Failed to write record due to out of sync command topic and backup file: " + record);
       }
     } else if (latestReplay.size() > 0) {

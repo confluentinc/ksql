@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
@@ -213,7 +214,7 @@ public class CommandTopicBackupImplTest {
     try {
       commandTopicBackup.writeRecord(command2);
       assertThat(true, is(false));
-    } catch (final KsqlServerException e) {
+    } catch (final CommandTopicCorruptionException e) {
       // This is expected so we do nothing
     }
     final BackupReplayFile currentReplayFile = commandTopicBackup.getReplayFile();
@@ -224,7 +225,7 @@ public class CommandTopicBackupImplTest {
     try {
       commandTopicBackup.writeRecord(command2);
       assertThat(true, is(false));
-    } catch (final KsqlServerException e) {
+    } catch (final CommandTopicCorruptionException e) {
       // This is expected so we do nothing
     }
   }

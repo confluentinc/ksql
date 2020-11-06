@@ -17,8 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,7 +88,7 @@ public class CommandTopic {
       for (ConsumerRecord<byte[], byte[]> record : iterable) {
         try {
           backupRecord(record);
-        } catch (final KsqlServerException e) {
+        } catch (final CommandTopicCorruptionException e) {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
               + "restored or all backup files are deleted.", e);
@@ -116,7 +115,7 @@ public class CommandTopic {
       for (final ConsumerRecord<byte[], byte[]> record : records) {
         try {
           backupRecord(record);
-        } catch (final KsqlServerException e) {
+        } catch (final CommandTopicCorruptionException e) {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
               + "restored or all backup files are deleted.", e);

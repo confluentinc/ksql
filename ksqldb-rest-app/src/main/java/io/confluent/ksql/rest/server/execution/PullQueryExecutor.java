@@ -67,7 +67,6 @@ import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.model.WindowType;
@@ -1247,11 +1246,9 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ImmutableAnalysis analysis
   ) {
-    final MetaStore metaStore = executionContext.getMetaStore();
-
     final SourceName sourceName = getSourceName(analysis);
 
-    final Set<String> queries = metaStore.getQueriesWithSink(sourceName);
+    final Set<QueryId> queries = executionContext.getQueriesWithSink(sourceName);
     if (queries.isEmpty()) {
       throw notMaterializedException(sourceName);
     }
@@ -1261,7 +1258,7 @@ public final class PullQueryExecutor {
           + " materialized once.");
     }
 
-    final QueryId queryId = new QueryId(Iterables.get(queries, 0));
+    final QueryId queryId = Iterables.getOnlyElement(queries);
 
     final PersistentQueryMetadata query = executionContext
         .getPersistentQuery(queryId)

@@ -25,6 +25,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -132,6 +134,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
     return ImmutableList.copyOf(primaryContext.getPersistentQueries().values());
+  }
+
+  @Override
+  public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
+    return primaryContext.getQueriesWithSink(sourceName);
   }
 
   @Override
@@ -241,7 +248,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           .executeQuery(statement, excludeTombstones);
 
       registerQuery(query);
-      primaryContext.registerQuery(query);
+      primaryContext.registerQuery(query, false);
       return query;
     } catch (final KsqlStatementException e) {
       throw e;

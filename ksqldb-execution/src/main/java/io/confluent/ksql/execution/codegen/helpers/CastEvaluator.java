@@ -15,14 +15,14 @@
 
 package io.confluent.ksql.execution.codegen.helpers;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
 /**
@@ -32,185 +32,154 @@ import io.confluent.ksql.util.Pair;
  */
 public final class CastEvaluator {
 
-  private static final ImmutableMap<SqlBaseType, CastEvaluator.CastFunction> CASTERS =
-      ImmutableMap.<SqlBaseType, CastEvaluator.CastFunction>builder()
-          .put(SqlBaseType.STRING, CastEvaluator::castString)
-          .put(SqlBaseType.BOOLEAN, CastEvaluator::castBoolean)
-          .put(SqlBaseType.INTEGER, CastEvaluator::castInteger)
-          .put(SqlBaseType.BIGINT, CastEvaluator::castLong)
-          .put(SqlBaseType.DOUBLE, CastEvaluator::castDouble)
-          .put(SqlBaseType.DECIMAL, CastEvaluator::castDecimal)
-          .build();
+  /**
+   * Map of source SQL type to the supported target types and their handler.
+   */
+  private static final ImmutableMap<SqlBaseType, SupportedCasts> SUPPORTED_CASTS = ImmutableMap
+      .<SqlBaseType, SupportedCasts>builder()
+      .put(SqlBaseType.BOOLEAN, SupportedCasts.builder()
+          .put(SqlBaseType.STRING, CastEvaluator::castToString)
+          .build())
+      .put(SqlBaseType.INTEGER, SupportedCasts.builder()
+          .put(SqlBaseType.BIGINT, formattedCode("(new Integer(%s).longValue())"))
+          .put(SqlBaseType.DECIMAL, CastEvaluator::castToDecimal)
+          .put(SqlBaseType.DOUBLE, formattedCode("(new Integer(%s).doubleValue())"))
+          .put(SqlBaseType.STRING, CastEvaluator::castToString)
+          .build())
+      .put(SqlBaseType.BIGINT, SupportedCasts.builder()
+          .put(SqlBaseType.INTEGER, formattedCode("(new Long(%s).intValue())"))
+          .put(SqlBaseType.DECIMAL, CastEvaluator::castToDecimal)
+          .put(SqlBaseType.DOUBLE, formattedCode("(new Long(%s).doubleValue())"))
+          .put(SqlBaseType.STRING, CastEvaluator::castToString)
+          .build())
+      .put(SqlBaseType.DECIMAL, SupportedCasts.builder()
+          .put(SqlBaseType.INTEGER, formattedCode("((%s).intValue())"))
+          .put(SqlBaseType.BIGINT, formattedCode("((%s).longValue())"))
+          .put(SqlBaseType.DOUBLE, formattedCode("((%s).doubleValue())"))
+          .put(SqlBaseType.STRING, formattedCode("%s.toPlainString()"))
+          .build())
+      .put(SqlBaseType.DOUBLE, SupportedCasts.builder()
+          .put(SqlBaseType.INTEGER, formattedCode("(new Double(%s).intValue())"))
+          .put(SqlBaseType.BIGINT, formattedCode("(new Double(%s).longValue())"))
+          .put(SqlBaseType.DECIMAL, CastEvaluator::castToDecimal)
+          .put(SqlBaseType.STRING, CastEvaluator::castToString)
+          .build())
+      .put(SqlBaseType.STRING, SupportedCasts.builder()
+          .put(SqlBaseType.BOOLEAN, formattedCode("Boolean.parseBoolean(%s)"))
+          .put(SqlBaseType.INTEGER, formattedCode("Integer.parseInt(%s)"))
+          .put(SqlBaseType.BIGINT, formattedCode("Long.parseLong(%s)"))
+          .put(SqlBaseType.DECIMAL, CastEvaluator::castToDecimal)
+          .put(SqlBaseType.DOUBLE, formattedCode("Double.parseDouble(%s)"))
+          .build())
+      .put(SqlBaseType.ARRAY, SupportedCasts.builder()
+          .put(SqlBaseType.STRING, CastEvaluator::castToString)
+          .build())
+      .put(SqlBaseType.MAP, SupportedCasts.builder()
+          .put(SqlBaseType.STRING, CastEvaluator::castToString)
+          .build())
+      .put(SqlBaseType.STRUCT, SupportedCasts.builder()
+          .put(SqlBaseType.STRING, CastEvaluator::castToString)
+          .build())
+      .build();
+
+  private static final SupportedCasts UNSUPPORTED = SupportedCasts.builder().build();
 
   private CastEvaluator() {
   }
 
   public static Pair<String, SqlType> eval(
       final Pair<String, SqlType> expr,
-      final SqlType sqlType,
-      final KsqlConfig ksqlConfig
+      final SqlType returnType,
+      final KsqlConfig config
   ) {
     final SqlType sourceType = expr.getRight();
-    if (sourceType == null || sqlType.equals(sourceType)) {
+    if (sourceType == null || returnType.equals(sourceType)) {
       // sourceType is null if source is SQL NULL
-      return new Pair<>(expr.getLeft(), sqlType);
+      return new Pair<>(expr.getLeft(), returnType);
     }
 
-    return CASTERS.getOrDefault(sqlType.baseType(), CastEvaluator::unsupportedCast)
-        .cast(expr, sqlType, ksqlConfig);
+    final String generated = SUPPORTED_CASTS
+        .getOrDefault(sourceType.baseType(), UNSUPPORTED)
+        .generate(expr.getLeft(), sourceType, returnType, config);
+
+    return Pair.of(generated, returnType);
   }
 
-  private static Pair<String, SqlType> unsupportedCast(
-      final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
+  private static CastFunction formattedCode(final String code) {
+    return (innerCode, returnType, config) -> String.format(code, innerCode);
+  }
+
+  private static String castToDecimal(
+      final String innerCode,
+      final SqlType returnType,
+      final KsqlConfig config
   ) {
-    throw new KsqlFunctionException("Cast of " + expr.getRight()
-        + " to " + returnType + " is not supported");
+    final SqlDecimal decimal = (SqlDecimal) returnType;
+    return "(DecimalUtil.cast("
+        + innerCode + ", "
+        + decimal.getPrecision() + ", "
+        + decimal.getScale() + "))";
   }
 
-  private static Pair<String, SqlType> castString(
-      final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
+  private static String castToString(
+      final String innerCode,
+      final SqlType returnType,
+      final KsqlConfig config
   ) {
-    final SqlType schema = expr.getRight();
-    final String exprStr;
-    if (schema.baseType() == SqlBaseType.DECIMAL) {
-      exprStr = expr.getLeft() + ".toPlainString()";
-    } else {
-      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)) {
-        exprStr = "Objects.toString(" + expr.getLeft() + ", null)";
-      } else {
-        exprStr = "String.valueOf(" + expr.getLeft() + ")";
-      }
-    }
-    return new Pair<>(exprStr, returnType);
-  }
-
-  private static Pair<String, SqlType> castBoolean(
-      final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
-  ) {
-    return new Pair<>(getCastToBooleanString(expr.getRight(), expr.getLeft()), returnType);
-  }
-
-  private static Pair<String, SqlType> castInteger(
-      final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
-  ) {
-    final String exprStr = getCastString(
-        expr.getRight(),
-        expr.getLeft(),
-        "intValue()",
-        "Integer.parseInt"
-    );
-    return new Pair<>(exprStr, returnType);
-  }
-
-  private static Pair<String, SqlType> castLong(
-      final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
-  ) {
-    final String exprStr = getCastString(
-        expr.getRight(),
-        expr.getLeft(),
-        "longValue()",
-        "Long.parseLong"
-    );
-    return new Pair<>(exprStr, returnType);
-  }
-
-  private static Pair<String, SqlType> castDouble(
-      final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
-  ) {
-    final String exprStr = getCastString(
-        expr.getRight(),
-        expr.getLeft(),
-        "doubleValue()",
-        "Double.parseDouble"
-    );
-    return new Pair<>(exprStr, returnType);
-  }
-
-  private static Pair<String, SqlType> castDecimal(
-      final Pair<String, SqlType> expr, final SqlType returnType, final KsqlConfig ksqlConfig
-  ) {
-    if (!(returnType instanceof SqlDecimal)) {
-      throw new KsqlException("Expected decimal type: " + returnType);
-    }
-
-    final SqlDecimal sqlDecimal = (SqlDecimal) returnType;
-
-    if (expr.getRight().baseType() == SqlBaseType.DECIMAL && expr.right.equals(sqlDecimal)) {
-      return expr;
-    }
-
-    return new Pair<>(
-        getDecimalCastString(expr.getRight(), expr.getLeft(), sqlDecimal),
-        returnType
-    );
-  }
-
-  private static String getCastToBooleanString(final SqlType schema, final String exprStr) {
-    if (schema.baseType() == SqlBaseType.STRING) {
-      return "Boolean.parseBoolean(" + exprStr + ")";
-    } else {
-      throw new KsqlFunctionException(
-          "Invalid cast operation: Cannot cast " + exprStr + " to boolean.");
-    }
-  }
-
-  private static String getCastString(
-      final SqlType schema,
-      final String exprStr,
-      final String javaTypeMethod,
-      final String javaStringParserMethod
-  ) {
-    if (schema.baseType() == SqlBaseType.DECIMAL) {
-      return "((" + exprStr + ")." + javaTypeMethod + ")";
-    }
-
-    switch (schema.baseType()) {
-      case INTEGER:
-        return "(new Integer(" + exprStr + ")." + javaTypeMethod + ")";
-      case BIGINT:
-        return "(new Long(" + exprStr + ")." + javaTypeMethod + ")";
-      case DOUBLE:
-        return "(new Double(" + exprStr + ")." + javaTypeMethod + ")";
-      case STRING:
-        return javaStringParserMethod + "(" + exprStr + ")";
-      default:
-        throw new KsqlFunctionException(
-            "Invalid cast operation: Cannot cast "
-                + exprStr + " to " + schema.toString(FormatOptions.noEscape()) + "."
-        );
-    }
-  }
-
-  private static String getDecimalCastString(
-      final SqlType schema,
-      final String exprStr,
-      final SqlDecimal target
-  ) {
-    switch (schema.baseType()) {
-      case INTEGER:
-      case BIGINT:
-      case DOUBLE:
-      case STRING:
-      case DECIMAL:
-        return String.format(
-            "(DecimalUtil.cast(%s, %d, %d))",
-            exprStr,
-            target.getPrecision(),
-            target.getScale()
-        );
-      default:
-        throw new KsqlFunctionException(
-            "Invalid cast operation: Cannot cast " + exprStr + " to " + schema);
-    }
+    return config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
+        ? "Objects.toString(" + innerCode + ", null)"
+        : "String.valueOf(" + innerCode + ")";
   }
 
   @FunctionalInterface
   private interface CastFunction {
 
-    Pair<String, SqlType> cast(
-        Pair<String, SqlType> expr,
+    String cast(
+        String innerCode,
         SqlType returnType,
-        KsqlConfig ksqlConfig
+        KsqlConfig config
     );
+  }
+
+  private static final class SupportedCasts {
+
+    private final ImmutableMap<SqlBaseType, CastFunction> casts;
+
+    SupportedCasts(final ImmutableMap<SqlBaseType, CastFunction> casts) {
+      this.casts = requireNonNull(casts, "casts");
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public String generate(
+        final String innerCode,
+        final SqlType sourceType,
+        final SqlType returnType,
+        final KsqlConfig config
+    ) {
+      final CastFunction castFunction = casts.get(returnType.baseType());
+      if (castFunction == null) {
+        throw new KsqlFunctionException("Cast of " + sourceType + " to " + returnType
+            + " is not supported");
+      }
+
+      return castFunction.cast(innerCode, returnType, config);
+    }
+
+    static final class Builder {
+
+      private final ImmutableMap.Builder<SqlBaseType, CastFunction> casts = ImmutableMap.builder();
+
+      Builder put(final SqlBaseType type, final CastFunction function) {
+        casts.put(type, function);
+        return this;
+      }
+
+      SupportedCasts build() {
+        return new SupportedCasts(casts.build());
+      }
+    }
   }
 }

@@ -255,7 +255,7 @@ public class CastEvaluatorTest {
     // Then:
     assertThat(
         e.getMessage(),
-        containsString("Invalid cast operation")
+        containsString("Cast of " + sourceType + " to " + returnType + " is not supported")
     );
   }
 

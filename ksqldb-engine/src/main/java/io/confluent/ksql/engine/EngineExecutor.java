@@ -129,7 +129,8 @@ final class EngineExecutor {
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
   ) {
-    final ExecutorPlans plans = planQuery(statement, statement.getStatement(), Optional.empty());
+    final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
+        Optional.empty(), Optional.empty());
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
     final QueryExecutor executor = engineContext.createQueryExecutor(config, serviceContext);
 
@@ -169,7 +170,8 @@ final class EngineExecutor {
       final ExecutorPlans plans = planQuery(
           statement,
           queryContainer.getQuery(),
-          Optional.of(queryContainer.getSink())
+          Optional.of(queryContainer.getSink()),
+          queryContainer.getQueryId()
       );
 
       final KsqlStructuredDataOutputNode outputNode =
@@ -204,7 +206,8 @@ final class EngineExecutor {
   private ExecutorPlans planQuery(
       final ConfiguredStatement<?> statement,
       final Query query,
-      final Optional<Sink> sink) {
+      final Optional<Sink> sink,
+      final Optional<String> withQueryId) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
@@ -221,8 +224,14 @@ final class EngineExecutor {
         engineContext,
         engineContext.idGenerator(),
         outputNode,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED)
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
+        withQueryId
     );
+
+    if (withQueryId.isPresent() && engineContext.getPersistentQuery(queryId).isPresent()) {
+      throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
+    }
+
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         config,

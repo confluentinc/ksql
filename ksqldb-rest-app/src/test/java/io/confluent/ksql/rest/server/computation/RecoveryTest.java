@@ -631,6 +631,16 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverInsertIntosWithCustomQueryId() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "INSERT INTO B WITH(QUERY_ID='MY_INSERT_ID') SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
   public void shouldRecoverInsertIntosRecreates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",

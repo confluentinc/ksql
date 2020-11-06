@@ -109,11 +109,11 @@ public abstract class BaseMetricsReporter extends Thread implements Closeable {
 
     final String endpointHttp = supportConfig.getEndpointHttp();
     final String endpointHttps = supportConfig.getEndpointHttps();
-    final String proxyUri = supportConfig.getProxy();
+    final String proxyURI = supportConfig.getProxy();
 
     if (!endpointHttp.isEmpty() || !endpointHttps.isEmpty()) {
       confluentSubmitter = new ConfluentSubmitter(customerId, endpointHttp, endpointHttps,
-          proxyUri, responseHandler);
+          proxyURI, responseHandler);
     } else {
       confluentSubmitter = null;
     }

@@ -260,9 +260,9 @@ public class DdlCommandExecTest {
   @Test
   public void shouldThrowOnDropTableWhenConstraintExist() {
     // Given:
-    final CreateTableCommand table1 = buildCreateTable(SourceName.of("t1"));
-    final CreateTableCommand table2 = buildCreateTable(SourceName.of("t2"));
-    final CreateTableCommand table3 = buildCreateTable(SourceName.of("t3"));
+    final CreateTableCommand table1 = buildCreateTable(SourceName.of("t1"), false);
+    final CreateTableCommand table2 = buildCreateTable(SourceName.of("t2"), false);
+    final CreateTableCommand table3 = buildCreateTable(SourceName.of("t3"), false);
     cmdExec.execute(SQL_TEXT, table1, true, Collections.emptySet());
     cmdExec.execute(SQL_TEXT, table2, true, Collections.singleton(SourceName.of("t1")));
     cmdExec.execute(SQL_TEXT, table3, true, Collections.singleton(SourceName.of("t1")));
@@ -455,12 +455,28 @@ public class DdlCommandExecTest {
 
     // When:
     givenCreateStream(SCHEMA2, false);
-    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, createStream,
+    final DdlCommandResult result =cmdExec.execute(SQL_TEXT, createStream,
         false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat("Expected successful execution", result.isSuccess());
     assertThat(result.getMessage(), containsString("A stream with the same name already exists"));
+  }
+
+  @Test
+  public void shouldWarnAddDuplicateTableWithoutReplace() {
+    // Given:
+    givenCreateTable();
+    cmdExec.execute(SQL_TEXT, createTable, false, NO_QUERY_SOURCES);
+
+    // When:
+    givenCreateTable(false);
+    final DdlCommandResult result =cmdExec.execute(SQL_TEXT, createTable,
+        false, NO_QUERY_SOURCES);
+
+    // Then:
+    assertThat("Expected successful execution", result.isSuccess());
+    assertThat(result.getMessage(), containsString("A table with the same name already exists"));
   }
 
   private void givenDropSourceCommand(final SourceName name) {
@@ -535,10 +551,17 @@ public class DdlCommandExecTest {
   }
 
   private void givenCreateTable() {
-    createTable = buildCreateTable(TABLE_NAME);
+    createTable = buildCreateTable(TABLE_NAME, false);
   }
 
-  private CreateTableCommand buildCreateTable(final SourceName sourceName) {
+  private void givenCreateTable(final boolean allowReplace) {
+    createTable = buildCreateTable(TABLE_NAME, allowReplace);
+  }
+
+  private CreateTableCommand buildCreateTable(
+      final SourceName sourceName,
+      final boolean allowReplace
+  ) {
     return new CreateTableCommand(
         sourceName,
         SCHEMA,
@@ -551,7 +574,7 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.empty(),
-        Optional.of(false)
+        Optional.of(allowReplace)
     );
   }
 }

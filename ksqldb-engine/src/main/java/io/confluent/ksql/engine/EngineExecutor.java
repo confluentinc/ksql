@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
@@ -122,6 +123,7 @@ final class EngineExecutor {
     final QueryPlan queryPlan = plan.getQueryPlan().get();
     plan.getDdlCommand().map(ddl ->
         executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
+
     return ExecuteResult.of(executePersistentQuery(
         queryPlan,
         plan.getStatementText(),
@@ -233,6 +235,7 @@ final class EngineExecutor {
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
+          statement,
           outputNode
       );
 
@@ -340,11 +343,30 @@ final class EngineExecutor {
   }
 
   private Optional<DdlCommand> maybeCreateSinkDdl(
+      final ConfiguredStatement<?> cfgStatement,
       final KsqlStructuredDataOutputNode outputNode
   ) {
     if (!outputNode.createInto()) {
       validateExistingSink(outputNode);
       return Optional.empty();
+    }
+
+    final Statement statement = cfgStatement.getStatement();
+    final SourceName intoSource = outputNode.getIntoSourceName();
+    final boolean orReplace = statement instanceof CreateAsSelect
+        && ((CreateAsSelect) statement).isOrReplace();
+    final boolean ifNotExists = statement instanceof CreateAsSelect
+        && ((CreateAsSelect) statement).isNotExists();
+
+    final DataSource dataSource = engineContext.getMetaStore().getSource(intoSource);
+    if (dataSource != null && !ifNotExists && !orReplace) {
+      final String failedSourceType = outputNode.getNodeOutputType().getKsqlType();
+      final String foundSourceType = dataSource.getDataSourceType().getKsqlType();
+
+      throw new KsqlException(String.format(
+          "Cannot add %s '%s': A %s with the same name already exists",
+          failedSourceType.toLowerCase(), intoSource.text(), foundSourceType.toLowerCase()
+      ));
     }
 
     return Optional.of(engineContext.createDdlCommand(outputNode));

@@ -42,6 +42,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.commands.CreateSourceFactory.SerdeFeaturessSupplier;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
@@ -89,6 +90,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -165,6 +167,8 @@ public class CreateSourceFactoryTest {
   @Mock
   private Serde<GenericKey> keySerde;
   @Mock
+  private Serde<GenericRow> valueSerde;
+  @Mock
   private MetaStore metaStore;
   @Mock
   KsqlStream ksqlStream;
@@ -180,6 +184,14 @@ public class CreateSourceFactoryTest {
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
+    when(keySerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(keySerde);
+    when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(valueSerde);
+    when(keyOptionsSupplier.build(any(), any(), any(), any()))
+        .thenReturn(SerdeFeatures.of());
+    when(valOptionsSupplier.build(any(), any(), any(), any()))
+        .thenReturn(SerdeFeatures.of());
     when(metaStore.getSource(SOME_NAME)).thenReturn(ksqlStream);
     when(ksqlStream.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(metaStore.getSource(TABLE_NAME)).thenReturn(ksqlTable);
@@ -1021,7 +1033,21 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
-  public void shouldThrowIfStreamExits() {
+  public void shouldNotThrowOnCreateStreamIfNotExistsIsSet() {
+    // Given:
+    final CreateStream ddlStatement =
+        new CreateStream(SOME_NAME, STREAM_ELEMENTS, false, true, withProperties);
+
+    // When:
+    final CreateStreamCommand result = createSourceFactory
+        .createStreamCommand(ddlStatement, ksqlConfig);
+
+    // Then:
+    assertThat(result.getSourceName(), is(SOME_NAME));
+  }
+
+  @Test
+  public void shouldThrowIfStreamExists() {
     // Given:
     final CreateStream ddlStatement =
         new CreateStream(SOME_NAME, STREAM_ELEMENTS, false, false, withProperties);
@@ -1037,7 +1063,24 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
-  public void shouldThrowIfTableExits() {
+  public void shouldNotThrowOnCreateTableIfNotExistsIsSet() {
+    //Given
+    final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
+        TableElements.of(
+            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
+            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+        false, true, withProperties);
+
+    // When:
+    final CreateTableCommand result = createSourceFactory
+        .createTableCommand(ddlStatement, ksqlConfig);
+
+    // Then:
+    assertThat(result.getSourceName(), is(TABLE_NAME));
+  }
+
+  @Test
+  public void shouldThrowIfTableExists() {
     //Given
     final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
         TableElements.of(

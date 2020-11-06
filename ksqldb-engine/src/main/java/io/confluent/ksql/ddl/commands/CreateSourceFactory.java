@@ -116,13 +116,11 @@ public final class CreateSourceFactory {
         buildTimestampColumn(ksqlConfig, props, schema);
     final DataSource dataSource = metaStore.getSource(sourceName);
 
-    if (dataSource != null && !statement.isOrReplace()) {
+    if (dataSource != null && !statement.isOrReplace() && !statement.isNotExists()) {
       final String sourceType = dataSource.getDataSourceType().getKsqlType();
-      if (!statement.isNotExists()) {
-        throw new KsqlException(
-            String.format("Cannot add stream '%s': A %s with the same name already exists",
-               sourceName.text(), sourceType.toLowerCase()));
-      }
+      throw new KsqlException(
+          String.format("Cannot add stream '%s': A %s with the same name already exists",
+             sourceName.text(), sourceType.toLowerCase()));
     }
 
     return new CreateStreamCommand(
@@ -158,13 +156,11 @@ public final class CreateSourceFactory {
     final LogicalSchema schema = buildSchema(statement.getElements());
     final DataSource dataSource = metaStore.getSource(sourceName);
 
-    if (dataSource != null && !statement.isOrReplace()) {
+    if (dataSource != null && !statement.isOrReplace() && !statement.isNotExists()) {
       final String sourceType = dataSource.getDataSourceType().getKsqlType();
-      if (!statement.isNotExists()) {
-        throw new KsqlException(
-            String.format("Cannot add table '%s': A %s with the same name already exists",
-                sourceName.text(), sourceType.toLowerCase()));
-      }
+      throw new KsqlException(
+          String.format("Cannot add table '%s': A %s with the same name already exists",
+              sourceName.text(), sourceType.toLowerCase()));
     }
     if (schema.key().isEmpty()) {
       final boolean usingSchemaInference = props.getValueSchemaId().isPresent();

@@ -1267,15 +1267,15 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldThrowWhenExecutingDuplicateTable() {
+  public void shouldNotThrowWhenExecutingDuplicateTableWithIfNotExists() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
         "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2; "
-            + "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
+            + "CREATE TABLE IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
 
     givenStatementAlreadyExecuted(parsed.get(0));
 
-    final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed.get(1));
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
 
     // When:
     ExecuteResult executeResult = ksqlEngine.execute(
@@ -1284,7 +1284,40 @@ public class KsqlEngineTest {
     );
 
     // Then:
+    // Ideally, the result should be a message the the stream already exists, but in this case
+    // it returns the same Query ID that it was created by the first stream. Some code refactoring
+    // is needed in EngineExecutor.execute() and other places to validate the cases when a
+    // CREATE IF NOT EXISTS return a warning message only, and not an error. For now, this is a
+    // temporary solution.
     assertThat(executeResult.getQuery(), is(not(Optional.empty())));
+  }
+
+  @Test
+  public void shouldThrowWhenExecutingDuplicateTable() {
+    // Given:
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "CREATE TABLE FOO AS SELECT * FROM TEST2; "
+            + "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
+
+    givenStatementAlreadyExecuted(parsed.get(0));
+
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> ksqlEngine.execute(
+            serviceContext,
+            ConfiguredStatement
+                .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Cannot add table 'FOO': A table with the same name already exists")));
+    assertThat(e, statementText(is(
+        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
   }
 
   @Test
@@ -1319,7 +1352,33 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldNotThrowWhenExecutingDuplicateStream() {
+  public void shouldNotThrowWhenExecutingDuplicateStreamWithIfNotExists() {
+    // Given:
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
+            + "CREATE STREAM IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
+
+    givenStatementAlreadyExecuted(parsed.get(0));
+
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+
+    // When:
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    );
+
+    // Then:
+    // Ideally, the result should be a message the the stream already exists, but in this case
+    // it returns the same Query ID that it was created by the first stream. Some code refactoring
+    // is needed in EngineExecutor.execute() and other places to validate the cases when a
+    // CREATE IF NOT EXISTS return a warning message only, and not an error. For now, this is a
+    // temporary solution.
+    assertThat(executeResult.getQuery(), is(not(Optional.empty())));
+  }
+
+  @Test
+  public void shouldThrowWhenExecutingDuplicateStream() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
         "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
@@ -1330,13 +1389,20 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed.get(1));
 
     // When:
-    ExecuteResult executeResult = ksqlEngine.execute(
-        serviceContext, ConfiguredStatement.
-            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> ksqlEngine.execute(
+            serviceContext,
+            ConfiguredStatement
+                .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        )
     );
 
     // Then:
-    assertThat(executeResult.getQuery(), is(not(Optional.empty())));
+    assertThat(e, rawMessage(is(
+        "Cannot add stream 'FOO': A stream with the same name already exists")));
+    assertThat(e, statementText(is(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
   }
 
   @Test

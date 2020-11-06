@@ -61,6 +61,6 @@ public class TombstoneProvider extends TestDataProvider {
   }
 
   private static Struct buildKey(final int key) {
-    return KEY_BUILDER.build(key);
+    return KEY_BUILDER.build(key, 0);
   }
 }

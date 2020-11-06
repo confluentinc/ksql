@@ -47,6 +47,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,6 +58,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology;
@@ -432,18 +434,14 @@ public final class SourceBuilder {
     return consumed.withOffsetResetPolicy(getAutoOffsetReset(defaultReset, queryBuilder));
   }
 
-  private static Optional<org.apache.kafka.connect.data.Field> getKeySchemaSingleField(
+  private static Optional<ConnectSchema> getKeySchema(
       final LogicalSchema schema
   ) {
     if (schema.key().isEmpty()) {
       return Optional.empty();
     }
 
-    if (schema.key().size() != 1) {
-      throw new IllegalStateException("Only single key fields are currently supported");
-    }
-
-    return Optional.of(ConnectSchemas.columnsToConnectSchema(schema.key()).fields().get(0));
+    return Optional.of(ConnectSchemas.columnsToConnectSchema(schema.key()));
   }
 
   private static String tableChangeLogOpName(final ExecutionStepPropertiesV1 props) {
@@ -458,7 +456,7 @@ public final class SourceBuilder {
   private static Function<Windowed<Struct>, Collection<?>> windowedKeyGenerator(
       final LogicalSchema schema
   ) {
-    final Field keyField = getKeySchemaSingleField(schema)
+    final ConnectSchema keySchema = getKeySchema(schema)
         .orElseThrow(() -> new IllegalStateException("Windowed sources require a key column"));
 
     return windowedKey -> {
@@ -467,26 +465,35 @@ public final class SourceBuilder {
       }
 
       final Window window = windowedKey.window();
-      final Object key = windowedKey.key().get(keyField);
-      return Arrays.asList(key, window.start(), window.end());
+      final Struct key = windowedKey.key();
+
+      final List<Object> keys = new ArrayList<>();
+      for (final Field field : keySchema.fields()) {
+        keys.add(key == null ? null : key.get(field));
+      }
+
+      keys.add(window.start());
+      keys.add(window.end());
+      return Collections.unmodifiableCollection(keys);
     };
   }
 
   private static Function<Struct, Collection<?>> nonWindowedKeyGenerator(
       final LogicalSchema schema
   ) {
-    final Optional<Field> keyField = getKeySchemaSingleField(schema);
+    final Optional<ConnectSchema> keySchema = getKeySchema(schema);
     return key -> {
-      if (!keyField.isPresent()) {
+      if (!keySchema.isPresent()) {
         // No key columns:
         return ImmutableList.of();
       }
 
-      if (key == null) {
-        return Collections.singletonList(null);
+      final List<Object> keys = new ArrayList<>();
+      for (final Field field : keySchema.get().fields()) {
+        keys.add(key == null ? null : key.get(field));
       }
 
-      return Collections.singletonList(key.get(keyField.orElseThrow(IllegalStateException::new)));
+      return Collections.unmodifiableCollection(keys);
     };
   }
 

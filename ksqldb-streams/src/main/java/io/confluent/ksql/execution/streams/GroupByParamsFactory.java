@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -29,14 +28,15 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Struct;
 
 final class GroupByParamsFactory {
@@ -120,8 +120,8 @@ final class GroupByParamsFactory {
   }
 
   private static KeyBuilder keyBuilder(final LogicalSchema schema) {
-    final Column keyCol = Iterables.getOnlyElement(schema.key());
-    return StructKeyUtil.keyBuilder(keyCol.name(), keyCol.type());
+    final ConnectSchema keySchema = ConnectSchemas.columnsToConnectSchema(schema.key());
+    return new StructKeyUtil.KeyBuilder(keySchema);
   }
 
   private interface Grouper {
@@ -160,7 +160,7 @@ final class GroupByParamsFactory {
       if (key == null) {
         return null;
       }
-      return keyBuilder.build(key);
+      return keyBuilder.build(key, 0);
     }
 
     private static LogicalSchema singleExpressionSchema(
@@ -221,7 +221,7 @@ final class GroupByParamsFactory {
         key.append(result);
       }
 
-      return keyBuilder.build(key.toString());
+      return keyBuilder.build(key.toString(), 0);
     }
   }
 

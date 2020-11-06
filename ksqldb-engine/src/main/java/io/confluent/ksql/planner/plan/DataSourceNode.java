@@ -18,7 +18,6 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -32,6 +31,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -133,13 +133,22 @@ public class DataSourceNode extends PlanNode {
       return;
     }
 
-    final ColumnName keyName = Iterables.getOnlyElement(getSchema().key()).name();
+    final List<Column> keys = getSchema().key();
 
-    if (!projection.containsExpression(new QualifiedColumnReferenceExp(getAlias(), keyName))
-        && !projection.containsExpression(new UnqualifiedColumnReferenceExp(keyName))
-    ) {
-      throwKeysNotIncludedError(sinkName, "key column", ImmutableList.of(
-          (ColumnReferenceExp) new UnqualifiedColumnReferenceExp(keyName)));
+    for (final Column keyCol : keys) {
+      final ColumnName keyName = keyCol.name();
+      if (!projection.containsExpression(new QualifiedColumnReferenceExp(getAlias(), keyName))
+          && !projection.containsExpression(new UnqualifiedColumnReferenceExp(keyName))
+      ) {
+        throwKeysNotIncludedError(
+            sinkName,
+            "key column",
+            keys.stream()
+                .map(Column::name)
+                .map(UnqualifiedColumnReferenceExp::new)
+                .collect(Collectors.toList())
+        );
+      }
     }
   }
 

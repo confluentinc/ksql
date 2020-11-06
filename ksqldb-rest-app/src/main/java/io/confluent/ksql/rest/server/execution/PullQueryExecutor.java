@@ -27,6 +27,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.util.concurrent.RateLimiter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
@@ -191,6 +192,7 @@ public final class PullQueryExecutor {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
+  @SuppressFBWarnings("REC_CATCH_EXCEPTION")
   public PullQueryResult execute(
       final ConfiguredStatement<Query> statement,
       final Map<String, Object> requestProperties,
@@ -239,6 +241,12 @@ public final class PullQueryExecutor {
           analyze(statement, executionContext),
           new ColumnReferenceRewriter()::process
       );
+
+      final List<Column> key = analysis.getFrom().getDataSource().getSchema().key();
+      if (key.size() > 1) {
+        throw new KsqlException("Pull queries are not supported on sources with "
+            + "more than one key column: " + key);
+      }
 
       final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
 

@@ -68,7 +68,7 @@ public class KsMaterializedSessionTableTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("x");
+      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("x", 0);
   private static final GenericRow A_VALUE = GenericRow.genericRow("c0l");
   private static final int PARTITION = 0;
 

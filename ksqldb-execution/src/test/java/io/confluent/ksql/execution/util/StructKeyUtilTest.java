@@ -65,7 +65,7 @@ public class StructKeyUtilTest {
   @Test
   public void shouldBuildCorrectSchema() {
     // When:
-    final Struct result = builder.build(1);
+    final Struct result = builder.build(1, 0);
 
     // Then:
     assertThat(result.schema(), is(SchemaBuilder.struct()
@@ -76,7 +76,7 @@ public class StructKeyUtilTest {
   @Test
   public void shouldHandleValue() {
     // When:
-    final Struct result = builder.build(1);
+    final Struct result = builder.build(1, 0);
 
     // Then:
     assertThat(result.getInt32("Bob"), is(1));
@@ -85,7 +85,7 @@ public class StructKeyUtilTest {
   @Test
   public void shouldHandleNulls() {
     // When:
-    final Struct result = builder.build(null);
+    final Struct result = builder.build(null, 0);
 
     // Then:
     assertThat(result.getInt32("Bob"), is(nullValue()));

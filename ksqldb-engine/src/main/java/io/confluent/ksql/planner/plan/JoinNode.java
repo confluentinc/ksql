@@ -218,6 +218,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
       return names;
     }
 
+    // if we use a synthetic key, we know there's only a single key element
     final Column syntheticKey = getOnlyElement(getSchema().key());
 
     return Streams.concat(Stream.of(syntheticKey.name()), names);
@@ -246,8 +247,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
     final RequiredColumns updated = noSyntheticKey
         ? requiredColumns
         : requiredColumns.asBuilder()
-            .remove(new UnqualifiedColumnReferenceExp(getOnlyElement(schema.key()).name()))
-            .build();
+          .remove(new UnqualifiedColumnReferenceExp(getOnlyElement(schema.key()).name()))
+          .build();
 
     final Set<ColumnReferenceExp> leftUnknown = left.validateColumns(updated);
     final Set<ColumnReferenceExp> rightUnknown = right.validateColumns(updated);
@@ -256,6 +257,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
   }
 
   private ColumnName getKeyColumnName() {
+    if (getSchema().key().size() > 1) {
+      throw new KsqlException("JOINs are not supported with multiple key columns: "
+          + getSchema().key());
+    }
+
     return getOnlyElement(getSchema().key()).name();
   }
 

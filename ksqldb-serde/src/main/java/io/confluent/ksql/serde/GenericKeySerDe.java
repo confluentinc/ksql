@@ -118,9 +118,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final ProcessingLogContext processingLogContext,
       final Optional<TrackedCallback> tracker
   ) {
-    if (unsupportedSchema(schema.columns(), ksqlConfig)) {
-      throw new KsqlException("Unsupported key schema: " + schema.columns());
-    }
+    checkUnsupportedSchema(schema.columns(), ksqlConfig);
 
     final Serde<List<?>> formatSerde = innerFactory
         .createFormatSerde("Key", format, schema, ksqlConfig, schemaRegistryClientFactory, true);
@@ -139,23 +137,22 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     return serde;
   }
 
-  private static boolean unsupportedSchema(
+  private static void checkUnsupportedSchema(
       final List<SimpleColumn> columns,
       final KsqlConfig config
   ) {
-    if (config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)) {
-      return columns.size() > 1;
-    } else {
-      if (columns.isEmpty()) {
-        return false;
-      }
+    if (config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED) || columns.isEmpty()) {
+      return;
+    }
 
-      if (columns.size() > 1) {
-        return true;
-      }
+    if (columns.size() > 1) {
+      throw new KsqlException(
+          "Only single KEY column supported. Multiple KEY columns found: " + columns);
+    }
 
-      final SqlType sqlType = columns.get(0).type();
-      return !(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal);
+    final SqlType sqlType = columns.get(0).type();
+    if (!(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal)) {
+      throw new KsqlException("Unsupported key schema: " + columns);
     }
   }
 

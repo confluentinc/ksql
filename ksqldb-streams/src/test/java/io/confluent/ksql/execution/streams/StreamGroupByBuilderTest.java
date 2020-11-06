@@ -205,8 +205,8 @@ public class StreamGroupByBuilderTest {
     // Then:
     verify(sourceStream).filter(predicateCaptor.capture());
     final Predicate<Struct, GenericRow> predicate = predicateCaptor.getValue();
-    assertThat(predicate.test(STRING_KEY_BUILDER.build("foo"), new GenericRow()), is(true));
-    assertThat(predicate.test(STRING_KEY_BUILDER.build("foo"), null), is(false));
+    assertThat(predicate.test(STRING_KEY_BUILDER.build("foo", 0), new GenericRow()), is(true));
+    assertThat(predicate.test(STRING_KEY_BUILDER.build("foo", 0), null), is(false));
   }
 
   @Test

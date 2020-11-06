@@ -258,7 +258,7 @@ public class PartitionByParamsFactoryTest {
     final KeyBuilder keyBuilder = StructKeyUtil
         .keyBuilder(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER);
 
-    assertThat(result.key, is(keyBuilder.build(null)));
+    assertThat(result.key, is(keyBuilder.build(null, 0)));
   }
 
   @Test
@@ -272,7 +272,7 @@ public class PartitionByParamsFactoryTest {
 
     // Then:
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(COL1, SqlTypes.INTEGER);
-    assertThat(result.key, is(keyBuilder.build(COL1_VALUE)));
+    assertThat(result.key, is(keyBuilder.build(COL1_VALUE, 0)));
   }
 
   @Test

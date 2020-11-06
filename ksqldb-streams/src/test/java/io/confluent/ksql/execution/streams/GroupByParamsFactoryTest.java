@@ -319,12 +319,12 @@ public class GroupByParamsFactoryTest {
   private static Struct structKey(final ColumnName keyColName, final String keyValue) {
     return StructKeyUtil
         .keyBuilder(keyColName, SqlTypes.STRING)
-        .build(keyValue);
+        .build(keyValue, 0);
   }
 
   private static Struct structKey(final ColumnName keyColName, final int keyValue) {
     return StructKeyUtil
         .keyBuilder(keyColName, SqlTypes.INTEGER)
-        .build(keyValue);
+        .build(keyValue, 0);
   }
 }

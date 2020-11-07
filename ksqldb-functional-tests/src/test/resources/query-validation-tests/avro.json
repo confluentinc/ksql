@@ -46,12 +46,6 @@
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "input_topic",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": 10}},
         {"topic": "input_topic", "value": null}
@@ -112,12 +106,6 @@
         "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "input_topic",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null", {"type":  "array", "items": ["null", "string"]}]}]}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": ["a", "b", "c"]}},
         {"topic": "input_topic", "value": {"FOO": ["a", "b", null]}},
@@ -161,10 +149,6 @@
         {
           "name": "input_topic",
           "valueSchema": {"type": "map", "values": ["null", "int"]}
-        },
-        {
-          "name": "OUTPUT",
-          "valueSchema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -193,11 +177,6 @@
         {
           "name": "input_topic",
           "valueSchema": {"type": "map", "values": ["null", "int"]},
-          "valueFormat": "AVRO"
-        },
-        {
-          "name": "OUTPUT",
-          "valueSchema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","string"],"default":null}]}}]}]},
           "valueFormat": "AVRO"
         }
       ],
@@ -267,12 +246,6 @@
         "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null","boolean"]}]}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": true}},
         {"topic": "input_topic", "value": {"FOO": null}},
@@ -314,12 +287,6 @@
       "statements": [
         "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
-      ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "array", "items": ["null", "long"]}]}]}
-        }
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
@@ -365,12 +332,6 @@
         "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}]}]}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
         {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
@@ -410,7 +371,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "valueSchema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]}
+          "valueSchema": {"type": "record", "name": "most_recent_value_schema_at_SR", "fields": [{"name": "F0", "type": ["null", "int"]}]}
         }
       ],
       "inputs": [
@@ -430,12 +391,6 @@
         "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "valueSchema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
         {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
@@ -454,14 +409,6 @@
       "statements": [
         "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='AVRO');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
-      ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [
-            {"name": "FOO", "type": ["null", {"name": "ignored2", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
-          ]}
-        }
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
@@ -711,9 +658,7 @@
         {
           "name": "input_topic",
           "keySchema": {"type": "boolean"},
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          "keyFormat": "AVRO"
         }
       ],
       "inputs": [
@@ -758,9 +703,7 @@
         {
           "name": "input_topic",
           "keySchema": {"type": "int"},
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          "keyFormat": "AVRO"
         }
       ],
       "inputs": [
@@ -805,9 +748,7 @@
         {
           "name": "input_topic",
           "keySchema": {"type": "long"},
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          "keyFormat": "AVRO"
         }
       ],
       "inputs": [
@@ -850,9 +791,7 @@
         {
           "name": "input_topic",
           "keySchema": {"type": "double"},
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          "keyFormat": "AVRO"
         }
       ],
       "inputs": [
@@ -895,9 +834,7 @@
         {
           "name": "input_topic",
           "keySchema": {"type": "string"},
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          "keyFormat": "AVRO"
         }
       ],
       "inputs": [
@@ -944,10 +881,7 @@
             "logicalType": "decimal",
             "precision": 4,
             "scale": 2
-          },
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          }
         }
       ],
       "inputs": [
@@ -992,9 +926,8 @@
         {
           "name": "input_topic",
           "keySchema": {"type": "array", "items": ["null", "string"]},
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          "keyFormat": "AVRO"
+
         }
       ],
       "inputs": [
@@ -1057,9 +990,8 @@
         {
           "name": "input_topic",
           "keySchema": {"type": "map", "values": ["null", "int"]},
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          "keyFormat": "AVRO"
+
         }
       ],
       "inputs": [
@@ -1129,9 +1061,7 @@
         {
           "name": "input_topic",
           "keySchema": {"name": "key", "type": "record", "fields": [{"name": "F1", "type": ["null", "string"]}]},
-          "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
-          "valueFormat": "AVRO"
+          "keyFormat": "AVRO"
         }
       ],
       "statements": [
@@ -1190,7 +1120,7 @@
           "name": "input_topic",
           "keySchema": {"type": "int"},
           "keyFormat": "AVRO",
-          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
+          "valueSchema": {"name": "most_recent_value_schema_at_SR", "type": "record", "fields": [{"name": "FOO", "type": "int"}]},
           "valueFormat": "AVRO"
         }
       ],

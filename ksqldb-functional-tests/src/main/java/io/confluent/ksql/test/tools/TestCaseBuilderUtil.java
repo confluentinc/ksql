@@ -125,6 +125,18 @@ public final class TestCaseBuilderUtil {
     for (String sql : statements) {
       final Topic topicFromStatement = createTopicFromStatement(sql, metaStore, ksqlConfig);
       if (topicFromStatement != null) {
+        allTopics.computeIfPresent(topicFromStatement.getName(), (key, topic) -> {
+          final Optional<ParsedSchema> keySchema = Optional.of(topic.getKeySchema())
+                  .filter(Optional::isPresent)
+                  .orElse(topicFromStatement.getKeySchema());
+          final Optional<ParsedSchema> valueSchema = Optional.of(topic.getValueSchema())
+                  .filter(Optional::isPresent)
+                  .orElse(topicFromStatement.getValueSchema());
+          topic = new Topic(topic.getName(), topic.getNumPartitions(), topic.getReplicas(),
+                  keySchema, valueSchema);
+
+          return topic;
+        });
         allTopics.putIfAbsent(topicFromStatement.getName(), topicFromStatement);
       }
     }

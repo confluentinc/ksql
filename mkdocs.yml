@@ -41,7 +41,7 @@ nav:
       - Push Queries: concepts/queries/push.md
       - Pull Queries: concepts/queries/pull.md
     # - Processing Guarantees: concepts/ksqldb-processing-guarantees.md # future
-    # - Schemas: concepts/ksqldb-schemas.md # future
+    - Schemas: concepts/schemas.md
     - Connectors: concepts/connectors.md
     - Functions: concepts/functions.md
     - Joins:

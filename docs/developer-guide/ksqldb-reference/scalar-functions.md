@@ -56,9 +56,9 @@ Converts one type to another. The following casts are supported:
 | STRING | BOOLEAN | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
 | STRING | INT, BIGINT, DECIMAL, DOUBLE | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
 | INT, BIGINT, DECIMAL, DOUBLE | INT, BIGINT, DECIMAL, DOUBLE | Convert between numeric types. Conversion can result in rounding |
-| ARRAY | ARRAY | Convert between arrays of different element types |   
-| MAP | MAP | Convert between maps of different key and value types |   
-| STRUCT | STRUCT | Convert between structs of different field types. Only fields that existing in the target STRUCT type will be copied across. Any fields in the target type that do not exist in the source will be set to `NULL`. Field name matching is case-sensitive. |
+| ARRAY | ARRAY | (Since 0.14) Convert between arrays of different element types |   
+| MAP | MAP | (Since 0.14) Convert between maps of different key and value types |   
+| STRUCT | STRUCT | (Since 0.14) Convert between structs of different field types. Only fields that exist in the target STRUCT type are copied across. Any fields in the target type that don't exist in the source are set to `NULL`. Field name matching is case-sensitive. |
 
 ### `CEIL`
 

@@ -37,6 +37,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private final KsqlTopic ksqlTopic;
   private final boolean doCreateInto;
   private final SourceName intoSourceName;
+  private final boolean orReplace;
 
   public KsqlStructuredDataOutputNode(
       final PlanNodeId id,
@@ -46,13 +47,15 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlTopic ksqlTopic,
       final OptionalInt limit,
       final boolean doCreateInto,
-      final SourceName intoSourceName
+      final SourceName intoSourceName,
+      final boolean orReplace
   ) {
     super(id, source, schema, limit, timestampColumn);
 
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.doCreateInto = doCreateInto;
     this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
+    this.orReplace = orReplace;
 
     validate(source, intoSourceName);
   }
@@ -67,6 +70,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   public SourceName getIntoSourceName() {
     return intoSourceName;
+  }
+
+  public boolean getOrReplace() {
+    return orReplace;
   }
 
   @Override

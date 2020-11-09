@@ -16,6 +16,7 @@
 package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.sameInstance;
@@ -101,8 +102,6 @@ public class KsqlStructuredDataOutputNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
-    when(ksqlTopic.getKeyFormat()).thenReturn(PROTOBUF_KEY_FORMAT);
-    when(ksqlTopic.getValueFormat()).thenReturn(JSON_FORMAT);
 
     buildNode();
   }
@@ -159,9 +158,6 @@ public class KsqlStructuredDataOutputNodeTest {
         SerdeFeatures.of()
     );
 
-    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
-    when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
-
     // When:
     outputNode.buildStream(ksqlStreamBuilder);
 
@@ -171,10 +167,6 @@ public class KsqlStructuredDataOutputNodeTest {
 
   @Test
   public void shouldCallInto() {
-    // Given:
-    when(ksqlTopic.getKeyFormat()).thenReturn(PROTOBUF_KEY_FORMAT);
-    when(ksqlTopic.getValueFormat()).thenReturn(JSON_FORMAT);
-
     // When:
     final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
 
@@ -191,6 +183,42 @@ public class KsqlStructuredDataOutputNodeTest {
     assertThat(result, sameInstance(sinkStream));
   }
 
+  @Test
+  public void shouldSetReplaceFlagToTrue() {
+    // When
+    final KsqlStructuredDataOutputNode outputNode = new KsqlStructuredDataOutputNode(
+        PLAN_NODE_ID,
+        sourceNode,
+        SCHEMA,
+        Optional.empty(),
+        ksqlTopic,
+        OptionalInt.empty(),
+        createInto,
+        SourceName.of(PLAN_NODE_ID.toString()),
+        true);
+
+    // Then
+    assertThat(outputNode.getOrReplace(), is(true));
+  }
+
+  @Test
+  public void shouldSetReplaceFlagToFalse() {
+    // When
+    final KsqlStructuredDataOutputNode outputNode = new KsqlStructuredDataOutputNode(
+        PLAN_NODE_ID,
+        sourceNode,
+        SCHEMA,
+        Optional.empty(),
+        ksqlTopic,
+        OptionalInt.empty(),
+        createInto,
+        SourceName.of(PLAN_NODE_ID.toString()),
+        false);
+
+    // Then
+    assertThat(outputNode.getOrReplace(), is(false));
+  }
+
   private void givenInsertIntoNode() {
     this.createInto = false;
     buildNode();
@@ -205,7 +233,8 @@ public class KsqlStructuredDataOutputNodeTest {
         ksqlTopic,
         OptionalInt.empty(),
         createInto,
-        SourceName.of(PLAN_NODE_ID.toString())
+        SourceName.of(PLAN_NODE_ID.toString()),
+        false
     );
   }
 

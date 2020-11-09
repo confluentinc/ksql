@@ -76,7 +76,6 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Optional;
@@ -223,8 +222,7 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     final String expected = CastEvaluator
-        .eval(Pair.of("COL0", SqlTypes.BIGINT), SqlTypes.INTEGER, ksqlConfig)
-        .getLeft();
+        .generateCode("COL0", SqlTypes.BIGINT, SqlTypes.INTEGER, ksqlConfig);
 
     assertThat(actual, is(expected));
   }
@@ -289,8 +287,14 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
+    final String doubleCast = CastEvaluator.generateCode(
+        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+
+    final String longCast = CastEvaluator.generateCode(
+        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+
     assertThat(javaExpression, is(
-        "((String) FOO_0.evaluate(((new BigDecimal(\"1.2\")).doubleValue()), (new Integer(1).longValue())))"
+        "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + "))"
     ));
   }
 
@@ -315,8 +319,14 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
+    final String doubleCast = CastEvaluator.generateCode(
+        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+
+    final String longCast = CastEvaluator.generateCode(
+        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+
     assertThat(javaExpression, is(
-        "((String) FOO_0.evaluate(((new BigDecimal(\"1.2\")).doubleValue()), (new Integer(1).longValue()), (new Integer(1).longValue())))"
+        "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + ", " + longCast + "))"
     ));
   }
 
@@ -554,7 +564,9 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, containsString("(COL8).doubleValue()"));
+    final String doubleCast = CastEvaluator.generateCode(
+        "COL8", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+    assertThat(java, containsString(doubleCast));
   }
 
   @Test

@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.LikeEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
+import io.confluent.ksql.execution.codegen.helpers.NullSafe;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -122,6 +123,7 @@ public class SqlToJavaVisitor {
       "com.google.common.collect.ImmutableList",
       "com.google.common.collect.ImmutableMap",
       "java.util.function.Supplier",
+      Function.class.getCanonicalName(),
       DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
@@ -130,7 +132,11 @@ public class SqlToJavaVisitor {
       Struct.class.getCanonicalName(),
       ArrayBuilder.class.getCanonicalName(),
       LikeEvaluator.class.getCanonicalName(),
-      MapBuilder.class.getCanonicalName()
+      MapBuilder.class.getCanonicalName(),
+      CastEvaluator.class.getCanonicalName(),
+      NullSafe.class.getCanonicalName(),
+      SqlTypes.class.getCanonicalName(),
+      SchemaConverters.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -612,7 +618,8 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, SqlType> visitCast(final Cast node, final Void context) {
       final Pair<String, SqlType> expr = process(node.getExpression(), context);
-      return CastEvaluator.eval(expr, node.getType().getSqlType(), ksqlConfig);
+      final SqlType to = node.getType().getSqlType();
+      return Pair.of(genCastCode(expr, to), to);
     }
 
     @Override
@@ -691,12 +698,8 @@ public class SqlToJavaVisitor {
 
       if (schema.baseType() == SqlBaseType.DECIMAL) {
         final SqlDecimal decimal = (SqlDecimal) schema;
-        final String leftExpr =
-            CastEvaluator.eval(
-                left, DecimalUtil.toSqlDecimal(left.right), ksqlConfig).getLeft();
-        final String rightExpr =
-            CastEvaluator.eval(
-                right, DecimalUtil.toSqlDecimal(right.right), ksqlConfig).getLeft();
+        final String leftExpr = genCastCode(left, DecimalUtil.toSqlDecimal(left.right));
+        final String rightExpr = genCastCode(right, DecimalUtil.toSqlDecimal(right.right));
 
         return new Pair<>(
             String.format(
@@ -712,11 +715,11 @@ public class SqlToJavaVisitor {
       } else {
         final String leftExpr =
             left.getRight().baseType() == SqlBaseType.DECIMAL
-                ? CastEvaluator.eval(left, SqlTypes.DOUBLE, ksqlConfig).getLeft()
+                ? genCastCode(left, SqlTypes.DOUBLE)
                 : left.getLeft();
         final String rightExpr =
             right.getRight().baseType() == SqlBaseType.DECIMAL
-                ? CastEvaluator.eval(right, SqlTypes.DOUBLE, ksqlConfig).getLeft()
+                ? genCastCode(right, SqlTypes.DOUBLE)
                 : right.getLeft();
 
         return new Pair<>(
@@ -941,6 +944,13 @@ public class SqlToJavaVisitor {
     ) {
       return "(" + process(left, context).getLeft() + " " + operator + " "
           + process(right, context).getLeft() + ")";
+    }
+
+    private String genCastCode(
+        final Pair<String, SqlType> exp,
+        final SqlType sqlType
+    ) {
+      return CastEvaluator.generateCode(exp.left, exp.right, sqlType, ksqlConfig);
     }
   }
 

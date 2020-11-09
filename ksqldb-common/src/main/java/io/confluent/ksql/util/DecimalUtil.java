@@ -189,11 +189,35 @@ public final class DecimalUtil {
         && (s1.getPrecision() - s1.getScale()) <= (s2.getPrecision() - s2.getScale());
   }
 
+  public static BigDecimal cast(final Integer value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
+    return cast(value.longValue(), precision, scale);
+  }
+
+  public static BigDecimal cast(final Long value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
+    return cast(value.longValue(), precision, scale);
+  }
+
   public static BigDecimal cast(final long value, final int precision, final int scale) {
     validateParameters(precision, scale);
     final BigDecimal decimal = new BigDecimal(value, new MathContext(precision));
     ensureMax(decimal, precision, scale);
     return decimal.setScale(scale, RoundingMode.UNNECESSARY);
+  }
+
+  public static BigDecimal cast(final Double value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
+    return cast(value.doubleValue(), precision, scale);
   }
 
   public static BigDecimal cast(final double value, final int precision, final int scale) {
@@ -204,6 +228,10 @@ public final class DecimalUtil {
   }
 
   public static BigDecimal cast(final BigDecimal value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
     if (precision == value.precision() && scale == value.scale()) {
       return value;
     }
@@ -214,6 +242,10 @@ public final class DecimalUtil {
   }
 
   public static BigDecimal cast(final String value, final int precision, final int scale) {
+    if (value == null) {
+      return null;
+    }
+
     validateParameters(precision, scale);
     final BigDecimal decimal = new BigDecimal(value);
     ensureMax(decimal, precision, scale);

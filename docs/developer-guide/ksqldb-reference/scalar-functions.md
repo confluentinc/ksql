@@ -40,6 +40,26 @@ CREATE TABLE AGG AS
    GROUP BY ID;
 ```
 
+### CAST
+
+Since: -
+
+```sql
+CAST(COL0 AS BIGINT)
+```
+
+Converts one type to another. The following casts are supported:
+
+| from | to | notes |
+|------|----|-------|
+| ANY  | STRING | Converts the type to its string representation. |
+| STRING | BOOLEAN | Any string that exactly matches `true`, case-insensitive, will be converted to `true`. Any other value will be converted to `false`. |
+| STRING | INT, BIGINT, DECIMAL, DOUBLE | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
+| INT, BIGINT, DECIMAL, DOUBLE | INT, BIGINT, DECIMAL, DOUBLE | Convert between numeric types. Conversion can result in rounding |
+| ARRAY | ARRAY | Convert between arrays of different element types |   
+| MAP | MAP | Convert between maps of different key and value types |   
+| STRUCT | STRUCT | Convert between structs of different field types. Only fields that existing in the target STRUCT type will be copied across. Any fields in the target type that do not exist in the source will be set to `NULL` |
+
 ### `CEIL`
 
 Since: -

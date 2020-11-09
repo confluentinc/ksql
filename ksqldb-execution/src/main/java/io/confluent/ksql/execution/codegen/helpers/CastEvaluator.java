@@ -15,15 +15,37 @@
 
 package io.confluent.ksql.execution.codegen.helpers;
 
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BIGINT;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DECIMAL;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DOUBLE;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.INTEGER;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRING;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.Field;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 
 /**
  * Used in the code generation to evaluate SQL {@code CAST} expressions.
@@ -35,86 +57,158 @@ public final class CastEvaluator {
   /**
    * Map of source SQL type to the supported target types and their handler.
    */
-  private static final ImmutableMap<SqlBaseType, SupportedCasts> SUPPORTED_CASTS = ImmutableMap
-      .<SqlBaseType, SupportedCasts>builder()
-      .put(SqlBaseType.BOOLEAN, SupportedCasts.builder()
-          .put(SqlBaseType.STRING, CastEvaluator::castToString)
-          .build())
-      .put(SqlBaseType.INTEGER, SupportedCasts.builder()
-          .put(SqlBaseType.BIGINT, formattedCode("(new Integer(%s).longValue())"))
-          .put(SqlBaseType.DECIMAL, CastEvaluator::castToDecimal)
-          .put(SqlBaseType.DOUBLE, formattedCode("(new Integer(%s).doubleValue())"))
-          .put(SqlBaseType.STRING, CastEvaluator::castToString)
-          .build())
-      .put(SqlBaseType.BIGINT, SupportedCasts.builder()
-          .put(SqlBaseType.INTEGER, formattedCode("(new Long(%s).intValue())"))
-          .put(SqlBaseType.DECIMAL, CastEvaluator::castToDecimal)
-          .put(SqlBaseType.DOUBLE, formattedCode("(new Long(%s).doubleValue())"))
-          .put(SqlBaseType.STRING, CastEvaluator::castToString)
-          .build())
-      .put(SqlBaseType.DECIMAL, SupportedCasts.builder()
-          .put(SqlBaseType.INTEGER, formattedCode("((%s).intValue())"))
-          .put(SqlBaseType.BIGINT, formattedCode("((%s).longValue())"))
-          .put(SqlBaseType.DOUBLE, formattedCode("((%s).doubleValue())"))
-          .put(SqlBaseType.STRING, formattedCode("%s.toPlainString()"))
-          .build())
-      .put(SqlBaseType.DOUBLE, SupportedCasts.builder()
-          .put(SqlBaseType.INTEGER, formattedCode("(new Double(%s).intValue())"))
-          .put(SqlBaseType.BIGINT, formattedCode("(new Double(%s).longValue())"))
-          .put(SqlBaseType.DECIMAL, CastEvaluator::castToDecimal)
-          .put(SqlBaseType.STRING, CastEvaluator::castToString)
-          .build())
-      .put(SqlBaseType.STRING, SupportedCasts.builder()
-          .put(SqlBaseType.BOOLEAN, formattedCode("Boolean.parseBoolean(%s)"))
-          .put(SqlBaseType.INTEGER, formattedCode("Integer.parseInt(%s)"))
-          .put(SqlBaseType.BIGINT, formattedCode("Long.parseLong(%s)"))
-          .put(SqlBaseType.DECIMAL, CastEvaluator::castToDecimal)
-          .put(SqlBaseType.DOUBLE, formattedCode("Double.parseDouble(%s)"))
-          .build())
-      .put(SqlBaseType.ARRAY, SupportedCasts.builder()
-          .put(SqlBaseType.STRING, CastEvaluator::castToString)
-          .build())
-      .put(SqlBaseType.MAP, SupportedCasts.builder()
-          .put(SqlBaseType.STRING, CastEvaluator::castToString)
-          .build())
-      .put(SqlBaseType.STRUCT, SupportedCasts.builder()
-          .put(SqlBaseType.STRING, CastEvaluator::castToString)
-          .build())
+  private static final ImmutableMap<SupportedCast, CastFunction> SUPPORTED = ImmutableMap
+      .<SupportedCast, CastFunction>builder()
+      // BOOLEAN:
+      .put(key(BOOLEAN, STRING), CastEvaluator::castToString)
+      // INT:
+      .put(key(INTEGER, BIGINT), nonNullSafeCode("%s.longValue()"))
+      .put(key(INTEGER, DECIMAL), CastEvaluator::castToDecimal)
+      .put(key(INTEGER, DOUBLE), nonNullSafeCode("%s.doubleValue()"))
+      .put(key(INTEGER, STRING), CastEvaluator::castToString)
+      // BIGINT:
+      .put(key(BIGINT, INTEGER), nonNullSafeCode("%s.intValue()"))
+      .put(key(BIGINT, DECIMAL), CastEvaluator::castToDecimal)
+      .put(key(BIGINT, DOUBLE), nonNullSafeCode("%s.doubleValue()"))
+      .put(key(BIGINT, STRING), CastEvaluator::castToString)
+      // DECIMAL:
+      .put(key(DECIMAL, INTEGER), nonNullSafeCode("%s.intValue()"))
+      .put(key(DECIMAL, BIGINT), nonNullSafeCode("%s.longValue()"))
+      .put(key(DECIMAL, DECIMAL), CastEvaluator::castToDecimal)
+      .put(key(DECIMAL, DOUBLE), nonNullSafeCode("%s.doubleValue()"))
+      .put(key(DECIMAL, STRING), nonNullSafeCode("%s.toPlainString()"))
+      // DOUBLE:
+      .put(key(DOUBLE, INTEGER), nonNullSafeCode("%s.intValue()"))
+      .put(key(DOUBLE, BIGINT), nonNullSafeCode("%s.longValue()"))
+      .put(key(DOUBLE, DECIMAL), CastEvaluator::castToDecimal)
+      .put(key(DOUBLE, STRING), CastEvaluator::castToString)
+      // STRING:
+      .put(key(STRING, BOOLEAN), nonNullSafeCode("Boolean.parseBoolean(%s)"))
+      .put(key(STRING, INTEGER), nonNullSafeCode("Integer.parseInt(%s)"))
+      .put(key(STRING, BIGINT), nonNullSafeCode("Long.parseLong(%s)"))
+      .put(key(STRING, DECIMAL), CastEvaluator::castToDecimal)
+      .put(key(STRING, DOUBLE), nonNullSafeCode("Double.parseDouble(%s)"))
+      // ARRAY:
+      .put(key(ARRAY, ARRAY), CastEvaluator::castArrayToArray)
+      .put(key(ARRAY, STRING), CastEvaluator::castToString)
+      // MAP:
+      .put(key(MAP, MAP), CastEvaluator::castMapToMap)
+      .put(key(MAP, STRING), CastEvaluator::castToString)
+      // STRUCT:
+      .put(key(STRUCT, STRUCT), CastEvaluator::castStructToStruct)
+      .put(key(STRUCT, STRING), CastEvaluator::castToString)
       .build();
-
-  private static final SupportedCasts UNSUPPORTED = SupportedCasts.builder().build();
 
   private CastEvaluator() {
   }
 
-  public static Pair<String, SqlType> eval(
-      final Pair<String, SqlType> expr,
-      final SqlType returnType,
+  /**
+   * Generates code to handle cast.
+   *
+   * @param innerCode the code that needs casting.
+   * @param from the type the {@code innerCode} compiles to.
+   * @param to the type to cast to.
+   * @param config the config to use.
+   * @return the generated code
+   */
+  public static String generateCode(
+      final String innerCode,
+      final SqlType from,
+      final SqlType to,
       final KsqlConfig config
   ) {
-    final SqlType sourceType = expr.getRight();
-    if (sourceType == null || returnType.equals(sourceType)) {
-      // sourceType is null if source is SQL NULL
-      return new Pair<>(expr.getLeft(), returnType);
+    if (from == null || to.equals(from)) {
+      // from is null if source is SQL NULL
+      return innerCode;
     }
 
-    final String generated = SUPPORTED_CASTS
-        .getOrDefault(sourceType.baseType(), UNSUPPORTED)
-        .generate(expr.getLeft(), sourceType, returnType, config);
-
-    return Pair.of(generated, returnType);
+    return SUPPORTED
+        .getOrDefault(key(from.baseType(), to.baseType()), CastEvaluator::unsupportedCast)
+        .generateCode(innerCode, from, to, config);
   }
 
-  private static CastFunction formattedCode(final String code) {
-    return (innerCode, returnType, config) -> String.format(code, innerCode);
+  /**
+   * Called by the code generated by {@link #generateCode} to handle casting arrays.
+   */
+  public static <I, O> List<O> castArray(final List<I> array, final Function<I, O> mapper) {
+    if (array == null) {
+      return null;
+    }
+
+    final List<O> result = new ArrayList<>(array.size());
+    array.forEach(e -> result.add(
+        mapper.apply(e)
+    ));
+    return result;
+  }
+
+  /**
+   * Called by the code generated by {@link #generateCode} to handle casting maps.
+   */
+  public static <K1, V1, K2, V2> Map<K2, V2> castMap(
+      final Map<K1, V1> map,
+      final Function<K1, K2> keyMapper,
+      final Function<V1, V2> valueMapper
+  ) {
+    if (map == null) {
+      return null;
+    }
+
+    final Map<K2, V2> result = new HashMap<>(map.size());
+    map.forEach((k, v) -> result.put(
+        keyMapper.apply(k),
+        valueMapper.apply(v)
+    ));
+    return result;
+  }
+
+  /**
+   * Called by the code generated by {@link #generateCode} to handle casting structs.
+   */
+  public static Struct castStruct(
+      final Struct struct,
+      final Map<String, Function<Object, Object>> fieldMappers,
+      final Schema structSchema
+  ) {
+    if (struct == null) {
+      return null;
+    }
+
+    final Struct result = new Struct(structSchema);
+
+    fieldMappers
+        .forEach((name, mapper) -> result.put(name, mapper.apply(struct.get(name))));
+
+    return result;
+  }
+
+  private static CastFunction nonNullSafeCode(final String code) {
+    return (innerCode, from, to, config) -> {
+      final Class<?> fromJavaType = SchemaConverters.sqlToJavaConverter().toJavaType(from);
+      final Class<?> toJavaType = SchemaConverters.sqlToJavaConverter().toJavaType(to);
+
+      final String lambdaBody = String.format(code, "val");
+      final String function = LambdaUtil.function("val", fromJavaType, lambdaBody);
+      return NullSafe.generateApply(innerCode, function, toJavaType);
+    };
+  }
+
+  private static String unsupportedCast(
+      final String innerCode,
+      final SqlType from,
+      final SqlType to,
+      final KsqlConfig config
+  ) {
+    throw new UnsupportedCastException(from, to);
   }
 
   private static String castToDecimal(
       final String innerCode,
-      final SqlType returnType,
+      final SqlType from,
+      final SqlType to,
       final KsqlConfig config
   ) {
-    final SqlDecimal decimal = (SqlDecimal) returnType;
+    final SqlDecimal decimal = (SqlDecimal) to;
     return "(DecimalUtil.cast("
         + innerCode + ", "
         + decimal.getPrecision() + ", "
@@ -123,7 +217,8 @@ public final class CastEvaluator {
 
   private static String castToString(
       final String innerCode,
-      final SqlType returnType,
+      final SqlType from,
+      final SqlType to,
       final KsqlConfig config
   ) {
     return config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
@@ -131,55 +226,163 @@ public final class CastEvaluator {
         : "String.valueOf(" + innerCode + ")";
   }
 
+  private static String castArrayToArray(
+      final String innerCode,
+      final SqlType from,
+      final SqlType to,
+      final KsqlConfig config
+  ) {
+    final SqlArray fromArray = (SqlArray) from;
+    final SqlArray toArray = (SqlArray) to;
+
+    try {
+      return "CastEvaluator.castArray("
+          + innerCode + ", "
+          + mapperFunction(fromArray.getItemType(), toArray.getItemType(), config)
+          + ")";
+    } catch (final UnsupportedCastException e) {
+      throw new UnsupportedCastException(from, to, e);
+    }
+  }
+
+  private static String castMapToMap(
+      final String innerCode,
+      final SqlType from,
+      final SqlType to,
+      final KsqlConfig config
+  ) {
+    final SqlMap fromMap = (SqlMap) from;
+    final SqlMap toMap = (SqlMap) to;
+
+    try {
+      return "CastEvaluator.castMap("
+          + innerCode + ", "
+          + mapperFunction(fromMap.getKeyType(), toMap.getKeyType(), config) + ", "
+          + mapperFunction(fromMap.getValueType(), toMap.getValueType(), config)
+          + ")";
+    } catch (final UnsupportedCastException e) {
+      throw new UnsupportedCastException(from, to, e);
+    }
+  }
+
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
+  private static String castStructToStruct(
+      final String innerCode,
+      final SqlType from,
+      final SqlType to,
+      final KsqlConfig config
+  ) {
+    final SqlStruct fromStruct = (SqlStruct) from;
+    final SqlStruct toStruct = (SqlStruct) to;
+
+    try {
+      final String mappers = fromStruct.fields().stream()
+          .filter(fromField -> toStruct.field(fromField.name()).isPresent())
+          .map(fromField -> castFieldToField(
+              fromField,
+              toStruct.field(fromField.name()).get(),
+              config
+          ))
+          .collect(Collectors.joining(
+              System.lineSeparator(),
+              "ImmutableMap.builder()\n\t\t",
+              "\n\t\t.build()"
+          ));
+
+      // Inefficient, but only way to pass type until SqlToJavaVisitor supports passing
+      // additional parameters to the generated code. Hopefully, JVM optimises this away.
+      final String schemaCode =  "SchemaConverters.sqlToConnectConverter()"
+          + ".toConnectSchema(" + SqlTypeCodeGen.generateCode(toStruct) + ")";
+
+      return "CastEvaluator.castStruct(" + innerCode + ", " + mappers + "," + schemaCode + ")";
+    } catch (final UnsupportedCastException e) {
+      throw new UnsupportedCastException(from, to, e);
+    }
+  }
+
+  private static String castFieldToField(
+      final Field fromField,
+      final Field toField,
+      final KsqlConfig config
+  ) {
+    final String mapper = mapperFunction(fromField.type(), toField.type(), config);
+    return ".put(\"" + fromField.name() + "\"," + mapper + ")";
+  }
+
+  private static String mapperFunction(
+      final SqlType fromItemType,
+      final SqlType toItemType,
+      final KsqlConfig config
+  ) {
+    final Class<?> javaType = SchemaConverters.sqlToJavaConverter().toJavaType(fromItemType);
+
+    final String lambdaBody = generateCode("val", fromItemType, toItemType, config);
+
+    return LambdaUtil.function("val", javaType, lambdaBody);
+  }
+
   @FunctionalInterface
   private interface CastFunction {
 
-    String cast(
+    String generateCode(
         String innerCode,
-        SqlType returnType,
+        SqlType from,
+        SqlType to,
         KsqlConfig config
     );
   }
 
-  private static final class SupportedCasts {
+  private static final class UnsupportedCastException extends KsqlException {
 
-    private final ImmutableMap<SqlBaseType, CastFunction> casts;
-
-    SupportedCasts(final ImmutableMap<SqlBaseType, CastFunction> casts) {
-      this.casts = requireNonNull(casts, "casts");
-    }
-
-    public static Builder builder() {
-      return new Builder();
-    }
-
-    public String generate(
-        final String innerCode,
-        final SqlType sourceType,
-        final SqlType returnType,
-        final KsqlConfig config
+    UnsupportedCastException(
+        final SqlType from,
+        final SqlType to
     ) {
-      final CastFunction castFunction = casts.get(returnType.baseType());
-      if (castFunction == null) {
-        throw new KsqlFunctionException("Cast of " + sourceType + " to " + returnType
-            + " is not supported");
-      }
-
-      return castFunction.cast(innerCode, returnType, config);
+      super(buildMessage(from, to));
     }
 
-    static final class Builder {
+    UnsupportedCastException(
+        final SqlType from,
+        final SqlType to,
+        final UnsupportedCastException e
+    ) {
+      super(buildMessage(from, to), e);
+    }
 
-      private final ImmutableMap.Builder<SqlBaseType, CastFunction> casts = ImmutableMap.builder();
+    private static String buildMessage(final SqlType from, final SqlType to) {
+      return "Cast of " + from + " to " + to + " is not supported";
+    }
+  }
 
-      Builder put(final SqlBaseType type, final CastFunction function) {
-        casts.put(type, function);
-        return this;
+  private static SupportedCast key(final SqlBaseType from, final SqlBaseType to) {
+    return new SupportedCast(from, to);
+  }
+
+  private static final class SupportedCast {
+
+    private final SqlBaseType from;
+    private final SqlBaseType to;
+
+    SupportedCast(final SqlBaseType from, final SqlBaseType to) {
+      this.from = requireNonNull(from, "from");
+      this.to = requireNonNull(to, "to");
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
       }
-
-      SupportedCasts build() {
-        return new SupportedCasts(casts.build());
+      if (o == null || getClass() != o.getClass()) {
+        return false;
       }
+      final SupportedCast that = (SupportedCast) o;
+      return from == that.from && to == that.to;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(from, to);
     }
   }
 }

@@ -58,7 +58,7 @@ Converts one type to another. The following casts are supported:
 | INT, BIGINT, DECIMAL, DOUBLE | INT, BIGINT, DECIMAL, DOUBLE | Convert between numeric types. Conversion can result in rounding |
 | ARRAY | ARRAY | Convert between arrays of different element types |   
 | MAP | MAP | Convert between maps of different key and value types |   
-| STRUCT | STRUCT | Convert between structs of different field types. Only fields that existing in the target STRUCT type will be copied across. Any fields in the target type that do not exist in the source will be set to `NULL` |
+| STRUCT | STRUCT | Convert between structs of different field types. Only fields that existing in the target STRUCT type will be copied across. Any fields in the target type that do not exist in the source will be set to `NULL`. Field name matching is case-sensitive. |
 
 ### `CEIL`
 

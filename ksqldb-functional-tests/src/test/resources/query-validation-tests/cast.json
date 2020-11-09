@@ -182,13 +182,15 @@
     {
       "name": "struct to struct with different schema",
       "statements": [
-        "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 BIGINT, F1 STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 STRING, F3 STRING>) FROM TEST;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid Select: Cast of STRUCT<`F0` BIGINT> to STRUCT<`F0` INTEGER> is not supported"
-      }
+      "inputs": [
+        {"topic": "test_topic", "value": {"f0": {"f0": 1, "f1": 3}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": {"F0": "1", "F3": null}}}
+      ]
     },
     {
       "name": "to null",

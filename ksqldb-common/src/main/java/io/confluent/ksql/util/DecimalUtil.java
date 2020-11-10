@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import static io.confluent.ksql.schema.ksql.types.SqlDecimal.validateParameters;
 
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -156,21 +157,21 @@ public final class DecimalUtil {
   }
 
   /**
-   * Converts a schema to a sql decimal with set precision/scale without losing
-   * scale or precision.
+   * Converts a SQL type to a sql decimal with set precision/scale without losing scale or
+   * precision.
    *
-   * @param schema the schema
+   * @param type the type to convert
    * @return the sql decimal
-   * @throws KsqlException if the schema cannot safely be converted to decimal
+   * @throws KsqlException if the type cannot safely be converted to decimal
    */
-  public static SqlDecimal toSqlDecimal(final SqlType schema) {
-    switch (schema.baseType()) {
-      case DECIMAL: return (SqlDecimal) schema;
+  public static SqlDecimal toSqlDecimal(final SqlType type) {
+    switch (type.baseType()) {
+      case DECIMAL: return (SqlDecimal) type;
       case INTEGER: return SqlTypes.INT_UPCAST_TO_DECIMAL;
       case BIGINT:  return SqlTypes.BIGINT_UPCAST_TO_DECIMAL;
       default:
         throw new KsqlException(
-            "Cannot convert schema of type " + schema.baseType() + " to decimal.");
+            "Cannot convert " + type.baseType() + " to " + SqlBaseType.DECIMAL + ".");
     }
   }
 

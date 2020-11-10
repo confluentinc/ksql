@@ -133,15 +133,10 @@ public class CodeGenRunner {
 
       final Class<?> expressionType = SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(returnType);
 
-      final IExpressionEvaluator ee = cook(javaCode, expressionType, spec.argumentNames(),
-          spec.argumentTypes());
+      final IExpressionEvaluator ee =
+          cook(javaCode, expressionType, spec.argumentNames(), spec.argumentTypes());
 
-      return new ExpressionMetadata(
-          ee,
-          spec,
-          returnType,
-          expression
-      );
+      return new ExpressionMetadata(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);

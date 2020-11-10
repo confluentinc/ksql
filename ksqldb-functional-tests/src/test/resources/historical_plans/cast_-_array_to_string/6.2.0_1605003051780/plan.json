@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (F0 STRING) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (F0 ARRAY<INTEGER>) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`F0` STRING",
+      "schema" : "`F0` ARRAY<INTEGER>",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -62,7 +62,7 @@
                 "format" : "JSON"
               }
             },
-            "sourceSchema" : "`F0` STRING"
+            "sourceSchema" : "`F0` ARRAY<INTEGER>"
           },
           "selectExpressions" : [ "CAST(F0 AS STRING) AS KSQL_COL_0" ]
         },

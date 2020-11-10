@@ -6,11 +6,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.CodeGenTestUtil;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import org.codehaus.commons.compiler.IExpressionEvaluator;
 import org.junit.Test;
 
 public class SqlTypeCodeGenTest {
@@ -21,39 +20,11 @@ public class SqlTypeCodeGenTest {
 
       // When:
       final String code = SqlTypeCodeGen.generateCode(TypeInstances.typeInstanceFor(baseType));
-      final Object result = eval(code);
 
       // Then:
+      final Object result = CodeGenTestUtil.cookAndEval(code, SqlType.class);
       assertThat(result, is(instanceOf(SqlType.class)));
       assertThat(((SqlType) result).baseType(), is(baseType));
-    }
-  }
-
-  private static Object eval(final String javaCode) {
-    final IExpressionEvaluator ee = cookCode(javaCode);
-
-    try {
-      return ee.evaluate(new Object[]{});
-    } catch (final Exception e) {
-      throw new AssertionError(
-          "Failed to eval generated code"
-              + System.lineSeparator()
-              + javaCode,
-          e
-      );
-    }
-  }
-
-  private static IExpressionEvaluator cookCode(final String javaCode) {
-    try {
-      return CodeGenRunner.cook(javaCode, SqlType.class, new String[]{}, new Class<?>[]{});
-    } catch (final Exception e) {
-      throw new AssertionError(
-          "Failed to compile generated code"
-              + System.lineSeparator()
-              + javaCode,
-          e
-      );
     }
   }
 

@@ -28,7 +28,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.CodeGenTestUtil;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -49,7 +49,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
-import org.codehaus.commons.compiler.IExpressionEvaluator;
 import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
@@ -428,42 +427,13 @@ public class CastEvaluatorTest {
   ) {
     final String javaCode = CastEvaluator.generateCode(INNER_CODE, from, to, config);
 
-    final IExpressionEvaluator ee = cookCode(from, to, javaCode);
-
-    try {
-      return ee.evaluate(new Object[]{argument});
-    } catch (final Exception e) {
-      throw new AssertionError(
-          "Failed to eval generated code"
-              + System.lineSeparator()
-              + javaCode,
-          e
-      );
-    }
-  }
-
-  private static IExpressionEvaluator cookCode(
-      final SqlType from,
-      final SqlType to,
-      final String javaCode
-  ) {
     final Class<?> fromJavaType = SchemaConverters.sqlToJavaConverter()
         .toJavaType(from);
 
     final Class<?> toJavaType = SchemaConverters.sqlToJavaConverter()
         .toJavaType(to);
 
-    try {
-      return CodeGenRunner
-          .cook(javaCode, toJavaType, new String[]{INNER_CODE}, new Class<?>[]{fromJavaType});
-    } catch (final Exception e) {
-      throw new AssertionError(
-          "Failed to compile generated code"
-              + System.lineSeparator()
-              + javaCode,
-          e
-      );
-    }
+    return CodeGenTestUtil.cookAndEval(javaCode, toJavaType, INNER_CODE, fromJavaType, argument);
   }
 
   private static void assertUnsupported(

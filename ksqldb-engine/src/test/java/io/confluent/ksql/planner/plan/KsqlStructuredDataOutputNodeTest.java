@@ -142,7 +142,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(
+    KeyFormat.nonWindowed(
         FormatInfo.of(
             FormatFactory.AVRO.name(),
             ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "key-name")
@@ -150,7 +150,7 @@ public class KsqlStructuredDataOutputNodeTest {
         SerdeFeatures.of()
     );
 
-    final ValueFormat valueFormat = ValueFormat.of(
+    ValueFormat.of(
         FormatInfo.of(
             FormatFactory.AVRO.name(),
             ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "name")

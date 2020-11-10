@@ -19,12 +19,8 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
-import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
-import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
@@ -259,32 +255,7 @@ final class EngineExecutor {
       return Optional.empty();
     }
 
-    final Formats formats = Formats.from(outputNode.getKsqlTopic());
-
-    final CreateSourceCommand ddl;
-    if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
-      ddl = new CreateStreamCommand(
-          outputNode.getIntoSourceName(),
-          outputNode.getSchema(),
-          outputNode.getTimestampColumn(),
-          outputNode.getKsqlTopic().getKafkaTopicName(),
-          formats,
-          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-          Optional.of(outputNode.getOrReplace())
-      );
-    } else {
-      ddl = new CreateTableCommand(
-          outputNode.getIntoSourceName(),
-          outputNode.getSchema(),
-          outputNode.getTimestampColumn(),
-          outputNode.getKsqlTopic().getKafkaTopicName(),
-          formats,
-          outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-          Optional.of(outputNode.getOrReplace())
-      );
-    }
-
-    return Optional.of(ddl);
+    return Optional.of(engineContext.createDdlCommand(outputNode));
   }
 
   private void validateExistingSink(

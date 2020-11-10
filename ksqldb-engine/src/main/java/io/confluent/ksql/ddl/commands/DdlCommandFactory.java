@@ -18,11 +18,16 @@ package io.confluent.ksql.ddl.commands;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 
 public interface DdlCommandFactory {
   DdlCommand create(
       String sqlExpression,
       DdlStatement ddlStatement,
       SessionConfig config
+  );
+
+  DdlCommand create(
+      KsqlStructuredDataOutputNode outputNode
   );
 }

@@ -74,7 +74,10 @@ public class CastEvaluatorTest {
 
     @Parameterized.Parameters(name = "{0} -> {1}")
     public static Collection<SqlBaseType[]> testCases() {
-      return typeCombinations();
+      return Arrays.stream(SqlBaseType.values())
+          .flatMap(from1 -> Arrays.stream(SqlBaseType.values())
+              .map(targetType -> new SqlBaseType[]{from1, targetType}))
+          .collect(Collectors.toList());
     }
 
     @Rule
@@ -452,13 +455,6 @@ public class CastEvaluatorTest {
         e.getMessage(),
         containsString("Cast of " + from + " to " + to + " is not supported")
     );
-  }
-
-  private static Collection<SqlBaseType[]> typeCombinations() {
-    return Arrays.stream(SqlBaseType.values())
-        .flatMap(from -> Arrays.stream(SqlBaseType.values())
-            .map(targetType -> new SqlBaseType[]{from, targetType}))
-        .collect(Collectors.toList());
   }
 
   private static final class TypeInstances {

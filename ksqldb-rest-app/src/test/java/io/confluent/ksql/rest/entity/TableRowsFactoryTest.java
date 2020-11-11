@@ -73,7 +73,7 @@ public class TableRowsFactoryTest {
     final List<? extends TableRow> input = ImmutableList.of(
         Row.of(
             SIMPLE_SCHEMA,
-            KEY_BUILDER.build("x"),
+            KEY_BUILDER.build("x", 0),
             genericRow(false),
             ROWTIME
         )
@@ -97,13 +97,13 @@ public class TableRowsFactoryTest {
     final List<? extends TableRow> input = ImmutableList.of(
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            new Windowed<>(KEY_BUILDER.build("x"), window0),
+            new Windowed<>(KEY_BUILDER.build("x", 0), window0),
             genericRow(true),
             ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            new Windowed<>(KEY_BUILDER.build("y"), window1),
+            new Windowed<>(KEY_BUILDER.build("y", 0), window1),
             genericRow(false),
             ROWTIME
         )
@@ -126,7 +126,7 @@ public class TableRowsFactoryTest {
     final GenericRow row = genericRow(null, null, null, null);
 
     final Builder<Row> builder = ImmutableList.builder();
-    builder.add(Row.of(SCHEMA_NULL, KEY_BUILDER.build("k"), row, ROWTIME));
+    builder.add(Row.of(SCHEMA_NULL, KEY_BUILDER.build("k", 0), row, ROWTIME));
 
     // When:
     final List<List<?>> output = TableRowsFactory.createRows(builder.build());

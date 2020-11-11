@@ -210,7 +210,7 @@ public class KsqlResourceFunctionalTest {
     TEST_HARNESS.verifyAvailableRows(
         "books",
         contains(matches(
-            keyBuilder.build("Metamorphosis"),
+            keyBuilder.build("Metamorphosis", 0),
             genericRow("Franz Kafka"),
             0,
             0L,

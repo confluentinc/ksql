@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.util;
 
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -95,16 +94,14 @@ public final class StructKeyUtil {
   public static final class KeyBuilder {
 
     private final Schema keySchema;
-    private final org.apache.kafka.connect.data.Field keyField;
 
-    private KeyBuilder(final Schema keySchema) {
+    public KeyBuilder(final Schema keySchema) {
       this.keySchema = Objects.requireNonNull(keySchema, "keySchema");
-      this.keyField = Iterables.getOnlyElement(keySchema.fields());
     }
 
-    public Struct build(final Object keyValue) {
+    public Struct build(final Object keyValue, final int fieldIndex) {
       final Struct keyStruct = new Struct(keySchema);
-      keyStruct.put(keyField, keyValue);
+      keyStruct.put(keySchema.fields().get(fieldIndex), keyValue);
       return keyStruct;
     }
   }

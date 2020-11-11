@@ -131,7 +131,8 @@ public class ListSourceExecutorTest {
   public void shouldShowStreamsExtended() {
     // Given:
     final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
+    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2",
+        ImmutableSet.of(SourceName.of("stream1")));
     engine.givenSource(DataSourceType.KTABLE, "table");
 
     // When:
@@ -151,13 +152,15 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
-            ImmutableList.of()),
+            ImmutableList.of(),
+            ImmutableList.of("stream2")),
         SourceDescriptionFactory.create(
             stream2,
             true,
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
+            ImmutableList.of(),
             ImmutableList.of())
     ));
   }
@@ -201,7 +204,8 @@ public class ListSourceExecutorTest {
   public void shouldShowTablesExtended() {
     // Given:
     final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2",
+        ImmutableSet.of(SourceName.of("table1")));
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
     // When:
@@ -222,7 +226,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
-            ImmutableList.of()
+            ImmutableList.of(),
+            ImmutableList.of("table2")
         ),
         SourceDescriptionFactory.create(
             table2,
@@ -230,6 +235,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
+            ImmutableList.of(),
             ImmutableList.of()
         )
     ));
@@ -276,6 +282,7 @@ public class ListSourceExecutorTest {
                 queryStatusCount,
                 KsqlConstants.KsqlQueryType.PERSISTENT)),
             Optional.empty(),
+            ImmutableList.of(),
             ImmutableList.of())));
   }
 
@@ -339,6 +346,7 @@ public class ListSourceExecutorTest {
                             ImmutableList.of(),
                             ImmutableList.of(),
                             Optional.empty(),
+                            ImmutableList.of(),
                             ImmutableList.of()
                         )
                     )
@@ -426,6 +434,7 @@ public class ListSourceExecutorTest {
                 ImmutableList.of(),
                 ImmutableList.of(),
                 Optional.empty(),
+                ImmutableList.of(),
                 ImmutableList.of()
             )
         )

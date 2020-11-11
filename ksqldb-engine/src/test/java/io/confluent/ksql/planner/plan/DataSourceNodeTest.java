@@ -38,6 +38,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -91,6 +92,7 @@ public class DataSourceNodeTest {
   private StreamsBuilder realBuilder;
 
   private static final ColumnName K0 = ColumnName.of("k0");
+  private static final ColumnName K1 = ColumnName.of("k1");
   private static final ColumnName FIELD1 = ColumnName.of("field1");
   private static final ColumnName FIELD2 = ColumnName.of("field2");
   private static final ColumnName FIELD3 = ColumnName.of("field3");
@@ -99,6 +101,7 @@ public class DataSourceNodeTest {
 
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.INTEGER)
+      .keyColumn(K1, SqlTypes.INTEGER)
       .valueColumn(FIELD1, SqlTypes.INTEGER)
       .valueColumn(FIELD2, SqlTypes.STRING)
       .valueColumn(FIELD3, SqlTypes.STRING)
@@ -375,7 +378,7 @@ public class DataSourceNodeTest {
 
     // Then:
     final List<ColumnName> columns = result.collect(Collectors.toList());
-    assertThat(columns, contains(K0, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
+    assertThat(columns, contains(K0, K1, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY));
   }
 
   @Test
@@ -391,7 +394,7 @@ public class DataSourceNodeTest {
     final List<ColumnName> columns = result.collect(Collectors.toList());
     assertThat(
         columns,
-        contains(K0, WINDOWSTART_NAME, WINDOWEND_NAME, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY)
+        contains(K0, K1, WINDOWSTART_NAME, WINDOWEND_NAME, FIELD1, FIELD2, FIELD3, TIMESTAMP_FIELD, KEY)
     );
   }
 
@@ -418,8 +421,24 @@ public class DataSourceNodeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("The query used to build `datasource` "
-        + "must include the key column k0 in its projection."));
+    assertThat(e.getMessage(), containsString("The query used to build `datasource` must include "
+        + "the key columns k0 and k1 in its projection."));
+  }
+
+  @Test
+  public void shouldThrowIfProjectionDoesNotContainAllKeyColumns() {
+    // Given:
+    when(projection.containsExpression(new UnqualifiedColumnReferenceExp(K0))).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> node.validateKeyPresent(SOURCE_NAME, projection)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The query used to build `datasource` must include " +
+        "the key columns k0 and k1 in its projection."));
   }
 
   private void givenNodeWithMockSource() {

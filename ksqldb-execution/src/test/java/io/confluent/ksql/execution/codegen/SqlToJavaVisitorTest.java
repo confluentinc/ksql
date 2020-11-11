@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
@@ -60,7 +61,6 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
-import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -72,9 +72,7 @@ import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -90,8 +88,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class SqlToJavaVisitorTest {
-
-  private static final SourceName TEST1 = SourceName.of("TEST1");
 
   @Mock
   private FunctionRegistry functionRegistry;
@@ -220,54 +216,15 @@ public class SqlToJavaVisitorTest {
         COL0,
         new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("INTEGER"))
     );
-    final Expression castDoubleBigint = new Cast(
-        COL3,
-        new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("BIGINT"))
-    );
-    final Expression castDoubleString = new Cast(
-        COL3,
-        new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("VARCHAR"))
-    );
+
+    // When:
+    final String actual = sqlToJavaVisitor.process(castBigintInteger);
 
     // Then:
-    assertThat(
-        sqlToJavaVisitor.process(castBigintInteger),
-        equalTo("(new Long(COL0).intValue())")
-    );
-    assertThat(
-        sqlToJavaVisitor.process(castDoubleBigint),
-        equalTo("(new Double(COL3).longValue())")
-    );
-    assertThat(
-        sqlToJavaVisitor.process(castDoubleString),
-        equalTo("Objects.toString(COL3, null)")
-    );
-  }
+    final String expected = CastEvaluator
+        .generateCode("COL0", SqlTypes.BIGINT, SqlTypes.INTEGER, ksqlConfig);
 
-  @Test
-  public void shouldUseStringValueOfIfConfigSet() {
-    // Given:
-    final Expression castDoubleString = new Cast(
-        COL3,
-        new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("VARCHAR"))
-    );
-    ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE, false));
-    final AtomicInteger funCounter = new AtomicInteger();
-    final AtomicInteger structCounter = new AtomicInteger();
-    sqlToJavaVisitor = new SqlToJavaVisitor(
-        SCHEMA,
-        functionRegistry,
-        ref -> ref.text().replace(".", "_"),
-        name -> name.text() + "_" + funCounter.getAndIncrement(),
-        struct -> "schema" + structCounter.getAndIncrement(),
-        ksqlConfig
-    );
-    
-    // Then:
-    assertThat(
-        sqlToJavaVisitor.process(castDoubleString),
-        equalTo("String.valueOf(COL3)")
-    );
+    assertThat(actual, is(expected));
   }
 
   @Test
@@ -330,8 +287,14 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
+    final String doubleCast = CastEvaluator.generateCode(
+        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+
+    final String longCast = CastEvaluator.generateCode(
+        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+
     assertThat(javaExpression, is(
-        "((String) FOO_0.evaluate(((new BigDecimal(\"1.2\")).doubleValue()), (new Integer(1).longValue())))"
+        "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + "))"
     ));
   }
 
@@ -356,8 +319,14 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
+    final String doubleCast = CastEvaluator.generateCode(
+        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+
+    final String longCast = CastEvaluator.generateCode(
+        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+
     assertThat(javaExpression, is(
-        "((String) FOO_0.evaluate(((new BigDecimal(\"1.2\")).doubleValue()), (new Integer(1).longValue()), (new Integer(1).longValue())))"
+        "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + ", " + longCast + "))"
     ));
   }
 
@@ -595,7 +564,9 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, containsString("(COL8).doubleValue()"));
+    final String doubleCast = CastEvaluator.generateCode(
+        "COL8", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+    assertThat(java, containsString(doubleCast));
   }
 
   @Test
@@ -832,96 +803,6 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, is("(COL8.plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
-  }
-
-  @Test
-  public void shouldGenerateCorrectCodeForDecimalCast() {
-    // Given:
-    final Cast cast = new Cast(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL3")),
-        new Type(SqlDecimal.of(2, 1))
-    );
-
-    // When:
-    final String java = sqlToJavaVisitor.process(cast);
-
-    // Then:
-    assertThat(java, is("(DecimalUtil.cast(COL3, 2, 1))"));
-  }
-
-  @Test
-  public void shouldGenerateCorrectCodeForDecimalCastNoOp() {
-    // Given:
-    final Cast cast = new Cast(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL8")),
-        new Type(SqlDecimal.of(2, 1))
-    );
-
-    // When:
-    final String java = sqlToJavaVisitor.process(cast);
-
-    // Then:
-    assertThat(java, is("COL8"));
-  }
-
-  @Test
-  public void shouldGenerateCorrectCodeForDecimalToIntCast() {
-    // Given:
-    final Cast cast = new Cast(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL8")),
-        new Type(SqlTypes.INTEGER)
-    );
-
-    // When:
-    final String java = sqlToJavaVisitor.process(cast);
-
-    // Then:
-    assertThat(java, is("((COL8).intValue())"));
-  }
-
-  @Test
-  public void shouldGenerateCorrectCodeForDecimalToLongCast() {
-    // Given:
-    final Cast cast = new Cast(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL8")),
-        new Type(SqlTypes.BIGINT)
-    );
-
-    // When:
-    final String java = sqlToJavaVisitor.process(cast);
-
-    // Then:
-    assertThat(java, is("((COL8).longValue())"));
-  }
-
-  @Test
-  public void shouldGenerateCorrectCodeForDecimalToDoubleCast() {
-    // Given:
-    final Cast cast = new Cast(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL8")),
-        new Type(SqlTypes.DOUBLE)
-    );
-
-    // When:
-    final String java = sqlToJavaVisitor.process(cast);
-
-    // Then:
-    assertThat(java, is("((COL8).doubleValue())"));
-  }
-
-  @Test
-  public void shouldGenerateCorrectCodeForDecimalToStringCast() {
-    // Given:
-    final Cast cast = new Cast(
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL8")),
-        new Type(SqlTypes.STRING)
-    );
-
-    // When:
-    final String java = sqlToJavaVisitor.process(cast);
-
-    // Then:
-    assertThat(java, is("COL8.toPlainString()"));
   }
 
   @Test

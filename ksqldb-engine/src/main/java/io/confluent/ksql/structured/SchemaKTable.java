@@ -151,6 +151,12 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       return (SchemaKStream<Struct>) this;
     }
 
+    if (schema.key().size() > 1) {
+      // let's throw a better error message in the case of multi-column tables
+      throw new UnsupportedOperationException("Cannot repartition a TABLE source. If this is "
+          + "a join, joins on tables with multiple columns is not yet supported.");
+    }
+
     throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
         + "If this is a join, make sure that the criteria uses the TABLE's key column "
         + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "

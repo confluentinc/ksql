@@ -119,7 +119,7 @@ public class JoinIntTest {
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
     final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        keyBuilder.build("ITEM_1"),
+        keyBuilder.build("ITEM_1", 0),
         genericRow("ORDER_1", 10.0, "home cinema")
     );
 
@@ -153,7 +153,7 @@ public class JoinIntTest {
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
     final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        keyBuilder.build("ITEM_1"),
+        keyBuilder.build("ITEM_1", 0),
         genericRow("ORDER_1", 10.0, "home cinema")
     );
 
@@ -200,7 +200,7 @@ public class JoinIntTest {
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(source.getSchema());
 
     final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        keyBuilder.build("ITEM_1"),
+        keyBuilder.build("ITEM_1", 0),
         genericRow("ORDER_1", "home cinema", 1L)
     );
 

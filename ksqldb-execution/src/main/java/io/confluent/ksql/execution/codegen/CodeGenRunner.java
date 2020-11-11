@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.codegen;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
@@ -124,29 +125,18 @@ public class CodeGenRunner {
           ksqlConfig
       ).process(expression);
 
-      final IExpressionEvaluator ee =
-          CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-      ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
-      ee.setParameters(spec.argumentNames(), spec.argumentTypes());
-
-      final SqlType expressionType = expressionTypeManager
-          .getExpressionSqlType(expression);
-
-      if (expressionType == null) {
+      final SqlType returnType = expressionTypeManager.getExpressionSqlType(expression);
+      if (returnType == null) {
         // expressionType can be null if expression is NULL.
         throw new KsqlException("NULL expression not supported");
       }
 
-      ee.setExpressionType(SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(expressionType));
+      final Class<?> expressionType = SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(returnType);
 
-      ee.cook(javaCode);
+      final IExpressionEvaluator ee =
+          cook(javaCode, expressionType, spec.argumentNames(), spec.argumentTypes());
 
-      return new ExpressionMetadata(
-          ee,
-          spec,
-          expressionType,
-          expression
-      );
+      return new ExpressionMetadata(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
@@ -154,6 +144,23 @@ public class CodeGenRunner {
       throw new RuntimeException("Unexpected error generating code for " + type
           + ". expression:" + expression, e);
     }
+  }
+
+  @VisibleForTesting
+  public static IExpressionEvaluator cook(
+      final String javaCode,
+      final Class<?> expressionType,
+      final String[] argNames,
+      final Class<?>[] argTypes
+  ) throws Exception {
+    final IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory()
+        .newExpressionEvaluator();
+
+    ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
+    ee.setParameters(argNames, argTypes);
+    ee.setExpressionType(expressionType);
+    ee.cook(javaCode);
+    return ee;
   }
 
   private final class Visitor extends TraversalExpressionVisitor<Void> {

@@ -39,6 +39,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.DuplicateColumnException;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Execute DDL Commands
@@ -48,7 +49,7 @@ public class DdlCommandExec {
   private final MutableMetaStore metaStore;
 
   public DdlCommandExec(final MutableMetaStore metaStore) {
-    this.metaStore = metaStore;
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
   /**
@@ -57,17 +58,25 @@ public class DdlCommandExec {
   public DdlCommandResult execute(
       final String sql,
       final DdlCommand ddlCommand,
-      final boolean withQuery) {
-    return new Executor(sql, withQuery).execute(ddlCommand);
+      final boolean withQuery,
+      final Set<SourceName> withQuerySources
+  ) {
+    return new Executor(sql, withQuery, withQuerySources).execute(ddlCommand);
   }
 
   private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
     private final String sql;
     private final boolean withQuery;
+    private final Set<SourceName> withQuerySources;
 
-    private Executor(final String sql, final boolean withQuery) {
+    private Executor(
+        final String sql,
+        final boolean withQuery,
+        final Set<SourceName> withQuerySources
+    ) {
       this.sql = Objects.requireNonNull(sql, "sql");
       this.withQuery = withQuery;
+      this.withQuerySources = Objects.requireNonNull(withQuerySources, "withQuerySources");
     }
 
     @Override
@@ -81,6 +90,7 @@ public class DdlCommandExec {
           getKsqlTopic(createStream)
       );
       metaStore.putSource(ksqlStream, createStream.isOrReplace());
+      metaStore.addSourceReferences(ksqlStream.getName(), withQuerySources);
       return new DdlCommandResult(true, "Stream created");
     }
 
@@ -95,6 +105,7 @@ public class DdlCommandExec {
           getKsqlTopic(createTable)
       );
       metaStore.putSource(ksqlTable, createTable.isOrReplace());
+      metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);
       return new DdlCommandResult(true, "Table created");
     }
 

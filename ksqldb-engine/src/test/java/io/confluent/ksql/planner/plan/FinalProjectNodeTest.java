@@ -195,7 +195,7 @@ public class FinalProjectNodeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("The projection contains the key column "
-        + "more than once: `GRACE` and `PETER`."));
+    assertThat(e.getMessage(), containsString("The projection contains a key column (`K`) more " +
+        "than once, aliased as: GRACE and PETER"));
   }
 }

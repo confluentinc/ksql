@@ -73,6 +73,8 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
 
   @Override
   public Expression resolveSelect(final int idx, final Expression expression) {
+    // after issuing a PARTITION BY, there will only be one key column because we
+    // do not support PARTITION BY multiple columns
     return partitionBy.equals(expression)
         ? new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(getSchema().key()).name())
         : expression;

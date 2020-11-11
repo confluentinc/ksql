@@ -96,7 +96,7 @@ public class StructuredTypesDataProvider extends TestDataProvider {
   }
 
   private static Struct buildKey(final String key) {
-    return KEY_BUILDER.build(key);
+    return KEY_BUILDER.build(key, 0);
   }
 
   @SuppressWarnings("unchecked")

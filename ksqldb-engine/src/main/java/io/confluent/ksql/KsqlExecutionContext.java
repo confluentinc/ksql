@@ -19,6 +19,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The context in which statements can be executed.
@@ -78,6 +80,14 @@ public interface KsqlExecutionContext {
    * @see #getPersistentQuery(QueryId)
    */
   List<PersistentQueryMetadata> getPersistentQueries();
+
+  /**
+   * Retrieves the list of all queries writing to this {@code SourceName}.
+   *
+   * @param sourceName the sourceName of the queries to retrieve.
+   * @return the list of queries.
+   */
+  Set<QueryId> getQueriesWithSink(SourceName sourceName);
 
   /**
    * Retrieves the list of all running queries.

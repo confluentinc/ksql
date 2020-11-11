@@ -22,6 +22,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -32,26 +33,33 @@ public class InsertInto
 
   private final SourceName target;
   private final Query query;
+  private final InsertIntoProperties properties;
 
   public InsertInto(
       final SourceName target,
       final Query query
   ) {
-    this(Optional.empty(), target, query);
+    this(Optional.empty(), target, query, InsertIntoProperties.none());
   }
 
   public InsertInto(
       final Optional<NodeLocation> location,
       final SourceName target,
-      final Query query
+      final Query query,
+      final InsertIntoProperties properties
   ) {
     super(location);
     this.target = requireNonNull(target, "target");
     this.query = requireNonNull(query, "query");
+    this.properties = requireNonNull(properties, "properties");
   }
 
   public SourceName getTarget() {
     return target;
+  }
+
+  public InsertIntoProperties getProperties() {
+    return properties;
   }
 
   @Override
@@ -65,13 +73,18 @@ public class InsertInto
   }
 
   @Override
+  public Optional<String> getQueryId() {
+    return properties.getQueryId();
+  }
+
+  @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitInsertInto(this, context);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(target, query);
+    return Objects.hash(target, query, properties);
   }
 
   @Override
@@ -84,7 +97,8 @@ public class InsertInto
     }
     final InsertInto o = (InsertInto) obj;
     return Objects.equals(target, o.target)
-           && Objects.equals(query, o.query);
+           && Objects.equals(query, o.query)
+           && Objects.equals(properties, o.properties);
   }
 
   @Override
@@ -92,6 +106,7 @@ public class InsertInto
     return toStringHelper(this)
         .add("target", target)
         .add("query", query)
+        .add("properties", properties)
         .toString();
   }
 }

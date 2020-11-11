@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.client;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -143,8 +144,10 @@ public final class KsqlClient implements AutoCloseable {
       final HttpClientOptions httpClientOptions,
       final boolean tls) {
     if (tls) {
-      httpClientOptions.setVerifyHost(false);
       httpClientOptions.setSsl(true);
+
+      configureHostVerification(clientProps, httpClientOptions);
+
       final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
       if (trustStoreLocation != null) {
         final String suppliedTruststorePassword = clientProps
@@ -153,10 +156,10 @@ public final class KsqlClient implements AutoCloseable {
             .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
         final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
         if (keyStoreLocation != null) {
-          final String suppliedKeyStorePassord = clientProps
+          final String suppliedKeyStorePassword = clientProps
               .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
           httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-              .setPassword(suppliedKeyStorePassord == null ? "" : suppliedKeyStorePassord));
+              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
         }
       }
     }
@@ -175,5 +178,25 @@ public final class KsqlClient implements AutoCloseable {
     } catch (VertxException e) {
       throw new KsqlRestClientException(e.getMessage(), e);
     }
+  }
+
+  private static void configureHostVerification(
+      final Map<String, String> clientProps,
+      final HttpClientOptions httpClientOptions
+  ) {
+    final String endpointIdentificationAlg =
+        clientProps.get(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG);
+    if (!Strings.isNullOrEmpty(endpointIdentificationAlg)) {
+      if (!endpointIdentificationAlg.toLowerCase().equals("https")) {
+        throw new IllegalArgumentException("Config '"
+            + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG
+            + "' must be either 'https' or empty. Got: " + endpointIdentificationAlg);
+      }
+
+      httpClientOptions.setVerifyHost(true);
+      return;
+    }
+
+    httpClientOptions.setVerifyHost(false);
   }
 }

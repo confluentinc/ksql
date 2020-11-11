@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -24,43 +23,93 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Utility for constructing {@link QueryId}s - separate from {@code EngineExecutor} for
  * easy access to unit testing.
  */
-final class QueryIdUtil {
+public final class QueryIdUtil {
+  private static final Pattern VALID_QUERY_ID = Pattern.compile("[A-Za-z0-9_]+");
+  private static final ReservedQueryIdsPrefixes[] PREFIXES = ReservedQueryIdsPrefixes.values();
+
+  public enum ReservedQueryIdsPrefixes {
+    INSERT("INSERTQUERY_"),
+    CTAS("CTAS_"),
+    CSAS("CSAS_");
+
+    private final String prefix;
+    ReservedQueryIdsPrefixes(final String prefix) {
+      this.prefix = prefix;
+    }
+
+    @Override
+    public String toString() {
+      return prefix;
+    }
+  }
 
   private QueryIdUtil() {
+  }
+
+  private static void validateWithQueryId(final String queryId) {
+    Arrays.stream(PREFIXES).forEach(prefixId -> {
+      if (queryId.startsWith(prefixId.toString())) {
+        throw new KsqlException(String.format(
+            "Query IDs must not start with a reserved query ID prefix (%s). "
+                + "Got '%s'.",
+            Arrays.stream(PREFIXES)
+                .map(ReservedQueryIdsPrefixes::toString)
+                .collect(Collectors.joining(", ")),
+            queryId));
+      }
+    });
+
+    if (!VALID_QUERY_ID.matcher(queryId).matches()) {
+      throw new IllegalArgumentException(String.format(
+          "Query IDs may contain only alphanumeric characters and '_'. "
+              + "Got: '%s'", queryId));
+    }
+
   }
 
   /**
    * Builds a {@link QueryId} for a physical plan specification.
    *
-   * @param metaStore   the meta store representing the current state of the engine
+   * @param engineContext  the context representing the current state of the engine
    * @param idGenerator generates query ids
    * @param outputNode  the logical plan
    * @param createOrReplaceEnabled whether or not the queryID can replace an existing one
    * @return the {@link QueryId} to be used
    */
   static QueryId buildId(
-      final MetaStore metaStore,
+      final EngineContext engineContext,
       final QueryIdGenerator idGenerator,
       final OutputNode outputNode,
-      final boolean createOrReplaceEnabled) {
+      final boolean createOrReplaceEnabled,
+      final Optional<String> withQueryId) {
+    if (withQueryId.isPresent()) {
+      final String queryId = withQueryId.get().toUpperCase();
+      validateWithQueryId(queryId);
+      return new QueryId(queryId);
+    }
+
     if (!outputNode.getSinkName().isPresent()) {
       return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
     }
 
     final KsqlStructuredDataOutputNode structured = (KsqlStructuredDataOutputNode) outputNode;
     if (!structured.createInto()) {
-      return new QueryId("INSERTQUERY_" + idGenerator.getNext());
+      return new QueryId(ReservedQueryIdsPrefixes.INSERT + idGenerator.getNext());
     }
 
     final SourceName sink = outputNode.getSinkName().get();
-    final Set<String> queriesForSink = metaStore.getQueriesWithSink(sink);
+    final Set<QueryId> queriesForSink = engineContext.getQueriesWithSink(sink);
     if (queriesForSink.size() > 1) {
       throw new KsqlException("REPLACE for sink " + sink + " is not supported because there are "
           + "multiple queries writing into it: " + queriesForSink);
@@ -74,15 +123,15 @@ final class QueryIdUtil {
                 sink.text(),
                 type));
       }
-      return new QueryId(Iterables.getOnlyElement(queriesForSink));
+      return Iterables.getOnlyElement(queriesForSink);
     }
 
     final String suffix = outputNode.getId().toString().toUpperCase()
         + "_" + idGenerator.getNext().toUpperCase();
     return new QueryId(
         outputNode.getNodeOutputType() == DataSourceType.KTABLE
-            ? "CTAS_" + suffix
-            : "CSAS_" + suffix
+            ? ReservedQueryIdsPrefixes.CTAS + suffix
+            : ReservedQueryIdsPrefixes.CSAS + suffix
     );
   }
 

@@ -545,6 +545,18 @@ public class Console implements Closeable {
     }
   }
 
+  private void printSourceConstraints(final List<String> sourceConstraints) {
+    if (!sourceConstraints.isEmpty()) {
+      writer().println(String.format(
+          "%n%-20s%n%-20s",
+          "Sources that have a DROP constraint on this source",
+          "--------------------------------------------------"
+      ));
+
+      sourceConstraints.forEach(sourceName -> writer().println(sourceName));
+    }
+  }
+
   private void printQueries(
       final List<RunningQuery> queries,
       final String type,
@@ -641,6 +653,8 @@ public class Console implements Closeable {
     writer().println("");
 
     printSchema(source.getWindowType(), source.getFields(), isTable);
+
+    printSourceConstraints(source.getSourceConstraints());
 
     printQueries(source.getReadQueries(), source.getType(), "read");
 

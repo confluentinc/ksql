@@ -87,7 +87,7 @@ public class StreamSelectKeyBuilderV1Test {
 
   private static final Struct SOURCE_KEY = StructKeyUtil
       .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-      .build("dre");
+      .build("dre", 0);
 
   @Mock
   private KStream<Struct, GenericRow> kstream;
@@ -223,7 +223,7 @@ public class StreamSelectKeyBuilderV1Test {
     final KeyValueMapper<Struct, GenericRow, Struct> keyValueMapper = getKeyMapper();
     assertThat(
         keyValueMapper.apply(SOURCE_KEY, value(A_BIG, A_BOI, 0, "dre")),
-        is(RESULT_KEY_BUILDER.build(A_BOI))
+        is(RESULT_KEY_BUILDER.build(A_BOI, 0))
     );
   }
 

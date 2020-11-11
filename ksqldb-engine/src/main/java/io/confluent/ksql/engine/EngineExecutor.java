@@ -58,6 +58,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -105,7 +106,7 @@ final class EngineExecutor {
     if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
-          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false))
+          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet()))
           .orElseThrow(
               () -> new IllegalStateException(
                   "DdlResult should be present if there is no physical plan."));
@@ -113,8 +114,13 @@ final class EngineExecutor {
     }
 
     final QueryPlan queryPlan = plan.getQueryPlan().get();
-    plan.getDdlCommand().map(ddl -> executeDdl(ddl, plan.getStatementText(), true));
-    return ExecuteResult.of(executePersistentQuery(queryPlan, plan.getStatementText()));
+    plan.getDdlCommand().map(ddl ->
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
+    return ExecuteResult.of(executePersistentQuery(
+        queryPlan,
+        plan.getStatementText(),
+        plan.getDdlCommand().isPresent())
+    );
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
@@ -122,7 +128,8 @@ final class EngineExecutor {
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
   ) {
-    final ExecutorPlans plans = planQuery(statement, statement.getStatement(), Optional.empty());
+    final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
+        Optional.empty(), Optional.empty());
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
     final QueryExecutor executor = engineContext.createQueryExecutor(config, serviceContext);
 
@@ -162,7 +169,8 @@ final class EngineExecutor {
       final ExecutorPlans plans = planQuery(
           statement,
           queryContainer.getQuery(),
-          Optional.of(queryContainer.getSink())
+          Optional.of(queryContainer.getSink()),
+          queryContainer.getQueryId()
       );
 
       final KsqlStructuredDataOutputNode outputNode =
@@ -197,7 +205,8 @@ final class EngineExecutor {
   private ExecutorPlans planQuery(
       final ConfiguredStatement<?> statement,
       final Query query,
-      final Optional<Sink> sink) {
+      final Optional<Sink> sink,
+      final Optional<String> withQueryId) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
@@ -211,11 +220,17 @@ final class EngineExecutor {
         Optional.of(outputNode)
     );
     final QueryId queryId = QueryIdUtil.buildId(
-        engineContext.getMetaStore(),
+        engineContext,
         engineContext.idGenerator(),
         outputNode,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED)
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
+        withQueryId
     );
+
+    if (withQueryId.isPresent() && engineContext.getPersistentQuery(queryId).isPresent()) {
+      throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
+    }
+
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         config,
@@ -368,10 +383,11 @@ final class EngineExecutor {
   private String executeDdl(
       final DdlCommand ddlCommand,
       final String statementText,
-      final boolean withQuery
+      final boolean withQuery,
+      final Set<SourceName> withQuerySources
   ) {
     try {
-      return engineContext.executeDdl(statementText, ddlCommand, withQuery);
+      return engineContext.executeDdl(statementText, ddlCommand, withQuery, withQuerySources);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
@@ -381,7 +397,8 @@ final class EngineExecutor {
 
   private PersistentQueryMetadata executePersistentQuery(
       final QueryPlan queryPlan,
-      final String statementText
+      final String statementText,
+      final boolean createAsQuery
   ) {
     final QueryExecutor executor = engineContext.createQueryExecutor(
         config,
@@ -397,7 +414,7 @@ final class EngineExecutor {
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan())
     );
 
-    engineContext.registerQuery(queryMetadata);
+    engineContext.registerQuery(queryMetadata, createAsQuery);
     return queryMetadata;
   }
 

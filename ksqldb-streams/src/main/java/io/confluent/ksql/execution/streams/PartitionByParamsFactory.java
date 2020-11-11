@@ -173,7 +173,7 @@ public final class PartitionByParamsFactory {
 
     return (k, v) -> {
       final Object newKey = evaluator.apply(v);
-      final Struct structKey = keyBuilder.build(newKey);
+      final Struct structKey = keyBuilder.build(newKey, 0);
 
       if (v != null && appendNewKey) {
         v.append(newKey);

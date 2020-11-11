@@ -26,8 +26,10 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
@@ -312,10 +314,21 @@ class Analyzer {
       final JoinNode.JoinType joinType = getJoinType(node);
 
       final JoinOn joinOn = (JoinOn) node.getCriteria();
-      final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
-          .getExpression();
+      final Expression joinExp = joinOn.getExpression();
+      if (!(joinExp instanceof ComparisonExpression)) {
+        // add in a special check for multi-column joins so that we can throw
+        // an even more useful error message
+        if (joinExp instanceof LogicalBinaryExpression
+            && isEqualityJoin(((LogicalBinaryExpression) joinExp).getLeft())
+            && isEqualityJoin(((LogicalBinaryExpression) joinExp).getRight())) {
+          throw new KsqlException("JOINs on multiple conditions are not yet supported: " + joinExp);
+        }
 
-      if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
+        throw new KsqlException("Unsupported join expression: " + joinExp);
+      }
+      final ComparisonExpression comparisonExpression = (ComparisonExpression) joinExp;
+
+      if (!(isEqualityJoin(joinExp))) {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
@@ -359,6 +372,11 @@ class Analyzer {
       analysis.addJoin(flipped ? joinInfo.flip() : joinInfo);
 
       return null;
+    }
+
+    private boolean isEqualityJoin(final Expression exp) {
+      return exp instanceof ComparisonExpression
+          && ((ComparisonExpression) exp).getType() == Type.EQUAL;
     }
 
     private void throwOnJoinWithoutSource(

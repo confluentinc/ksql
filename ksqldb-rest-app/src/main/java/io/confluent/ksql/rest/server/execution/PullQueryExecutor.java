@@ -27,6 +27,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.util.concurrent.RateLimiter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
@@ -66,7 +67,6 @@ import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.model.WindowType;
@@ -191,6 +191,7 @@ public final class PullQueryExecutor {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
+  @SuppressFBWarnings("REC_CATCH_EXCEPTION")
   public PullQueryResult execute(
       final ConfiguredStatement<Query> statement,
       final Map<String, Object> requestProperties,
@@ -239,6 +240,12 @@ public final class PullQueryExecutor {
           analyze(statement, executionContext),
           new ColumnReferenceRewriter()::process
       );
+
+      final List<Column> key = analysis.getFrom().getDataSource().getSchema().key();
+      if (key.size() > 1) {
+        throw new KsqlException("Pull queries are not supported on sources with "
+            + "more than one key column: " + key);
+      }
 
       final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
 
@@ -1239,11 +1246,9 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ImmutableAnalysis analysis
   ) {
-    final MetaStore metaStore = executionContext.getMetaStore();
-
     final SourceName sourceName = getSourceName(analysis);
 
-    final Set<String> queries = metaStore.getQueriesWithSink(sourceName);
+    final Set<QueryId> queries = executionContext.getQueriesWithSink(sourceName);
     if (queries.isEmpty()) {
       throw notMaterializedException(sourceName);
     }
@@ -1253,7 +1258,7 @@ public final class PullQueryExecutor {
           + " materialized once.");
     }
 
-    final QueryId queryId = new QueryId(Iterables.get(queries, 0));
+    final QueryId queryId = Iterables.getOnlyElement(queries);
 
     final PersistentQueryMetadata query = executionContext
         .getPersistentQuery(queryId)

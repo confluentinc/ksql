@@ -49,7 +49,7 @@ public class SelectValueMapperIntegrationTest {
 
   private static final Struct NON_WINDOWED_KEY = StructKeyUtil
       .keyBuilder(ColumnName.of("K"), SqlTypes.STRING)
-      .build("someKey");
+      .build("someKey", 0);
 
   private final MetaStore metaStore = MetaStoreFixture
       .getNewMetaStore(TestFunctionRegistry.INSTANCE.get());

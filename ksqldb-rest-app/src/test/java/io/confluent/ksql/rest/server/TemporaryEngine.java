@@ -58,6 +58,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.common.metrics.Metrics;
 import org.junit.rules.ExternalResource;
 
@@ -122,6 +123,15 @@ public class TemporaryEngine extends ExternalResource {
       final DataSourceType type,
       final String name
   ) {
+    return givenSource(type, name, Collections.emptySet());
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends DataSource> T givenSource(
+      final DataSourceType type,
+      final String name,
+      final Set<SourceName> sourceReferences
+      ) {
     givenKafkaTopic(name);
 
     final KsqlTopic topic = new KsqlTopic(
@@ -158,6 +168,7 @@ public class TemporaryEngine extends ExternalResource {
         throw new IllegalArgumentException(type.toString());
     }
     metaStore.putSource(source, false);
+    metaStore.addSourceReferences(source.getName(), sourceReferences);
 
     return (T) source;
   }

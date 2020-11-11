@@ -43,7 +43,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -51,8 +50,6 @@ import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes.SessionStoreType;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
-import org.apache.kafka.streams.state.ReadOnlyWindowStore;
-import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,7 +65,7 @@ public class KsMaterializedSessionTableTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("x");
+      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("x", 0);
   private static final GenericRow A_VALUE = GenericRow.genericRow("c0l");
   private static final int PARTITION = 0;
 

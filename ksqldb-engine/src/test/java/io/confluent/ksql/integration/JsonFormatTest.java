@@ -131,7 +131,7 @@ public class JsonFormatTest {
         .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();
 
-    final Struct messageKey = StructKeyUtil.keyBuilder(messageSchema).build("1");
+    final Struct messageKey = StructKeyUtil.keyBuilder(messageSchema).build("1", 0);
     final GenericRow messageRow = genericRow(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
         + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"
@@ -185,7 +185,7 @@ public class JsonFormatTest {
 
     final Map<Struct, GenericRow> expectedResults = new HashMap<>();
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(ColumnName.of("ROWKEY"), SqlTypes.STRING);
-    expectedResults.put(keyBuilder.build("1"), genericRow("aws"));
+    expectedResults.put(keyBuilder.build("1", 0), genericRow("aws"));
 
     final Map<Struct, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 
@@ -203,7 +203,7 @@ public class JsonFormatTest {
 
     final Map<Struct, GenericRow> expectedResults = new HashMap<>();
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(ColumnName.of("ROWKEY"), SqlTypes.STRING);
-    expectedResults.put(keyBuilder.build("1"), genericRow("first"));
+    expectedResults.put(keyBuilder.build("1", 0), genericRow("first"));
 
     final Map<Struct, GenericRow> results = readNormalResults(streamName, expectedResults.size());
 

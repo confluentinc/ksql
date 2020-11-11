@@ -1,6 +1,6 @@
 ---
 layout: page
-title: ksqlDB SQL keywords and  operators
+title: ksqlDB SQL keywords and operators
 tagline: SQL language keywords
 description: Tables listing all valid keywords and operators in ksqlDB SQL
 keywords: ksqldb, sql, keyword, operators
@@ -57,7 +57,6 @@ The following table shows all keywords in the language.
 | `INTERVAL`     | number of messages to skip in `PRINT` | `PRINT <topic-name> INTERVAL 5;`                                     |
 | `INTO`         | stream/table to insert values         | `INSERT INTO stream_name ...`                                        |
 | `IS`           |                                       |                                                                      |
-| `IN`           | in operator                           | `SELECT * FROM S WHERE ID IN (1, 2, 9, 24);`                         |
 | `JOIN`         | match records in streams/tables       | `CREATE TABLE t AS SELECT * FROM l INNER JOIN r ON l.ID = r.ID;`     |
 | `KEY`          | specify key column                    | `CREATE TABLE users (userId INT PRIMARY KEY, …`                      |
 | `LEFT`         | specify `LEFT JOIN`                   | `CREATE TABLE t AS SELECT * FROM l LEFT JOIN r ON l.ID = r.ID;`      |

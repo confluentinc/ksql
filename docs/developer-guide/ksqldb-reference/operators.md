@@ -11,26 +11,6 @@ Operators
 
 ksqlDB supports the following operators in value expressions.
 
-  - [Arithmetic](#arithmetic)
-  - [Concatenation](#concatenation)
-  - [IN Operator](#in)
-  - [Source Dereference](#source-dereference)
-  - [Subscript](#subscript)
-  - [STRUCT dereference](#struct-dereference)
-
-The explanation for each operator includes a supporting example based on
-the following table:
-
-```sql
-CREATE TABLE USERS (
-    USERID BIGINT PRIMARY KEY,
-    FIRST_NAME STRING,
-    LAST_NAME STRING,
-    NICKNAMES ARRAY<STRING>,
-    ADDRESS STRUCT<STREET_NAME STRING, HOUSE_NUM INTEGER>
-) WITH (KAFKA_TOPIC='users', VALUE_FORMAT='AVRO');
-```
-
 Arithmetic
 ----------
 

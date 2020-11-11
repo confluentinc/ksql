@@ -47,7 +47,7 @@ SELECT USERID,
   EMIT CHANGES;
 ```
 
-IN
+In
 --
 
 The IN operator enables specifying multiple values in a `WHERE` clause.

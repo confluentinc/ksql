@@ -16,6 +16,8 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -27,11 +29,13 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
@@ -42,6 +46,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +54,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.clients.producer.Producer;
@@ -246,6 +252,8 @@ public class InsertValuesExecutor {
         dataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
+    ensureKeySchemasMatch(physicalSchema.keySchema(), dataSource, serviceContext);
+
     final Serde<Struct> keySerde = keySerdeFactory.create(
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
         physicalSchema.keySchema(),
@@ -266,9 +274,49 @@ public class InsertValuesExecutor {
           FormatFactory.fromName(dataSource.getKsqlTopic().getKeyFormat().getFormat()),
           topicName,
           true,
+          "write",
           e);
       LOG.error("Could not serialize key.", e);
       throw new KsqlException("Could not serialize key: " + keyValue, e);
+    }
+  }
+
+  /**
+   * Ensures that the key schema that we generate will be identical
+   * to the schema that is registered in schema registry, if it exists.
+   * Otherwise, it is possible that we will publish messages with a new
+   * schemaID, meaning that logically identical keys might be routed to
+   * different partitions.
+   */
+  private void ensureKeySchemasMatch(
+      final PersistenceSchema keySchema,
+      final DataSource dataSource,
+      final ServiceContext serviceContext
+  ) {
+    final KeyFormat keyFormat = dataSource.getKsqlTopic().getKeyFormat();
+    final Format format = FormatFactory.fromName(keyFormat.getFormat());
+    if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+      return;
+    }
+
+    final ParsedSchema schema = format
+        .getSchemaTranslator(keyFormat.getFormatInfo().getProperties())
+        .toParsedSchema(keySchema);
+
+    try {
+      final SchemaMetadata latest = serviceContext.getSchemaRegistryClient()
+          .getLatestSchemaMetadata(
+              KsqlConstants.getSRSubject(dataSource.getKafkaTopicName(), true));
+      if (!latest.getSchema().equals(schema.canonicalString())) {
+        throw new KsqlException("Cannot INSERT VALUES into data source " + dataSource.getName()
+            + ". ksqlDB generated schema would overwrite existing key schema."
+            + "\n\tExisting Schema: " + latest.getSchema()
+            + "\n\tksqlDB Generated: " + schema.canonicalString());
+      }
+    } catch (IOException | RestClientException e) {
+      maybeThrowSchemaRegistryAuthError(format, dataSource.getKafkaTopicName(), true, "read", e);
+      throw new KsqlException("Could not determine that insert values operations is safe; "
+          + "operation potentially overrides existing key schema in schema registry.", e);
     }
   }
 
@@ -303,6 +351,7 @@ public class InsertValuesExecutor {
           FormatFactory.fromName(dataSource.getKsqlTopic().getValueFormat().getFormat()),
           topicName,
           false,
+          "write",
           e);
       LOG.error("Could not serialize value.", e);
       throw new KsqlException("Could not serialize value: " + row + ". " + e.getMessage(), e);
@@ -313,16 +362,18 @@ public class InsertValuesExecutor {
       final Format format,
       final String topicName,
       final boolean isKey,
+      final String op,
       final Exception e
   ) {
     if (format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
-      final Throwable rootCause = ExceptionUtils.getRootCause(e);
+      final Throwable rootCause = ObjectUtils.defaultIfNull(ExceptionUtils.getRootCause(e), e);
       if (rootCause instanceof RestClientException) {
         switch (((RestClientException) rootCause).getStatus()) {
           case HttpStatus.SC_UNAUTHORIZED:
           case HttpStatus.SC_FORBIDDEN:
             throw new KsqlException(String.format(
-                "Not authorized to write Schema Registry subject: [%s]",
+                "Not authorized to %s Schema Registry subject: [%s]",
+                op,
                 KsqlConstants.getSRSubject(topicName, isKey)
             ));
           default:

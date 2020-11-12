@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
@@ -38,6 +39,8 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -76,6 +79,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
@@ -98,6 +102,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -160,6 +165,9 @@ public class InsertValuesExecutorTest {
   private KeySerdeFactory keySerdeFactory;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
+  @Mock
+  private SchemaRegistryClient srClient;
+
   private InsertValuesExecutor executor;
 
   @Before
@@ -177,6 +185,7 @@ public class InsertValuesExecutorTest {
 
     when(serviceContext.getKafkaClientSupplier()).thenReturn(kafkaClientSupplier);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
 
     givenSourceStreamWithSchema(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
@@ -837,6 +846,69 @@ public class InsertValuesExecutorTest {
         "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables"));
   }
 
+
+  @Test
+  public void shouldSupportInsertIntoWithSchemaInfereceMatch() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE, SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0),
+        ImmutableList.of(
+            new StringLiteral("foo"),
+            new StringLiteral("bar"))
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("foo"));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("bar", null));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldThrowOnSchemaInferenceMismatchForKey() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any())).thenReturn(new SchemaMetadata(1, 1, "schema"));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0),
+        ImmutableList.of(
+            new StringLiteral("foo"),
+            new StringLiteral("bar"))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
+    assertThat(e.getMessage(), containsString("Existing Schema: schema"));
+    assertThat(e.getMessage(), containsString("ksqlDB Generated: {\"type\":"));
+  }
+
   @Test
   public void shouldBuildCorrectSerde() {
     // Given:
@@ -874,12 +946,47 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldThrowWhenNotAuthorizedToWriteKeySchemaToSR() {
+  public void shouldThrowWhenNotAuthorizedToReadKeySchemaToSR() throws Exception {
     // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenThrow(new RestClientException("foo", 401, 1));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false);
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allColumnNames(SCHEMA),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L)
+        )
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Not authorized to read Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
+  }
+
+  @Test
+  public void shouldThrowWhenNotAuthorizedToWriteKeySchemaToSR() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
@@ -908,12 +1015,14 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldThrowWhenNotAuthorizedToWriteValSchemaToSR() {
+  public void shouldThrowWhenNotAuthorizedToWriteValSchemaToSR() throws Exception {
     // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, "\"string\""));
     givenDataSourceWithSchema(
         TOPIC_NAME,
         SCHEMA,
-        SerdeFeatures.of(),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),

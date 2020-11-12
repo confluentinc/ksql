@@ -75,7 +75,7 @@ public final class AssertExecutor {
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
-          (cs, cfg) -> cs.getProperties().getKeyFormat().map(FormatInfo::getFormat)
+          (cs, cfg) -> cs.getProperties().getKeyFormat(cs.getName()).map(FormatInfo::getFormat)
               .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
           "key format",
           CommonCreateConfigs.KEY_FORMAT_PROPERTY,

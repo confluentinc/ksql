@@ -162,7 +162,8 @@ public final class TestCaseBuilderUtil {
 
       final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
 
-      final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(props);
+      final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
+          props, statement.getName());
       final Format keyFormat = FormatFactory.fromName(keyFormatInfo.getFormat());
       final SerdeFeatures keySerdeFeats = buildKeyFeatures(
           keyFormat, logicalSchema);

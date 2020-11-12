@@ -389,7 +389,8 @@ final class EngineExecutor {
     if (statement.getStatement() instanceof CreateSource) {
       final CreateSource createSource = (CreateSource) statement.getStatement();
       throwOnUnsupportedKeyFormat(
-          SourcePropertiesUtil.getKeyFormat(createSource.getProperties()).getFormat());
+          SourcePropertiesUtil.getKeyFormat(
+              createSource.getProperties(), createSource.getName()).getFormat());
     }
 
     if (statement.getStatement() instanceof CreateAsSelect) {

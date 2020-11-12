@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -131,10 +132,22 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getInt(CreateConfigs.VALUE_SCHEMA_ID));
   }
 
-  public Optional<FormatInfo> getKeyFormat() {
+  public Optional<FormatInfo> getKeyFormat(final SourceName name) {
     final String keyFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
-    return Optional.ofNullable(keyFormat).map(format -> FormatInfo.of(format, ImmutableMap.of()));
+    return Optional.ofNullable(keyFormat)
+        .map(format -> FormatInfo.of(format, getKeyFormatProperties(keyFormat, name.text())));
+  }
+
+  private Map<String, String> getKeyFormatProperties(final String keyFormat, final String name) {
+    if (AvroFormat.NAME.equalsIgnoreCase(keyFormat)) {
+      // ensure that the schema name for the key is unique to the sink - this allows
+      // users to always generate valid, non-conflicting avro record definitions in
+      // generated Java classes (https://github.com/confluentinc/ksql/issues/6465)
+      return ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
+    }
+
+    return ImmutableMap.of();
   }
 
   public Optional<FormatInfo> getValueFormat() {

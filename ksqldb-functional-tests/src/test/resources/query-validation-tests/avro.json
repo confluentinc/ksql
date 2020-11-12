@@ -1046,10 +1046,10 @@
           "topics": [
             {
               "name": "OUTPUT",
-              "keyFormat" : { "format" : "AVRO", "features": ["UNWRAP_SINGLES"] },
+              "keyFormat" : { "format" : "AVRO", "features": ["UNWRAP_SINGLES"], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OUTPUT_key"} },
               "keySchema": {
                 "type": "record",
-                "name": "KsqlDataSourceSchema",
+                "name": "OUTPUT_key",
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "F1", "type": [ "null", "string" ], "default": null }

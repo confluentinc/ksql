@@ -112,8 +112,17 @@ public final class CreateSourceAsProperties {
   }
 
   @SuppressWarnings("MethodMayBeStatic")
-  public Map<String, String> getKeyFormatProperties() {
-    // Current none.... coming soon.
+  public Map<String, String> getKeyFormatProperties(
+      final String name,
+      final String keyFormat
+  ) {
+    if (AvroFormat.NAME.equals(keyFormat)) {
+      // ensure that the schema name for the key is unique to the sink - this allows
+      // users to always generate valid, non-conflicting avro record definitions in
+      // generated Java classes (https://github.com/confluentinc/ksql/issues/6465)
+      return ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
+    }
+
     return ImmutableMap.of();
   }
 

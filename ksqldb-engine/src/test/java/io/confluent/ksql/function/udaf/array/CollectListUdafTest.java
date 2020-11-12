@@ -92,7 +92,6 @@ public class CollectListUdafTest {
   @Test
   public void shouldUndoAfterHittingLimit() {
     final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
-    final Integer[] values = new Integer[] {3, 4, 5, 3};
     List<Integer> runningList = udaf.initialize();
     for (int i = 0; i < LIMIT; i++) {
       runningList = udaf.aggregate(i, runningList);

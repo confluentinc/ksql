@@ -83,4 +83,8 @@ public final class AvroFormat extends ConnectFormat {
     return new KsqlAvroSerdeFactory(schemaFullName)
         .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
+
+  public static String getKeySchemaName(final String name) {
+    return AvroProperties.AVRO_SCHEMA_NAMESPACE + "." + name + "_key";
+  }
 }

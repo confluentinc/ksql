@@ -114,7 +114,7 @@ public final class CreateSourceFactory {
         schema,
         timestampColumn,
         topicName,
-        buildFormats(schema, props, ksqlConfig),
+        buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
         Optional.of(statement.isOrReplace())
     );
@@ -164,18 +164,19 @@ public final class CreateSourceFactory {
         schema,
         timestampColumn,
         topicName,
-        buildFormats(schema, props, ksqlConfig),
+        buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
         Optional.of(statement.isOrReplace())
     );
   }
 
   private Formats buildFormats(
+      final SourceName name,
       final LogicalSchema schema,
       final CreateSourceProperties props,
       final KsqlConfig ksqlConfig
   ) {
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, name);
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
 
     final SerdeFeatures keyFeatures = keySerdeFeaturesSupplier.build(

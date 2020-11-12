@@ -170,14 +170,18 @@ class Analyzer {
           .getDataSource()
           .getKsqlTopic();
 
-      final FormatInfo keyFmtInfo = buildKeyFormatInfo(
+      final String keyFormatName = keyFormatName(
           props.getKeyFormat(),
-          props.getKeyFormatProperties(),
+          srcTopic.getKeyFormat().getFormatInfo()
+      );
+      final FormatInfo keyFmtInfo = buildFormatInfo(
+          keyFormatName,
+          props.getKeyFormatProperties(sink.getName().text(), keyFormatName),
           srcTopic.getKeyFormat().getFormatInfo()
       );
 
       final FormatInfo valueFmtInfo = buildFormatInfo(
-          props.getValueFormat(),
+          formatName(props.getValueFormat(), srcTopic.getValueFormat().getFormatInfo()),
           props.getValueFormatProperties(),
           srcTopic.getValueFormat().getFormatInfo()
       );
@@ -196,15 +200,13 @@ class Analyzer {
       analysis.setOrReplace(sink.shouldReplace());
     }
 
-    private FormatInfo buildKeyFormatInfo(
+    private String keyFormatName(
         final Optional<String> explicitFormat,
-        final Map<String, String> formatProperties,
         final FormatInfo sourceFormat
     ) {
       final boolean partitioningByNull = analysis.getPartitionBy()
           .map(pb -> pb.getExpression() instanceof NullLiteral)
           .orElse(false);
-
       if (partitioningByNull) {
         final boolean nonNoneExplicitFormat = explicitFormat
             .map(fmt -> !fmt.equalsIgnoreCase(NoneFormat.NAME))
@@ -214,18 +216,24 @@ class Analyzer {
           throw new KsqlException("Key format specified for stream without key columns.");
         }
 
-        return FormatInfo.of(NoneFormat.NAME);
+        return NoneFormat.NAME;
       }
 
-      return buildFormatInfo(explicitFormat, formatProperties, sourceFormat);
+      return formatName(explicitFormat, sourceFormat);
+    }
+
+    private String formatName(
+        final Optional<String> explicitFormat,
+        final FormatInfo sourceFormat
+    ) {
+      return explicitFormat.orElse(sourceFormat.getFormat());
     }
 
     private FormatInfo buildFormatInfo(
-        final Optional<String> explicitFormat,
+        final String formatName,
         final Map<String, String> formatProperties,
         final FormatInfo sourceFormat
     ) {
-      final String formatName = explicitFormat.orElse(sourceFormat.getFormat());
       final Format format = FormatFactory.fromName(formatName);
 
       final Map<String, String> props = new HashMap<>();

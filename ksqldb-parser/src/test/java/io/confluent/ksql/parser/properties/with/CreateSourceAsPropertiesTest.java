@@ -114,6 +114,21 @@ public class CreateSourceAsPropertiesTest {
   }
 
   @Test
+  public void shouldAutomaticallySetAvroSchemaNameForKey() {
+    // Given:
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
+        ImmutableMap.of(KEY_FORMAT_PROPERTY, new StringLiteral("AVRO"))
+    );
+
+    // When:
+    final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME)
+        .get(AvroFormat.FULL_SCHEMA_NAME);
+
+    // Then:
+    assertThat(avroSchemaName, is("io.confluent.ksql.avro_schemas.name_key"));
+  }
+
+  @Test
   public void shouldSetValidAvroSchemaName() {
     // When:
     final CreateSourceAsProperties properties = CreateSourceAsProperties.from(

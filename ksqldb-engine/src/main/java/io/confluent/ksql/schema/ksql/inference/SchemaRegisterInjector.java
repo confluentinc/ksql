@@ -82,7 +82,8 @@ public class SchemaRegisterInjector implements Injector {
     final CreateSource statement = cs.getStatement();
     final LogicalSchema schema = statement.getElements().toLogicalSchema();
 
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(statement.getProperties());
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(
+        statement.getProperties(), statement.getName());
     final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
         schema,
         FormatFactory.of(keyFormat)

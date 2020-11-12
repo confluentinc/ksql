@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
-import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Arrays;
@@ -104,10 +104,10 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldGetCommandsThatDoNotCorruptBackup() {
+  public void shouldNotGetCommandsWhenCommandTopicCorruptionWhenBackingUp() {
     // Given:
     when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
-    doNothing().doThrow(new KsqlServerException("error")).when(commandTopicBackup).writeRecord(any());
+    doNothing().doThrow(new CommandTopicCorruptionException("error")).when(commandTopicBackup).writeRecord(any());
 
     // When:
     final Iterable<ConsumerRecord<byte[], byte[]>> newCommands = commandTopic
@@ -121,7 +121,7 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldGetCommandsThatDoNotCorruptBackupInRestore() {
+  public void shouldNotGetCommandsWhenCommandTopicCorruptionIhBackupInRestore() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(
@@ -130,7 +130,7 @@ public class CommandTopicTest {
         .thenReturn(someConsumerRecords(
             record3))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
-    doNothing().doThrow(new KsqlServerException("error")).when(commandTopicBackup).writeRecord(any());
+    doNothing().doThrow(new CommandTopicCorruptionException("error")).when(commandTopicBackup).writeRecord(any());
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic

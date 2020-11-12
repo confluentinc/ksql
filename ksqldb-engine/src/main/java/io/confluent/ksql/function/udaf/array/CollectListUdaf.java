@@ -73,7 +73,7 @@ public final class CollectListUdaf {
       public List<T> undo(final T valueToUndo, final List<T> aggregateValue) {
         // A more ideal solution would remove the value which corresponded to the original insertion
         // but keeping track of that is more complex so we just remove the last value for now.
-        int lastIndex = aggregateValue.lastIndexOf(valueToUndo);
+        final int lastIndex = aggregateValue.lastIndexOf(valueToUndo);
         // If we cannot find the value, that means that we hit the limit and never inserted it, so
         // just return.
         if (lastIndex < 0) {

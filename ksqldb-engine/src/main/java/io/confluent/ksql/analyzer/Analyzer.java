@@ -191,6 +191,8 @@ class Analyzer {
 
       analysis
           .setInto(Into.newSink(sink.getName(), topicName, windowInfo, keyFmtInfo, valueFmtInfo));
+
+      analysis.setOrReplace(sink.shouldReplace());
     }
 
     private FormatInfo buildKeyFormatInfo(

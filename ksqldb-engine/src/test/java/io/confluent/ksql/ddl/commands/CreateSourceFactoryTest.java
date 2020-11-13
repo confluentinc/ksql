@@ -45,10 +45,12 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.commands.CreateSourceFactory.SerdeFeaturessSupplier;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.name.ColumnName;
@@ -60,15 +62,18 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -132,6 +137,14 @@ public class CreateSourceFactoryTest {
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
 
+  private static final TimestampColumn TIMESTAMP_COLUMN =
+      new TimestampColumn(ColumnName.of("TS"), Optional.empty());
+
+  private static final KeyFormat SOME_KEY_FORMAT = KeyFormat.of(FormatInfo.of("JSON"),
+      SerdeFeatures.of(), Optional.empty());
+  private static final ValueFormat SOME_VALUE_FORMAT = ValueFormat.of(FormatInfo.of("JSON"),
+      SerdeFeatures.of());
+
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
@@ -185,6 +198,34 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
+  public void shouldCreateStreamCommandFromNodeOutput() {
+    // Given:
+    final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
+    when(ksqlTopic.getKafkaTopicName()).thenReturn(TOPIC_NAME);
+    when(ksqlTopic.getKeyFormat()).thenReturn(SOME_KEY_FORMAT);
+    when(ksqlTopic.getValueFormat()).thenReturn(SOME_VALUE_FORMAT);
+
+    final KsqlStructuredDataOutputNode outputNode = mock(KsqlStructuredDataOutputNode.class);
+    when(outputNode.getIntoSourceName()).thenReturn(SOME_NAME);
+    when(outputNode.getSchema()).thenReturn(EXPECTED_SCHEMA);
+    when(outputNode.getTimestampColumn()).thenReturn(Optional.of(TIMESTAMP_COLUMN));
+    when(outputNode.getKsqlTopic()).thenReturn(ksqlTopic);
+
+
+    // When:
+    final CreateStreamCommand result = createSourceFactory.createStreamCommand(outputNode);
+
+    // Then:
+    assertThat(result.getSourceName(), is(SOME_NAME));
+    assertThat(result.getSchema(), is(EXPECTED_SCHEMA));
+    assertThat(result.getTimestampColumn(), is(Optional.of(TIMESTAMP_COLUMN)));
+    assertThat(result.getTopicName(), is(TOPIC_NAME));
+    assertThat(result.getFormats(), is(Formats.from(ksqlTopic)));
+    assertThat(result.getWindowInfo(), is(Optional.empty()));
+    assertThat(result.isOrReplace(), is(false));
+  }
+
+  @Test
   public void shouldCreateCommandForCreateStream() {
     // Given:
     final CreateStream ddlStatement =
@@ -197,6 +238,34 @@ public class CreateSourceFactoryTest {
     // Then:
     assertThat(result.getSourceName(), is(SOME_NAME));
     assertThat(result.getTopicName(), is(TOPIC_NAME));
+  }
+
+  @Test
+  public void shouldCreateTableCommandFromNodeOutput() {
+// Given:
+    final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
+    when(ksqlTopic.getKafkaTopicName()).thenReturn(TOPIC_NAME);
+    when(ksqlTopic.getKeyFormat()).thenReturn(SOME_KEY_FORMAT);
+    when(ksqlTopic.getValueFormat()).thenReturn(SOME_VALUE_FORMAT);
+
+    final KsqlStructuredDataOutputNode outputNode = mock(KsqlStructuredDataOutputNode.class);
+    when(outputNode.getIntoSourceName()).thenReturn(SOME_NAME);
+    when(outputNode.getSchema()).thenReturn(EXPECTED_SCHEMA);
+    when(outputNode.getTimestampColumn()).thenReturn(Optional.of(TIMESTAMP_COLUMN));
+    when(outputNode.getKsqlTopic()).thenReturn(ksqlTopic);
+
+
+    // When:
+    final CreateTableCommand result = createSourceFactory.createTableCommand(outputNode);
+
+    // Then:
+    assertThat(result.getSourceName(), is(SOME_NAME));
+    assertThat(result.getSchema(), is(EXPECTED_SCHEMA));
+    assertThat(result.getTimestampColumn(), is(Optional.of(TIMESTAMP_COLUMN)));
+    assertThat(result.getTopicName(), is(TOPIC_NAME));
+    assertThat(result.getFormats(), is(Formats.from(ksqlTopic)));
+    assertThat(result.getWindowInfo(), is(Optional.empty()));
+    assertThat(result.isOrReplace(), is(false));
   }
 
   @Test

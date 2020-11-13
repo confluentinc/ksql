@@ -197,7 +197,8 @@ public class LogicalPlanner {
         existingTopic,
         analysis.getLimitClause(),
         into.isCreate(),
-        into.getName()
+        into.getName(),
+        analysis.getOrReplace()
     );
   }
 

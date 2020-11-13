@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.function.udaf.array;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 
 @UdafDescription(
@@ -30,7 +32,8 @@ import java.util.List;
         + " any further values will be silently ignored.")
 public final class CollectListUdaf {
 
-  private static final int LIMIT = 1000;
+  @VisibleForTesting
+  static final int LIMIT = 1000;
 
   private CollectListUdaf() {
     // just to make the checkstyle happy
@@ -61,7 +64,15 @@ public final class CollectListUdaf {
 
       @Override
       public List<T> undo(final T valueToUndo, final List<T> aggregateValue) {
-        aggregateValue.remove(aggregateValue.lastIndexOf(valueToUndo));
+        // A more ideal solution would remove the value which corresponded to the original insertion
+        // but keeping track of that is more complex so we just remove the last value for now.
+        final int lastIndex = aggregateValue.lastIndexOf(valueToUndo);
+        // If we cannot find the value, that means that we hit the limit and never inserted it, so
+        // just return.
+        if (lastIndex < 0) {
+          return aggregateValue;
+        }
+        aggregateValue.remove(lastIndex);
         return aggregateValue;
       }
     };

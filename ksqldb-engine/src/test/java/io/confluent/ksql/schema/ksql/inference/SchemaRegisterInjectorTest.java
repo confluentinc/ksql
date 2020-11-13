@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -34,9 +35,11 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -47,8 +50,6 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -61,9 +62,9 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.util.Optional;
 import org.apache.avro.Schema;
@@ -105,17 +106,15 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private KsqlExecutionContext executionSandbox;
   @Mock
-  private PersistentQueryMetadata queryMetadata;
-  @Mock
-  private PhysicalSchema physicalSchema;
-  @Mock
   private SerdeFeatures keyFeatures;
-  @Mock
-  private PersistenceSchema keySchema;
   @Mock
   private SerdeFeatures valFeatures;
   @Mock
-  private PersistenceSchema valSchema;
+  private KsqlPlan ksqlPlan;
+  @Mock
+  private CreateSourceCommand ddlCommand;
+  @Mock
+  private Formats formats;
 
   private final KsqlParser parser = new DefaultKsqlParser();
 
@@ -140,18 +139,14 @@ public class SchemaRegisterInjectorTest {
 
     when(keyFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
 
-    when(queryMetadata.getLogicalSchema()).thenReturn(SCHEMA);
-    when(queryMetadata.getResultTopic()).thenReturn(new KsqlTopic(
-        "SINK",
-        KeyFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), keyFeatures, Optional.empty()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), valFeatures)
-    ));
-    when(queryMetadata.getPhysicalSchema()).thenReturn(physicalSchema);
+    when(ddlCommand.getSchema()).thenReturn(SCHEMA);
+    when(ddlCommand.getTopicName()).thenReturn("SINK");
+    when(ddlCommand.getFormats()).thenReturn(formats);
 
-    when(physicalSchema.keySchema()).thenReturn(keySchema);
-    when(keySchema.features()).thenReturn(keyFeatures);
-    when(physicalSchema.valueSchema()).thenReturn(valSchema);
-    when(valSchema.features()).thenReturn(valFeatures);
+    when(formats.getKeyFormat()).thenReturn(FormatInfo.of(FormatFactory.AVRO.name()));
+    when(formats.getKeyFeatures()).thenReturn(keyFeatures);
+    when(formats.getValueFormat()).thenReturn(FormatInfo.of(FormatFactory.AVRO.name()));
+    when(formats.getValueFeatures()).thenReturn(valFeatures);
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
@@ -263,10 +258,10 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldPropagateErrorOnFailureToExecuteQuery() {
+  public void shouldPropagateErrorOnFailureToPlanQuery() {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
-    when(executionSandbox.execute(any(), eq(statement))).thenReturn(ExecuteResult.of("fail!"));
+    doThrow(new KsqlException("fail!")).when(executionSandbox).plan(any(), eq(statement));
 
     // When:
     final Exception e = assertThrows(
@@ -276,7 +271,7 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Could not determine output schema for query due to error: Optional[fail!]"));
+        "Could not determine output schema for query due to error: fail!"));
   }
 
   @Test
@@ -299,7 +294,7 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldNotExecuteQueryOnOriginalExecutionContext() {
+  public void shouldNotPlanQueryOnOriginalExecutionContext() {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
 
@@ -307,8 +302,9 @@ public class SchemaRegisterInjectorTest {
     injector.inject(statement);
 
     // Then:
-    verify(executionContext, Mockito.never()).execute(any(), any(ConfiguredStatement.class));
-    verify(executionSandbox, Mockito.times(1)).execute(any(), any(ConfiguredStatement.class));
+    verify(executionContext, Mockito.never()).plan(any(), any(ConfiguredStatement.class));
+    verify(executionSandbox, Mockito.times(1))
+        .plan(any(), any(ConfiguredStatement.class));
   }
 
   @Test
@@ -353,7 +349,9 @@ public class SchemaRegisterInjectorTest {
         preparedStatement,
         SessionConfig.of(config, ImmutableMap.of())
     );
-    when(executionSandbox.execute(any(), eq(statement)))
-        .thenReturn(ExecuteResult.of(queryMetadata));
+    when(executionSandbox.plan(any(), eq(statement)))
+        .thenReturn(ksqlPlan);
+    when(ksqlPlan.getDdlCommand())
+        .thenReturn(Optional.of(ddlCommand));
   }
 }

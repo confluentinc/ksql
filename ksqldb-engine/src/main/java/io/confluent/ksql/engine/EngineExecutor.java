@@ -110,7 +110,9 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan) {
-    if (!plan.getQueryPlan().isPresent()) {
+    final Optional<QueryPlan> queryPlan = plan.getQueryPlan();
+
+    if (!queryPlan.isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
           .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet()))
@@ -120,12 +122,16 @@ final class EngineExecutor {
       return ExecuteResult.of(ddlResult);
     }
 
-    final QueryPlan queryPlan = plan.getQueryPlan().get();
-    plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
+    final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.get().getSources()));
+
+    // Return if the source to create already exists.
+    if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
+      return ExecuteResult.of(ddlResult.get());
+    }
 
     return ExecuteResult.of(executePersistentQuery(
-        queryPlan,
+        queryPlan.get(),
         plan.getStatementText(),
         plan.getDdlCommand().isPresent())
     );

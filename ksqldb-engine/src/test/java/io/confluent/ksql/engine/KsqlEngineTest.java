@@ -1284,12 +1284,9 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    // Ideally, the result should be a message the the stream already exists, but in this case
-    // it returns the same Query ID that it was created by the first stream. Some code refactoring
-    // is needed in EngineExecutor.execute() and other places to validate the cases when a
-    // CREATE IF NOT EXISTS return a warning message only, and not an error. For now, this is a
-    // temporary solution.
-    assertThat(executeResult.getQuery(), is(not(Optional.empty())));
+    assertThat(executeResult.getQuery(), is(Optional.empty()));
+    assertThat(executeResult.getCommandResult(),
+        is(Optional.of("Cannot add table `FOO`: A table with the same name already exists.")));
   }
 
   @Test
@@ -1369,12 +1366,9 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    // Ideally, the result should be a message the the stream already exists, but in this case
-    // it returns the same Query ID that it was created by the first stream. Some code refactoring
-    // is needed in EngineExecutor.execute() and other places to validate the cases when a
-    // CREATE IF NOT EXISTS return a warning message only, and not an error. For now, this is a
-    // temporary solution.
-    assertThat(executeResult.getQuery(), is(not(Optional.empty())));
+    assertThat(executeResult.getQuery(), is(Optional.empty()));
+    assertThat(executeResult.getCommandResult(),
+        is(Optional.of("Cannot add stream `FOO`: A stream with the same name already exists.")));
   }
 
   @Test

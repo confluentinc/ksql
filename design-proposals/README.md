@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **40**
+Next KLIP number: **41**
 
 | KLIP                                                                                                 | Status         | Community Release | CP Release | Discussion PR |
 |------------------------------------------------------------------------------------------------------|:--------------:|:-----------------:|:----------:|:--------------|
@@ -81,3 +81,4 @@ Next KLIP number: **40**
 | KLIP-37: System Tables                                                                               | Proposal | | | |
 | KLIP-38: Variable Substitution                                                                       | Proposal | | | |
 | KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |
+| KLIP-41: ksqlDB .NET Client                                                                          | Proposal | | | |

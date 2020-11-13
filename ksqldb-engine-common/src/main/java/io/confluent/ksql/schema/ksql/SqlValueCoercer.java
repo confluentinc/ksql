@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * Coerces values to {@link SqlBaseType SQL types}.
+ * Coerces values to {@link SqlType SQL types}.
  */
 public interface SqlValueCoercer {
 

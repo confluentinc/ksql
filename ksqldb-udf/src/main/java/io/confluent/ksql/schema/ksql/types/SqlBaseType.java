@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import java.util.Arrays;
+import java.util.stream.Stream;
+
 /**
  * The SQL types supported by KSQL.
  */
@@ -40,5 +43,10 @@ public enum SqlBaseType {
   public boolean canImplicitlyCast(final SqlBaseType to) {
     return this.equals(to)
         || (isNumber() && to.isNumber() && this.ordinal() <= to.ordinal());
+  }
+
+  public static Stream<SqlBaseType> numbers() {
+    return Arrays.stream(values())
+        .filter(SqlBaseType::isNumber);
   }
 }

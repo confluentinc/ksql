@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static io.confluent.ksql.util.ParserUtil.isQuoted;
 import static io.confluent.ksql.util.ParserUtil.sanitize;
 import static io.confluent.ksql.util.ParserUtil.unquote;

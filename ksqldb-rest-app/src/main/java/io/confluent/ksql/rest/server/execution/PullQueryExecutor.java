@@ -801,7 +801,7 @@ public final class PullQueryExecutor {
 
     final Column keyColumn = schema.key().get(0);
 
-    return DefaultSqlValueCoercer.INSTANCE.coerce(right, keyColumn.type())
+    return DefaultSqlValueCoercer.STRICT.coerce(right, keyColumn.type())
         .orElseThrow(() -> new KsqlException("'" + right + "' can not be converted "
             + "to the type of the key column: " + keyColumn.toString(FormatOptions.noEscape())))
         .orElse(null);

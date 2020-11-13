@@ -594,4 +594,92 @@ public class DecimalUtilTest {
     // Then:
     assertThat(compatible, is(false));
   }
+
+  @Test
+  public void shouldWidenDecimalAndDecimal() {
+    assertThat(
+        "first contained",
+        DecimalUtil.widen(
+            SqlTypes.decimal(1, 0),
+            SqlTypes.decimal(14, 3)
+        ),
+        is(SqlTypes.decimal(14, 3))
+    );
+
+    assertThat(
+        "second contained",
+        DecimalUtil.widen(
+            SqlTypes.decimal(14, 3),
+            SqlTypes.decimal(1, 0)
+        ),
+        is(SqlTypes.decimal(14, 3))
+    );
+
+    assertThat(
+        "fractional",
+        DecimalUtil.widen(
+            SqlTypes.decimal(14, 14),
+            SqlTypes.decimal(1, 1)
+        ),
+        is(SqlTypes.decimal(14, 14))
+    );
+
+    assertThat(
+        "overlap",
+        DecimalUtil.widen(
+            SqlTypes.decimal(14, 4),
+            SqlTypes.decimal(14, 5)
+        ),
+        is(SqlTypes.decimal(15, 5))
+    );
+  }
+
+  @Test
+  public void shouldWidenIntAndLong() {
+    assertThat(
+        DecimalUtil.widen(SqlTypes.BIGINT, SqlTypes.INTEGER),
+        is(SqlTypes.BIGINT_UPCAST_TO_DECIMAL)
+    );
+
+    assertThat(
+        DecimalUtil.widen(SqlTypes.INTEGER, SqlTypes.BIGINT),
+        is(SqlTypes.BIGINT_UPCAST_TO_DECIMAL)
+    );
+  }
+
+  @Test
+  public void shouldWidenIntAndDecimal() {
+    // Given:
+    final SqlDecimal smallerPrecision = SqlTypes.decimal(4, 3);
+    final SqlDecimal largerPrecision = SqlTypes.decimal(11, 0);
+
+    // Then:
+    assertThat(
+        DecimalUtil.widen(smallerPrecision, SqlTypes.INTEGER),
+        is(SqlTypes.decimal(13, 3))
+    );
+
+    assertThat(
+        DecimalUtil.widen(SqlTypes.INTEGER, largerPrecision),
+        is(SqlTypes.decimal(11, 0))
+    );
+  }
+
+  @Test
+  public void shouldWidenBigIntAndDecimal() {
+    // Given:
+    final SqlDecimal smallerPrecision = SqlTypes.decimal(14, 3);
+    final SqlDecimal largerPrecision = SqlTypes.decimal(20, 0);
+
+    // Then:
+    assertThat(
+        DecimalUtil.widen(smallerPrecision, SqlTypes.BIGINT),
+        is(SqlTypes.decimal(22, 3))
+    );
+
+    assertThat(
+        DecimalUtil.widen(SqlTypes.BIGINT, largerPrecision),
+        is(SqlTypes.decimal(20, 0))
+    );
+  }
 }

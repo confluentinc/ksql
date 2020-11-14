@@ -207,7 +207,13 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleWebsocket);
 
-    return router;
+    // Install handlers that should always come before/after the main request handling
+    final Router filterRouter = Router.router(vertx);
+    LoggingHandler loggingHandler = new LoggingHandler(server);
+    filterRouter.route().handler(loggingHandler::logRequestBegin);
+    filterRouter.mountSubRouter("/", router);
+    filterRouter.route().handler(loggingHandler::logRequestEnd);
+    return filterRouter;
   }
 
   private void handleKsqlRequest(final RoutingContext routingContext) {

@@ -319,6 +319,11 @@ public class KsqlRestConfig extends AbstractConfig {
       "The key store certificate alias to be used for internal client requests. If not set, "
           + "the system will fall back on the Vert.x default choice";
 
+  public static final String KSQL_LOGGING_SKIP_RESPONSE_CODES_CONFIG =
+      KSQL_CONFIG_PREFIX + "logging.skip.response.codes";
+  private static final String KSQL_LOGGING_SKIP_RESPONSE_CODES_DOC =
+      "A list of response codes to skip logging";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -605,6 +610,12 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_AUTHENTICATION_PLUGIN_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_AUTHENTICATION_PLUGIN_DOC
+        ).define(
+            KSQL_LOGGING_SKIP_RESPONSE_CODES_CONFIG,
+            Type.LIST,
+            "",
+            ConfigDef.Importance.LOW,
+            KSQL_LOGGING_SKIP_RESPONSE_CODES_DOC
         );
   }
 

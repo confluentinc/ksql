@@ -77,12 +77,16 @@ public final class OldApiUtils {
     completableFuture.thenAccept(endpointResponse -> {
       handleOldApiResponse(
           server, routingContext, endpointResponse, pullQueryMetrics, startTimeNanos);
+      // Logging is handled next, so continue.
+      routingContext.next();
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
       handleOldApiResponse(
           server, routingContext, mapException(t), pullQueryMetrics, startTimeNanos);
+      // Logging is handled next, so continue.
+      routingContext.next();
       return null;
     });
   }

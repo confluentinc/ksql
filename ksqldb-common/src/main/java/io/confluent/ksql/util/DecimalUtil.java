@@ -248,7 +248,7 @@ public final class DecimalUtil {
     }
 
     validateParameters(precision, scale);
-    final BigDecimal decimal = new BigDecimal(value);
+    final BigDecimal decimal = new BigDecimal(value.trim());
     ensureMax(decimal, precision, scale);
     return decimal.setScale(scale, RoundingMode.HALF_UP);
   }
@@ -277,5 +277,28 @@ public final class DecimalUtil {
       return SqlTypes.decimal(value.scale() + 1, value.scale());
     }
     return SqlTypes.decimal(value.precision(), value.scale());
+  }
+
+  /**
+   * Return a {@link SqlDecimal} wide enough to hold either the {@code t0} or {@code t1} types.
+   *
+   * <p>Both sides must support implicit casting to {@link SqlDecimal}.
+   *
+   * @param t0 the first type
+   * @param t1 the second type
+   * @return a type wide enough to hold either type.
+   */
+  public static SqlDecimal widen(final SqlType t0, final SqlType t1) {
+    final SqlDecimal lDecimal = DecimalUtil.toSqlDecimal(t0);
+    final SqlDecimal rDecimal = DecimalUtil.toSqlDecimal(t1);
+
+    final int wholePrecision = Math.max(
+        lDecimal.getPrecision() - lDecimal.getScale(),
+        rDecimal.getPrecision() - rDecimal.getScale()
+    );
+
+    final int scale = Math.max(lDecimal.getScale(), rDecimal.getScale());
+
+    return SqlTypes.decimal(wholePrecision + scale, scale);
   }
 }

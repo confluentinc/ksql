@@ -397,7 +397,7 @@ Match a string with the specified pattern.
 ```sql hl_lines="3"
   SELECT select_expr [., ...]
     FROM from_stream | from_table
-    WHERE condition LIKE pattern_string;
+    WHERE exp LIKE pattern_string;
 ```
 
 The LIKE operator is used for prefix or suffix matching. ksqlDB supports
@@ -414,7 +414,7 @@ SELECT user_id
 ```
 
 ## IN
-Specifies multiple `OR` conditions. This is currently only supported for Pull Queries.
+Specifies multiple `OR` conditions.
 
 ```sql hl_lines"3"
   SELECT select_expr [., ...]

@@ -54,8 +54,6 @@ The IN operator enables specifying multiple values in a `WHERE` clause.
 
 It provides the equivalent of multiple `OR` conditions.
 
-Currently, this is only supported for Pull Queries.
-
 ```sql
 SELECT * FROM USERS WHERE USERID IN (1543, 6256, 87569);
 ```
@@ -97,4 +95,3 @@ SELECT USERID, USERS.ADDRESS->STREET, U.ADDRESS->STREET FROM USERS U EMIT CHANGE
 ```
 
 For more information on nested data, see [STRUCT](../syntax-reference.md#struct).
-

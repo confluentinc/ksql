@@ -27,6 +27,7 @@ import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
+import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.LikeEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
 import io.confluent.ksql.execution.codegen.helpers.NullSafe;
@@ -81,6 +82,8 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlBooleans;
+import io.confluent.ksql.schema.ksql.SqlDoubles;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -136,7 +139,10 @@ public class SqlToJavaVisitor {
       CastEvaluator.class.getCanonicalName(),
       NullSafe.class.getCanonicalName(),
       SqlTypes.class.getCanonicalName(),
-      SchemaConverters.class.getCanonicalName()
+      SchemaConverters.class.getCanonicalName(),
+      InListEvaluator.class.getCanonicalName(),
+      SqlDoubles.class.getCanonicalName(),
+      SqlBooleans.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -214,7 +220,6 @@ public class SqlToJavaVisitor {
     return expressionFormatterResult.getLeft();
   }
 
-
   private class Formatter implements ExpressionVisitor<Pair<String, SqlType>, Void> {
 
     private final FunctionRegistry functionRegistry;
@@ -253,7 +258,20 @@ public class SqlToJavaVisitor {
         final InPredicate inPredicate,
         final Void context
     ) {
-      return visitUnsupported(inPredicate);
+      final InPredicate preprocessed = InListEvaluator
+          .preprocess(inPredicate, expressionTypeManager);
+
+      final Pair<String, SqlType> value = process(preprocessed.getValue(), context);
+
+      final String values = preprocessed.getValueList().getValues().stream()
+          .map(v -> process(v, context))
+          .map(Pair::getLeft)
+          .collect(Collectors.joining(","));
+
+      return new Pair<>(
+          "InListEvaluator.matches(" + value.getLeft() + "," + values + ")",
+          SqlTypes.BOOLEAN
+      );
     }
 
     @Override

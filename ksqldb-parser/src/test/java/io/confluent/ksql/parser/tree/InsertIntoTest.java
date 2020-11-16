@@ -25,11 +25,8 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
-import java.util.Optional;
-
 import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
-import io.confluent.ksql.properties.with.InsertIntoConfigs;
-import io.confluent.ksql.query.QueryId;
+import java.util.Optional;
 import org.junit.Test;
 
 public class InsertIntoTest {

@@ -23,7 +23,6 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;

@@ -821,7 +821,7 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldThrowOnIn() {
+  public void shouldGenerateCorrectCodeForInPredicate() {
     // Given:
     final Expression expression = new InPredicate(
         COL0,
@@ -829,10 +829,10 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> sqlToJavaVisitor.process(expression)
-    );
+    final String java = sqlToJavaVisitor.process(expression);
+
+    // Then:
+    assertThat(java, is("InListEvaluator.matches(COL0,1L,2L)"));
   }
 
   @Test

@@ -21,8 +21,6 @@ import io.confluent.ksql.model.WindowType;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
-import io.confluent.ksql.name.SourceName;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

@@ -71,7 +71,6 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -354,31 +353,14 @@ public class ExpressionTypeManager {
                 + "(see https://github.com/confluentinc/ksql/issues/4239).");
       }
 
-      final List<SqlType> sqlTypes = exp
-          .getValues()
-          .stream()
-          .map(val -> {
-            process(val, context);
-            return context.getSqlType();
-          })
-          .filter(Objects::nonNull)
-          .collect(Collectors.toList());
+      final SqlType elementType = CoercionUtil
+          .coerceUserList(exp.getValues(), ExpressionTypeManager.this)
+          .commonType()
+          .orElseThrow(() -> new KsqlException("Cannot construct an array with all NULL elements "
+              + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
+              + "cast a NULL value to the desired type."));
 
-      if (sqlTypes.size() == 0) {
-        throw new KsqlException("Cannot construct an array with all NULL elements "
-            + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
-            + "cast a NULL value to the desired type.");
-      }
-
-      if (new HashSet<>(sqlTypes).size() != 1) {
-        throw new KsqlException(
-            String.format(
-                "Cannot construct an array with mismatching types (%s) from expression %s.",
-                sqlTypes,
-                exp));
-      }
-
-      context.setSqlType(SqlArray.of(sqlTypes.get(0)));
+      context.setSqlType(SqlArray.of(elementType));
       return null;
     }
 

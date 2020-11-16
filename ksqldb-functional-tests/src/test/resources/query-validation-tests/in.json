@@ -369,16 +369,19 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (true, 10, '10.1', 10.30, VAL1);"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"VAL0": "10", "VAL1": null}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}}
+        {"topic": "input_topic", "value": {"VAL0": "true"}},
+        {"topic": "input_topic", "value": {"VAL0": "10"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.1"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.3"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.30"}},
+        {"topic": "input_topic", "value": {"VAL0": "hello", "VAL1": "hello"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"VAL0": "10", "VAL1": null}}
+        {"topic": "OUTPUT", "value": {"VAL0": "true", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10.1", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10.30", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "hello", "VAL1": "hello"}}
       ]
     },
     {

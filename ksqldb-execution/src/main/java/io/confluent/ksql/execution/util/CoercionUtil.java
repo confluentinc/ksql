@@ -92,31 +92,55 @@ public final class CoercionUtil {
    * <p>Any non-literal expressions that don't match the common type, but which can be coerced, will
    * be wrapped in an explicit {@code CAST} to convert them to the required type.
    */
-  public static List<Expression> coerceUserList(
+  public static Result coerceUserList(
       final List<Expression> expressions,
       final ExpressionTypeManager typeManager
   ) {
     return new UserListCoercer(typeManager).coerce(expressions);
   }
 
+  public static final class Result {
+
+    private final Optional<SqlType> commonType;
+    private final List<Expression> expressions;
+
+
+    public Result(
+        final Optional<SqlType> commonType,
+        final List<Expression> expressions
+    ) {
+      this.commonType = requireNonNull(commonType, "commonType");
+      this.expressions = requireNonNull(expressions, "expressions");
+    }
+
+    public Optional<SqlType> commonType() {
+      return commonType;
+    }
+
+    public List<Expression> expressions() {
+      return expressions;
+    }
+  }
+
   private static final class UserListCoercer {
-    
+
     private final ExpressionTypeManager typeManager;
 
     UserListCoercer(final ExpressionTypeManager typeManager) {
       this.typeManager = requireNonNull(typeManager, "typeManager");
     }
 
-    List<Expression> coerce(final List<Expression> expressions) {
+    Result coerce(final List<Expression> expressions) {
       final List<TypedExpression> typedExpressions = typedExpressions(expressions);
 
       final Optional<SqlType> commonType = resolveCommonType(typedExpressions);
       if (!commonType.isPresent()) {
         // No elements or only null literal elements:
-        return ImmutableList.copyOf(expressions);
+        return new Result(commonType, expressions);
       }
 
-      return convertToCommonType(typedExpressions, commonType.get());
+      final List<Expression> converted = convertToCommonType(typedExpressions, commonType.get());
+      return new Result(commonType, converted);
     }
 
     private List<TypedExpression> typedExpressions(final Collection<Expression> expressions) {
@@ -307,12 +331,48 @@ public final class CoercionUtil {
         final String value, 
         final SqlType targetType
     ) {
+      Preconditions.checkArgument(targetType.baseType().isNumber());
+
       try {
-        final BigDecimal result = new BigDecimal(value.trim());
-        return Optional.of(resolveCommonNumericType(result, targetType));
+        final SqlType sourceType = getStringNumericType(value);
+
+        if (sourceType.baseType() == SqlBaseType.DOUBLE
+            || targetType.baseType() == SqlBaseType.DOUBLE
+        ) {
+          return Optional.of(SqlTypes.DOUBLE);
+        }
+
+        if (sourceType.baseType() == SqlBaseType.DECIMAL
+            || targetType.baseType() == SqlBaseType.DECIMAL
+        ) {
+          return Optional.of(DecimalUtil.widen(sourceType, targetType));
+        }
+
+        return Optional.of(sourceType.baseType().canImplicitlyCast(targetType.baseType())
+            ? targetType
+            : sourceType);
       } catch (final NumberFormatException e) {
         throw invalidSyntaxException(value, targetType);
       }
+    }
+
+    private static SqlType getStringNumericType(final String value) {
+      final BigDecimal result = new BigDecimal(value.trim());
+
+      final boolean containsDpOrScientific = value.contains(".")
+          || value.contains("e")
+          || value.contains("E");
+
+      if (!containsDpOrScientific && result.scale() == 0) {
+        final BigInteger bi = result.toBigIntegerExact();
+        if (0 < bi.compareTo(INT_MIN) && bi.compareTo(INT_MAX) < 0) {
+          return SqlTypes.INTEGER;
+        } else if (0 < bi.compareTo(BIGINT_MIN) && bi.compareTo(BIGINT_MAX) < 0) {
+          return SqlTypes.BIGINT;
+        }
+      }
+
+      return DecimalUtil.fromValue(result);
     }
 
     private static Optional<SqlType> resolveCommonSimpleType(
@@ -336,37 +396,6 @@ public final class CoercionUtil {
       }
 
       throw coercionFailureException(exp.expression(), sourceType, targetType, Optional.empty());
-    }
-
-    private static SqlType resolveCommonNumericType(
-        final BigDecimal value,
-        final SqlType commonType
-    ) {
-      Preconditions.checkArgument(commonType.baseType().isNumber());
-
-      final SqlType sourceType;
-      if (value.scale() > 0) {
-        sourceType = SqlTypes.decimal(value.precision(), value.scale());
-      } else {
-        final BigInteger bi = value.toBigIntegerExact();
-        if (0 < bi.compareTo(INT_MIN) && bi.compareTo(INT_MAX) < 0) {
-          sourceType = SqlTypes.INTEGER;
-        } else if (0 < bi.compareTo(BIGINT_MIN) && bi.compareTo(BIGINT_MAX) < 0) {
-          sourceType = SqlTypes.BIGINT;
-        } else {
-          sourceType = SqlTypes.decimal(value.precision(), value.scale());
-        }
-      }
-
-      if (sourceType.baseType() != SqlBaseType.DECIMAL
-          || commonType.baseType() != SqlBaseType.DECIMAL
-      ) {
-        return sourceType.baseType().canImplicitlyCast(commonType.baseType())
-            ? commonType
-            : sourceType;
-      }
-
-      return DecimalUtil.widen(sourceType, commonType);
     }
 
     private static List<Expression> convertToCommonType(

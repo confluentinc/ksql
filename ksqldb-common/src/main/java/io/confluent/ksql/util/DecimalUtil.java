@@ -268,15 +268,18 @@ public final class DecimalUtil {
   }
 
   public static SqlType fromValue(final BigDecimal value) {
-    final BigDecimal bigDecimalZero = BigDecimal.ZERO;
+    // SqlDecimal does not support negative scale:
+    final BigDecimal decimal = value.scale() < 0
+        ? value.setScale(0, BigDecimal.ROUND_UNNECESSARY)
+        : value;
 
     /* When a BigDecimal has value 0, the built-in method precision() always returns 1. To account
     for this edge case, we just take the scale and add one and use that for the precision instead.
     */
-    if (value.compareTo(bigDecimalZero) == 0) {
-      return SqlTypes.decimal(value.scale() + 1, value.scale());
+    if (decimal.compareTo(BigDecimal.ZERO) == 0) {
+      return SqlTypes.decimal(decimal.scale() + 1, decimal.scale());
     }
-    return SqlTypes.decimal(value.precision(), value.scale());
+    return SqlTypes.decimal(decimal.precision(), Math.max(decimal.scale(), 0));
   }
 
   /**

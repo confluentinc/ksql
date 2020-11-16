@@ -68,6 +68,7 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.execution.util.CoercionUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.GenericsUtil;
@@ -873,11 +874,15 @@ public class SqlToJavaVisitor {
         final CreateArrayExpression exp,
         final Void context
     ) {
+      final List<Expression> expressions = CoercionUtil
+          .coerceUserList(exp.getValues(), expressionTypeManager)
+          .expressions();
+
       final StringBuilder array = new StringBuilder("new ArrayBuilder(");
-      array.append(exp.getValues().size());
+      array.append(expressions.size());
       array.append((')'));
 
-      for (Expression value : exp.getValues()) {
+      for (Expression value : expressions) {
         array.append(".add(");
         array.append(process(value, context).getLeft());
         array.append(")");

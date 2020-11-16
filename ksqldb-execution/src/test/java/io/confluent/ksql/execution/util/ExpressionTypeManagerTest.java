@@ -432,7 +432,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot construct an array with mismatching types"));
+        "invalid input syntax for type BIGINT: \"foo\"."));
   }
 
   @Test

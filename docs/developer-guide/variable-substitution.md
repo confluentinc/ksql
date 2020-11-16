@@ -86,6 +86,16 @@ ksqlDB doesn't add single-quotes to values during variable substitution. Also, y
 !!! note
     Variables are case-insensitive. A reference to `${replicas}` is the same as `${REPLICAS}`.
 
+Escape substitution variables
+-----------------------------
+
+If you want to escape a variable reference, so it is not substituted, then use double `$$` characters.
+```
+DEFINE format = 'AVRO';
+SELECT '$${format}' FROM stream;
+```
+The above query will become `SELECT '${format}' FROM stream`
+
 Context for substitution variables
 ----------------------------------
 

@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **41**
+Next KLIP number: **42**
 
 | KLIP                                                                                                 | Status         | Community Release | CP Release | Discussion PR |
 |------------------------------------------------------------------------------------------------------|:--------------:|:-----------------:|:----------:|:--------------|

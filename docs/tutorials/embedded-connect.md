@@ -142,7 +142,7 @@ is via [Confluent Hub Client](https://docs.confluent.io/current/connect/managing
 To download the JDBC connector, use the following command, ensuring that the `confluent-hub-components` directory exists first:
 
 ```bash
-confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
+confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-jdbc:{{ site.jdbc_connector_version }}
 ```
 This command downloads the JDBC connector into the directory `./confluent-hub-components`.
 

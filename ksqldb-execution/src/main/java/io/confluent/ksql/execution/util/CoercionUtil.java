@@ -91,9 +91,18 @@ public final class CoercionUtil {
    *
    * <p>Any non-literal expressions that don't match the common type, but which can be coerced, will
    * be wrapped in an explicit {@code CAST} to convert them to the required type.
+   *
+   * <p>Coercion is performed in order. So the type type of the first non-null expression drives the
+   * common type. For example, if the first non-null expression is a string, then all other
+   * expressions must be coercible to a string. If its numeric, then all other expressions must be
+   * coercible to a number, etc.
+   *
+   * @param expressions the expressions to coerce: the order matters!
+   * @param typeManager the type manager used to resolve expression types.
+   * @return the coercion result.
    */
   public static Result coerceUserList(
-      final List<Expression> expressions,
+      final Collection<Expression> expressions,
       final ExpressionTypeManager typeManager
   ) {
     return new UserListCoercer(typeManager).coerce(expressions);
@@ -130,13 +139,13 @@ public final class CoercionUtil {
       this.typeManager = requireNonNull(typeManager, "typeManager");
     }
 
-    Result coerce(final List<Expression> expressions) {
+    Result coerce(final Collection<Expression> expressions) {
       final List<TypedExpression> typedExpressions = typedExpressions(expressions);
 
       final Optional<SqlType> commonType = resolveCommonType(typedExpressions);
       if (!commonType.isPresent()) {
         // No elements or only null literal elements:
-        return new Result(commonType, expressions);
+        return new Result(commonType, ImmutableList.copyOf(expressions));
       }
 
       final List<Expression> converted = convertToCommonType(typedExpressions, commonType.get());

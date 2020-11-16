@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -369,50 +370,27 @@ public class ExpressionTypeManager {
         final CreateMapExpression exp,
         final ExpressionTypeContext context
     ) {
-      if (exp.getMap().isEmpty()) {
+      final ImmutableMap<Expression, Expression> map = exp.getMap();
+      if (map.isEmpty()) {
         throw new KsqlException("Map constructor cannot be empty. Please supply at least one key "
             + "value pair (see https://github.com/confluentinc/ksql/issues/4239).");
       }
 
-      final List<SqlType> keyTypes = exp.getMap()
-          .keySet()
-          .stream()
-          .map(key -> {
-            process(key, context);
-            return context.getSqlType();
-          })
-          .collect(Collectors.toList());
+      final SqlType keyType = CoercionUtil
+          .coerceUserList(map.keySet(), ExpressionTypeManager.this)
+          .commonType()
+          .orElseThrow(() -> new KsqlException("Cannot construct a map with all NULL keys "
+              + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
+              + "cast a NULL key to the desired type."));
 
-      if (keyTypes.stream().anyMatch(Objects::isNull)) {
-        throw new KsqlException("Map keys can not be NULL");
-      }
+      final SqlType valueType = CoercionUtil
+          .coerceUserList(map.values(), ExpressionTypeManager.this)
+          .commonType()
+          .orElseThrow(() -> new KsqlException("Cannot construct a map with all NULL values "
+              + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
+              + "cast a NULL value to the desired type."));
 
-      final List<SqlType> valueTypes = exp.getMap()
-          .values()
-          .stream()
-          .map(val -> {
-            process(val, context);
-            return context.getSqlType();
-          })
-          .filter(Objects::nonNull)
-          .distinct()
-          .collect(Collectors.toList());
-
-      if (valueTypes.size() == 0) {
-        throw new KsqlException("Cannot construct a map with all NULL values "
-            + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
-            + "cast a NULL value to the desired type.");
-      }
-
-      if (valueTypes.size() != 1) {
-        throw new KsqlException(
-            String.format(
-                "Cannot construct a map with mismatching value types (%s) from expression %s.",
-                valueTypes,
-                exp));
-      }
-
-      context.setSqlType(SqlMap.of(keyTypes.get(0), valueTypes.get(0)));
+      context.setSqlType(SqlMap.of(keyType, valueType));
       return null;
     }
 

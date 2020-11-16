@@ -36,14 +36,29 @@
       ]
     },
     {
-      "name": "create map from named tuples mismatching types",
+      "name": "create map from named tuples compatible mismatching types",
+      "statements": [
+        "CREATE STREAM TEST (k1 VARCHAR, k2 VARCHAR, v1 BOOLEAN) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k1:=v1, k2:='true', 10:='no') as M FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"k1": "a", "k2": "b", "v1": true}},
+        {"topic": "test_topic", "value": {"k1": "a", "k2": "b", "v1": false}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"M": {"a": true, "b": true, "10": false}}},
+        {"topic": "OUTPUT", "value": {"M": {"a": false, "b": true, "10": false}}}
+      ]
+    },
+    {
+      "name": "create map from named tuples incompatible mismatching types",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, MAP(k1:=v1, k2:='hello') as M FROM TEST;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot construct a map with mismatching value types ([INTEGER, STRING]) from expression MAP(K1:=V1, K2:='hello')."
+        "message": "invalid input syntax for type INTEGER: \"hello\"."
       }
     },
     {
@@ -71,18 +86,31 @@
       ]
     },
     {
-      "name": "create map from named tuples and null key",
+      "name": "create map from named tuples and all null key",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MAP(null:=v1) as M FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Cannot construct a map with all NULL keys"
+      }
+    },
+    {
+      "name": "create map from named tuples and some null key",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, MAP(k1:=v1, NULL:=v1) as M FROM TEST;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Map keys can not be NULL"
-      }
+      "inputs": [
+        {"topic": "test_topic", "value": {"k1": "foo", "k2": "bar", "v1": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"M": {"foo": 10, "null": 10}}}
+      ]
     },
     {
-      "name": "create map from named tuples and null string key",
+      "name": "create map from named tuples and cast null key",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, k1 VARCHAR, k2 VARCHAR, v1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, MAP(CAST(NULL AS STRING) := v1) as M FROM TEST;"

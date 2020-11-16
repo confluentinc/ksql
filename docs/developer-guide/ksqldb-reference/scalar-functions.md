@@ -214,7 +214,7 @@ ARRAY[exp1, exp2, ...]
 
 Construct an array from a variable number of inputs.
 
-All parameters passed to the array function must be [coercible to a common Sql type][1]. 
+All elements must be [coercible to a common Sql type][1]. 
 
 ### `ARRAY_CONTAINS`
 
@@ -452,6 +452,8 @@ MAP(key VARCHAR := value, ...)
 ```
 
 Construct a map from specific key-value tuples.
+
+All values must be [coercible to a common Sql type][1].
 
 ### `MAP_KEYS`
 

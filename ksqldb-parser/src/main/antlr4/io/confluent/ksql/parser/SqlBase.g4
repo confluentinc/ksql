@@ -343,7 +343,6 @@ identifier
 
 variableName
     : IDENTIFIER
-    | nonReserved
     ;
 
 variableValue

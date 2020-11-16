@@ -471,7 +471,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot construct a map with mismatching value types"));
+        "invalid input syntax for type BIGINT: \"bar\""));
   }
 
   @Test

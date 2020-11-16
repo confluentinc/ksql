@@ -15,17 +15,16 @@
 
 package io.confluent.ksql.parser.properties.with;
 
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.properties.with.InsertIntoConfigs;
-import org.junit.Test;
-
 import java.util.Collections;
 import java.util.Optional;
+import org.junit.Test;
 
 public class InsertIntoPropertiesTest {
   @Test

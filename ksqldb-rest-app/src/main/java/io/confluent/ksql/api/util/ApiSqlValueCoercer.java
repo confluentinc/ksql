@@ -46,7 +46,7 @@ public enum ApiSqlValueCoercer implements SqlValueCoercer {
 
   INSTANCE;
 
-  private static final SqlValueCoercer DEFAULT_COERCER = DefaultSqlValueCoercer.INSTANCE;
+  private static final SqlValueCoercer DEFAULT_COERCER = DefaultSqlValueCoercer.STRICT;
 
   @Override
   public Result coerce(final Object value, final SqlType targetType) {

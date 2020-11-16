@@ -23,7 +23,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
-
 import java.util.Objects;
 import java.util.Optional;
 

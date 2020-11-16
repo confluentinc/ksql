@@ -24,18 +24,25 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.codegen.CodeGenTestUtil;
+import io.confluent.ksql.execution.codegen.CodeGenTestUtil.Evaluator;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercerTest;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercerTest.LaxValueCoercionTest.LaxOnly;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlValueCoercer.Result;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -44,6 +51,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -149,6 +157,55 @@ public class CastEvaluatorTest {
         // Then:
         assertThat("null should return null", result, expected);
       }
+    }
+  }
+
+  @RunWith(MockitoJUnitRunner.class)
+  public static final class DoubleTest {
+
+    @Mock
+    private KsqlConfig config;
+
+    @Test
+    public void shouldNotCastPositiveInfinite() {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.DOUBLE, config);
+      // When:
+      final Exception exception = assertThrows(
+          NumberFormatException.class,
+          () -> evaluator.rawEvaluate("Infinity")
+      );
+
+      // Then:
+      assertThat(exception.getMessage(), containsString("Invalid double value: Infinity"));
+    }
+
+    @Test
+    public void shouldNotCastNegativeInfinite() {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.DOUBLE, config);
+      // When:
+      final Exception exception = assertThrows(
+          NumberFormatException.class,
+          () -> evaluator.rawEvaluate("-Infinity")
+      );
+
+      // Then:
+      assertThat(exception.getMessage(), containsString("Invalid double value: -Infinity"));
+    }
+
+    @Test
+    public void shouldNotCastNaN() {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.DOUBLE, config);
+      // When:
+      final Exception exception = assertThrows(
+          NumberFormatException.class,
+          () -> evaluator.rawEvaluate("NaN")
+      );
+
+      // Then:
+      assertThat(exception.getMessage(), containsString("Invalid double value: NaN"));
     }
   }
 
@@ -402,6 +459,103 @@ public class CastEvaluatorTest {
     }
   }
 
+  @RunWith(Parameterized.class)
+  public static final class CastShouldBeASuperSetOfLaxCoercionTest {
+
+    private final Object value;
+    private final SqlType from;
+    private final SqlType to;
+    private final Object expected;
+    private final KsqlConfig config = mock(KsqlConfig.class);
+
+    @Parameterized.Parameters(name = "{0} coerced to {1} should be {2}")
+    public static Collection<Object[]> testCases() {
+      return DefaultSqlValueCoercerTest.LaxValueCoercionTest.testCases().stream()
+          // Ignore failure cases:
+          .filter(a -> includedTestCase(a[2]))
+          .collect(Collectors.toList());
+    }
+
+    public CastShouldBeASuperSetOfLaxCoercionTest(
+        final Object value,
+        final SqlType to,
+        final Object expected
+    ) {
+      this.value = requireNonNull(value, "value");
+      this.from = fromType(value);
+      this.to = requireNonNull(to, "to");
+      this.expected = LaxOnly.unwrap(expected).value().orElseThrow(IllegalStateException::new);
+    }
+
+    @Test
+    public void shouldCastAnythingThatCanBeCoerced() {
+      // When:
+      final Object result = eval(from, to, config, value);
+
+      // Then:
+      assertThat(result, is(expected));
+    }
+
+    private static SqlType fromType(final Object value) {
+      final SqlBaseType baseType = SchemaConverters.javaToSqlConverter()
+          .toSqlType(value.getClass());
+
+      switch (baseType) {
+        case DECIMAL:
+          final BigDecimal decimal = (BigDecimal) value;
+          return DecimalUtil.fromValue(decimal);
+        case ARRAY:
+          return SqlTypes.array(subType((Collection<?>) value));
+        case MAP:
+          return SqlTypes.map(
+              subType(((Map<?, ?>) value).keySet()),
+              subType(((Map<?, ?>) value).values())
+          );
+        case STRUCT:
+          final Builder builder = SqlTypes.struct();
+          ((Struct) value).schema().fields().forEach(f -> builder.field(
+              f.name(),
+              SchemaConverters.connectToSqlConverter().toSqlType(f.schema())
+          ));
+          return builder.build();
+        default:
+          return TypeInstances.typeInstanceFor(baseType);
+      }
+    }
+
+    private static SqlType subType(final Collection<?> values) {
+      return values.stream()
+          .filter(Objects::nonNull)
+          .findFirst()
+          .map(CastShouldBeASuperSetOfLaxCoercionTest::fromType)
+          .orElse(SqlTypes.INTEGER);
+    }
+
+    private static boolean includedTestCase(final Object expected) {
+      final Result result = LaxOnly.unwrap(expected);
+      if (Result.failure().equals(result)) {
+        return false;
+      }
+
+      final Object value = result.value().orElse(null);
+      if (value instanceof List && ((List<?>) value).isEmpty()) {
+        return false;
+      }
+
+      if (value instanceof Map && ((Map<?, ?>) value).isEmpty()) {
+        return false;
+      }
+
+      if (value instanceof Struct) {
+        final Struct struct = (Struct) value;
+        return !struct.schema().fields().stream()
+            .allMatch(f -> struct.get(f) == null);
+      }
+
+      return true;
+    }
+  }
+
   public static final class MetaTest {
 
     @Test
@@ -422,11 +576,10 @@ public class CastEvaluatorTest {
     }
   }
 
-  private static Object eval(
+  private static Evaluator cookCode(
       final SqlType from,
       final SqlType to,
-      final KsqlConfig config,
-      final Object argument
+      final KsqlConfig config
   ) {
     final String javaCode = CastEvaluator.generateCode(INNER_CODE, from, to, config);
 
@@ -436,7 +589,16 @@ public class CastEvaluatorTest {
     final Class<?> toJavaType = SchemaConverters.sqlToJavaConverter()
         .toJavaType(to);
 
-    return CodeGenTestUtil.cookAndEval(javaCode, toJavaType, INNER_CODE, fromJavaType, argument);
+    return CodeGenTestUtil.cookCode(javaCode, toJavaType, INNER_CODE, fromJavaType);
+  }
+
+  private static Object eval(
+      final SqlType from,
+      final SqlType to,
+      final KsqlConfig config,
+      final Object argument
+  ) {
+    return cookCode(from, to, config).evaluate(argument);
   }
 
   private static void assertUnsupported(
@@ -494,7 +656,7 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.BIGINT, 99L)
         .put(SqlBaseType.DECIMAL, new BigDecimal("12.01"))
         .put(SqlBaseType.DOUBLE, 34.98d)
-        .put(SqlBaseType.STRING, "11")
+        .put(SqlBaseType.STRING, "\t 11 \t")
         .build();
 
     static Object instanceFor(final SqlType type) {

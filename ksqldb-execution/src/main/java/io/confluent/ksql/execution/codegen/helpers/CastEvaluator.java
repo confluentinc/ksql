@@ -83,11 +83,11 @@ public final class CastEvaluator {
       .put(key(DOUBLE, DECIMAL), CastEvaluator::castToDecimal)
       .put(key(DOUBLE, STRING), CastEvaluator::castToString)
       // STRING:
-      .put(key(STRING, BOOLEAN), nonNullSafeCode("Boolean.parseBoolean(%s)"))
-      .put(key(STRING, INTEGER), nonNullSafeCode("Integer.parseInt(%s)"))
-      .put(key(STRING, BIGINT), nonNullSafeCode("Long.parseLong(%s)"))
+      .put(key(STRING, BOOLEAN), nonNullSafeCode("SqlBooleans.parseBoolean(%s.trim())"))
+      .put(key(STRING, INTEGER), nonNullSafeCode("Integer.parseInt(%s.trim())"))
+      .put(key(STRING, BIGINT), nonNullSafeCode("Long.parseLong(%s.trim())"))
       .put(key(STRING, DECIMAL), CastEvaluator::castToDecimal)
-      .put(key(STRING, DOUBLE), nonNullSafeCode("Double.parseDouble(%s)"))
+      .put(key(STRING, DOUBLE), nonNullSafeCode("SqlDoubles.parseDouble(%s.trim())"))
       // ARRAY:
       .put(key(ARRAY, ARRAY), CastEvaluator::castArrayToArray)
       .put(key(ARRAY, STRING), CastEvaluator::castToString)

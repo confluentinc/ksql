@@ -53,7 +53,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.TransientQueryMetadata;
-
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;

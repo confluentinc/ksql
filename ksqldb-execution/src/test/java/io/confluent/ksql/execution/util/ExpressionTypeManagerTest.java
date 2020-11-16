@@ -736,7 +736,7 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldThrowOnIn() {
+  public void shouldReturnBooleanForInPredicate() {
     // Given:
     final Expression expression = new InPredicate(
         TestExpressions.COL0,
@@ -744,10 +744,10 @@ public class ExpressionTypeManagerTest {
     );
 
     // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(expression)
-    );
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(result, is(SqlTypes.BOOLEAN));
   }
 
   @Test

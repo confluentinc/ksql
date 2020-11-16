@@ -112,6 +112,8 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
+    router.route().handler(new LoggingHandler(server));
+
     KsqlCorsHandler.setupCorsHandler(server, router);
 
     // /chc endpoints need to be before server state handler but after CORS handler as they
@@ -207,13 +209,7 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleWebsocket);
 
-    // Install handlers that should always come before/after the main request handling
-    final Router filterRouter = Router.router(vertx);
-    LoggingHandler loggingHandler = new LoggingHandler(server);
-    filterRouter.route().handler(loggingHandler::logRequestBegin);
-    filterRouter.mountSubRouter("/", router);
-    filterRouter.route().handler(loggingHandler::logRequestEnd);
-    return filterRouter;
+    return router;
   }
 
   private void handleKsqlRequest(final RoutingContext routingContext) {

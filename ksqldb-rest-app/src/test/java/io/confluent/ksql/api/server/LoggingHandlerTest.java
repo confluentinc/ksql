@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.net.SocketAddress;
@@ -42,6 +44,8 @@ public class LoggingHandlerTest {
   private SocketAddress socketAddress;
   @Captor
   private ArgumentCaptor<String> logStringCaptor;
+  @Captor
+  private ArgumentCaptor<Handler<AsyncResult<Void>>> endCallback;
 
   private LoggingHandler loggingHandler;
 
@@ -63,11 +67,13 @@ public class LoggingHandlerTest {
     when(request.getHeader(HTTP_HEADER_USER_AGENT)).thenReturn("bot");
     when(socketAddress.host()).thenReturn("123.111.222.333");
     when(request.bytesRead()).thenReturn(3456L);
-    loggingHandler.logRequestEnd(routingContext);
+    loggingHandler.handle(routingContext);
+    verify(routingContext).addEndHandler(endCallback.capture());
+    endCallback.getValue().handle(null);
 
     verify(logger).accept(logStringCaptor.capture());
     assertThat(logStringCaptor.getValue(),
-        is("Request complete - 123.111.222.333: /query status: 200, "
+        is("Request complete - 123.111.222.333 /query status: 200, "
             + "user agent: bot, request body: 3456 bytes, error response: none"));
   }
 
@@ -75,7 +81,9 @@ public class LoggingHandlerTest {
   public void shouldSkipLog() {
     when(response.getStatusCode()).thenReturn(401);
 
-    loggingHandler.logRequestEnd(routingContext);
+    loggingHandler.handle(routingContext);
+    verify(routingContext).addEndHandler(endCallback.capture());
+    endCallback.getValue().handle(null);
 
     verify(logger, never()).accept(any());
   }

@@ -81,4 +81,4 @@ Next KLIP number: **42**
 | KLIP-37: System Tables                                                                               | Proposal | | | |
 | KLIP-38: Variable Substitution                                                                       | Proposal | | | |
 | KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |
-| KLIP-41: ksqlDB .NET Client                                                                          | Proposal | | | |
+| [KLIP-41: ksqlDB .NET Client](klip-41-ksqldb-.net-client.md)                                         | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6613)|

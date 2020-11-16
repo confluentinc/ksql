@@ -227,3 +227,4 @@ extra:
         scalaversion: 2.12
         version: 6.0
         voluble_version: 0.3.1
+        jdbc_connector_version: 10.0.0

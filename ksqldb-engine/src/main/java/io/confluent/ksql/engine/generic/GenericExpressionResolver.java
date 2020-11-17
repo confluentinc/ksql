@@ -40,7 +40,11 @@ import java.util.function.Supplier;
  * Builds a Java object, coerced to the desired type, from an arbitrary SQL
  * expression that does not reference any source data.
  */
-class GenericExpressionResolver {
+public class GenericExpressionResolver {
+
+  // GenericExpressionResolver doesn't accept any column references, so we don't
+  // actually need the schema, but the CodeGenRunner expects on to be passed in
+  private static final LogicalSchema NO_COLUMNS = LogicalSchema.builder().build();
 
   private static final Supplier<String> IGNORED_MSG = () -> "";
   private static final ProcessingLogger THROWING_LOGGER = errorMessage -> {
@@ -49,21 +53,18 @@ class GenericExpressionResolver {
 
   private final SqlType fieldType;
   private final ColumnName fieldName;
-  private final LogicalSchema schema;
   private final SqlValueCoercer sqlValueCoercer = DefaultSqlValueCoercer.STRICT;
   private final FunctionRegistry functionRegistry;
   private final KsqlConfig config;
 
-  GenericExpressionResolver(
+  public GenericExpressionResolver(
       final SqlType fieldType,
       final ColumnName fieldName,
-      final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
       final KsqlConfig config
   ) {
     this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
     this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-    this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.config = Objects.requireNonNull(config, "config");
   }
@@ -80,7 +81,7 @@ class GenericExpressionResolver {
           CodeGenRunner.compileExpression(
               expression,
               "insert value",
-              schema,
+              NO_COLUMNS,
               config,
               functionRegistry
           );

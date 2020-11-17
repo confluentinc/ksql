@@ -145,7 +145,6 @@ public class GenericRecordFactory {
       final Object value = new GenericExpressionResolver(
           columnType,
           column,
-          schema,
           functionRegistry,
           config
       ).resolve(valueExp);

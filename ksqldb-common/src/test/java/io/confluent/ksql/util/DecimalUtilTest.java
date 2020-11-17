@@ -682,4 +682,12 @@ public class DecimalUtilTest {
         is(SqlTypes.decimal(20, 0))
     );
   }
+
+  @Test
+  public void shouldConvertFromBigDecimalWithNegativeScale() {
+    assertThat(
+        DecimalUtil.fromValue(new BigDecimal("1e3")),
+        is(SqlTypes.decimal(4, 0))
+    );
+  }
 }

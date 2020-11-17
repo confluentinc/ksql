@@ -16,6 +16,7 @@ keywords: ksqldb, api, reference, function, operator, metadata, connector, query
 - [Operators](operators.md)
 - [Scalar Functions](scalar-functions.md)
 - [Table Functions](table-functions.md)
+- [Type Coercion](type-coercion.md)
 
 ## Streams and Tables
 

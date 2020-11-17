@@ -66,6 +66,9 @@ public final class Errors {
   public static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
       toErrorCode(SERVICE_UNAVAILABLE.code()) + 3;
 
+  public static final int ERROR_CODE_RESOURCE_NOT_READY =
+      toErrorCode(SERVICE_UNAVAILABLE.code()) + 4;
+
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.code());
   
@@ -142,6 +145,17 @@ public final class Errors {
         .status(BAD_REQUEST.code())
         .entity(new KsqlStatementErrorMessage(
             ERROR_CODE_BAD_STATEMENT, t, statementText, entities))
+        .build();
+  }
+
+  public static EndpointResponse resourceNotReady(
+      final String msg,
+      final String statementText
+  ) {
+    return EndpointResponse.create()
+        .status(SERVICE_UNAVAILABLE.code())
+        .entity(new KsqlStatementErrorMessage(
+            ERROR_CODE_RESOURCE_NOT_READY, msg, statementText, new KsqlEntityList()))
         .build();
   }
 

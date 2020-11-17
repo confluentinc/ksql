@@ -77,6 +77,25 @@ public class LocalProperties {
   }
 
   /**
+   * Get a property value.
+   *
+   * @param property the name of the property
+   * @return the current value for the property, or {@code defaultValue} if it was not set.
+   */
+  public Integer getInt(final String property, final Integer defaultValue) {
+    final Object val = props.get(property);
+    if (val == null) {
+      return defaultValue;
+    }
+
+    if (val instanceof String) {
+      return Integer.valueOf((String) val);
+    }
+
+    return (Integer) val;
+  }
+
+  /**
    * @return an immutable Map of the currently set properties.
    */
   public Map<String, Object> toMap() {

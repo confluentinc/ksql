@@ -366,6 +366,18 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
       = "Enable variable substitution on SQL statements.";
 
+  public static final String KSQL_RETRIABLE_REQUESTS_MAX_RETRIES
+      = "ksql.retriable.requests.max.retries";
+  public static final int KSQL_RETRIABLE_REQUESTS_MAX_RETRIES_DEFAULT = 10;
+  private static final String KSQL_RETRIABLE_REQUESTS_MAX_RETRIES_DOC = "Maximum number of "
+      + "attempts to execute from client requests before failing a retriable statement.";
+
+  public static final String KSQL_RETRIABLE_REQUESTS_SLEEP_MS
+      = "ksql.retriable.requests.sleep.ms";
+  public static final int KSQL_RETRIABLE_REQUESTS_SLEEP_MS_DEFAULT = 1000;
+  private static final String KSQL_RETRIABLE_REQUESTS_SLEEP_MS_DOC = "Time (in milliseconds) to "
+      + "wait before retry a failed retriable statement.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -841,6 +853,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
             Importance.LOW,
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
+        )
+        .define(
+            KSQL_RETRIABLE_REQUESTS_MAX_RETRIES,
+            Type.INT,
+            KSQL_RETRIABLE_REQUESTS_MAX_RETRIES_DEFAULT,
+            Importance.LOW,
+            KSQL_RETRIABLE_REQUESTS_MAX_RETRIES_DOC
+        )
+        .define(
+            KSQL_RETRIABLE_REQUESTS_SLEEP_MS,
+            Type.INT,
+            KSQL_RETRIABLE_REQUESTS_SLEEP_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_RETRIABLE_REQUESTS_SLEEP_MS_DOC
         )
         .withClientSslSupport();
 

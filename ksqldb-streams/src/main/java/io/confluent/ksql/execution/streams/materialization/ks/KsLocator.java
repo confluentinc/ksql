@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.util.KsqlHostInfo;
+import io.confluent.ksql.util.ResourceUnavailableException;
 import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
@@ -91,8 +92,11 @@ final class KsLocator implements Locator {
       if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
         LOG.debug("KeyQueryMetadata not available for state store {} and key {}",
             stateStoreName, key);
-        throw new MaterializationException(String.format(
-            "KeyQueryMetadata not available for state store %s and key %s", stateStoreName, key));
+
+        throw new ResourceUnavailableException(
+            new MaterializationException(String.format(
+            "KeyQueryMetadata not available for state store %s and key %s", stateStoreName, key))
+        );
       }
 
       LOG.debug("Handling pull query for key {} in partition {} of state store {}.",

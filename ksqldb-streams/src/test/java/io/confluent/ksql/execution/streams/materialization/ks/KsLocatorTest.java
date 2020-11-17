@@ -45,6 +45,8 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import io.confluent.ksql.util.ResourceUnavailableException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -158,7 +160,7 @@ public class KsLocatorTest {
 
     // When:
     final Exception e = assertThrows(
-        MaterializationException.class,
+        ResourceUnavailableException.class,
         () -> locator.locate(ImmutableList.of(SOME_KEY), routingOptions, routingFilterFactoryActive)
     );
 

@@ -20,6 +20,7 @@ import static io.confluent.ksql.rest.client.KsqlClientUtil.serialize;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -35,6 +36,7 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -74,6 +76,8 @@ public final class KsqlTarget {
   private final LocalProperties localProperties;
   private final Optional<String> authHeader;
   private final String host;
+  private final int retriableRequestsMaxRetries;
+  private final int retriableRequestsWaitingTime;
 
   /**
    * Create a KsqlTarget containing all of the connection information required to make a request
@@ -95,6 +99,16 @@ public final class KsqlTarget {
     this.localProperties = requireNonNull(localProperties, "localProperties");
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.host = host;
+    this.retriableRequestsMaxRetries =
+        localProperties.getInt(
+           KsqlConfig.KSQL_RETRIABLE_REQUESTS_MAX_RETRIES,
+           KsqlConfig.KSQL_RETRIABLE_REQUESTS_MAX_RETRIES_DEFAULT
+       );
+    this.retriableRequestsWaitingTime =
+        localProperties.getInt(
+            KsqlConfig.KSQL_RETRIABLE_REQUESTS_SLEEP_MS,
+            KsqlConfig.KSQL_RETRIABLE_REQUESTS_SLEEP_MS_DEFAULT
+        );
   }
 
   public KsqlTarget authorizationHeader(final String authHeader) {
@@ -272,17 +286,42 @@ public final class KsqlTarget {
       final Function<ResponseWithBody, T> mapper,
       final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
-    final CompletableFuture<ResponseWithBody> vcf =
-        execute(httpMethod, path, requestBody, responseHandler);
+    RestResponse<T> restResponse;
 
-    final ResponseWithBody response;
-    try {
-      response = vcf.get();
-    } catch (Exception e) {
-      throw new KsqlRestClientException(
-          "Error issuing " + httpMethod + " to KSQL server. path:" + path, e);
-    }
-    return KsqlClientUtil.toRestResponse(response, path, mapper);
+    int retries = 0;
+    do {
+      final CompletableFuture<ResponseWithBody> vcf =
+          execute(httpMethod, path, requestBody, responseHandler);
+
+      final ResponseWithBody response;
+      try {
+        response = vcf.get();
+      } catch (Exception e) {
+        throw new KsqlRestClientException(
+            "Error issuing " + httpMethod + " to KSQL server. path:" + path, e);
+      }
+
+      restResponse = KsqlClientUtil.toRestResponse(response, path, mapper);
+      if (!isRetriableRequest(restResponse)) {
+        break;
+      }
+
+      try {
+        Thread.sleep(retriableRequestsWaitingTime);
+      } catch (final InterruptedException e) {
+        throw new KsqlRestClientException(
+            "Interrupted request " + httpMethod + " to KSQL server. path:" + path, e);
+      }
+
+      retries++;
+    } while (retries <= retriableRequestsMaxRetries);
+
+    return restResponse;
+  }
+
+  private boolean isRetriableRequest(final RestResponse<?> response) {
+    return response.isErroneous()
+        && response.getErrorMessage().getErrorCode() == Errors.ERROR_CODE_RESOURCE_NOT_READY;
   }
 
   private <T> CompletableFuture<RestResponse<T>> executeAsync(

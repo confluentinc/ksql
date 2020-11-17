@@ -131,6 +131,21 @@ public class LocalPropertiesTest {
   }
 
   @Test
+  public void shouldGetIntegerValue() {
+    // Given:
+    when(parser.parse("millis", "1")).thenReturn("1");
+    propsWithMockParser.set("millis", "1");
+
+    // When/Then
+    assertThat(propsWithMockParser.getInt("millis", 0), is(1));
+  }
+
+  @Test
+  public void shouldGetDefaultIntegerValue() {
+    assertThat(propsWithMockParser.getInt("not-found", 5), is(5));
+  }
+
+  @Test
   public void shouldSetNewValue() {
     // When:
     final Object oldValue = propsWithMockParser.set("new-prop", "new-val");

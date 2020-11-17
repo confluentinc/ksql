@@ -68,6 +68,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import io.confluent.ksql.util.ResourceUnavailableException;
 import org.apache.kafka.common.utils.Time;
 import org.junit.Before;
 import org.junit.Rule;
@@ -287,7 +289,7 @@ public class PullQueryExecutorTest {
       List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
 
       final Exception e = assertThrows(
-          MaterializationException.class,
+          ResourceUnavailableException.class,
           () -> PullQueryExecutor.handlePullQuery(
               statement, executionContext, serviceContext, routingOptions, (l) -> {
                 locationsQueried.add(l);

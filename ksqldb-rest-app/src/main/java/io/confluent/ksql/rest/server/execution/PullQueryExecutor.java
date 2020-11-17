@@ -103,6 +103,7 @@ import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.ResourceUnavailableException;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Duration;
 import java.time.Instant;
@@ -447,9 +448,11 @@ public final class PullQueryExecutor {
     for (KsqlPartitionLocation location : locations) {
       // If one of the partitions required is out of nodes, then we cannot continue.
       if (round >= location.getNodes().size()) {
-        throw new MaterializationException(String.format(
+        throw new ResourceUnavailableException(
+            new MaterializationException(String.format(
             "Unable to execute pull query: %s. Exhausted standby hosts to try.",
-            statement.getStatementText()));
+            statement.getStatementText()))
+        );
       }
       final KsqlNode nextHost = location.getNodes().get(round);
       groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);

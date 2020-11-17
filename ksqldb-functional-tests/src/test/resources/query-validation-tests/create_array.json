@@ -64,7 +64,12 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"L": [null, 10, 20, 30, 40]}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, L ARRAY<DECIMAL(19, 0)>"}
+        ]
+      }
     },
     {
       "name": "construct a list from compatible mismatching struct elements",

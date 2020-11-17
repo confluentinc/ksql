@@ -92,7 +92,7 @@ public final class CoercionUtil {
    * <p>Any non-literal expressions that don't match the common type, but which can be coerced, will
    * be wrapped in an explicit {@code CAST} to convert them to the required type.
    *
-   * <p>Coercion is performed in order. So the type type of the first non-null expression drives the
+   * <p>Coercion is performed in order. So the type of the first non-null expression drives the
    * common type. For example, if the first non-null expression is a string, then all other
    * expressions must be coercible to a string. If its numeric, then all other expressions must be
    * coercible to a number, etc.

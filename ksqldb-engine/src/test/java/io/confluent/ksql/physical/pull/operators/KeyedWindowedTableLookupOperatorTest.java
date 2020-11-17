@@ -46,9 +46,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KeyedWindowedTableLookupOperatorTest {
 
-  private final List<KsqlPartitionLocation> singleKeyPartitionLocations = new ArrayList<>();
-  private final List<KsqlPartitionLocation> multipleKeysPartitionLocations = new ArrayList<>();
-
   @Mock
   private KsqlNode node1;
   @Mock
@@ -84,8 +81,10 @@ public class KeyedWindowedTableLookupOperatorTest {
   @Mock
   private WhereInfo.WindowBounds windowBounds;
 
-  @Before
-  public void before() {
+  @Test
+  public void shouldLookupRowsForSingleKey() {
+    //Given:
+    final List<KsqlPartitionLocation> singleKeyPartitionLocations = new ArrayList<>();
     singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
         Optional.of(ImmutableSet.of(KEY1)), 1, ImmutableList.of(node1)));
     singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
@@ -95,15 +94,6 @@ public class KeyedWindowedTableLookupOperatorTest {
     singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
         Optional.of(ImmutableSet.of(KEY4)), 3, ImmutableList.of(node3)));
 
-    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
-        Optional.of(ImmutableSet.of(KEY1, KEY2)), 1, ImmutableList.of(node1)));
-    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
-        Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
-  }
-
-  @Test
-  public void shouldLookupRowsForSingleKey() {
-    //Given:
     final KeyedWindowedTableLookupOperator lookupOperator = new KeyedWindowedTableLookupOperator(materialization, logicalNode, windowBounds);
     when(windowBounds.getStart()).thenReturn(WINDOW_START_BOUNDS);
     when(windowBounds.getEnd()).thenReturn(WINDOW_END_BOUNDS);
@@ -131,6 +121,12 @@ public class KeyedWindowedTableLookupOperatorTest {
   @Test
   public void shouldLookupRowsForMultipleKey() {
     //Given:
+    final List<KsqlPartitionLocation> multipleKeysPartitionLocations = new ArrayList<>();
+    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.of(ImmutableSet.of(KEY1, KEY2)), 1, ImmutableList.of(node1)));
+    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
+
     final KeyedWindowedTableLookupOperator lookupOperator = new KeyedWindowedTableLookupOperator(materialization, logicalNode, windowBounds);
     when(windowBounds.getStart()).thenReturn(WINDOW_START_BOUNDS);
     when(windowBounds.getEnd()).thenReturn(WINDOW_END_BOUNDS);

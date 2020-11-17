@@ -50,6 +50,7 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -116,11 +117,16 @@ public class ProjectOperatorTest {
     when(child.next()).thenReturn(row);
     projectOperator.open();
 
+    // When:
+    Object result = projectOperator.next();
+
     // Then:
-    final List<Object> rowList = new ArrayList<>();
-    row.key().schema().fields().stream().map(row.key()::get).forEach(rowList::add);
-    rowList.addAll(row.value().values());
-    assertThat(projectOperator.next(), is(rowList));
+    final List<Object> expected = new ArrayList<>();
+    row.key().schema().fields().stream().map(row.key()::get).forEach(expected::add);
+    expected.addAll(row.value().values());
+    assertThat(result, is(expected));
+    Mockito.verifyZeroInteractions(selectValueMapper);
+
   }
 
   @Test
@@ -147,13 +153,16 @@ public class ProjectOperatorTest {
     when(child.next()).thenReturn(windowedRow);
     projectOperator.open();
 
+    // When:
+    Object result = projectOperator.next();
+
     // Then:
-    final List<Object> rowList = new ArrayList<>();
-    windowedRow.key().schema().fields().stream().map(windowedRow.key()::get).forEach(rowList::add);
-    rowList.add(windowedRow.window().get().start().toEpochMilli());
-    rowList.add(windowedRow.window().get().end().toEpochMilli());
-    rowList.addAll(windowedRow.value().values());
-    assertThat(projectOperator.next(), is(rowList));
+    final List<Object> expected = new ArrayList<>();
+    windowedRow.key().schema().fields().stream().map(windowedRow.key()::get).forEach(expected::add);
+    expected.add(windowedRow.window().get().start().toEpochMilli());
+    expected.add(windowedRow.window().get().end().toEpochMilli());
+    expected.addAll(windowedRow.value().values());
+    assertThat(result, is(expected));
   }
 
   @Test
@@ -184,6 +193,8 @@ public class ProjectOperatorTest {
     when(transformer.transform(any(), any(), any())).thenReturn(GenericRow.genericRow("k", "a", "b"));
     when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
+
+    // When:
     projectOperator.next();
 
     // Then:
@@ -219,6 +230,8 @@ public class ProjectOperatorTest {
     when(transformer.transform(any(), any(), any())).thenReturn(GenericRow.genericRow("k", "a", "b"));
     when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
+
+    // When:
     projectOperator.next();
 
     // Then:
@@ -261,10 +274,13 @@ public class ProjectOperatorTest {
     when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
 
+    // When:
+    Object result = projectOperator.next();
+
     // Then:
-    final List<Object> rowList = new ArrayList<>();
-    row.key().schema().fields().stream().map(row.key()::get).forEach(rowList::add);
-    assertThat(projectOperator.next(), is(rowList));
+    final List<Object> expected = new ArrayList<>();
+    row.key().schema().fields().stream().map(row.key()::get).forEach(expected::add);
+    assertThat(result, is(expected));
   }
 
   @Test
@@ -301,11 +317,14 @@ public class ProjectOperatorTest {
     when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
 
+    // When:
+    Object result = projectOperator.next();
+
     // Then:
-    final List<Object> rowList = new ArrayList<>();
-    row.key().schema().fields().stream().map(row.key()::get).forEach(rowList::add);
-    rowList.add(row.value().values().get(1));
-    assertThat(projectOperator.next(), is(rowList));
+    final List<Object> expected = new ArrayList<>();
+    row.key().schema().fields().stream().map(row.key()::get).forEach(expected::add);
+    expected.add(row.value().values().get(1));
+    assertThat(result, is(expected));
   }
 
   @Test
@@ -346,11 +365,14 @@ public class ProjectOperatorTest {
     when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
 
+    // When:
+    Object result = projectOperator.next();
+
     // Then:
-    final List<Object> rowList = new ArrayList<>();
-    windowedRow.key().schema().fields().stream().map(windowedRow.key()::get).forEach(rowList::add);
-    rowList.add(windowedRow.value().values().get(1));
-    assertThat(projectOperator.next(), is(rowList));
+    final List<Object> expected = new ArrayList<>();
+    windowedRow.key().schema().fields().stream().map(windowedRow.key()::get).forEach(expected::add);
+    expected.add(windowedRow.value().values().get(1));
+    assertThat(result, is(expected));
   }
 
 }

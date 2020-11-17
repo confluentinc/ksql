@@ -30,10 +30,15 @@ import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -43,7 +48,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KeyedTableLookupOperatorTest {
 
-  private final List<KsqlPartitionLocation> singleKeyPartitionLocations = new ArrayList<>();
   private final List<KsqlPartitionLocation> multipleKeysPartitionLocations = new ArrayList<>();
 
   @Mock
@@ -73,9 +77,10 @@ public class KeyedTableLookupOperatorTest {
   @Mock
   private Row ROW4;
 
-
-  @Before
-  public void before() {
+  @Test
+  public void shouldLookupRowsForSingleKey() {
+    //Given:
+    final List<KsqlPartitionLocation> singleKeyPartitionLocations = new ArrayList<>();
     singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
         Optional.of(ImmutableSet.of(KEY1)), 1, ImmutableList.of(node1)));
     singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
@@ -85,21 +90,14 @@ public class KeyedTableLookupOperatorTest {
     singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
         Optional.of(ImmutableSet.of(KEY4)), 3, ImmutableList.of(node3)));
 
-    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
-        Optional.of(ImmutableSet.of(KEY1, KEY2)), 1, ImmutableList.of(node1)));
-    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
-        Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
-  }
-
-  @Test
-  public void shouldLookupRowsForSingleKey() {
-    //Given:
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(KEY1, 1)).thenReturn(Optional.of(ROW1));
     when(materialization.nonWindowed().get(KEY2, 2)).thenReturn(Optional.empty());
     when(materialization.nonWindowed().get(KEY3, 3)).thenReturn(Optional.of(ROW3));
     when(materialization.nonWindowed().get(KEY4, 3)).thenReturn(Optional.of(ROW4));
+
+
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();
 
@@ -113,6 +111,12 @@ public class KeyedTableLookupOperatorTest {
   @Test
   public void shouldLookupRowsForMultipleKeys() {
     //Given:
+    final List<KsqlPartitionLocation> multipleKeysPartitionLocations = new ArrayList<>();
+    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.of(ImmutableSet.of(KEY1, KEY2)), 1, ImmutableList.of(node1)));
+    multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
+
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(KEY1, 1)).thenReturn(Optional.of(ROW1));

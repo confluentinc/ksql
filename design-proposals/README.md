@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **42**
+Next KLIP number: **43**
 
 | KLIP                                                                                                 | Status         | Community Release | CP Release | Discussion PR |
 |------------------------------------------------------------------------------------------------------|:--------------:|:-----------------:|:----------:|:--------------|
@@ -79,6 +79,7 @@ Next KLIP number: **42**
 | [KLIP-36: GRACE period for stream-stream joins](klip-36-grace-stream-stream-joins.md)                | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6175)|
 | KLIP-36: GRACE period for stream-stream joins                                                        | Proposal | | | |
 | KLIP-37: System Tables                                                                               | Proposal | | | |
-| KLIP-38: Variable Substitution                                                                       | Proposal | | | |
+| [KLIP-38: Variable Substitution](klip-38-variable-substitution.md)                                   | Merged         | 0.14.0            | 6.1.0      | [Discussion](https://github.com/confluentinc/ksql/pull/6259) |
 | KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |
 | KLIP-41: ksqlDB .NET Client                                                                          | Proposal | | | |
+| KLIP-42: Schema Migrations Tool                                                                      | Proposal | | | |

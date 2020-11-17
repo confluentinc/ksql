@@ -17,6 +17,7 @@ package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -143,6 +144,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
+  @SuppressFBWarnings("UC_USELESS_CONDITION")
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<Struct> selectKey(

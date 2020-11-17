@@ -54,7 +54,7 @@ public class GenericExpressionResolverTest {
     ));
 
     // When:
-    final Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config).resolve(exp);
+    final Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp);
 
     // Then:
     assertThat(o, is(new Struct(
@@ -69,7 +69,7 @@ public class GenericExpressionResolverTest {
     final Expression exp = new NullLiteral();
 
     // When:
-    final Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config).resolve(exp);
+    final Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp);
 
     // Then:
     assertThat(o, Matchers.nullValue());
@@ -84,7 +84,7 @@ public class GenericExpressionResolverTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config).resolve(exp));
+        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp));
 
     // Then:
     assertThat(e.getMessage(), containsString("Expected type ARRAY<INTEGER> for field `FOO` but got INTEGER(1)"));

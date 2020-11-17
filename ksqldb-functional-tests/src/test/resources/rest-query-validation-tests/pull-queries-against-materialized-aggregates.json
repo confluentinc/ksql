@@ -1914,6 +1914,19 @@
       }
     },
     {
+      "name": "IN: fail on column reference key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID IN (COUNT + 1);"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Unsupported column reference in pull query: (COUNT + 1)",
+        "status": 400
+      }
+    },
+    {
       "name": "non-windowed - function in where clause",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",

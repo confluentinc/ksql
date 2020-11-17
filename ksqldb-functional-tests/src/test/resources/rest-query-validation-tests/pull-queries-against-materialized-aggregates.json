@@ -1918,7 +1918,7 @@
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID IN (COUNT + 1);"
+        "SELECT * FROM AGGREGATE WHERE ID IN (2, COUNT + 1, 3);"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",

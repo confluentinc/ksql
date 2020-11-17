@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.Collections;
@@ -34,6 +35,8 @@ public class CommandRunnerMetrics implements Closeable {
   private static final String METRIC_GROUP_POST_FIX = "-command-runner";
   
   private final Metrics metrics;
+  private final MetricName commandRunnerStatusMetricNameLegacy;
+  private final MetricName commandRunnerDegradedReasonMetricNameLegacy;
   private final MetricName commandRunnerStatusMetricName;
   private final MetricName commandRunnerDegradedReasonMetricName;
 
@@ -59,19 +62,38 @@ public class CommandRunnerMetrics implements Closeable {
   ) {
     this.metrics =  Objects.requireNonNull(metrics, "metrics");
     final String metricGroupName = metricsGroupPrefix + METRIC_GROUP_POST_FIX;
-    this.commandRunnerStatusMetricName = metrics.metricName(
+    this.commandRunnerStatusMetricNameLegacy = metrics.metricName(
         "status",
         ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,
        "The status of the commandRunner thread as it processes the command topic.",
         Collections.emptyMap()
     );
-    this.commandRunnerDegradedReasonMetricName = metrics.metricName(
+    this.commandRunnerDegradedReasonMetricNameLegacy = metrics.metricName(
         "degraded-reason",
         ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,
         "The reason for why the commandRunner thread is in a DEGRADED state.",
         Collections.emptyMap()
     );
 
+    // Metrics with the ksql service id as a tag instead of in the metric name
+    this.commandRunnerStatusMetricName = metrics.metricName(
+        "status",
+        ReservedInternalTopics.CONFLUENT_PREFIX + metricGroupName,
+        "The status of the commandRunner thread as it processes the command topic.",
+        Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, ksqlServiceId)
+    );
+
+    this.commandRunnerDegradedReasonMetricName = metrics.metricName(
+        "degraded-reason",
+        ReservedInternalTopics.CONFLUENT_PREFIX + metricGroupName,
+        "The reason for why the commandRunner thread is in a DEGRADED state.",
+        Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, ksqlServiceId)
+    );
+
+    this.metrics.addMetric(commandRunnerStatusMetricNameLegacy, (Gauge<String>)
+        (config, now) -> commandRunner.checkCommandRunnerStatus().name());
+    this.metrics.addMetric(commandRunnerDegradedReasonMetricNameLegacy, (Gauge<String>)
+        (config, now) -> commandRunner.getCommandRunnerDegradedReason().name());
     this.metrics.addMetric(commandRunnerStatusMetricName, (Gauge<String>)
         (config, now) -> commandRunner.checkCommandRunnerStatus().name());
     this.metrics.addMetric(commandRunnerDegradedReasonMetricName, (Gauge<String>)
@@ -85,5 +107,7 @@ public class CommandRunnerMetrics implements Closeable {
   public void close() {
     metrics.removeMetric(commandRunnerStatusMetricName);
     metrics.removeMetric(commandRunnerDegradedReasonMetricName);
+    metrics.removeMetric(commandRunnerStatusMetricNameLegacy);
+    metrics.removeMetric(commandRunnerDegradedReasonMetricNameLegacy);
   }
 }

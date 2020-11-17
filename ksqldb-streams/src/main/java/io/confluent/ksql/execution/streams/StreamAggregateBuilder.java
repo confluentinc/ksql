@@ -89,7 +89,7 @@ public final class StreamAggregateBuilder {
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
     final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        AggregateBuilderUtils.buildMaterialized(
+        MaterializationUtil.buildMaterialized(
             aggregate,
             aggregateSchema,
             aggregate.getInternalFormats(),
@@ -234,7 +234,7 @@ public final class StreamAggregateBuilder {
       this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
       this.materializedFactory = Objects.requireNonNull(materializedFactory, "materializedFactory");
       this.aggregateParams = Objects.requireNonNull(aggregateParams, "aggregateParams");
-      this.queryContext = AggregateBuilderUtils.materializeContext(aggregate);
+      this.queryContext = MaterializationUtil.materializeContext(aggregate);
       this.formats = aggregate.getInternalFormats();
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
           aggregateSchema,

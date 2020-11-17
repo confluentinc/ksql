@@ -82,9 +82,8 @@ public final class TableSelectKeyBuilder {
 
     final KTable<?, GenericRow> kTable = table.getTable();
 
-    // TODO: is this correct? rename util method to be more generic
     final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        AggregateBuilderUtils.buildMaterialized(
+        MaterializationUtil.buildMaterialized(
             selectKey,
             params.getSchema(),
             selectKey.getInternalFormats(),
@@ -96,10 +95,8 @@ public final class TableSelectKeyBuilder {
         .map(mapper::apply, Named.as(queryContext.formatContext() + "-SelectKey"))
         .toTable(Named.as(queryContext.formatContext() + "-SelectKey-Repartition"), materialized);
 
-    // TODO: this should be inconsequential for now since join should ignore it -- verify
-    // TODO: rename AggregateBuilderUtils method to be more generic
     final MaterializationInfo.Builder materializationBuilder = MaterializationInfo.builder(
-        StreamsUtil.buildOpName(AggregateBuilderUtils.materializeContext(selectKey)),
+        StreamsUtil.buildOpName(MaterializationUtil.materializeContext(selectKey)),
         params.getSchema()
     );
 

@@ -90,6 +90,11 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
   }
 
   @Override
+  public Optional<String> getQueryId() {
+    return Optional.empty();
+  }
+
+  @Override
   public int hashCode() {
     return Objects.hash(name, query, properties, notExists, getClass());
   }

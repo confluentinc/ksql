@@ -21,6 +21,7 @@ import static io.confluent.ksql.util.DecimalUtil.ensureFit;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 
@@ -29,10 +30,12 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.SchemaException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
+@SuppressWarnings("ConstantConditions")
 public class DecimalUtilTest {
 
   private static final Schema DECIMAL_SCHEMA = DecimalUtil.builder(2, 1).build();
@@ -88,11 +91,13 @@ public class DecimalUtilTest {
   @Test
   public void shouldExtractPrecisionFromZeroValue() {
     // When:
-    final SqlType zeroDecimal = DecimalUtil.fromValue(BigDecimal.ZERO.setScale(2));
+    final SqlType zeroDecimal = DecimalUtil
+        .fromValue(BigDecimal.ZERO.setScale(2, RoundingMode.UNNECESSARY));
 
     // Then:
-    assertThat(zeroDecimal, is(SqlTypes.decimal(3,2)));
+    assertThat(zeroDecimal, is(SqlTypes.decimal(3, 2)));
   }
+
   @Test
   public void shouldCastDecimal() {
     // When:
@@ -100,6 +105,15 @@ public class DecimalUtilTest {
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.10")));
+  }
+
+  @Test
+  public void shouldCastNullDecimal() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast((BigDecimal) null, 3, 2);
+
+    // Then:
+    assertThat(decimal, is(nullValue()));
   }
 
   @Test
@@ -159,10 +173,19 @@ public class DecimalUtilTest {
   @Test
   public void shouldCastInt() {
     // When:
-    final BigDecimal decimal = DecimalUtil.cast(1, 2, 1);
+    final BigDecimal decimal = DecimalUtil.cast((Integer)1, 2, 1);
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.0")));
+  }
+
+  @Test
+  public void shouldCastNullInt() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast((Integer)null, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(nullValue()));
   }
 
   @Test
@@ -175,12 +198,39 @@ public class DecimalUtilTest {
   }
 
   @Test
+  public void shouldCastBigInt() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast((Long)1L, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(new BigDecimal("1.0")));
+  }
+
+  @Test
+  public void shouldCastNullBigInt() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast((Long)null, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(nullValue()));
+  }
+
+  @Test
   public void shouldCastDouble() {
     // When:
-    final BigDecimal decimal = DecimalUtil.cast(1.1, 2, 1);
+    final BigDecimal decimal = DecimalUtil.cast((Double)1.1, 2, 1);
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.1")));
+  }
+
+  @Test
+  public void shouldCastNullDouble() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast((Double)null, 2, 1);
+
+    // Then:
+    assertThat(decimal, is(nullValue()));
   }
 
   @Test
@@ -217,6 +267,15 @@ public class DecimalUtilTest {
 
     // Then:
     assertThat(decimal, is(new BigDecimal("1.10")));
+  }
+
+  @Test
+  public void shouldCastNullString() {
+    // When:
+    final BigDecimal decimal = DecimalUtil.cast((String)null, 3, 2);
+
+    // Then:
+    assertThat(decimal, is(nullValue()));
   }
 
   @Test
@@ -534,5 +593,101 @@ public class DecimalUtilTest {
 
     // Then:
     assertThat(compatible, is(false));
+  }
+
+  @Test
+  public void shouldWidenDecimalAndDecimal() {
+    assertThat(
+        "first contained",
+        DecimalUtil.widen(
+            SqlTypes.decimal(1, 0),
+            SqlTypes.decimal(14, 3)
+        ),
+        is(SqlTypes.decimal(14, 3))
+    );
+
+    assertThat(
+        "second contained",
+        DecimalUtil.widen(
+            SqlTypes.decimal(14, 3),
+            SqlTypes.decimal(1, 0)
+        ),
+        is(SqlTypes.decimal(14, 3))
+    );
+
+    assertThat(
+        "fractional",
+        DecimalUtil.widen(
+            SqlTypes.decimal(14, 14),
+            SqlTypes.decimal(1, 1)
+        ),
+        is(SqlTypes.decimal(14, 14))
+    );
+
+    assertThat(
+        "overlap",
+        DecimalUtil.widen(
+            SqlTypes.decimal(14, 4),
+            SqlTypes.decimal(14, 5)
+        ),
+        is(SqlTypes.decimal(15, 5))
+    );
+  }
+
+  @Test
+  public void shouldWidenIntAndLong() {
+    assertThat(
+        DecimalUtil.widen(SqlTypes.BIGINT, SqlTypes.INTEGER),
+        is(SqlTypes.BIGINT_UPCAST_TO_DECIMAL)
+    );
+
+    assertThat(
+        DecimalUtil.widen(SqlTypes.INTEGER, SqlTypes.BIGINT),
+        is(SqlTypes.BIGINT_UPCAST_TO_DECIMAL)
+    );
+  }
+
+  @Test
+  public void shouldWidenIntAndDecimal() {
+    // Given:
+    final SqlDecimal smallerPrecision = SqlTypes.decimal(4, 3);
+    final SqlDecimal largerPrecision = SqlTypes.decimal(11, 0);
+
+    // Then:
+    assertThat(
+        DecimalUtil.widen(smallerPrecision, SqlTypes.INTEGER),
+        is(SqlTypes.decimal(13, 3))
+    );
+
+    assertThat(
+        DecimalUtil.widen(SqlTypes.INTEGER, largerPrecision),
+        is(SqlTypes.decimal(11, 0))
+    );
+  }
+
+  @Test
+  public void shouldWidenBigIntAndDecimal() {
+    // Given:
+    final SqlDecimal smallerPrecision = SqlTypes.decimal(14, 3);
+    final SqlDecimal largerPrecision = SqlTypes.decimal(20, 0);
+
+    // Then:
+    assertThat(
+        DecimalUtil.widen(smallerPrecision, SqlTypes.BIGINT),
+        is(SqlTypes.decimal(22, 3))
+    );
+
+    assertThat(
+        DecimalUtil.widen(SqlTypes.BIGINT, largerPrecision),
+        is(SqlTypes.decimal(20, 0))
+    );
+  }
+
+  @Test
+  public void shouldConvertFromBigDecimalWithNegativeScale() {
+    assertThat(
+        DecimalUtil.fromValue(new BigDecimal("1e3")),
+        is(SqlTypes.decimal(4, 0))
+    );
   }
 }

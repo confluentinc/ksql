@@ -278,6 +278,18 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
+  public void shouldEvaluateBooleanSchemaForInExpression() {
+    final Expression expression = new InPredicate(
+        TestExpressions.COL0,
+        new InListExpression(ImmutableList.of(new StringLiteral("key1"))));
+
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(exprType0, is(SqlTypes.BOOLEAN));
+  }
+
+
+  @Test
   public void shouldEvaluateTypeForUDF() {
     // Given:
     givenUdfWithNameAndReturnType("FLOOR", SqlTypes.DOUBLE);
@@ -432,7 +444,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot construct an array with mismatching types"));
+        "invalid input syntax for type BIGINT: \"foo\"."));
   }
 
   @Test
@@ -471,7 +483,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot construct a map with mismatching value types"));
+        "invalid input syntax for type BIGINT: \"bar\""));
   }
 
   @Test
@@ -736,7 +748,7 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldThrowOnIn() {
+  public void shouldReturnBooleanForInPredicate() {
     // Given:
     final Expression expression = new InPredicate(
         TestExpressions.COL0,
@@ -744,10 +756,10 @@ public class ExpressionTypeManagerTest {
     );
 
     // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(expression)
-    );
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(result, is(SqlTypes.BOOLEAN));
   }
 
   @Test

@@ -62,7 +62,7 @@ public abstract class QueryMetadata {
   protected final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
-  private final Long closeTimeout;
+  private final Duration closeTimeout;
   private final QueryId queryId;
   private final QueryErrorClassifier errorClassifier;
   private final Queue<QueryError> queryErrors;
@@ -76,6 +76,7 @@ public abstract class QueryMetadata {
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
+  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   QueryMetadata(
       final String statementString,
       final LogicalSchema logicalSchema,
@@ -107,7 +108,7 @@ public abstract class QueryMetadata {
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
-    this.closeTimeout = closeTimeout;
+    this.closeTimeout = Duration.ofMillis(closeTimeout);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = EvictingQueue.create(maxQueryErrorsQueueSize);
@@ -183,6 +184,7 @@ public abstract class QueryMetadata {
     return statementString;
   }
 
+  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
     this.uncaughtExceptionHandler = handler;
     kafkaStreams.setUncaughtExceptionHandler(handler);
@@ -277,7 +279,7 @@ public abstract class QueryMetadata {
   }
 
   protected void closeKafkaStreams() {
-    kafkaStreams.close(Duration.ofMillis(closeTimeout));
+    kafkaStreams.close(closeTimeout);
   }
 
   protected KafkaStreams buildKafkaStreams() {

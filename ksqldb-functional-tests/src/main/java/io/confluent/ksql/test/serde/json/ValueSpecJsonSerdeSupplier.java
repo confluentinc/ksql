@@ -26,6 +26,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.json.JsonSerdeUtils;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -130,6 +131,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
         Converter.converter(Float.class, JSON_NODE_FACTORY::numberNode),
         Converter.converter(Double.class, JSON_NODE_FACTORY::numberNode),
         Converter.converter(BigDecimal.class, JSON_NODE_FACTORY::numberNode),
+        Converter.converter(BigInteger.class, JSON_NODE_FACTORY::numberNode),
         Converter.converter(String.class, JSON_NODE_FACTORY::textNode),
         Converter.converter(Collection.class, Converter::handleCollection),
         Converter.converter(Map.class, Converter::handleMap)

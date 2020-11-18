@@ -17,11 +17,16 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -29,12 +34,12 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The context in which statements can be executed.
@@ -81,6 +86,14 @@ public interface KsqlExecutionContext {
   List<PersistentQueryMetadata> getPersistentQueries();
 
   /**
+   * Retrieves the list of all queries writing to this {@code SourceName}.
+   *
+   * @param sourceName the sourceName of the queries to retrieve.
+   * @return the list of queries.
+   */
+  Set<QueryId> getQueriesWithSink(SourceName sourceName);
+
+  /**
    * Retrieves the list of all running queries.
    *
    * @return the list of all queries
@@ -124,6 +137,24 @@ public interface KsqlExecutionContext {
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       boolean excludeTombstones
+  );
+
+  /**
+   * Executes a pull query by first creating a logical plan and then translating it to a physical
+   * plan. The physical plan is then traversed for every row in the state store.
+   * @param serviceContext The service context to execute the query in
+   * @param statement The pull query
+   * @param routingFilterFactory The filters used to route requests for HA routing
+   * @param routingOptions Configuration parameters used for routing requests
+   * @param pullQueryMetrics JMX metrics
+   * @return the rows that are the result of the query evaluation.
+   */
+  PullQueryResult executePullQuery(
+      ServiceContext serviceContext,
+      ConfiguredStatement<Query> statement,
+      RoutingFilterFactory routingFilterFactory,
+      RoutingOptions routingOptions,
+      Optional<PullQueryExecutorMetrics> pullQueryMetrics
   );
 
   /**

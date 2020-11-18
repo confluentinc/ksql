@@ -2,7 +2,7 @@
 layout: page
 title: ksqlDB Scalar Functions
 tagline:  ksqlDB scalar functions for queries
-description: Scalar functions to use in  ksqlDB statements and queries
+description: Scalar functions to use in ksqlDB statements and queries
 keywords: ksqlDB, function, scalar
 ---
 
@@ -39,6 +39,26 @@ CREATE TABLE AGG AS
    FROM S
    GROUP BY ID;
 ```
+
+### `CAST`
+
+Since: -
+
+```sql
+CAST(COL0 AS BIGINT)
+```
+
+Converts one type to another. The following casts are supported:
+
+| from | to | notes |
+|------|----|-------|
+| any  | `STRING` | Converts the type to its string representation. |
+| `VARCHAR` | `BOOLEAN` | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
+| `VARCHAR` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
+| `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Convert between numeric types. Conversion can result in rounding |
+| `ARRAY` | `ARRAY` | (Since 0.14) Convert between arrays of different element types |   
+| `MAP` | `MAP` | (Since 0.14) Convert between maps of different key and value types |   
+| `STRUCT` | `STRUCT` | (Since 0.14) Convert between structs of different field types. Only fields that exist in the target STRUCT type are copied across. Any fields in the target type that don't exist in the source are set to `NULL`. Field name matching is case-sensitive. |
 
 ### `CEIL`
 
@@ -189,10 +209,12 @@ The square root of a value.
 Since: 0.7.0
 
 ```sql
-ARRAY[col1, col2, ...]
+ARRAY[exp1, exp2, ...]
 ```
 
 Construct an array from a variable number of inputs.
+
+All elements must be [coercible to a common Sql type][1]. 
 
 ### `ARRAY_CONTAINS`
 
@@ -430,6 +452,8 @@ MAP(key VARCHAR := value, ...)
 ```
 
 Construct a map from specific key-value tuples.
+
+All values must be [coercible to a common Sql type][1].
 
 ### `MAP_KEYS`
 
@@ -1227,3 +1251,5 @@ present or `url` is not a valid URI.
                                            
 - Input: `http://test.com?a=foo%20bar&b=baz` 
 - Output: `a=foo bar&b=baz`                  
+
+[1]: type-coercion.md#implicit-type-coercion

@@ -19,18 +19,23 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -46,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -132,6 +138,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
     return ImmutableList.copyOf(primaryContext.getPersistentQueries().values());
+  }
+
+  @Override
+  public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
+    return primaryContext.getQueriesWithSink(sourceName);
   }
 
   @Override
@@ -241,7 +252,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           .executeQuery(statement, excludeTombstones);
 
       registerQuery(query);
-      primaryContext.registerQuery(query);
+      primaryContext.registerQuery(query, false);
       return query;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -249,6 +260,28 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       // add the statement text to the KsqlException
       throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
     }
+  }
+
+  @Override
+  public PullQueryResult executePullQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final RoutingFilterFactory routingFilterFactory,
+      final RoutingOptions routingOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+  ) {
+    return EngineExecutor
+        .create(
+            primaryContext,
+            serviceContext,
+            statement.getSessionConfig()
+        )
+        .executePullQuery(
+            statement,
+            routingFilterFactory,
+            routingOptions,
+            pullQueryMetrics
+        );
   }
 
   /**

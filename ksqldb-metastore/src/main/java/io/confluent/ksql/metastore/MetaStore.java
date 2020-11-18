@@ -29,9 +29,5 @@ public interface MetaStore extends FunctionRegistry, TypeRegistry {
 
   Set<SourceName> getSourceConstraints(SourceName sourceName);
 
-  Set<String> getQueriesWithSource(SourceName sourceName);
-
-  Set<String> getQueriesWithSink(SourceName sourceName);
-
   MetaStore copy();
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema;
 
+import static io.confluent.ksql.util.DecimalUtil.toSqlDecimal;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -66,7 +67,7 @@ public enum Operator {
           return right;
         }
 
-        return binaryResolver.apply(toDecimal(left), (SqlDecimal) right);
+        return binaryResolver.apply(toSqlDecimal(left), (SqlDecimal) right);
       }
 
       if (right.baseType().canImplicitlyCast(left.baseType())) {
@@ -74,25 +75,11 @@ public enum Operator {
           return left;
         }
 
-        return binaryResolver.apply((SqlDecimal) left, toDecimal(right));
+        return binaryResolver.apply((SqlDecimal) left, toSqlDecimal(right));
       }
     }
 
     throw new KsqlException(
         "Unsupported arithmetic types. " + left.baseType() + " " + right.baseType());
-  }
-
-  private static SqlDecimal toDecimal(final SqlType type) {
-    switch (type.baseType()) {
-      case DECIMAL:
-        return (SqlDecimal) type;
-      case INTEGER:
-        return SqlTypes.INT_UPCAST_TO_DECIMAL;
-      case BIGINT:
-        return SqlTypes.BIGINT_UPCAST_TO_DECIMAL;
-      default:
-        throw new KsqlException(
-            "Cannot convert " + type.baseType() + " to " + SqlBaseType.DECIMAL + ".");
-    }
   }
 }

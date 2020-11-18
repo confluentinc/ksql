@@ -24,8 +24,6 @@ import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
-import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
@@ -103,16 +101,18 @@ public final class Ksql {
         .map(Ksql::loadProperties)
         .orElseGet(Collections::emptyMap);
 
-    try (KsqlRestClient restClient = buildClient(configProps)) {
+    final Map<String, String> sessionVariables = options.getVariables();
 
-      final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent(() -> false);
-      versionChecker.start(KsqlModuleType.CLI, PropertiesUtil.asProperties(configProps));
+    try (KsqlRestClient restClient = buildClient(configProps)) {
       try (Cli cli = cliBuilder.build(
           options.getStreamedQueryRowLimit(),
           options.getStreamedQueryTimeoutMs(),
           options.getOutputFormat(),
           restClient)
       ) {
+        // Add CLI variables If defined by parameters
+        cli.addSessionVariables(sessionVariables);
+
         if (options.getExecute().isPresent()) {
           cli.runCommand(options.getExecute().get());
         } else if (options.getScriptFile().isPresent()) {

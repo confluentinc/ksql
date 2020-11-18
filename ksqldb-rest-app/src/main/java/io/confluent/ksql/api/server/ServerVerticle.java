@@ -22,12 +22,12 @@ import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
@@ -353,6 +353,9 @@ public class ServerVerticle extends AbstractVerticle {
 
   /**
    * If the request was received on the internal listener.
+   * Effectively, it's a 3 state flag: Internal interface not in use at all,
+   * internal interface in use and this request is internal, and internal interface in use and
+   * this request is not internal.
    *
    * @return If an internal listener is in use and this is an internal request, or
    * {@code Optional.empty} if an internal listener is not enabled.

@@ -631,6 +631,16 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverInsertIntosWithCustomQueryId() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "INSERT INTO B WITH(QUERY_ID='MY_INSERT_ID') SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
   public void shouldRecoverInsertIntosRecreates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
@@ -668,7 +678,7 @@ public class RecoveryTest {
   }
 
   @Test
-  public void shouldRecoverDrop() {
+  public void shouldRecoverDropWithTerminate() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
@@ -720,6 +730,28 @@ public class RecoveryTest {
     // Recovered server has only stream 'B'
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(1));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
+  }
+
+  @Test
+  public void shouldRecoverDrop() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "DROP STREAM B;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverDropWithRecreates() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "DROP STREAM B;",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "DROP STREAM B;"
+    );
+    shouldRecover(commands);
   }
 
   @Test

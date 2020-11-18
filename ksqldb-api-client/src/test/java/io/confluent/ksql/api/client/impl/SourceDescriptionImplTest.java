@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import java.util.Collections;

@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -85,6 +86,18 @@ public final class CreateSourceFactory {
     this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
+  public CreateStreamCommand createStreamCommand(final KsqlStructuredDataOutputNode outputNode) {
+    return new CreateStreamCommand(
+        outputNode.getIntoSourceName(),
+        outputNode.getSchema(),
+        outputNode.getTimestampColumn(),
+        outputNode.getKsqlTopic().getKafkaTopicName(),
+        Formats.from(outputNode.getKsqlTopic()),
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+        Optional.of(outputNode.getOrReplace())
+    );
+  }
+
   public CreateStreamCommand createStreamCommand(
       final CreateStream statement,
       final KsqlConfig ksqlConfig
@@ -104,6 +117,18 @@ public final class CreateSourceFactory {
         buildFormats(schema, props, ksqlConfig),
         getWindowInfo(props),
         Optional.of(statement.isOrReplace())
+    );
+  }
+
+  public CreateTableCommand createTableCommand(final KsqlStructuredDataOutputNode outputNode) {
+    return new CreateTableCommand(
+        outputNode.getIntoSourceName(),
+        outputNode.getSchema(),
+        outputNode.getTimestampColumn(),
+        outputNode.getKsqlTopic().getKafkaTopicName(),
+        Formats.from(outputNode.getKsqlTopic()),
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+        Optional.of(outputNode.getOrReplace())
     );
   }
 

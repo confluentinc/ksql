@@ -50,7 +50,7 @@ class GenericExpressionResolver {
   private final SqlType fieldType;
   private final ColumnName fieldName;
   private final LogicalSchema schema;
-  private final SqlValueCoercer sqlValueCoercer = DefaultSqlValueCoercer.INSTANCE;
+  private final SqlValueCoercer sqlValueCoercer = DefaultSqlValueCoercer.STRICT;
   private final FunctionRegistry functionRegistry;
   private final KsqlConfig config;
 

@@ -2024,7 +2024,7 @@
       ]
     },
     {
-      "name": "stream-steam key-to-key - key format mismatch",
+      "name": "stream-stream key-to-key - key format mismatch",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='DELIMITED', value_format='JSON');",
         "CREATE STREAM S2 (ID INT KEY, VAL STRING) WITH (kafka_topic='s2', key_format='KAFKA', value_format='JSON');",
@@ -2063,7 +2063,7 @@
       }
     },
     {
-      "name": "stream-steam key-to-key - key format and default feature mismatch",
+      "name": "stream-stream key-to-key - key format and default feature mismatch",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='DELIMITED', value_format='JSON');",
         "CREATE STREAM S2 (ID INT KEY, VAL STRING) WITH (kafka_topic='s2', key_format='JSON', value_format='JSON');",
@@ -2102,7 +2102,7 @@
       }
     },
     {
-      "name": "stream-steam value-to-key - key format mismatch",
+      "name": "stream-stream value-to-key - key format mismatch",
       "statements": [
         "CREATE STREAM S1 (ID INT, FOO INT) WITH (kafka_topic='s1', key_format='NONE', value_format='JSON');",
         "CREATE STREAM S2 (ID INT KEY, VAL STRING) WITH (kafka_topic='s2', key_format='KAFKA', value_format='JSON');",
@@ -2142,7 +2142,7 @@
       }
     },
     {
-      "name": "stream-steam key-to-value - key format mismatch",
+      "name": "stream-stream key-to-value - key format mismatch",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='DELIMITED', value_format='JSON');",
         "CREATE STREAM S2 (ID INT, VAL STRING) WITH (kafka_topic='s2', key_format='NONE', value_format='JSON');",
@@ -2182,7 +2182,7 @@
       }
     },
     {
-      "name": "stream-steam value-to-value - keyless",
+      "name": "stream-stream value-to-value - keyless",
       "statements": [
         "CREATE STREAM S1 (ID INT, FOO INT) WITH (kafka_topic='s1', key_format='NONE', value_format='JSON');",
         "CREATE STREAM S2 (ID INT, VAL STRING) WITH (kafka_topic='s2', key_format='NONE', value_format='JSON');",
@@ -2344,7 +2344,7 @@
       }
     },
     {
-      "name": "stream-steam key-to-key - SR-enabled key format",
+      "name": "stream-stream key-to-key - SR-enabled key format",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='AVRO', value_format='JSON');",
         "CREATE STREAM S2 (ID INT KEY, VAL STRING) WITH (kafka_topic='s2', key_format='AVRO', value_format='JSON');",

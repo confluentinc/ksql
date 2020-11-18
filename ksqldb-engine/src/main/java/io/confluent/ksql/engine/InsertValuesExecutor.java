@@ -310,7 +310,7 @@ public class InsertValuesExecutor {
           dataSource.getKafkaTopicName(),
           true);
 
-    } catch (final Exception e) {
+    } catch (final KsqlException e) {
       maybeThrowSchemaRegistryAuthError(format, dataSource.getKafkaTopicName(), true, "read", e);
       throw new KsqlException("Could not determine that insert values operations is safe; "
           + "operation potentially overrides existing key schema in schema registry.", e);

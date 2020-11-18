@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Kafka Streams implementation of {@link Locator}.
  */
-final class KsLocator implements Locator {
+public final class KsLocator implements Locator {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsLocator.class);
   private final String stateStoreName;
@@ -133,7 +133,7 @@ final class KsLocator implements Locator {
   ) {
     // If the lookup is for a forwarded request, only filter localhost
     List<KsqlHostInfo> allHosts = null;
-    if (routingOptions.skipForwardRequest()) {
+    if (routingOptions.getIsSkipForwardRequest()) {
       LOG.debug("Before filtering: Local host {} ", localHost);
       allHosts = ImmutableList.of(new KsqlHostInfo(localHost.getHost(), localHost.getPort()));
     } else {
@@ -197,7 +197,8 @@ final class KsLocator implements Locator {
   }
 
   @Immutable
-  private static final class Node implements KsqlNode {
+  @VisibleForTesting
+  public static final class Node implements KsqlNode {
 
     private final boolean local;
     private final URI location;
@@ -247,13 +248,14 @@ final class KsLocator implements Locator {
 
   }
 
-  private static final class PartitionLocation implements KsqlPartitionLocation {
+  @VisibleForTesting
+  public static final class PartitionLocation implements KsqlPartitionLocation {
     private final Optional<Set<Struct>> keys;
     private final int partition;
     private final List<KsqlNode> nodes;
 
-    private PartitionLocation(final Optional<Set<Struct>> keys, final int partition,
-        final List<KsqlNode> nodes) {
+    public PartitionLocation(final Optional<Set<Struct>> keys, final int partition,
+                             final List<KsqlNode> nodes) {
       this.keys = keys;
       this.partition = partition;
       this.nodes = nodes;
@@ -269,6 +271,14 @@ final class KsLocator implements Locator {
 
     public int getPartition() {
       return partition;
+    }
+
+    public String toString() {
+      return " PartitionLocations {"
+          + "keys: " + keys
+          + " , partition: " + partition
+          + " , nodes: " + nodes
+          + " } ";
     }
   }
 }

@@ -22,11 +22,11 @@ import java.util.Set;
  */
 public interface RoutingOptions {
   // The offset lag allowed from a given host
-  long getOffsetLagAllowed();
+  long getMaxOffsetLagAllowed();
 
-  boolean skipForwardRequest();
+  boolean getIsSkipForwardRequest();
 
-  boolean isDebugRequest();
+  boolean getIsDebugRequest();
 
   Set<Integer> getPartitions();
 }

@@ -16,11 +16,14 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
 import static io.confluent.ksql.rest.Errors.badRequest;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
+import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
@@ -41,37 +44,42 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
-import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -107,7 +115,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -147,10 +154,6 @@ public class StreamedQueryResourceTest {
       "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
   private static final String PRINT_TOPIC = "Print TEST_TOPIC;";
 
-  private static final RoutingFilterFactory ROUTING_FILTER_FACTORY =
-      (routingOptions, hosts, active, applicationQueryId, storeName, partition) ->
-          new RoutingFilters(ImmutableList.of());
-
   @Mock
   private KsqlEngine mockKsqlEngine;
   @Mock
@@ -172,14 +175,23 @@ public class StreamedQueryResourceTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
-  private Time time;
+  private RoutingFilterFactory routingFilterFactory;
+  @Mock
+  private QueryId queryId;
+  @Mock
+  private RateLimiter rateLimiter;
+  @Mock
+  private KsqlConfig ksqlConfig;
+  @Mock
+  private PullQueryResult pullQueryResult;
+  @Mock
+  private LogicalSchema schema;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
   private PreparedStatement<Query> query;
   private PreparedStatement<PrintTopic> print;
   private KsqlSecurityContext securityContext;
-  private PullQueryExecutor pullQueryExecutor;
 
   @Before
   public void setup() {
@@ -196,8 +208,87 @@ public class StreamedQueryResourceTest {
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
-    pullQueryExecutor = new PullQueryExecutor(
-        mockKsqlEngine, ROUTING_FILTER_FACTORY, VALID_CONFIG);
+    testResource =  new StreamedQueryResource(
+        mockKsqlEngine,
+        mockStatementParser,
+        commandQueue,
+        DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
+        activenessRegistrar,
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        denyListPropertyValidator,
+        Optional.empty(),
+        routingFilterFactory,
+        rateLimiter
+    );
+
+    testResource.configure(VALID_CONFIG);
+  }
+
+  @Test
+  public void shouldThrowExceptionIfConfigDisabled() {
+    // Given:
+    when(ksqlConfig.getKsqlStreamConfigProps())
+        .thenReturn(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"));
+    testResource.configure(ksqlConfig);
+
+    final String errorMsg = "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
+        + "Add EMIT CHANGES if you intended to issue a push query.\n"
+        + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
+    final EndpointResponse errorResponse = EndpointResponse.create()
+        .status(BAD_REQUEST.code())
+        .entity(new KsqlStatementErrorMessage(
+            ERROR_CODE_BAD_STATEMENT, errorMsg, PULL_QUERY_STRING, new KsqlEntityList()))
+        .build();
+
+    // When:
+    EndpointResponse response = testResource.streamQuery(
+            securityContext,
+            new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+            new CompletableFuture<>(),
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT
+        );
+
+    // Then:
+    final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
+    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) errorResponse.getEntity();
+    assertThat(response.getStatus(), is(BAD_REQUEST.code()));
+    assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
+  }
+
+  @Test
+  public void shouldRedirectQueriesToQueryEndPoint() {
+    // Given:
+    final ConfiguredStatement<Query> query = ConfiguredStatement
+        .of(PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+            SessionConfig.of(ksqlConfig, ImmutableMap.of()));
+
+    // When:
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> CustomValidators.QUERY_ENDPOINT.validate(
+            query,
+            mock(SessionProperties.class),
+            mockKsqlEngine,
+            serviceContext
+        )
+    );
+
+    // Then:
+    assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
+    assertThat(e, exceptionStatementErrorMessage(errorMessage(containsString(
+        "The following statement types should be issued to the websocket endpoint '/query'"
+    ))));
+    assertThat(e, exceptionStatementErrorMessage(statement(containsString(
+        "SELECT * FROM test_table;"))));
+  }
+
+  @Test
+  public void shouldRateLimit() {
+    final RateLimiter pullQueryRateLimiter = RateLimiter.create(1);
+
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
         mockStatementParser,
@@ -207,12 +298,28 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        pullQueryExecutor,
         denyListPropertyValidator,
-        Optional.empty()
+        Optional.empty(),
+        routingFilterFactory,
+        pullQueryRateLimiter
+    );
+    testResource.configure(VALID_CONFIG);
+    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
+    when(pullQueryResult.getTableRows()).thenReturn(Collections.emptyList());
+    when(pullQueryResult.getSchema()).thenReturn(schema);
+    when(pullQueryResult.getQueryId()).thenReturn(queryId);
+
+    // When:
+    testResource.streamQuery(
+        securityContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>(),
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT
     );
 
-    testResource.configure(VALID_CONFIG);
+    // Then:
+    assertThrows(KsqlException.class, () -> PullQueryExecutionUtil.checkRateLimit(pullQueryRateLimiter));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -236,9 +343,10 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        pullQueryExecutor,
         denyListPropertyValidator,
-        Optional.empty()
+        Optional.empty(),
+        routingFilterFactory,
+        rateLimiter
     );
 
     // When:
@@ -279,7 +387,7 @@ public class StreamedQueryResourceTest {
     // Then:
     assertThat(e, exceptionStatusCode(is(BAD_REQUEST.code())));
     assertThat(e, exceptionErrorMessage(errorMessage(is("some error message"))));
-    assertThat(e, exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
+    assertThat(e, exceptionErrorMessage(errorCode(is(ERROR_CODE_BAD_STATEMENT))));
   }
 
   @Test
@@ -340,7 +448,7 @@ public class StreamedQueryResourceTest {
 
   @Test
   public void shouldNotCreateExternalClientsForPullQuery() {
-    // Given
+    // Given:
     testResource.configure(new KsqlConfig(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     )));
@@ -398,10 +506,11 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        pullQueryExecutor,
         denyListPropertyValidator,
-        Optional.empty()
-    );
+        Optional.empty(),
+        routingFilterFactory,
+        rateLimiter
+      );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     ));

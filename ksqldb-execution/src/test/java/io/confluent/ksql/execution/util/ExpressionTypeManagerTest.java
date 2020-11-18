@@ -278,6 +278,18 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
+  public void shouldEvaluateBooleanSchemaForInExpression() {
+    final Expression expression = new InPredicate(
+        TestExpressions.COL0,
+        new InListExpression(ImmutableList.of(new StringLiteral("key1"))));
+
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(exprType0, is(SqlTypes.BOOLEAN));
+  }
+
+
+  @Test
   public void shouldEvaluateTypeForUDF() {
     // Given:
     givenUdfWithNameAndReturnType("FLOOR", SqlTypes.DOUBLE);

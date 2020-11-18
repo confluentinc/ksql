@@ -19,8 +19,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -32,6 +35,7 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -256,6 +260,28 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       // add the statement text to the KsqlException
       throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
     }
+  }
+
+  @Override
+  public PullQueryResult executePullQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final RoutingFilterFactory routingFilterFactory,
+      final RoutingOptions routingOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+  ) {
+    return EngineExecutor
+        .create(
+            primaryContext,
+            serviceContext,
+            statement.getSessionConfig()
+        )
+        .executePullQuery(
+            statement,
+            routingFilterFactory,
+            routingOptions,
+            pullQueryMetrics
+        );
   }
 
   /**

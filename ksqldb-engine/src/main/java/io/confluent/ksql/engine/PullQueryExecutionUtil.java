@@ -88,7 +88,7 @@ public final class PullQueryExecutionUtil {
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
 
     if (query.getDataSourceType() != DataSourceType.KTABLE) {
-      throw new KsqlException("Pull queries are not supported on streams");
+      throw new KsqlException("Pull queries are not supported on streams.");
     }
     return query;
   }

@@ -2495,6 +2495,431 @@
           ]
         }
       }
+    },
+    {
+      "name": "stream-stream key-to-key - SR-enabled key format - with inference",
+      "statements": [
+        "CREATE STREAM S1 (FOO INT) WITH (kafka_topic='s1', key_format='JSON_SR', value_format='JSON');",
+        "CREATE STREAM S2 (VAL STRING) WITH (kafka_topic='s2', key_format='JSON_SR', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT S1.ROWKEY, S2.VAL FROM S1 LEFT OUTER JOIN S2 WITHIN 10 SECONDS ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "topics": [
+        {
+          "name": "s1",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}
+        },
+        {
+          "name": "s2",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "s1", "key": 10, "value": {"foo": 22}},
+        {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "JSON_SR"}}
+        ],
+        "topics" : {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "valueFormat" : {"format" : "JSON"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "stream-stream key-to-key - SR-enabled key format - with inference - different schemas",
+      "statements": [
+        "CREATE STREAM S1 (FOO INT) WITH (kafka_topic='s1', key_format='JSON_SR', value_format='JSON');",
+        "CREATE STREAM S2 (VAL STRING) WITH (kafka_topic='s2', key_format='JSON_SR', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT S1.ROWKEY, S2.VAL FROM S1 LEFT OUTER JOIN S2 WITHIN 10 SECONDS ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "topics": [
+        {
+          "name": "s1",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"type":"integer","connect.type":"int32"}
+        },
+        {
+          "name": "s2",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "s1", "key": 10, "value": {"foo": 22}},
+        {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "JSON_SR"}}
+        ],
+        "topics" : {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "stream-table key-to-key - SR-enabled key format - with inference - different schemas",
+      "statements": [
+        "CREATE TABLE T (VAL STRING) WITH (kafka_topic='t', key_format='JSON_SR', value_format='JSON');",
+        "CREATE STREAM S (FOO INT) WITH (kafka_topic='s', key_format='JSON_SR', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT S.ROWKEY, VAL FROM S JOIN T ON S.ROWKEY = T.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "topics": [
+        {
+          "name": "t",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"type":"integer","connect.type":"int32"}
+        },
+        {
+          "name": "s",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "t", "key": 10, "value": {"VAL": "hello"}},
+        {"topic": "s", "key": 10, "value": {"foo": 22}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "JSON_SR"}}
+        ],
+        "topics" : {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-Repartition-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "table-table - SR-enabled key format - with inference - different schemas",
+      "statements": [
+        "CREATE TABLE T1 (NAME varchar) WITH (kafka_topic='t1', key_format='JSON_SR', value_format='JSON');",
+        "CREATE TABLE T2 (F1 varchar) WITH (kafka_topic='t2', key_format='JSON_SR', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT T1.ROWKEY, name, f1 FROM T1 left join T2 on T1.ROWKEY = T2.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "topics": [
+        {
+          "name": "t1",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"type":"integer","connect.type":"int32"}
+        },
+        {
+          "name": "t2",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "t1", "key": 0, "value": {"NAME": "zero"}},
+        {"topic": "t2", "key": 0, "value": {"F1": "blah"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "F1": null}},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "F1": "blah"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyFormat": {"format": "JSON_SR"}}
+        ],
+        "topics" : {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-SelectKey-Repartition-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-Repartition-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-Materialize-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "stream-stream key-to-key - SR-enabled key and value format - with inference - different key schemas",
+      "statements": [
+        "CREATE STREAM S1 WITH (kafka_topic='s1', format='JSON_SR');",
+        "CREATE STREAM S2 WITH (kafka_topic='s2', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT S1.ROWKEY, S2.VAL FROM S1 LEFT OUTER JOIN S2 WITHIN 10 SECONDS ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "topics": [
+        {
+          "name": "s1",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"type":"integer","connect.type":"int32"},
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}}
+        },
+        {
+          "name": "s2",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"VAL":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"string","connect.type":"int32"}]}}}
+        }
+      ],
+      "inputs": [
+        {"topic": "s1", "key": 10, "value": {"foo": 22}},
+        {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "JSON_SR"}}
+        ],
+        "topics" : {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON_SR"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON_SR"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON_SR"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON_SR"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "stream-stream key-to-key - SR-enabled key format - with inference - different schemas - outer join",
+      "statements": [
+        "CREATE STREAM S1 (FOO INT) WITH (kafka_topic='s1', key_format='JSON_SR', value_format='JSON');",
+        "CREATE STREAM S2 (VAL STRING) WITH (kafka_topic='s2', key_format='JSON_SR', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ROWKEY_1, AS_VALUE(S1.ROWKEY) AS S1_KEY, AS_VALUE(S2.ROWKEY) AS S2_KEY, S2.VAL FROM S1 FULL OUTER JOIN S2 WITHIN 10 SECONDS ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "topics": [
+        {
+          "name": "s1",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"type":"integer","connect.type":"int32"}
+        },
+        {
+          "name": "s2",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "s1", "key": 10, "value": {"foo": 22}},
+        {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"S1_KEY": 10, "S2_KEY": null, "VAL": null}},
+        {"topic": "OUTPUT", "key": 10, "value": {"S1_KEY": 10, "S2_KEY": 10, "VAL": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "JSON_SR"}}
+        ],
+        "topics" : {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTERTHIS-0000000016-store-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
+              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+              "valueFormat" : {"format" : "JSON"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "table-table key-to-key - SR-enabled key format - incompatible schemas",
+      "statements": [
+        "CREATE TABLE T1 (ID INT PRIMARY KEY, VAL STRING) WITH (kafka_topic='t1', key_format='AVRO', value_format='JSON');",
+        "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, FOO INT) WITH (kafka_topic='t2', key_format='AVRO', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT T2.ID, T1.VAL FROM T1 JOIN T2 ON T1.ID = T2.ID;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join. Key types differ: INTEGER vs BIGINT"
+      }
+    },
+    {
+      "name": "windowed - SR-enabled key format",
+      "statements": [
+        "CREATE STREAM S1 (ID INT KEY, V bigint) WITH (kafka_topic='s1', key_format='AVRO', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='2 SECOND');",
+        "CREATE STREAM S2 (ID INT KEY, V bigint) WITH (kafka_topic='s2', key_format='AVRO', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
+        "CREATE STREAM OUTPUT AS SELECT S1.ID, S2.V FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ID = S2.ID;"
+      ],
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385. As a result, ksqlDB does not support joins on windowed sources with Schema-Registry-enabled key formats (AVRO, JSON_SR, PROTOBUF) at this time. Please repartition your sources to use a different key format before performing the join."
+      }
     }
   ]
 }

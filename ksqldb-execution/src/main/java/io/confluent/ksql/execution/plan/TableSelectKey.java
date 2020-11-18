@@ -27,13 +27,13 @@ import javax.annotation.Nonnull;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class TableSelectKey implements ExecutionStep<KTableHolder<Struct>> {
+public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
       new Property("properties", ExecutionStep::getProperties),
-      new Property("internal formats", t -> ((TableSelectKey) t).internalFormats),
-      new Property("keyExpression", t -> ((TableSelectKey) t).keyExpression)
+      new Property("internal formats", t -> ((TableSelectKey<?>) t).internalFormats),
+      new Property("keyExpression", t -> ((TableSelectKey<?>) t).keyExpression)
   );
 
   private final ExecutionStepPropertiesV1 properties;
@@ -79,14 +79,14 @@ public class TableSelectKey implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(final PlanBuilder builder) {
+  public KTableHolder<K> build(final PlanBuilder builder) {
     return builder.visitTableSelectKey(this);
   }
 
   @Override
   public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
     mustMatch(to, MUST_MATCH);
-    getSource().validateUpgrade(((TableSelectKey) to).source);
+    getSource().validateUpgrade(((TableSelectKey<?>) to).source);
   }
 
   @Override
@@ -97,7 +97,7 @@ public class TableSelectKey implements ExecutionStep<KTableHolder<Struct>> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableSelectKey that = (TableSelectKey) o;
+    final TableSelectKey<?> that = (TableSelectKey<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)

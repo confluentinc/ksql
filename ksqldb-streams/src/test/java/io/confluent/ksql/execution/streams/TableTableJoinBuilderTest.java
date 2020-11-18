@@ -19,7 +19,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.name.ColumnName;
@@ -67,7 +67,7 @@ public class TableTableJoinBuilderTest {
   @Mock
   private ExecutionStep<KTableHolder<Struct>> right;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
 
   private PlanBuilder planBuilder;
   private TableTableJoin<Struct> join;
@@ -76,9 +76,9 @@ public class TableTableJoinBuilderTest {
   @Before
   public void init() {
     when(left.build(any())).thenReturn(
-        KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, keySerdeFactory));
+        KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, executionKeyFactory));
     when(right.build(any())).thenReturn(
-        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, keySerdeFactory));
+        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory));
 
     when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
     when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);
@@ -107,7 +107,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -140,7 +140,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -158,7 +158,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
   }
 
   @Test

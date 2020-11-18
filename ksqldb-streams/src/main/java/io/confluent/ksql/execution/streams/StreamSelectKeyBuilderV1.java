@@ -19,8 +19,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
@@ -72,7 +72,7 @@ public final class StreamSelectKeyBuilderV1 {
     return new KStreamHolder<>(
         rekeyed,
         resultSchema,
-        KeySerdeFactory.unwindowed(queryBuilder)
+        ExecutionKeyFactory.unwindowed(queryBuilder)
     );
   }
 

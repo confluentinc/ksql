@@ -17,7 +17,7 @@
  import io.confluent.ksql.execution.plan.ExecutionStep;
  import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
  import io.confluent.ksql.execution.plan.KTableHolder;
- import io.confluent.ksql.execution.plan.KeySerdeFactory;
+ import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
  import io.confluent.ksql.execution.plan.PlanBuilder;
  import io.confluent.ksql.execution.plan.TableFilter;
  import io.confluent.ksql.execution.transform.KsqlProcessingContext;
@@ -75,7 +75,7 @@ public class TableFilterBuilderTest {
   @Mock
   private Expression filterExpression;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private MaterializationInfo.Builder materializationBuilder;
   @Mock
@@ -115,7 +115,7 @@ public class TableFilterBuilderTest {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     step = new TableFilter<>(properties, sourceStep, filterExpression);
     when(sourceStep.build(any())).thenReturn(
-        KTableHolder.materialized(sourceKTable, schema, keySerdeFactory, materializationBuilder))
+        KTableHolder.materialized(sourceKTable, schema, executionKeyFactory, materializationBuilder))
     ;
     when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
     planBuilder = new KSPlanBuilder(
@@ -133,7 +133,7 @@ public class TableFilterBuilderTest {
 
     // Then:
     assertThat(result.getTable(), is(postKTable));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
   }
 
   @Test

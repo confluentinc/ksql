@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -27,6 +28,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -43,7 +45,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
@@ -98,13 +99,15 @@ public class StreamSelectKeyBuilderTest {
   @Mock
   private PartitionByParamsBuilder paramBuilder;
   @Mock
-  private PartitionByParams params;
+  private PartitionByParams<Struct> params;
   @Mock
-  private BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper;
+  private PartitionByParams.Mapper<Struct> mapper;
   @Mock
   private Struct aKey;
   @Mock
   private GenericRow aValue;
+  @Mock
+  private ExecutionKeyFactory<Struct> keyFactory;
   @Captor
   private ArgumentCaptor<KeyValueMapper<Struct, GenericRow, KeyValue<Struct, GenericRow>>> mapperCaptor;
   @Captor
@@ -113,7 +116,7 @@ public class StreamSelectKeyBuilderTest {
   private final QueryContext queryContext =
       new QueryContext.Stacker().push("ya").getQueryContext();
 
-  private StreamSelectKey selectKey;
+  private StreamSelectKey<Struct> selectKey;
 
   @Before
   @SuppressWarnings("unchecked")
@@ -122,7 +125,7 @@ public class StreamSelectKeyBuilderTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(CONFIG);
 
-    when(paramBuilder.build(any(), any(), any(), any(), any())).thenReturn(params);
+    when(paramBuilder.build(any(), eq(keyFactory), any(), any(), any(), any())).thenReturn(params);
 
     when(params.getMapper()).thenReturn(mapper);
     when(params.getSchema()).thenReturn(RESULT_SCHEMA);
@@ -130,9 +133,15 @@ public class StreamSelectKeyBuilderTest {
     when(stream.getStream()).thenReturn(kstream);
     when(stream.getSchema()).thenReturn(SOURCE_SCHEMA);
 
+    when(stream.getKeySerdeFactory()).thenReturn(keyFactory);
+    when(keyFactory.withQueryBuilder(any())).thenReturn(keyFactory);
+    when(keyFactory.buildKeySerde(any(), any(), any()))
+        .thenAnswer(inv -> queryBuilder.buildKeySerde(
+            inv.getArgument(0), inv.getArgument(1), inv.getArgument(2)));
+
     when(kstream.map(any(KeyValueMapper.class), any(Named.class))).thenReturn(rekeyedKstream);
 
-    selectKey = new StreamSelectKey(
+    selectKey = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),
         sourceStep,
         KEY
@@ -148,7 +157,7 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     verify(paramBuilder).build(
         SOURCE_SCHEMA,
-        KEY,
+        stream.getKeySerdeFactory(), KEY,
         CONFIG,
         functionRegistry,
         processingLogger

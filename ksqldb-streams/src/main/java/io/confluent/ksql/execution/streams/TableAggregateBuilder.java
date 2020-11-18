@@ -18,9 +18,9 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.name.ColumnName;
@@ -97,7 +97,7 @@ public final class TableAggregateBuilder {
     return KTableHolder.materialized(
         aggregated,
         resultSchema,
-        KeySerdeFactory.unwindowed(queryBuilder),
+        ExecutionKeyFactory.unwindowed(queryBuilder),
         materializationBuilder
     );
   }

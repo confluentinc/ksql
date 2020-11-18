@@ -59,7 +59,6 @@ import io.confluent.ksql.util.Repartitioning;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -314,8 +313,7 @@ public class SchemaKStream<K> {
    *                         joins on Schema-Registry-enabled key formats
    * @return result stream: repartitioned if needed or forced, else this stream unchanged
    */
-  @SuppressWarnings("unchecked")
-  public SchemaKStream<Struct> selectKey(
+  public SchemaKStream<K> selectKey(
       final FormatInfo valueFormat,
       final Expression keyExpression,
       final Optional<FormatInfo> forceInternalKeyFormat,
@@ -329,7 +327,7 @@ public class SchemaKStream<K> {
         && !forceRepartition
         && repartitionNotNeeded(ImmutableList.of(keyExpression))
     ) {
-      return (SchemaKStream<Struct>) this;
+      return this;
     }
 
     if (keyFormat.isWindowed()) {
@@ -344,7 +342,7 @@ public class SchemaKStream<K> {
       throw new KsqlException(errorMsg + additionalMsg);
     }
 
-    final ExecutionStep<KStreamHolder<Struct>> step = ExecutionStepFactory
+    final ExecutionStep<KStreamHolder<K>> step = ExecutionStepFactory
         .streamSelectKey(contextStacker, sourceStep, keyExpression);
 
     final KeyFormat newKeyFormat = forceInternalKeyFormat

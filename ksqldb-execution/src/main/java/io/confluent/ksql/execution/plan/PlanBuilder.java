@@ -39,7 +39,7 @@ public interface PlanBuilder {
 
   KStreamHolder<Struct> visitStreamSelectKey(StreamSelectKeyV1 streamSelectKey);
 
-  KStreamHolder<Struct> visitStreamSelectKey(StreamSelectKey streamSelectKey);
+  <K> KStreamHolder<K> visitStreamSelectKey(StreamSelectKey<K> streamSelectKey);
 
   <K> KStreamHolder<K> visitStreamSink(StreamSink<K> streamSink);
 
@@ -68,7 +68,7 @@ public interface PlanBuilder {
 
   <K> KTableHolder<K> visitTableSelect(TableSelect<K> tableSelect);
 
-  KTableHolder<Struct> visitTableSelectKey(TableSelectKey tableSelectKey);
+  <K> KTableHolder<K> visitTableSelectKey(TableSelectKey<K> tableSelectKey);
 
   <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink);
 

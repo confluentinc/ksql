@@ -44,7 +44,7 @@ import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
@@ -615,7 +615,7 @@ public class StreamAggregateBuilderTest {
       final KTableHolder<Windowed<Struct>> tableHolder = windowedAggregate.build(planBuilder);
 
       // Then:
-      final KeySerdeFactory<Windowed<Struct>> serdeFactory = tableHolder.getKeySerdeFactory();
+      final ExecutionKeyFactory<Windowed<Struct>> serdeFactory = tableHolder.getKeySerdeFactory();
       final FormatInfo mockFormat = mock(FormatInfo.class);
       final PhysicalSchema mockSchema = mock(PhysicalSchema.class);
       final QueryContext mockCtx = mock(QueryContext.class);

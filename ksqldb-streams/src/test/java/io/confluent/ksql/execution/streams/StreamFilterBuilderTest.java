@@ -14,7 +14,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -64,7 +64,7 @@ public class StreamFilterBuilderTest {
   @Mock
   private Expression filterExpression;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
@@ -92,7 +92,7 @@ public class StreamFilterBuilderTest {
     when(sourceStep.build(any())).thenReturn(new KStreamHolder<>(
         sourceKStream,
         schema,
-        keySerdeFactory
+        executionKeyFactory
     ));
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     planBuilder = new KSPlanBuilder(
@@ -111,7 +111,7 @@ public class StreamFilterBuilderTest {
 
     // Then:
     assertThat(result.getStream(), is(filteredKStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
   }
 
   @Test

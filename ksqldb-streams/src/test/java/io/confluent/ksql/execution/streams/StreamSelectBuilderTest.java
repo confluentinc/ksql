@@ -32,7 +32,7 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamSelect;
@@ -91,7 +91,7 @@ public class StreamSelectBuilderTest {
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private ProcessingLogger processingLogger;
   @Captor
@@ -116,7 +116,7 @@ public class StreamSelectBuilderTest {
         .transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(resultKStream);
     final KStreamHolder<Struct> sourceStream
-        = new KStreamHolder<>(sourceKStream, SCHEMA, keySerdeFactory);
+        = new KStreamHolder<>(sourceKStream, SCHEMA, executionKeyFactory);
     when(sourceStep.build(any())).thenReturn(sourceStream);
     step = new StreamSelect<>(
         properties,
@@ -139,7 +139,7 @@ public class StreamSelectBuilderTest {
 
     // Then:
     assertThat(result.getStream(), is(resultKStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
   }
 
   @Test

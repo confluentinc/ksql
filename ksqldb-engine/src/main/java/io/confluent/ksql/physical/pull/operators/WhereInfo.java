@@ -403,7 +403,7 @@ public final class WhereInfo {
 
     final Column keyColumn = schema.key().get(0);
 
-    return DefaultSqlValueCoercer.INSTANCE.coerce(right, keyColumn.type())
+    return DefaultSqlValueCoercer.STRICT.coerce(right, keyColumn.type())
         .orElseThrow(() -> new KsqlException(
             "'"
                 + right + "' can not be converted "

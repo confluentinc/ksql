@@ -121,6 +121,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
+@SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
 public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
@@ -568,7 +569,7 @@ public class StreamedQueryResourceTest {
     // Definitely want to make sure that the Kafka Streams instance has been closed and cleaned up
     verify(mockKafkaStreams).start();
     // called on init and when setting uncaught exception handler manually
-    verify(mockKafkaStreams, times(2)).setUncaughtExceptionHandler(any());
+    verify(mockKafkaStreams, times(2)).setUncaughtExceptionHandler(any(Thread.UncaughtExceptionHandler.class));
     verify(mockKafkaStreams).cleanUp();
     verify(mockKafkaStreams).close(Duration.ofMillis(closeTimeout));
 

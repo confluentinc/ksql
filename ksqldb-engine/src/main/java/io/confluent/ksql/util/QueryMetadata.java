@@ -76,6 +76,7 @@ public abstract class QueryMetadata {
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
+  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   QueryMetadata(
       final String statementString,
       final LogicalSchema logicalSchema,
@@ -183,6 +184,7 @@ public abstract class QueryMetadata {
     return statementString;
   }
 
+  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
     this.uncaughtExceptionHandler = handler;
     kafkaStreams.setUncaughtExceptionHandler(handler);

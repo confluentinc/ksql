@@ -22,7 +22,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;

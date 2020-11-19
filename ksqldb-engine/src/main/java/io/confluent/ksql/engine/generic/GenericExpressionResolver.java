@@ -20,6 +20,9 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -40,7 +43,11 @@ import java.util.function.Supplier;
  * Builds a Java object, coerced to the desired type, from an arbitrary SQL
  * expression that does not reference any source data.
  */
-class GenericExpressionResolver {
+public class GenericExpressionResolver {
+
+  // GenericExpressionResolver doesn't accept any column references, so we don't
+  // actually need the schema, but the CodeGenRunner expects on to be passed in
+  private static final LogicalSchema NO_COLUMNS = LogicalSchema.builder().build();
 
   private static final Supplier<String> IGNORED_MSG = () -> "";
   private static final ProcessingLogger THROWING_LOGGER = errorMessage -> {
@@ -49,23 +56,23 @@ class GenericExpressionResolver {
 
   private final SqlType fieldType;
   private final ColumnName fieldName;
-  private final LogicalSchema schema;
   private final SqlValueCoercer sqlValueCoercer = DefaultSqlValueCoercer.STRICT;
   private final FunctionRegistry functionRegistry;
   private final KsqlConfig config;
+  private final String operation;
 
-  GenericExpressionResolver(
+  public GenericExpressionResolver(
       final SqlType fieldType,
       final ColumnName fieldName,
-      final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
-      final KsqlConfig config
+      final KsqlConfig config,
+      final String operation
   ) {
     this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
     this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-    this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.config = Objects.requireNonNull(config, "config");
+    this.operation = Objects.requireNonNull(operation, "operation");
   }
 
   public Object resolve(final Expression expression) {
@@ -76,11 +83,12 @@ class GenericExpressionResolver {
 
     @Override
     protected Object visitExpression(final Expression expression, final Void context) {
+      new EnsureNoColReferences(expression).process(expression, context);
       final ExpressionMetadata metadata =
           CodeGenRunner.compileExpression(
               expression,
-              "insert value",
-              schema,
+              operation,
+              NO_COLUMNS,
               config,
               functionRegistry
           );
@@ -106,6 +114,31 @@ class GenericExpressionResolver {
     @Override
     public Object visitNullLiteral(final NullLiteral node, final Void context) {
       return null;
+    }
+  }
+
+  private class EnsureNoColReferences extends TraversalExpressionVisitor<Void> {
+
+    private final Expression parent;
+
+    EnsureNoColReferences(final Expression parent) {
+      this.parent = Objects.requireNonNull(parent, "parent");
+    }
+
+    @Override
+    public Void visitUnqualifiedColumnReference(
+        final UnqualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      throw new KsqlException("Unsupported column reference in " + operation + ": " + parent);
+    }
+
+    @Override
+    public Void visitQualifiedColumnReference(
+        final QualifiedColumnReferenceExp node,
+        final Void context
+    ) {
+      throw new KsqlException("Unsupported column reference in " + operation + ": " + parent);
     }
   }
 

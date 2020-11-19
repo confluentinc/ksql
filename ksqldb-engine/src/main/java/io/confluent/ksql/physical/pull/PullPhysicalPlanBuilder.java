@@ -222,7 +222,7 @@ public class PullPhysicalPlanBuilder {
   }
 
   private SelectOperator translateFilterNode(final FilterNode logicalNode) {
-    whereInfo = WhereInfo.extractWhereInfo(analysis, persistentQueryMetadata);
+    whereInfo = WhereInfo.extractWhereInfo(analysis, persistentQueryMetadata, metaStore, config);
     return new SelectOperator(logicalNode);
   }
 

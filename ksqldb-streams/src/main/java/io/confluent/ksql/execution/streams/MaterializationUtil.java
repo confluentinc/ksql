@@ -29,6 +29,10 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
 
+/**
+ * Helper methods for building {@link org.apache.kafka.streams.kstream.Materialized}
+ * instances when performing stream -> table conversions, such as during aggregations.
+ */
 final class MaterializationUtil {
 
   private static final String MATERIALIZE_OP = "Materialize";

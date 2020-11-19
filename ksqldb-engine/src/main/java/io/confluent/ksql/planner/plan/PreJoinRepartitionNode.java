@@ -59,10 +59,7 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
     this.joiningNode = source instanceof JoiningNode
         ? Optional.of((JoiningNode) source)
         : Optional.empty();
-    this.valueFormat = getLeftmostSourceNode()
-        .getDataSource()
-        .getKsqlTopic()
-        .getValueFormat();
+    this.valueFormat = JoiningNode.getValueFormatForSource(this);
   }
 
   @Override
@@ -102,6 +99,8 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   @Override
   public void setKeyFormat(final FormatInfo format) {
     // Force repartition in case of schema inference, to avoid misses due to key schema ID mismatch
+    // See https://github.com/confluentinc/ksql/issues/6332 for context, and
+    // https://github.com/confluentinc/ksql/issues/6648 for a potential optimization
     if (FormatFactory.of(format).supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       forceRepartition = true;
     }

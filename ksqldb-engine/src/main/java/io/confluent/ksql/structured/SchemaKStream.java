@@ -304,6 +304,16 @@ public class SchemaKStream<K> {
     );
   }
 
+  /**
+   * @param valueFormat value format used in constructing serdes. Unchanged by this step.
+   * @param keyExpression expression for the key being selected
+   * @param forceInternalKeyFormat new key format to be used, if present
+   * @param contextStacker context for this step
+   * @param forceRepartition if true, this step will repartition even if there is no change in
+   *                         either key format or value. Used to ensure co-partitioning for
+   *                         joins on Schema-Registry-enabled key formats
+   * @return result stream: repartitioned if needed or forced, else this stream unchanged
+   */
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
       final FormatInfo valueFormat,

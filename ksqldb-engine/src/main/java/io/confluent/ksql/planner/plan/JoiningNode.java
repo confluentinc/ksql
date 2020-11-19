@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -57,6 +58,13 @@ public interface JoiningNode {
    * @param format the key format.
    */
   void setKeyFormat(FormatInfo format);
+
+  static ValueFormat getValueFormatForSource(final PlanNode sourceNode) {
+    return sourceNode.getLeftmostSourceNode()
+        .getDataSource()
+        .getKsqlTopic()
+        .getValueFormat();
+  }
 
   @Immutable
   class RequiredFormat {

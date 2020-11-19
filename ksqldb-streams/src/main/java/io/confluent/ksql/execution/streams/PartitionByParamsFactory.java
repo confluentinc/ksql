@@ -110,20 +110,6 @@ public final class PartitionByParamsFactory {
     return new PartitionByParams(resultSchema, mapper);
   }
 
-  private static class PartitionByExpressionEvaluator {
-
-    private final Function<GenericRow, Object> evaluator;
-    private final boolean acceptsKey;
-
-    PartitionByExpressionEvaluator(
-        final Function<GenericRow, Object> evaluator,
-        final boolean acceptsKey
-    ) {
-      this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
-      this.acceptsKey = acceptsKey;
-    }
-  }
-
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
       final Expression partitionBy,
@@ -235,5 +221,19 @@ public final class PartitionByParamsFactory {
         row -> expressionMetadata.evaluate(row, null, logger, () -> errorMsg),
         isKeyExpression
     );
+  }
+
+  private static class PartitionByExpressionEvaluator {
+
+    private final Function<GenericRow, Object> evaluator;
+    private final boolean acceptsKey;
+
+    PartitionByExpressionEvaluator(
+        final Function<GenericRow, Object> evaluator,
+        final boolean acceptsKey
+    ) {
+      this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
+      this.acceptsKey = acceptsKey;
+    }
   }
 }

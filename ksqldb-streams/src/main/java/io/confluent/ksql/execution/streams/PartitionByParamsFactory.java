@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
@@ -33,7 +34,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
@@ -87,17 +90,38 @@ public final class PartitionByParamsFactory {
       // is already present in the current value
       mapper = (k, v) -> new KeyValue<>(null, v);
     } else {
-      final Function<GenericRow, Object> evaluator = buildExpressionEvaluator(
+      final Set<? extends ColumnReferenceExp> partitionByCols =
+          ColumnExtractor.extractColumns(partitionBy);
+      final boolean isKeyExpression = partitionByCols.stream()
+          .map(ColumnReferenceExp::getColumnName)
+          .allMatch(sourceSchema::isKeyColumn);
+
+      final PartitionByExpressionEvaluator evaluator = buildExpressionEvaluator(
           sourceSchema,
           partitionBy,
           ksqlConfig,
           functionRegistry,
-          logger
+          logger,
+          isKeyExpression
       );
       mapper = buildMapper(resultSchema, partitionByCol, evaluator);
     }
 
     return new PartitionByParams(resultSchema, mapper);
+  }
+
+  private static class PartitionByExpressionEvaluator {
+
+    private final Function<GenericRow, Object> evaluator;
+    private final boolean acceptsKey;
+
+    PartitionByExpressionEvaluator(
+        final Function<GenericRow, Object> evaluator,
+        final boolean acceptsKey
+    ) {
+      this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
+      this.acceptsKey = acceptsKey;
+    }
   }
 
   public static LogicalSchema buildSchema(
@@ -162,7 +186,7 @@ public final class PartitionByParamsFactory {
   private static BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> buildMapper(
       final LogicalSchema resultSchema,
       final Optional<ColumnName> partitionByCol,
-      final Function<GenericRow, Object> evaluator
+      final PartitionByExpressionEvaluator evaluator
   ) {
     // If partitioning by something other than an existing column, then a new key will have
     // been synthesized. This new key must be appended to the value to make it available for
@@ -172,7 +196,11 @@ public final class PartitionByParamsFactory {
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(resultSchema);
 
     return (k, v) -> {
-      final Object newKey = evaluator.apply(v);
+      final Object newKey = evaluator.evaluator.apply(
+          evaluator.acceptsKey
+          ? GenericRow.fromList(StructKeyUtil.asList(k))
+          : v
+      );
       final Struct structKey = keyBuilder.build(newKey, 0);
 
       if (v != null && appendNewKey) {
@@ -183,15 +211,16 @@ public final class PartitionByParamsFactory {
     };
   }
 
-  private static Function<GenericRow, Object> buildExpressionEvaluator(
+  private static PartitionByExpressionEvaluator buildExpressionEvaluator(
       final LogicalSchema schema,
       final Expression partitionBy,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final ProcessingLogger logger
+      final ProcessingLogger logger,
+      final boolean isKeyExpression
   ) {
     final CodeGenRunner codeGen = new CodeGenRunner(
-        schema,
+        isKeyExpression ? schema.withKeyColsOnly() : schema,
         ksqlConfig,
         functionRegistry
     );
@@ -202,6 +231,9 @@ public final class PartitionByParamsFactory {
     final String errorMsg = "Error computing new key from expression "
         + expressionMetadata.getExpression();
 
-    return row -> expressionMetadata.evaluate(row, null, logger, () -> errorMsg);
+    return new PartitionByExpressionEvaluator(
+        row -> expressionMetadata.evaluate(row, null, logger, () -> errorMsg),
+        isKeyExpression
+    );
   }
 }

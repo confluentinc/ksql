@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;

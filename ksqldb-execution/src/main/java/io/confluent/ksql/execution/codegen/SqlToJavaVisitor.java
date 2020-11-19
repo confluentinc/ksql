@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
@@ -68,6 +69,7 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.execution.util.CoercionUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.GenericsUtil;
@@ -99,7 +101,6 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.function.Function;
@@ -110,6 +111,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
+@SuppressWarnings("UnstableApiUsage")
 public class SqlToJavaVisitor {
 
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
@@ -873,11 +875,15 @@ public class SqlToJavaVisitor {
         final CreateArrayExpression exp,
         final Void context
     ) {
+      final List<Expression> expressions = CoercionUtil
+          .coerceUserList(exp.getValues(), expressionTypeManager)
+          .expressions();
+
       final StringBuilder array = new StringBuilder("new ArrayBuilder(");
-      array.append(exp.getValues().size());
+      array.append(expressions.size());
       array.append((')'));
 
-      for (Expression value : exp.getValues()) {
+      for (Expression value : expressions) {
         array.append(".add(");
         array.append(process(value, context).getLeft());
         array.append(")");
@@ -892,20 +898,24 @@ public class SqlToJavaVisitor {
         final CreateMapExpression exp,
         final Void context
     ) {
-      final StringBuilder map = new StringBuilder("new MapBuilder(");
-      map.append(exp.getMap().size());
-      map.append((')'));
+      final ImmutableMap<Expression, Expression> map = exp.getMap();
+      final List<Expression> keys = CoercionUtil
+          .coerceUserList(map.keySet(), expressionTypeManager)
+          .expressions();
 
-      for (Entry<Expression, Expression> entry: exp.getMap().entrySet()) {
-        map.append(".put(");
-        map.append(process(entry.getKey(), context).getLeft());
-        map.append(", ");
-        map.append(process(entry.getValue(), context).getLeft());
-        map.append(")");
-      }
+      final List<Expression> values = CoercionUtil
+          .coerceUserList(map.values(), expressionTypeManager)
+          .expressions();
+
+      final String entries = Streams.zip(
+          keys.stream(),
+          values.stream(),
+          (k, v) -> ".put(" + process(k, context).getLeft() + ", " + process(v, context).getLeft()
+              + ")"
+      ).collect(Collectors.joining());
 
       return new Pair<>(
-          "((Map)" + map.toString() + ".build())",
+          "((Map)new MapBuilder(" + map.size() + ")" + entries + ".build())",
           expressionTypeManager.getExpressionSqlType(exp));
     }
 

@@ -20,15 +20,19 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.PullQueryExecutionUtil;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
-import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -42,25 +46,31 @@ import java.util.stream.IntStream;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
+  private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
-  private final PullQueryExecutor pullQueryExecutor;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final long startTimeNanos;
+  private final RoutingFilterFactory routingFilterFactory;
+  private final RateLimiter rateLimiter;
 
   @VisibleForTesting
   PullQueryPublisher(
+      final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> query,
-      final PullQueryExecutor pullQueryExecutor,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final long startTimeNanos
+      final long startTimeNanos,
+      final RoutingFilterFactory routingFilterFactory,
+      final RateLimiter rateLimiter
   ) {
+    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.query = requireNonNull(query, "query");
-    this.pullQueryExecutor = requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.pullQueryMetrics = pullQueryMetrics;
     this.startTimeNanos = startTimeNanos;
+    this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
+    this.rateLimiter = requireNonNull(rateLimiter, "rateLimiter");
   }
 
   @Override
@@ -68,13 +78,27 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     final PullQuerySubscription subscription = new PullQuerySubscription(
         subscriber,
         () -> {
-          final PullQueryResult result = pullQueryExecutor.execute(
-              query, ImmutableMap.of(), serviceContext, Optional.of(false), pullQueryMetrics);
-          //Record latency at microsecond scale
+          final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
+              query.getSessionConfig().getConfig(false),
+              query.getSessionConfig().getOverrides(),
+              ImmutableMap.of()
+          );
+
+          PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+
+          final PullQueryResult result = ksqlEngine.executePullQuery(
+              serviceContext,
+              query,
+              routingFilterFactory,
+              routingOptions,
+              pullQueryMetrics
+          );
+
           pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
               .recordLatency(startTimeNanos));
           return result;
-        }
+        },
+        query
     );
 
     subscriber.onSubscribe(subscription);
@@ -84,14 +108,17 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     private final Subscriber<Collection<StreamedRow>> subscriber;
     private final Callable<PullQueryResult> executor;
+    private final ConfiguredStatement<Query> query;
     private boolean done = false;
 
     private PullQuerySubscription(
         final Subscriber<Collection<StreamedRow>> subscriber,
-        final Callable<PullQueryResult> executor
+        final Callable<PullQueryResult> executor,
+        final ConfiguredStatement<Query> query
     ) {
       this.subscriber = requireNonNull(subscriber, "subscriber");
       this.executor = requireNonNull(executor, "executor");
+      this.query = requireNonNull(query, "query");
     }
 
     @Override
@@ -106,7 +133,11 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
       try {
         final PullQueryResult result = executor.call();
-        final TableRows entity = result.getTableRows();
+        final TableRows entity = new TableRows(
+            query.getStatementText(),
+            result.getQueryId(),
+            result.getSchema(),
+            result.getTableRows());
         final Optional<List<KsqlHostInfoEntity>> hosts = result.getSourceNodes()
             .map(list -> list.stream().map(KsqlNode::location)
                 .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()))

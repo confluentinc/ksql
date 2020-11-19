@@ -133,6 +133,7 @@ public class PersistentQueryMetadataTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   public void shouldRestartKafkaStreams() {
     final KafkaStreams newKafkaStreams = mock(KafkaStreams.class);
     final MaterializationProvider newMaterializationProvider = mock(MaterializationProvider.class);
@@ -148,7 +149,8 @@ public class PersistentQueryMetadataTest {
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams, newKafkaStreams);
     inOrder.verify(kafkaStreams).close(any());
-    inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(any());
+    inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(
+        any(Thread.UncaughtExceptionHandler.class));
     inOrder.verify(newKafkaStreams).start();
 
     assertThat(query.getKafkaStreams(), is(newKafkaStreams));

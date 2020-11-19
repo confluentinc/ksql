@@ -241,24 +241,11 @@ statement by using the syntax `ARRAY<ElementType>`. For example,
 `ARRAY<INT>` defines an array of integers.
 
 Also, you can output an array from a query by using a SELECT statement.
-The following example creates an array from a stream named `s1`. 
+The following example creates an array from a stream named `s1` using
+the [`ARRAY` constructor function](ksqldb-reference/scalar-functions.md#array).
 
 ```sql
-SELECT ARRAY[1, 2] FROM s1 EMIT CHANGES;
-```
-
-Starting in version 0.7.1, the built-in AS_ARRAY function syntax for
-creating arrays doesn't work. Replace AS_ARRAY with the ARRAY constructor
-syntax. For example, replace this legacy query:
-
-```sql
-CREATE STREAM OUTPUT AS SELECT cube_explode(as_array(col1, col2)) VAL1, ABS(col3) VAL2 FROM TEST;
-```
-
-With this query:
-
-```sql
-CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL1, ABS(col3) VAL2 FROM TEST;
+SELECT ARRAY[s1.colA, s1.colB, s1.colC] FROM s1 EMIT CHANGES;
 ```
 
 ### Map

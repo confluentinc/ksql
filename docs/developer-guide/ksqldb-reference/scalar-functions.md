@@ -2,7 +2,7 @@
 layout: page
 title: ksqlDB Scalar Functions
 tagline:  ksqlDB scalar functions for queries
-description: Scalar functions to use in  ksqlDB statements and queries
+description: Scalar functions to use in ksqlDB statements and queries
 keywords: ksqlDB, function, scalar
 ---
 
@@ -209,10 +209,12 @@ The square root of a value.
 Since: 0.7.0
 
 ```sql
-ARRAY[col1, col2, ...]
+ARRAY[exp1, exp2, ...]
 ```
 
 Construct an array from a variable number of inputs.
+
+All elements must be [coercible to a common Sql type][1]. 
 
 ### `ARRAY_CONTAINS`
 
@@ -450,6 +452,8 @@ MAP(key VARCHAR := value, ...)
 ```
 
 Construct a map from specific key-value tuples.
+
+All values must be [coercible to a common Sql type][1].
 
 ### `MAP_KEYS`
 
@@ -1247,3 +1251,5 @@ present or `url` is not a valid URI.
                                            
 - Input: `http://test.com?a=foo%20bar&b=baz` 
 - Output: `a=foo bar&b=baz`                  
+
+[1]: type-coercion.md#implicit-type-coercion

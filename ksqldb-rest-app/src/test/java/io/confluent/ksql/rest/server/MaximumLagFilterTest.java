@@ -53,7 +53,7 @@ public class MaximumLagFilterTest {
     // The max end offset is 15, so the lag for HOST is 12
 
     // Given:
-    when(routingOptions.getOffsetLagAllowed()).thenReturn(13L);
+    when(routingOptions.getMaxOffsetLagAllowed()).thenReturn(13L);
 
     // When:
     filter = MaximumLagFilter.create(
@@ -69,7 +69,7 @@ public class MaximumLagFilterTest {
     // The max end offset is 15, so the lag for HOST is 12
 
     // Given:
-    when(routingOptions.getOffsetLagAllowed()).thenReturn(11L);
+    when(routingOptions.getMaxOffsetLagAllowed()).thenReturn(11L);
 
     // When:
     filter = MaximumLagFilter.create(
@@ -86,7 +86,7 @@ public class MaximumLagFilterTest {
     when(lagReportingAgent.getLagInfoForHost(eq(HOST1),
         eq(QueryStateStoreId.of(APPLICATION_ID, STATE_STORE)), eq(PARTITION)))
         .thenReturn(Optional.empty());
-    when(routingOptions.getOffsetLagAllowed()).thenReturn(13L);
+    when(routingOptions.getMaxOffsetLagAllowed()).thenReturn(13L);
 
     // When:
     filter = MaximumLagFilter.create(

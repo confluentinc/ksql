@@ -102,7 +102,9 @@ public final class InListEvaluator {
             .collect(Collectors.toList()))
         .build();
 
-    final List<Expression> coerced = CoercionUtil.coerceUserList(nonNull, typeManager);
+    final List<Expression> coerced = CoercionUtil
+        .coerceUserList(nonNull, typeManager)
+        .expressions();
 
     return new InPredicate(
         predicate.getLocation(),

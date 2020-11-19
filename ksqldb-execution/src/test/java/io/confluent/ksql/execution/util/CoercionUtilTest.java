@@ -37,15 +37,17 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.util.CoercionUtil.Result;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -79,12 +81,6 @@ public class CoercionUtilTest {
       new UnqualifiedColumnReferenceExp(ColumnName.of("DOUBLE"));
   private static final Expression STRING_EXPRESSION =
       new UnqualifiedColumnReferenceExp(ColumnName.of("STR"));
-  private static final Expression ARRAY_INT_EXPRESSION =
-      new UnqualifiedColumnReferenceExp(ColumnName.of("ARRAY_INT"));
-  private static final Expression ARRAY_BIGINT_EXPRESSION =
-      new UnqualifiedColumnReferenceExp(ColumnName.of("ARRAY_BIGINT"));
-  private static final Expression ARRAY_STRING_EXPRESSION =
-      new UnqualifiedColumnReferenceExp(ColumnName.of("ARRAY_STR"));
 
   @Mock
   private FunctionRegistry functionRegistry;
@@ -101,10 +97,11 @@ public class CoercionUtilTest {
     final ImmutableList<Expression> expressions = ImmutableList.of();
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of()));
+    assertThat(result.commonType(), is(Optional.empty()));
+    assertThat(result.expressions(), is(ImmutableList.of()));
   }
 
   @Test
@@ -116,10 +113,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.empty()));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new NullLiteral(),
         new NullLiteral()
     )));
@@ -137,10 +135,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.BIGINT)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new NullLiteral(),
         new LongLiteral(10),
         new NullLiteral(),
@@ -165,17 +164,19 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> stringResult = CoercionUtil.coerceUserList(stringFirst, typeManager);
-    final List<Expression> boolResult = CoercionUtil.coerceUserList(boolFirst, typeManager);
+    final Result stringResult = CoercionUtil.coerceUserList(stringFirst, typeManager);
+    final Result boolResult = CoercionUtil.coerceUserList(boolFirst, typeManager);
 
     // Then:
-    assertThat(stringResult, is(ImmutableList.of(
+    assertThat(stringResult.commonType(), is(Optional.of(SqlTypes.STRING)));
+    assertThat(stringResult.expressions(), is(ImmutableList.of(
         new NullLiteral(),
         new StringLiteral("false"),
         new StringLiteral("true")
     )));
 
-    assertThat(boolResult, is(ImmutableList.of(
+    assertThat(boolResult.commonType(), is(Optional.of(SqlTypes.BOOLEAN)));
+    assertThat(boolResult.expressions(), is(ImmutableList.of(
         new NullLiteral(),
         new BooleanLiteral(true),
         new BooleanLiteral(false)
@@ -213,10 +214,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.BOOLEAN)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new BooleanLiteral(true),
         new BooleanLiteral(false),
         BOOL_EXPRESSION
@@ -251,10 +253,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.INTEGER)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new IntegerLiteral(10),
         new IntegerLiteral(-100),
         INT_EXPRESSION
@@ -273,10 +276,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.BIGINT)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new LongLiteral(10),
         new LongLiteral(1234567890),
         new LongLiteral(-100),
@@ -294,10 +298,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.BIGINT)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new LongLiteral(10),
         new LongLiteral(1234567890000L)
     )));
@@ -316,17 +321,56 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
     final SqlDecimal decimalType = SqlTypes.decimal(22, 3);
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(decimalType)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new DecimalLiteral(new BigDecimal("10.000")),
         new DecimalLiteral(new BigDecimal("1234567890.000")),
         new DecimalLiteral(new BigDecimal("-100.010")),
         cast(BIGINT_EXPRESSION, decimalType),
         cast(DECIMAL_EXPRESSION, decimalType),
         cast(INT_EXPRESSION, decimalType)
+    )));
+  }
+
+  @Test
+  public void shouldCoerceStringNumericWithENotationToDecimals() {
+    // Given:
+    final ImmutableList<Expression> expressions = ImmutableList.of(
+        new IntegerLiteral(10),
+        new StringLiteral("1e3")
+    );
+
+    // When:
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
+
+    // Then:
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.decimal(10, 0))));
+    assertThat(result.expressions(), is(ImmutableList.of(
+        new DecimalLiteral(new BigDecimal("10")),
+        new DecimalLiteral(new BigDecimal("1000"))
+    )));
+  }
+
+  @Test
+  public void shouldCoerceStringNumericWithDecimalPointToDecimals() {
+    // Given:
+    final ImmutableList<Expression> expressions = ImmutableList.of(
+        new IntegerLiteral(10),
+        new StringLiteral("1.0")
+    );
+
+    // When:
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
+
+    // Then:
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.decimal(11, 1))));
+    assertThat(result.expressions(), is(ImmutableList.of(
+        new DecimalLiteral(new BigDecimal("10.0")),
+        new DecimalLiteral(new BigDecimal("1.0"))
     )));
   }
 
@@ -340,11 +384,12 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
     final SqlDecimal decimalType = SqlTypes.decimal(11, 1);
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(decimalType)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new DecimalLiteral(new BigDecimal("1.1")),
         new DecimalLiteral(new BigDecimal("10.0")),
         cast(INT_EXPRESSION, decimalType)
@@ -366,10 +411,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.DOUBLE)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         new DoubleLiteral(10.0),
         new DoubleLiteral(1234567890.0),
         new DoubleLiteral(123.456),
@@ -419,10 +465,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.array(SqlTypes.BIGINT))));
+    assertThat(result.expressions(), is(ImmutableList.of(
         cast(new CreateArrayExpression(
             ImmutableList.of(
                 new IntegerLiteral(10),
@@ -512,10 +559,11 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER))));
+    assertThat(result.expressions(), is(ImmutableList.of(
         cast(new CreateMapExpression(
             ImmutableMap.of(
                 new IntegerLiteral(10),
@@ -664,20 +712,23 @@ public class CoercionUtilTest {
     );
 
     // When:
-    final List<Expression> result = CoercionUtil.coerceUserList(expressions, typeManager);
+    final Result result = CoercionUtil.coerceUserList(expressions, typeManager);
 
     // Then:
-    assertThat(result, is(ImmutableList.of(
+    final SqlStruct sqlStruct = SqlTypes.struct().field("a", SqlTypes.BIGINT).build();
+    assertThat(result.commonType(), is(Optional.of(
+        sqlStruct)));
+    assertThat(result.expressions(), is(ImmutableList.of(
         cast(new CreateStructExpression(
             ImmutableList.of(
                 new Field("a", new IntegerLiteral(10))
             )
-        ), SqlTypes.struct().field("a", SqlTypes.BIGINT).build()),
+        ), sqlStruct),
         cast(new CreateStructExpression(
             ImmutableList.of(
                 new Field("a", new StringLiteral("123456789000"))
             )
-        ), SqlTypes.struct().field("a", SqlTypes.BIGINT).build())
+        ), sqlStruct)
     )));
   }
 

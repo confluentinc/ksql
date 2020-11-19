@@ -369,16 +369,19 @@
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (true, 10, '10.1', 10.30, VAL1);"
       ],
       "inputs": [
-        {"topic": "input_topic", "value": {"VAL0": "10", "VAL1": null}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}},
-        {"topic": "input_topic", "value": {}}
+        {"topic": "input_topic", "value": {"VAL0": "true"}},
+        {"topic": "input_topic", "value": {"VAL0": "10"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.1"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.3"}},
+        {"topic": "input_topic", "value": {"VAL0": "10.30"}},
+        {"topic": "input_topic", "value": {"VAL0": "hello", "VAL1": "hello"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"VAL0": "10", "VAL1": null}}
+        {"topic": "OUTPUT", "value": {"VAL0": "true", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10.1", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "10.30", "VAL1": null}},
+        {"topic": "OUTPUT", "value": {"VAL0": "hello", "VAL1": "hello"}}
       ]
     },
     {
@@ -394,10 +397,9 @@
     },
     {
       "name": "array - valid",
-      "comments": "CAST required until https://github.com/confluentinc/ksql/issues/6470 fixed",
       "statements": [
         "CREATE STREAM INPUT (VAL0 ARRAY<BIGINT>, VAL1 ARRAY<BIGINT>, VAL2 ARRAY<INT>) WITH (kafka_topic='input_topic', format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT VAL0 FROM INPUT WHERE VAL0 IN (ARRAY[1,2],ARRAY[CAST(5 AS BIGINT),123456789000],ARRAY['3',null], VAL1, CAST(VAL2 AS ARRAY<BIGINT>));"
+        "CREATE STREAM OUTPUT AS SELECT VAL0 FROM INPUT WHERE VAL0 IN (ARRAY[1,2],ARRAY[5,123456789000],ARRAY['3',null], VAL1, VAL2);"
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"VAL0": [1,2]}},
@@ -480,10 +482,9 @@
     },
     {
       "name": "map - valid",
-      "comments": "CAST required until https://github.com/confluentinc/ksql/issues/6470 fixed",
       "statements": [
         "CREATE STREAM INPUT (ID MAP<STRING, BIGINT>) WITH (kafka_topic='input_topic', format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (MAP('a':=1), MAP('b':=CAST(5 AS BIGINT),'c':=123456789000), MAP('c':=CAST(null AS BIGINT)));"
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE ID IN (MAP('a':=1), MAP('b':=5,'c':=123456789000), MAP('c':=CAST(null AS BIGINT)));"
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"ID": {"a": 1}}},

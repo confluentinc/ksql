@@ -62,6 +62,7 @@ nav:
     - Create a Table: developer-guide/create-a-table.md
     - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
     - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
+    - Variable Substitution: developer-guide/variable-substitution.md
     - Example Queries: tutorials/examples.md
     - Test and Debug:
       - Test and Debug Index: developer-guide/test-and-debug/index.md
@@ -116,6 +117,7 @@ nav:
       - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
       - SPOOL: developer-guide/ksqldb-reference/spool.md
       - TERMINATE: developer-guide/ksqldb-reference/terminate.md
+      - Type Coercion: developer-guide/ksqldb-reference/type-coercion.md
     - Operators: developer-guide/ksqldb-reference/operators.md
     - Functions:
       - Functions Index: developer-guide/ksqldb-reference/functions.md

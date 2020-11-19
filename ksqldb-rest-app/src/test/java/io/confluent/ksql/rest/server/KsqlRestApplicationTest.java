@@ -32,9 +32,11 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.QueryMonitor;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
@@ -50,7 +52,6 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
@@ -127,8 +128,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
-  private PullQueryExecutor pullQueryExecutor;
-  @Mock
   private HeartbeatAgent heartbeatAgent;
   @Mock
   private LagReportingAgent lagReportingAgent;
@@ -138,9 +137,12 @@ public class KsqlRestApplicationTest {
   private QueryMonitor queryMonitor;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
-
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+  @Mock
+  private RoutingFilterFactory routingFilterFactory;
+  @Mock
+  private RateLimiter rateLimiter;
 
   @Mock
   private Vertx vertx;
@@ -494,13 +496,14 @@ public class KsqlRestApplicationTest {
         ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlResource, streamedQueryResource),
         rocksDBConfigSetterHandler,
-        pullQueryExecutor,
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),
         vertx,
         queryMonitor,
         denyListPropertyValidator,
-        Optional.empty()
+        Optional.empty(),
+        routingFilterFactory,
+        rateLimiter
     );
   }
 

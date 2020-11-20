@@ -24,6 +24,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
+import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -35,6 +36,7 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -42,6 +44,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.GrammaticalJoiner;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
@@ -91,7 +94,9 @@ public final class WhereInfo {
 
   public static WhereInfo extractWhereInfo(
       final ImmutableAnalysis analysis,
-      final PersistentQueryMetadata query
+      final PersistentQueryMetadata query,
+      final MetaStore metaStore,
+      final KsqlConfig config
   ) {
     final boolean windowed = query.getResultTopic().getKeyFormat().isWindowed();
 
@@ -110,9 +115,21 @@ public final class WhereInfo {
     final List<Object> keys;
     if (keyComparison.size() > 0) {
       keys = ImmutableList.of(
-          extractKeyWhereClause(keyComparison, windowed, query.getLogicalSchema()));
+          extractKeyWhereClause(
+              keyComparison,
+              windowed,
+              query.getLogicalSchema(),
+              metaStore,
+              config)
+      );
     } else {
-      keys = extractKeysFromInPredicate(inPredicate, windowed, query.getLogicalSchema());
+      keys = extractKeysFromInPredicate(
+          inPredicate,
+          windowed,
+          query.getLogicalSchema(),
+          metaStore,
+          config
+      );
     }
 
     if (!windowed) {
@@ -170,51 +187,75 @@ public final class WhereInfo {
   private static List<Object> extractKeysFromInPredicate(
       final List<InPredicate> inPredicates,
       final boolean windowed,
-      final LogicalSchema schema
+      final LogicalSchema schema,
+      final MetaStore metaStore,
+      final KsqlConfig config
   ) {
-    final InPredicate inPredicate = Iterables.getOnlyElement(inPredicates);
-    final List<Object> result = new ArrayList<>();
-    for (Expression expression : inPredicate.getValueList().getValues()) {
-      if (!(expression instanceof Literal)) {
-        throw new KsqlException("Only comparison to literals is currently supported: "
-                                    + inPredicate);
-      }
-      if (expression instanceof NullLiteral) {
-        throw new KsqlException("Primary key columns can not be NULL: " + inPredicate);
-      }
-      final Object value = ((Literal) expression).getValue();
-      result.add(coerceKey(schema, value, windowed));
+    final InPredicate inPredicate = Iterables.getLast(inPredicates);
+    if (schema.key().size() != 1) {
+      throw invalidWhereClauseException("Only single KEY column supported", windowed);
     }
-    return result;
+
+    final Column keyColumn = schema.key().get(0);
+    return inPredicate.getValueList()
+        .getValues()
+        .stream()
+        .map(expression -> resolveKey(expression, keyColumn, metaStore, config, inPredicate))
+        .collect(Collectors.toList());
   }
 
   private static Object extractKeyWhereClause(
       final List<ComparisonExpression> comparisons,
       final boolean windowed,
-      final LogicalSchema schema
+      final LogicalSchema schema,
+      final MetaStore metaStore,
+      final KsqlConfig config
   ) {
-    if (comparisons.size() != 1) {
-      throw invalidWhereClauseException("Multiple bounds on key column", windowed);
-    }
-
-    final ComparisonExpression comparison = comparisons.get(0);
+    final ComparisonExpression comparison = Iterables.getLast(comparisons);
     if (comparison.getType() != Type.EQUAL) {
       final ColumnName keyColumn = Iterables.getOnlyElement(schema.key()).name();
       throw invalidWhereClauseException("Bound on '" + keyColumn.text()
-                                            + "' must currently be '='", windowed);
+          + "' must currently be '='", windowed);
     }
 
     final Expression other = getNonColumnRefSide(comparison);
-    if (!(other instanceof Literal)) {
-      throw new KsqlException("Ony comparison to literals is currently supported: " + comparison);
+    final Column keyColumn = schema.key().get(0);
+    return resolveKey(other, keyColumn, metaStore, config, comparison);
+  }
+
+
+  private static Object resolveKey(
+      final Expression exp,
+      final Column keyColumn,
+      final MetaStore metaStore,
+      final KsqlConfig config,
+      final Expression errorMessageHint
+  ) {
+    final Object obj;
+    if (exp instanceof NullLiteral) {
+      obj = null;
+    } else if (exp instanceof Literal) {
+      // skip the GenericExpressionResolver because this is
+      // a critical code path executed once-per-query
+      obj = ((Literal) exp).getValue();
+    } else {
+      obj = new GenericExpressionResolver(
+          keyColumn.type(),
+          keyColumn.name(),
+          metaStore,
+          config,
+          "pull query"
+      ).resolve(exp);
     }
 
-    if (other instanceof NullLiteral) {
-      throw new KsqlException("Primary key columns can not be NULL: " + comparison);
+    if (obj == null) {
+      throw new KsqlException("Primary key columns can not be NULL: " + errorMessageHint);
     }
 
-    final Object right = ((Literal) other).getValue();
-    return coerceKey(schema, right, windowed);
+    return DefaultSqlValueCoercer.STRICT.coerce(obj, keyColumn.type())
+        .orElseThrow(() -> new KsqlException("'" + obj + "' can not be converted "
+            + "to the type of the key column: " + keyColumn.toString(FormatOptions.noEscape())))
+        .orElse(null);
   }
 
   private enum ComparisonTarget {

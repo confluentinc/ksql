@@ -145,10 +145,9 @@ public class GenericRecordFactory {
       final Object value = new GenericExpressionResolver(
           columnType,
           column,
-          schema,
           functionRegistry,
-          config
-      ).resolve(valueExp);
+          config,
+          "insert value").resolve(valueExp);
 
       values.put(column, value);
     }

@@ -1216,19 +1216,6 @@
       }
     },
     {
-      "name": "fail on non-literal key",
-      "statements": [
-        "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID=CAST(1 AS INT);"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Ony comparison to literals is currently supported: (ID = CAST(1 AS INTEGER))",
-        "status": 400
-      }
-    },
-    {
       "name": "on stream",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -1927,17 +1914,103 @@
       }
     },
     {
-      "name": "IN: fail on non-literal key",
+      "name": "IN: fail on column reference key",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID IN (CAST(1 AS INTEGER));"
+        "SELECT * FROM AGGREGATE WHERE ID IN (2, COUNT + 1, 3);"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Only comparison to literals is currently supported: (ID IN (CAST(1 AS INTEGER)))",
+        "message": "Unsupported column reference in pull query: (COUNT + 1)",
         "status": 400
       }
+    },
+    {
+      "name": "non-windowed - function in where clause",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE WHERE ID=CONCAT('1','0');"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":["10", 1, 12365]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed - array keys",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (ID ARRAY<STRING> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE WHERE ID=ARRAY['1','0'];"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": ["1", "1"], "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": ["1", "0"], "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` ARRAY<STRING> KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":[["1", "0"], 1, 12365]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed - struct keys",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (ID STRUCT<f1 STRING, f2 STRING> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE WHERE ID=STRUCT(F1:='1',F2:='0');"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"F1": "1", "F2": "1"}, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": {"F1": "1", "F2": "0"}, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRUCT<`F1` STRING, `F2` STRING> KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+          {"row":{"columns":[{"F1": "1", "F2": "0"}, 1, 12365]}}
+        ]}
+      ]
+    },
+    {
+      "name": "IN: support non-literal key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID IN (CAST(10 AS INTEGER));"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 1]}}
+        ]}
+      ]
     }
   ]
 }

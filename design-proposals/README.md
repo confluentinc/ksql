@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **43**
+Next KLIP number: **44**
 
 | KLIP                                                                                                 | Status         | Community Release | CP Release | Discussion PR |
 |------------------------------------------------------------------------------------------------------|:--------------:|:-----------------:|:----------:|:--------------|
@@ -83,3 +83,4 @@ Next KLIP number: **43**
 | KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |
 | KLIP-41: ksqlDB .NET Client                                                                          | Proposal | | | |
 | KLIP-42: Schema Migrations Tool                                                                      | Proposal | | | |
+| KLIP-43: TIMESTAMP data type support                                                                      | Proposal | | | |

@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -407,6 +408,18 @@ public final class ExecutionStepFactory {
         format,
         groupingExpressions
     );
+  }
+
+  public static TableSelectKey tableSelectKey(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<? extends KTableHolder<?>> source,
+      final Formats formats,
+      final Expression fieldName
+  ) {
+    final ExecutionStepPropertiesV1 props =
+        new ExecutionStepPropertiesV1(stacker.getQueryContext());
+
+    return new TableSelectKey(props, source, formats, fieldName);
   }
 
   public static <K> TableSuppress<K> tableSuppress(

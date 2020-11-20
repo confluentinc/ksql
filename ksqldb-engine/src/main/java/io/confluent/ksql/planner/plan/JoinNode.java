@@ -300,14 +300,6 @@ public class JoinNode extends PlanNode implements JoiningNode {
     return node.getLeftmostSourceNode().getAlias();
   }
 
-  private static FormatInfo getValueFormatForSource(final PlanNode sourceNode) {
-    return sourceNode.getLeftmostSourceNode()
-        .getDataSource()
-        .getKsqlTopic()
-        .getValueFormat()
-        .getFormatInfo();
-  }
-
   private static class JoinerFactory {
 
     private final Map<
@@ -406,8 +398,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getValueFormatForSource(joinNode.left),
-              getValueFormatForSource(joinNode.right),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+              JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
           );
         case OUTER:
@@ -415,8 +407,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getValueFormatForSource(joinNode.left),
-              getValueFormatForSource(joinNode.right),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+              JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
           );
         case INNER:
@@ -424,8 +416,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
-              getValueFormatForSource(joinNode.left),
-              getValueFormatForSource(joinNode.right),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+              JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
           );
         default:
@@ -460,7 +452,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
           return leftStream.leftJoin(
               rightTable,
               joinNode.getKeyColumnName(),
-              getValueFormatForSource(joinNode.left),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               contextStacker
           );
 
@@ -468,7 +460,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
           return leftStream.join(
               rightTable,
               joinNode.getKeyColumnName(),
-              getValueFormatForSource(joinNode.left),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               contextStacker
           );
         case OUTER:

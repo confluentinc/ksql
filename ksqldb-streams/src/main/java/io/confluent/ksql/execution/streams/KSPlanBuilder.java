@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -276,6 +277,17 @@ public final class KSPlanBuilder implements PlanBuilder {
       final TableSelect<K> tableSelect) {
     final KTableHolder<K> source = tableSelect.getSource().build(this);
     return TableSelectBuilder.build(source, tableSelect, queryBuilder);
+  }
+
+  @Override
+  public KTableHolder<Struct> visitTableSelectKey(final TableSelectKey tableSelectKey) {
+    final KTableHolder<?> source = tableSelectKey.getSource().build(this);
+    return TableSelectKeyBuilder.build(
+        source,
+        tableSelectKey,
+        queryBuilder,
+        streamsFactories.getMaterializedFactory()
+    );
   }
 
   @Override

@@ -22,6 +22,7 @@ import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -80,6 +81,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -286,6 +288,84 @@ public class SchemaKTableTest {
         projectedSchemaKStream.getSchema(),
         is(schemaResolver.resolve(
             projectedSchemaKStream.getSourceStep(), initialSchemaKTable.getSchema()))
+    );
+  }
+
+  @Test
+  public void shouldBuildSchemaForSelectKey() {
+    // Given:
+    final String selectQuery = "SELECT col0 AS K, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
+        valueFormat.getFormatInfo(),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+        Optional.empty(),
+        childContextStacker,
+        true
+    );
+
+    // Then:
+    assertThat(
+        resultSchemaKTable.getSchema(),
+        is(schemaResolver.resolve(
+            resultSchemaKTable.getSourceStep(), initialSchemaKTable.getSchema()))
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForSelectKey() {
+    // Given:
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
+        valueFormat.getFormatInfo(),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+        Optional.empty(),
+        childContextStacker,
+        true
+    );
+
+    // Then:
+    assertThat(
+        resultSchemaKTable.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.tableSelectKey(
+                childContextStacker,
+                initialSchemaKTable.getSourceTableStep(),
+                InternalFormats.of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo()),
+                new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldFailSelectKeyIfNotForced() {
+    // Given:
+    final String selectQuery = "SELECT col0 AS K, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> initialSchemaKTable.selectKey(
+            valueFormat.getFormatInfo(),
+            new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+            Optional.empty(),
+            childContextStacker,
+            false
+    ));
+
+    // Then:
+    assertThat(
+        e.getMessage(), containsString("Cannot repartition a TABLE source.")
     );
   }
 

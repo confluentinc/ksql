@@ -69,7 +69,7 @@ public final class TableAggregateBuilder {
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
     final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        AggregateBuilderUtils.buildMaterialized(
+        MaterializationUtil.buildMaterialized(
             aggregate,
             aggregateSchema,
             aggregate.getInternalFormats(),

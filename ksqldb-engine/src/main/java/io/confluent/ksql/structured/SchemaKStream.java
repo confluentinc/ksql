@@ -304,22 +304,44 @@ public class SchemaKStream<K> {
     );
   }
 
+  /**
+   * @param valueFormat value format used in constructing serdes. Unchanged by this step.
+   * @param keyExpression expression for the key being selected
+   * @param forceInternalKeyFormat new key format to be used, if present
+   * @param contextStacker context for this step
+   * @param forceRepartition if true, this step will repartition even if there is no change in
+   *                         either key format or value. Used to ensure co-partitioning for
+   *                         joins on Schema-Registry-enabled key formats
+   * @return result stream: repartitioned if needed or forced, else this stream unchanged
+   */
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
+      final FormatInfo valueFormat,
       final Expression keyExpression,
       final Optional<FormatInfo> forceInternalKeyFormat,
-      final Stacker contextStacker
+      final Stacker contextStacker,
+      final boolean forceRepartition
   ) {
     final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
         && !forceInternalKeyFormat.get().equals(keyFormat.getFormatInfo());
 
-    if (!keyFormatChange && repartitionNotNeeded(ImmutableList.of(keyExpression))) {
+    if (!keyFormatChange
+        && !forceRepartition
+        && repartitionNotNeeded(ImmutableList.of(keyExpression))
+    ) {
       return (SchemaKStream<Struct>) this;
     }
 
     if (keyFormat.isWindowed()) {
-      throw new KsqlException("Implicit repartitioning of windowed sources is not supported. "
-          + "See https://github.com/confluentinc/ksql/issues/4385.");
+      final String errorMsg = "Implicit repartitioning of windowed sources is not supported. "
+          + "See https://github.com/confluentinc/ksql/issues/4385.";
+      final String additionalMsg = forceRepartition
+          ? " As a result, ksqlDB does not support joins on windowed sources with "
+          + "Schema-Registry-enabled key formats (AVRO, JSON_SR, PROTOBUF) at this time. "
+          + "Please repartition your sources to use a different key format before performing "
+          + "the join."
+          : "";
+      throw new KsqlException(errorMsg + additionalMsg);
     }
 
     final ExecutionStep<KStreamHolder<Struct>> step = ExecutionStepFactory

@@ -1248,7 +1248,7 @@
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-Repartition-repartition",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
               "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
@@ -1314,7 +1314,7 @@
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-Repartition-repartition",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
               "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
@@ -1368,17 +1368,17 @@
         "topics": {
           "topics" : [
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-L_LeftSourceKeyed-SelectKey-Repartition-repartition",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-L_LeftSourceKeyed-SelectKey-repartition",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-L_RightSourceKeyed-SelectKey-Repartition-repartition",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-L_RightSourceKeyed-SelectKey-repartition",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-Repartition-repartition",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },

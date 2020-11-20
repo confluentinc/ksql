@@ -92,8 +92,8 @@ public final class TableSelectKeyBuilder {
         );
 
     final KTable<Struct, GenericRow> reKeyed = kTable.toStream()
-        .map(mapper::apply, Named.as(queryContext.formatContext() + "-SelectKey"))
-        .toTable(Named.as(queryContext.formatContext() + "-SelectKey-Repartition"), materialized);
+        .map(mapper::apply, Named.as(queryContext.formatContext() + "-SelectKey-Mapper"))
+        .toTable(Named.as(queryContext.formatContext() + "-SelectKey"), materialized);
 
     final MaterializationInfo.Builder materializationBuilder = MaterializationInfo.builder(
         StreamsUtil.buildOpName(MaterializationUtil.materializeContext(selectKey)),

@@ -18,6 +18,7 @@ package io.confluent.ksql.types;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.inOrder;
 
@@ -79,16 +80,17 @@ public class KsqlStructTest {
   }
 
   @Test
-  public void shouldThrowIfValueWrongType() {
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> KsqlStruct.builder(SCHEMA)
-            .set("f0", Optional.of("field is BIGINT, so won't like this"))
-    );
+  public void shouldNotThrowOnValueWrongTypeAsTypeCheckingEverySetIsTooExpensive() {
+    // Given:
+    final Optional<String> value = Optional.of("field is BIGINT and the value is STRING");
 
-    // Then:
-    assertThat(e.getMessage(), containsString("Expected BIGINT, got STRING"));
+    // When:
+    final KsqlStruct struct = KsqlStruct.builder(SCHEMA)
+        .set("f0", value)
+        .build();
+
+    // Then (did not throw):
+    assertThat(struct.values().get(0), is(value));
   }
 
   @Test

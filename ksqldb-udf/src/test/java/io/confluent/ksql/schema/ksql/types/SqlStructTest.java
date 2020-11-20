@@ -25,7 +25,6 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.types.KsqlStruct;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -153,78 +152,6 @@ public class SqlStructTest {
             + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
             + ">"
     ));
-  }
-
-  @Test
-  public void shouldThrowIfValueNotStruct() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> schema.validateValue(10L)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Expected STRUCT, got BIGINT"
-    ));
-  }
-
-  @Test
-  public void shouldThrowIfValueHasSchema() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    final SqlStruct mismatching = SqlTypes.struct()
-        .field("f0", SqlTypes.DOUBLE)
-        .build();
-
-    final KsqlStruct value = KsqlStruct.builder(mismatching)
-        .set("f0", Optional.of(10.0D))
-        .build();
-
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> schema.validateValue(value)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Expected STRUCT<`f0` BIGINT>, got STRUCT<`f0` DOUBLE>"
-    ));
-  }
-
-  @Test
-  public void shouldNotThrowWhenValidatingNullValue() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    schema.validateValue(null);
-  }
-
-  @Test
-  public void shouldValidateValue() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    final KsqlStruct value = KsqlStruct.builder(schema)
-        .set("f0", Optional.of(10L))
-        .build();
-
-    // When:
-    schema.validateValue(value);
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")

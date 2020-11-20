@@ -154,7 +154,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Stacker contextStacker,
       final boolean forceRepartition
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression)) && !forceRepartition) {
+    if (!forceRepartition && repartitionNotNeeded(ImmutableList.of(keyExpression))) {
       return (SchemaKTable<Struct>) this;
     }
 

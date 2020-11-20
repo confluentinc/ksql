@@ -38,7 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 
@@ -92,7 +92,7 @@ public final class PartitionByParamsFactory {
     } else {
       final Set<? extends ColumnReferenceExp> partitionByCols =
           ColumnExtractor.extractColumns(partitionBy);
-      final boolean isKeyExpression = partitionByCols.stream()
+      final boolean partitionByInvolvesKeyColsOnly = partitionByCols.stream()
           .map(ColumnReferenceExp::getColumnName)
           .allMatch(sourceSchema::isKeyColumn);
 
@@ -102,7 +102,7 @@ public final class PartitionByParamsFactory {
           ksqlConfig,
           functionRegistry,
           logger,
-          isKeyExpression
+          partitionByInvolvesKeyColsOnly
       );
       mapper = buildMapper(resultSchema, partitionByCol, evaluator);
     }
@@ -182,11 +182,7 @@ public final class PartitionByParamsFactory {
     final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(resultSchema);
 
     return (k, v) -> {
-      final Object newKey = evaluator.evaluator.apply(
-          evaluator.acceptsKey
-          ? GenericRow.fromList(StructKeyUtil.asList(k))
-          : v
-      );
+      final Object newKey = evaluator.evaluate(k, v);
       final Struct structKey = keyBuilder.build(newKey, 0);
 
       if (v != null && appendNewKey) {
@@ -203,10 +199,10 @@ public final class PartitionByParamsFactory {
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final ProcessingLogger logger,
-      final boolean isKeyExpression
+      final boolean partitionByInvolvesKeyColsOnly
   ) {
     final CodeGenRunner codeGen = new CodeGenRunner(
-        isKeyExpression ? schema.withKeyColsOnly() : schema,
+        partitionByInvolvesKeyColsOnly ? schema.withKeyColsOnly() : schema,
         ksqlConfig,
         functionRegistry
     );
@@ -218,22 +214,37 @@ public final class PartitionByParamsFactory {
         + expressionMetadata.getExpression();
 
     return new PartitionByExpressionEvaluator(
-        row -> expressionMetadata.evaluate(row, null, logger, () -> errorMsg),
-        isKeyExpression
+        expressionMetadata,
+        logger,
+        () -> errorMsg,
+        partitionByInvolvesKeyColsOnly
     );
   }
 
   private static class PartitionByExpressionEvaluator {
 
-    private final Function<GenericRow, Object> evaluator;
-    private final boolean acceptsKey;
+    private final ExpressionMetadata expressionMetadata;
+    private final ProcessingLogger logger;
+    private final Supplier<String> errorMsg;
+    private final boolean evaluateOnKeyOnly;
 
     PartitionByExpressionEvaluator(
-        final Function<GenericRow, Object> evaluator,
-        final boolean acceptsKey
+        final ExpressionMetadata expressionMetadata,
+        final ProcessingLogger logger,
+        final Supplier<String> errorMsg,
+        final boolean evaluateOnKeyOnly
     ) {
-      this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
-      this.acceptsKey = acceptsKey;
+      this.expressionMetadata = Objects.requireNonNull(expressionMetadata, "expressionMetadata");
+      this.logger = Objects.requireNonNull(logger, "logger");
+      this.errorMsg = Objects.requireNonNull(errorMsg, "errorMsg");
+      this.evaluateOnKeyOnly = evaluateOnKeyOnly;
+    }
+
+    Object evaluate(final Object key, final GenericRow value) {
+      final GenericRow row = evaluateOnKeyOnly
+          ? GenericRow.fromList(StructKeyUtil.asList(key))
+          : value;
+      return expressionMetadata.evaluate(row, null, logger, errorMsg);
     }
   }
 }

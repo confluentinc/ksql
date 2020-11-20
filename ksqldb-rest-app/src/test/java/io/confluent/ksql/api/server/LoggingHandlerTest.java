@@ -5,18 +5,23 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
-import java.util.function.Consumer;
+import java.time.Clock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LoggingHandlerTest {
@@ -31,7 +37,7 @@ public class LoggingHandlerTest {
   @Mock
   private Server server;
   @Mock
-  private Consumer<String> logger;
+  private Logger logger;
   @Mock
   private RoutingContext routingContext;
   @Mock
@@ -42,6 +48,10 @@ public class LoggingHandlerTest {
   private HttpServerResponse response;
   @Mock
   private SocketAddress socketAddress;
+  @Mock
+  private Clock clock;
+  @Mock
+  private RateLimiter rateLimiter;
   @Captor
   private ArgumentCaptor<String> logStringCaptor;
   @Captor
@@ -55,26 +65,47 @@ public class LoggingHandlerTest {
     when(server.getConfig()).thenReturn(ksqlRestConfig);
     when(routingContext.response()).thenReturn(response);
     when(routingContext.request()).thenReturn(request);
+    when(request.response()).thenReturn(response);
     when(request.remoteAddress()).thenReturn(socketAddress);
     when(ksqlRestConfig.getList(any())).thenReturn(ImmutableList.of("401"));
-    loggingHandler = new LoggingHandler(server, logger);
+    when(ksqlRestConfig.getStringAsMap(any())).thenReturn(ImmutableMap.of("/query", "100"));
+    when(rateLimiter.tryAcquire()).thenReturn(true);
+    when(clock.millis()).thenReturn(1699813434333L);
+    when(response.bytesWritten()).thenReturn(5678L);
+    when(request.uri()).thenReturn("/query");
+    when(request.path()).thenReturn("/query");
+    when(request.getHeader(HTTP_HEADER_USER_AGENT)).thenReturn("bot");
+    when(socketAddress.host()).thenReturn("123.111.222.333");
+    when(request.bytesRead()).thenReturn(3456L);
+    when(request.version()).thenReturn(HttpVersion.HTTP_1_1);
+    when(request.method()).thenReturn(HttpMethod.POST);
+    loggingHandler = new LoggingHandler(server, logger, clock, (rateLimit) -> rateLimiter);
   }
 
   @Test
   public void shouldProduceLog() {
     when(response.getStatusCode()).thenReturn(200);
-    when(request.uri()).thenReturn("/query");
-    when(request.getHeader(HTTP_HEADER_USER_AGENT)).thenReturn("bot");
-    when(socketAddress.host()).thenReturn("123.111.222.333");
-    when(request.bytesRead()).thenReturn(3456L);
     loggingHandler.handle(routingContext);
     verify(routingContext).addEndHandler(endCallback.capture());
     endCallback.getValue().handle(null);
 
-    verify(logger).accept(logStringCaptor.capture());
+    verify(logger).info(logStringCaptor.capture());
     assertThat(logStringCaptor.getValue(),
-        is("Request complete - 123.111.222.333 /query status: 200, "
-            + "user agent: bot, request body: 3456 bytes, error response: none"));
+        is("123.111.222.333 - - [Sun, 12 Nov 2023 18:23:54 GMT] "
+            + "\"POST /query HTTP/1.1\" 200 5678 \"-\" \"bot\" 3456"));
+  }
+
+  @Test
+  public void shouldProduceLog_warn() {
+    when(response.getStatusCode()).thenReturn(405);
+    loggingHandler.handle(routingContext);
+    verify(routingContext).addEndHandler(endCallback.capture());
+    endCallback.getValue().handle(null);
+
+    verify(logger).warn(logStringCaptor.capture());
+    assertThat(logStringCaptor.getValue(),
+        is("123.111.222.333 - - [Sun, 12 Nov 2023 18:23:54 GMT] "
+            + "\"POST /query HTTP/1.1\" 405 5678 \"-\" \"bot\" 3456"));
   }
 
   @Test
@@ -85,6 +116,29 @@ public class LoggingHandlerTest {
     verify(routingContext).addEndHandler(endCallback.capture());
     endCallback.getValue().handle(null);
 
-    verify(logger, never()).accept(any());
+    verify(logger, never()).info(any());
+    verify(logger, never()).warn(any());
+    verify(logger, never()).error(any());
+  }
+
+  @Test
+  public void shouldSkipRateLimited() {
+    when(response.getStatusCode()).thenReturn(200);
+    when(rateLimiter.tryAcquire()).thenReturn(true, true, false, false);
+    loggingHandler.handle(routingContext);
+    loggingHandler.handle(routingContext);
+    loggingHandler.handle(routingContext);
+    loggingHandler.handle(routingContext);
+    verify(routingContext, times(4)).addEndHandler(endCallback.capture());
+    for (Handler<AsyncResult<Void>> handler : endCallback.getAllValues()) {
+      handler.handle(null);
+    }
+
+    verify(logger, times(2)).info(logStringCaptor.capture());
+    for (String message : logStringCaptor.getAllValues()) {
+      assertThat(message,
+          is("123.111.222.333 - - [Sun, 12 Nov 2023 18:23:54 GMT] "
+              + "\"POST /query HTTP/1.1\" 200 5678 \"-\" \"bot\" 3456"));
+    }
   }
 }

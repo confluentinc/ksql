@@ -15,16 +15,27 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SKIP_RESPONSE_CODES_CONFIG;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_CONFIG;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SKIPPED_RESPONSE_CODES_CONFIG;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.RateLimiter;
+import io.confluent.ksql.api.auth.ApiUser;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.Utils;
+import java.time.Clock;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,56 +45,108 @@ public class LoggingHandler implements Handler<RoutingContext> {
   static final String HTTP_HEADER_USER_AGENT = "User-Agent";
 
   private final Set<Integer> skipResponseCodes;
-  private final Consumer<String> logger;
+  private final Map<String, Double> rateLimitedPaths;
+  private final Logger logger;
+  private final Clock clock;
+  private final Function<Double, RateLimiter> rateLimiterFactory;
+
+  private final Map<String, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
   public LoggingHandler(final Server server) {
-    this(server, LOG::info);
+    this(server, LOG, Clock.systemUTC(), RateLimiter::create);
   }
 
   @VisibleForTesting
-  LoggingHandler(final Server server, final Consumer<String> logger) {
+  LoggingHandler(
+      final Server server,
+      final Logger logger,
+      final Clock clock,
+      final Function<Double, RateLimiter> rateLimiterFactory) {
     this.skipResponseCodes = getSkipResponseCodes(server.getConfig());
+    this.rateLimitedPaths = getSkipRequestPaths(server.getConfig());
     this.logger = logger;
+    this.clock = clock;
+    this.rateLimiterFactory = rateLimiterFactory;
   }
 
   private static Set<Integer> getSkipResponseCodes(final KsqlRestConfig config) {
-    final Set<Integer> skipCodes = config.getList(KSQL_LOGGING_SKIP_RESPONSE_CODES_CONFIG)
+    // Already validated as all ints
+    return config.getList(KSQL_LOGGING_SKIPPED_RESPONSE_CODES_CONFIG)
         .stream()
-        .map(responseCode -> {
-          try {
-            return Integer.parseInt(responseCode);
-          } catch (NumberFormatException e) {
-            throw new IllegalStateException("Configured bad response code " + responseCode);
-          }
-        }).collect(ImmutableSet.toImmutableSet());
-    return skipCodes;
+        .map(Integer::parseInt).collect(ImmutableSet.toImmutableSet());
+  }
+
+  private static Map<String, Double> getSkipRequestPaths(final KsqlRestConfig config) {
+    // Already validated as having a double value
+    return config.getStringAsMap(KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_CONFIG)
+        .entrySet().stream()
+        .collect(ImmutableMap.toImmutableMap(Entry::getKey,
+            entry -> Double.parseDouble(entry.getValue())));
   }
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    // If we wanted to log at the beginning of a request, it would go here.
     routingContext.addEndHandler(ar -> {
       // After the response is complete, log results here.
       if (skipResponseCodes.contains(routingContext.response().getStatusCode())) {
         return;
       }
-      String errorMessage = "none";
-      if (routingContext.response().getStatusCode() > 300) {
-        errorMessage = routingContext.response().getStatusMessage();
-        if (Strings.isNullOrEmpty(errorMessage)) {
-          errorMessage = routingContext.getBodyAsString();
+      if (rateLimitedPaths.containsKey(routingContext.request().path())) {
+        String path = routingContext.request().path();
+        double rateLimit = rateLimitedPaths.get(path);
+        rateLimiters.computeIfAbsent(path, (k) -> rateLimiterFactory.apply(rateLimit));
+        if (!rateLimiters.get(path).tryAcquire()) {
+          return;
         }
       }
-      logger.accept(String.format(
-          "Request complete - %s %s status: %d, user agent: %s, request body: %d bytes,"
-              + " error response: %s",
+      long contentLength = routingContext.request().response().bytesWritten();
+      HttpVersion version = routingContext.request().version();
+      HttpMethod method = routingContext.request().method();
+      String uri = routingContext.request().uri();
+      int status = routingContext.request().response().getStatusCode();
+      String versionFormatted = "-";
+      long requestBodyLength = routingContext.request().bytesRead();
+      switch (version) {
+        case HTTP_1_0:
+          versionFormatted = "HTTP/1.0";
+          break;
+        case HTTP_1_1:
+          versionFormatted = "HTTP/1.1";
+          break;
+        case HTTP_2:
+          versionFormatted = "HTTP/2.0";
+          break;
+      }
+      String name = Optional.ofNullable((ApiUser) routingContext.user())
+          .map(u -> u.getPrincipal().getName())
+          .orElse("-");
+      String userAgent = Optional.ofNullable(
+          routingContext.request().getHeader(HTTP_HEADER_USER_AGENT)).orElse("-");
+      String timestamp = Utils.formatRFC1123DateTime(clock.millis());
+      final String message = String.format(
+          "%s - %s [%s] \"%s %s %s\" %d %d \"-\" \"%s\" %d",
           routingContext.request().remoteAddress().host(),
-          routingContext.request().uri(),
-          routingContext.response().getStatusCode(),
-          routingContext.request().getHeader(HTTP_HEADER_USER_AGENT),
-          routingContext.request().bytesRead(),
-          errorMessage));
+          name,
+          timestamp,
+          method,
+          uri,
+          versionFormatted,
+          status,
+          contentLength,
+          userAgent,
+          requestBodyLength);
+      doLog(status, message);
     });
     routingContext.next();
+  }
+
+  private void doLog(int status, String message) {
+    if (status >= 500) {
+      logger.error(message);
+    } else if (status >= 400) {
+      logger.warn(message);
+    } else {
+      logger.info(message);
+    }
   }
 }

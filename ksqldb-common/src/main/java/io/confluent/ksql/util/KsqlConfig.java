@@ -1108,6 +1108,10 @@ public class KsqlConfig extends AbstractConfig {
 
   public Map<String, String> getStringAsMap(final String key) {
     final String value = getString(key).trim();
+    return parseStringAsMap(key, value);
+  }
+
+  public static Map<String, String> parseStringAsMap(final String key, final String value) {
     try {
       return value.equals("")
           ? Collections.emptyMap()

@@ -117,7 +117,7 @@ public class Server {
     final List<URI> allListenUris = new ArrayList<>(listenUris);
     internalListenUri.ifPresent(allListenUris::add);
 
-    final int instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
+    final int   instances = config.getInt(KsqlRestConfig.VERTICLE_INSTANCES);
     log.debug("Deploying " + instances + " instances of server verticle");
 
     final List<CompletableFuture<String>> deployFutures = new ArrayList<>();

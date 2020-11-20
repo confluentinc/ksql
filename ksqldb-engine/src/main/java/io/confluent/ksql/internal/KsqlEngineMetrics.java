@@ -18,7 +18,7 @@ package io.confluent.ksql.internal;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
@@ -102,7 +102,7 @@ public class KsqlEngineMetrics implements Closeable {
     this.customMetricsTags = customMetricsTags;
 
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
-    metricsTags.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, ksqlEngine.getServiceId());
+    metricsTags.put(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlEngine.getServiceId());
     this.newCustomMetricsTags = ImmutableMap.copyOf(metricsTags);
     this.metricsExtension = metricsExtension;
 

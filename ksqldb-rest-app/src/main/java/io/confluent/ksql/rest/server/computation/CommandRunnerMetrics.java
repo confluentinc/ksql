@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.Collections;
@@ -80,14 +80,14 @@ public class CommandRunnerMetrics implements Closeable {
         "status",
         ReservedInternalTopics.CONFLUENT_PREFIX + metricGroupName,
         "The status of the commandRunner thread as it processes the command topic.",
-        Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, ksqlServiceId)
+        Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId)
     );
 
     this.commandRunnerDegradedReasonMetricName = metrics.metricName(
         "degraded-reason",
         ReservedInternalTopics.CONFLUENT_PREFIX + metricGroupName,
         "The reason for why the commandRunner thread is in a DEGRADED state.",
-        Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, ksqlServiceId)
+        Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId)
     );
 
     this.metrics.addMetric(commandRunnerStatusMetricNameLegacy, (Gauge<String>)

@@ -28,7 +28,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import java.util.Map;
 
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
@@ -47,7 +47,7 @@ public class PullQueryExecutorMetricsTest {
   private static final Map<String, String> CUSTOM_TAGS = ImmutableMap
       .of("tag1", "value1", "tag2", "value2");
   private static final Map<String, String> CUSTOM_TAGS_WITH_SERVICE_ID = ImmutableMap
-          .of("tag1", "value1", "tag2", "value2", KsqlConfig.KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID);
+      .of("tag1", "value1", "tag2", "value2", KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID);
 
   @Mock
   private KsqlEngine ksqlEngine;

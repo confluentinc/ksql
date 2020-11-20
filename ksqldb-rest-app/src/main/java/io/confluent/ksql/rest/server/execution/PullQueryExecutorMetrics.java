@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -73,7 +73,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
     this.ksqlServicePrefix = ReservedInternalTopics.CONFLUENT_PREFIX;
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
-    metricsTags.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, ksqlServiceId);
+    metricsTags.put(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId);
     this.customMetricsTags = ImmutableMap.copyOf(metricsTags);
 
     this.time = Objects.requireNonNull(time, "time");

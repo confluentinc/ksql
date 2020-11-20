@@ -31,7 +31,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -74,7 +74,7 @@ public class KsqlEngineMetricsTest {
   private static final Map<String, String> CUSTOM_TAGS_WITH_SERVICE_ID = ImmutableMap.of(
       "tag1", "value1",
           "tag2", "value2",
-          KsqlConfig.KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID);
+          KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID);
 
   @Mock
   private KsqlEngine ksqlEngine;

@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
@@ -95,10 +95,10 @@ public class CommandRunnerMetricsTest {
     // new metrics with ksql service id in tags
     inOrder.verify(metrics).metricName("status", "_confluent-ksql-rest-command-runner",
         "The status of the commandRunner thread as it processes the command topic.",
-        Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID));
+        Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID));
     inOrder.verify(metrics).metricName("degraded-reason", "_confluent-ksql-rest-command-runner",
         "The reason for why the commandRunner thread is in a DEGRADED state.",
-        Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID));
+        Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID));
 
     inOrder.verify(metrics).addMetric(eq(METRIC_NAME_1_LEGACY), isA(Gauge.class));
     inOrder.verify(metrics).addMetric(eq(METRIC_NAME_2_LEGACY), isA(Gauge.class));

@@ -3,7 +3,7 @@
 **Author**: @jzaralim | 
 **Release Target**: 0.15 | 
 **Status**: In Discussion | 
-**Discussion**: _link to the design discussion PR_
+**Discussion**: https://github.com/confluentinc/ksql/pull/6649
 
 **tl;dr:** _KSQL currently converts time data into long values. This KLIP introduces a TIMESTAMP
 data type to handle time data instead._

@@ -92,20 +92,20 @@ public class LoggingHandler implements Handler<RoutingContext> {
         return;
       }
       if (rateLimitedPaths.containsKey(routingContext.request().path())) {
-        String path = routingContext.request().path();
-        double rateLimit = rateLimitedPaths.get(path);
+        final String path = routingContext.request().path();
+        final double rateLimit = rateLimitedPaths.get(path);
         rateLimiters.computeIfAbsent(path, (k) -> rateLimiterFactory.apply(rateLimit));
         if (!rateLimiters.get(path).tryAcquire()) {
           return;
         }
       }
-      long contentLength = routingContext.request().response().bytesWritten();
-      HttpVersion version = routingContext.request().version();
-      HttpMethod method = routingContext.request().method();
-      String uri = routingContext.request().uri();
-      int status = routingContext.request().response().getStatusCode();
-      String versionFormatted = "-";
-      long requestBodyLength = routingContext.request().bytesRead();
+      final long contentLength = routingContext.request().response().bytesWritten();
+      final HttpVersion version = routingContext.request().version();
+      final HttpMethod method = routingContext.request().method();
+      final String uri = routingContext.request().uri();
+      final int status = routingContext.request().response().getStatusCode();
+      final long requestBodyLength = routingContext.request().bytesRead();
+      final String versionFormatted;
       switch (version) {
         case HTTP_1_0:
           versionFormatted = "HTTP/1.0";
@@ -116,13 +116,15 @@ public class LoggingHandler implements Handler<RoutingContext> {
         case HTTP_2:
           versionFormatted = "HTTP/2.0";
           break;
+        default:
+          versionFormatted = "-";
       }
-      String name = Optional.ofNullable((ApiUser) routingContext.user())
+      final String name = Optional.ofNullable((ApiUser) routingContext.user())
           .map(u -> u.getPrincipal().getName())
           .orElse("-");
-      String userAgent = Optional.ofNullable(
+      final String userAgent = Optional.ofNullable(
           routingContext.request().getHeader(HTTP_HEADER_USER_AGENT)).orElse("-");
-      String timestamp = Utils.formatRFC1123DateTime(clock.millis());
+      final String timestamp = Utils.formatRFC1123DateTime(clock.millis());
       final String message = String.format(
           "%s - %s [%s] \"%s %s %s\" %d %d \"-\" \"%s\" %d",
           routingContext.request().remoteAddress().host(),
@@ -140,7 +142,7 @@ public class LoggingHandler implements Handler<RoutingContext> {
     routingContext.next();
   }
 
-  private void doLog(int status, String message) {
+  private void doLog(final int status, final String message) {
     if (status >= 500) {
       logger.error(message);
     } else if (status >= 400) {

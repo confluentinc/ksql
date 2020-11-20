@@ -180,7 +180,7 @@ public final class ConfigValidators {
       }
 
       final String str = (String) val;
-      Map<String, String> map = KsqlConfig.parseStringAsMap(name, str);
+      final Map<String, String> map = KsqlConfig.parseStringAsMap(name, str);
       map.forEach((k, valueStr) -> {
         try {
           Double.parseDouble(valueStr);

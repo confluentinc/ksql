@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -66,6 +67,7 @@ public class GenericKeySerDeTest {
       .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)));
   private static final WindowInfo SESSION_WND = WindowInfo
       .of(WindowType.SESSION, Optional.empty());
+  private static final ColumnName COLUMN_NAME = ColumnName.of("foo");
 
   @Mock
   private GenericSerdeFactory innerFactory;
@@ -308,6 +310,56 @@ public class GenericKeySerDeTest {
   }
 
   @Test
+  public void shouldThrowOnMapKeyColumnEvenWithFeatureFlag() {
+    // Given:
+    when(config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)).thenReturn(true);
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))),
+        SerdeFeatures.of()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Map keys, including types that contain maps, are not supported as they may lead "
+            + "to unexpected behavior due to inconsistent serialization. Key column name: `foo`. "
+            + "Column type: MAP<STRING, STRING>"));
+  }
+
+  @Test
+  public void shouldThrowOnNestedMapKeyColumnEvenWithFeatureFlag() {
+    // Given:
+    when(config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)).thenReturn(true);
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.struct()
+            .field("F", SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
+            .build())),
+        SerdeFeatures.of()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Map keys, including types that contain maps, are not supported as they may lead "
+            + "to unexpected behavior due to inconsistent serialization. Key column name: `foo`. "
+            + "Column type: STRUCT<`F` MAP<STRING, STRING>>"));
+  }
+
+  @Test
   public void shouldThrowOnStructKeyColumn() {
     // Given:
     schema = PersistenceSchema.from(
@@ -329,6 +381,7 @@ public class GenericKeySerDeTest {
 
   private static SimpleColumn column(final SqlType type) {
     final SimpleColumn column = mock(SimpleColumn.class, type.toString());
+    when(column.name()).thenReturn(COLUMN_NAME);
     when(column.type()).thenReturn(type);
     return column;
   }

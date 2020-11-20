@@ -19,9 +19,9 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.analyzer.ColumnExtractor;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;

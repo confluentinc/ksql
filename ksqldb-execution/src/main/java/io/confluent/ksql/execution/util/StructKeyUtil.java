@@ -58,7 +58,7 @@ public final class StructKeyUtil {
   }
 
   @SuppressWarnings("unchecked")
-  public static List<?> asList(final Object key) {
+  public static List<Object> asList(final Object key) {
     final Optional<Windowed<Object>> windowed = key instanceof Windowed
         ? Optional.of((Windowed<Object>) key)
         : Optional.empty();

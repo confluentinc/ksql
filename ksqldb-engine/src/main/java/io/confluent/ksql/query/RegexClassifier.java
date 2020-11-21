@@ -17,6 +17,7 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,8 +83,9 @@ public final class RegexClassifier implements QueryErrorClassifier {
   }
 
   private boolean matches(final Throwable e) {
-    return pattern.matcher(e.getClass().getName()).matches()
-        || pattern.matcher(e.getMessage()).matches();
+    final boolean clsMatches = pattern.matcher(e.getClass().getName()).matches();
+    final boolean msgMatches = e.getMessage() != null && pattern.matcher(e.getMessage()).matches();
+    return clsMatches || msgMatches;
   }
 
 }

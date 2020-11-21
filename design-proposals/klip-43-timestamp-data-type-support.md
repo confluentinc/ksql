@@ -72,7 +72,7 @@ INSERT INTO stream_name VALUES (STRINGTOTIMESTAMP("2020-11-20", "YYYY-MM-DD"));
 
 ### Serialization/Deserialization
 
-TIMESTAMPs will be handled by the Java Date type within KSQL. The corresponding Kafka Connect type is
+TIMESTAMPs will be handled by the `java.time.Instant` class within KSQL. The corresponding Kafka Connect type is
 [org.apache.kafka.connect.data.Timestamp](https://kafka.apache.org/0100/javadoc/org/apache/kafka/connect/data/Timestamp.html).
 They are represented as long types in Schema Registry, but also come with a tag indicating that it
 is a timestamp, so they should be distinguishable from long types when handling serialized values in KSQL.

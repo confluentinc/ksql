@@ -84,11 +84,15 @@ public class LoggingHandlerTest {
 
   @Test
   public void shouldProduceLog() {
+    // Given:
     when(response.getStatusCode()).thenReturn(200);
+
+    // When:
     loggingHandler.handle(routingContext);
     verify(routingContext).addEndHandler(endCallback.capture());
     endCallback.getValue().handle(null);
 
+    // Then:
     verify(logger).info(logStringCaptor.capture());
     assertThat(logStringCaptor.getValue(),
         is("123.111.222.333 - - [Sun, 12 Nov 2023 18:23:54 GMT] "
@@ -97,11 +101,15 @@ public class LoggingHandlerTest {
 
   @Test
   public void shouldProduceLog_warn() {
+    // Given:
     when(response.getStatusCode()).thenReturn(405);
+
+    // When:
     loggingHandler.handle(routingContext);
     verify(routingContext).addEndHandler(endCallback.capture());
     endCallback.getValue().handle(null);
 
+    // Then:
     verify(logger).warn(logStringCaptor.capture());
     assertThat(logStringCaptor.getValue(),
         is("123.111.222.333 - - [Sun, 12 Nov 2023 18:23:54 GMT] "
@@ -110,12 +118,15 @@ public class LoggingHandlerTest {
 
   @Test
   public void shouldSkipLog() {
+    // Given:
     when(response.getStatusCode()).thenReturn(401);
 
+    // When:
     loggingHandler.handle(routingContext);
     verify(routingContext).addEndHandler(endCallback.capture());
     endCallback.getValue().handle(null);
 
+    // Then:
     verify(logger, never()).info(any());
     verify(logger, never()).warn(any());
     verify(logger, never()).error(any());
@@ -123,8 +134,11 @@ public class LoggingHandlerTest {
 
   @Test
   public void shouldSkipRateLimited() {
+    // Given:
     when(response.getStatusCode()).thenReturn(200);
     when(rateLimiter.tryAcquire()).thenReturn(true, true, false, false);
+
+    // When:
     loggingHandler.handle(routingContext);
     loggingHandler.handle(routingContext);
     loggingHandler.handle(routingContext);
@@ -134,6 +148,7 @@ public class LoggingHandlerTest {
       handler.handle(null);
     }
 
+    // Then:
     verify(logger, times(2)).info(logStringCaptor.capture());
     for (String message : logStringCaptor.getAllValues()) {
       assertThat(message,

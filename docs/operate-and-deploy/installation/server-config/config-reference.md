@@ -617,8 +617,8 @@ might not want to show up in the logs.
 
 A list of `path:rate_limit` pairs, to limit the rate of server request
 logging.  This is useful for requests that are coming in at a high rate,
-such as for pull queries. It makes it possible to see the logs at a low rate
-of requests, but start dropping them when they go over the threshold.
+such as for pull queries. This setting enables seeing the logs when the request rate is low
+and dropping them when they go over the threshold.
 
 ksqlDB-Connect Settings
 -----------------------

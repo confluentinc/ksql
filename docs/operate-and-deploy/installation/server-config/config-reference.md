@@ -609,13 +609,13 @@ messages. By default, this property has the value `false`.
 
 ### ksql.logging.skipped.response.codes
 
-This is a comma separated list of http response codes to skip when doing
+A comma-separated list of HTTP response codes to skip when doing
 request logging. This is useful for ignoring certain 4XX errors that you
 might not want to show up in the logs.
 
 ### ksql.logging.rate.limited.request.paths
 
-This is a list of path:rate_limit pairs, to rate limit the server request
+A list of `path:rate_limit` pairs, to limit the rate of server request
 logging.  This is useful for requests that are coming in at a high rate,
 such as for pull queries. It makes it possible to see the logs at a low rate
 of requests, but start dropping them when they go over the threshold.

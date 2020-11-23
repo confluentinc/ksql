@@ -164,10 +164,12 @@ final class EngineExecutor {
           ksqlConfig,
           analysis,
           statement);
-      final HARouting routing = new HARouting(
+
+      try (HARouting routing = new HARouting(
           ksqlConfig, physicalPlan, routingFilterFactory, routingOptions, statement, serviceContext,
-          physicalPlan.getOutputSchema(), physicalPlan.getQueryId(), pullQueryMetrics);
-      return routing.handlePullQuery();
+          physicalPlan.getOutputSchema(), physicalPlan.getQueryId(), pullQueryMetrics)) {
+        return routing.handlePullQuery();
+      }
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(

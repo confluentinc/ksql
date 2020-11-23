@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nonnull;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
 public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
@@ -39,13 +38,13 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final Expression keyExpression;
   @EffectivelyImmutable
-  private final ExecutionStep<? extends KTableHolder<?>> source;
+  private final ExecutionStep<? extends KTableHolder<K>> source;
   private final Formats internalFormats;
 
   public TableSelectKey(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final
-      ExecutionStep<? extends KTableHolder<?>> source,
+      ExecutionStep<? extends KTableHolder<K>> source,
       @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
       @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression
   ) {
@@ -74,7 +73,7 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
     return keyExpression;
   }
 
-  public ExecutionStep<? extends KTableHolder<?>> getSource() {
+  public ExecutionStep<? extends KTableHolder<K>> getSource() {
     return source;
   }
 

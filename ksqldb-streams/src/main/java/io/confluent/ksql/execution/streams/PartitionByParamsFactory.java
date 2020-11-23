@@ -185,7 +185,7 @@ public final class PartitionByParamsFactory {
 
     return (oldK, row) -> {
       final Object newKey = evaluator.evaluate(oldK, row);
-      final K key = executionKeyFactory.constructKey(oldK ,keyBuilder.build(newKey, 0));
+      final K key = executionKeyFactory.constructNewKey(oldK ,keyBuilder.build(newKey, 0));
 
       if (row != null && appendNewKey) {
         row.append(newKey);

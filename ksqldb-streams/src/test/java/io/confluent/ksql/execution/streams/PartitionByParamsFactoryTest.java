@@ -416,7 +416,7 @@ public class PartitionByParamsFactoryTest {
       }
 
       @Override
-      public Struct constructKey(final Struct oldKey, final Struct newKey) {
+      public Struct constructNewKey(final Struct oldKey, final Struct newKey) {
         return newKey;
       }
     };

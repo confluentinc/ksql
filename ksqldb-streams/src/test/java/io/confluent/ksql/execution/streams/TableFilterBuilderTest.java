@@ -133,7 +133,7 @@ public class TableFilterBuilderTest {
 
     // Then:
     assertThat(result.getTable(), is(postKTable));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test

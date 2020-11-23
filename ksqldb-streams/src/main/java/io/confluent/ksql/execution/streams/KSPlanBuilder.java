@@ -280,8 +280,8 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KTableHolder<Struct> visitTableSelectKey(final TableSelectKey tableSelectKey) {
-    final KTableHolder<?> source = tableSelectKey.getSource().build(this);
+  public <K> KTableHolder<K> visitTableSelectKey(final TableSelectKey<K> tableSelectKey) {
+    final KTableHolder<K> source = tableSelectKey.getSource().build(this);
     return TableSelectKeyBuilder.build(
         source,
         tableSelectKey,
@@ -304,7 +304,7 @@ public final class KSPlanBuilder implements PlanBuilder {
         source,
         tableSuppress,
         queryBuilder,
-        source.getKeySerdeFactory()
+        source.getExecutionKeyFactory()
     );
   }
 

@@ -47,9 +47,14 @@ public interface ExecutionKeyFactory<K> {
   ExecutionKeyFactory<K> withQueryBuilder(KsqlQueryBuilder builder);
 
   /**
-   * @return a new key of type {@code K} given the struct conents of the key
+   * This method can construct a new key given the contents of the old key and the
+   * desired Struct representation of the new key. This is helpful if we intended
+   * to maintain information from the previous key (e.g. the windowing information)
+   * when constructing a new key.
+   *
+   * @return a new key of type {@code K} given the struct contents of the new key
    */
-  K constructKey(K oldKey, Struct newKey);
+  K constructNewKey(K oldKey, Struct newKey);
 
   static ExecutionKeyFactory<Struct> unwindowed(final KsqlQueryBuilder queryBuilder) {
     return new UnwindowedFactory(queryBuilder);
@@ -85,7 +90,7 @@ public interface ExecutionKeyFactory<K> {
     }
 
     @Override
-    public Struct constructKey(final Struct oldKey, final Struct newKey) {
+    public Struct constructNewKey(final Struct oldKey, final Struct newKey) {
       return newKey;
     }
   }
@@ -114,7 +119,7 @@ public interface ExecutionKeyFactory<K> {
     }
 
     @Override
-    public Windowed<Struct> constructKey(final Windowed<Struct> oldKey, final Struct newKey) {
+    public Windowed<Struct> constructNewKey(final Windowed<Struct> oldKey, final Struct newKey) {
       return new Windowed<>(newKey, oldKey.window());
     }
   }

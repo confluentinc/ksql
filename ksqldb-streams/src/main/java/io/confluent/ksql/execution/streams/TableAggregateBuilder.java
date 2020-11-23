@@ -74,7 +74,8 @@ public final class TableAggregateBuilder {
             aggregateSchema,
             aggregate.getInternalFormats(),
             queryBuilder,
-            materializedFactory
+            materializedFactory,
+            ExecutionKeyFactory.unwindowed(queryBuilder)
         );
     final KTable<Struct, GenericRow> aggregated = groupedTable.getGroupedTable().aggregate(
         aggregateParams.getInitializer(),

@@ -410,16 +410,16 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static TableSelectKey tableSelectKey(
+  public static <K> TableSelectKey<K> tableSelectKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<? extends KTableHolder<?>> source,
+      final ExecutionStep<? extends KTableHolder<K>> source,
       final Formats formats,
       final Expression fieldName
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new TableSelectKey(props, source, formats, fieldName);
+    return new TableSelectKey<>(props, source, formats, fieldName);
   }
 
   public static <K> TableSuppress<K> tableSuppress(

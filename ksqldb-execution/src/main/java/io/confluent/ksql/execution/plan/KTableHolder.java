@@ -68,7 +68,7 @@ public final class KTableHolder<K> {
     );
   }
 
-  public ExecutionKeyFactory<K> getKeySerdeFactory() {
+  public ExecutionKeyFactory<K> getExecutionKeyFactory() {
     return executionKeyFactory;
   }
 

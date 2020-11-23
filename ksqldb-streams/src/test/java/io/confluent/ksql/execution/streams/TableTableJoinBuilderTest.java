@@ -107,7 +107,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -140,7 +140,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -158,7 +158,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test

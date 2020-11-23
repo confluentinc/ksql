@@ -94,7 +94,8 @@ public final class StreamAggregateBuilder {
             aggregateSchema,
             aggregate.getInternalFormats(),
             queryBuilder,
-            materializedFactory
+            materializedFactory,
+            ExecutionKeyFactory.unwindowed(queryBuilder)
         );
 
     final KudafAggregator<Struct> aggregator = aggregateParams.getAggregator();

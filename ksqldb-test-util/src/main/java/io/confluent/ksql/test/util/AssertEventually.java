@@ -63,11 +63,33 @@ public final class AssertEventually {
       final Supplier<? extends T> actualSupplier,
       final Matcher<? super T> expected
   ) {
+    return assertThatEventually(() -> message, actualSupplier, expected);
+  }
+
+  public static <T> T assertThatEventually(
+      final Supplier<String> message,
+      final Supplier<? extends T> actualSupplier,
+      final Matcher<? super T> expected
+  ) {
     return assertThatEventually(message, actualSupplier, expected, FailOnException);
   }
 
   public static <T> T assertThatEventually(
       final String message,
+      final Supplier<? extends T> actualSupplier,
+      final Matcher<? super T> expected,
+      final ExceptionHandling exceptionHandling
+  ) {
+    return assertThatEventually(
+        () -> message,
+        actualSupplier,
+        expected,
+        exceptionHandling
+    );
+  }
+
+  public static <T> T assertThatEventually(
+      final Supplier<String> message,
       final Supplier<? extends T> actualSupplier,
       final Matcher<? super T> expected,
       final ExceptionHandling exceptionHandling
@@ -101,6 +123,24 @@ public final class AssertEventually {
       final ExceptionHandling exceptionHandling
   ) {
     return assertThatEventually(
+        () -> message,
+        actualSupplier,
+        expected,
+        timeout,
+        unit,
+        exceptionHandling
+    );
+  }
+
+  public static <T> T assertThatEventually(
+      final Supplier<String> message,
+      final Supplier<? extends T> actualSupplier,
+      final Matcher<? super T> expected,
+      final long timeout,
+      final TimeUnit unit,
+      final ExceptionHandling exceptionHandling
+  ) {
+    return assertThatEventually(
         message,
         actualSupplier,
         expected,
@@ -119,12 +159,12 @@ public final class AssertEventually {
       final long maxPausePeriodMs
   ) {
     return assertThatEventually(
-        message, actualSupplier, expected, DEFAULT_TIMEOUT_MS, MILLISECONDS,
+        () -> message, actualSupplier, expected, DEFAULT_TIMEOUT_MS, MILLISECONDS,
         initialPausePeriodMs, maxPausePeriodMs);
   }
 
   public static <T> T assertThatEventually(
-      final String message,
+      final Supplier<String> message,
       final Supplier<? extends T> actualSupplier,
       final Matcher<? super T> expected,
       final long timeout,
@@ -145,7 +185,7 @@ public final class AssertEventually {
   }
 
   public static <T> T assertThatEventually(
-      final String message,
+      final Supplier<String> message,
       final Supplier<? extends T> actualSupplier,
       final Matcher<? super T> expected,
       final long timeout,
@@ -179,7 +219,7 @@ public final class AssertEventually {
       }
 
       final T actual = actualSupplier.get();
-      assertThat(message, actual, expected);
+      assertThat(message.get(), actual, expected);
       return actual;
     } catch (final InterruptedException e) {
       throw new RuntimeException(e);

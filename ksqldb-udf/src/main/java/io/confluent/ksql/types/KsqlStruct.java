@@ -16,6 +16,7 @@
 package io.confluent.ksql.types;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.utils.DataException;
@@ -31,10 +32,11 @@ import java.util.function.BiConsumer;
  *
  * <p>Note: this is not yet a released / used feature of ksqlDB.
  */
-@EffectivelyImmutable
+@Immutable
 public final class KsqlStruct {
 
   private final SqlStruct schema;
+  @EffectivelyImmutable
   private final ImmutableList<Optional<?>> values;
 
   public static Builder builder(final SqlStruct schema) {
@@ -121,7 +123,6 @@ public final class KsqlStruct {
 
     public Builder set(final String field, final Optional<?> value) {
       final FieldInfo info = getField(field, schema);
-      info.field.type().validateValue(value.orElse(null));
       values.set(info.index, value);
       return this;
     }

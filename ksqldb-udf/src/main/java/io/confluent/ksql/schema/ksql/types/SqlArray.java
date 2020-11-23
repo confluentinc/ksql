@@ -18,12 +18,8 @@ package io.confluent.ksql.schema.ksql.types;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.JavaToSqlTypeConverter;
-import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import java.util.List;
 import java.util.Objects;
-import java.util.stream.IntStream;
 
 @Immutable
 public final class SqlArray extends SqlType {
@@ -41,31 +37,6 @@ public final class SqlArray extends SqlType {
 
   public SqlType getItemType() {
     return itemType;
-  }
-
-  @Override
-  public void validateValue(final Object value) {
-    if (value == null) {
-      return;
-    }
-
-    if (!(value instanceof List)) {
-      final SqlBaseType sqlBaseType = JavaToSqlTypeConverter.instance()
-          .toSqlType(value.getClass());
-
-      throw new DataException("Expected ARRAY, got " + sqlBaseType);
-    }
-
-    final List<?> array = (List<?>) value;
-
-    IntStream.range(0, array.size()).forEach(idx -> {
-      try {
-        final Object element = array.get(idx);
-        itemType.validateValue(element);
-      } catch (final DataException e) {
-        throw new DataException("ARRAY element " + (idx + 1) + ": " + e.getMessage(), e);
-      }
-    });
   }
 
   @Override

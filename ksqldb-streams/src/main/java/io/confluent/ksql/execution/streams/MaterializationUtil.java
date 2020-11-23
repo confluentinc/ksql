@@ -19,13 +19,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.SchemaNotSupportedException;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
 
@@ -46,12 +46,13 @@ final class MaterializationUtil {
         .getQueryContext();
   }
 
-  static Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> buildMaterialized(
+  static <K> Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> buildMaterialized(
       final ExecutionStep<?> step,
       final LogicalSchema aggregateSchema,
       final Formats formats,
       final KsqlQueryBuilder queryBuilder,
-      final MaterializedFactory materializedFactory
+      final MaterializedFactory materializedFactory,
+      final ExecutionKeyFactory<K> executionKeyFactory
   ) {
     final PhysicalSchema physicalAggregationSchema = PhysicalSchema.from(
         aggregateSchema,
@@ -61,8 +62,8 @@ final class MaterializationUtil {
 
     final QueryContext queryContext = MaterializationUtil.materializeContext(step);
 
-    final Serde<Struct> keySerde =
-        buildKeySerde(formats, queryBuilder, physicalAggregationSchema, queryContext);
+    final Serde<K> keySerde =
+        buildKeySerde(formats, physicalAggregationSchema, queryContext, executionKeyFactory);
 
     final Serde<GenericRow> valueSerde =
         buildValueSerde(formats, queryBuilder, physicalAggregationSchema, queryContext);
@@ -71,14 +72,14 @@ final class MaterializationUtil {
         .create(keySerde, valueSerde, StreamsUtil.buildOpName(queryContext));
   }
 
-  private static Serde<Struct> buildKeySerde(
+  private static <K> Serde<K> buildKeySerde(
       final Formats formats,
-      final KsqlQueryBuilder queryBuilder,
       final PhysicalSchema physicalAggregationSchema,
-      final QueryContext queryContext
+      final QueryContext queryContext,
+      final ExecutionKeyFactory<K> executionKeyFactory
   ) {
     try {
-      return queryBuilder.buildKeySerde(
+      return executionKeyFactory.buildKeySerde(
           formats.getKeyFormat(),
           physicalAggregationSchema,
           queryContext

@@ -20,10 +20,10 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
@@ -94,7 +94,8 @@ public final class StreamAggregateBuilder {
             aggregateSchema,
             aggregate.getInternalFormats(),
             queryBuilder,
-            materializedFactory
+            materializedFactory,
+            ExecutionKeyFactory.unwindowed(queryBuilder)
         );
 
     final KudafAggregator<Struct> aggregator = aggregateParams.getAggregator();
@@ -123,7 +124,7 @@ public final class StreamAggregateBuilder {
     return KTableHolder.materialized(
         result,
         resultSchema,
-        KeySerdeFactory.unwindowed(queryBuilder),
+        ExecutionKeyFactory.unwindowed(queryBuilder),
         materializationBuilder
     );
   }
@@ -206,7 +207,7 @@ public final class StreamAggregateBuilder {
     return KTableHolder.materialized(
         reduced,
         resultSchema,
-        KeySerdeFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
+        ExecutionKeyFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
         materializationBuilder
     );
   }

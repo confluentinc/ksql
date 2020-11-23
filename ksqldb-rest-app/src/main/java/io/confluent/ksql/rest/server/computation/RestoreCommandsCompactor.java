@@ -51,7 +51,7 @@ public final class RestoreCommandsCompactor {
    */
   static List<QueuedCommand> compact(final List<QueuedCommand> restoreCommands) {
     final Map<QueryId, CompactedNode> latestNodeWithId = new HashMap<>();
-    final Map<SourceName, QueryId> latestCreateAsWithId = new HashMap();
+    final Map<SourceName, QueryId> latestCreateAsWithId = new HashMap<>();
     CompactedNode current = null;
 
     for (final QueuedCommand cmd : restoreCommands) {

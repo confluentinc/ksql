@@ -243,15 +243,15 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static StreamSelectKey streamSelectKey(
+  public static <K> StreamSelectKey<K> streamSelectKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<? extends KStreamHolder<?>> source,
+      final ExecutionStep<? extends KStreamHolder<K>> source,
       final Expression fieldName
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new StreamSelectKey(props, source, fieldName);
+    return new StreamSelectKey<K>(props, source, fieldName);
   }
 
   public static <K> TableSink<K> tableSink(
@@ -410,16 +410,16 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static TableSelectKey tableSelectKey(
+  public static <K> TableSelectKey<K> tableSelectKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<? extends KTableHolder<?>> source,
+      final ExecutionStep<? extends KTableHolder<K>> source,
       final Formats formats,
       final Expression fieldName
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new TableSelectKey(props, source, formats, fieldName);
+    return new TableSelectKey<>(props, source, formats, fieldName);
   }
 
   public static <K> TableSuppress<K> tableSuppress(

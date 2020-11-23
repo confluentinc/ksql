@@ -308,7 +308,7 @@ public class StepSchemaResolverTest {
     final UnqualifiedColumnReferenceExp keyExpression =
         new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
 
-    final StreamSelectKey step = new StreamSelectKey(
+    final StreamSelectKey<Struct> step = new StreamSelectKey<>(
         PROPERTIES,
         streamSource,
         keyExpression

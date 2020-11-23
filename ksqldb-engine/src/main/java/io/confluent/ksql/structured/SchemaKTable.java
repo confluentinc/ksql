@@ -50,7 +50,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -145,9 +144,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @SuppressFBWarnings("UC_USELESS_CONDITION")
-  @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable<Struct> selectKey(
+  public SchemaKTable<K> selectKey(
       final FormatInfo valueFormat,
       final Expression keyExpression,
       final Optional<FormatInfo> forceInternalKeyFormat,
@@ -155,7 +153,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final boolean forceRepartition
   ) {
     if (!forceRepartition && repartitionNotNeeded(ImmutableList.of(keyExpression))) {
-      return (SchemaKTable<Struct>) this;
+      return this;
     }
 
     if (schema.key().size() > 1) {
@@ -183,7 +181,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
           : "";
       throw new KsqlException(errorMsg + additionalMsg);
     }
-
     final KeyFormat newKeyFormat = forceInternalKeyFormat
         .map(newFmt -> KeyFormat.of(
             newFmt,
@@ -191,7 +188,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             keyFormat.getWindowInfo()))
         .orElse(keyFormat);
 
-    final ExecutionStep<KTableHolder<Struct>> step = ExecutionStepFactory.tableSelectKey(
+    final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
         contextStacker,
         sourceTableStep,
         InternalFormats.of(newKeyFormat.getFormatInfo(), valueFormat),

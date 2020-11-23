@@ -41,11 +41,11 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory;
@@ -154,7 +154,7 @@ public class SchemaKTableTest {
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -206,7 +206,7 @@ public class SchemaKTableTest {
   private ExecutionStep buildSourceStep(final LogicalSchema schema, final KTable kTable) {
     final ExecutionStep sourceStep = Mockito.mock(ExecutionStep.class);
     when(sourceStep.build(any())).thenReturn(
-        KTableHolder.unmaterialized(kTable, schema, keySerdeFactory));
+        KTableHolder.unmaterialized(kTable, schema, executionKeyFactory));
     return sourceStep;
   }
 

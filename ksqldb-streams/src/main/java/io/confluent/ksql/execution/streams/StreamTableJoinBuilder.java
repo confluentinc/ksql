@@ -57,7 +57,7 @@ public final class StreamTableJoinBuilder {
         leftPhysicalSchema,
         stacker.push(SERDE_CTX).getQueryContext()
     );
-    final Serde<K> keySerde = left.getKeySerdeFactory().buildKeySerde(
+    final Serde<K> keySerde = left.getExecutionKeyFactory().buildKeySerde(
         leftFormats.getKeyFormat(),
         leftPhysicalSchema,
         queryContext

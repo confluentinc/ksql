@@ -23,10 +23,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
@@ -121,7 +121,7 @@ public final class SourceBuilder {
     return new KStreamHolder<>(
         kstream,
         buildSchema(source, false),
-        KeySerdeFactory.unwindowed(queryBuilder)
+        ExecutionKeyFactory.unwindowed(queryBuilder)
     );
   }
 
@@ -161,7 +161,7 @@ public final class SourceBuilder {
     return new KStreamHolder<>(
         kstream,
         buildSchema(source, true),
-        KeySerdeFactory.windowed(queryBuilder, windowInfo)
+        ExecutionKeyFactory.windowed(queryBuilder, windowInfo)
     );
   }
 
@@ -211,7 +211,7 @@ public final class SourceBuilder {
     return KTableHolder.unmaterialized(
         ktable,
         buildSchema(source, false),
-        KeySerdeFactory.unwindowed(queryBuilder)
+        ExecutionKeyFactory.unwindowed(queryBuilder)
     );
   }
 
@@ -263,7 +263,7 @@ public final class SourceBuilder {
     return KTableHolder.unmaterialized(
         ktable,
         buildSchema(source, true),
-        KeySerdeFactory.windowed(queryBuilder, windowInfo)
+        ExecutionKeyFactory.windowed(queryBuilder, windowInfo)
     );
   }
 

@@ -22,9 +22,13 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
@@ -141,7 +145,19 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final List<SimpleColumn> columns,
       final KsqlConfig config
   ) {
-    if (config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED) || columns.isEmpty()) {
+    if (columns.isEmpty()) {
+      return;
+    }
+
+    if (config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)) {
+      for (final SimpleColumn column : columns) {
+        if (containsMapType(column.type())) {
+          throw new KsqlException("Map keys, including types that contain maps, are not supported "
+              + "as they may lead to unexpected behavior due to inconsistent serialization. "
+              + "Key column name: " + column.name() + ". "
+              + "Column type: " + column.type().toString(FormatOptions.none()));
+        }
+      }
       return;
     }
 
@@ -154,6 +170,28 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     if (!(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal)) {
       throw new KsqlException("Unsupported key schema: " + columns);
     }
+  }
+
+  private static boolean containsMapType(final SqlType type) {
+    if (type instanceof SqlMap) {
+      return true;
+    }
+
+    if (type instanceof SqlPrimitiveType || type instanceof SqlDecimal) {
+      return false;
+    }
+
+    if (type instanceof SqlArray) {
+      return containsMapType(((SqlArray) type).getItemType());
+    }
+
+    if (type instanceof SqlStruct) {
+      return ((SqlStruct) type).fields().stream()
+          .map(io.confluent.ksql.schema.ksql.types.Field::type)
+          .anyMatch(GenericKeySerDe::containsMapType);
+    }
+
+    throw new IllegalStateException("Unexpected type: " + type);
   }
 
   private static Serde<Struct> toStructSerde(
